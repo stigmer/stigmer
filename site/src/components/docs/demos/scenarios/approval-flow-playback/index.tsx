@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
-import { StigmerProvider } from "@stigmer/react";
-import { createDemoClient } from "@stigmer/react/demo";
-import type { DemoScenario } from "@stigmer/react/demo";
+import { useCallback, useRef, useState } from "react";
+import { PreviewProvider } from "@scenar/preview/runtime";
 import { ScenarioPlayer, useNarrationManifest, useStepInteractions, Cursor } from "@scenar/react";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
@@ -16,8 +15,6 @@ import {
   completedExecution,
 } from "./steps";
 
-const emptyScenario: DemoScenario = { fixtures: new Map() };
-
 type ApprovalSubmitHandler = (
   toolCallId: string,
   action: ApprovalAction,
@@ -25,7 +22,6 @@ type ApprovalSubmitHandler = (
 ) => void;
 
 export function ApprovalFlowPlayback() {
-  const client = useMemo(() => createDemoClient(emptyScenario), []);
   const narrationManifest = useNarrationManifest("approval-flow-playback");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
@@ -54,7 +50,7 @@ export function ApprovalFlowPlayback() {
   });
 
   return (
-    <StigmerProvider client={client}>
+    <PreviewProvider providers={PreviewProviders}>
       <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={approvalFlowSteps}
@@ -65,7 +61,7 @@ export function ApprovalFlowPlayback() {
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
       </StigmerDemoViewport>
-    </StigmerProvider>
+    </PreviewProvider>
   );
 }
 

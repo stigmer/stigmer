@@ -1,14 +1,13 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
-import { StigmerProvider, AgentDetailView } from "@stigmer/react";
-import {
-  createDemoClient,
-  buildScenario,
-  fixtures,
-} from "@stigmer/react/demo";
+import { useCallback, useRef, useState } from "react";
+import { AgentDetailView } from "@stigmer/react";
+import { PreviewProvider } from "@scenar/preview/runtime";
+import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { ScenarioPlayer, useNarrationManifest, Cursor, useStepInteractions, CodeEditorView, TerminalView } from "@scenar/react";
 import type { FileTreeEntry } from "@scenar/react";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { connectFixture } from "../../shared/preview-helpers";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
@@ -23,6 +22,12 @@ import {
   SIMPLIFIED_CODE,
   RESULT_OUTPUT,
 } from "./steps";
+
+const demoAgent = buildDemoAgent();
+
+const previewFixtures = [
+  connectFixture(AgentQueryController, "getByReference", () => demoAgent),
+];
 
 const FILE_TREE: FileTreeEntry[] = [
   { name: "ask-agent.ts", type: "file", depth: 0 },
@@ -43,19 +48,6 @@ const FILE_TREE: FileTreeEntry[] = [
  * @stigmer/react backed by fixture data.
  */
 export function CreateAgentTour() {
-  const conversationClient = useMemo(
-    () => createDemoClient({ fixtures: new Map() }),
-    [],
-  );
-
-  const agentClient = useMemo(() => {
-    const agent = buildDemoAgent();
-    const scenario = buildScenario(
-      fixtures.agent.getByReference(() => agent),
-    );
-    return createDemoClient(scenario);
-  }, []);
-
   const narrationManifest = useNarrationManifest("create-agent-tour");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
@@ -78,37 +70,33 @@ export function CreateAgentTour() {
   });
 
   return (
-    <StigmerDemoViewport containerRef={containerRef}>
-      <ScenarioPlayer
-        steps={createAgentTourSteps}
-        narrationManifest={narrationManifest}
-        onStepChange={handleStepChange}
-      >
-        {(step) => {
-          switch (step.view) {
-            case "agent-creator-typing":
-              return (
-                <AppShell activeNav="new-session" contentKey="creator">
-                  <StigmerProvider client={conversationClient}>
+    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
+      <StigmerDemoViewport containerRef={containerRef}>
+        <ScenarioPlayer
+          steps={createAgentTourSteps}
+          narrationManifest={narrationManifest}
+          onStepChange={handleStepChange}
+        >
+          {(step) => {
+            switch (step.view) {
+              case "agent-creator-typing":
+                return (
+                  <AppShell activeNav="new-session" contentKey="creator">
                     <ComposerView
                       typingMessage="I want to create a customer support agent. It should use the return-policy skill and the order-management-api MCP server."
                     />
-                  </StigmerProvider>
-                </AppShell>
-              );
+                  </AppShell>
+                );
 
-            case "agent-created":
-              return (
-                <AppShell activeNav="new-session" contentKey="created">
-                  <StigmerProvider client={conversationClient}>
+              case "agent-created":
+                return (
+                  <AppShell activeNav="new-session" contentKey="created">
                     <ComposerView execution={step.execution} />
-                  </StigmerProvider>
-                </AppShell>
-              );
+                  </AppShell>
+                );
 
-            case "agent-config":
-              return (
-                <StigmerProvider client={agentClient}>
+              case "agent-config":
+                return (
                   <div className={DEMO_DETAIL_CLASSES}>
                     <div
                       data-scroll-container
@@ -118,34 +106,34 @@ export function CreateAgentTour() {
                       <AgentDetailView org={DEMO_ORG} slug={DEMO_SLUG} />
                     </div>
                   </div>
-                </StigmerProvider>
-              );
+                );
 
-            case "code-simplified":
-              return (
-                <CodeEditorView
-                  filename="ask-agent.ts"
-                  lines={SIMPLIFIED_CODE}
-                  highlightLines={[8, 9, 10]}
-                  fileTree={FILE_TREE}
-                  workspaceName="stigmer-quickstart"
-                  contentKey="simplified"
-                />
-              );
+              case "code-simplified":
+                return (
+                  <CodeEditorView
+                    filename="ask-agent.ts"
+                    lines={SIMPLIFIED_CODE}
+                    highlightLines={[8, 9, 10]}
+                    fileTree={FILE_TREE}
+                    workspaceName="stigmer-quickstart"
+                    contentKey="simplified"
+                  />
+                );
 
-            case "terminal-result":
-              return (
-                <TerminalView
-                  title="Terminal — zsh"
-                  cwd="~/stigmer-quickstart"
-                  lines={RESULT_OUTPUT}
-                  contentKey="result"
-                />
-              );
-          }
-        }}
-      </ScenarioPlayer>
-      <Cursor target={cursorTarget} containerRef={containerRef} />
-    </StigmerDemoViewport>
+              case "terminal-result":
+                return (
+                  <TerminalView
+                    title="Terminal — zsh"
+                    cwd="~/stigmer-quickstart"
+                    lines={RESULT_OUTPUT}
+                    contentKey="result"
+                  />
+                );
+            }
+          }}
+        </ScenarioPlayer>
+        <Cursor target={cursorTarget} containerRef={containerRef} />
+      </StigmerDemoViewport>
+    </PreviewProvider>
   );
 }

@@ -1,18 +1,17 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
-import { ArtifactPreviewContent, StigmerProvider } from "@stigmer/react";
-import {
-  createDemoClient,
-  fixtures,
-  buildScenario,
-  samples,
-} from "@stigmer/react/demo";
+import { useCallback, useRef, useState } from "react";
+import { ArtifactPreviewContent } from "@stigmer/react";
+import { samples } from "@stigmer/react/test";
+import { PreviewProvider } from "@scenar/preview/runtime";
+import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
 import { create } from "@bufbuild/protobuf";
 import { GetArtifactContentResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ScenarioPlayer, useNarrationManifest, Cursor } from "@scenar/react";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { connectFixture } from "../../shared/preview-helpers";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { ResourceListPage } from "../../views/ResourceListPage";
@@ -57,18 +56,16 @@ const ALL_AGENTS = [
 
 const yamlBytes = new TextEncoder().encode(AGENT_YAML);
 
-function buildDemoScenario() {
-  return buildScenario(
-    fixtures.agentExecution.getArtifactContent(() =>
-      create(GetArtifactContentResponseSchema, {
-        content: yamlBytes,
-        contentType: "text/yaml",
-        totalSizeBytes: BigInt(yamlBytes.length),
-        truncated: false,
-      }),
-    ),
-  );
-}
+const previewFixtures = [
+  connectFixture(AgentExecutionQueryController, "getArtifactContent", () =>
+    create(GetArtifactContentResponseSchema, {
+      content: yamlBytes,
+      contentType: "text/yaml",
+      totalSizeBytes: BigInt(yamlBytes.length),
+      truncated: false,
+    }),
+  ),
+];
 
 function contentKeyFor(step: AgentCreationStep): string {
   switch (step.view) {
@@ -253,7 +250,6 @@ function renderStep(step: AgentCreationStep) {
  * transitions, and animated cursor with click ripple.
  */
 export function AgentCreationTour() {
-  const client = useMemo(() => createDemoClient(buildDemoScenario()), []);
   const narrationManifest = useNarrationManifest("agent-creation-tour");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
@@ -263,7 +259,7 @@ export function AgentCreationTour() {
   }, []);
 
   return (
-    <StigmerProvider client={client}>
+    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
       <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={agentCreationTourSteps}
@@ -274,6 +270,6 @@ export function AgentCreationTour() {
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
       </StigmerDemoViewport>
-    </StigmerProvider>
+    </PreviewProvider>
   );
 }

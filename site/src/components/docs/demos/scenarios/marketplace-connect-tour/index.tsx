@@ -1,12 +1,10 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { StigmerProvider, McpServerDetailView } from "@stigmer/react";
-import {
-  createDemoClient,
-  buildScenario,
-  fixtures,
-} from "@stigmer/react/demo";
+import { McpServerDetailView } from "@stigmer/react";
+import { PreviewProvider } from "@scenar/preview/runtime";
+import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { create } from "@bufbuild/protobuf";
 import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -16,6 +14,8 @@ import {
   Cursor,
   useStepInteractions,
 } from "@scenar/react";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { connectFixture } from "../../shared/preview-helpers";
 import { AppShell } from "../../views/AppShell";
 import { ResourceListPage } from "../../views/ResourceListPage";
 import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
@@ -28,15 +28,6 @@ import {
 } from "./steps";
 
 const emptyEnvList = () => create(EnvironmentListSchema, {});
-
-function buildClient(server: McpServer) {
-  return createDemoClient(
-    buildScenario(
-      fixtures.mcpServer.getByReference(() => server),
-      fixtures.environment.list(emptyEnvList),
-    ),
-  );
-}
 
 function cursorTargetFor(step: MarketplaceConnectStep): string | undefined {
   switch (step.view) {
@@ -113,16 +104,15 @@ export function MarketplaceConnectTour() {
     "marketplace-connect-tour",
   );
 
-  const clientMap = useMemo(() => {
-    const map = new Map<McpServer, ReturnType<typeof buildClient>>();
-    for (const step of marketplaceConnectSteps) {
-      const data = step.data;
-      if ("server" in data && !map.has(data.server)) {
-        map.set(data.server, buildClient(data.server));
-      }
-    }
-    return map;
-  }, []);
+  const currentServerRef = useRef<McpServer>(null!);
+
+  const previewFixtures = useMemo(
+    () => [
+      connectFixture(McpServerQueryController, "getByReference", () => currentServerRef.current),
+      connectFixture(EnvironmentQueryController, "list", emptyEnvList),
+    ],
+    [],
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
@@ -145,29 +135,27 @@ export function MarketplaceConnectTour() {
   });
 
   return (
-    <StigmerDemoViewport containerRef={containerRef}>
-      <ScenarioPlayer
-        steps={marketplaceConnectSteps}
-        narrationManifest={narrationManifest}
-        onStepChange={handleStepChange}
-      >
-        {(step) => {
-          if (step.view === "grid-browse" || step.view === "grid-select") {
-            return renderGridStep(step);
-          }
+    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
+      <StigmerDemoViewport containerRef={containerRef}>
+        <ScenarioPlayer
+          steps={marketplaceConnectSteps}
+          narrationManifest={narrationManifest}
+          onStepChange={handleStepChange}
+        >
+          {(step) => {
+            if (step.view === "grid-browse" || step.view === "grid-select") {
+              return renderGridStep(step);
+            }
 
-          const client = clientMap.get(step.server)!;
-          return (
-            <AppShell
-              activeNav="library"
-              contentKey={contentKeyFor(step)}
-              slideDirection={slideDirectionFor(step)}
-            >
-              <StigmerProvider
-                key={componentKeyFor(step)}
-                client={client}
+            currentServerRef.current = step.server;
+            return (
+              <AppShell
+                activeNav="library"
+                contentKey={contentKeyFor(step)}
+                slideDirection={slideDirectionFor(step)}
               >
                 <div
+                  key={componentKeyFor(step)}
                   data-scroll-container
                   className="h-full overflow-y-auto"
                   style={{ zoom: DEMO_CONTENT_ZOOM }}
@@ -181,12 +169,12 @@ export function MarketplaceConnectTour() {
                     <div data-scroll-target="capabilities-bottom" />
                   </div>
                 </div>
-              </StigmerProvider>
-            </AppShell>
-          );
-        }}
-      </ScenarioPlayer>
-      <Cursor target={cursorTarget} containerRef={containerRef} />
-    </StigmerDemoViewport>
+              </AppShell>
+            );
+          }}
+        </ScenarioPlayer>
+        <Cursor target={cursorTarget} containerRef={containerRef} />
+      </StigmerDemoViewport>
+    </PreviewProvider>
   );
 }

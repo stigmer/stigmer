@@ -1,13 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { StigmerProvider, McpServerDetailView } from "@stigmer/react";
-import {
-  createDemoClient,
-  buildScenario,
-  fixtures,
-  samples,
-} from "@stigmer/react/demo";
+import { useCallback, useState } from "react";
+import { McpServerDetailView } from "@stigmer/react";
+import { samples } from "@stigmer/react/test";
+import { PreviewProvider } from "@scenar/preview/runtime";
+import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { create } from "@bufbuild/protobuf";
 import {
   McpServerSpecSchema,
@@ -21,6 +19,8 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { connectFixture } from "../../shared/preview-helpers";
 import { DEMO_CONTENT_ZOOM, DEMO_DETAIL_CLASSES } from "../../shared/tokens";
 
 const DEMO_ORG = "acme";
@@ -77,18 +77,12 @@ function buildDemoMcpServer() {
   return server;
 }
 
-const emptyEnvList = () => create(EnvironmentListSchema, {});
+const previewFixtures = [
+  connectFixture(McpServerQueryController, "getByReference", () => buildDemoMcpServer()),
+  connectFixture(EnvironmentQueryController, "list", () => create(EnvironmentListSchema, {})),
+];
 
 export function McpServerDetail() {
-  const client = useMemo(() => {
-    const server = buildDemoMcpServer();
-    const scenario = buildScenario(
-      fixtures.mcpServer.getByReference(() => server),
-      fixtures.environment.list(emptyEnvList),
-    );
-    return createDemoClient(scenario);
-  }, []);
-
   const [, setVisibility] = useState(ApiResourceVisibility.visibility_private);
   const handleVisibilityChange = useCallback(
     (v: ApiResourceVisibility) => setVisibility(v),
@@ -96,7 +90,7 @@ export function McpServerDetail() {
   );
 
   return (
-    <StigmerProvider client={client}>
+    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
       <div className={DEMO_DETAIL_CLASSES}>
         <div className="p-4" style={{ zoom: DEMO_CONTENT_ZOOM }}>
           <McpServerDetailView
@@ -106,6 +100,6 @@ export function McpServerDetail() {
           />
         </div>
       </div>
-    </StigmerProvider>
+    </PreviewProvider>
   );
 }

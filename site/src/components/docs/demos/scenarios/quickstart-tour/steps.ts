@@ -18,7 +18,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ApiKeysSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
-import { samples } from "@stigmer/react/demo";
+import { samples } from "@stigmer/react/test";
 import type { ScenarioStep, TerminalLine } from "@scenar/react";
 
 // ---------------------------------------------------------------------------
