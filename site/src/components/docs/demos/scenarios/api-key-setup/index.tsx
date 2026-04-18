@@ -1,15 +1,18 @@
 "use client";
 
-import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import {
   ApiKeyCreatedAlert,
   ApiKeyListPanel,
   CreateApiKeyForm,
-  StigmerProvider,
 } from "@stigmer/react";
-import { createDemoClient, fixtures, buildScenario } from "@stigmer/react/demo";
+import { PreviewProvider } from "@scenar/preview/runtime";
+import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
+import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { ScenarioPlayer, useNarrationManifest, useStepInteractions, Cursor, PulseHighlight } from "@scenar/react";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { connectFixture } from "../../shared/preview-helpers";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { DEMO_ORG } from "../../fixtures";
 import { AppShell } from "../../views/AppShell";
@@ -25,12 +28,10 @@ import {
   CREATED_RAW_KEY,
 } from "./steps";
 
-function buildDemoScenario() {
-  return buildScenario(
-    fixtures.apiKey.findAll(() => getApiKeyList()),
-    fixtures.environment.get(() => PERSONAL_ENVIRONMENT),
-  );
-}
+const previewFixtures = [
+  connectFixture(ApiKeyQueryController, "findAll", () => getApiKeyList()),
+  connectFixture(EnvironmentQueryController, "get", () => PERSONAL_ENVIRONMENT),
+];
 
 function contentKeyFor(step: ApiKeySetupStep): string {
   switch (step.view) {
@@ -211,7 +212,6 @@ function renderStep(step: ApiKeySetupStep) {
  * 4. **User menu** — popup mirrors the real Console's profile menu
  */
 export function ApiKeySetup() {
-  const client = useMemo(() => createDemoClient(buildDemoScenario()), []);
   const narrationManifest = useNarrationManifest("api-key-setup");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
@@ -236,7 +236,7 @@ export function ApiKeySetup() {
   });
 
   return (
-    <StigmerProvider client={client}>
+    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
       <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={apiKeySetupSteps}
@@ -247,6 +247,6 @@ export function ApiKeySetup() {
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} showRipple={showRipple} />
       </StigmerDemoViewport>
-    </StigmerProvider>
+    </PreviewProvider>
   );
 }

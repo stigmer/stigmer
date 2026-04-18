@@ -1,12 +1,10 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { StigmerProvider, McpServerDetailView } from "@stigmer/react";
-import {
-  createDemoClient,
-  buildScenario,
-  fixtures,
-} from "@stigmer/react/demo";
+import { McpServerDetailView } from "@stigmer/react";
+import { PreviewProvider } from "@scenar/preview/runtime";
+import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { create } from "@bufbuild/protobuf";
 import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -19,6 +17,8 @@ import {
   BrowserView,
   PulseHighlight,
 } from "@scenar/react";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { connectFixture } from "../../shared/preview-helpers";
 import { AppShell } from "../../views/AppShell";
 import { DEMO_BROWSER_ZOOM, DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
@@ -30,25 +30,7 @@ import {
   NO_ORG_OVERRIDE,
 } from "./steps";
 
-// ---------------------------------------------------------------------------
-// Demo client builder
-// ---------------------------------------------------------------------------
-
 const emptyEnvList = () => create(EnvironmentListSchema, {});
-
-function buildClient(
-  server: McpServer,
-  grant: GetOAuthGrantStatusOutput,
-) {
-  return createDemoClient(
-    buildScenario(
-      fixtures.mcpServer.getByReference(() => server),
-      fixtures.environment.list(emptyEnvList),
-      fixtures.mcpServer.getOAuthGrantStatus(() => grant),
-      fixtures.mcpServer.getOrgOAuthApp(() => NO_ORG_OVERRIDE),
-    ),
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Step helpers
@@ -219,19 +201,18 @@ function UserIcon() {
 export function OAuthConnectFlow() {
   const narrationManifest = useNarrationManifest("oauth-connect-flow");
 
-  const clientMap = useMemo(() => {
-    const map = new Map<string, ReturnType<typeof buildClient>>();
-    for (const step of oauthConnectSteps) {
-      const data = step.data;
-      if ("server" in data) {
-        const key = `${data.server.metadata?.id ?? ""}:${data.grant.connected}`;
-        if (!map.has(key)) {
-          map.set(key, buildClient(data.server, data.grant));
-        }
-      }
-    }
-    return map;
-  }, []);
+  const currentServerRef = useRef<McpServer>(null!);
+  const currentGrantRef = useRef<GetOAuthGrantStatusOutput>(null!);
+
+  const previewFixtures = useMemo(
+    () => [
+      connectFixture(McpServerQueryController, "getByReference", () => currentServerRef.current),
+      connectFixture(EnvironmentQueryController, "list", emptyEnvList),
+      connectFixture(McpServerQueryController, "getOAuthGrantStatus", () => currentGrantRef.current),
+      connectFixture(McpServerQueryController, "getOrgOAuthApp", () => NO_ORG_OVERRIDE),
+    ],
+    [],
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
@@ -254,37 +235,39 @@ export function OAuthConnectFlow() {
   });
 
   return (
-    <StigmerDemoViewport containerRef={containerRef}>
-      <ScenarioPlayer
-        steps={oauthConnectSteps}
-        narrationManifest={narrationManifest}
-        onStepChange={handleStepChange}
-      >
-        {(step) => {
-          if (step.view === "github-authorize") {
+    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
+      <StigmerDemoViewport containerRef={containerRef}>
+        <ScenarioPlayer
+          steps={oauthConnectSteps}
+          narrationManifest={narrationManifest}
+          onStepChange={handleStepChange}
+        >
+          {(step) => {
+            if (step.view === "github-authorize") {
+              return (
+                <BrowserView
+                  url="github.com/login/oauth/authorize?client_id=Iv1.abc123&scope=repo+read:org+read:user"
+                  contentKey="github-authorize"
+                  slideDirection="forward"
+                  zoom={DEMO_BROWSER_ZOOM}
+                >
+                  <GitHubAuthorizePage />
+                </BrowserView>
+              );
+            }
+
+            currentServerRef.current = step.server;
+            currentGrantRef.current = step.grant;
+            const componentKey = `${step.server.metadata?.id ?? ""}:${step.grant.connected}`;
+
             return (
-              <BrowserView
-                url="github.com/login/oauth/authorize?client_id=Iv1.abc123&scope=repo+read:org+read:user"
-                contentKey="github-authorize"
-                slideDirection="forward"
-                zoom={DEMO_BROWSER_ZOOM}
+              <AppShell
+                activeNav="library"
+                contentKey={contentKeyFor(step)}
+                slideDirection={slideDirectionFor(step)}
               >
-                <GitHubAuthorizePage />
-              </BrowserView>
-            );
-          }
-
-          const key = `${step.server.metadata?.id ?? ""}:${step.grant.connected}`;
-          const client = clientMap.get(key)!;
-
-          return (
-            <AppShell
-              activeNav="library"
-              contentKey={contentKeyFor(step)}
-              slideDirection={slideDirectionFor(step)}
-            >
-              <StigmerProvider key={key} client={client}>
                 <div
+                  key={componentKey}
                   data-scroll-container
                   className="h-full overflow-y-auto"
                   style={{ zoom: DEMO_CONTENT_ZOOM }}
@@ -298,12 +281,12 @@ export function OAuthConnectFlow() {
                     <div data-scroll-target="capabilities-bottom" />
                   </div>
                 </div>
-              </StigmerProvider>
-            </AppShell>
-          );
-        }}
-      </ScenarioPlayer>
-      <Cursor target={cursorTarget} containerRef={containerRef} />
-    </StigmerDemoViewport>
+              </AppShell>
+            );
+          }}
+        </ScenarioPlayer>
+        <Cursor target={cursorTarget} containerRef={containerRef} />
+      </StigmerDemoViewport>
+    </PreviewProvider>
   );
 }

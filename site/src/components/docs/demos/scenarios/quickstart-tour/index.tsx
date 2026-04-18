@@ -1,13 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Plus } from "lucide-react";
-import {
-  ApiKeyCreatedAlert,
-  ApiKeyListPanel,
-  StigmerProvider,
-} from "@stigmer/react";
-import { createDemoClient, fixtures, buildScenario } from "@stigmer/react/demo";
+import { ApiKeyCreatedAlert, ApiKeyListPanel } from "@stigmer/react";
+import { PreviewProvider } from "@scenar/preview/runtime";
+import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
+import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import {
   ScenarioPlayer,
   useNarrationManifest,
@@ -17,7 +15,9 @@ import {
   TerminalView,
   type FileTreeEntry,
 } from "@scenar/react";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
 import { ManagementShell } from "../../views/ManagementShell";
+import { connectFixture } from "../../shared/preview-helpers";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import {
@@ -35,12 +35,10 @@ import {
 
 const noop = () => {};
 
-function buildDemoScenario() {
-  return buildScenario(
-    fixtures.apiKey.findAll(() => getApiKeyList()),
-    fixtures.environment.get(() => PERSONAL_ENVIRONMENT),
-  );
-}
+const previewFixtures = [
+  connectFixture(ApiKeyQueryController, "findAll", () => getApiKeyList()),
+  connectFixture(EnvironmentQueryController, "get", () => PERSONAL_ENVIRONMENT),
+];
 
 // ---------------------------------------------------------------------------
 // File tree for the code editor
@@ -154,7 +152,7 @@ function renderStep(step: QuickstartTourStep) {
  * they start the step-by-step tutorial.
  */
 export function QuickstartTour() {
-  const client = useMemo(() => createDemoClient(buildDemoScenario()), []);
+  // fixtures are module-level constants — stable reference, no useMemo needed
   const narrationManifest = useNarrationManifest("quickstart-tour");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
@@ -177,7 +175,7 @@ export function QuickstartTour() {
   });
 
   return (
-    <StigmerProvider client={client}>
+    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
       <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={quickstartTourSteps}
@@ -188,6 +186,6 @@ export function QuickstartTour() {
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
       </StigmerDemoViewport>
-    </StigmerProvider>
+    </PreviewProvider>
   );
 }

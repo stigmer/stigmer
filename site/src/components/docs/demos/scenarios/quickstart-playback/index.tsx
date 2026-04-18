@@ -1,17 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
-import { StigmerProvider } from "@stigmer/react";
-import { createDemoClient } from "@stigmer/react/demo";
-import type { DemoScenario } from "@stigmer/react/demo";
+import { PreviewProvider } from "@scenar/preview/runtime";
 import { ScenarioPlayer, useNarrationManifest } from "@scenar/react";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { type QuickstartStep, quickstartPlaybackSteps } from "./steps";
-
-const emptyScenario: DemoScenario = { fixtures: new Map() };
 
 function renderStep(step: QuickstartStep) {
   switch (step.view) {
@@ -55,11 +51,10 @@ function renderStep(step: QuickstartStep) {
  * backend required.
  */
 export function QuickstartPlayback() {
-  const client = useMemo(() => createDemoClient(emptyScenario), []);
   const narrationManifest = useNarrationManifest("quickstart-playback");
 
   return (
-    <StigmerProvider client={client}>
+    <PreviewProvider providers={PreviewProviders}>
       <StigmerDemoViewport>
         <ScenarioPlayer
           steps={quickstartPlaybackSteps}
@@ -68,6 +63,6 @@ export function QuickstartPlayback() {
           {(step) => renderStep(step)}
         </ScenarioPlayer>
       </StigmerDemoViewport>
-    </StigmerProvider>
+    </PreviewProvider>
   );
 }

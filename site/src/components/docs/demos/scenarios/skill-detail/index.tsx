@@ -1,13 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
-import { StigmerProvider, SkillDetailView } from "@stigmer/react";
-import {
-  createDemoClient,
-  buildScenario,
-  fixtures,
-  samples,
-} from "@stigmer/react/demo";
+import { SkillDetailView } from "@stigmer/react";
+import { samples } from "@stigmer/react/test";
+import { PreviewProvider } from "@scenar/preview/runtime";
+import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { connectFixture } from "../../shared/preview-helpers";
 import { DEMO_DETAIL_CLASSES } from "../../shared/tokens";
 
 const DEMO_ORG = "acme";
@@ -44,29 +42,26 @@ The following items cannot be returned:
 - Warranty claims follow the manufacturer's policy, not this return policy
 `;
 
+const demoSkill = samples.skill({
+  name: "return-policy",
+  org: DEMO_ORG,
+  description:
+    "Acme Corp return and refund policy. Use when customers ask about returns, exchanges, refunds, or warranty claims.",
+  skillMd: SKILL_MD,
+});
+
+const previewFixtures = [
+  connectFixture(SkillQueryController, "getByReference", () => demoSkill),
+];
+
 export function SkillDetail() {
-  const client = useMemo(() => {
-    const skill = samples.skill({
-      name: "return-policy",
-      org: DEMO_ORG,
-      description:
-        "Acme Corp return and refund policy. Use when customers ask about returns, exchanges, refunds, or warranty claims.",
-      skillMd: SKILL_MD,
-    });
-
-    const scenario = buildScenario(
-      fixtures.skill.getByReference(() => skill),
-    );
-    return createDemoClient(scenario);
-  }, []);
-
   return (
-    <StigmerProvider client={client}>
+    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
       <div className={DEMO_DETAIL_CLASSES}>
         <div className="p-4">
           <SkillDetailView org={DEMO_ORG} slug="return-policy" />
         </div>
       </div>
-    </StigmerProvider>
+    </PreviewProvider>
   );
 }

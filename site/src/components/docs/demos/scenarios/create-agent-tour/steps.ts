@@ -22,7 +22,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import {
   EnvVarDeclarationSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
-import { samples } from "@stigmer/react/demo";
+import { samples } from "@stigmer/react/test";
 import type { ScenarioStep, TerminalLine } from "@scenar/react";
 import { snapshot } from "../../fixtures";
 

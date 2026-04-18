@@ -171,7 +171,7 @@ export interface SearchResultOverrides {
  *
  * @example
  * ```ts
- * import { samples, fixtures, buildScenario } from "@stigmer/react/demo";
+ * import { samples } from "@stigmer/react/test";
  *
  * const scenario = buildScenario(
  *   fixtures.session.get(() => samples.session({ subject: "My topic" })),

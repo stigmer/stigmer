@@ -3,7 +3,7 @@ import { ExecutionPhase, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agent
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { samples } from "@stigmer/react/demo";
+import { samples } from "@stigmer/react/test";
 import type { ScenarioStep } from "@scenar/react";
 import { snapshot } from "../../fixtures";
 

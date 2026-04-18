@@ -30,7 +30,7 @@ import {
   EnvVarDeclarationSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { samples } from "@stigmer/react/demo";
+import { samples } from "@stigmer/react/test";
 import type { ScenarioStep, TerminalLine } from "@scenar/react";
 import { snapshot } from "../../fixtures";
 

@@ -6,7 +6,7 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import type { UseWorkspaceEntriesReturn } from "@stigmer/react";
-import { samples } from "@stigmer/react/demo";
+import { samples } from "@stigmer/react/test";
 
 export const DEMO_ORG = "demo-org";
 

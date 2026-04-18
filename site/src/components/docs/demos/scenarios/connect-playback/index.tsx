@@ -1,17 +1,17 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { StigmerProvider, McpServerDetailView } from "@stigmer/react";
-import {
-  createDemoClient,
-  buildScenario,
-  fixtures,
-} from "@stigmer/react/demo";
+import { McpServerDetailView } from "@stigmer/react";
+import { PreviewProvider } from "@scenar/preview/runtime";
+import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { create } from "@bufbuild/protobuf";
 import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { EnvVarInput } from "@stigmer/sdk";
 import { ScenarioPlayer, useNarrationManifest, Cursor } from "@scenar/react";
+import { PreviewProviders } from "../../../../../../.scenar/providers";
+import { connectFixture } from "../../shared/preview-helpers";
 import { AppShell } from "../../views/AppShell";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
@@ -23,15 +23,6 @@ import {
 } from "./steps";
 
 const emptyEnvList = () => create(EnvironmentListSchema, {});
-
-function buildClient(server: McpServer) {
-  return createDemoClient(
-    buildScenario(
-      fixtures.mcpServer.getByReference(() => server),
-      fixtures.environment.list(emptyEnvList),
-    ),
-  );
-}
 
 const CREDENTIAL_POOL: Record<string, EnvVarInput> = {
   API_KEY: {
@@ -90,15 +81,15 @@ function componentKeyFor(step: ConnectStep): string {
 
 export function ConnectPlayback() {
   const narrationManifest = useNarrationManifest("connect-playback");
-  const clientMap = useMemo(() => {
-    const map = new Map<McpServer, ReturnType<typeof buildClient>>();
-    for (const step of connectSteps) {
-      if (!map.has(step.data.server)) {
-        map.set(step.data.server, buildClient(step.data.server));
-      }
-    }
-    return map;
-  }, []);
+  const currentServerRef = useRef<McpServer>(connectSteps[0].data.server);
+
+  const previewFixtures = useMemo(
+    () => [
+      connectFixture(McpServerQueryController, "getByReference", () => currentServerRef.current),
+      connectFixture(EnvironmentQueryController, "list", emptyEnvList),
+    ],
+    [],
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
@@ -108,42 +99,43 @@ export function ConnectPlayback() {
   }, []);
 
   return (
-    <StigmerDemoViewport containerRef={containerRef}>
-      <ScenarioPlayer
-        steps={connectSteps}
-        narrationManifest={narrationManifest}
-        onStepChange={handleStepChange}
-      >
-        {(step) => (
-          <AppShell activeNav="library" contentKey="mcp-detail">
-            <StigmerProvider
-              key={componentKeyFor(step)}
-              client={clientMap.get(step.server)!}
-            >
-              <div
-                data-scroll-container
-                className="h-full overflow-y-auto"
-                style={{ zoom: DEMO_CONTENT_ZOOM }}
-              >
-                <div className="p-4">
-                  <McpServerDetailView
-                    org={DEMO_ORG}
-                    slug={DEMO_SLUG}
-                    defaultShowCredentialForm={showCredentialFormFor(step)}
-                    defaultCapabilityTab={defaultTabFor(step)}
-                    credentialPoolValues={
-                      step.view === "credential-filled"
-                        ? credentialPoolLookup
-                        : undefined
-                    }
-                  />
+    <PreviewProvider providers={PreviewProviders} fixtures={previewFixtures}>
+      <StigmerDemoViewport containerRef={containerRef}>
+        <ScenarioPlayer
+          steps={connectSteps}
+          narrationManifest={narrationManifest}
+          onStepChange={handleStepChange}
+        >
+          {(step) => {
+            currentServerRef.current = step.server;
+            return (
+              <AppShell activeNav="library" contentKey="mcp-detail">
+                <div
+                  key={componentKeyFor(step)}
+                  data-scroll-container
+                  className="h-full overflow-y-auto"
+                  style={{ zoom: DEMO_CONTENT_ZOOM }}
+                >
+                  <div className="p-4">
+                    <McpServerDetailView
+                      org={DEMO_ORG}
+                      slug={DEMO_SLUG}
+                      defaultShowCredentialForm={showCredentialFormFor(step)}
+                      defaultCapabilityTab={defaultTabFor(step)}
+                      credentialPoolValues={
+                        step.view === "credential-filled"
+                          ? credentialPoolLookup
+                          : undefined
+                      }
+                    />
+                  </div>
                 </div>
-              </div>
-            </StigmerProvider>
-          </AppShell>
-        )}
-      </ScenarioPlayer>
-      <Cursor target={cursorTarget} containerRef={containerRef} />
-    </StigmerDemoViewport>
+              </AppShell>
+            );
+          }}
+        </ScenarioPlayer>
+        <Cursor target={cursorTarget} containerRef={containerRef} />
+      </StigmerDemoViewport>
+    </PreviewProvider>
   );
 }
