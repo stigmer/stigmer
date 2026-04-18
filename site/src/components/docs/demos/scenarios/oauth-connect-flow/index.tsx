@@ -18,7 +18,7 @@ import {
   PulseHighlight,
 } from "@scenar/react";
 import { PreviewProviders } from "../../../../../../.scenar/providers";
-import { connectFixture } from "../../shared/preview-helpers";
+import { connectFixture } from "@scenar/preview/connect";
 import { AppShell } from "../../views/AppShell";
 import { DEMO_BROWSER_ZOOM, DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";

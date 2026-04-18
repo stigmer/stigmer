@@ -10,7 +10,7 @@ import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/a
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { PreviewProviders } from "../../../../../../.scenar/providers";
-import { connectFixture } from "../../shared/preview-helpers";
+import { connectFixture } from "@scenar/preview/connect";
 import { DEMO_DETAIL_CLASSES } from "../../shared/tokens";
 
 const DEMO_ORG = "acme";

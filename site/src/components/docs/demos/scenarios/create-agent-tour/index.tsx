@@ -7,7 +7,7 @@ import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v
 import { ScenarioPlayer, useNarrationManifest, Cursor, useStepInteractions, CodeEditorView, TerminalView } from "@scenar/react";
 import type { FileTreeEntry } from "@scenar/react";
 import { PreviewProviders } from "../../../../../../.scenar/providers";
-import { connectFixture } from "../../shared/preview-helpers";
+import { connectFixture } from "@scenar/preview/connect";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";

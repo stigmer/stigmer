@@ -16,7 +16,7 @@ import {
   useStepInteractions,
 } from "@scenar/react";
 import { PreviewProviders } from "../../../../../../.scenar/providers";
-import { connectFixture } from "../../shared/preview-helpers";
+import { connectFixture } from "@scenar/preview/connect";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { ResourceListPage } from "../../views/ResourceListPage";

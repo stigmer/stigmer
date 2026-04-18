@@ -12,7 +12,7 @@ import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { ScenarioPlayer, useNarrationManifest, useStepInteractions, Cursor, PulseHighlight } from "@scenar/react";
 import { PreviewProviders } from "../../../../../../.scenar/providers";
-import { connectFixture } from "../../shared/preview-helpers";
+import { connectFixture } from "@scenar/preview/connect";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { DEMO_ORG } from "../../fixtures";
 import { AppShell } from "../../views/AppShell";

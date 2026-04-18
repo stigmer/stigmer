@@ -14,7 +14,7 @@ import type {
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { ScenarioPlayer, useNarrationManifest, Cursor, useStepInteractions, PulseHighlight } from "@scenar/react";
 import { PreviewProviders } from "../../../../../../.scenar/providers";
-import { connectFixture } from "../../shared/preview-helpers";
+import { connectFixture } from "@scenar/preview/connect";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { AppShell } from "../../views/AppShell";
 import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
