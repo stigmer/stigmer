@@ -11,7 +11,7 @@ import {
   Settings,
   User,
 } from "lucide-react";
-import { PulseHighlight } from "../shared/PulseHighlight";
+import { PulseHighlight } from "@scenar/react";
 import {
   DEMO_SHELL_HEIGHT,
   DEMO_SHELL_HEIGHT_MIN,
@@ -76,7 +76,7 @@ export function AppShell({
     <div
       className="stgm flex overflow-hidden rounded-lg border border-border bg-card"
       style={{
-        height: `var(--demo-shell-height, clamp(${DEMO_SHELL_HEIGHT_MIN}px, 55vh, ${DEMO_SHELL_HEIGHT}px))`,
+        height: `var(--scenar-shell-height, clamp(${DEMO_SHELL_HEIGHT_MIN}px, 55vh, ${DEMO_SHELL_HEIGHT}px))`,
       }}
     >
       {/* Nav sidebar */}

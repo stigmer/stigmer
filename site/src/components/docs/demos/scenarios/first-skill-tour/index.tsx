@@ -4,19 +4,19 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { StigmerProvider } from "@stigmer/react";
 import { createDemoClient } from "@stigmer/react/demo";
 import type { DemoScenario } from "@stigmer/react/demo";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
 import {
-  type StepInteractions,
+  ScenarioPlayer,
+  useNarrationManifest,
+  Cursor,
   useStepInteractions,
-} from "../../engine/useStepInteractions";
+  CodeEditorView,
+  type FileTreeEntry,
+  TerminalView,
+} from "@scenar/react";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
-import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
-import { TerminalView } from "../../views/TerminalView";
-import { DemoViewport } from "../../engine/DemoViewport";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import {
   type FirstSkillTourStep,
   firstSkillTourSteps,
@@ -84,12 +84,6 @@ function renderStep(step: FirstSkillTourStep) {
 }
 
 // ---------------------------------------------------------------------------
-// Mid-step interactions
-// ---------------------------------------------------------------------------
-
-const INTERACTIONS: StepInteractions = {};
-
-// ---------------------------------------------------------------------------
 // Exported component
 // ---------------------------------------------------------------------------
 
@@ -116,7 +110,6 @@ export function FirstSkillTour() {
 
   useStepInteractions({
     stepIndex,
-    interactions: INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -125,7 +118,7 @@ export function FirstSkillTour() {
 
   return (
     <StigmerProvider client={client}>
-      <DemoViewport containerRef={containerRef}>
+      <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={firstSkillTourSteps}
           narrationManifest={narrationManifest}
@@ -134,7 +127,7 @@ export function FirstSkillTour() {
           {(step) => renderStep(step)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
-      </DemoViewport>
+      </StigmerDemoViewport>
     </StigmerProvider>
   );
 }

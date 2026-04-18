@@ -2,19 +2,10 @@
 
 import { useCallback, useRef, useState } from "react";
 import { Check } from "lucide-react";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
-import {
-  type StepInteractions,
-  useStepInteractions,
-} from "../../engine/useStepInteractions";
-import { BrowserView } from "../../views/BrowserView";
-import { TerminalView } from "../../views/TerminalView";
+import { ScenarioPlayer, useNarrationManifest, Cursor, useStepInteractions, BrowserView, TerminalView, PulseHighlight } from "@scenar/react";
 import { APIExchangeView } from "../../views/APIExchangeView";
-import { PulseHighlight } from "../../shared/PulseHighlight";
 import { DEMO_BROWSER_ZOOM } from "../../shared/tokens";
-import { DemoViewport } from "../../engine/DemoViewport";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import {
   type AuthFlowStep,
   authFlowSteps,
@@ -26,28 +17,6 @@ import {
   RESOLVE_CHECKS,
   RESOLVE_RESULT,
 } from "./steps";
-
-// ---------------------------------------------------------------------------
-// Mid-step interactions (cursor walks through validation checks)
-// ---------------------------------------------------------------------------
-
-const AUTH_INTERACTIONS: StepInteractions = {
-  // Step 3: validate-token — cursor moves through each check
-  3: [
-    { atPercent: 0.15, type: "set-cursor", target: "check-0" },
-    { atPercent: 0.35, type: "set-cursor", target: "check-1" },
-    { atPercent: 0.55, type: "set-cursor", target: "check-2" },
-    { atPercent: 0.75, type: "set-cursor", target: "check-3" },
-    { atPercent: 0.92, type: "clear-cursor" },
-  ],
-  // Step 4: resolve-authorize — cursor moves through resolve + JIT checks
-  4: [
-    { atPercent: 0.15, type: "set-cursor", target: "check-0" },
-    { atPercent: 0.4, type: "set-cursor", target: "check-1" },
-    { atPercent: 0.65, type: "set-cursor", target: "check-2" },
-    { atPercent: 0.85, type: "clear-cursor" },
-  ],
-};
 
 // ---------------------------------------------------------------------------
 // Cursor targets
@@ -282,7 +251,6 @@ export function AuthenticationFlowPlayback() {
 
   useStepInteractions({
     stepIndex,
-    interactions: AUTH_INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -290,7 +258,7 @@ export function AuthenticationFlowPlayback() {
   });
 
   return (
-    <DemoViewport containerRef={containerRef}>
+    <StigmerDemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={authFlowSteps}
         narrationManifest={narrationManifest}
@@ -299,6 +267,6 @@ export function AuthenticationFlowPlayback() {
         {(step) => renderStep(step)}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </DemoViewport>
+    </StigmerDemoViewport>
   );
 }

@@ -7,18 +7,11 @@ import {
   buildScenario,
   fixtures,
 } from "@stigmer/react/demo";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
-import {
-  type StepInteractions,
-  useStepInteractions,
-} from "../../engine/useStepInteractions";
+import { ScenarioPlayer, useNarrationManifest, Cursor, useStepInteractions, CodeEditorView, TerminalView } from "@scenar/react";
+import type { FileTreeEntry } from "@scenar/react";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
-import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
-import { TerminalView } from "../../views/TerminalView";
-import { DemoViewport } from "../../engine/DemoViewport";
 import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import { DEMO_DETAIL_CLASSES } from "../../shared/tokens";
 import {
@@ -36,12 +29,6 @@ const FILE_TREE: FileTreeEntry[] = [
   { name: "package.json", type: "file", depth: 0 },
   { name: "tsconfig.json", type: "file", depth: 0 },
 ];
-
-// ---------------------------------------------------------------------------
-// Mid-step interactions
-// ---------------------------------------------------------------------------
-
-const INTERACTIONS: StepInteractions = {};
 
 // ---------------------------------------------------------------------------
 // Exported component
@@ -84,7 +71,6 @@ export function CreateAgentTour() {
 
   useStepInteractions({
     stepIndex,
-    interactions: INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -92,7 +78,7 @@ export function CreateAgentTour() {
   });
 
   return (
-    <DemoViewport containerRef={containerRef}>
+    <StigmerDemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={createAgentTourSteps}
         narrationManifest={narrationManifest}
@@ -160,6 +146,6 @@ export function CreateAgentTour() {
         }}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </DemoViewport>
+    </StigmerDemoViewport>
   );
 }

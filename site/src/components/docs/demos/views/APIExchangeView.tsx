@@ -66,7 +66,7 @@ export function APIExchangeView({
     <div
       className="flex flex-col overflow-hidden rounded-lg border border-border"
       style={{
-        height: `var(--demo-shell-height, clamp(${DEMO_SHELL_HEIGHT_MIN}px, 55vh, ${DEMO_SHELL_HEIGHT}px))`,
+        height: `var(--scenar-shell-height, clamp(${DEMO_SHELL_HEIGHT_MIN}px, 55vh, ${DEMO_SHELL_HEIGHT}px))`,
       }}
     >
       {/* DevTools header bar */}

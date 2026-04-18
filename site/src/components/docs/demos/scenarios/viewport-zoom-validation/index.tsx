@@ -1,21 +1,20 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useStepInteractions } from "../../engine/useStepInteractions";
-import { Cursor } from "../../engine/Cursor";
-import { DemoViewport } from "../../engine/DemoViewport";
 import {
+  ScenarioPlayer,
+  useStepInteractions,
+  Cursor,
   ViewportTransformLayer,
   VIEWPORT_TRANSFORM_IDENTITY,
   type ViewportTransform,
-} from "../../engine/ViewportTransformLayer";
+} from "@scenar/react";
 import { DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import {
   type MetricCard,
   type ViewportZoomStep,
   METRICS,
-  VIEWPORT_INTERACTIONS,
   viewportZoomSteps,
 } from "./steps";
 
@@ -111,7 +110,6 @@ export function ViewportZoomValidation() {
 
   useStepInteractions({
     stepIndex,
-    interactions: VIEWPORT_INTERACTIONS,
     narrationManifest: undefined,
     containerRef,
     setCursorTarget,
@@ -120,18 +118,16 @@ export function ViewportZoomValidation() {
   });
 
   return (
-    <div className={DEMO_PLAYER_CLASSES}>
-      <DemoViewport containerRef={containerRef}>
-        <ViewportTransformLayer transform={viewportTransform}>
-          <ScenarioPlayer
-            steps={viewportZoomSteps}
-            onStepChange={handleStepChange}
-          >
-            {() => <Dashboard />}
-          </ScenarioPlayer>
-        </ViewportTransformLayer>
-        <Cursor target={cursorTarget} containerRef={containerRef} />
-      </DemoViewport>
-    </div>
+    <StigmerDemoViewport containerRef={containerRef}>
+      <ViewportTransformLayer transform={viewportTransform}>
+        <ScenarioPlayer
+          steps={viewportZoomSteps}
+          onStepChange={handleStepChange}
+        >
+          {() => <Dashboard />}
+        </ScenarioPlayer>
+      </ViewportTransformLayer>
+      <Cursor target={cursorTarget} containerRef={containerRef} />
+    </StigmerDemoViewport>
   );
 }

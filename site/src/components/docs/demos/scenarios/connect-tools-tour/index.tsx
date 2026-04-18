@@ -10,19 +10,12 @@ import {
 import { create } from "@bufbuild/protobuf";
 import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
-import {
-  type StepInteractions,
-  useStepInteractions,
-} from "../../engine/useStepInteractions";
+import { ScenarioPlayer, useNarrationManifest, Cursor, useStepInteractions, CodeEditorView, TerminalView } from "@scenar/react";
+import type { FileTreeEntry } from "@scenar/react";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
-import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
-import { TerminalView } from "../../views/TerminalView";
-import { DemoViewport } from "../../engine/DemoViewport";
 import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import {
   type ConnectToolsTourStep,
@@ -94,16 +87,6 @@ function renderMcpDetailStep(
 }
 
 // ---------------------------------------------------------------------------
-// Mid-step interactions
-// ---------------------------------------------------------------------------
-
-const INTERACTIONS: StepInteractions = {
-  0: [
-    { atPercent: 0.25, type: "scroll-to", target: "capabilities-bottom" },
-  ],
-};
-
-// ---------------------------------------------------------------------------
 // Exported component
 // ---------------------------------------------------------------------------
 
@@ -141,7 +124,6 @@ export function ConnectToolsTour() {
 
   useStepInteractions({
     stepIndex,
-    interactions: INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -149,7 +131,7 @@ export function ConnectToolsTour() {
   });
 
   return (
-    <DemoViewport containerRef={containerRef}>
+    <StigmerDemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={connectToolsTourSteps}
         narrationManifest={narrationManifest}
@@ -214,6 +196,6 @@ export function ConnectToolsTour() {
         }}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </DemoViewport>
+    </StigmerDemoViewport>
   );
 }

@@ -8,17 +8,17 @@ import {
   StigmerProvider,
 } from "@stigmer/react";
 import { createDemoClient, fixtures, buildScenario } from "@stigmer/react/demo";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
 import {
-  type StepInteractions,
+  ScenarioPlayer,
+  useNarrationManifest,
+  Cursor,
   useStepInteractions,
-} from "../../engine/useStepInteractions";
-import { CodeEditorView, type FileTreeEntry } from "../../views/CodeEditorView";
-import { TerminalView } from "../../views/TerminalView";
+  CodeEditorView,
+  TerminalView,
+  type FileTreeEntry,
+} from "@scenar/react";
 import { ManagementShell } from "../../views/ManagementShell";
-import { DemoViewport } from "../../engine/DemoViewport";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import {
   type QuickstartTourStep,
@@ -142,19 +142,6 @@ function renderStep(step: QuickstartTourStep) {
 }
 
 // ---------------------------------------------------------------------------
-// Mid-step interactions
-// ---------------------------------------------------------------------------
-
-const INTERACTIONS: StepInteractions = {
-  0: [
-    { atPercent: 0.5, type: "set-cursor", target: "copy-key" },
-  ],
-  1: [
-    { atPercent: 0.0, type: "clear-cursor" },
-  ],
-};
-
-// ---------------------------------------------------------------------------
 // Exported component
 // ---------------------------------------------------------------------------
 
@@ -183,7 +170,6 @@ export function QuickstartTour() {
 
   useStepInteractions({
     stepIndex,
-    interactions: INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -192,7 +178,7 @@ export function QuickstartTour() {
 
   return (
     <StigmerProvider client={client}>
-      <DemoViewport containerRef={containerRef}>
+      <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={quickstartTourSteps}
           narrationManifest={narrationManifest}
@@ -201,7 +187,7 @@ export function QuickstartTour() {
           {(step) => renderStep(step)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
-      </DemoViewport>
+      </StigmerDemoViewport>
     </StigmerProvider>
   );
 }

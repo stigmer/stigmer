@@ -40,7 +40,7 @@ import type {
   GetOAuthGrantStatusOutput,
   GetOrgOAuthAppOutput,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
+import type { ScenarioStep } from "@scenar/react";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -238,6 +238,9 @@ export const byoaSetupSteps: ScenarioStep<ByoaSetupStep>[] = [
       "Slack's OAuth sign-in is pending vendor approval",
     narration:
       "This MCP server uses vendor OAuth, but the platform's OAuth app is still waiting for Slack's marketplace approval. The sign-in button is disabled.",
+    interactions: [
+      { atPercent: 0.4, type: "scroll_to", target: "capabilities-bottom" },
+    ],
   },
   {
     delayMs: 3500,
@@ -260,6 +263,11 @@ export const byoaSetupSteps: ScenarioStep<ByoaSetupStep>[] = [
     caption: "Enter your Slack app's client ID and secret",
     narration:
       "Register an OAuth app with Slack, then enter your client credentials here. Stigmer clones the endpoint URLs and scopes from the platform template — you only provide the client ID and secret.",
+    interactions: [
+      { atPercent: 0.4, type: "set_cursor", target: "byoa-client-id" },
+      { atPercent: 0.65, type: "set_cursor", target: "byoa-client-secret" },
+      { atPercent: 0.9, type: "clear_cursor" },
+    ],
   },
   {
     delayMs: 3500,
@@ -282,6 +290,9 @@ export const byoaSetupSteps: ScenarioStep<ByoaSetupStep>[] = [
     caption: "\"Using your OAuth app\" — sign-in is now enabled",
     narration:
       "Your Organization's OAuth app replaces the platform default. The status shows \"Using your OAuth app\" and sign-in is enabled with your own credentials.",
+    interactions: [
+      { atPercent: 0.3, type: "scroll_to", target: "capabilities-bottom" },
+    ],
   },
   {
     delayMs: 3500,
@@ -294,5 +305,8 @@ export const byoaSetupSteps: ScenarioStep<ByoaSetupStep>[] = [
     caption: "Connected — 5 tools discovered, 2 approval policies classified",
     narration:
       "After signing in with your own app, Stigmer connects to Slack, discovers its tools, and classifies approval policies. Read-only operations like searching and listing pass through automatically.",
+    interactions: [
+      { atPercent: 0.35, type: "scroll_to", target: "capabilities-bottom" },
+    ],
   },
 ];

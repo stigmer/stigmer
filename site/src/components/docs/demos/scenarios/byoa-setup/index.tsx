@@ -14,16 +14,9 @@ import type {
   GetOAuthGrantStatusOutput,
   GetOrgOAuthAppOutput,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
+import { ScenarioPlayer, useNarrationManifest, Cursor, useStepInteractions, PulseHighlight } from "@scenar/react";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { AppShell } from "../../views/AppShell";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
-import {
-  type StepInteractions,
-  useStepInteractions,
-} from "../../engine/useStepInteractions";
-import { PulseHighlight } from "../../shared/PulseHighlight";
-import { DemoViewport } from "../../engine/DemoViewport";
 import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import {
   type ByoaSetupStep,
@@ -192,27 +185,6 @@ function ExternalLinkIcon() {
 }
 
 // ---------------------------------------------------------------------------
-// Mid-step interactions
-// ---------------------------------------------------------------------------
-
-const INTERACTIONS: StepInteractions = {
-  0: [
-    { atPercent: 0.4, type: "scroll-to", target: "capabilities-bottom" },
-  ],
-  2: [
-    { atPercent: 0.4, type: "set-cursor", target: "byoa-client-id" },
-    { atPercent: 0.65, type: "set-cursor", target: "byoa-client-secret" },
-    { atPercent: 0.9, type: "clear-cursor" },
-  ],
-  4: [
-    { atPercent: 0.3, type: "scroll-to", target: "capabilities-bottom" },
-  ],
-  5: [
-    { atPercent: 0.35, type: "scroll-to", target: "capabilities-bottom" },
-  ],
-};
-
-// ---------------------------------------------------------------------------
 // Exported component
 // ---------------------------------------------------------------------------
 
@@ -253,7 +225,6 @@ export function ByoaSetup() {
 
   useStepInteractions({
     stepIndex,
-    interactions: INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -261,7 +232,7 @@ export function ByoaSetup() {
   });
 
   return (
-    <DemoViewport containerRef={containerRef}>
+    <StigmerDemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={byoaSetupSteps}
         narrationManifest={narrationManifest}
@@ -330,6 +301,6 @@ export function ByoaSetup() {
         }}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </DemoViewport>
+    </StigmerDemoViewport>
   );
 }

@@ -31,9 +31,8 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { samples } from "@stigmer/react/demo";
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
-import type { TerminalLine } from "../../views/TerminalView";
-import { snapshot } from "../../engine/shared";
+import type { ScenarioStep, TerminalLine } from "@scenar/react";
+import { snapshot } from "../../fixtures";
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -236,6 +235,9 @@ export const connectToolsTourSteps: ScenarioStep<ConnectToolsTourStep>[] = [
     caption: "Connect — tools discovered, policies classified",
     narration:
       "One click connects to the MCP server, discovers three tools, and classifies each one. Read operations pass through. The process return tool requires human approval.",
+    interactions: [
+      { atPercent: 0.25, type: "scroll_to", target: "capabilities-bottom" },
+    ],
   },
   {
     delayMs: 3500,

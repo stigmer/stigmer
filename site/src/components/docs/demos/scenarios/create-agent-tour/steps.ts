@@ -23,9 +23,8 @@ import {
   EnvVarDeclarationSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { samples } from "@stigmer/react/demo";
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
-import type { TerminalLine } from "../../views/TerminalView";
-import { snapshot } from "../../engine/shared";
+import type { ScenarioStep, TerminalLine } from "@scenar/react";
+import { snapshot } from "../../fixtures";
 
 // ---------------------------------------------------------------------------
 // Data model
