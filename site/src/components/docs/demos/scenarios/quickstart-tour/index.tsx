@@ -17,7 +17,7 @@ import {
 } from "@scenar/react";
 import { PreviewProviders } from "../../../../../../.scenar/providers";
 import { ManagementShell } from "../../views/ManagementShell";
-import { connectFixture } from "../../shared/preview-helpers";
+import { connectFixture } from "@scenar/preview/connect";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import {
