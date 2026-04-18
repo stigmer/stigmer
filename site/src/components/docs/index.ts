@@ -25,6 +25,8 @@ export { MarketplaceConnectTour as DemoMarketplaceConnectTour } from "./demos/sc
 export { OAuthConnectFlow as DemoOAuthConnectFlow } from "./demos/scenarios/oauth-connect-flow";
 export { ByoaSetup as DemoByoaSetup } from "./demos/scenarios/byoa-setup";
 export { SkillCreationTour as DemoSkillCreationTour } from "./demos/scenarios/skill-creation-tour";
+export { PlatformClientSetupTour as DemoPlatformClientSetupTour } from "./demos/scenarios/platform-client-setup-tour";
+export { PlatformClientTokenFlow as DemoPlatformClientTokenFlow } from "./demos/scenarios/platform-client-token-flow";
 export { glossary } from "./glossary";
 export { Mermaid } from "./mermaid";
 export { PageFeedback } from "./page-feedback";

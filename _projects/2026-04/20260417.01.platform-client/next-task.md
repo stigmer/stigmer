@@ -243,7 +243,7 @@ When starting a new session:
 ## Remaining Pre-Merge Work
 1. ~~Fix pre-existing codegen stub import issue (`MintUserToken*` in `io_pb` vs `token_pb`) via `make codegen`~~ — **DONE** (session 10)
 2. Commit remaining uncommitted files in stigmer-cloud: generated stubs (from `make protos`), handler code (cache/, token/, handler/token/), auth chain code (platformclient/auth/, platformclient/jwt/), and broader feature-branch changes
-3. Demo components for PlatformClient Console UI (deferred — separate engineering task)
+3. ~~Demo components for PlatformClient Console UI (deferred — separate engineering task)~~ — **DONE** (session 11)
 
 ## Session Progress (2026-04-18, Session 10)
 
@@ -311,6 +311,35 @@ When starting a new session:
 - Auth0: Custom Token Exchange (CTE) is the closest equivalent, but locked behind B2B Professional ($800/mo) / Enterprise plans and still in Early Access
 - WorkOS: No equivalent feature at any tier. M2M is app-scoped (not user-scoped), Impersonation is admin-only debugging tool
 - Conclusion: PlatformClient is a genuine product differentiator that neither major IDP sells at a reasonable price point
+
+## Session Progress (2026-04-18, Session 11)
+
+### Accomplished
+- Created two Scenar demo scenarios for the PlatformClient documentation page
+- **`platform-client-setup-tour`**: 8-step Console walkthrough using real `@stigmer/react` components (`PlatformClientListPanel`, `CreatePlatformClientForm`, `PlatformClientSecretAlert`) with `PreviewProvider` + `connectFixture` stubs for `PlatformClientQueryController.listByOrg`
+- **`platform-client-token-flow`**: 8-step end-to-end token minting flow visualization using `BrowserView`, `TerminalView`, and `APIExchangeView` — shows platform login → backend mintUserToken → Stigmer validates → JWT response → frontend StigmerProvider → API validation, plus error scenarios (UNAUTHENTICATED, NOT_FOUND)
+- Added `"platform-clients"` nav item to `ManagementShell` (with `Plug` icon, matching real Console `settings-nav.ts`)
+- Registered both scenarios in `SCENARIO_REGISTRY` for video export
+- Exported `DemoPlatformClientSetupTour` and `DemoPlatformClientTokenFlow` from docs component barrel
+- Embedded both demos in `docs/guides/authentication/platform-client/overview.mdx`: token flow after "How it works" section, setup tour after "Prerequisites" section
+- Used inline protobuf fixtures with `create()` from `@bufbuild/protobuf` (Option A from plan)
+
+### Key Decisions Made (Session 11)
+- **Inline fixtures over samples.ts**: Built PlatformClient fixture data directly with `create(PlatformClientSchema, {...})` rather than adding `samples.platformClient()` to SDK test package. Keeps changes contained to demo scenarios.
+- **Two demos on one page**: The overview.mdx is a single comprehensive page (per session 9 decision). Both demos embedded at natural reading breakpoints rather than on separate pages.
+- **Token flow uses PlatformClient-specific error codes**: UNAUTHENTICATED and NOT_FOUND (from the overview.mdx error table) instead of the federation demo's 401/403 pattern. Matches the actual PlatformClient error surface.
+
+### Files Created
+- `site/src/components/docs/demos/scenarios/platform-client-setup-tour/steps.ts`
+- `site/src/components/docs/demos/scenarios/platform-client-setup-tour/index.tsx`
+- `site/src/components/docs/demos/scenarios/platform-client-token-flow/steps.ts`
+- `site/src/components/docs/demos/scenarios/platform-client-token-flow/index.tsx`
+
+### Files Modified
+- `site/src/components/docs/demos/views/ManagementShell.tsx` — added `platform-clients` nav
+- `site/src/components/docs/demos/scenarios/registry.ts` — registered both scenarios
+- `site/src/components/docs/index.ts` — added Demo exports
+- `docs/guides/authentication/platform-client/overview.mdx` — embedded both demos
 
 ## Context for Resume
 - React hooks + components: `sdk/react/src/platform-client/` (11 files)

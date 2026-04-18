@@ -53,6 +53,8 @@ sequenceDiagram
 3. Stigmer returns a signed JWT scoped to that user.
 4. Your frontend passes the token to `StigmerProvider` via `getAccessToken`.
 
+<DemoPlatformClientTokenFlow />
+
 ## Prerequisites
 
 - A PlatformClient created in the Stigmer Console (IAM > Platform Clients).
@@ -60,6 +62,8 @@ sequenceDiagram
   once at creation).
 - Store `STIGMER_CLIENT_ID` and `STIGMER_CLIENT_SECRET` as environment variables
   on your backend. Never expose the secret in browser code.
+
+<DemoPlatformClientSetupTour />
 
 ## Backend: Mint user tokens
 
@@ -211,7 +215,7 @@ All SDKs return structured errors with actionable messages:
 | Error code            | When                                           | What to do                                                                                          |
 | --------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | `UNAUTHENTICATED`     | Invalid `client_id` or `client_secret`         | Verify `STIGMER_CLIENT_ID` and `STIGMER_CLIENT_SECRET`. If rotated, the previous secret is invalid. |
-| `NOT_FOUND`           | User doesn't exist, auto-provisioning disabled | Enable `auto_provision_accounts` or pre-create the account.                                         |
+| `NOT_FOUND`           | User doesn't exist, automatic provisioning off | Enable `auto_provision_accounts` or pre-create the account.                                         |
 | `FAILED_PRECONDITION` | Client secret expired                          | Rotate the secret in the Console or CLI.                                                            |
 | `PERMISSION_DENIED`   | Origin not in `allowed_origins`                | Add the requesting origin to the PlatformClient's `allowed_origins`.                                |
 
