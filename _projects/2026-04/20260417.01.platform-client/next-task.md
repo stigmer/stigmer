@@ -341,6 +341,21 @@ When starting a new session:
 - `site/src/components/docs/index.ts` — added Demo exports
 - `docs/guides/authentication/platform-client/overview.mdx` — embedded both demos
 
+## Session Progress (2026-04-18, Session 12)
+
+### Accomplished
+- **Scenar (upstream)**: Fixed MSW Connect handlers to serialize protobuf responses with `toJson()` when the method descriptor provides `output` (fixes `google.protobuf.Timestamp` decode errors after BigInt-safe stringify). Added `packages/preview/src/connect/serialize.ts`. Published **v0.1.6**; **v0.1.5** had BigInt + `ScenarioPlayer` audio/step sync fixes.
+- **Stigmer site**: Bumped `@scenar/core`, `@scenar/preview`, `@scenar/react`, `@scenar/cli` to **^0.1.6** (`site/package.json`, `yarn.lock`).
+- **OSS changelog**: `_changelog/2026-04/2026-04-18-145856-scenar-demo-reliability-and-platform-client-demos.md`.
+- **Copy**: Minor `overview.mdx` error-table wording for Vale (provisioning phrasing).
+
+### Key Decisions Made (Session 12)
+- **Dependency on published Scenar**: Site consumes npm `@scenar/*` 0.1.6 rather than patching MSW handlers only in the site.
+
+### Next Steps (session 13 or merge prep)
+1. Commit staged PlatformClient demo work + changelog + `@scenar` bump on `feat/platform-client` (ensure Vale passes on `overview.mdx`).
+2. Push and open PR when ready.
+
 ## Context for Resume
 - React hooks + components: `sdk/react/src/platform-client/` (11 files)
 - Console section: `client-apps/web/src/components/settings/PlatformClientsSection.tsx`
