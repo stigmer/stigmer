@@ -1,5 +1,5 @@
 # Scenar Preview Report
-Generated: 2026-04-18T07:17:39.846Z
+Generated: 2026-04-18T07:28:42.292Z
 
 ## Discovered (118 components) → views.generated.ts
 
