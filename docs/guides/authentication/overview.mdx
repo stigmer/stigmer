@@ -1,0 +1,74 @@
+---
+title: Authentication
+description:
+  Choose how your users authenticate to Stigmer. Three paths cover every
+  integration pattern, from server-side scripts to embedded browser apps.
+---
+
+Every request to the Stigmer API needs a credential. Which credential depends on
+where the request comes from and who makes it.
+
+## Three authentication paths
+
+|                       | API key                                   | Identity federation                                          | PlatformClient                                                      |
+| --------------------- | ----------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------- |
+| **What it is**        | A static secret you create in the Console | A trust relationship with your OIDC provider                 | A credential pair your backend uses to mint Stigmer tokens per user |
+| **Who uses it**       | Your backend, CLI, CI/CD                  | Your end users (via their existing IdP)                      | Your end users (via your backend)                                   |
+| **Where it runs**     | Server-side only                          | Browser (user's JWT sent directly)                           | Browser (token fetched from your backend)                           |
+| **Setup effort**      | Create a key in the Console               | Register an Identity Provider, configure JWKS + issuer       | Create a PlatformClient in the Console, add one backend endpoint    |
+| **User provisioning** | Not applicable (server credential)        | JIT automatic, manual, or SSO                                | JIT automatic on first token mint                                   |
+| **Best for**          | Server-to-server, scripts, internal tools | Apps where users already have an OIDC provider (Auth0, Okta) | Embedding Stigmer in your product without OIDC setup                |
+
+## How to choose
+
+**Your backend calls the Stigmer API directly** (no browser, no end users). Use
+an **API key**. Create one in the Console under Settings > API Keys, store it as
+a secret in your backend, and pass it to the SDK client. See
+[SDK Overview > Authentication](/docs/sdk#authentication).
+
+**Your users already authenticate through an OIDC provider** (Auth0, Okta, Entra
+ID, Cognito, or any OIDC-compatible system). Use **identity federation**.
+Register your provider as an Identity Provider in Stigmer, and the SDK sends
+your users' JWTs directly. Stigmer validates them against your JWKS endpoint.
+
+<Card
+  href="/docs/guides/authentication/federation/overview"
+  title="Identity federation guide"
+>
+  Register your auth provider, configure provisioning, and understand the
+  end-to-end authentication flow.
+</Card>
+
+**You want to embed Stigmer in your product and your users don't have a
+Stigmer-compatible IdP** (or you want a simpler integration path). Use a
+**PlatformClient**. Your backend authenticates users with your own auth system,
+calls Stigmer's `mintUserToken` endpoint with their identity, and passes the
+returned token to the React SDK.
+
+<Card
+  href="/docs/guides/authentication/platform-client/overview"
+  title="Embed Stigmer with PlatformClient"
+>
+  Mint user tokens from your backend so your users can interact with Stigmer
+  through the React SDK without OIDC federation setup.
+</Card>
+
+## All three paths end the same way
+
+Regardless of which path you choose, the React SDK uses the same
+`getAccessToken` callback pattern for browser apps:
+
+```tsx
+const stigmer = new Stigmer({
+  baseUrl: "https://api.stigmer.ai",
+  getAccessToken, // returns a JWT — from your IdP or from your backend
+});
+```
+
+The difference is where the JWT comes from:
+
+- **Federation**: your auth provider issues it directly.
+- **PlatformClient**: your backend mints it via Stigmer's `mintUserToken`
+  endpoint.
+- **API key**: no JWT needed — the key authenticates the request directly
+  (server-side only).

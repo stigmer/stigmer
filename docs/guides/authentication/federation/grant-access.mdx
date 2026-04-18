@@ -14,7 +14,7 @@ Organization's resources.
   **Using JIT provisioning?** If your Identity Provider has `autoGrantOnOrg`
   enabled, Stigmer grants roles automatically when accounts are provisioned. You
   don't need to create IAM Policies manually. See [Enable JIT
-  provisioning](/docs/guides/federation/register-identity-provider#enable-jit-provisioning)
+  provisioning](/docs/guides/authentication/federation/register-identity-provider#enable-jit-provisioning)
   for the automatic setup.
 </Callout>
 
@@ -46,7 +46,7 @@ relation.
 | `viewer` | Read-only access to the Organization and its resources |
 
 Use the account ID returned from
-[`createFederatedAccount`](/docs/guides/federation/provision-federated-accounts)
+[`createFederatedAccount`](/docs/guides/authentication/federation/provision-federated-accounts)
 as the principal, and the Organization ID as the resource.
 
 <SDKTabs>
@@ -354,7 +354,8 @@ Your federated users are provisioned and authorized. Now you need to understand
 how the runtime authentication flow works when they actually call the Stigmer
 API.
 
-Next: [Authentication flow](/docs/guides/federation/authentication-flow)
+Next:
+[Authentication flow](/docs/guides/authentication/federation/authentication-flow)
 explains the end-to-end path from JWT presentation to authorized API response.
 
 For the full IAM Policy API reference, see

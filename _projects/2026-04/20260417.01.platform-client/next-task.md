@@ -11,11 +11,11 @@ Drop this file into your conversation to quickly resume work on this project.
 **Tech Stack**: Protobuf, Java/Spring (stigmer-cloud backend), TypeScript (SDK), Go (SDK), Python (SDK), React (Console UI), MDX (docs)
 **Components**: PlatformClient proto (stigmer), token-minting gRPC service (stigmer-cloud), PlatformClientTokenAuthenticationProvider (stigmer-cloud), JIT provisioning reuse (stigmer-cloud), Node/Go/Python SDK auth config (stigmer), React components for PlatformClient CRUD (stigmer), Console pages (stigmer), federation/SDK docs (stigmer)
 
-## Current State (wrap-up)
+## Current State (COMPLETE)
 
-- **Status**: Identity resolution rescoped to org-level (session 8). T06 docs still remaining.
-- **Last session**: 2026-04-17 (session 8) — Rescoped PlatformClient identity resolution from per-PlatformClient to per-org. Same user_id from any PlatformClient in the same org now resolves to a single IdentityAccount.
-- **Active task**: T06 — Documentation pass (session 9).
+- **Status**: All tasks T01–T06 complete. Project ready for final merge prep.
+- **Last session**: 2026-04-18 (session 9) — Completed T06 documentation pass. Fixed identity concepts page, added PlatformClient to vocabulary/glossary, polished integration guide, verified cross-references.
+- **Active task**: None — all tasks complete.
 
 ## Essential Files to Review
 
@@ -80,13 +80,13 @@ When starting a new session:
 | T03 | Backend: Token endpoint + Stigmer-signed JWT issuance | 2 sessions | stigmer-cloud | COMPLETE |
 | T04 | Backend: Auth chain integration + JIT provisioning | 1 session | stigmer + stigmer-cloud | COMPLETE |
 | T05 | SDK: TypeScript/Go/Python/Java client support for PlatformClient auth | 1 session | stigmer | COMPLETE |
-| T06 | Console UI + Documentation | 2 sessions | stigmer | IN PROGRESS (UI done, docs next) |
+| T06 | Console UI + Documentation | 2 sessions | stigmer | COMPLETE |
 
 ## Current Status
 
 **Created**: 2026-04-17
-**Current Task**: T06 (Documentation pass — session 8)
-**Status**: T01–T05 complete, T02 FGA gap closed (session 7), T06 Console UI complete, T06 Documentation remaining
+**Current Task**: None — all tasks complete
+**Status**: T01–T06 complete. Project finished in 9 sessions.
 
 ## Session Progress (2026-04-17, Session 1)
 
@@ -240,12 +240,29 @@ When starting a new session:
 - `can_create_oauth_app` was also missing from `organization.fga` since OAuthApp landed (commit `ad6de7b1`). Pre-existing latent bug — OAuthApp `create` was also silently broken at the FGA authorization layer.
 - The `IamPolicyCreationServiceTest` in `api-authorization` exists as a Java file but has no Bazel test target — its tests never run in CI.
 
-## Next Steps
-1. Pick up T06 session 9: Documentation pass
-2. T06 docs scope: `docs/guides/platform-client/overview.mdx`, `quick-start.mdx`, `token-endpoint.mdx`, `auto-provisioning.mdx`
-3. Update existing docs: `docs/sdk/react/index.mdx` (add PlatformClient auth method), `docs/sdk/index.mdx` (overview), `docs/guides/federation/overview.mdx` (cross-reference)
-4. Fix pre-existing codegen stub import issue (`MintUserToken*` in `io_pb` vs `token_pb`) via `make codegen`
-5. Commit remaining uncommitted files in stigmer-cloud: generated stubs (from `make protos`), handler code (cache/, token/, handler/token/), auth chain code (platformclient/auth/, platformclient/jwt/), and broader feature-branch changes
+## Remaining Pre-Merge Work
+1. Fix pre-existing codegen stub import issue (`MintUserToken*` in `io_pb` vs `token_pb`) via `make codegen`
+2. Commit remaining uncommitted files in stigmer-cloud: generated stubs (from `make protos`), handler code (cache/, token/, handler/token/), auth chain code (platformclient/auth/, platformclient/jwt/), and broader feature-branch changes
+3. Demo components for PlatformClient Console UI (deferred — separate engineering task)
+
+## Session Progress (2026-04-18, Session 9)
+
+### Accomplished
+- Completed T06 documentation pass — the final task in the PlatformClient project
+- Fixed factual inaccuracies in `docs/concepts/identity.mdx` (was claiming no auto-provisioning)
+- Added "Platform" as a fourth account type in the identity concepts page with Mermaid sequence diagram
+- Added PlatformClient to `docs/vocabulary.md` (quick-reference table + full detailed entry)
+- Added PlatformClient tooltip to `site/src/components/docs/glossary.ts`
+- Polished `docs/guides/authentication/platform-client/overview.mdx` with "When to use this", troubleshooting `<Steps>`, and "What's next"
+- Updated cross-references in `docs/concepts/organizations.mdx`
+- Verified all 6 pages that reference PlatformClient guide link correctly
+- Zero stale links to old `docs/guides/federation/` or `docs/guides/platform-client-auth.mdx` paths
+
+### Key Decisions Made (Session 9)
+- **Platform as a fourth account type**: PlatformClient-provisioned accounts are NOT a sub-category of Federated. Different trust model (Stigmer signs tokens), different auth chain, different idp_id encoding. Presented as a peer alongside Direct, Federated, and Machine.
+- **Kept single-page guide**: Pushed back on the original 4-page plan (overview + quick-start + token-endpoint + auto-provisioning). PlatformClient's simplicity is its value — one comprehensive page is proportional.
+- **Renamed "JIT provisioning" to "Automatic account creation"**: Plainer language for guides context.
+- **Deferred demo components**: Creating demo components for PlatformClient Console UI is engineering work, not a documentation task. Separate session.
 
 ## Session Progress (2026-04-17, Session 8)
 

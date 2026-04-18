@@ -47,15 +47,25 @@ Add the dependency to your `pom.xml`:
 
 ## Authentication
 
-The SDK supports two authentication methods:
+The SDK supports three authentication methods:
 
 - **API key** (`apiKey`) — A static secret credential for server-side use
-  (backends, CLI tools, SSR, CI/CD). Create one in the Stigmer dashboard under
-  **Settings → API Keys**.
-- **Token provider** (`getAccessToken`) — A callback that returns a JWT from
-  your authentication provider. Use this for browser apps where each user
-  authenticates with their own token.
-  [Set up identity federation](/docs/guides/federation/overview) to enable this.
+  (backends, CLI tools, SSR, CI/CD). Create one in the Stigmer Console under
+  **Settings > API Keys**.
+- **Identity federation** (`getAccessToken`) — Your users authenticate through
+  their existing OIDC provider (Auth0, Okta, Cognito, Entra ID). The SDK sends
+  their JWT directly.
+  [Set up identity federation](/docs/guides/authentication/federation/overview)
+  to enable this.
+- **PlatformClient** (`getAccessToken`) — Your backend mints Stigmer tokens per
+  user using PlatformClient credentials. Use this to embed Stigmer in your
+  product without OIDC setup.
+  [Set up PlatformClient](/docs/guides/authentication/platform-client/overview)
+  to enable this.
+
+Both `getAccessToken` paths produce the same result: a JWT that the SDK sends as
+`Authorization: Bearer`. The difference is where the token comes from. See the
+[Authentication guide](/docs/guides/authentication/overview) for help choosing.
 
 <Callout type="warn">
   API keys start with `sk_`. Store them in environment variables. Never commit
@@ -66,7 +76,8 @@ The SDK supports two authentication methods:
   **Never expose API keys in client-side code.** API keys are secret
   credentials that grant full access to your Organization. In browser apps,
   use `getAccessToken` with
-  [identity federation](/docs/guides/federation/overview) instead.
+  [identity federation](/docs/guides/authentication/federation/overview) or
+  [PlatformClient](/docs/guides/authentication/platform-client/overview) instead.
 </Callout>
 
 Set the `STIGMER_API_KEY` environment variable, then pass it to the client
@@ -85,7 +96,7 @@ const stigmer = new Stigmer({
 
 Use `getAccessToken` for browser applications. Each user authenticates through
 your platform's auth provider, and the callback returns their JWT. With
-[JIT provisioning](/docs/guides/federation/register-identity-provider#enable-jit-provisioning)
+[JIT provisioning](/docs/guides/authentication/federation/register-identity-provider#enable-jit-provisioning)
 enabled, Stigmer creates accounts automatically on first authentication:
 
 ```typescript

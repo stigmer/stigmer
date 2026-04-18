@@ -11,6 +11,26 @@ minimal friction. Instead of setting up OIDC federation, you create a
 PlatformClient in the Stigmer Console, use its credentials from your backend to
 mint user-scoped JWTs, and pass those tokens to the React SDK.
 
+## When to use this
+
+You're building a product that embeds Stigmer components (sessions, agents,
+message threads) and your users need browser-side access to the Stigmer API.
+PlatformClient is the right choice when:
+
+- Your users don't have an OIDC provider that Stigmer can federate with
+- You want a simpler integration path than full identity federation
+- You already have your own authentication system and just need Stigmer access
+  for your users
+
+<Callout type="info">
+  **Looking for a different auth method?** If your users already authenticate
+  through an OIDC provider (Auth0, Okta, Entra ID), use [identity
+  federation](/docs/guides/authentication/federation/overview) instead. If your
+  backend calls the Stigmer API directly (no browser, no end users), use an [API
+  key](/docs/sdk#authentication). See the [authentication
+  overview](/docs/guides/authentication/overview) for a side-by-side comparison.
+</Callout>
+
 ## How it works
 
 ```mermaid
@@ -165,11 +185,11 @@ function App() {
 }
 ```
 
-## JIT provisioning
+## Automatic account creation
 
 By default, `mintUserToken` fails with `NOT_FOUND` if the user doesn't have a
-Stigmer identity account. Enable JIT provisioning on the PlatformClient to
-automatically create accounts:
+Stigmer Identity Account. Enable automatic provisioning on the PlatformClient to
+create accounts on first encounter:
 
 - **`auto_provision_accounts: true`** — creates an IdentityAccount on first
   encounter.
@@ -188,12 +208,12 @@ one set of permissions. Use a consistent, stable identifier across all your apps
 
 All SDKs return structured errors with actionable messages:
 
-| Error code            | When                                   | What to do                                                                                          |
-| --------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `UNAUTHENTICATED`     | Invalid `client_id` or `client_secret` | Verify `STIGMER_CLIENT_ID` and `STIGMER_CLIENT_SECRET`. If rotated, the previous secret is invalid. |
-| `NOT_FOUND`           | User doesn't exist, JIT disabled       | Enable `auto_provision_accounts` or pre-create the account.                                         |
-| `FAILED_PRECONDITION` | Client secret expired                  | Rotate the secret in the Console or CLI.                                                            |
-| `PERMISSION_DENIED`   | Origin not in `allowed_origins`        | Add the requesting origin to the PlatformClient's `allowed_origins`.                                |
+| Error code            | When                                           | What to do                                                                                          |
+| --------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `UNAUTHENTICATED`     | Invalid `client_id` or `client_secret`         | Verify `STIGMER_CLIENT_ID` and `STIGMER_CLIENT_SECRET`. If rotated, the previous secret is invalid. |
+| `NOT_FOUND`           | User doesn't exist, auto-provisioning disabled | Enable `auto_provision_accounts` or pre-create the account.                                         |
+| `FAILED_PRECONDITION` | Client secret expired                          | Rotate the secret in the Console or CLI.                                                            |
+| `PERMISSION_DENIED`   | Origin not in `allowed_origins`                | Add the requesting origin to the PlatformClient's `allowed_origins`.                                |
 
 ## Security notes
 
@@ -208,12 +228,60 @@ All SDKs return structured errors with actionable messages:
 - Use `allowed_origins` to restrict which browser origins can use tokens minted
   by this PlatformClient.
 
-## What this is NOT
+## Troubleshooting
 
-- **Not a replacement for API keys.** Your backend uses `apiKey` (or
-  `WithAPIKey` / `StigmerClient.builder(apiKey)`) for server-to-server resource
-  management. PlatformClient mints user tokens for browser-side access.
-- **Not OIDC federation.** PlatformClient is simpler — no identity provider
-  registration, no JWKS endpoints, no token exchange. If you need full SSO with
-  your existing IdP, see the
-  [federation guide](/docs/guides/federation/overview).
+<Steps>
+<Step>
+
+### Verify your credentials
+
+`UNAUTHENTICATED` means the `client_id` or `client_secret` is wrong. Check that
+`STIGMER_CLIENT_ID` and `STIGMER_CLIENT_SECRET` match the values from the
+Stigmer Console. If you rotated the secret, the previous one is no longer valid.
+
+</Step>
+<Step>
+
+### Check if the user exists
+
+`NOT_FOUND` means the user doesn't have a Stigmer Identity Account and automatic
+provisioning is disabled. Enable `auto_provision_accounts` on the PlatformClient
+or create the account before calling `mintUserToken`.
+
+</Step>
+<Step>
+
+### Verify the user ID is consistent
+
+If the same person gets different Identity Accounts across your apps, you're
+passing different `user_id` values. Identity resolution is org-scoped --- use
+the same stable identifier (your database primary key, Auth0 `sub`, or Clerk
+user ID) across all PlatformClients in your Organization.
+
+</Step>
+<Step>
+
+### Check allowed origins
+
+`PERMISSION_DENIED` when the browser calls the Stigmer API usually means the
+requesting origin isn't in the PlatformClient's `allowed_origins` list. Add your
+app's origin (for example, `https://app.example.com`) in the Console.
+
+</Step>
+</Steps>
+
+## What's next
+
+- **Manage PlatformClients** --- Create, rotate secrets, and configure settings
+  in the Console under Settings > Platform Clients, or use the
+  [PlatformClient API](/docs/sdk/resources/platform-client).
+- **React hooks and components** ---
+  [PlatformClient React reference](/docs/sdk/react/platform-client) documents
+  the admin hooks for managing PlatformClients programmatically.
+- **Need full SSO or IdP integration?** --- PlatformClient gives your users
+  Stigmer access, but it doesn't provide a Stigmer Console login. If you need
+  SSO, see the
+  [federation guide](/docs/guides/authentication/federation/overview).
+- **Compare authentication paths** --- the
+  [authentication overview](/docs/guides/authentication/overview) has a
+  side-by-side comparison of API keys, federation, and PlatformClient.

@@ -16,10 +16,10 @@ another.
 ## When you need this
 
 You already have a working
-[Identity Provider](/docs/guides/federation/register-identity-provider) and
-understand
-[federated accounts](/docs/guides/federation/provision-federated-accounts). Now
-you need to extend that setup for multiple tenants:
+[Identity Provider](/docs/guides/authentication/federation/register-identity-provider)
+and understand
+[federated accounts](/docs/guides/authentication/federation/provision-federated-accounts).
+Now you need to extend that setup for multiple tenants:
 
 - Your platform has multiple customers (tenants)
 - Each customer needs their own Agents, Skills, MCP Servers, and Sessions
@@ -35,7 +35,7 @@ Before starting, you need:
 - A **Stigmer Organization** that owns your Identity Provider (for example,
   `acme`)
 - A **registered Identity Provider** in that Organization (see
-  [Register an Identity Provider](/docs/guides/federation/register-identity-provider))
+  [Register an Identity Provider](/docs/guides/authentication/federation/register-identity-provider))
 - An **API key** with admin access to the Organization that owns the Identity
   Provider
 
@@ -364,8 +364,8 @@ System.out.println("Provisioned user in tenant-alpha: " + account.getMetadata().
 
 After provisioning, grant the user a role on their tenant's Organization. This
 follows the same pattern as
-[granting access](/docs/guides/federation/grant-access) in a single-org setup,
-but scoped to the tenant's Organization ID.
+[granting access](/docs/guides/authentication/federation/grant-access) in a
+single-org setup, but scoped to the tenant's Organization ID.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -812,7 +812,7 @@ isolated resources and access controls.
 
 - **Authentication flow** --- To understand what happens at runtime when tenant
   users call the Stigmer API, see
-  [How federated authentication works](/docs/guides/federation/authentication-flow).
+  [How federated authentication works](/docs/guides/authentication/federation/authentication-flow).
 - **Organizations** --- For conceptual background on how Organizations serve as
   tenant boundaries, see [Organizations](/docs/concepts/organizations).
 - **API reference** --- For API details, see the

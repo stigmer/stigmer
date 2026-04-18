@@ -10,9 +10,10 @@ the Stigmer web console using your Organization's Identity Provider. When a team
 member signs in for the first time, Stigmer creates their account automatically.
 
 This is different from
-[platform-managed federation](/docs/guides/federation/overview), where your
-backend provisions accounts and your users call the Stigmer API directly. With
-SSO, users interact with the Stigmer web console --- not your app.
+[platform-managed federation](/docs/guides/authentication/federation/overview),
+where your backend provisions accounts and your users call the Stigmer API
+directly. With SSO, users interact with the Stigmer web console --- not your
+app.
 
 <DemoSsoLoginPlayback />
 
@@ -104,7 +105,7 @@ when registering the Identity Provider in Stigmer:
 ## Register the Identity Provider with SSO enabled
 
 Follow the standard
-[Register an Identity Provider](/docs/guides/federation/register-identity-provider)
+[Register an Identity Provider](/docs/guides/authentication/federation/register-identity-provider)
 guide, but add two SSO-specific fields: `isSsoProvider` and `oidcClientId`.
 
 <SDKTabs>
@@ -237,7 +238,8 @@ the Organization from unexpected charges when new users sign in.
 
 To give a team member full access, an Organization admin must explicitly upgrade
 them to the **member** role. See
-[Grant access](/docs/guides/federation/grant-access) for instructions.
+[Grant access](/docs/guides/authentication/federation/grant-access) for
+instructions.
 
 ## Manage SSO users
 
@@ -256,8 +258,8 @@ await stigmer.iamPolicy.create({
 });
 ```
 
-See [Grant access](/docs/guides/federation/grant-access) for the full pattern in
-all SDK languages.
+See [Grant access](/docs/guides/authentication/federation/grant-access) for the
+full pattern in all SDK languages.
 
 ### Revoke access
 
@@ -280,7 +282,7 @@ Set `deleteAccount` to `false` to revoke access while keeping the account (the
 user can re-provision via SSO). Set it to `true` for permanent removal.
 
 See
-[Revoke a federated account](/docs/guides/federation/provision-federated-accounts#revoke-a-federated-account)
+[Revoke a federated account](/docs/guides/authentication/federation/provision-federated-accounts#revoke-a-federated-account)
 for the full pattern in all SDK languages.
 
 <Callout type="warn">
@@ -352,10 +354,10 @@ read-only. An Organization admin must upgrade them to member or admin.
 ## What's next
 
 - **Authentication details** --- See
-  [How federated authentication works](/docs/guides/federation/authentication-flow)
+  [How federated authentication works](/docs/guides/authentication/federation/authentication-flow)
   for the full token validation and identity resolution flow
 - **Account lifecycle** --- See
-  [Provision federated accounts](/docs/guides/federation/provision-federated-accounts)
+  [Provision federated accounts](/docs/guides/authentication/federation/provision-federated-accounts)
   for the update and revocation APIs
 - **API reference** ---
   [IdentityProvider](/docs/sdk/resources/identity-provider),
