@@ -1,5 +1,5 @@
-import type { NarrationManifest } from "@/components/docs/demos/engine/narration";
-import { computeStepTimeline } from "@/components/docs/demos/engine/timeline";
+import type { NarrationManifest } from "@scenar/react";
+import { computeStepTimeline } from "@scenar/react";
 
 interface StepTiming {
   delayMs: number;

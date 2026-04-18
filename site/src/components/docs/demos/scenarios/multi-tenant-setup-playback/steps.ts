@@ -6,8 +6,7 @@
  * Covers the "Multi-tenant platform setup" guide page.
  */
 
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
-import type { TerminalLine } from "../../views/TerminalView";
+import type { ScenarioStep, TerminalLine } from "@scenar/react";
 
 // ---------------------------------------------------------------------------
 // Data model

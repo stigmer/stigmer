@@ -12,16 +12,14 @@ import { create } from "@bufbuild/protobuf";
 import { GetArtifactContentResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
+import { ScenarioPlayer, useNarrationManifest, Cursor } from "@scenar/react";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { ResourceListPage } from "../../views/ResourceListPage";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
-import { DemoViewport } from "../../engine/DemoViewport";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
-import { DEMO_ORG } from "../../engine/shared";
+import { DEMO_ORG } from "../../fixtures";
 import {
   type McpCreationStep,
   mcpCreationTourSteps,
@@ -265,7 +263,7 @@ export function McpServerCreationTour() {
 
   return (
     <StigmerProvider client={client}>
-      <DemoViewport containerRef={containerRef}>
+      <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={mcpCreationTourSteps}
           narrationManifest={narrationManifest}
@@ -274,7 +272,7 @@ export function McpServerCreationTour() {
           {(step) => renderStep(step)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
-      </DemoViewport>
+      </StigmerDemoViewport>
     </StigmerProvider>
   );
 }

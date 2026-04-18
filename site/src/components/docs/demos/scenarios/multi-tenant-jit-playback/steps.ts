@@ -10,9 +10,7 @@
  * of the multi-tenant setup guide page.
  */
 
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
-import type { StepInteractions } from "../../engine/useStepInteractions";
-import type { TerminalLine } from "../../views/TerminalView";
+import type { ScenarioStep, TerminalLine } from "@scenar/react";
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -98,28 +96,6 @@ export const SUCCESS_CHECKS = [
 ];
 
 // ---------------------------------------------------------------------------
-// Step interactions
-// ---------------------------------------------------------------------------
-
-export const MT_JIT_INTERACTIONS: StepInteractions = {
-  // Step 4: cursor walks through tenant resolution checks
-  4: [
-    { atPercent: 0.10, type: "set-cursor", target: "check-0" },
-    { atPercent: 0.30, type: "set-cursor", target: "check-1" },
-    { atPercent: 0.50, type: "set-cursor", target: "check-2" },
-    { atPercent: 0.70, type: "set-cursor", target: "check-3" },
-    { atPercent: 0.88, type: "clear-cursor" },
-  ],
-  // Step 5: cursor walks through success checks
-  5: [
-    { atPercent: 0.15, type: "set-cursor", target: "check-0" },
-    { atPercent: 0.40, type: "set-cursor", target: "check-1" },
-    { atPercent: 0.65, type: "set-cursor", target: "check-2" },
-    { atPercent: 0.88, type: "clear-cursor" },
-  ],
-};
-
-// ---------------------------------------------------------------------------
 // Step sequence
 // ---------------------------------------------------------------------------
 
@@ -160,6 +136,13 @@ export const multiTenantJitSteps: ScenarioStep<MultiTenantJitStep>[] = [
     caption: "Stigmer resolves tenant and provisions automatically",
     narration:
       "Stigmer reads the org_id claim, finds the matching tenant Organization, creates Jane's account, and grants the member role — all automatically. No backend code needed.",
+    interactions: [
+      { atPercent: 0.10, type: "set_cursor", target: "check-0" },
+      { atPercent: 0.30, type: "set_cursor", target: "check-1" },
+      { atPercent: 0.50, type: "set_cursor", target: "check-2" },
+      { atPercent: 0.70, type: "set_cursor", target: "check-3" },
+      { atPercent: 0.88, type: "clear_cursor" },
+    ],
   },
   {
     delayMs: 3000,
@@ -167,5 +150,11 @@ export const multiTenantJitSteps: ScenarioStep<MultiTenantJitStep>[] = [
     caption: "Request succeeds — user in correct tenant",
     narration:
       "Jane's request succeeds. She has a federated account and a member role scoped to Tenant Alpha. She cannot access Tenant Beta's resources.",
+    interactions: [
+      { atPercent: 0.15, type: "set_cursor", target: "check-0" },
+      { atPercent: 0.40, type: "set_cursor", target: "check-1" },
+      { atPercent: 0.65, type: "set_cursor", target: "check-2" },
+      { atPercent: 0.88, type: "clear_cursor" },
+    ],
   },
 ];

@@ -11,18 +11,17 @@ import { create } from "@bufbuild/protobuf";
 import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { GetOAuthGrantStatusOutput } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
-import { AppShell } from "../../views/AppShell";
-import { BrowserView } from "../../views/BrowserView";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
 import {
-  type StepInteractions,
+  ScenarioPlayer,
+  useNarrationManifest,
+  Cursor,
   useStepInteractions,
-} from "../../engine/useStepInteractions";
+  BrowserView,
+  PulseHighlight,
+} from "@scenar/react";
+import { AppShell } from "../../views/AppShell";
 import { DEMO_BROWSER_ZOOM, DEMO_CONTENT_ZOOM } from "../../shared/tokens";
-import { DemoViewport } from "../../engine/DemoViewport";
-import { PulseHighlight } from "../../shared/PulseHighlight";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import {
   type OAuthConnectStep,
   oauthConnectSteps,
@@ -206,19 +205,6 @@ function UserIcon() {
 }
 
 // ---------------------------------------------------------------------------
-// Mid-step interactions
-// ---------------------------------------------------------------------------
-
-const INTERACTIONS: StepInteractions = {
-  0: [
-    { atPercent: 0.4, type: "scroll-to", target: "capabilities-bottom" },
-  ],
-  3: [
-    { atPercent: 0.35, type: "scroll-to", target: "capabilities-bottom" },
-  ],
-};
-
-// ---------------------------------------------------------------------------
 // Exported component
 // ---------------------------------------------------------------------------
 
@@ -261,7 +247,6 @@ export function OAuthConnectFlow() {
 
   useStepInteractions({
     stepIndex,
-    interactions: INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -269,7 +254,7 @@ export function OAuthConnectFlow() {
   });
 
   return (
-    <DemoViewport containerRef={containerRef}>
+    <StigmerDemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={oauthConnectSteps}
         narrationManifest={narrationManifest}
@@ -319,6 +304,6 @@ export function OAuthConnectFlow() {
         }}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </DemoViewport>
+    </StigmerDemoViewport>
   );
 }

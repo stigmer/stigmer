@@ -6,8 +6,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { VideoExportProvider } from "@/components/docs/demos/engine/VideoExportContext";
-import { TimeSourceProvider } from "@/components/docs/demos/engine/TimeSource";
+import { VideoExportProvider, TimeSourceProvider } from "@scenar/react";
 import { SCENARIO_REGISTRY } from "@/components/docs/demos/scenarios/registry";
 import { DEMO_VIDEO_SHELL_HEIGHT } from "@/components/docs/demos/shared/tokens";
 import type { Timeline } from "../lib/timeline";
@@ -67,7 +66,7 @@ export const DemoVideo: React.FC<DemoVideoProps> = ({
           width: VIRTUAL_WIDTH,
           height: VIRTUAL_HEIGHT,
           zoom,
-          "--demo-shell-height": `${DEMO_VIDEO_SHELL_HEIGHT}px`,
+          "--scenar-shell-height": `${DEMO_VIDEO_SHELL_HEIGHT}px`,
         } as React.CSSProperties}
         className="flex flex-col justify-center overflow-hidden"
       >

@@ -2,7 +2,7 @@ import { Composition } from "remotion";
 import { HelloWorld } from "./compositions/HelloWorld";
 import { DemoVideo } from "./compositions/DemoVideo";
 import { computeTimeline } from "./lib/timeline";
-import type { NarrationManifest } from "@/components/docs/demos/engine/narration";
+import type { NarrationManifest } from "@scenar/react";
 
 const FPS = 30;
 const WIDTH = 1920;

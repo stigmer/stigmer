@@ -1,5 +1,4 @@
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
-import type { StepInteractions } from "../../engine/useStepInteractions";
+import type { ScenarioStep } from "@scenar/react";
 
 // ---------------------------------------------------------------------------
 // Step data
@@ -37,6 +36,19 @@ export const viewportZoomSteps: ScenarioStep<ViewportZoomStep>[] = [
     delayMs: 0,
     data: { view: "dashboard" },
     caption: "Dashboard overview — zoom into metrics",
+    interactions: [
+      {
+        atPercent: 0.3,
+        type: "viewport_transition",
+        target: "success-rate",
+        viewportZoom: 1.8,
+      },
+      {
+        atPercent: 0.7,
+        type: "set_cursor",
+        target: "success-rate",
+      },
+    ],
   },
   {
     delayMs: 4000,
@@ -47,42 +59,16 @@ export const viewportZoomSteps: ScenarioStep<ViewportZoomStep>[] = [
     delayMs: 4000,
     data: { view: "dashboard-clicked" },
     caption: "Viewport reset — full dashboard",
+    interactions: [
+      {
+        atPercent: 0.2,
+        type: "viewport_transition",
+        viewportReset: true,
+      },
+      {
+        atPercent: 0.6,
+        type: "clear_cursor",
+      },
+    ],
   },
 ];
-
-// ---------------------------------------------------------------------------
-// Mid-step interactions
-// ---------------------------------------------------------------------------
-
-/**
- * Step 0: at 30%, zoom into the "success-rate" metric card at 1.8x.
- * At 70%, click the metric card (verifies cursor positioning works
- * during zoom). Step 1 has no interactions (zoomed view persists).
- * Step 2: at 20%, reset the viewport back to identity transform.
- */
-export const VIEWPORT_INTERACTIONS: StepInteractions = {
-  0: [
-    {
-      atPercent: 0.3,
-      type: "viewport-transition",
-      target: "success-rate",
-      viewportZoom: 1.8,
-    },
-    {
-      atPercent: 0.7,
-      type: "set-cursor",
-      target: "success-rate",
-    },
-  ],
-  2: [
-    {
-      atPercent: 0.2,
-      type: "viewport-transition",
-      viewportReset: true,
-    },
-    {
-      atPercent: 0.6,
-      type: "clear-cursor",
-    },
-  ],
-};

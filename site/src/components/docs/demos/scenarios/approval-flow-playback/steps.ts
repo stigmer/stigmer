@@ -4,9 +4,8 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { samples } from "@stigmer/react/demo";
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
-import type { StepInteractions } from "../../engine/useStepInteractions";
-import { snapshot } from "../../engine/shared";
+import type { ScenarioStep } from "@scenar/react";
+import { snapshot } from "../../fixtures";
 
 // ---------------------------------------------------------------------------
 // Step data
@@ -110,6 +109,9 @@ export const approvalFlowSteps: ScenarioStep<ApprovalFlowStep>[] = [
     data: { view: "approval-pending", execution: waitingExecution },
     caption: "Agent pauses for human approval",
     narration: "The agent stops and shows exactly what it wants to do. Nothing happens until a human approves.",
+    interactions: [
+      { atPercent: 0.4, type: "click", target: "approve-button" },
+    ],
   },
   {
     delayMs: 2500,
@@ -119,18 +121,3 @@ export const approvalFlowSteps: ScenarioStep<ApprovalFlowStep>[] = [
   },
 ];
 
-// ---------------------------------------------------------------------------
-// Mid-step interactions
-// ---------------------------------------------------------------------------
-
-/**
- * Step 2 (`approval-pending`): at 40% of narration, the cursor moves
- * to the Approve button and dispatches a real click. The ApprovalCard
- * component handles the click and the scenario transitions its local
- * state to show the completed conversation.
- */
-export const APPROVAL_INTERACTIONS: StepInteractions = {
-  2: [
-    { atPercent: 0.4, type: "click", target: "approve-button" },
-  ],
-};

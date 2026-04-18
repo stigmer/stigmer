@@ -13,9 +13,8 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { samples } from "@stigmer/react/demo";
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
-import type { TerminalLine } from "../../views/TerminalView";
-import { snapshot } from "../../engine/shared";
+import type { ScenarioStep, TerminalLine } from "@scenar/react";
+import { snapshot } from "../../fixtures";
 
 // ---------------------------------------------------------------------------
 // Data model

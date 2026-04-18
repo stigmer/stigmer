@@ -2667,6 +2667,60 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@scenar/cli@npm:^0.0.4":
+  version: 0.0.4
+  resolution: "@scenar/cli@npm:0.0.4"
+  dependencies:
+    "@scenar/sdk": "npm:0.0.4"
+    commander: "npm:^13.0.0"
+    yaml: "npm:^2.7.0"
+  peerDependencies:
+    echogarden: ">=2.0.0"
+    edge-tts-universal: ">=1.0.0"
+  peerDependenciesMeta:
+    echogarden:
+      optional: true
+    edge-tts-universal:
+      optional: true
+  bin:
+    scenar: bin/scenar.js
+  checksum: 10c0/3415c89c76bf587b300ad57fad8dd7cf36c6acbd643668b1b46b73c8e83223a82816fdc265d21d198ea7d245d06b33ce30af16f7f0bdc34f07177e2fa1a5ee2f
+  languageName: node
+  linkType: hard
+
+"@scenar/core@npm:0.0.4, @scenar/core@npm:^0.0.4":
+  version: 0.0.4
+  resolution: "@scenar/core@npm:0.0.4"
+  checksum: 10c0/f020a497c653c6538b4b4cb1f919cbc88d3af39511b6039edea8291d330aeb260c961697c33c65ae6bc465f5a21e682bfd9724a6391d3be416474a3071a8538c
+  languageName: node
+  linkType: hard
+
+"@scenar/react@npm:^0.0.4":
+  version: 0.0.4
+  resolution: "@scenar/react@npm:0.0.4"
+  dependencies:
+    "@scenar/core": "npm:0.0.4"
+  peerDependencies:
+    framer-motion: ">=11.0.0"
+    lucide-react: ">=0.400.0"
+    react: ">=18.0.0"
+    react-dom: ">=18.0.0"
+  peerDependenciesMeta:
+    lucide-react:
+      optional: true
+  checksum: 10c0/e82d41b96e59b86888546c1159e921d4f3d306b2da0c6b61b0cb18f48b0237e619b606870e6cb525663c4f88cff0c0a0363012413abe98cc73e1c5040620c0f2
+  languageName: node
+  linkType: hard
+
+"@scenar/sdk@npm:0.0.4":
+  version: 0.0.4
+  resolution: "@scenar/sdk@npm:0.0.4"
+  dependencies:
+    "@scenar/core": "npm:0.0.4"
+  checksum: 10c0/f88f5f82ada143e46d19d2be035bd834c3ba3e1f77d51fcc704d3bf8e4290f5003dfd5d4793c285e026af6ef53ca6ebc0fcaf1ca85bbb8144fb6925c62150c8e
+  languageName: node
+  linkType: hard
+
 "@shikijs/core@npm:3.23.0":
   version: 3.23.0
   resolution: "@shikijs/core@npm:3.23.0"
@@ -2799,7 +2853,7 @@ __metadata:
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=d8ae80&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=cad138&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2810,7 +2864,7 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/a5975ab1e19da5112c4b9eaf28e508414d4659cc41b20bde6bec220023e9416aa7d526c70a6003f5212265b044e9e576dfd5094f46fa01b22c2129daaaae86d0
+  checksum: 10c0/00581853f5fed7e2e50737eb40ce3b023a241add14ab0f118aa5502163305675400282d514ecfd6c4b2d909dc40e49e1215d7bdd6f554c77211ad02e368ad6d7
   languageName: node
   linkType: hard
 
@@ -4765,6 +4819,13 @@ __metadata:
   version: 7.2.0
   resolution: "commander@npm:7.2.0"
   checksum: 10c0/8d690ff13b0356df7e0ebbe6c59b4712f754f4b724d4f473d3cc5b3fdcf978e3a5dc3078717858a2ceb50b0f84d0660a7f22a96cdc50fb877d0c9bb31593d23a
+  languageName: node
+  linkType: hard
+
+"commander@npm:^13.0.0":
+  version: 13.1.0
+  resolution: "commander@npm:13.1.0"
+  checksum: 10c0/7b8c5544bba704fbe84b7cab2e043df8586d5c114a4c5b607f83ae5060708940ed0b5bd5838cf8ce27539cde265c1cbd59ce3c8c6b017ed3eec8943e3a415164
   languageName: node
   linkType: hard
 
@@ -10883,6 +10944,9 @@ __metadata:
     "@remotion/cli": "npm:^4.0.443"
     "@remotion/renderer": "npm:^4.0.443"
     "@remotion/tailwind-v4": "npm:^4.0.443"
+    "@scenar/cli": "npm:^0.0.4"
+    "@scenar/core": "npm:^0.0.4"
+    "@scenar/react": "npm:^0.0.4"
     "@stigmer/protos": "file:../apis/stubs/ts"
     "@stigmer/react": "file:../sdk/react"
     "@stigmer/sdk": "file:../sdk/typescript"
@@ -12045,7 +12109,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yaml@npm:^2.8.2":
+"yaml@npm:^2.7.0, yaml@npm:^2.8.2":
   version: 2.8.3
   resolution: "yaml@npm:2.8.3"
   bin:

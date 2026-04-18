@@ -11,11 +11,9 @@ import { create } from "@bufbuild/protobuf";
 import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { EnvVarInput } from "@stigmer/sdk";
+import { ScenarioPlayer, useNarrationManifest, Cursor } from "@scenar/react";
 import { AppShell } from "../../views/AppShell";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
-import { DemoViewport } from "../../engine/DemoViewport";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import {
   type ConnectStep,
@@ -110,7 +108,7 @@ export function ConnectPlayback() {
   }, []);
 
   return (
-    <DemoViewport containerRef={containerRef}>
+    <StigmerDemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={connectSteps}
         narrationManifest={narrationManifest}
@@ -146,6 +144,6 @@ export function ConnectPlayback() {
         )}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </DemoViewport>
+    </StigmerDemoViewport>
   );
 }

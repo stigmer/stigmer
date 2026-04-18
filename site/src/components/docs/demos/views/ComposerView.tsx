@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { MessageThread, SessionComposer } from "@stigmer/react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { DEMO_ORG, MOCK_WORKSPACE } from "../engine/shared";
+import { DEMO_ORG, MOCK_WORKSPACE } from "../fixtures";
 import { DEMO_CONTENT_ZOOM } from "../shared/tokens";
 
 const noop = () => {};

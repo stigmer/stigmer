@@ -4,7 +4,7 @@
  * real SDK ProviderPicker, configuring it, and verifying the result.
  */
 
-import type { ScenarioStep } from "../../engine/ScenarioPlayer";
+import type { ScenarioStep } from "@scenar/react";
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -29,6 +29,9 @@ export const registerIdpSteps: ScenarioStep<RegisterIdpStep>[] = [
     caption: "Gather values from your auth provider",
     narration:
       "Start by gathering the JWKS URI, issuer URL, and audience from your auth provider's dashboard. These three values configure the trust relationship.",
+    interactions: [
+      { atPercent: 0.55, type: "scroll_to", target: "audience-field" },
+    ],
   },
   {
     delayMs: 3500,
@@ -50,6 +53,9 @@ export const registerIdpSteps: ScenarioStep<RegisterIdpStep>[] = [
     caption: "Fill in the configuration",
     narration:
       "Enter the Auth0 tenant name and region to auto-populate the OIDC endpoints. Then set the display name and expected audience for the trust relationship.",
+    interactions: [
+      { atPercent: 0.3, type: "scroll_to", target: "continue-btn" },
+    ],
   },
   {
     delayMs: 3500,
@@ -57,6 +63,9 @@ export const registerIdpSteps: ScenarioStep<RegisterIdpStep>[] = [
     caption: "Enable JIT provisioning",
     narration:
       "Enable JIT provisioning so Stigmer creates accounts and grants roles automatically when users authenticate. No per-user provisioning code needed.",
+    interactions: [
+      { atPercent: 0.5, type: "set_cursor", target: "register-btn" },
+    ],
   },
   {
     delayMs: 4000,

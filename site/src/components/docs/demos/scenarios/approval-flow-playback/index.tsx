@@ -4,18 +4,14 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { StigmerProvider } from "@stigmer/react";
 import { createDemoClient } from "@stigmer/react/demo";
 import type { DemoScenario } from "@stigmer/react/demo";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { useStepInteractions } from "../../engine/useStepInteractions";
-import { Cursor } from "../../engine/Cursor";
+import { ScenarioPlayer, useNarrationManifest, useStepInteractions, Cursor } from "@scenar/react";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
-import { DemoViewport } from "../../engine/DemoViewport";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
   type ApprovalFlowStep,
-  APPROVAL_INTERACTIONS,
   approvalFlowSteps,
   completedExecution,
 } from "./steps";
@@ -51,7 +47,6 @@ export function ApprovalFlowPlayback() {
 
   useStepInteractions({
     stepIndex,
-    interactions: APPROVAL_INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -60,7 +55,7 @@ export function ApprovalFlowPlayback() {
 
   return (
     <StigmerProvider client={client}>
-      <DemoViewport containerRef={containerRef}>
+      <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={approvalFlowSteps}
           narrationManifest={narrationManifest}
@@ -69,7 +64,7 @@ export function ApprovalFlowPlayback() {
           {(step) => renderStep(step, approved, handleApprovalSubmit)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} />
-      </DemoViewport>
+      </StigmerDemoViewport>
     </StigmerProvider>
   );
 }

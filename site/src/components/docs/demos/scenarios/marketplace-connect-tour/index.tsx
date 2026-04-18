@@ -10,17 +10,16 @@ import {
 import { create } from "@bufbuild/protobuf";
 import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import {
+  ScenarioPlayer,
+  useNarrationManifest,
+  Cursor,
+  useStepInteractions,
+} from "@scenar/react";
 import { AppShell } from "../../views/AppShell";
 import { ResourceListPage } from "../../views/ResourceListPage";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { Cursor } from "../../engine/Cursor";
-import {
-  type StepInteractions,
-  useStepInteractions,
-} from "../../engine/useStepInteractions";
 import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
-import { DemoViewport } from "../../engine/DemoViewport";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import {
   type MarketplaceConnectStep,
   marketplaceConnectSteps,
@@ -109,19 +108,6 @@ function renderGridStep(step: MarketplaceConnectStep) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Mid-step interactions
-// ---------------------------------------------------------------------------
-
-const INTERACTIONS: StepInteractions = {
-  2: [
-    { atPercent: 0.4, type: "scroll-to", target: "capabilities-bottom" },
-  ],
-  4: [
-    { atPercent: 0.3, type: "scroll-to", target: "capabilities-bottom" },
-  ],
-};
-
 export function MarketplaceConnectTour() {
   const narrationManifest = useNarrationManifest(
     "marketplace-connect-tour",
@@ -152,7 +138,6 @@ export function MarketplaceConnectTour() {
 
   useStepInteractions({
     stepIndex,
-    interactions: INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -160,7 +145,7 @@ export function MarketplaceConnectTour() {
   });
 
   return (
-    <DemoViewport containerRef={containerRef}>
+    <StigmerDemoViewport containerRef={containerRef}>
       <ScenarioPlayer
         steps={marketplaceConnectSteps}
         narrationManifest={narrationManifest}
@@ -202,6 +187,6 @@ export function MarketplaceConnectTour() {
         }}
       </ScenarioPlayer>
       <Cursor target={cursorTarget} containerRef={containerRef} />
-    </DemoViewport>
+    </StigmerDemoViewport>
   );
 }

@@ -9,20 +9,15 @@ import {
   StigmerProvider,
 } from "@stigmer/react";
 import { createDemoClient, fixtures, buildScenario } from "@stigmer/react/demo";
-import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { useNarrationManifest } from "../../engine/useNarrationManifest";
-import { useStepInteractions } from "../../engine/useStepInteractions";
-import { Cursor } from "../../engine/Cursor";
-import { DEMO_ORG } from "../../engine/shared";
+import { ScenarioPlayer, useNarrationManifest, useStepInteractions, Cursor, PulseHighlight } from "@scenar/react";
+import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
+import { DEMO_ORG } from "../../fixtures";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { ManagementShell } from "../../views/ManagementShell";
-import { PulseHighlight } from "../../shared/PulseHighlight";
 import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
-import { DemoViewport } from "../../engine/DemoViewport";
 import {
   type ApiKeySetupStep,
-  APIKEY_INTERACTIONS,
   apiKeySetupSteps,
   getApiKeyList,
   PERSONAL_ENVIRONMENT,
@@ -233,7 +228,6 @@ export function ApiKeySetup() {
 
   useStepInteractions({
     stepIndex,
-    interactions: APIKEY_INTERACTIONS,
     narrationManifest,
     containerRef,
     setCursorTarget,
@@ -243,7 +237,7 @@ export function ApiKeySetup() {
 
   return (
     <StigmerProvider client={client}>
-      <DemoViewport containerRef={containerRef}>
+      <StigmerDemoViewport containerRef={containerRef}>
         <ScenarioPlayer
           steps={apiKeySetupSteps}
           narrationManifest={narrationManifest}
@@ -252,7 +246,7 @@ export function ApiKeySetup() {
           {(step) => renderStep(step)}
         </ScenarioPlayer>
         <Cursor target={cursorTarget} containerRef={containerRef} showRipple={showRipple} />
-      </DemoViewport>
+      </StigmerDemoViewport>
     </StigmerProvider>
   );
 }
