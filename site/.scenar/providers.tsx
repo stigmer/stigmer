@@ -8,10 +8,6 @@ interface PreviewProvidersProps {
   readonly children: ReactNode;
 }
 
-/**
- * Provider wrapper for preview components.
- * Add your app's providers here (theme, query client, etc.).
- */
 export function PreviewProviders({ children }: PreviewProvidersProps) {
   return <>{children}</>;
 }

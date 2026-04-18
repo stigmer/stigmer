@@ -184,6 +184,9 @@ gen-cli-docs-check: ## Verify CLI docs are up to date (CI)
 gen-narration: ## Generate narration audio for demo scenarios
 	$(MAKE) -C site generate-narration
 
+preview-sync: ## Re-scan client-apps/web and update site/.scenar/ view registry
+	npx scenar preview sync --source client-apps/web --output site/.scenar
+
 codegen: protos gen-sdk-docs gen-narration ## Regenerate all derived code (stubs + SDK docs + narration)
 
 # ─── Test ─────────────────────────────────────

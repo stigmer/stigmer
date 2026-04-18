@@ -1,6 +1,7 @@
 import { defineConfig } from "@scenar/preview";
 
 export default defineConfig({
+  source: "/Users/suresh/scm/github.com/stigmer/stigmer/client-apps/web",
   sourceRoots: ["src"],
   exclude: [
     "**/*.test.*",
