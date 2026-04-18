@@ -13,9 +13,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State (COMPLETE)
 
-- **Status**: All tasks T01–T06 complete. Codegen import bug fixed. Project ready for final merge prep.
-- **Last session**: 2026-04-18 (session 10) — Fixed codegen generator bug where method types in non-standard proto files (token.proto) were incorrectly imported from io_pb. Fixed both TS and Python generators, regenerated all SDKs.
-- **Active task**: None — all tasks complete.
+- **Status**: All tasks T01–T06 complete. Docs demos landed (sessions 11–12). Site uses `@scenar/*` **^0.1.6** for demo MSW + playback fixes. Ready for merge prep.
+- **Last session**: 2026-04-18 (session 12) — Changelog + checkpoint for Scenar demo reliability (`toJson` MSW responses, narration sync); bumped `@scenar` on the site. (Session 11: PlatformClient embedded demos; session 10: codegen import fix.)
+- **Active task**: None — optional: decide fate of deleted `_projects/.../20260417.02.scenar-product/` files (currently unstaged).
 
 ## Essential Files to Review
 
