@@ -2773,12 +2773,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@scenar/cli@npm:^0.1.4":
-  version: 0.1.4
-  resolution: "@scenar/cli@npm:0.1.4"
+"@scenar/cli@npm:^0.1.5":
+  version: 0.1.5
+  resolution: "@scenar/cli@npm:0.1.5"
   dependencies:
-    "@scenar/preview": "npm:0.1.4"
-    "@scenar/sdk": "npm:0.1.4"
+    "@scenar/preview": "npm:0.1.5"
+    "@scenar/sdk": "npm:0.1.5"
     commander: "npm:^13.0.0"
     yaml: "npm:^2.7.0"
   peerDependencies:
@@ -2791,20 +2791,20 @@ __metadata:
       optional: true
   bin:
     scenar: bin/scenar.js
-  checksum: 10c0/d0cdae179910bc8e04c6da894a9781bae956cb655d24f98c537b2ca2ee32f38f97a5444cc942b8ac8ff75c7b694cf93264491ec5986fb00529f94c2d8b2fed96
+  checksum: 10c0/eb5d7100ab4f065c5c04c62b891c80052819e65fd4527e59b2aee4c1b65db03468c84fbc0de62f864264df1968d906a6c750b01aecef512b3a5aa553a02964cd
   languageName: node
   linkType: hard
 
-"@scenar/core@npm:0.1.4, @scenar/core@npm:^0.1.4":
-  version: 0.1.4
-  resolution: "@scenar/core@npm:0.1.4"
-  checksum: 10c0/341155ca6c2e419bd24cc10e53b948ccd2db64cbc572d7cd3c8528049f4b4d8ddecb264c12037877da7fe7cd043697ddc7c2d25157099fa1d440646ddea951db
+"@scenar/core@npm:0.1.5, @scenar/core@npm:^0.1.5":
+  version: 0.1.5
+  resolution: "@scenar/core@npm:0.1.5"
+  checksum: 10c0/30389eac987e9a1e66ae8bcafdb588483e84f052d54f71827c684e0a3f15fdba6387472c495857a6ded122c8ccd1ef97e0c73e9f35350d1a587264d48ba2fa8c
   languageName: node
   linkType: hard
 
-"@scenar/preview@npm:0.1.4, @scenar/preview@npm:^0.1.4":
-  version: 0.1.4
-  resolution: "@scenar/preview@npm:0.1.4"
+"@scenar/preview@npm:0.1.5, @scenar/preview@npm:^0.1.5":
+  version: 0.1.5
+  resolution: "@scenar/preview@npm:0.1.5"
   dependencies:
     ts-morph: "npm:^25.0.0"
   peerDependencies:
@@ -2818,15 +2818,15 @@ __metadata:
       optional: true
     react:
       optional: true
-  checksum: 10c0/326955e4fe24e0043ee27b2cf2339c4f22b683037299b97f8a6c4a043001c52891ef689f786dd7fe9e5d8b63a83fa8efae242276162b81f7d3ccb31bffe1ec99
+  checksum: 10c0/7d817fccc801e1a8d9ad07dda33c4a49dcbfdf893d4110e8e08e2a63d3ced282554caac6cdaec2aa00673e7102ebe3e26b5a7f3b612ec636d09ddd5f58ea5a8c
   languageName: node
   linkType: hard
 
-"@scenar/react@npm:^0.1.4":
-  version: 0.1.4
-  resolution: "@scenar/react@npm:0.1.4"
+"@scenar/react@npm:^0.1.5":
+  version: 0.1.5
+  resolution: "@scenar/react@npm:0.1.5"
   dependencies:
-    "@scenar/core": "npm:0.1.4"
+    "@scenar/core": "npm:0.1.5"
   peerDependencies:
     framer-motion: ">=11.0.0"
     lucide-react: ">=0.400.0"
@@ -2835,16 +2835,16 @@ __metadata:
   peerDependenciesMeta:
     lucide-react:
       optional: true
-  checksum: 10c0/9b9d0e50aa9c60862d5ec32f98fd5c7582f374bec1d512f11d8753f4f3765a6fae5da5bdff3fc56cd1f107df2c9fe58ff53589ed8a167f9fb462914b8113ebaf
+  checksum: 10c0/47d904f727229d8b827d860e749082e26f5acd7e0dd580e99727a695fd13425eba4b914fa8010d69addc821b0d16320321006630abd6fc4d0493025439cfbc9c
   languageName: node
   linkType: hard
 
-"@scenar/sdk@npm:0.1.4":
-  version: 0.1.4
-  resolution: "@scenar/sdk@npm:0.1.4"
+"@scenar/sdk@npm:0.1.5":
+  version: 0.1.5
+  resolution: "@scenar/sdk@npm:0.1.5"
   dependencies:
-    "@scenar/core": "npm:0.1.4"
-  checksum: 10c0/33b8f972f1c6a291f19e05a7bc7223c29e98f21c01ac16c901c68cc172d35e228d8f999e399c5744d3a4201b21920fd167eaf0327865d78e1beb59acb2acbe4d
+    "@scenar/core": "npm:0.1.5"
+  checksum: 10c0/e674d0bc43a5cf2b505bd3bd0cc3ace7dcac30f0b1f67e9a53713be41a5439ceee643cebc46972e80d97fe2cfcb768109d03ac4caa454b9641b437e1de1e8118
   languageName: node
   linkType: hard
 
@@ -2958,7 +2958,7 @@ __metadata:
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=e59517&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=351a51&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@stigmer/theme": "npm:*"
     react-markdown: "npm:^10.1.0"
@@ -2974,7 +2974,7 @@ __metadata:
   peerDependenciesMeta:
     "@base-ui/react":
       optional: true
-  checksum: 10c0/4412a8dfec989a7aa9b71c58772509290c1aa1c2985521833d961100b62b673f0588c399bf7deff5c218d4ef17b2974b57746d67df5b2c2cf27efdb0e706bb65
+  checksum: 10c0/a806423c515540c48ea6af2765eac6a331564a60832e2b11f96aa9b40dfc008d48d0444b56e25c0f3af3923bf5e4e89500083a0214a3be3dfcc8c68abb31c0d4
   languageName: node
   linkType: hard
 
@@ -11334,10 +11334,10 @@ __metadata:
     "@remotion/cli": "npm:^4.0.443"
     "@remotion/renderer": "npm:^4.0.443"
     "@remotion/tailwind-v4": "npm:^4.0.443"
-    "@scenar/cli": "npm:^0.1.4"
-    "@scenar/core": "npm:^0.1.4"
-    "@scenar/preview": "npm:^0.1.4"
-    "@scenar/react": "npm:^0.1.4"
+    "@scenar/cli": "npm:^0.1.5"
+    "@scenar/core": "npm:^0.1.5"
+    "@scenar/preview": "npm:^0.1.5"
+    "@scenar/react": "npm:^0.1.5"
     "@stigmer/protos": "file:../apis/stubs/ts"
     "@stigmer/react": "file:../sdk/react"
     "@stigmer/sdk": "file:../sdk/typescript"
