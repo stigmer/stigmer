@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { ScenarioPlayer, useNarrationManifest, Cursor, useStepInteractions, BrowserView, TerminalView, LoginCardPage } from "@scenar/react";
 import { APIExchangeView } from "../../views/APIExchangeView";
-import { DEMO_BROWSER_ZOOM, DEMO_TERMINAL_MAX_WIDTH } from "../../shared/tokens";
+import { DEMO_BROWSER_ZOOM } from "../../shared/tokens";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import {
   type AuthFlowStep,
@@ -126,7 +126,6 @@ function renderStep(step: AuthFlowStep) {
       return (
         <TerminalView
           title="Terminal — zsh"
-          maxWidth={DEMO_TERMINAL_MAX_WIDTH}
           contentKey="api-call"
           lines={API_CALL_LINES}
         />
@@ -161,7 +160,6 @@ function renderStep(step: AuthFlowStep) {
       return (
         <TerminalView
           title="Terminal — zsh"
-          maxWidth={DEMO_TERMINAL_MAX_WIDTH}
           contentKey="success"
           lines={SUCCESS_LINES}
         />
@@ -171,7 +169,6 @@ function renderStep(step: AuthFlowStep) {
       return (
         <TerminalView
           title="Terminal — Error Scenario"
-          maxWidth={DEMO_TERMINAL_MAX_WIDTH}
           contentKey="error-401"
           lines={ERROR_401_LINES}
         />
@@ -181,7 +178,6 @@ function renderStep(step: AuthFlowStep) {
       return (
         <TerminalView
           title="Terminal — Error Scenario"
-          maxWidth={DEMO_TERMINAL_MAX_WIDTH}
           contentKey="error-403"
           slideDirection="forward"
           lines={ERROR_403_LINES}

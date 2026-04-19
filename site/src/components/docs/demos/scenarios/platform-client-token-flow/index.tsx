@@ -12,7 +12,7 @@ import {
   LoginCardPage,
 } from "@scenar/react";
 import { APIExchangeView } from "../../views/APIExchangeView";
-import { DEMO_BROWSER_ZOOM, DEMO_TERMINAL_MAX_WIDTH } from "../../shared/tokens";
+import { DEMO_BROWSER_ZOOM } from "../../shared/tokens";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import {
   type TokenFlowStep,
@@ -117,7 +117,6 @@ function renderStep(step: TokenFlowStep) {
       return (
         <TerminalView
           title="Your Backend — mintUserToken"
-          maxWidth={DEMO_TERMINAL_MAX_WIDTH}
           contentKey="mint-call"
           lines={MINT_CALL_LINES}
         />
@@ -142,7 +141,6 @@ function renderStep(step: TokenFlowStep) {
       return (
         <TerminalView
           title="Your Backend — Token Response"
-          maxWidth={DEMO_TERMINAL_MAX_WIDTH}
           contentKey="token-response"
           lines={TOKEN_RESPONSE_LINES}
         />
@@ -179,7 +177,6 @@ function renderStep(step: TokenFlowStep) {
       return (
         <TerminalView
           title="Error — Invalid Credentials"
-          maxWidth={DEMO_TERMINAL_MAX_WIDTH}
           contentKey="error-unauth"
           lines={ERROR_UNAUTHENTICATED_LINES}
         />
@@ -189,7 +186,6 @@ function renderStep(step: TokenFlowStep) {
       return (
         <TerminalView
           title="Error — User Not Found"
-          maxWidth={DEMO_TERMINAL_MAX_WIDTH}
           contentKey="error-notfound"
           slideDirection="forward"
           lines={ERROR_NOT_FOUND_LINES}

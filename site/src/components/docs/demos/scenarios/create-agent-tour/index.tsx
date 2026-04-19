@@ -11,7 +11,7 @@ import { connectFixture } from "@scenar/preview/connect";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
-import { DEMO_CONTENT_ZOOM, DEMO_DETAIL_CLASSES, DEMO_TERMINAL_MAX_WIDTH } from "../../shared/tokens";
+import { DEMO_CONTENT_ZOOM, DEMO_DETAIL_CLASSES } from "../../shared/tokens";
 import {
   type CreateAgentTourStep,
   createAgentTourSteps,
@@ -123,7 +123,6 @@ export function CreateAgentTour() {
                 return (
                   <TerminalView
                     title="Terminal — zsh"
-                    maxWidth={DEMO_TERMINAL_MAX_WIDTH}
                     cwd="~/stigmer-quickstart"
                     lines={RESULT_OUTPUT}
                     contentKey="result"

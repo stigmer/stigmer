@@ -12,7 +12,7 @@ import {
   PulseHighlight,
   type FileTreeEntry,
 } from "@scenar/react";
-import { DEMO_BROWSER_ZOOM, DEMO_TERMINAL_MAX_WIDTH } from "../../shared/tokens";
+import { DEMO_BROWSER_ZOOM } from "../../shared/tokens";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 
 const FILE_TREE: FileTreeEntry[] = [
@@ -121,7 +121,6 @@ function renderStep(step: ProvisionGrantStep) {
       return (
         <TerminalView
           title="Terminal — zsh"
-          maxWidth={DEMO_TERMINAL_MAX_WIDTH}
           lines={NOT_FOUND_OUTPUT}
           contentKey="not-found"
         />
@@ -142,7 +141,6 @@ function renderStep(step: ProvisionGrantStep) {
       return (
         <TerminalView
           title="Terminal — zsh"
-          maxWidth={DEMO_TERMINAL_MAX_WIDTH}
           lines={CREATED_OUTPUT}
           contentKey="created"
         />
@@ -163,7 +161,6 @@ function renderStep(step: ProvisionGrantStep) {
       return (
         <TerminalView
           title="Terminal — zsh"
-          maxWidth={DEMO_TERMINAL_MAX_WIDTH}
           lines={GRANTED_OUTPUT}
           contentKey="granted"
         />
