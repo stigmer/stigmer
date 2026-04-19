@@ -3,10 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import {
   Check,
-  ExternalLink,
-  Key,
   Plus,
-  Shield,
   ShieldCheck,
 } from "lucide-react";
 import { ProviderPicker } from "@stigmer/react";
@@ -17,6 +14,7 @@ import {
   useStepInteractions,
   BrowserView,
   PulseHighlight,
+  SettingsFormPage,
 } from "@scenar/react";
 import { ManagementShell } from "../../views/ManagementShell";
 import { DEMO_BROWSER_ZOOM, DEMO_CONTENT_ZOOM } from "../../shared/tokens";
@@ -24,85 +22,6 @@ import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { type RegisterIdpStep, registerIdpSteps } from "./steps";
 
 const noop = () => {};
-
-// ---------------------------------------------------------------------------
-// Auth provider dashboard (step 1)
-// ---------------------------------------------------------------------------
-
-function AuthDashboardPage() {
-  return (
-    <div className="flex h-full flex-col overflow-y-auto bg-gradient-to-b from-background to-muted/30 p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <Shield className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-semibold text-foreground">
-          Auth0 — API Settings
-        </h3>
-      </div>
-
-      <div className="mb-2.5 rounded-md border border-border bg-card p-2">
-        <div className="mb-1 flex items-center gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
-            API Name
-          </span>
-        </div>
-        <div className="rounded bg-muted px-2 py-1 font-mono text-xs text-foreground">
-          Stigmer Platform API
-        </div>
-      </div>
-
-      <div className="space-y-2.5">
-        <SettingsRow
-          icon={<Key className="h-3 w-3 text-muted-foreground" />}
-          label="JWKS URI"
-          value="https://acme.us.auth0.com/.well-known/jwks.json"
-        />
-        <SettingsRow
-          icon={<ExternalLink className="h-3 w-3 text-muted-foreground" />}
-          label="Issuer URL"
-          value="https://acme.us.auth0.com/"
-        />
-        <div data-scroll-target="audience-field">
-          <SettingsRow
-            icon={<Shield className="h-3 w-3 text-muted-foreground" />}
-            label="Audience (API Identifier)"
-            value="https://api.stigmer.ai/"
-          />
-        </div>
-      </div>
-
-      <div className="mt-4 rounded-md border border-border bg-muted/30 p-2">
-        <p className="text-xs text-muted-foreground">
-          Copy these three values into your Stigmer Identity Provider
-          configuration.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function SettingsRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-md border border-border bg-card p-2">
-      <div className="mb-1 flex items-center gap-1.5">
-        {icon}
-        <span className="text-xs font-medium text-muted-foreground">
-          {label}
-        </span>
-      </div>
-      <div className="rounded bg-muted px-2 py-1 font-mono text-xs text-foreground">
-        {value}
-      </div>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Provider list (step 2) — empty state with add button
@@ -420,7 +339,18 @@ function renderStep(step: RegisterIdpStep) {
           contentKey="dashboard"
           zoom={DEMO_BROWSER_ZOOM}
         >
-          <AuthDashboardPage />
+          <SettingsFormPage
+            serviceName="Auth0"
+            breadcrumbs={["APIs", "Stigmer Platform API"]}
+            title="API Settings"
+            description="Copy these values into your Stigmer Identity Provider configuration."
+            fields={[
+              { label: "API Name", value: "Stigmer Platform API" },
+              { label: "JWKS URI", value: "https://acme.us.auth0.com/.well-known/jwks.json", copyable: true },
+              { label: "Issuer URL", value: "https://acme.us.auth0.com/", copyable: true },
+              { label: "Audience (API Identifier)", value: "https://api.stigmer.ai/", copyable: true },
+            ]}
+          />
         </BrowserView>
       );
 
