@@ -15,7 +15,7 @@ import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
-import { DEMO_CONTENT_ZOOM, DEMO_TERMINAL_MAX_WIDTH } from "../../shared/tokens";
+import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
 import {
   type ConnectToolsTourStep,
   connectToolsTourSteps,
@@ -136,7 +136,6 @@ export function ConnectToolsTour() {
                 return (
                   <TerminalView
                     title="Terminal — zsh"
-                    maxWidth={DEMO_TERMINAL_MAX_WIDTH}
                     cwd="~/stigmer-quickstart"
                     lines={ORDER_OUTPUT}
                     contentKey="order"

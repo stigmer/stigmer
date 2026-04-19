@@ -14,7 +14,7 @@ import {
   LoginCardPage,
   StatusBadge,
 } from "@scenar/react";
-import { DEMO_BROWSER_ZOOM, DEMO_TERMINAL_MAX_WIDTH } from "../../shared/tokens";
+import { DEMO_BROWSER_ZOOM } from "../../shared/tokens";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import {
   type MultiTenantSetupStep,
@@ -120,7 +120,6 @@ function renderStep(step: MultiTenantSetupStep) {
       return (
         <TerminalView
           title="Terminal — zsh"
-          maxWidth={DEMO_TERMINAL_MAX_WIDTH}
           lines={ORG_CREATED_OUTPUT}
           contentKey="org-created"
         />
@@ -169,7 +168,6 @@ function renderStep(step: MultiTenantSetupStep) {
       return (
         <TerminalView
           title="Terminal — zsh"
-          maxWidth={DEMO_TERMINAL_MAX_WIDTH}
           lines={USER_ONBOARDED_OUTPUT}
           contentKey="user-onboarded"
         />

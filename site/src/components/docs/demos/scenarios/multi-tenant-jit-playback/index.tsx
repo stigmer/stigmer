@@ -13,7 +13,7 @@ import {
   BrowserView,
 } from "@scenar/react";
 import { APIExchangeView } from "../../views/APIExchangeView";
-import { DEMO_BROWSER_ZOOM, DEMO_TERMINAL_MAX_WIDTH } from "../../shared/tokens";
+import { DEMO_BROWSER_ZOOM } from "../../shared/tokens";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
 import {
   type MultiTenantJitStep,
@@ -127,7 +127,6 @@ function renderStep(step: MultiTenantJitStep) {
       return (
         <TerminalView
           title="Terminal — zsh"
-          maxWidth={DEMO_TERMINAL_MAX_WIDTH}
           lines={ORG_CREATED_OUTPUT}
           contentKey="org-created"
         />
