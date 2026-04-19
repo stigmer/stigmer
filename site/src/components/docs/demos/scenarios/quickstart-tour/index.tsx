@@ -19,7 +19,7 @@ import { PreviewProviders } from "../../../../../../.scenar/providers";
 import { ManagementShell } from "../../views/ManagementShell";
 import { connectFixture } from "@scenar/preview/connect";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
-import { DEMO_CONTENT_ZOOM } from "../../shared/tokens";
+import { DEMO_CONTENT_ZOOM, DEMO_TERMINAL_MAX_WIDTH } from "../../shared/tokens";
 import {
   type QuickstartTourStep,
   quickstartTourSteps,
@@ -108,6 +108,7 @@ function renderStep(step: QuickstartTourStep) {
       return (
         <TerminalView
           title="Terminal — zsh"
+          maxWidth={DEMO_TERMINAL_MAX_WIDTH}
           cwd="~/stigmer-quickstart"
           lines={GENERIC_OUTPUT}
           contentKey="generic"
@@ -131,6 +132,7 @@ function renderStep(step: QuickstartTourStep) {
       return (
         <TerminalView
           title="Terminal — zsh"
+          maxWidth={DEMO_TERMINAL_MAX_WIDTH}
           cwd="~/stigmer-quickstart"
           lines={DOMAIN_FAIL_OUTPUT}
           contentKey="domain-fail"

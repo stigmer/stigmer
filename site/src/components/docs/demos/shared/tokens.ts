@@ -21,6 +21,16 @@ export const DEMO_SIDEBAR_ZOOM = 0.85;
 export const DEMO_BROWSER_ZOOM = 0.9;
 
 /**
+ * Maximum width for TerminalView shells (pixels).
+ *
+ * At 896px canonical width, terminal lines (typically 40–60 chars)
+ * leave the right half empty. Constraining to 700px approximates
+ * an 80-column terminal and centres it within the viewport. After
+ * DemoViewport zoom (~0.84) this renders at ~588px on screen.
+ */
+export const DEMO_TERMINAL_MAX_WIDTH = 700;
+
+/**
  * Fixed height of the AppShell demo container in pixels.
  */
 export const DEMO_SHELL_HEIGHT = 380;

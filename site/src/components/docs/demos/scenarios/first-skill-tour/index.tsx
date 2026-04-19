@@ -16,6 +16,7 @@ import { ComposerView } from "../../views/ComposerView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
 import { PreviewProviders } from "../../../../../../.scenar/providers";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
+import { DEMO_TERMINAL_MAX_WIDTH } from "../../shared/tokens";
 import {
   type FirstSkillTourStep,
   firstSkillTourSteps,
@@ -72,6 +73,7 @@ function renderStep(step: FirstSkillTourStep) {
       return (
         <TerminalView
           title="Terminal — zsh"
+          maxWidth={DEMO_TERMINAL_MAX_WIDTH}
           cwd="~/stigmer-quickstart"
           lines={EXPERT_OUTPUT}
           contentKey="expert"
