@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { Building2, Plus } from "lucide-react";
 import {
   ScenarioPlayer,
   useNarrationManifest,
@@ -11,7 +10,9 @@ import {
   CodeEditorView,
   type FileTreeEntry,
   TerminalView,
-  PulseHighlight,
+  AdminListPage,
+  LoginCardPage,
+  StatusBadge,
 } from "@scenar/react";
 import { DEMO_BROWSER_ZOOM } from "../../shared/tokens";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
@@ -55,136 +56,6 @@ function cursorTargetFor(step: MultiTenantSetupStep): string | undefined {
 }
 
 // ---------------------------------------------------------------------------
-// Inline page content — Platform admin panel
-// ---------------------------------------------------------------------------
-
-function TenantAdminPage() {
-  return (
-    <div className="flex h-full flex-col bg-gradient-to-b from-background to-muted/30">
-      <div className="border-b border-border px-4 py-2.5">
-        <div className="flex items-center gap-1.5">
-          <div className="flex h-5 w-5 items-center justify-center rounded-md bg-primary/10">
-            <span className="text-xs font-bold text-primary">A</span>
-          </div>
-          <span className="text-sm font-semibold text-foreground">
-            Acme Cloud
-          </span>
-          <span className="text-xs text-muted-foreground">/ Tenants</span>
-        </div>
-      </div>
-
-      <div className="flex-1 p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-foreground">
-            Tenant Organizations
-          </h3>
-          <div
-            className="relative flex items-center gap-1 rounded-md bg-primary px-2 py-0.5"
-            data-cursor-target="create-tenant-btn"
-          >
-            <Plus className="h-2.5 w-2.5 text-primary-foreground" />
-            <span className="text-xs font-medium text-primary-foreground">
-              Create tenant
-            </span>
-            <PulseHighlight />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
-            <Building2 className="h-3 w-3 text-primary" />
-            <div>
-              <div className="text-xs font-medium text-foreground">
-                Tenant Alpha
-              </div>
-              <div className="text-xs text-muted-foreground">
-                acme-tenant-alpha-id
-              </div>
-            </div>
-            <span className="ml-auto rounded-full bg-amber-500/10 px-1.5 py-0.5 text-xs font-medium text-amber-600">
-              Provisioning...
-            </span>
-          </div>
-          <div className="flex items-center gap-2 rounded-md border border-border px-3 py-2">
-            <Building2 className="h-3 w-3 text-muted-foreground" />
-            <div>
-              <div className="text-xs font-medium text-foreground">
-                Globex Corp
-              </div>
-              <div className="text-xs text-muted-foreground">
-                acme-globex-corp-id
-              </div>
-            </div>
-            <span className="ml-auto rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-xs font-medium text-emerald-600">
-              Active
-            </span>
-          </div>
-          <div className="flex items-center gap-2 rounded-md border border-border px-3 py-2">
-            <Building2 className="h-3 w-3 text-muted-foreground" />
-            <div>
-              <div className="text-xs font-medium text-foreground">
-                Initech
-              </div>
-              <div className="text-xs text-muted-foreground">
-                acme-initech-id
-              </div>
-            </div>
-            <span className="ml-auto rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-xs font-medium text-emerald-600">
-              Active
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Inline page content — Tenant-branded signup
-// ---------------------------------------------------------------------------
-
-function TenantSignupPage() {
-  return (
-    <div className="flex h-full items-center justify-center bg-gradient-to-b from-background to-muted/30">
-      <div className="w-52 rounded-lg border border-border bg-card p-3 shadow-sm">
-        <div className="mb-2 text-center">
-          <div className="mx-auto mb-1 flex h-5 w-5 items-center justify-center rounded-md bg-primary/10">
-            <Building2 className="h-2.5 w-2.5 text-primary" />
-          </div>
-          <h3 className="text-sm font-semibold text-foreground">
-            Tenant Alpha
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            Create your account
-          </p>
-        </div>
-
-        <div className="space-y-1.5">
-          <div>
-            <label className="text-xs text-muted-foreground">Name</label>
-            <div className="rounded-md border border-border bg-background px-2 py-0.5 text-xs text-foreground">
-              Jane Doe
-            </div>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Email</label>
-            <div className="rounded-md border border-border bg-background px-2 py-0.5 text-xs text-foreground">
-              jane@acme.com
-            </div>
-          </div>
-          <div className="relative" data-cursor-target="signup-btn">
-            <div className="rounded-md bg-primary py-0.5 text-center text-xs font-medium text-primary-foreground">
-              Create account
-            </div>
-            <PulseHighlight />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Step renderer
 // ---------------------------------------------------------------------------
 
@@ -193,7 +64,44 @@ function renderStep(step: MultiTenantSetupStep) {
     case "tenant-signup":
       return (
         <BrowserView url="acme.cloud/admin/tenants" contentKey="admin" zoom={DEMO_BROWSER_ZOOM}>
-          <TenantAdminPage />
+          <AdminListPage
+            appName="Acme Cloud"
+            breadcrumbs={["Tenants"]}
+            title="Tenant Organizations"
+            ctaLabel="Create tenant"
+            ctaTargetId="create-tenant-btn"
+            columns={[
+              { key: "name", label: "Name" },
+              { key: "id", label: "External ID" },
+              { key: "status", label: "Status", align: "right" },
+            ]}
+            rows={[
+              {
+                id: "alpha",
+                cells: {
+                  name: "Tenant Alpha",
+                  id: "acme-tenant-alpha-id",
+                  status: <StatusBadge label="Provisioning..." variant="warning" />,
+                },
+              },
+              {
+                id: "globex",
+                cells: {
+                  name: "Globex Corp",
+                  id: "acme-globex-corp-id",
+                  status: <StatusBadge label="Active" variant="success" />,
+                },
+              },
+              {
+                id: "initech",
+                cells: {
+                  name: "Initech",
+                  id: "acme-initech-id",
+                  status: <StatusBadge label="Active" variant="success" />,
+                },
+              },
+            ]}
+          />
         </BrowserView>
       );
 
@@ -220,7 +128,16 @@ function renderStep(step: MultiTenantSetupStep) {
     case "user-signup":
       return (
         <BrowserView url="tenant-alpha.acme.cloud/signup" contentKey="signup" zoom={DEMO_BROWSER_ZOOM}>
-          <TenantSignupPage />
+          <LoginCardPage
+            appName="Tenant Alpha"
+            subtitle="Create your account"
+            fields={[
+              { label: "Name", value: "Jane Doe" },
+              { label: "Email", value: "jane@acme.com" },
+            ]}
+            submitLabel="Create account"
+            submitTargetId="signup-btn"
+          />
         </BrowserView>
       );
 

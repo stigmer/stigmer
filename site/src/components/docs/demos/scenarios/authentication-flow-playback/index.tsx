@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { Check } from "lucide-react";
-import { ScenarioPlayer, useNarrationManifest, Cursor, useStepInteractions, BrowserView, TerminalView, PulseHighlight } from "@scenar/react";
+import { ScenarioPlayer, useNarrationManifest, Cursor, useStepInteractions, BrowserView, TerminalView, LoginCardPage } from "@scenar/react";
 import { APIExchangeView } from "../../views/APIExchangeView";
 import { DEMO_BROWSER_ZOOM } from "../../shared/tokens";
 import { StigmerDemoViewport } from "../../shared/StigmerDemoViewport";
@@ -34,47 +34,6 @@ function cursorTargetFor(step: AuthFlowStep): string | undefined {
 // ---------------------------------------------------------------------------
 // Inline page content for BrowserView
 // ---------------------------------------------------------------------------
-
-function LoginPage() {
-  return (
-    <div className="flex h-full items-center justify-center bg-gradient-to-b from-background to-muted/30">
-      <div className="w-52 rounded-lg border border-border bg-card p-3 shadow-sm">
-        <div className="mb-2 text-center">
-          <div className="mx-auto mb-1 flex h-5 w-5 items-center justify-center rounded-md bg-primary/10">
-            <span className="text-xs font-bold text-primary">A</span>
-          </div>
-          <h3 className="text-sm font-semibold text-foreground">
-            Acme Cloud
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            Sign in to your account
-          </p>
-        </div>
-
-        <div className="space-y-1.5">
-          <div>
-            <label className="text-xs text-muted-foreground">Email</label>
-            <div className="rounded-md border border-border bg-background px-2 py-0.5 text-xs text-foreground">
-              jane@acme.com
-            </div>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Password</label>
-            <div className="rounded-md border border-border bg-background px-2 py-0.5 text-xs text-muted-foreground">
-              ••••••••••
-            </div>
-          </div>
-          <div className="relative" data-cursor-target="sign-in-btn">
-            <div className="rounded-md bg-primary py-0.5 text-center text-xs font-medium text-primary-foreground">
-              Sign in
-            </div>
-            <PulseHighlight />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function AuthenticatedPage() {
   return (
@@ -138,7 +97,16 @@ function renderStep(step: AuthFlowStep) {
     case "browser-login":
       return (
         <BrowserView url="acme.cloud/login" contentKey="login" zoom={DEMO_BROWSER_ZOOM}>
-          <LoginPage />
+          <LoginCardPage
+            appName="Acme Cloud"
+            subtitle="Sign in to your account"
+            fields={[
+              { label: "Email", value: "jane@acme.com" },
+              { label: "Password", type: "password" },
+            ]}
+            submitLabel="Sign in"
+            submitTargetId="sign-in-btn"
+          />
         </BrowserView>
       );
 
