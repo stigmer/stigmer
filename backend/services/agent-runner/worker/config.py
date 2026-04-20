@@ -30,7 +30,7 @@ import os
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from worker.storage import ArtifactStorageConfig
@@ -82,11 +82,16 @@ class LLMConfig:
     temperature: float | None = None
     
     @classmethod
-    def load_from_env(cls, mode: str) -> "LLMConfig":
+    def load_from_env(
+        cls, mode: str, *, proxy_active: bool = False,
+    ) -> "LLMConfig":
         """Load LLM configuration from environment variables.
         
         Args:
-            mode: Execution mode ("local" or "cloud") for default selection
+            mode: Execution mode ("local" or "cloud") for default selection.
+            proxy_active: When True, LLM calls will route through the
+                Side-Channel Proxy and provider API keys are not required
+                on the runner (the proxy injects them server-side).
             
         Returns:
             LLMConfig instance with cascaded configuration
@@ -95,7 +100,8 @@ class LLMConfig:
             STIGMER_LLM_PROVIDER: LLM provider (anthropic|ollama|openai)
             STIGMER_LLM_MODEL: Model name (provider-specific)
             OLLAMA_BASE_URL: Base URL for Ollama (standard LangChain variable)
-            STIGMER_LLM_API_KEY: API key for Anthropic/OpenAI
+            STIGMER_LLM_API_KEY: API key for Anthropic/OpenAI (not required
+                when proxy is active)
             STIGMER_LLM_MAX_TOKENS: Override default max_tokens
             STIGMER_LLM_TEMPERATURE: Override default temperature
             
@@ -154,13 +160,16 @@ class LLMConfig:
             temperature=temperature,
         )
         
-        # Validate before returning
-        config.validate()
+        config.validate(proxy_active=proxy_active)
         
         return config
     
-    def validate(self) -> None:
+    def validate(self, *, proxy_active: bool = False) -> None:
         """Validate configuration is complete and correct.
+        
+        Args:
+            proxy_active: When True, provider API keys are not required
+                because the Side-Channel Proxy injects them server-side.
         
         Raises:
             ValueError: If configuration is invalid
@@ -182,15 +191,64 @@ class LLMConfig:
                 )
         
         if self.provider in {"anthropic", "openai"}:
-            if not self.api_key:
+            if not self.api_key and not proxy_active:
                 raise ValueError(
-                    f"api_key is required for {self.provider} provider. "
-                    f"Set STIGMER_LLM_API_KEY or ANTHROPIC_API_KEY"
+                    f"api_key is required for {self.provider} provider "
+                    f"when proxy is not active. Set STIGMER_LLM_API_KEY, "
+                    f"ANTHROPIC_API_KEY, or STIGMER_PROXY_ENDPOINT."
                 )
         
         # Validate model name is not empty
         if not self.model_name or not self.model_name.strip():
             raise ValueError("model_name cannot be empty")
+    
+    def build_llm_kwargs(
+        self,
+        proxy_endpoint: str | None = None,
+        proxy_auth_token: str | None = None,
+    ) -> dict[str, Any]:
+        """Build provider-appropriate kwargs for ``parse_model_string``.
+        
+        When *proxy_endpoint* is set, routes LLM calls through the
+        Side-Channel Proxy.  The proxy is transparent to the LangChain SDK:
+        it receives standard API requests and forwards them to the real
+        provider after substituting the API key server-side.
+        
+        The returned dict is intended to be spread into ``parse_model_string``
+        via ``**kwargs`` — it contains only the keys relevant to the current
+        provider and deployment mode (direct vs proxy).
+        
+        Args:
+            proxy_endpoint: Side-channel proxy base URL
+                (e.g. ``https://proxy.stigmer.ai``).  When set, ``base_url``
+                and ``api_key`` are resolved for the proxy.
+            proxy_auth_token: Auth token for the proxy
+                (typically ``STIGMER_API_KEY``).
+        
+        Returns:
+            Dict of kwargs to pass to ``parse_model_string``.
+        """
+        if proxy_endpoint and self.provider in ("anthropic", "openai"):
+            # The OpenAI SDK includes ``/v1`` in its base_url
+            # (default ``https://api.openai.com/v1``), while the Anthropic
+            # SDK does not (default ``https://api.anthropic.com``).
+            if self.provider == "openai":
+                proxy_base = f"{proxy_endpoint}/v1/proxy/llm/openai/v1"
+            else:
+                proxy_base = f"{proxy_endpoint}/v1/proxy/llm/anthropic"
+            
+            return {
+                "base_url": proxy_base,
+                "api_key": proxy_auth_token,
+            }
+        
+        if self.provider == "ollama":
+            return {"base_url": self.base_url}
+        
+        if self.provider in ("anthropic", "openai"):
+            return {"api_key": self.api_key}
+        
+        return {}
 
 
 @dataclass
@@ -245,11 +303,14 @@ class CheckpointerConfig:
             CheckpointerConfig instance with cascaded configuration
             
         Environment Variables:
-            STIGMER_CHECKPOINTER_TYPE: Checkpointer type (memory|sqlite|mongodb)
+            STIGMER_CHECKPOINTER_TYPE: Checkpointer type
+                (memory|sqlite|mongodb|http)
             STIGMER_CHECKPOINTER_SQLITE_PATH: Path for SQLite database file
             STIGMER_CHECKPOINTER_MONGODB_URI: MongoDB connection string
             STIGMER_CHECKPOINTER_MONGODB_DB: MongoDB database name
             STIGMER_CHECKPOINTER_TTL: TTL in seconds for checkpoint expiration
+            STIGMER_PROXY_ENDPOINT: Proxy base URL (required for http type)
+            STIGMER_API_KEY: Proxy auth token (required for http type)
             
         Configuration Cascade:
             1. Environment variables (explicit user config)
@@ -284,6 +345,16 @@ class CheckpointerConfig:
         ttl_str = os.getenv("STIGMER_CHECKPOINTER_TTL")
         mongodb_ttl_seconds = int(ttl_str) if ttl_str else None
         
+        # HTTP proxy settings (only relevant for http checkpointer type)
+        proxy_endpoint = (
+            os.getenv("STIGMER_PROXY_ENDPOINT")
+            if checkpointer_type == "http" else None
+        )
+        auth_token = (
+            os.getenv("STIGMER_API_KEY")
+            if checkpointer_type == "http" else None
+        )
+        
         # Create config
         config = cls(
             type=checkpointer_type,
@@ -291,6 +362,8 @@ class CheckpointerConfig:
             mongodb_uri=mongodb_uri,
             mongodb_db_name=mongodb_db_name,
             mongodb_ttl_seconds=mongodb_ttl_seconds,
+            proxy_endpoint=proxy_endpoint,
+            auth_token=auth_token,
         )
         
         # Validate before returning
@@ -308,7 +381,7 @@ class CheckpointerConfig:
             ValueError: If configuration is invalid
         """
         # Validate type
-        valid_types = {"memory", "sqlite", "mongodb"}
+        valid_types = {"memory", "sqlite", "mongodb", "http"}
         if self.type not in valid_types:
             raise ValueError(
                 f"Invalid checkpointer type '{self.type}'. "
@@ -335,6 +408,18 @@ class CheckpointerConfig:
                 raise ValueError(
                     "mongodb_db_name cannot be empty. "
                     "Set STIGMER_CHECKPOINTER_MONGODB_DB or use default 'stigmer_checkpoints'."
+                )
+        
+        if self.type == "http":
+            if not self.proxy_endpoint:
+                raise ValueError(
+                    "proxy_endpoint is required for http checkpointer. "
+                    "Set STIGMER_PROXY_ENDPOINT environment variable."
+                )
+            if not self.auth_token:
+                raise ValueError(
+                    "auth_token is required for http checkpointer. "
+                    "Set STIGMER_API_KEY environment variable."
                 )
         
         # Validate TTL if provided
@@ -414,8 +499,14 @@ class Config:
         mode = os.getenv("MODE", "cloud")
         is_local = mode == "local"
         
+        # Detect proxy mode: when STIGMER_PROXY_ENDPOINT is set, LLM calls
+        # route through the Side-Channel Proxy and provider API keys are
+        # injected server-side (not required on the runner).
+        proxy_endpoint = os.getenv("STIGMER_PROXY_ENDPOINT")
+        proxy_active = bool(proxy_endpoint and proxy_endpoint.strip())
+        
         # Load LLM configuration (mode-aware)
-        llm_config = LLMConfig.load_from_env(mode)
+        llm_config = LLMConfig.load_from_env(mode, proxy_active=proxy_active)
         
         # Load checkpointer configuration (mode-aware)
         checkpointer_config = CheckpointerConfig.load_from_env(mode)
@@ -479,7 +570,7 @@ class Config:
             max_concurrency=int(os.getenv("TEMPORAL_MAX_CONCURRENCY", "10")),
             stigmer_backend_endpoint=os.getenv("STIGMER_BACKEND_ENDPOINT", default_endpoint),
             stigmer_api_key=stigmer_api_key,
-            stigmer_proxy_endpoint=os.getenv("STIGMER_PROXY_ENDPOINT"),
+            stigmer_proxy_endpoint=proxy_endpoint,
             sandbox_type=sandbox_type,
             sandbox_root_dir=sandbox_root_dir,
             llm=llm_config,

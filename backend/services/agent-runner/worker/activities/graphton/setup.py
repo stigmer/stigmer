@@ -1128,11 +1128,10 @@ async def _perform_setup_core(
             model_name, api_model_id,
         )
 
-    llm_kwargs: dict[str, Any] = {}
-    if worker_config.llm.provider == "ollama":
-        llm_kwargs["base_url"] = worker_config.llm.base_url
-    elif worker_config.llm.provider in ("anthropic", "openai"):
-        llm_kwargs["api_key"] = worker_config.llm.api_key
+    llm_kwargs = worker_config.llm.build_llm_kwargs(
+        proxy_endpoint=worker_config.stigmer_proxy_endpoint,
+        proxy_auth_token=worker_config.stigmer_api_key,
+    )
 
     approval_checker = create_approval_checker(approval_config)
     logger.info(

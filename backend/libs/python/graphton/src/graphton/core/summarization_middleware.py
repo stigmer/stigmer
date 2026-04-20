@@ -163,6 +163,7 @@ class ContextSummarizationMiddleware(AgentMiddleware):
         self,
         config: SummarizationConfig,
         callback: SummarizationCallback | None = None,
+        llm_kwargs: dict[str, Any] | None = None,
     ) -> None:
         """Initialize the summarization middleware.
         
@@ -172,10 +173,15 @@ class ContextSummarizationMiddleware(AgentMiddleware):
                 If provided, on_summarization_complete() is called after
                 each successful summarization, and on_token_count_updated()
                 is called whenever the token count is recalculated.
+            llm_kwargs: Provider-specific kwargs forwarded to
+                ``parse_model_string`` when constructing the summarization
+                model.  Typically contains ``base_url`` and ``api_key`` for
+                proxy routing or direct provider auth.
         
         """
         self.config = config
         self._callback = callback
+        self._llm_kwargs = llm_kwargs or {}
         
         # Per-invocation state (reset in abefore_agent)
         self._running_summary: RunningSummary | None = None
@@ -717,114 +723,27 @@ class ContextSummarizationMiddleware(AgentMiddleware):
     def _create_summarization_model(self) -> BaseChatModel:
         """Create the LangChain model instance for summarization.
         
-        Uses the economy-tier model specified in config for cost efficiency.
-        Provider detection uses the ModelRegistry for robust identification.
+        Delegates to ``parse_model_string`` so the summarization model
+        inherits the same provider routing (proxy ``base_url``, ``api_key``)
+        as the primary agent model.
         
         Returns:
-            A LangChain BaseChatModel instance for the configured summarization model.
+            A LangChain BaseChatModel instance for the configured
+            summarization model.
         
         Raises:
-            ImportError: If the required LangChain provider package is not installed.
-            ValueError: If the provider is unknown and cannot create a model.
+            ImportError: If the required LangChain provider package is
+                not installed.
+            ValueError: If the provider is unknown.
         
         """
-        from graphton.core.model_registry import ModelRegistry
+        from graphton.core.models import parse_model_string
 
-        model_id = self.config.summarization_model
-        
-        # Use ModelRegistry for robust provider detection
-        metadata = ModelRegistry.get_or_default(model_id)
-        provider = metadata.provider
-        
-        if provider == "anthropic":
-            return self._create_anthropic_model(model_id)
-        elif provider == "openai":
-            return self._create_openai_model(model_id)
-        elif provider == "ollama":
-            return self._create_ollama_model(model_id)
-        else:
-            # Unknown provider - log warning and attempt Ollama as fallback
-            logger.warning(
-                "Unknown provider '%s' for model '%s', attempting Ollama as fallback",
-                provider,
-                model_id,
-            )
-            return self._create_ollama_model(model_id)
-    
-    def _create_anthropic_model(self, model_id: str) -> BaseChatModel:
-        """Create an Anthropic ChatAnthropic model instance.
-        
-        Args:
-            model_id: The Anthropic model identifier (e.g., 'claude-haiku-4.5').
-        
-        Returns:
-            A ChatAnthropic instance configured for summarization.
-        
-        Raises:
-            ImportError: If langchain-anthropic is not installed.
-        
-        """
-        try:
-            from langchain_anthropic import ChatAnthropic
-        except ImportError as e:
-            raise ImportError(
-                "langchain-anthropic is required for Anthropic models. "
-                "Install with: pip install langchain-anthropic"
-            ) from e
-        
-        return ChatAnthropic(
-            model=model_id,
+        return parse_model_string(
+            self.config.summarization_model,
             max_tokens=self.config.max_summary_tokens,
+            **self._llm_kwargs,
         )
-    
-    def _create_openai_model(self, model_id: str) -> BaseChatModel:
-        """Create an OpenAI ChatOpenAI model instance.
-        
-        Args:
-            model_id: The OpenAI model identifier (e.g., 'gpt-4o-mini').
-        
-        Returns:
-            A ChatOpenAI instance configured for summarization.
-        
-        Raises:
-            ImportError: If langchain-openai is not installed.
-        
-        """
-        try:
-            from langchain_openai import ChatOpenAI
-        except ImportError as e:
-            raise ImportError(
-                "langchain-openai is required for OpenAI models. "
-                "Install with: pip install langchain-openai"
-            ) from e
-        
-        return ChatOpenAI(
-            model=model_id,
-            max_tokens=self.config.max_summary_tokens,
-        )
-    
-    def _create_ollama_model(self, model_id: str) -> BaseChatModel:
-        """Create an Ollama ChatOllama model instance.
-        
-        Args:
-            model_id: The Ollama model identifier (e.g., 'qwen2.5-coder:7b').
-        
-        Returns:
-            A ChatOllama instance for local model inference.
-        
-        Raises:
-            ImportError: If langchain-ollama is not installed.
-        
-        """
-        try:
-            from langchain_ollama import ChatOllama
-        except ImportError as e:
-            raise ImportError(
-                "langchain-ollama is required for Ollama models. "
-                "Install with: pip install langchain-ollama"
-            ) from e
-        
-        return ChatOllama(model=model_id)
     
     def _build_summarized_messages(
         self,
