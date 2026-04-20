@@ -4,6 +4,10 @@ Routes artifact upload/download through the Stigmer Side-Channel Proxy
 (proxy.stigmer.ai) using presigned URLs. The runner never holds R2/S3
 credentials — it calls the proxy to get a presigned URL, then uses
 plain HTTPS for the actual data transfer.
+
+Authorization is handled server-side by the proxy via OpenFGA — the
+runner's auth token (user API key or JWT) is validated against the
+agent execution that the artifact belongs to.
 """
 
 import logging
@@ -18,7 +22,7 @@ class ProxyArtifactStorage:
 
     Replaces R2ArtifactStorage for cloud deployments. Instead of
     direct boto3/R2 access, all storage operations go through:
-    1. Proxy call to get a presigned URL (authenticated with user JWT)
+    1. Proxy call to get a presigned URL (authenticated with user token)
     2. Plain HTTPS PUT/GET using the presigned URL (no credentials needed)
     """
 

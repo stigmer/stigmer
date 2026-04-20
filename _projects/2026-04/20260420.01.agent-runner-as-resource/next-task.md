@@ -12,9 +12,39 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: apis/ai/stigmer/agentic/agent_runner/v1 (new proto resource); backend/services/stigmer-service (proxy endpoints, AgentRunner aggregate, dispatch logic, RunnerLauncher abstraction); backend/services/agent-runner (remove machine account, point clients at proxy, run inside Daytona); client-apps/cli and Stigmer Desktop (stigmer:// URL handler, register-as-AgentRunner flow); cloud frontend (AgentRunner UI for Persistent runners)
 
 ## Current State
-- **Status**: Phase 0 code complete; Phase 2 Daytona operational gates **validated** (3/3 pass)
-- **Last Session**: 2026-04-20 — Daytona operational gate validation via live integration tests
+- **Status**: Phase 0 code complete + proxy authorization complete; Phase 2 Daytona gates validated (3/3 pass)
+- **Last Session**: 2026-04-20 — Side-Channel Proxy FGA authorization
 - **Active Task**: Phase 0 deploy → then Phase 1
+
+## Session Progress (2026-04-20, Session 4 — Side-Channel Proxy FGA Authorization)
+
+### Accomplished
+- Conducted comprehensive security audit of the Side-Channel Proxy — identified 7 findings (2 critical, 2 high, 3 medium)
+- Evaluated and rejected two approaches: (a) execution-scoped JWTs through Temporal (credential leak + expiry incompatible with durable executions), (b) custom context headers + MongoDB validation (unnecessary latency, doesn't leverage existing FGA infrastructure)
+- Implemented FGA-based authorization using the existing `RequestCallerIdentityMapper` + `RequestAuthorizationService` — zero new authorization infrastructure
+- Created `ProxyAuthorizationService` with 5-minute in-memory cache to eliminate FGA latency on checkpoint hot path
+- Added input validation hardening: 4MB document size limit, artifact key pattern validation, path traversal prevention, MIME type validation
+- Runner-side `HttpCheckpointSaver` now includes `org_id` in checkpoint documents for data hygiene (reads from LangGraph `configurable.org`)
+
+### Key Decisions Made
+11. **FGA authorization, not custom validation** — The proxy reuses the exact same `RequestCallerIdentityMapper` → `RequestAuthorizationService` → OpenFGA `check()` path as gRPC handlers. No execution-scoped JWTs, no custom context headers, no MongoDB-based execution validation.
+12. **Runner always carries user credentials** — Both user-started (CLI) and platform-started runners will inject the user's token (API key or JWT), not a shared service-level key. This makes FGA authorization meaningful.
+13. **Checkpoints authorized via session, artifacts via execution** — Checkpoint `thread_id` encodes the session (`thread-{session_id}`), so FGA checks `can_view`/`can_edit` on `session`. Artifact keys encode execution (`artifacts/{execution_id}/...`), so FGA checks on `agent_execution` (which inherits from session via FGA model).
+14. **LLM proxy: authentication only, no FGA** — Stateless pass-through with no data isolation concern. FGA authorization is unnecessary overhead for a proxy that stores nothing.
+15. **5-minute FGA result cache** — During a single execution, hundreds of checkpoint writes target the same session. One FGA check per 5 minutes per (user, permission, resource) is sufficient.
+
+### Files Modified (this session)
+
+**stigmer-cloud (5 files, new + modified):**
+- `ProxyAuthorizationService.java` — NEW: FGA authorization with caching, reuses existing infrastructure
+- `ProxyAccessDeniedException.java` — NEW: clean exception for 403 responses
+- `CheckpointerProxyController.java` — FGA authorization, size limits, indexes
+- `ArtifactProxyController.java` — FGA authorization, key validation
+- `LlmProxyController.java` — Clean logging (no authorization needed)
+
+**stigmer (2 files):**
+- `worker/checkpointer/http_saver.py` — `org_id` in checkpoint documents from LangGraph config
+- `worker/storage/proxy.py` — Docstring update only
 
 ## Session Progress (2026-04-20, Session 3 — Daytona Operational Gate Validation)
 
@@ -141,9 +171,11 @@ Drop this file into your conversation to quickly resume work on this project.
 - The validation plan for Session 3 is at `~/.cursor/plans/validate_daytona_operational_gates_b0a5609f.plan.md`
 - The T01 design doc is at `_projects/2026-04/20260420.01.agent-runner-as-resource/tasks/T01_0_plan.md`
 - All 6 LLM construction paths are now proxy-wired. The runner is credential-free for LLM, checkpointer, and artifact calls when `STIGMER_PROXY_ENDPOINT` is set.
-- `STIGMER_API_KEY` is used as the proxy auth token (sent via `api_key` kwarg to LangChain SDKs → proxy validates → strips → injects real provider key)
+- `STIGMER_API_KEY` (or user JWT) is used as the proxy auth token. The proxy validates the token, resolves the user's identity, and performs FGA checks before allowing access.
+- **Proxy authorization is FGA-based**: `ProxyAuthorizationService` reuses `RequestCallerIdentityMapper` + `RequestAuthorizationService`. Checkpoints authorized via session, artifacts via execution. LLM is authentication-only.
 - **Phase 2 Daytona gates validated** (3/3 pass). Decision: bake runner into sandbox image to eliminate cold start. `Dockerfile.sandbox.full` will get a multi-stage builder for the runner's virtualenv.
 - The 2 failed MCP relay tests (`test_echo_server_roundtrip`, `test_concurrent_sessions`) are `cat`-based smoke tests with a transport startup detection issue — not blocking. The real MCP server tests all pass.
+- The security audit plan is at `~/.cursor/plans/proxy_authorization_security_e5c52eb8.plan.md` (note: the plan reflects an earlier design iteration; the implementation uses FGA directly, not the context-header approach described in the plan).
 
 ## Blockers
 - None blocking. Phase 0 deploy steps are operational tasks (deploy, DNS, kubectl). Phase 2 gates are validated.
