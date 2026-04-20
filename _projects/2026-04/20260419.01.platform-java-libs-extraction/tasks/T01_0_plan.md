@@ -2,7 +2,7 @@
 
 **Created**: 2026-04-19
 **Last updated**: 2026-04-20
-**Status**: COMPLETE — awaiting approval to start T02
+**Status**: COMPLETE — T02 approved and in progress
 **Type**: Refactoring
 
 ## Locked decisions (from [DD-001](../design-decisions/001-neutral-interfaces-and-reflection-contract.md))
@@ -38,23 +38,25 @@ The original plan assumed coupling flowed through "two root types" (`ApiResource
 - [x] Design `MetadataContractValidator` + `MetadataContractStartupCheck` for fail-fast on bad config
 - [x] Document the field-name contract (the spec the validator enforces)
 - [x] Capture the four locked decisions in [DD-001](../design-decisions/001-neutral-interfaces-and-reflection-contract.md)
-- [ ] Get developer approval before proceeding to T02
+- [x] Get developer approval before proceeding to T02
 
 > **Note on mechanical rename**: originally planned as the last step of T01 but moved to the first step of T07 (Maven publishing). See [DD-001 Decision 2](../design-decisions/001-neutral-interfaces-and-reflection-contract.md#decision-2--java-package-rename-to-aistigmerplatform) for reasoning. This means T02-T06 work in the existing `ai.stigmer.<lib>.*` namespace.
 
-### T02: Refactor api-shape (Kind, Metadata, Audit)
+### T02: Refactor api-shape (Kind, Metadata, Audit) — COMPLETE
 
 The foundation — all other modules depend on this.
 
-- [ ] Replace `ApiResourceKind` (enum) with `ResourceKind` value-object across `ApiResourceKindExtractor`, `ApiResourceKindsGetter`, `ApiResourceKindMetaResolver`, `ApiResourceGroupMetaResolver`, `KindNameResolver`, `ApiResourceVersionIdGenerator`, `ApiResourceIsVersionedVerifier`, `ApiResourceIdBuilderRegistry`, `ApiResourceIdPrefixExtractor`, `ApiResourceDefaultIdBuilder`, `ApiResourceIdBuilderMarker`
-- [ ] Replace `ApiResourceMetadata` cast in `ApiResourceMetadataRetriever` with `ResourceMetadata` interface + `ProtoReflectionMetadataAdapter`
-- [ ] Update `ApiResourceMetadataSetter`, `ApiResourceMetadataAnnotationsManager`, `SlugResolver`, `ApiGroupVersionResolver` to use `ResourceMetadata`
-- [ ] Replace `ApiResourceAudit` / `ApiResourceAuditActor` / `ApiResourceAuditInfo` / `ApiResourceEventType` with `ResourceAudit` family in `ApiResourceStatusAuditBuilder`, `ApiResourceStatusAuditInfoSetter`, `ApiResourceStatusAuditSetter`, `ApiResourceStatusAuditGetter`, `EventTypeIsPersistRequiredVerifier`
-- [ ] Update `AuthorizationConfigResolver` and `VisibilityConfigResolver` to use `KindAuthorizationConfig` interface (Bucket E)
-- [ ] Update `IamRoleMetadata` to use `Role` interface (Bucket F)
-- [ ] Implement `MetadataContractValidator` and `MetadataContractStartupCheck` Spring component
-- [ ] Implement `KindRegistry` default in-memory implementation
-- [ ] All api-shape tests pass with the new interfaces
+> **Plan revision (2026-04-20, T02 planning session)**: T02 is now **purely additive**. New proto-agnostic beans and interfaces are introduced in `.neutral` sub-packages alongside the existing proto-coupled static utilities. Old static classes stay completely untouched so stigmer-service keeps compiling. Consumer migration is owned by T03/T04/T05. T07 deletes the legacy classes once nothing imports them. See [DD-001 Decisions 5-9](../design-decisions/001-neutral-interfaces-and-reflection-contract.md) for the five new sub-decisions locked in this session.
+
+- [x] T02.0: Update planning docs with five new sub-decisions (DD-001 Decisions 5-9)
+- [x] T02.1: Foundation interfaces/records/enums — 22 production files in `.neutral` sub-packages
+- [x] T02.2: Reflection adapters (read + write) + round-trip property tests — 4 production files, 2 test files
+- [x] T02.3: Contract validators + startup check — 4 production files, 1 test file
+- [x] T02.4: Read-side beans — 12 bean files with unit tests
+- [x] T02.5: Write-side beans — 6 bean files with unit tests
+- [x] T02.6: `IamRoleMetadata` + `ApiResourceKindExtractor` marked `@Deprecated(forRemoval=true)`
+- [x] T02.7: Stale javadoc removed; 4 `package-info.java` files created
+- [x] T02.8: Checkpoint created; plan + next-task updated
 
 ### T03: Refactor api-state (Repository Layer)
 

@@ -418,6 +418,157 @@ Field options:
 
 Each product MUST define a `FieldOptionsProto` in its own apis repo with these option NAMES (option NUMBERS may differ per product since the libs key off names via descriptor introspection).
 
+## Corrections from T02 planning session (2026-04-20)
+
+### Corrected KindMetadata (Decision 8 — authorization config embedded)
+
+The original `KindMetadata` sketch above omits authorization and visibility config. The corrected shape embeds them, mirroring the existing `ApiResourceKindMeta.authorization` nesting:
+
+```java
+package ai.stigmer.apishape.kind.neutral;
+
+import com.google.protobuf.Descriptors.Descriptor;
+import com.google.protobuf.Message;
+
+public interface KindMetadata {
+    ResourceKind kind();
+    String pluralName();
+    String singularName();
+    String idPrefix();
+    String groupName();
+    String apiVersion();
+    Class<? extends Message> protoClass();
+    Descriptor protoDescriptor();
+    boolean versioned();
+    KindAuthorizationConfig authorizationConfig();
+    KindVisibilityConfig visibilityConfig();
+}
+```
+
+```java
+package ai.stigmer.apishape.kind.neutral;
+
+public interface KindAuthorizationConfig {
+    AuthorizationScope scopeType();
+    OwnerAttribution ownerType();
+    java.util.List<ParentRelation> additionalParents();
+    java.util.List<String> grantableRoles();
+}
+```
+
+```java
+package ai.stigmer.apishape.kind.neutral;
+
+public interface KindVisibilityConfig {
+    boolean supportsPublic();
+}
+```
+
+```java
+package ai.stigmer.apishape.kind.neutral;
+
+public interface ParentRelation {
+    ResourceKind parentKind();
+    String relation();
+}
+```
+
+```java
+package ai.stigmer.apishape.kind.neutral;
+
+public enum AuthorizationScope {
+    UNSPECIFIED, NONE, PLATFORM, ORGANIZATION, RESOURCE
+}
+```
+
+```java
+package ai.stigmer.apishape.kind.neutral;
+
+public enum OwnerAttribution {
+    UNSPECIFIED, NONE, DIRECT, SELF, INHERITED
+}
+```
+
+### Corrected ResourceAudit (Decision 9 — two-bucket shape)
+
+The original Bucket C sketch above defines `ResourceAudit { created(), lastModified(), events[] }`. The actual Stigmer proto is two-bucket: `{ statusAudit, specAudit }`. Corrected:
+
+```java
+package ai.stigmer.apishape.audit.neutral;
+
+public interface ResourceAudit {
+    AuditInfo statusAudit();
+    AuditInfo specAudit();
+}
+```
+
+```java
+package ai.stigmer.apishape.audit.neutral;
+
+import java.time.Instant;
+
+public interface AuditInfo {
+    Instant createdAt();
+    AuditActor createdBy();
+    Instant updatedAt();
+    AuditActor updatedBy();
+    String event();
+}
+```
+
+```java
+package ai.stigmer.apishape.audit.neutral;
+
+public interface AuditActor {
+    String id();
+}
+```
+
+### New: Role + RoleCatalog (Decision 7 — staged deprecation)
+
+```java
+package ai.stigmer.apishape.role.neutral;
+
+public interface Role {
+    String id();
+    String displayName();
+    String description();
+}
+```
+
+```java
+package ai.stigmer.apishape.role.neutral;
+
+public interface RoleCatalog {
+    void register(Role role);
+    java.util.Optional<Role> resolve(String roleId);
+    java.util.Optional<Role> resolveByRelation(String relation);
+    java.util.Collection<Role> all();
+    boolean isAssignableRole(String relation);
+}
+```
+
+### New: Write-side adapters (Decision 6)
+
+```java
+package ai.stigmer.apishape.metadata.neutral;
+
+public final class ProtoReflectionMetadataWriter {
+    public static <I extends com.google.protobuf.Message> I write(
+            I targetResource, ResourceMetadata metadata) { /* ... */ }
+}
+```
+
+```java
+package ai.stigmer.apishape.audit.neutral;
+
+public final class ProtoReflectionAuditWriter {
+    public static void write(
+            com.google.protobuf.Message.Builder statusBuilder,
+            ResourceAudit audit) { /* ... */ }
+}
+```
+
 ## Open questions for the developer
 
-None at this stage. All decisions for T01 are locked. Next gate is developer approval to begin T02 (api-shape refactor).
+None. All decisions for T01 and T02 planning are locked. T02 implementation is in progress.

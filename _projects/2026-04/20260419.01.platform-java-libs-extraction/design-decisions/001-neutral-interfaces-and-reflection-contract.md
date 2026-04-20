@@ -141,6 +141,86 @@ A `MetadataContractValidator` runs at application startup, scans every proto des
 - **`infra/redis-starter` config refactor**: Redis template registration must become config-driven (T05 scope addition).
 - **`api-state` proto-class discoverer** must switch from enum-based to base-package scan (T03 scope addition).
 
+## Decision 5 — Full bean conversion for api-shape helpers
+
+**Date**: 2026-04-20 (T02 planning session)
+**Status**: ACCEPTED
+
+**Decision**
+
+Every new proto-agnostic helper in `api-shape` that consults the `KindRegistry` is a Spring bean with constructor-injected `KindRegistry`. The existing static utility classes remain untouched alongside the new beans during T02-T06; T07 deletes the legacy static classes once all consumers have migrated.
+
+**Rationale**
+
+- The existing api-shape helpers are static utility classes that read global proto state (`ApiResourceKind.values()`, `ApiResourceKindProto.kindMeta` extensions). Going proto-agnostic means "the list of kinds comes from a `KindRegistry`" — a runtime object that must be injected.
+- Option (B) — static facades backed by a Spring-initialized singleton — ships the same hidden-global-state problem the extraction is trying to fix.
+- Option (C) — hybrid static/bean — creates permanent inconsistency in api-shape's call style.
+- Full bean conversion is architecturally honest, matches the role's testability mandate, and makes every helper independently unit-testable with a mock `KindRegistry`.
+
+**Consequences**
+
+- T02 is purely additive: new beans live in `.neutral` sub-packages; old static classes are unchanged.
+- Consumer migration (T03/T04/T05) changes call sites from static method calls to injected bean method calls.
+- T06 (stigmer-service) must wire the new beans.
+- T07 deletes legacy static classes.
+
+## Decision 6 — Write-side reflection adapters
+
+**Date**: 2026-04-20 (T02 planning session)
+**Status**: ACCEPTED (architect's call)
+
+**Decision**
+
+T02 ships `ProtoReflectionMetadataWriter`, `ProtoReflectionAuditWriter`, and an `ImmutableResourceMetadata` record alongside the read adapters. Round-trip is a property-tested invariant: `adapter.from(proto)` → `writer.into(builder)` → `adapter.from(rebuilt)` must equal the original.
+
+**Rationale**
+
+The T01 interface sketches only covered the read side. But api-shape exposes setters (`ApiResourceMetadataSetter`, `ApiResourceStatusAuditSetter`, `ApiResourceStatusAuditInfoSetter`) and a YAML-to-proto constructor (`ApiResourceMetadataRetriever.retrieve(String yaml)`) that take concrete proto types. Proto-agnostic replacements need symmetric write-side reflection helpers with type coercion (string→string, enum-by-name/number, map, repeated, sub-message).
+
+**Consequences**
+
+- ~6 additional production files in T02 (writers + immutable value types).
+- Property-based round-trip tests guarantee lossless conversion.
+
+## Decision 7 — `IamRoleMetadata` staged deprecation (not relocation in T02)
+
+**Date**: 2026-04-20 (T02 planning session)
+**Status**: ACCEPTED
+
+**Decision**
+
+T02 introduces `Role` + `RoleCatalog` interfaces in api-shape and `@Deprecated`-marks `IamRoleMetadata` with a relocation javadoc. The actual file relocation to stigmer-service happens in T05 alongside the api-authorization consumer rewires.
+
+**Rationale**
+
+`IamRoleMetadata` hard-codes Stigmer's product-level role catalog (owner/admin/member/viewer + descriptions). It is product knowledge wearing platform-lib clothes. However, its consumers (`IamPolicyCreationService`, `RequestAuthorizationService`, etc.) live in `api-authorization` — a platform lib that cannot import from `stigmer-service`. Moving `IamRoleMetadata` out in T02 would break those consumers. Staging the deprecation in T02 and completing the move in T05 honors the dependency graph.
+
+## Decision 8 — Authorization config embedded inside `KindMetadata`
+
+**Date**: 2026-04-20 (T02 planning session)
+**Status**: ACCEPTED
+
+**Decision**
+
+`KindMetadata` exposes `authorizationConfig()` and `visibilityConfig()` methods. `KindRegistry` remains the single source of truth for everything kind-keyed.
+
+**Rationale**
+
+Today authorization config is nested inside `ApiResourceKindMeta` (`kindMeta.getAuthorization()`). Mirroring this structure keeps a single lookup path and avoids a parallel `KindAuthorizationConfigRegistry`. The T01 sketch's separate `KindAuthorizationConfig` registry was overengineered for the current need.
+
+## Decision 9 — Audit shape: two-bucket (match existing proto)
+
+**Date**: 2026-04-20 (T02 planning session)
+**Status**: ACCEPTED
+
+**Decision**
+
+`ResourceAudit { specAudit(): AuditInfo, statusAudit(): AuditInfo }`. `AuditInfo { createdAt(): Instant, createdBy(): AuditActor, updatedAt(): Instant, updatedBy(): AuditActor, event(): String }`. This matches the existing `ApiResourceAudit` proto's two-bucket shape (spec audit + status audit).
+
+**Rationale**
+
+The T01 sketch defined `ResourceAudit { created(), lastModified(), events[] }` — an event-stream model. The actual Stigmer proto is `{ statusAudit: AuditInfo, specAudit: AuditInfo }` with no events list. Matching the existing shape gives lossless round-trip with current data and zero semantic redesign. Redesigning audit as an event stream is a separate conversation.
+
 ## References
 
 - [T01_1_audit.md](../tasks/T01_1_audit.md) — full audit findings

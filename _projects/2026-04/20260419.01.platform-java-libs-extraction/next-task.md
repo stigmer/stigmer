@@ -13,11 +13,22 @@ Drag this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: T01 COMPLETE — ready to start T02
-- **Last Session**: 2026-04-20 — locked four foundational design decisions, ran proto-import audit, drafted Java interface sketches, rewrote T01 plan to reflect audit-expanded scope, deferred mechanical package rename from end-of-T01 to start-of-T07
-- **Active Task**: T02 (Refactor api-shape — Kind, Metadata, Audit) — pending developer approval to begin
+- **Status**: T02 COMPLETE — ready for T03
+- **Last Session**: 2026-04-20 — T02 delivered 52 new production files and 9 test targets in api-shape's `.neutral` sub-packages. Proto-agnostic foundation (kinds, metadata, audit, roles), reflection adapters with round-trip tests, contract validators, and Spring beans for every read/write concern. Zero changes to any consumer module.
+- **Active Task**: T03 (Refactor api-state — Repository Layer) — pending developer approval to begin
 
-## Session Progress (2026-04-20)
+## Session Progress (2026-04-20, session 2 — T02 planning + implementation)
+
+- Locked five additional decisions in [DD-001 Decisions 5-9](design-decisions/001-neutral-interfaces-and-reflection-contract.md):
+  5. Full bean conversion — every new helper is a Spring bean with constructor-injected `KindRegistry`
+  6. Write-side reflection adapters — `ProtoReflectionMetadataWriter`, `ProtoReflectionAuditWriter`, `ImmutableResourceMetadata`
+  7. `IamRoleMetadata` staged deprecation — `@Deprecated` in T02, relocated to stigmer-service in T05
+  8. Authorization config embedded in `KindMetadata` — single registry, no parallel `KindAuthorizationConfigRegistry`
+  9. Audit two-bucket shape — `ResourceAudit { specAudit(), statusAudit() }` matching existing proto
+- Revised T02 to be purely additive: new beans in `.neutral` sub-packages, old static classes untouched
+- Updated T01_2_interfaces.md with corrected `KindMetadata`, `ResourceAudit`, `Role`/`RoleCatalog`, and write-side adapter sketches
+
+## Session Progress (2026-04-20, session 1 — T01 completion)
 
 - Locked four design decisions in [`design-decisions/001-neutral-interfaces-and-reflection-contract.md`](design-decisions/001-neutral-interfaces-and-reflection-contract.md):
   1. `ResourceKind` value-object + `ResourceMetadata` interface + `ProtoReflectionMetadataAdapter` (reflection by field name)
@@ -32,15 +43,9 @@ Drag this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Get approval to start T02** (api-shape refactor).
-2. **T02 in `stigmer-cloud`**:
-   a. Implement `ResourceKind` record, `ResourceMetadata` interface, `Visibility` enum, `ProtoReflectionMetadataAdapter` under `backend/libs/java/api/api-shape/src/main/java/ai/stigmer/apishape/` (current package — rename happens in T07).
-   b. Replace the `(ApiResourceMetadata)` cast on line 22 of `ApiResourceMetadataRetriever.java` with the new interface.
-   c. Implement `KindRegistry` interface + default in-memory implementation.
-   d. Implement `MetadataContractValidator` + `MetadataContractStartupCheck` Spring component.
-   e. Refactor the kind-touching files in api-shape (`ApiResourceKindExtractor`, `ApiResourceKindsGetter`, `ApiResourceKindMetaResolver`, `ApiResourceGroupMetaResolver`, `KindNameResolver`, etc.) to use `ResourceKind` instead of the proto enum.
-   f. Provide minimal Stigmer-side adapter in stigmer-service to keep it compiling (small piece of T06 needed during T02).
-3. T03-T06 follow per the plan; T07 starts with the mechanical rename then Maven publishing setup.
+1. **Get approval to start T03** (api-state refactor).
+2. **T03 in `stigmer-cloud`**: Migrate `api-state` consumers (`ApiResourceRepository`, `AbstractMongoApiResourceRepository`, `ApiResourceProtoClassesDiscoverer`, `ApiResourceProtoClassRegistry`, `ApiResourceRepositoryRegistry`, `ApiResourceRepo`, `ApiResourceEntityAndProtoMapperMarker`, `ApiResourceEntityAndProtoMapperRegistry`) to use the neutral types from T02.
+3. T04-T06 follow per the plan; T07 starts with the mechanical rename then Maven publishing setup.
 
 ## Context for Resume
 
@@ -52,7 +57,7 @@ Drag this file into your conversation to quickly resume work on this project.
 
 ## Blockers
 
-None. T01 is complete and waiting on developer approval to start T02.
+None. T02 is in progress.
 
 ## Quick Resume
 
