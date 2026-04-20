@@ -7,7 +7,6 @@ removes the need for STIGMER_CHECKPOINTER_MONGODB_URI in the runner.
 
 from __future__ import annotations
 
-import json
 import logging
 from collections.abc import Iterator, Sequence
 from typing import Any, Optional
@@ -31,6 +30,10 @@ class HttpCheckpointSaver(BaseCheckpointSaver):
     Implements the same interface as MongoDBSaver but routes all
     persistence through stigmer-service, which accesses MongoDB
     server-side. The runner never touches MongoDB directly.
+
+    Authorization is handled server-side by the proxy via OpenFGA —
+    the runner's auth token (user API key or JWT) is validated against
+    the session that the checkpoint's thread_id belongs to.
     """
 
     serde = JsonPlusSerializer()
@@ -55,7 +58,7 @@ class HttpCheckpointSaver(BaseCheckpointSaver):
         checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
         checkpoint_id = checkpoint["id"]
 
-        doc = {
+        doc: dict[str, Any] = {
             "thread_id": thread_id,
             "checkpoint_ns": checkpoint_ns,
             "checkpoint_id": checkpoint_id,
@@ -63,6 +66,10 @@ class HttpCheckpointSaver(BaseCheckpointSaver):
             "checkpoint": self.serde.dumps_typed(checkpoint),
             "metadata": self.serde.dumps_typed(metadata),
         }
+
+        org_id = config["configurable"].get("org")
+        if org_id:
+            doc["org_id"] = org_id
 
         resp = self._client.put("/checkpoint", json=doc)
         resp.raise_for_status()
@@ -84,10 +91,11 @@ class HttpCheckpointSaver(BaseCheckpointSaver):
         thread_id = config["configurable"]["thread_id"]
         checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
         checkpoint_id = config["configurable"]["checkpoint_id"]
+        org_id = config["configurable"].get("org")
 
         docs = []
         for idx, (channel, value) in enumerate(writes):
-            docs.append({
+            doc: dict[str, Any] = {
                 "thread_id": thread_id,
                 "checkpoint_ns": checkpoint_ns,
                 "checkpoint_id": checkpoint_id,
@@ -96,7 +104,10 @@ class HttpCheckpointSaver(BaseCheckpointSaver):
                 "channel": channel,
                 "type": type(value).__name__,
                 "value": self.serde.dumps_typed(value),
-            })
+            }
+            if org_id:
+                doc["org_id"] = org_id
+            docs.append(doc)
 
         resp = self._client.put("/writes", json={"writes": docs})
         resp.raise_for_status()
@@ -140,7 +151,6 @@ class HttpCheckpointSaver(BaseCheckpointSaver):
                 }
             }
 
-        # Fetch pending writes
         writes_resp = self._client.get("/writes", params={
             "thread_id": thread_id,
             "checkpoint_ns": checkpoint_ns,
