@@ -28,61 +28,36 @@ spec:
             value: default
           TEMPORAL_MAX_CONCURRENCY:
             value: "20"
-          # Redis Configuration (using internal Kubernetes endpoint)
-          REDIS_HOST:
-            value: $variables-group/stigmer-redis-config/prod.kube-endpoint
           # Stigmer API Configuration (internal Kubernetes endpoint, plain gRPC)
           STIGMER_BACKEND_ENDPOINT:
             value: $variables-group/stigmer-api/prod.kube-endpoint
+          # Side-Channel Proxy endpoint (public HTTPS, reachable from anywhere)
+          STIGMER_PROXY_ENDPOINT:
+            value: https://proxy.stigmer.ai
           # Public gRPC endpoint injected into MCP server subprocesses.
           # Daytona sandboxes run outside K8s and cannot reach the internal
           # kube-endpoint, so this must be the public ingress with TLS.
           STIGMER_MCP_PUBLIC_ENDPOINT:
             value: $variables-group/stigmer-api/prod.grpc-endpoint
           # LLM Configuration (production uses Anthropic)
+          # Provider API keys are now in stigmer-service (injected by proxy)
           STIGMER_LLM_PROVIDER:
             value: anthropic
           STIGMER_LLM_MODEL:
             value: claude-sonnet-4.5
-          # Artifact Storage Configuration
-          # Use R2 for cloud deployments (uploads artifacts during agent execution)
+          # Artifact storage routed through Side-Channel Proxy
           ARTIFACT_STORAGE_TYPE:
-            value: r2
-          # Cloudflare R2 Configuration (Agent Execution Artifact Storage)
-          # Used for uploading artifacts during agent execution via publish_artifact tool
-          AGENT_EXECUTION_ARTIFACT_R2_BUCKET:
-            value: $variables-group/stigmer-agent-execution-r2-config/prod.bucket-name
-          AGENT_EXECUTION_ARTIFACT_R2_ENDPOINT:
-            value: $variables-group/stigmer-agent-execution-r2-config/prod.endpoint
-          AGENT_EXECUTION_ARTIFACT_R2_REGION:
-            value: $variables-group/stigmer-agent-execution-r2-config/region
-          # MongoDB Checkpointer Configuration
-          STIGMER_CHECKPOINTER_MONGODB_DB:
-            value: $variables-group/stigmer-mongodb-config/prod.checkpointer-db-name
+            value: proxy
+          # Checkpointer routed through Side-Channel Proxy
+          STIGMER_CHECKPOINTER_TYPE:
+            value: http
         secrets:
-          # Redis password
-          REDIS_PASSWORD:
-            value: $secrets-group/stigmer-redis-credentials/prod.password
-          # Stigmer API Key
+          # Stigmer API Key (used for gRPC + proxy auth)
           STIGMER_API_KEY:
             value: $secrets-group/stigmer-api/prod.api-key
-          # Daytona API Key
+          # Daytona API Key (remains until Phase 2 moves sandbox creation server-side)
           DAYTONA_API_KEY:
             value: $secrets-group/daytona/prod.api-key
-          # LLM API Key (Anthropic for production)
-          STIGMER_LLM_API_KEY:
-            value: $secrets-group/anthropic/prod.api-key
-          # Backward compatibility (some code may still use ANTHROPIC_API_KEY)
-          ANTHROPIC_API_KEY:
-            value: $secrets-group/anthropic/prod.api-key
-          # Cloudflare R2 Credentials (Agent Execution Artifact Storage)
-          AGENT_EXECUTION_ARTIFACT_R2_ACCESS_KEY_ID:
-            value: $secrets-group/stigmer-r2-credentials/prod.access-key-id
-          AGENT_EXECUTION_ARTIFACT_R2_SECRET_ACCESS_KEY:
-            value: $secrets-group/stigmer-r2-credentials/prod.secret-access-key
-          # MongoDB Checkpointer URI (contains credentials)
-          STIGMER_CHECKPOINTER_MONGODB_URI:
-            value: $secrets-group/stigmer-mongodb-credentials/prod.checkpointer-uri
   availability:
     minReplicas: 1
     # Zero-downtime deployment strategy
