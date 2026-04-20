@@ -1,0 +1,19 @@
+{
+  "name": "AgentRunnerSpec",
+  "kind": "AGENT_RUNNER_SPEC",
+  "description": "AgentRunnerSpec defines the user-declared desired state of an agent runner.\n\n AgentRunner follows the Kubernetes Node pattern: the spec is intentionally\n thin because the runner is infrastructure that registers itself. The user's\n intent when creating a runner is minimal — \"I want a runner with this name.\"\n All operational state (phase, queue, machine info, capacity) is reported by\n the runner process via heartbeat and lives in AgentRunnerStatus.\n\n For system-managed (ephemeral) runners created by the platform for cloud\n executions, the spec is typically empty — the platform fills in metadata\n labels (stigmer.ai/system-managed: \"true\") and the runner self-reports\n everything else.",
+  "protoType": "ai.stigmer.agentic.agentrunner.v1.AgentRunnerSpec",
+  "protoFile": "apis/ai/stigmer/agentic/agentrunner/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable purpose of this runner.\n Example: \"Development runner on my MacBook\", \"CI/CD build server\"",
+      "required": false
+    }
+  ]
+}

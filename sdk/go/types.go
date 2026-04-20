@@ -8,6 +8,7 @@ import "github.com/stigmer/stigmer/sdk/go/internal/gen"
 type AgentClient = gen.AgentClient
 type AgentExecutionClient = gen.AgentExecutionClient
 type AgentInstanceClient = gen.AgentInstanceClient
+type AgentRunnerClient = gen.AgentRunnerClient
 type ApiKeyClient = gen.ApiKeyClient
 type EnvironmentClient = gen.EnvironmentClient
 type ExecutionContextClient = gen.ExecutionContextClient
@@ -38,6 +39,7 @@ type ExecutionConfigInput = gen.ExecutionConfigInput
 type ContextManagementConfigInput = gen.ContextManagementConfigInput
 type AttachmentInput = gen.AttachmentInput
 type AgentInstanceInput = gen.AgentInstanceInput
+type AgentRunnerInput = gen.AgentRunnerInput
 type ApiKeyInput = gen.ApiKeyInput
 type EnvironmentInput = gen.EnvironmentInput
 type ExecutionContextInput = gen.ExecutionContextInput

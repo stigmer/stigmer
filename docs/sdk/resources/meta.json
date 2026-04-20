@@ -4,6 +4,7 @@
     "agent",
     "agent-execution",
     "agent-instance",
+    "agent-runner",
     "api-key",
     "commons",
     "environment",

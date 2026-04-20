@@ -1462,6 +1462,7 @@ AgentExecutionStatus contains all execution results and state.
     artifacts: { type: "ExecutionArtifact[]", description: "Files/directories published by the agent for download.", typeDescriptionLink: "#executionartifact" },
     workspaceWriteBacks: { type: "WorkspaceWriteBack[]", description: "Git write-back outcomes for workspace entries that had changes.", typeDescriptionLink: "#workspacewriteback" },
     setupProgress: { type: "SetupProgress", description: "Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.", typeDescriptionLink: "#setupprogress" },
+    agentRunnerId: { type: "string", description: "ID of the AgentRunner that executed this execution." },
   }}
 />
 

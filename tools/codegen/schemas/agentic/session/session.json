@@ -90,6 +90,16 @@
       "required": false
     },
     {
+      "name": "AgentRunnerId",
+      "jsonName": "agentRunnerId",
+      "protoField": "agent_runner_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "AgentRunner that executes work for this session.\n\n When set, all executions in this session route to this runner's task queue.\n When empty, the platform auto-creates an ephemeral cloud runner on first\n execution and sets this field.\n\n For persistent runners (user-created via CLI/desktop), this is set by the\n session composer when the user picks their runner. For cloud executions,\n this is set automatically by the system.\n\n @internal\n The execution workflow reads this field to resolve the Temporal task queue\n for scheduling Python activities. When empty, the workflow calls the\n RunnerLauncher to spawn an ephemeral runner and populates this field.",
+      "required": false
+    },
+    {
       "name": "SkillRefs",
       "jsonName": "skillRefs",
       "protoField": "skill_refs",

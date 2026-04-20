@@ -4,6 +4,7 @@ from ._client import GeneratedClient
 from ._agent import AgentClient, AgentInput, McpServerUsageInput, ToolApprovalOverrideInput, SubAgentInput, McpAccessInput, EnvVarDeclarationInput
 from ._agentexecution import AgentExecutionClient, AgentExecutionInput, ExecutionConfigInput, ContextManagementConfigInput, AttachmentInput
 from ._agentinstance import AgentInstanceClient, AgentInstanceInput
+from ._agentrunner import AgentRunnerClient, AgentRunnerInput
 from ._apikey import ApiKeyClient, ApiKeyInput
 from ._environment import EnvironmentClient, EnvironmentInput
 from ._executioncontext import ExecutionContextClient, ExecutionContextInput
@@ -56,6 +57,8 @@ __all__ = [
     "AttachmentInput",
     "AgentInstanceClient",
     "AgentInstanceInput",
+    "AgentRunnerClient",
+    "AgentRunnerInput",
     "ApiKeyClient",
     "ApiKeyInput",
     "EnvironmentClient",

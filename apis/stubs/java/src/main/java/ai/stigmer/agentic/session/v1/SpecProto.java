@@ -52,7 +52,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "\0322ai/stigmer/commons/apiresource/field_o" +
       "ptions.proto\032\'ai/stigmer/commons/apireso" +
       "urce/io.proto\032\033buf/validate/validate.pro" +
-      "to\"\261\006\n\013SessionSpec\022*\n\021agent_instance_id\030" +
+      "to\"\331\006\n\013SessionSpec\022*\n\021agent_instance_id\030" +
       "\001 \001(\tR\017agentInstanceId\022\030\n\007subject\030\002 \001(\tR" +
       "\007subject\022\033\n\tthread_id\030\003 \001(\tR\010threadId\022\035\n" +
       "\nsandbox_id\030\004 \001(\tR\tsandboxId\022T\n\010metadata" +
@@ -66,7 +66,8 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "ages.kind\022?mcp_server_usages must refere" +
       "nce resources with kind=mcp_server\032\036this" +
       ".mcp_server_ref.kind == 44R\017mcpServerUsa" +
-      "ges\022\303\001\n\nskill_refs\030\010 \003(\01324.ai.stigmer.co" +
+      "ges\022&\n\017agent_runner_id\030\t \001(\tR\ragentRunne" +
+      "rId\022\303\001\n\nskill_refs\030\010 \003(\01324.ai.stigmer.co" +
       "mmons.apiresource.ApiResourceReferenceBn" +
       "\272Hg\222\001d\"b\272\001_\n\027session_skill_refs.kind\0223sk" +
       "ill_refs must reference resources with k" +
@@ -92,7 +93,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_session_v1_SessionSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_SessionSpec_descriptor,
-        new java.lang.String[] { "AgentInstanceId", "Subject", "ThreadId", "SandboxId", "Metadata", "WorkspaceEntries", "McpServerUsages", "SkillRefs", });
+        new java.lang.String[] { "AgentInstanceId", "Subject", "ThreadId", "SandboxId", "Metadata", "WorkspaceEntries", "McpServerUsages", "AgentRunnerId", "SkillRefs", });
     internal_static_ai_stigmer_agentic_session_v1_SessionSpec_MetadataEntry_descriptor =
       internal_static_ai_stigmer_agentic_session_v1_SessionSpec_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_session_v1_SessionSpec_MetadataEntry_fieldAccessorTable = new

@@ -391,6 +391,26 @@ enum ApiResourceKind {
     }
   }];
 
+  // Process that executes agent work, either user-created or system-managed.
+  agent_runner = 46 [(kind_meta) = {
+    group: agentic
+    version: v1
+    name: "AgentRunner"
+    display_name: "Agent Runner"
+    id_prefix: "arn"
+    is_versioned: false
+    not_search_indexed: false
+    tier: open_source
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      grantable_roles: [
+        owner,
+        viewer
+      ]
+    }
+  }];
+
   // Agentic - Workflow orchestration
 
   // Multi-step orchestration defining how agents collaborate on a task.

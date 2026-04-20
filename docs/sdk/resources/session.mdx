@@ -220,6 +220,7 @@ const session = await stigmer.session.apply({
   metadata: {},
   workspaceEntries: [],
   mcpServerUsages: [],
+  agentRunnerId: "...",
   skillRefs: [],
 });
 ```
@@ -238,6 +239,7 @@ session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
   Metadata:         map[string]string{},
   WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
   McpServerUsages:  []stigmer.McpServerUsageInput{},
+  AgentRunnerId:    "...",
   SkillRefs:        []stigmer.ResourceRef{},
 })
 ```
@@ -256,6 +258,7 @@ session = client.sessions.apply(SessionInput(
     metadata={},
     workspace_entries=[],
     mcp_server_usages=[],
+    agent_runner_id="...",
     skill_refs=[],
 ))
 ```
@@ -274,6 +277,7 @@ Session session = client.sessions().apply(SessionInput.builder()
     .metadata(Map.of())
     .workspaceEntries(List.of())
     .mcpServerUsages(List.of())
+    .agentRunnerId("...")
     .skillRefs(List.of())
     .build());
 ```
@@ -303,6 +307,7 @@ const session = await stigmer.session.create({
   metadata: {},
   workspaceEntries: [],
   mcpServerUsages: [],
+  agentRunnerId: "...",
   skillRefs: [],
 });
 ```
@@ -321,6 +326,7 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
   Metadata:         map[string]string{},
   WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
   McpServerUsages:  []stigmer.McpServerUsageInput{},
+  AgentRunnerId:    "...",
   SkillRefs:        []stigmer.ResourceRef{},
 })
 ```
@@ -339,6 +345,7 @@ session = client.sessions.create(SessionInput(
     metadata={},
     workspace_entries=[],
     mcp_server_usages=[],
+    agent_runner_id="...",
     skill_refs=[],
 ))
 ```
@@ -357,6 +364,7 @@ Session session = client.sessions().create(SessionInput.builder()
     .metadata(Map.of())
     .workspaceEntries(List.of())
     .mcpServerUsages(List.of())
+    .agentRunnerId("...")
     .skillRefs(List.of())
     .build());
 ```
@@ -386,6 +394,7 @@ const session = await stigmer.session.update({
   metadata: {},
   workspaceEntries: [],
   mcpServerUsages: [],
+  agentRunnerId: "...",
   skillRefs: [],
 });
 ```
@@ -404,6 +413,7 @@ session, err := client.Session.Update(ctx, &stigmer.SessionInput{
   Metadata:         map[string]string{},
   WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
   McpServerUsages:  []stigmer.McpServerUsageInput{},
+  AgentRunnerId:    "...",
   SkillRefs:        []stigmer.ResourceRef{},
 })
 ```
@@ -422,6 +432,7 @@ session = client.sessions.update(SessionInput(
     metadata={},
     workspace_entries=[],
     mcp_server_usages=[],
+    agent_runner_id="...",
     skill_refs=[],
 ))
 ```
@@ -440,6 +451,7 @@ Session session = client.sessions().update(SessionInput.builder()
     .metadata(Map.of())
     .workspaceEntries(List.of())
     .mcpServerUsages(List.of())
+    .agentRunnerId("...")
     .skillRefs(List.of())
     .build());
 ```
@@ -594,6 +606,7 @@ Input for creating or updating a Session.
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs for client-specific information." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries for this session.", typeDescriptionLink: "#workspaceentryinput" },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers to make available in this session.", typeDescriptionLink: "#mcpserverusageinput" },
+    agentRunnerId: { type: "string", description: "AgentRunner that executes work for this session." },
     skillRefs: { type: "ResourceRef[]", description: "Skills to inject into this session's context.", typeDescriptionLink: "#resourceref" },
   }}
 />
