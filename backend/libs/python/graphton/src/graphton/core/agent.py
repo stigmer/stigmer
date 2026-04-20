@@ -555,7 +555,8 @@ def create_deep_agent(
         
         summarization_middleware = ContextSummarizationMiddleware(
             config=summarization_config,
-            callback=summarization_callback,  # Pass callback for observability (Phase 3)
+            callback=summarization_callback,
+            llm_kwargs=model_kwargs if model_kwargs else None,
         )
         # Insert at beginning so it runs before other middleware
         middleware_list.insert(0, summarization_middleware)
@@ -634,6 +635,7 @@ def create_deep_agent(
                             model=sa_model_spec,
                             max_tokens=max_tokens,
                             temperature=temperature,
+                            **model_kwargs,
                         )
                         logger.info(
                             "Sub-agent '%s' using model override: %s",
@@ -657,6 +659,7 @@ def create_deep_agent(
                     sa_middleware.insert(0, ContextSummarizationMiddleware(
                         config=summarization_config,
                         callback=summarization_callback,
+                        llm_kwargs=model_kwargs if model_kwargs else None,
                     ))
                     logger.info(
                         "Injected summarization middleware into sub-agent '%s' "
@@ -709,6 +712,7 @@ def create_deep_agent(
                 gp_middleware.insert(0, ContextSummarizationMiddleware(
                     config=summarization_config,
                     callback=summarization_callback,
+                    llm_kwargs=model_kwargs if model_kwargs else None,
                 ))
 
             _pending_gp_config = {
