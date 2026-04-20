@@ -1690,6 +1690,16 @@
         },
         "description": "Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.\n Populated progressively as the worker completes setup steps (sandbox init,\n workspace provisioning, skill loading, MCP server connection, etc.).\n Only meaningful while phase == EXECUTION_PENDING. Cleared by the server\n when phase transitions away from PENDING.",
         "required": false
+      },
+      {
+        "name": "AgentRunnerId",
+        "jsonName": "agentRunnerId",
+        "protoField": "agent_runner_id",
+        "type": {
+          "kind": "string"
+        },
+        "description": "ID of the AgentRunner that executed this execution.\n\n Set once when the execution is dispatched to a runner; immutable after.\n For cloud executions, this references the system-managed ephemeral runner\n that was auto-created for this execution. For local executions, this\n references the user-created persistent runner selected via the session.\n\n Used for observability: \"which runner handled this work?\"",
+        "required": false
       }
     ]
   },

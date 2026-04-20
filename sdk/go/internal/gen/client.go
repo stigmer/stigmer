@@ -9,6 +9,7 @@ type Client struct {
 	Agent             *AgentClient
 	AgentExecution    *AgentExecutionClient
 	AgentInstance     *AgentInstanceClient
+	AgentRunner       *AgentRunnerClient
 	ApiKey            *ApiKeyClient
 	Environment       *EnvironmentClient
 	ExecutionContext  *ExecutionContextClient
@@ -34,6 +35,7 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		Agent:             NewAgentClient(conn),
 		AgentExecution:    NewAgentExecutionClient(conn),
 		AgentInstance:     NewAgentInstanceClient(conn),
+		AgentRunner:       NewAgentRunnerClient(conn),
 		ApiKey:            NewApiKeyClient(conn),
 		Environment:       NewEnvironmentClient(conn),
 		ExecutionContext:  NewExecutionContextClient(conn),

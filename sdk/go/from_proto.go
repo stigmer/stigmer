@@ -7,6 +7,7 @@ import (
 	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentinstance/v1"
+	agentrunnerv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentrunner/v1"
 	environmentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
@@ -39,6 +40,11 @@ func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExec
 // AgentInstanceInputFromProto creates a AgentInstanceInput from a proto AgentInstance resource.
 func AgentInstanceInputFromProto(p *agentinstancev1.AgentInstance) *AgentInstanceInput {
 	return gen.AgentInstanceInputFromProto(p)
+}
+
+// AgentRunnerInputFromProto creates a AgentRunnerInput from a proto AgentRunner resource.
+func AgentRunnerInputFromProto(p *agentrunnerv1.AgentRunner) *AgentRunnerInput {
+	return gen.AgentRunnerInputFromProto(p)
 }
 
 // ApiKeyInputFromProto creates a ApiKeyInput from a proto ApiKey resource.

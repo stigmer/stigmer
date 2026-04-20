@@ -42,6 +42,7 @@ private static final long serialVersionUID = 0L;
     sandboxId_ = "";
     workspaceEntries_ = java.util.Collections.emptyList();
     mcpServerUsages_ = java.util.Collections.emptyList();
+    agentRunnerId_ = "";
     skillRefs_ = java.util.Collections.emptyList();
   }
 
@@ -587,6 +588,79 @@ java.lang.String defaultValue) {
     return mcpServerUsages_.get(index);
   }
 
+  public static final int AGENT_RUNNER_ID_FIELD_NUMBER = 9;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object agentRunnerId_ = "";
+  /**
+   * <pre>
+   * AgentRunner that executes work for this session.
+   *
+   * When set, all executions in this session route to this runner's task queue.
+   * When empty, the platform auto-creates an ephemeral cloud runner on first
+   * execution and sets this field.
+   *
+   * For persistent runners (user-created via CLI/desktop), this is set by the
+   * session composer when the user picks their runner. For cloud executions,
+   * this is set automatically by the system.
+   *
+   * &#64;internal
+   * The execution workflow reads this field to resolve the Temporal task queue
+   * for scheduling Python activities. When empty, the workflow calls the
+   * RunnerLauncher to spawn an ephemeral runner and populates this field.
+   * </pre>
+   *
+   * <code>string agent_runner_id = 9 [json_name = "agentRunnerId"];</code>
+   * @return The agentRunnerId.
+   */
+  @java.lang.Override
+  public java.lang.String getAgentRunnerId() {
+    java.lang.Object ref = agentRunnerId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      agentRunnerId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * AgentRunner that executes work for this session.
+   *
+   * When set, all executions in this session route to this runner's task queue.
+   * When empty, the platform auto-creates an ephemeral cloud runner on first
+   * execution and sets this field.
+   *
+   * For persistent runners (user-created via CLI/desktop), this is set by the
+   * session composer when the user picks their runner. For cloud executions,
+   * this is set automatically by the system.
+   *
+   * &#64;internal
+   * The execution workflow reads this field to resolve the Temporal task queue
+   * for scheduling Python activities. When empty, the workflow calls the
+   * RunnerLauncher to spawn an ephemeral runner and populates this field.
+   * </pre>
+   *
+   * <code>string agent_runner_id = 9 [json_name = "agentRunnerId"];</code>
+   * @return The bytes for agentRunnerId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getAgentRunnerIdBytes() {
+    java.lang.Object ref = agentRunnerId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      agentRunnerId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   public static final int SKILL_REFS_FIELD_NUMBER = 8;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> skillRefs_;
@@ -724,6 +798,9 @@ java.lang.String defaultValue) {
     for (int i = 0; i < skillRefs_.size(); i++) {
       output.writeMessage(8, skillRefs_.get(i));
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentRunnerId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 9, agentRunnerId_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -782,6 +859,9 @@ java.lang.String defaultValue) {
           }
           size += 1 * count;
         }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentRunnerId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(9, agentRunnerId_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -811,6 +891,8 @@ java.lang.String defaultValue) {
         .equals(other.getWorkspaceEntriesList())) return false;
     if (!getMcpServerUsagesList()
         .equals(other.getMcpServerUsagesList())) return false;
+    if (!getAgentRunnerId()
+        .equals(other.getAgentRunnerId())) return false;
     if (!getSkillRefsList()
         .equals(other.getSkillRefsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -844,6 +926,8 @@ java.lang.String defaultValue) {
       hash = (37 * hash) + MCP_SERVER_USAGES_FIELD_NUMBER;
       hash = (53 * hash) + getMcpServerUsagesList().hashCode();
     }
+    hash = (37 * hash) + AGENT_RUNNER_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getAgentRunnerId().hashCode();
     if (getSkillRefsCount() > 0) {
       hash = (37 * hash) + SKILL_REFS_FIELD_NUMBER;
       hash = (53 * hash) + getSkillRefsList().hashCode();
@@ -1028,13 +1112,14 @@ java.lang.String defaultValue) {
         mcpServerUsagesBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000040);
+      agentRunnerId_ = "";
       if (skillRefsBuilder_ == null) {
         skillRefs_ = java.util.Collections.emptyList();
       } else {
         skillRefs_ = null;
         skillRefsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000100);
       return this;
     }
 
@@ -1087,9 +1172,9 @@ java.lang.String defaultValue) {
         result.mcpServerUsages_ = mcpServerUsagesBuilder_.build();
       }
       if (skillRefsBuilder_ == null) {
-        if (((bitField0_ & 0x00000080) != 0)) {
+        if (((bitField0_ & 0x00000100) != 0)) {
           skillRefs_ = java.util.Collections.unmodifiableList(skillRefs_);
-          bitField0_ = (bitField0_ & ~0x00000080);
+          bitField0_ = (bitField0_ & ~0x00000100);
         }
         result.skillRefs_ = skillRefs_;
       } else {
@@ -1114,6 +1199,9 @@ java.lang.String defaultValue) {
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.metadata_ = internalGetMetadata();
         result.metadata_.makeImmutable();
+      }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.agentRunnerId_ = agentRunnerId_;
       }
     }
 
@@ -1204,11 +1292,16 @@ java.lang.String defaultValue) {
           }
         }
       }
+      if (!other.getAgentRunnerId().isEmpty()) {
+        agentRunnerId_ = other.agentRunnerId_;
+        bitField0_ |= 0x00000080;
+        onChanged();
+      }
       if (skillRefsBuilder_ == null) {
         if (!other.skillRefs_.isEmpty()) {
           if (skillRefs_.isEmpty()) {
             skillRefs_ = other.skillRefs_;
-            bitField0_ = (bitField0_ & ~0x00000080);
+            bitField0_ = (bitField0_ & ~0x00000100);
           } else {
             ensureSkillRefsIsMutable();
             skillRefs_.addAll(other.skillRefs_);
@@ -1221,7 +1314,7 @@ java.lang.String defaultValue) {
             skillRefsBuilder_.dispose();
             skillRefsBuilder_ = null;
             skillRefs_ = other.skillRefs_;
-            bitField0_ = (bitField0_ & ~0x00000080);
+            bitField0_ = (bitField0_ & ~0x00000100);
             skillRefsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetSkillRefsFieldBuilder() : null;
@@ -1324,6 +1417,11 @@ java.lang.String defaultValue) {
               }
               break;
             } // case 66
+            case 74: {
+              agentRunnerId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 74
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2849,12 +2947,169 @@ java.lang.String defaultValue) {
       return mcpServerUsagesBuilder_;
     }
 
+    private java.lang.Object agentRunnerId_ = "";
+    /**
+     * <pre>
+     * AgentRunner that executes work for this session.
+     *
+     * When set, all executions in this session route to this runner's task queue.
+     * When empty, the platform auto-creates an ephemeral cloud runner on first
+     * execution and sets this field.
+     *
+     * For persistent runners (user-created via CLI/desktop), this is set by the
+     * session composer when the user picks their runner. For cloud executions,
+     * this is set automatically by the system.
+     *
+     * &#64;internal
+     * The execution workflow reads this field to resolve the Temporal task queue
+     * for scheduling Python activities. When empty, the workflow calls the
+     * RunnerLauncher to spawn an ephemeral runner and populates this field.
+     * </pre>
+     *
+     * <code>string agent_runner_id = 9 [json_name = "agentRunnerId"];</code>
+     * @return The agentRunnerId.
+     */
+    public java.lang.String getAgentRunnerId() {
+      java.lang.Object ref = agentRunnerId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        agentRunnerId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * AgentRunner that executes work for this session.
+     *
+     * When set, all executions in this session route to this runner's task queue.
+     * When empty, the platform auto-creates an ephemeral cloud runner on first
+     * execution and sets this field.
+     *
+     * For persistent runners (user-created via CLI/desktop), this is set by the
+     * session composer when the user picks their runner. For cloud executions,
+     * this is set automatically by the system.
+     *
+     * &#64;internal
+     * The execution workflow reads this field to resolve the Temporal task queue
+     * for scheduling Python activities. When empty, the workflow calls the
+     * RunnerLauncher to spawn an ephemeral runner and populates this field.
+     * </pre>
+     *
+     * <code>string agent_runner_id = 9 [json_name = "agentRunnerId"];</code>
+     * @return The bytes for agentRunnerId.
+     */
+    public com.google.protobuf.ByteString
+        getAgentRunnerIdBytes() {
+      java.lang.Object ref = agentRunnerId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        agentRunnerId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * AgentRunner that executes work for this session.
+     *
+     * When set, all executions in this session route to this runner's task queue.
+     * When empty, the platform auto-creates an ephemeral cloud runner on first
+     * execution and sets this field.
+     *
+     * For persistent runners (user-created via CLI/desktop), this is set by the
+     * session composer when the user picks their runner. For cloud executions,
+     * this is set automatically by the system.
+     *
+     * &#64;internal
+     * The execution workflow reads this field to resolve the Temporal task queue
+     * for scheduling Python activities. When empty, the workflow calls the
+     * RunnerLauncher to spawn an ephemeral runner and populates this field.
+     * </pre>
+     *
+     * <code>string agent_runner_id = 9 [json_name = "agentRunnerId"];</code>
+     * @param value The agentRunnerId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAgentRunnerId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      agentRunnerId_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * AgentRunner that executes work for this session.
+     *
+     * When set, all executions in this session route to this runner's task queue.
+     * When empty, the platform auto-creates an ephemeral cloud runner on first
+     * execution and sets this field.
+     *
+     * For persistent runners (user-created via CLI/desktop), this is set by the
+     * session composer when the user picks their runner. For cloud executions,
+     * this is set automatically by the system.
+     *
+     * &#64;internal
+     * The execution workflow reads this field to resolve the Temporal task queue
+     * for scheduling Python activities. When empty, the workflow calls the
+     * RunnerLauncher to spawn an ephemeral runner and populates this field.
+     * </pre>
+     *
+     * <code>string agent_runner_id = 9 [json_name = "agentRunnerId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAgentRunnerId() {
+      agentRunnerId_ = getDefaultInstance().getAgentRunnerId();
+      bitField0_ = (bitField0_ & ~0x00000080);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * AgentRunner that executes work for this session.
+     *
+     * When set, all executions in this session route to this runner's task queue.
+     * When empty, the platform auto-creates an ephemeral cloud runner on first
+     * execution and sets this field.
+     *
+     * For persistent runners (user-created via CLI/desktop), this is set by the
+     * session composer when the user picks their runner. For cloud executions,
+     * this is set automatically by the system.
+     *
+     * &#64;internal
+     * The execution workflow reads this field to resolve the Temporal task queue
+     * for scheduling Python activities. When empty, the workflow calls the
+     * RunnerLauncher to spawn an ephemeral runner and populates this field.
+     * </pre>
+     *
+     * <code>string agent_runner_id = 9 [json_name = "agentRunnerId"];</code>
+     * @param value The bytes for agentRunnerId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAgentRunnerIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      agentRunnerId_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+
     private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> skillRefs_ =
       java.util.Collections.emptyList();
     private void ensureSkillRefsIsMutable() {
-      if (!((bitField0_ & 0x00000080) != 0)) {
+      if (!((bitField0_ & 0x00000100) != 0)) {
         skillRefs_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(skillRefs_);
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000100;
        }
     }
 
@@ -3125,7 +3380,7 @@ java.lang.String defaultValue) {
     public Builder clearSkillRefs() {
       if (skillRefsBuilder_ == null) {
         skillRefs_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000080);
+        bitField0_ = (bitField0_ & ~0x00000100);
         onChanged();
       } else {
         skillRefsBuilder_.clear();
@@ -3279,7 +3534,7 @@ java.lang.String defaultValue) {
         skillRefsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
                 skillRefs_,
-                ((bitField0_ & 0x00000080) != 0),
+                ((bitField0_ & 0x00000100) != 0),
                 getParentForChildren(),
                 isClean());
         skillRefs_ = null;

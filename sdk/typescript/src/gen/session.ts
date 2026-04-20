@@ -94,6 +94,7 @@ export interface SessionInput {
   metadata?: Record<string, string>;
   workspaceEntries?: WorkspaceEntryInput[];
   mcpServerUsages?: McpServerUsageInput[];
+  agentRunnerId?: string;
   skillRefs?: ResourceRef[];
 }
 
@@ -207,6 +208,7 @@ function buildSessionProto(input: SessionInput): Session {
       metadata: input.metadata,
       workspaceEntries,
       mcpServerUsages,
+      agentRunnerId: input.agentRunnerId,
       skillRefs,
     })),
   }) as Session;

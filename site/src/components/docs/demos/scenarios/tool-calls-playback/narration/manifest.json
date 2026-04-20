@@ -4,11 +4,11 @@
     null,
     {
       "src": "/demos/tool-calls-playback/step-2.mp3",
-      "durationMs": 5925
+      "durationMs": 5863
     },
     {
       "src": "/demos/tool-calls-playback/step-3.mp3",
-      "durationMs": 7113
+      "durationMs": 7200
     }
   ]
 }

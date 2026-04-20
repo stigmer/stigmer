@@ -81,6 +81,7 @@ type SessionInput struct {
 	Metadata         map[string]string
 	WorkspaceEntries []*WorkspaceEntryInput
 	McpServerUsages  []*McpServerUsageInput
+	AgentRunnerId    string
 	SkillRefs        []ResourceRef
 }
 
@@ -133,6 +134,7 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 	for _, item := range i.McpServerUsages {
 		resource.Spec.McpServerUsages = append(resource.Spec.McpServerUsages, item.toProto())
 	}
+	resource.Spec.AgentRunnerId = i.AgentRunnerId
 	for _, r := range i.SkillRefs {
 		resource.Spec.SkillRefs = append(resource.Spec.SkillRefs, r.toProto())
 	}
@@ -173,6 +175,7 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 		for _, item := range s.GetMcpServerUsages() {
 			input.McpServerUsages = append(input.McpServerUsages, mcpServerUsageInputFromProto(item))
 		}
+		input.AgentRunnerId = s.GetAgentRunnerId()
 		for _, r := range s.GetSkillRefs() {
 			input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
 		}

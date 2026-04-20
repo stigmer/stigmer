@@ -9,184 +9,116 @@ Drop this file into your conversation to quickly resume work on this project.
 **Description**: Promote AgentRunner to a first-class API resource with orthogonal lifecycle/scope/placement axes; introduce a Stigmer Side-Channel Proxy that injects all platform secrets so runners carry only the user JWT; eliminate the can_impersonate machine-account model; unify per-execution sandbox and agent-runner into a single Daytona container; enable browser-launched local runners via stigmer:// URL scheme.
 **Goal**: Eliminate the platform-wide can_impersonate superpower for agent execution by making every agent-runner authenticate as the triggering user and routing all infrastructure secrets through a Stigmer-hosted side-channel proxy that the runner never sees.
 **Tech Stack**: Java/Spring Boot WebFlux (stigmer-service), Python (agent-runner), Protobuf, OpenBAO/Vault, Daytona, Temporal, Auth0, Tauri/Go (CLI/Desktop)
-**Components**: apis/ai/stigmer/agentic/agent_runner/v1 (new proto resource); backend/services/stigmer-service (proxy endpoints, AgentRunner aggregate, dispatch logic, RunnerLauncher abstraction); backend/services/agent-runner (remove machine account, point clients at proxy, run inside Daytona); client-apps/cli and Stigmer Desktop (stigmer:// URL handler, register-as-AgentRunner flow); cloud frontend (AgentRunner UI for Persistent runners)
+**Components**: apis/ai/stigmer/agentic/agentrunner/v1 (new proto resource); backend/services/stigmer-service (proxy endpoints, AgentRunner aggregate, dispatch logic, RunnerLauncher abstraction); backend/services/agent-runner (remove machine account, point clients at proxy, run inside Daytona); client-apps/cli and Stigmer Desktop (stigmer:// URL handler, register-as-AgentRunner flow); cloud frontend (AgentRunner UI for Persistent runners)
 
 ## Current State
-- **Status**: Phase 0 code complete + proxy authorization complete; Phase 2 Daytona gates validated (3/3 pass)
-- **Last Session**: 2026-04-20 — Side-Channel Proxy FGA authorization
-- **Active Task**: Phase 0 deploy → then Phase 1
+- **Status**: Phase 0 code complete; Phase 1 proto definition complete; Phase 2 Daytona gates validated
+- **Last Session**: 2026-04-20 — AgentRunner proto definition (Session 5)
+- **Active Task**: Phase 1 implementation (Java/Go aggregate, handlers, Temporal integration)
 
-## Session Progress (2026-04-20, Session 4 — Side-Channel Proxy FGA Authorization)
+## Session Progress (2026-04-20, Session 5 — AgentRunner Proto Definition)
 
 ### Accomplished
-- Conducted comprehensive security audit of the Side-Channel Proxy — identified 7 findings (2 critical, 2 high, 3 medium)
-- Evaluated and rejected two approaches: (a) execution-scoped JWTs through Temporal (credential leak + expiry incompatible with durable executions), (b) custom context headers + MongoDB validation (unnecessary latency, doesn't leverage existing FGA infrastructure)
-- Implemented FGA-based authorization using the existing `RequestCallerIdentityMapper` + `RequestAuthorizationService` — zero new authorization infrastructure
-- Created `ProxyAuthorizationService` with 5-minute in-memory cache to eliminate FGA latency on checkpoint hot path
-- Added input validation hardening: 4MB document size limit, artifact key pattern validation, path traversal prevention, MIME type validation
-- Runner-side `HttpCheckpointSaver` now includes `org_id` in checkpoint documents for data hygiene (reads from LangGraph `configurable.org`)
+- Extensive design brainstorm with principal architect and backend engineer roles
+- Challenged and refined the original T01 design: dropped lifecycle/placement/runtime enums, dropped max_concurrent_executions spec field, adopted Kubernetes Node pattern (thin spec, rich status)
+- Key insight from brainstorm: AgentRunner IS a resource (not just infrastructure) because persistent runners need user-facing CRUD, appear in session composer, and are addressable by name
+- Queue is per-runner (`agent-runner:{runner-id}`), not per-user or per-execution
+- Both ephemeral (cloud) and persistent (user-created) runners are saved as AgentRunner resources; ephemeral ones labeled `stigmer.ai/system-managed` and hidden from UI
+- Created 6 new proto files under `apis/ai/stigmer/agentic/agentrunner/v1/`: api.proto, spec.proto, enum.proto, io.proto, command.proto, query.proto
+- Modified 4 existing proto files: ApiResourceKind (agent_runner=46), IamPermission (can_create_agent_runner=25), SessionSpec (agent_runner_id=9), AgentExecutionStatus (agent_runner_id=19)
+- Ran `make codegen` — stubs generated across Go, Java, Python, TypeScript, plus SDK clients, MCP server, docs, and schemas (154 files changed)
+- `buf lint` passes, `buf breaking` passes (all changes purely additive)
 
 ### Key Decisions Made
-11. **FGA authorization, not custom validation** — The proxy reuses the exact same `RequestCallerIdentityMapper` → `RequestAuthorizationService` → OpenFGA `check()` path as gRPC handlers. No execution-scoped JWTs, no custom context headers, no MongoDB-based execution validation.
-12. **Runner always carries user credentials** — Both user-started (CLI) and platform-started runners will inject the user's token (API key or JWT), not a shared service-level key. This makes FGA authorization meaningful.
-13. **Checkpoints authorized via session, artifacts via execution** — Checkpoint `thread_id` encodes the session (`thread-{session_id}`), so FGA checks `can_view`/`can_edit` on `session`. Artifact keys encode execution (`artifacts/{execution_id}/...`), so FGA checks on `agent_execution` (which inherits from session via FGA model).
-14. **LLM proxy: authentication only, no FGA** — Stateless pass-through with no data isolation concern. FGA authorization is unnecessary overhead for a proxy that stores nothing.
-15. **5-minute FGA result cache** — During a single execution, hundreds of checkpoint writes target the same session. One FGA check per 5 minutes per (user, permission, resource) is sufficient.
+16. **AgentRunner IS a domain resource, not just infrastructure** — the session composer dropdown, CLI `stigmer runner start`, and platform-for-platforms framing all demand a first-class API resource with CRUD, identity persistence, and per-runner queues.
+17. **No lifecycle/placement/runtime enums** — the runner is a process with a name, a queue, and connection info. Cloud vs local is metadata the runner reports via heartbeat, not a spec distinction.
+18. **Kubernetes Node pattern** — thin spec (only `description`), rich status (phase, task_queue, heartbeat, capacity, sandbox_id, connection_info). The user declares almost nothing; the runner self-reports everything.
+19. **Runner identity persists across restarts** — CLI stores runner ID in `~/.stigmer/runner.json`. On restart, calls `apply` to reactivate. Same resource, same queue, same identity.
+20. **`agent_runner_id` on SessionSpec** — replaces the role of `sandbox_id` as session's execution context binding. Sandbox becomes a property of the runner (status), not the session.
+21. **`agent_runner_id` on AgentExecutionStatus** — observability: which runner handled this execution.
+22. **Heartbeat RPC on command controller** — dedicated lightweight RPC (not a full update), called every 30s, 90s timeout for STOPPED transition.
+23. **`apply` RPC for CLI registration** — idempotent create-or-update. If runner exists (from yesterday), reactivates. If not, creates. This is the "match a restarted runner" pattern.
+
+### Files Created (this session)
+
+**stigmer (6 new proto files):**
+- `apis/ai/stigmer/agentic/agentrunner/v1/api.proto` — AgentRunner resource, AgentRunnerStatus, AgentRunnerConnectionInfo
+- `apis/ai/stigmer/agentic/agentrunner/v1/spec.proto` — AgentRunnerSpec (thin: description only)
+- `apis/ai/stigmer/agentic/agentrunner/v1/enum.proto` — AgentRunnerPhase (Pending, Ready, Busy, Stopped, Failed)
+- `apis/ai/stigmer/agentic/agentrunner/v1/io.proto` — AgentRunnerId, AgentRunnerHeartbeatInput, ListAgentRunnersRequest, AgentRunnerList
+- `apis/ai/stigmer/agentic/agentrunner/v1/command.proto` — AgentRunnerCommandController (apply, create, update, delete, heartbeat)
+- `apis/ai/stigmer/agentic/agentrunner/v1/query.proto` — AgentRunnerQueryController (get, getByReference, list)
 
 ### Files Modified (this session)
 
-**stigmer-cloud (5 files, new + modified):**
-- `ProxyAuthorizationService.java` — NEW: FGA authorization with caching, reuses existing infrastructure
-- `ProxyAccessDeniedException.java` — NEW: clean exception for 403 responses
-- `CheckpointerProxyController.java` — FGA authorization, size limits, indexes
-- `ArtifactProxyController.java` — FGA authorization, key validation
-- `LlmProxyController.java` — Clean logging (no authorization needed)
+**stigmer (4 modified proto files + all generated stubs):**
+- `apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto` — added `agent_runner = 46`
+- `apis/ai/stigmer/iam/v1/enum.proto` — added `can_create_agent_runner = 25`
+- `apis/ai/stigmer/agentic/session/v1/spec.proto` — added `agent_runner_id = 9` to SessionSpec
+- `apis/ai/stigmer/agentic/agentexecution/v1/api.proto` — added `agent_runner_id = 19` to AgentExecutionStatus
+- All generated stubs across Go, Java, Python, TypeScript (154 files total via `make codegen`)
 
-**stigmer (2 files):**
-- `worker/checkpointer/http_saver.py` — `org_id` in checkpoint documents from LangGraph config
-- `worker/storage/proxy.py` — Docstring update only
+## Previous Sessions (2026-04-20)
 
-## Session Progress (2026-04-20, Session 3 — Daytona Operational Gate Validation)
+### Session 4 — Side-Channel Proxy FGA Authorization
+- Implemented FGA-based authorization for all proxy endpoints
+- Created `ProxyAuthorizationService` with 5-minute cache
+- Checkpoints authorized via session, artifacts via execution, LLM is auth-only
 
-### Accomplished
-- Ran all 4 Daytona-gated integration test suites against live Daytona API using dev API key
-- All 3 remaining Phase 2 operational gates **PASSED** (gate 4 eliminated by unified image decision)
-- Collected detailed benchmark timing data for sandbox lifecycle operations
-- Validated archiving race condition behavior (Daytona handles start() during ARCHIVING gracefully)
-- Made architectural decision: bake agent-runner into `Dockerfile.sandbox.full` (eliminates image-pull cold start)
+### Session 3 — Daytona Operational Gate Validation
+- All 3 Phase 2 operational gates PASSED
+- Decision: bake runner into `Dockerfile.sandbox.full` (sub-second cold start)
 
-### Test Results Summary
+### Session 2 — LLM Proxy Wiring
+- Wired all 6 LLM client construction paths through Side-Channel Proxy
+- Centralized `llm_kwargs` into `LLMConfig.build_llm_kwargs()`
+- Fixed Anthropic SDK auth header mismatch with custom BearerTokenResolver
 
-**Integration tests** (21 tests: 18 passed, 2 failed, 1 skipped):
-- `test_daytona_mcp_relay.py`: 3/5 passed. Real MCP server (npx) works, concurrent sessions work, session cleanup works. 2 failures are `cat`-based echo tests (transport startup detection issue with commands that produce no initial output — NOT a Daytona gate failure)
-- `test_inline_publisher_daytona.py`: 9/10 passed, 1 skipped (R2 creds absent — expected). Full workspace backend, file I/O, artifact publishing pipeline all work against real sandbox
-- `test_snapshot_lifecycle.py`: 6/6 passed. Snapshot create, resolve, cache, invalidate, rotate, pip install on full image — all work
-
-**Benchmark lifecycle tests** (5 tests: 5/5 passed):
-
-| Metric | 0 MB | 100 MB | 500 MB |
-|--------|------|--------|--------|
-| create_from_snapshot | **0.84s** | **1.02s** | **1.09s** |
-| stop | 1.68s | 1.59s | 1.79s |
-| start_from_stopped | 1.34s | 1.37s | 1.35s |
-| archive (to cold storage) | 33.53s | 50.68s | 61.34s |
-| start_from_archived | 3.78s | 3.88s | 20.97s |
-| delete | 0.82s | 1.20s | 0.84s |
-| data survived stop/start | n/a | Yes | Yes |
-| data survived archive/restore | n/a | Yes (spot check) | Yes (spot check) |
-
-**Archiving race condition** (start() called while ARCHIVING):
-- 0 MB: start() succeeded in 0.78s, sandbox usable
-- 100 MB: start() succeeded in 1.00s, sandbox usable, data survived
-
-### Operational Gate Assessment
-
-| Gate | Status | Evidence |
-|------|--------|----------|
-| **Outbound TLS** | **PASS** (partial) | MCP relay tests prove outbound networking (npx downloads packages, runs Node.js server, exchanges JSON-RPC). Benchmark proves multi-minute sustained operations. Full 60-min soak test not run — recommend as follow-up if needed. |
-| **Idle timeout configurable** | **PASS** | Benchmark uses `auto_stop_interval=0` and `auto_delete_interval=-1` — both respected. Inline publisher uses `auto_delete_interval=5` — also respected. Sandboxes stay alive for full test duration (5+ minutes per test). |
-| **Multi-process** | **PASS** | MCP relay runs Node.js (npx) + cat + Python sessions concurrently inside one sandbox. `test_concurrent_sessions` runs 2 MCP transports in parallel. Real MCP server tool discovery works. |
-| **Cold start < 30s** | **ELIMINATED** | Decision: bake runner into sandbox image. create_from_snapshot is 0.84-1.09s regardless of data size. No image pull needed. |
-
-### Key Decision Made
-10. **Bake agent-runner into `Dockerfile.sandbox.full`** — The sandbox snapshot already includes all tools. Adding the runner's Python virtualenv + source eliminates the image-pull cold start entirely. create_from_snapshot is sub-second (~0.84-1.09s). The standalone `Dockerfile` stays for K8s pod mode and local/OSS mode.
-
-## Session Progress (2026-04-20, Session 2 — LLM Proxy Wiring)
-
-### Accomplished
-- Completed Step 7 from the previous session's next-steps: runner-side LLM `base_url` wiring
-- Thorough codebase exploration identified all 6 LLM client construction paths (not just the 1 mentioned in previous session notes)
-- Discovered and fixed pre-existing bugs: sub-agent `model_kwargs` gap, `CheckpointerConfig` rejecting `http` type, summarization middleware back door
-- Discovered Anthropic SDK auth header mismatch (sends `x-api-key` not `Authorization: Bearer`) — solved with custom `BearerTokenResolver` on proxy (Option A, user-approved)
-- Centralized duplicated `llm_kwargs` construction into `LLMConfig.build_llm_kwargs()`
-- Handled provider-specific `base_url` convention difference (OpenAI SDK includes `/v1`, Anthropic does not)
-
-### Key Decisions Made
-7. **Proxy awareness lives in runner config, NOT in graphton library** — `parse_model_string` stays proxy-unaware, kwargs flow through existing `**model_kwargs` path
-8. **Custom BearerTokenResolver on proxy** (Option A) for Anthropic SDK auth — cleaner than client-side `default_headers` workaround
-9. **Summarization middleware routes through `parse_model_string`** — eliminated three provider-specific back-door methods, unified all model construction through one path
-
-### Files Modified (this session)
-
-**stigmer (7 files, +145/-135):**
-- `worker/config.py` — `LLMConfig.build_llm_kwargs()`, proxy-aware validation, `CheckpointerConfig` http support
-- `worker/activities/graphton/setup.py` — centralized `llm_kwargs`
-- `worker/activities/generate_session_subject.py` — centralized `llm_kwargs`
-- `worker/activities/classify_tool_approvals.py` — centralized `llm_kwargs`
-- `worker/activities/graphton/handlers/sub_agent.py` — centralized `llm_kwargs`
-- `graphton/core/agent.py` — sub-agent `model_kwargs` forwarding + summarization `llm_kwargs`
-- `graphton/core/summarization_middleware.py` — `parse_model_string` delegation, `llm_kwargs` constructor param
-
-**stigmer-cloud (1 file):**
-- `HttpSecurityConfig.java` — `resolveProxyBearerToken()` for dual-header auth
-
-## Session Progress (2026-04-20, Session 1 — Phase 0 Proxy)
-
-### Accomplished
-- Full infrastructure investigation: discovered stigmer-service is gRPC-only, KubernetesDeployment module supports one ingress port, runner uses API key + OBO (not machine accounts), Redis is dead code
-- Designed HTTP proxy architecture on separate hostname (`proxy.stigmer.ai`) after ruling out gRPC adapter approach (maintenance trap with LangChain) and cluster-internal-only approach (Daytona sandboxes are outside K8s)
-- Implemented all Phase 0 sub-tasks:
-  - P0.1: HTTP serving infra (spring-boot-starter-web on port 8081, HttpSecurityConfig, health endpoint)
-  - P0.2: LLM transparent proxy (OpenAI + Anthropic passthrough with key injection and SSE streaming)
-  - P0.3: Checkpointer REST API (MongoDB proxy) + HttpCheckpointSaver in runner
-  - P0.4: Artifact presigned URL API + ProxyArtifactStorage in runner
-  - P0.5: Redis dead code removal (worker.py, config.py, redis_config.py deleted, dependency removed)
-  - P0.6: Runner-side integration (proxy endpoint config, http checkpointer, proxy artifact storage)
-  - P0.7: Deployment (second port on KubernetesDeployment, Gateway API resources for proxy.stigmer.ai, runner env vars updated)
-- Committed in both repos:
-  - stigmer-cloud: `0329220b` — proxy controllers + Gateway API + changelog
-  - stigmer: `e690b95ff` — runner-side proxy clients + cleanup
-
-### Key Decisions Made
-1. **HTTP, not gRPC** for all proxy endpoints — avoids custom LangChain adapters, leverages `base_url` parameter natively
-2. **Single hostname** (`proxy.stigmer.ai`) with path-based routing for LLM/checkpointer/artifacts
-3. **Ollama excluded** from Phase 0 (local-only demo provider)
-4. **Temporal stays direct** — no secrets to inject, bidirectional streaming impractical to proxy
-5. **Gateway API resources created manually** in `_ops/planton/infra-hub/kubernetes/` (OpenMCF module supports only one hostname per deployment)
-6. **Provider API keys move to stigmer-service env** (from runner env) — vault integration is a later improvement
+### Session 1 — Phase 0 Proxy
+- Implemented complete Side-Channel Proxy: LLM passthrough, checkpointer API, artifact presigned URLs, Redis removal
+- Committed in both repos
 
 ## Next Steps
 
-### Phase 0 Deploy (remaining)
-1. **Validate Bazel build** — run `bazel build //backend/services/stigmer-service:stigmer_service_fatjar` to confirm gRPC + Tomcat coexistence works in the Bazel build
-2. **Deploy proxy to staging** — deploy stigmer-service with the new HTTP port and verify `/health` on port 8081 is reachable
-3. **DNS setup** — create `proxy.stigmer.ai` DNS record pointing at the Istio ingress gateway
-4. **Apply Gateway API resources** — `kubectl apply` the 4 YAML files in `_ops/planton/infra-hub/kubernetes/`
-5. **Create Planton secrets group** — `stigmer-llm-proxy-credentials` with OpenAI and Anthropic API keys
-6. **End-to-end test** — trigger an agent execution and verify LLM calls, checkpoint persistence, and artifact storage all route through the proxy
-7. **Commit stigmer-cloud HttpSecurityConfig.java change** — the BearerTokenResolver addition is uncommitted in stigmer-cloud (mixed with vault-migration files from a separate project)
+### Phase 0 Deploy (remaining ops tasks)
+1. **Validate Bazel build** — confirm gRPC + Tomcat coexistence
+2. **Deploy proxy to staging** — verify `/health` on port 8081
+3. **DNS setup** — `proxy.stigmer.ai` DNS record
+4. **Apply Gateway API resources** — kubectl apply the 4 YAML files
+5. **Create Planton secrets group** — OpenAI and Anthropic API keys
+6. **End-to-end test** — trigger execution, verify all calls route through proxy
+7. **Commit stigmer-cloud HttpSecurityConfig.java change** — BearerTokenResolver still uncommitted
+
+### Phase 1 Implementation (next coding work)
+8. **stigmer-cloud: AgentRunner aggregate + handlers** — domain entity, MongoDB repository, create/update/delete/heartbeat handlers, FGA tuples
+9. **stigmer (Go): AgentRunner store + handlers** — SQLite store, Go server handlers (dual-edition consistency)
+10. **stigmer-cloud: Dispatch integration** — modify InvokeAgentExecutionWorkflow to resolve runner, read task queue from AgentRunner status, launch ephemeral runner if needed
+11. **stigmer-cloud: RunnerLauncher abstraction** — KubernetesJobRunnerLauncher for Phase 1; DaytonaSandboxRunnerLauncher for Phase 2
+12. **stigmer: Runner auth migration** — STIGMER_USER_JWT env var, simplified ChannelProvider, deprecate OBO interceptor
+13. **stigmer: Runner heartbeat client** — Python side: send heartbeat RPC every 30s
+14. **stigmer: Idle self-termination** — idle watchdog in worker.py
 
 ### Phase 2 Prep (can start in parallel)
-8. **Build unified sandbox image** — add agent-runner builder stage to `Dockerfile.sandbox.full`, copy virtualenv + source + deps into final image at `/app/agent-runner/`
-9. **Update `release.sandbox-cloud.yaml`** — widen build context to repo root, add path triggers for agent-runner code changes, graphton, and proto stubs
-10. **Optional: 60-min outbound TLS soak test** — if more evidence needed for gate 1, create a dedicated test that holds a TLS connection open for 60+ minutes
-
-### Phase 1
-11. **Begin Phase 1** — AgentRunner proto + aggregate + dispatch + token exchange
+15. **Build unified sandbox image** — add agent-runner to `Dockerfile.sandbox.full`
+16. **Update release pipeline** — widen build context for sandbox image
 
 ## Context for Resume
-- Both repos are on the `feat/secrets-vault-migration` branch (shared with the vault migration project)
-- The stigmer-cloud repo has additional uncommitted vault-migration files (vault-starter, OpenBAO, GCP KMS) — those are from a separate project. Only `HttpSecurityConfig.java` is from this session.
-- The plan file for Session 2 is at `~/.cursor/plans/llm_proxy_wiring_c3114ce2.plan.md`
-- The validation plan for Session 3 is at `~/.cursor/plans/validate_daytona_operational_gates_b0a5609f.plan.md`
+- Both repos are on the `feat/secrets-vault-migration` branch
+- The stigmer-cloud repo has additional uncommitted vault-migration files — separate project
+- The AgentRunner proto is complete and stubs are generated. The proto is the contract; implementation builds on it.
+- The plan file for this session is at `~/.cursor/plans/agentrunner_proto_definition_211dbc21.plan.md`
 - The T01 design doc is at `_projects/2026-04/20260420.01.agent-runner-as-resource/tasks/T01_0_plan.md`
-- All 6 LLM construction paths are now proxy-wired. The runner is credential-free for LLM, checkpointer, and artifact calls when `STIGMER_PROXY_ENDPOINT` is set.
-- `STIGMER_API_KEY` (or user JWT) is used as the proxy auth token. The proxy validates the token, resolves the user's identity, and performs FGA checks before allowing access.
-- **Proxy authorization is FGA-based**: `ProxyAuthorizationService` reuses `RequestCallerIdentityMapper` + `RequestAuthorizationService`. Checkpoints authorized via session, artifacts via execution. LLM is authentication-only.
-- **Phase 2 Daytona gates validated** (3/3 pass). Decision: bake runner into sandbox image to eliminate cold start. `Dockerfile.sandbox.full` will get a multi-stage builder for the runner's virtualenv.
-- The 2 failed MCP relay tests (`test_echo_server_roundtrip`, `test_concurrent_sessions`) are `cat`-based smoke tests with a transport startup detection issue — not blocking. The real MCP server tests all pass.
-- The security audit plan is at `~/.cursor/plans/proxy_authorization_security_e5c52eb8.plan.md` (note: the plan reflects an earlier design iteration; the implementation uses FGA directly, not the context-header approach described in the plan).
+- All previous session context (Phase 0, LLM wiring, Daytona gates, FGA auth) preserved in earlier sections of this file
 
 ## Blockers
-- None blocking. Phase 0 deploy steps are operational tasks (deploy, DNS, kubectl). Phase 2 gates are validated.
+- None blocking. Phase 0 deploy steps are operational tasks. Phase 1 implementation is ready to start.
 
 ## Quick Resume
 To continue this project, drag this file into chat:
 `@_projects/2026-04/20260420.01.agent-runner-as-resource/next-task.md`
 
 ## Quick Commands
-- "Continue with Phase 0 validation" - Verify build, deploy, test
-- "Begin Phase 1" - Start AgentRunner proto + resource design
+- "Continue with Phase 1 implementation" - Start AgentRunner aggregate + handlers
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 

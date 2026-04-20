@@ -341,6 +341,52 @@ java.lang.String defaultValue);
 
   /**
    * <pre>
+   * AgentRunner that executes work for this session.
+   *
+   * When set, all executions in this session route to this runner's task queue.
+   * When empty, the platform auto-creates an ephemeral cloud runner on first
+   * execution and sets this field.
+   *
+   * For persistent runners (user-created via CLI/desktop), this is set by the
+   * session composer when the user picks their runner. For cloud executions,
+   * this is set automatically by the system.
+   *
+   * &#64;internal
+   * The execution workflow reads this field to resolve the Temporal task queue
+   * for scheduling Python activities. When empty, the workflow calls the
+   * RunnerLauncher to spawn an ephemeral runner and populates this field.
+   * </pre>
+   *
+   * <code>string agent_runner_id = 9 [json_name = "agentRunnerId"];</code>
+   * @return The agentRunnerId.
+   */
+  java.lang.String getAgentRunnerId();
+  /**
+   * <pre>
+   * AgentRunner that executes work for this session.
+   *
+   * When set, all executions in this session route to this runner's task queue.
+   * When empty, the platform auto-creates an ephemeral cloud runner on first
+   * execution and sets this field.
+   *
+   * For persistent runners (user-created via CLI/desktop), this is set by the
+   * session composer when the user picks their runner. For cloud executions,
+   * this is set automatically by the system.
+   *
+   * &#64;internal
+   * The execution workflow reads this field to resolve the Temporal task queue
+   * for scheduling Python activities. When empty, the workflow calls the
+   * RunnerLauncher to spawn an ephemeral runner and populates this field.
+   * </pre>
+   *
+   * <code>string agent_runner_id = 9 [json_name = "agentRunnerId"];</code>
+   * @return The bytes for agentRunnerId.
+   */
+  com.google.protobuf.ByteString
+      getAgentRunnerIdBytes();
+
+  /**
+   * <pre>
    * Skills to inject into this session's context.
    *
    * Provides domain-specific knowledge for this specific conversation without

@@ -42,6 +42,7 @@
           "skill",
           "mcp_server",
           "agent_instance",
+          "agent_runner",
           "workflow",
           "workflow_instance",
           "workflow_execution",
