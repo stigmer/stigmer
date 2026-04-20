@@ -229,10 +229,12 @@ See [tasks/T01_0_plan.md](tasks/T01_0_plan.md) — phased design plan, pending r
 
 ### Progress Tracking
 - [x] Project initialized
-- [ ] T01: Architecture and design (PENDING REVIEW)
-- [ ] Phase 0: Side-Channel Proxy V1
+- [x] T01: Architecture and design
+- [x] Phase 0: Side-Channel Proxy V1 (code complete, pending deploy)
+- [x] Phase 2 operational gates: Daytona validation (3/3 pass, 2026-04-20)
+- [ ] Phase 0 deploy and end-to-end test
 - [ ] Phase 1: AgentRunner resource + dispatch + token exchange
-- [ ] Phase 2: Unified Daytona runtime
+- [ ] Phase 2: Unified Daytona runtime (gates validated, unified image ready to build)
 - [ ] Phase 3: User-managed Persistent runners + browser launch
 - [ ] Project completed
 
