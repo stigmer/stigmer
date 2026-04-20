@@ -3,12 +3,10 @@
 import logging
 from datetime import timedelta
 
-import redis
 from temporalio.client import Client
 from temporalio.worker import Worker
 
 from .config import Config
-from .redis_config import RedisConfig, create_redis_client
 from .temporal_converter import create_data_converter
 from .token_manager import set_api_key
 
@@ -20,7 +18,6 @@ class AgentRunner:
         self.config = config
         self.client: Client | None = None
         self.worker: Worker | None = None
-        self.redis_client: redis.Redis | None = None
         self.logger = logging.getLogger(__name__)
         
         # Set global API key for activities
@@ -29,37 +26,8 @@ class AgentRunner:
         
         # Initialize cloud-mode infrastructure
         if not config.is_local_mode():
-            self._initialize_redis()
             self._validate_mongodb_connectivity()
             self._initialize_snapshot_resolver()
-        else:
-            self.logger.info(
-                "Local mode: Skipping Redis initialization"
-            )
-    
-    def _initialize_redis(self):
-        """Initialize Redis connection for cloud mode."""
-        try:
-            # Validate Redis config (should not be None in cloud mode)
-            if self.config.redis_host is None or self.config.redis_port is None:
-                raise ValueError(
-                    "Redis host and port are required in cloud mode. "
-                    "Set REDIS_HOST and REDIS_PORT environment variables."
-                )
-            
-            redis_config = RedisConfig(
-                host=self.config.redis_host,
-                port=self.config.redis_port,
-                password=self.config.redis_password,
-            )
-            self.redis_client = create_redis_client(redis_config)
-            self.logger.info(f"✅ Connected to Redis at {self.config.redis_host}:{self.config.redis_port}")
-        except redis.ConnectionError as e:
-            self.logger.error(f"❌ Failed to connect to Redis: {e}")
-            raise
-        except Exception as e:
-            self.logger.error(f"❌ Error initializing Redis: {e}")
-            raise
     
     def _validate_mongodb_connectivity(self):
         """Validate MongoDB connectivity for cloud-mode checkpointer.
@@ -166,7 +134,6 @@ class AgentRunner:
             self.logger.info(f"🔧 Sandbox: {self.config.sandbox_type} (root: {self.config.sandbox_root_dir})")
         else:
             self.logger.info(f"🔧 Sandbox: {self.config.sandbox_type}")
-            self.logger.info(f"🔧 Redis: {self.config.redis_host}:{self.config.redis_port}")
         
         # Connect to Temporal with forward-compatible proto deserialization.
         # The custom data converter tolerates unknown protobuf fields in JSON
@@ -245,13 +212,5 @@ class AgentRunner:
                 self.logger.info("✓ Worker stopped")
             except Exception as e:
                 self.logger.error(f"Error stopping worker: {e}")
-        
-        # Close Redis connection (cloud mode only)
-        if self.redis_client:
-            try:
-                self.redis_client.close()
-                self.logger.info("✓ Redis connection closed")
-            except Exception as e:
-                self.logger.error(f"Error closing Redis connection: {e}")
         
         self.logger.info("✅ Worker shutdown complete")

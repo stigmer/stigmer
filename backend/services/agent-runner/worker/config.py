@@ -220,15 +220,19 @@ class CheckpointerConfig:
     """
     
     # Core configuration
-    type: str  # "memory" | "sqlite" | "mongodb"
+    type: str  # "memory" | "sqlite" | "mongodb" | "http"
     
     # SQLite settings (local/open-source mode)
     sqlite_path: str | None = None
     
-    # MongoDB settings (cloud mode)
+    # MongoDB settings (cloud mode, direct connection — legacy)
     mongodb_uri: str | None = None
     mongodb_db_name: str = "stigmer_checkpoints"
     mongodb_ttl_seconds: int | None = None  # Optional TTL for auto-cleanup
+    
+    # HTTP proxy settings (cloud mode via Side-Channel Proxy)
+    proxy_endpoint: str | None = None
+    auth_token: str | None = None
     
     @classmethod
     def load_from_env(cls, mode: str) -> "CheckpointerConfig":
@@ -378,14 +382,14 @@ class Config:
     stigmer_backend_endpoint: str
     stigmer_api_key: str
     
+    # Side-channel proxy endpoint (HTTP, e.g. https://proxy.stigmer.ai)
+    # Used for LLM provider passthrough, checkpoint persistence, artifact storage.
+    # In local mode this is unused — the runner talks to providers directly.
+    stigmer_proxy_endpoint: str | None
+    
     # Sandbox configuration (mode-specific)
     sandbox_type: str  # "filesystem" for local, "daytona" for cloud
     sandbox_root_dir: str | None  # Required for filesystem backend
-    
-    # Redis configuration (cloud mode only)
-    redis_host: str | None
-    redis_port: int | None
-    redis_password: str | None
     
     # LLM configuration
     llm: LLMConfig
@@ -455,18 +459,9 @@ class Config:
             sandbox_type = os.getenv("SANDBOX_TYPE", "filesystem")
             sandbox_root_dir = os.getenv("SANDBOX_ROOT_DIR", "./workspace")
             
-            # Redis not required in local mode
-            redis_host = None
-            redis_port = None
-            redis_password = None
         else:
             sandbox_type = "daytona"
             sandbox_root_dir = None
-            
-            # Redis required in cloud mode
-            redis_host = os.getenv("REDIS_HOST", "localhost")
-            redis_port = int(os.getenv("REDIS_PORT", "6379"))
-            redis_password = os.getenv("REDIS_PASSWORD")  # Optional
         
         # Load Temporal task queue for Python activities
         # Environment: TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE
@@ -484,11 +479,9 @@ class Config:
             max_concurrency=int(os.getenv("TEMPORAL_MAX_CONCURRENCY", "10")),
             stigmer_backend_endpoint=os.getenv("STIGMER_BACKEND_ENDPOINT", default_endpoint),
             stigmer_api_key=stigmer_api_key,
+            stigmer_proxy_endpoint=os.getenv("STIGMER_PROXY_ENDPOINT"),
             sandbox_type=sandbox_type,
             sandbox_root_dir=sandbox_root_dir,
-            redis_host=redis_host,
-            redis_port=redis_port,
-            redis_password=redis_password if redis_password else None,
             llm=llm_config,
             checkpointer=checkpointer_config,
             execution_mode=execution_mode,

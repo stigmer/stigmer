@@ -52,9 +52,6 @@ pyjwt = "^2.8.0"
 # Cloudflare R2 artifact storage (S3-compatible API, default for cloud mode)
 boto3 = "^1.35.0"
 
-# Redis
-redis = "^5.0.0"
-
 # Environment variable loading (local development)
 python-dotenv = "^1.0.0"
 
