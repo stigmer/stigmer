@@ -1,7 +1,7 @@
 """HTTP-backed LangGraph checkpoint saver.
 
 Routes checkpoint persistence through the Stigmer Side-Channel Proxy
-(proxy.stigmer.ai) instead of connecting directly to MongoDB. This
+(api.stigmer.ai/v1/proxy) instead of connecting directly to MongoDB. This
 removes the need for STIGMER_CHECKPOINTER_MONGODB_URI in the runner.
 """
 

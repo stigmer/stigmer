@@ -220,7 +220,7 @@ class LLMConfig:
         
         Args:
             proxy_endpoint: Side-channel proxy base URL
-                (e.g. ``https://proxy.stigmer.ai``).  When set, ``base_url``
+                (e.g. ``https://api.stigmer.ai``).  When set, ``base_url``
                 and ``api_key`` are resolved for the proxy.
             proxy_auth_token: Auth token for the proxy
                 (typically ``STIGMER_API_KEY``).
@@ -470,7 +470,7 @@ class Config:
     stigmer_backend_endpoint: str
     stigmer_token: str
     
-    # Side-channel proxy endpoint (HTTP, e.g. https://proxy.stigmer.ai)
+    # Side-channel proxy endpoint (HTTP, e.g. https://api.stigmer.ai)
     # Used for LLM provider passthrough, checkpoint persistence, artifact storage.
     # In local mode this is unused — the runner talks to providers directly.
     stigmer_proxy_endpoint: str | None

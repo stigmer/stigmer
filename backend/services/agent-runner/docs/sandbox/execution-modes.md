@@ -211,6 +211,10 @@ STIGMER_SANDBOX_CLEANUP=true  # Default: true
 
 # Sandbox container lifetime (for reuse)
 STIGMER_SANDBOX_TTL=3600  # Seconds, default: 1 hour
+
+# MCP package bootstrap (set by stigmer-service, not user-configured)
+STIGMER_BOOTSTRAP_NPM_PACKAGES=  # Comma-separated npm packages
+STIGMER_BOOTSTRAP_PIP_PACKAGES=  # Comma-separated pip packages
 ```
 
 ### CLI Flags (Future)
@@ -481,9 +485,33 @@ During agent execution, stdio MCP servers are started as local subprocesses insi
 
 When a user connects a new MCP server, the `DiscoverMcpServerCapabilities` activity runs on the runner and connects to the MCP server using `MultiServerMCPClient`. For stdio servers this starts a local subprocess; for HTTP servers it connects to the remote endpoint. Discovery completes synchronously within the activity.
 
-### MCP Packages in Docker Image
+### MCP Package Bootstrap
 
-MCP runtimes (Node.js, Go, uvx) and commonly used MCP packages are baked into the sandbox Docker image (`Dockerfile.sandbox.full`). There is no runtime snapshot resolution or package download — everything needed is pre-installed in the image. This eliminates cold-start latency from package installation and removes the need for `SnapshotResolver` or the MCP snapshot build pipeline.
+MCP runtimes (Node.js, uv/uvx) are included in the sandbox Docker image
+(`Dockerfile.sandbox.full`). MCP server **packages** are NOT baked into the
+image — they are installed on-demand at sandbox startup by `bootstrap.sh`.
+
+**How it works:**
+
+1. When stigmer-service provisions a sandbox, it resolves the agent's MCP
+   server definitions and extracts the required npm/pip package names.
+2. These are passed as env vars on the sandbox:
+   - `STIGMER_BOOTSTRAP_NPM_PACKAGES` — comma-separated npm package names
+     (e.g. `@modelcontextprotocol/server-filesystem,@brave/brave-search-mcp-server`)
+   - `STIGMER_BOOTSTRAP_PIP_PACKAGES` — comma-separated pip package names
+     (e.g. `mcp-server-fetch,postgres-mcp`)
+3. Before the runner process starts, `bootstrap.sh` reads these env vars
+   and installs the packages via `npm install -g` / `uv tool install`.
+4. Individual package failures are logged but do not block the runner.
+   Failed packages will attempt on-demand install via `npx -y` / `uvx`
+   when the MCP server is first invoked.
+
+**Bootstrap latency:** Typically 5-15 seconds for 1-5 packages. This cost
+is paid once per sandbox lifetime. Sandboxes persist across the session,
+so subsequent executions see no install latency.
+
+**Agents with no stdio MCP servers** (HTTP-only or no MCP servers):
+bootstrap is a no-op (both env vars are empty).
 
 ### Local/OSS Mode
 

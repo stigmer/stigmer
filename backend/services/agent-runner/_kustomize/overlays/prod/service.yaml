@@ -31,9 +31,10 @@ spec:
           # Stigmer API Configuration (internal Kubernetes endpoint, plain gRPC)
           STIGMER_BACKEND_ENDPOINT:
             value: $variables-group/stigmer-api/prod.kube-endpoint
-          # Side-Channel Proxy endpoint (public HTTPS, reachable from anywhere)
+          # Side-Channel Proxy endpoint (same hostname as gRPC API, path-routed
+          # to port 8081 via supplementary HTTPRoute on /v1/proxy prefix)
           STIGMER_PROXY_ENDPOINT:
-            value: https://proxy.stigmer.ai
+            value: https://api.stigmer.ai
           # Public gRPC endpoint injected into MCP server subprocesses.
           # Daytona sandboxes run outside K8s and cannot reach the internal
           # kube-endpoint, so this must be the public ingress with TLS.
