@@ -35,8 +35,6 @@ langchain-openai = ">=0.3.0"
 # Graphton (local copy)
 graphton = {path = "../../libs/python/graphton", develop = true}
 
-# Daytona sandbox support
-daytona = ">=0.113.0"
 deepagents-cli = ">=0.0.3,<0.1.0"  # pinned: wildcard pulled corrupted transitive deps twice (2026-02-14)
 
 # gRPC

@@ -12,12 +12,8 @@ output (capabilities + tool approval policies).  The legacy
 ``DiscoverMcpServerWorkflow`` is retained for backward compatibility during
 deployment transitions.
 
-In cloud mode, stdio MCP servers are started inside an ephemeral Daytona
-sandbox for security isolation — the agent-runner pod never executes
-untrusted MCP server code directly.  The sandbox is created before
-discovery, used for the MCP session, and deleted immediately afterward.
-HTTP servers connect to remote endpoints and need no sandbox.  In
-local/OSS mode, stdio servers run as local subprocesses (no sandbox).
+Stdio MCP servers run as local subprocesses via ``MultiServerMCPClient``.
+HTTP servers connect to remote endpoints.
 
 Security: The Go/Java backend creates an ephemeral ExecutionContext
 containing only the environment variables the MCP server needs. The
@@ -31,7 +27,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
@@ -112,10 +107,8 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
     1. Fetches the McpServer spec via gRPC (OBO impersonation when available)
     2. Resolves environment variables from the pre-created ExecutionContext
     3. Transforms the spec into a client-compatible config
-    4. In cloud mode, creates an ephemeral sandbox for stdio servers
-    5. Connects and lists tools + resource templates
-    6. Deletes the ephemeral sandbox immediately after use
-    7. Returns a serializable result for the backend to store
+    4. Connects and lists tools + resource templates
+    5. Returns a serializable result for the backend to store
     """
     logger.info(
         "DiscoverMcpServerCapabilities started for mcp_server_id=%s",
@@ -130,9 +123,6 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
 
     grpc_provider = ChannelProvider(token)
     ch = grpc_provider.channel
-
-    sandbox = None
-    sandbox_manager = None
 
     try:
         mcp_server_client = McpServerClient(token, channel=ch)
@@ -160,14 +150,7 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
             enabled_tools=None,
         )
 
-        sandbox, sandbox_manager = await _maybe_create_discovery_sandbox(
-            config=config,
-            heartbeat_fn=activity.heartbeat,
-        )
-
-        tools, resource_templates = await _connect_and_discover(
-            slug, config, sandbox=sandbox,
-        )
+        tools, resource_templates = await _connect_and_discover(slug, config)
 
         logger.info(
             "Discovery complete for '%s': %d tool(s), %d resource template(s)",
@@ -182,8 +165,6 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
         )
 
     finally:
-        if sandbox is not None and sandbox_manager is not None:
-            await _cleanup_discovery_sandbox(sandbox_manager, sandbox.id)
         await grpc_provider.close()
         execution_tracker.decrement()
 
@@ -248,88 +229,14 @@ async def _resolve_env_from_execution_context(
 SESSION_INIT_TIMEOUT_SECONDS = 270
 
 
-async def _maybe_create_discovery_sandbox(
-    config: dict[str, Any],
-    heartbeat_fn: Any | None = None,
-) -> tuple[Any, Any] | tuple[None, None]:
-    """Create an ephemeral Daytona sandbox for stdio discovery in cloud mode.
-
-    Encapsulates the three-way gating decision (mirrors
-    ``_maybe_create_daytona_mcp_client`` in ``graphton/setup.py``):
-
-    1. Local/OSS mode → ``(None, None)`` — stdio runs as local subprocess
-    2. Cloud mode but HTTP transport → ``(None, None)`` — no sandbox needed
-    3. Cloud mode + stdio transport → create ephemeral sandbox
-
-    The sandbox is used only for the duration of the MCP discovery session
-    and is deleted immediately afterward by the caller's ``finally`` block.
-
-    Returns:
-        ``(sandbox, sandbox_manager)`` when a sandbox was created,
-        ``(None, None)`` when no sandbox is needed.
-    """
-    from worker.config import Config
-
-    worker_config = Config.load_from_env()
-    if worker_config.is_local_mode():
-        return None, None
-
-    if config.get("transport") != "stdio":
-        return None, None
-
-    daytona_api_key = os.environ.get("DAYTONA_API_KEY")
-    if not daytona_api_key:
-        raise RuntimeError(
-            "DAYTONA_API_KEY required for cloud-mode stdio MCP discovery"
-        )
-
-    from worker.sandbox_manager import SandboxManager
-
-    sandbox_manager = SandboxManager(daytona_api_key=daytona_api_key)
-    sandbox_config = worker_config.get_sandbox_config(session_id=None)
-
-    logger.info("Creating ephemeral Daytona sandbox for MCP discovery")
-    sandbox, _ = await sandbox_manager.get_or_create_daytona_sandbox(
-        sandbox_config=sandbox_config,
-        session_id=None,
-        session_client=None,
-        heartbeat_fn=heartbeat_fn,
-    )
-    logger.info("Ephemeral discovery sandbox ready: %s", sandbox.id)
-
-    return sandbox, sandbox_manager
-
-
-async def _cleanup_discovery_sandbox(
-    sandbox_manager: Any,
-    sandbox_id: str,
-) -> None:
-    """Delete the ephemeral discovery sandbox immediately after use.
-
-    Best-effort: logs a warning on failure rather than masking the
-    original exception.  The sandbox's ``auto_stop_interval`` (set during
-    creation by ``SandboxManager``) acts as a safety net if explicit
-    deletion fails.
-    """
-    logger.info("Cleaning up ephemeral discovery sandbox: %s", sandbox_id)
-    await sandbox_manager.cleanup_daytona_sandbox(sandbox_id)
-
-
 async def _connect_and_discover(
     server_slug: str,
     config: dict[str, Any],
-    sandbox: Any | None = None,
 ) -> tuple[list[DiscoveredToolResult], list[DiscoveredResourceTemplateResult]]:
     """Connect to an MCP server and enumerate its capabilities.
 
-    When ``sandbox`` is provided and the transport is stdio, the MCP server
-    runs inside the Daytona sandbox via ``DaytonaMCPClient``.  Otherwise,
-    ``MultiServerMCPClient`` handles the connection (stdio as local
-    subprocess, or HTTP to a remote endpoint).
-
-    Both client types expose the same ``session()`` context manager
-    yielding an MCP ``ClientSession``, so the discovery code below is
-    transport-agnostic.
+    Uses ``MultiServerMCPClient`` for both stdio (local subprocess) and
+    HTTP (remote endpoint) transports.
 
     The entire block is guarded by ``asyncio.timeout()`` to surface a clear
     error when an MCP server's cold start exceeds the allowed window.
@@ -337,14 +244,10 @@ async def _connect_and_discover(
     task's cancel scope and does not cross anyio task boundaries during
     teardown.
     """
-    servers: dict[str, Any] = {server_slug: config}
+    from langchain_mcp_adapters.client import MultiServerMCPClient
 
-    if sandbox is not None and config.get("transport") == "stdio":
-        from worker.mcp.daytona_mcp_client import DaytonaMCPClient
-        client: Any = DaytonaMCPClient(servers=servers, sandbox=sandbox)
-    else:
-        from langchain_mcp_adapters.client import MultiServerMCPClient
-        client = MultiServerMCPClient(servers)  # type: ignore[arg-type]
+    servers: dict[str, Any] = {server_slug: config}
+    client = MultiServerMCPClient(servers)  # type: ignore[arg-type]
 
     tools: list[DiscoveredToolResult] = []
     resource_templates: list[DiscoveredResourceTemplateResult] = []

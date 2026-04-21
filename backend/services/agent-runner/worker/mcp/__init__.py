@@ -6,17 +6,10 @@ This module provides:
    LangGraph's ``MultiServerMCPClient`` format.
 -  **Placeholder resolution** — ``${VAR}`` substitution in server args
    and HTTP headers.
--  **Daytona transport** — runs stdio MCP servers inside a Daytona
-   sandbox for security isolation (cloud mode only).
 
-``DaytonaMCPClient`` and ``daytona_stdio_client`` are intentionally
-**not** re-exported here.  They transitively import
-``langchain_mcp_adapters`` → ``requests`` → ``urllib3`` which accesses
-``http.client`` internals that Temporal's workflow sandbox restricts.
-Import them directly from their submodules inside activity functions::
-
-    from worker.mcp.daytona_mcp_client import DaytonaMCPClient
-    from worker.mcp.daytona_transport import daytona_stdio_client
+Stdio MCP servers run as local subprocesses via ``MultiServerMCPClient``.
+In cloud mode the runner is inside a Daytona sandbox (provisioned by
+stigmer-service), so "local" subprocess means "inside the sandbox."
 """
 
 from worker.mcp.config_transformer import (

@@ -40,10 +40,8 @@ class AgentRunner:
                 timeout_seconds=config.idle_timeout_seconds,
             )
         
-        # Initialize cloud-mode infrastructure
         if not config.is_local_mode():
             self._validate_mongodb_connectivity()
-            self._initialize_snapshot_resolver()
     
     def _validate_mongodb_connectivity(self):
         """Validate MongoDB connectivity for cloud-mode checkpointer.
@@ -94,33 +92,6 @@ class AgentRunner:
         finally:
             client.close()
     
-    def _initialize_snapshot_resolver(self):
-        """Initialize the MCP snapshot resolver for cloud mode.
-
-        The resolver discovers the latest active Daytona snapshot with
-        pre-installed MCP servers. Requires ``DAYTONA_API_KEY``.  If the
-        key is absent the resolver is not created and sandbox creation
-        falls back to ``DAYTONA_DEV_TOOLS_SNAPSHOT_ID`` or no snapshot.
-        """
-        import os
-
-        api_key = os.getenv("DAYTONA_API_KEY")
-        if not api_key:
-            self.logger.info(
-                "DAYTONA_API_KEY not set — snapshot resolver not initialized"
-            )
-            return
-
-        try:
-            from worker.snapshot_resolver import initialize_snapshot_resolver
-
-            initialize_snapshot_resolver(api_key)
-            self.logger.info("✅ Snapshot resolver initialized")
-        except Exception as e:
-            self.logger.warning(
-                "Snapshot resolver initialization failed (non-fatal): %s", e
-            )
-
     async def register_activities(self):
         """Connect to Temporal and register activities.
         
@@ -129,10 +100,7 @@ class AgentRunner:
         - EnsureThread: Thread management for conversation state
         - cleanup_sandbox: Sandbox cleanup (legacy, may be removed)
         """
-        # Import activities and workflows here to avoid circular imports
-        from worker.activities.build_mcp_snapshot import build_mcp_snapshot
         from worker.activities.classify_tool_approvals import classify_tool_approvals
-        from worker.activities.cleanup_sandbox import cleanup_sandbox
         from worker.activities.discover_mcp_server import (
             ConnectMcpServerWorkflow,
             DiscoverMcpServerWorkflow,
@@ -142,14 +110,10 @@ class AgentRunner:
         from worker.activities.execute_graphton import execute_graphton
         from worker.activities.generate_session_subject import generate_session_subject
         
-        # Log execution mode
         mode = "LOCAL" if self.config.is_local_mode() else "CLOUD"
         self.logger.info(f"🔧 Execution Mode: {mode}")
         self.logger.info(f"🔧 Stigmer Backend: {self.config.stigmer_backend_endpoint}")
-        if self.config.is_local_mode():
-            self.logger.info(f"🔧 Sandbox: {self.config.sandbox_type} (root: {self.config.sandbox_root_dir})")
-        else:
-            self.logger.info(f"🔧 Sandbox: {self.config.sandbox_type}")
+        self.logger.info(f"🔧 Workspace: {self.config.workspace_root_dir}")
         
         # Connect to Temporal with forward-compatible proto deserialization.
         # The custom data converter tolerates unknown protobuf fields in JSON
@@ -180,10 +144,8 @@ class AgentRunner:
                 DiscoverMcpServerWorkflow,
             ],
             activities=[
-                build_mcp_snapshot,
                 execute_graphton,
                 ensure_thread,
-                cleanup_sandbox,
                 generate_session_subject,
                 discover_mcp_server,
                 classify_tool_approvals,
@@ -197,8 +159,8 @@ class AgentRunner:
             f"✅ [POLYGLOT] Registered Python activities on task queue: '{self.config.task_queue}'"
         )
         self.logger.info(
-            "✅ [POLYGLOT] Activities: BuildMcpSnapshot, ExecuteGraphton, EnsureThread, "
-            "CleanupSandbox, GenerateSessionSubject, DiscoverMcpServerCapabilities, "
+            "✅ [POLYGLOT] Activities: ExecuteGraphton, EnsureThread, "
+            "GenerateSessionSubject, DiscoverMcpServerCapabilities, "
             "ClassifyToolApprovals"
         )
         self.logger.info(

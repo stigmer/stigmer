@@ -6,16 +6,17 @@
 #
 # This image provides:
 #   1. MCP server runtimes: npx (Node.js), uvx (Python), go run (Go)
-#   2. Agent-runner Python worker (virtualenv + source + dependencies)
-#   3. Core utilities: git, curl, jq, yq, yamllint
+#   2. Pre-installed seedpack MCP server packages (npm, pip, go)
+#   3. Agent-runner Python worker (virtualenv + source + dependencies)
+#   4. Core utilities: git, curl, jq, yq, yamllint
 #
 # Cloud CLIs (aws, gcloud, az, kubectl, terraform, pulumi, helm, etc.) are
-# NOT included. Agents that need them can install on-demand or use MCP
-# snapshots that layer additional tools on top of this base image.
+# NOT included. Agents that need them can install on-demand.
 #
 # The agent-runner is baked in per DD01 (unified sandbox image). Daytona
-# creates sandboxes from snapshots of this image, giving sub-second cold
-# start. The runner process is started by stigmer-service via
+# creates sandboxes directly from this image via CreateSandboxFromImageParams.
+# The CI pipeline warms Daytona's image cache after each push for sub-second
+# sandbox creation. The runner process is started by stigmer-service via
 # sandbox.process.exec() after sandbox creation — CMD stays /bin/bash
 # per Daytona convention.
 #
@@ -125,6 +126,44 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 RUN YQ_VERSION=v4.40.5 && \
     wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64 && \
     chmod +x /usr/local/bin/yq
+
+# ---------- Pre-installed MCP Server Packages ----------
+# Seedpack stdio MCP servers baked in so first-run latency is zero.
+# Each package is installed individually; a single failure does not block
+# the rest. Packages not in this list install on-demand via npx/uvx/go run.
+
+# npm: globally installed so npx resolves them without downloading.
+# Installed individually so a single 404 does not block the rest.
+RUN for pkg in \
+      @modelcontextprotocol/server-memory \
+      @modelcontextprotocol/server-filesystem \
+      @modelcontextprotocol/server-git \
+      @modelcontextprotocol/server-sequential-thinking \
+      @brave/brave-search-mcp-server \
+      @strowk/mcp-k8s \
+      @benborla29/mcp-server-mysql \
+      @cocal/google-calendar-mcp \
+      @twilio-alpha/mcp \
+      exa-mcp-server \
+      mcp-sqlite \
+      mongodb-mcp-server \
+      resend-mcp; \
+    do npm install -g "$pkg" || echo "WARN: failed to install $pkg"; done && \
+    npm cache clean --force
+
+# pip: installed via uv tool so uvx resolves them from cache
+RUN uv tool install mcp-server-fetch && \
+    uv tool install redis-mcp-server && \
+    uv tool install postgres-mcp && \
+    uv tool install awslabs.lambda-tool-mcp-server && \
+    uv tool install awslabs.aws-documentation-mcp-server && \
+    uv tool install awslabs.cdk-mcp-server && \
+    uv cache clean
+
+# go: go run downloads and caches modules on first invocation.
+# Pre-compilation via go install is not possible for modules with replace
+# directives (e.g. terraform-mcp-server). The first go run incurs a ~5s
+# compile cost; subsequent runs use the build cache inside the sandbox.
 
 # ---------- Agent Runner ----------
 # Baked in per DD01: the runner IS the sandbox. stigmer-service starts the
