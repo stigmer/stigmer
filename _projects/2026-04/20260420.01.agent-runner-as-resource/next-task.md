@@ -12,9 +12,51 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: apis/ai/stigmer/agentic/agentrunner/v1 (new proto resource); backend/services/stigmer-service (proxy endpoints, AgentRunner aggregate, dispatch logic, RunnerLauncher abstraction); backend/services/agent-runner (remove machine account, point clients at proxy, run inside Daytona); client-apps/cli and Stigmer Desktop (stigmer:// URL handler, register-as-AgentRunner flow); cloud frontend (AgentRunner UI for Persistent runners)
 
 ## Current State
-- **Status**: Phase 0 code complete; Phase 1 Java aggregate complete; Phase 1 Go aggregate complete; Phase 2 Daytona gates validated
-- **Last Session**: 2026-04-21 — Go AgentRunner controller implementation in stigmer OSS (Session 7)
-- **Active Task**: Phase 1 item 10 — Dispatch integration (wire AgentRunner into execution workflow)
+- **Status**: Phase 0 code complete; Phase 1 Java aggregate complete; Phase 1 Go aggregate complete; Phase 1 dispatch integration complete; Phase 2 Daytona gates validated
+- **Last Session**: 2026-04-21 — Dispatch integration in both repos (Session 8)
+- **Active Task**: Phase 1 item 11 — RunnerLauncher abstraction
+
+## Session Progress (2026-04-21, Session 8 — Dispatch Integration)
+
+### Accomplished
+- Implemented complete dispatch integration in both stigmer and stigmer-cloud (item 10 from Phase 1)
+- Created `AgentRunnerDispatchService` in stigmer-cloud: resolves session → agent_runner_id → runner phase → task queue
+- Created `DispatchResult` record and `RunnerUnavailableException` for fail-fast error semantics
+- Modified `InvokeAgentExecutionWorkflowCreator` (both Java and Go) to accept dispatch result and route to per-runner queue
+- Modified `StartWorkflowStep` in both editions to call dispatch before starting the workflow
+- Added `agentRunnerId` to `InvokeAgentExecutionWorkflowInput` (both Java record and Go struct)
+- Backward-compatible: no runner binding → global queue (identical to pre-dispatch behavior)
+- `go build ./...` passes cleanly; `go vet` passes cleanly
+- Bazel build: only 2 pre-existing strict-dep errors (HttpSecurityConfig, LlmProxyController — Phase 0 work, unrelated)
+
+### Key Decisions Made
+34. **BUSY runners accept routed work** — the session was bound when the runner was READY; by execution time it might be BUSY. Temporal handles queuing. Session-runner binding is intentional and should not be silently overridden.
+35. **Fail fast on unavailable runner** — when a session explicitly references a runner in FAILED/STOPPED/PENDING/deleted state, the execution fails with FAILED_PRECONDITION. The user chose this runner; silently falling back to global would be surprising.
+36. **agentRunnerId on workflow input, not pipeline DB write** — recording runner ID via the workflow (Option B from plan) keeps status updates in the workflow's domain. No extra DB write in the create pipeline.
+37. **No FGA check in dispatch** — session authorization happened at creation time. If the user could bind a runner to their session, they can dispatch to it.
+38. **RunnerUnavailableException as separate type** — distinct from generic exceptions so StartWorkflowStep maps it to FAILED_PRECONDITION (not INTERNAL).
+
+### Files Created (this session)
+
+**stigmer-cloud (3 new files):**
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentexecution/temporal/dispatch/AgentRunnerDispatchService.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentexecution/temporal/dispatch/DispatchResult.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentexecution/temporal/dispatch/RunnerUnavailableException.java`
+
+**stigmer (1 new file):**
+- `backend/services/stigmer-server/pkg/domain/agentexecution/temporal/dispatch.go`
+
+### Files Modified (this session)
+
+**stigmer-cloud (3 modified):**
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentexecution/temporal/workflow/InvokeAgentExecutionWorkflowCreator.java` — added dispatch-aware `create(input, dispatch)` overload
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentexecution/temporal/workflow/InvokeAgentExecutionWorkflowInput.java` — added `agentRunnerId` field, backward-compatible factory overload
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentexecution/request/handler/AgentExecutionCreateHandler.java` — `StartWorkflowStep` now injects `AgentRunnerDispatchService`, resolves queue, catches `RunnerUnavailableException`
+
+**stigmer (3 modified):**
+- `backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflow_creator.go` — `Create` now accepts `*DispatchResult`, added `FallbackRunnerQueue()` accessor
+- `backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows/workflow_input.go` — added `AgentRunnerID` field
+- `backend/services/stigmer-server/pkg/domain/agentexecution/controller/create.go` — `startWorkflowStep` now calls `ResolveActivityTaskQueue` before starting workflow
 
 ## Session Progress (2026-04-21, Session 7 — Go AgentRunner Controller Implementation)
 
@@ -192,8 +234,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ### Phase 1 Implementation (next coding work)
 8. ~~**stigmer-cloud: AgentRunner aggregate + handlers**~~ — DONE (Session 6, commit fbafc288)
 9. ~~**stigmer (Go): AgentRunner store + handlers**~~ — DONE (Session 7)
-10. **stigmer-cloud: Dispatch integration** — modify InvokeAgentExecutionWorkflow to resolve runner, read task queue from AgentRunner status, launch ephemeral runner if needed **← NEXT**
-11. **stigmer-cloud: RunnerLauncher abstraction** — KubernetesJobRunnerLauncher for Phase 1; DaytonaSandboxRunnerLauncher for Phase 2
+10. ~~**stigmer-cloud: Dispatch integration**~~ — DONE (Session 8)
+11. **stigmer-cloud: RunnerLauncher abstraction** — KubernetesJobRunnerLauncher for Phase 1; DaytonaSandboxRunnerLauncher for Phase 2 **← NEXT**
 12. **stigmer: Runner auth migration** — STIGMER_USER_JWT env var, simplified ChannelProvider, deprecate OBO interceptor
 13. **stigmer: Runner heartbeat client** — Python side: send heartbeat RPC every 30s
 14. **stigmer: Idle self-termination** — idle watchdog in worker.py
@@ -205,22 +247,22 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Context for Resume
 - Both repos are on the `feat/secrets-vault-migration` branch
 - The stigmer-cloud repo has additional uncommitted vault-migration files — separate project
-- The AgentRunner proto is complete (Session 5), Java aggregate is complete (Session 6), and Go controller is complete (Session 7). Next is dispatch integration (item 10) in stigmer-cloud.
-- The plan file for Session 7 is at `~/.cursor/plans/go_agentrunner_store_handlers_f1ec6e8c.plan.md`
+- The AgentRunner proto is complete (Session 5), Java aggregate is complete (Session 6), Go controller is complete (Session 7), and dispatch integration is complete (Session 8). Next is RunnerLauncher abstraction (item 11) in stigmer-cloud.
+- The dispatch plan file is at `~/.cursor/plans/dispatch_integration_plan_6433a2bb.plan.md`
 - The T01 design doc is at `_projects/2026-04/20260420.01.agent-runner-as-resource/tasks/T01_0_plan.md`
 - stigmer-cloud has 2 pre-existing Bazel strict dependency errors in `HttpSecurityConfig.java` and `LlmProxyController.java` from Phase 0 proxy work — unrelated to AgentRunner
 - All previous session context preserved in earlier sections of this file
 
 ## Blockers
-- None blocking. Item 10 (dispatch integration) can proceed immediately.
+- None blocking. Item 11 (RunnerLauncher abstraction) can proceed immediately.
 
 ## Quick Resume
 To continue this project, drag this file into chat:
 `@_projects/2026-04/20260420.01.agent-runner-as-resource/next-task.md`
 
 ## Quick Commands
-- "Continue with item 10 — dispatch integration" - Wire AgentRunner into execution workflow
 - "Continue with item 11 — RunnerLauncher abstraction" - KubernetesJobRunnerLauncher + DaytonaSandboxRunnerLauncher
+- "Continue with item 12 — Runner auth migration" - STIGMER_USER_JWT env var, simplified ChannelProvider
 - "Show project status" - Get overview of progress
 
 ---

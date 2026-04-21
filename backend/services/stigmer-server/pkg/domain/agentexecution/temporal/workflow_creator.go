@@ -31,14 +31,28 @@ func NewInvokeAgentExecutionWorkflowCreator(workflowClient client.Client, config
 	}
 }
 
-// Create creates and starts a workflow for the given execution input.
+// FallbackRunnerQueue returns the global runner queue from configuration.
+// Used by the dispatch logic as the default when no per-runner queue is resolved.
+func (c *InvokeAgentExecutionWorkflowCreator) FallbackRunnerQueue() string {
+	return c.config.RunnerQueue
+}
+
+// Create creates and starts a workflow for the given execution input, routing
+// Python activities to the queue resolved by dispatch.
 //
 // The input is a slim struct containing only the orchestration coordinates the
 // workflow needs (execution ID, session ID, agent ID, callback token). Secrets
 // and large payloads (runtime_env, message, attachments) are excluded from the
 // Temporal workflow history.
-func (c *InvokeAgentExecutionWorkflowCreator) Create(input *workflows.InvokeAgentExecutionWorkflowInput) error {
+//
+// If dispatch is nil or has no runner, the global runner queue from config is used.
+func (c *InvokeAgentExecutionWorkflowCreator) Create(input *workflows.InvokeAgentExecutionWorkflowInput, dispatch *DispatchResult) error {
 	executionID := input.ExecutionID
+
+	activityQueue := c.config.RunnerQueue
+	if dispatch != nil && dispatch.HasRunner() {
+		activityQueue = dispatch.TaskQueue
+	}
 
 	// Workflow ID format: stigmer/agent-execution/invoke/{execution-id}
 	workflowID := fmt.Sprintf("%s/%s", workflows.InvokeAgentExecutionWorkflowName, executionID)
@@ -53,7 +67,7 @@ func (c *InvokeAgentExecutionWorkflowCreator) Create(input *workflows.InvokeAgen
 		ID:        workflowID,
 		TaskQueue: c.config.StigmerQueue,
 		Memo: map[string]interface{}{
-			"activityTaskQueue": c.config.RunnerQueue,
+			"activityTaskQueue": activityQueue,
 		},
 	}
 
@@ -73,12 +87,17 @@ func (c *InvokeAgentExecutionWorkflowCreator) Create(input *workflows.InvokeAgen
 		return fmt.Errorf("failed to start workflow: %w", err)
 	}
 
-	log.Info().
+	logEvent := log.Info().
 		Str("workflow_id", workflowID).
 		Str("execution_id", executionID).
 		Str("stigmer_queue", c.config.StigmerQueue).
-		Str("runner_queue", c.config.RunnerQueue).
-		Msg("Started InvokeAgentExecutionWorkflow (runner activities on runner queue)")
+		Str("activity_queue", activityQueue)
+	if dispatch != nil && dispatch.HasRunner() {
+		logEvent.Str("agent_runner_id", dispatch.AgentRunnerID).
+			Msg("Started InvokeAgentExecutionWorkflow (routed to per-runner queue)")
+	} else {
+		logEvent.Msg("Started InvokeAgentExecutionWorkflow (global runner queue)")
+	}
 
 	return nil
 }
