@@ -24,7 +24,7 @@ def _make_config(*, mode: str = "local", sandbox_root_dir: str = "/tmp/workspace
         task_queue="test-queue",
         max_concurrency=1,
         stigmer_backend_endpoint="localhost:50051",
-        stigmer_api_key="test-key",
+        stigmer_token="test-key",
         sandbox_type="filesystem" if mode == "local" else "daytona",
         sandbox_root_dir=sandbox_root_dir if mode == "local" else None,
         redis_host=None,

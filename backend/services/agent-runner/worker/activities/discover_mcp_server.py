@@ -43,8 +43,8 @@ from temporalio.common import RetryPolicy
 from grpc_client.channel import ChannelProvider
 from grpc_client.execution_context_client import ExecutionContextClient
 from grpc_client.mcp_server_client import McpServerClient
+from worker.auth import get_token
 from worker.mcp.config_transformer import _inject_platform_env, transform_mcp_config
-from worker.token_manager import get_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -121,25 +121,18 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
         input.mcp_server_id,
     )
 
-    api_key = get_api_key()
-    if not api_key:
-        raise RuntimeError("API key not available for MCP server discovery")
+    token = get_token()
+    if not token:
+        raise RuntimeError("Auth token not available for MCP server discovery")
 
-    grpc_provider = ChannelProvider(
-        api_key,
-        invoker_identity_account_id=input.invoker_identity_account_id,
-    )
-    obo_ch = (
-        grpc_provider.obo_channel
-        if input.invoker_identity_account_id
-        else grpc_provider.channel
-    )
+    grpc_provider = ChannelProvider(token)
+    ch = grpc_provider.channel
 
     sandbox = None
     sandbox_manager = None
 
     try:
-        mcp_server_client = McpServerClient(api_key, channel=obo_ch)
+        mcp_server_client = McpServerClient(token, channel=ch)
         mcp_server = await mcp_server_client.get(input.mcp_server_id)
 
         if not mcp_server or not mcp_server.spec:
@@ -151,8 +144,8 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
         spec = mcp_server.spec
 
         env_vars = await _resolve_env_vars_for_discovery(
-            api_key=api_key,
-            channel=obo_ch,
+            token=token,
+            channel=ch,
             execution_context_id=input.execution_context_id,
         )
         env_vars = _inject_platform_env(spec, env_vars)
@@ -193,7 +186,7 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
 
 async def _resolve_env_vars_for_discovery(
     *,
-    api_key: str,
+    token: str,
     channel: grpc.aio.Channel,
     execution_context_id: str | None,
 ) -> dict[str, str]:
@@ -208,14 +201,14 @@ async def _resolve_env_vars_for_discovery(
     """
     if execution_context_id:
         return await _resolve_env_from_execution_context(
-            api_key, channel, execution_context_id,
+            token, channel, execution_context_id,
         )
 
     return {}
 
 
 async def _resolve_env_from_execution_context(
-    api_key: str,
+    token: str,
     channel: grpc.aio.Channel,
     execution_context_id: str,
 ) -> dict[str, str]:
@@ -225,7 +218,7 @@ async def _resolve_env_from_execution_context(
     ``ExecutionContextClient.try_get_by_execution_id`` and extract
     plaintext values from ``spec.data``.
     """
-    ec_client = ExecutionContextClient(api_key, channel=channel)
+    ec_client = ExecutionContextClient(token, channel=channel)
     exec_ctx = await ec_client.try_get_by_execution_id(execution_context_id)
 
     if not exec_ctx or not exec_ctx.spec.data:
