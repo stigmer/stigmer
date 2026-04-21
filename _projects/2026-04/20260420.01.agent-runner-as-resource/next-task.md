@@ -12,9 +12,59 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: apis/ai/stigmer/agentic/agentrunner/v1 (new proto resource); backend/services/stigmer-service (proxy endpoints, AgentRunner aggregate, dispatch logic, RunnerLauncher abstraction); backend/services/agent-runner (remove machine account, point clients at proxy, run inside Daytona); client-apps/cli and Stigmer Desktop (stigmer:// URL handler, register-as-AgentRunner flow); cloud frontend (AgentRunner UI for Persistent runners)
 
 ## Current State
-- **Status**: Phase 0 code complete; Phase 1 Java aggregate complete; Phase 1 Go aggregate complete; Phase 1 dispatch integration complete; Phase 2 Daytona gates validated
-- **Last Session**: 2026-04-21 — Dispatch integration in both repos (Session 8)
-- **Active Task**: Phase 1 item 11 — RunnerLauncher abstraction
+- **Status**: Phase 0 code complete; Phase 1 Java aggregate complete; Phase 1 Go aggregate complete; Phase 1 dispatch integration complete; Phase 1 RunnerLauncher complete; Phase 2 Daytona gates validated
+- **Last Session**: 2026-04-21 — RunnerLauncher Daytona abstraction (Session 9)
+- **Active Task**: Phase 1 item 12 — Runner auth migration
+
+## Session Progress (2026-04-21, Session 9 — RunnerLauncher Daytona Abstraction)
+
+### Accomplished
+- Implemented RunnerLauncher strategy interface with DaytonaSandboxRunnerLauncher (item 11 from Phase 1)
+- Created complete launcher subsystem in stigmer-cloud: interface, noop impl, Daytona impl, config, pipeline step
+- Created downstream gRPC pattern for AgentRunner (AgentRunnerGrpcRepo) following SessionGrpcRepo convention
+- Extended AgentRunnerDispatchService with resolveOrProvision() — ephemeral runner creation via downstream gRPC
+- Wired StartWorkflowStep to use resolveOrProvision() instead of resolveTaskQueue()
+- Added Daytona Java SDK (io.daytona:sdk-java:0.1.0) as first Java-side Daytona integration
+- Implemented dynamic MCP snapshot resolution mirroring Python SnapshotResolver (stigmer-mcp-* discovery)
+- Added @EnableAsync to Application.java for fire-and-forget sandbox provisioning
+- Full kustomize prod overlay with public endpoints (STIGMER_BACKEND_ENDPOINT, Temporal external), DAYTONA_API_KEY, fallback snapshot
+- All config flows through Spring @ConfigurationProperties — zero System.getenv() calls
+- Startup validation: missing endpoints or DAYTONA_API_KEY fail the Spring context with clear error messages
+- Feature-flagged via stigmer.runner-launcher.type: noop (default) or daytona
+
+### Key Decisions Made
+39. **Daytona-only launcher (challenging T01 K8s fallback)** — K8s operational gates not needed; Daytona gates passed. Zero K8s client code in codebase. Interface stays extensible for future launchers.
+40. **Domain boundary: AgentRunner owns provisioning** — Original plan had EphemeralRunnerFactory inside AgentExecution. Revised: AgentExecution calls AgentRunner's create API via downstream gRPC. Provisioning is a side effect of creation with ephemeral labels.
+41. **Spring @Async over Temporal for provisioning** — JWT stays in-memory (never in durable workflow history). Forward-compatible with item 12 TokenExchangeService. Temporal queue durability handles the worker-not-yet-ready gap.
+42. **Snapshot-only sandbox creation** — No CreateSandboxFromImageParams path. Dynamic snapshot resolution always resolves (stigmer-mcp-* → daytona-small fallback).
+43. **Endpoints at launcher level, not Daytona level** — backend-endpoint and temporal-address are launcher-agnostic. Any future launcher needs the same public endpoints.
+44. **No silent localhost fallbacks** — Missing required endpoints or DAYTONA_API_KEY fail Spring context startup with clear errors. Misconfiguration is caught before any execution reaches the launcher.
+45. **Prod overlay defaults to type=daytona** — Application default is noop (protects local dev/CI). Prod overlay declares what prod runs.
+
+### Files Created (this session)
+
+**stigmer-cloud (7 new Java files + 2 config files + 1 changelog):**
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/launcher/RunnerLauncher.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/launcher/NoopRunnerLauncher.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/launcher/DaytonaSandboxRunnerLauncher.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/launcher/RunnerLauncherConfig.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/launcher/ProvisionInfrastructureStep.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/downstream/agentic/agentrunner/AgentRunnerGrpcRepo.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/downstream/agentic/agentrunner/AgentRunnerGrpcRepoImpl.java`
+- `backend/services/stigmer-service/src/main/resources/application-runner-launcher.yaml`
+- `_changelog/2026-04/2026-04-21-151219-runner-launcher-daytona-abstraction.md`
+
+### Files Modified (this session)
+
+**stigmer-cloud (7 modified):**
+- `MODULE.bazel` — added io.daytona:sdk-java:0.1.0
+- `backend/services/stigmer-service/BUILD.bazel` — added @maven//:io_daytona_sdk_java dep
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/Application.java` — added @EnableAsync
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/request/handler/AgentRunnerCreateHandler.java` — added ProvisionInfrastructureStep to pipeline
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentexecution/temporal/dispatch/AgentRunnerDispatchService.java` — added resolveOrProvision() with downstream gRPC
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentexecution/request/handler/AgentExecutionCreateHandler.java` — StartWorkflowStep uses resolveOrProvision()
+- `backend/services/stigmer-service/src/main/resources/application.yaml` — added runner-launcher to active profiles
+- `backend/services/stigmer-service/_kustomize/overlays/prod/service.yaml` — Daytona env vars, public endpoints, API key
 
 ## Session Progress (2026-04-21, Session 8 — Dispatch Integration)
 
@@ -235,8 +285,8 @@ Drop this file into your conversation to quickly resume work on this project.
 8. ~~**stigmer-cloud: AgentRunner aggregate + handlers**~~ — DONE (Session 6, commit fbafc288)
 9. ~~**stigmer (Go): AgentRunner store + handlers**~~ — DONE (Session 7)
 10. ~~**stigmer-cloud: Dispatch integration**~~ — DONE (Session 8)
-11. **stigmer-cloud: RunnerLauncher abstraction** — KubernetesJobRunnerLauncher for Phase 1; DaytonaSandboxRunnerLauncher for Phase 2 **← NEXT**
-12. **stigmer: Runner auth migration** — STIGMER_USER_JWT env var, simplified ChannelProvider, deprecate OBO interceptor
+11. ~~**stigmer-cloud: RunnerLauncher abstraction**~~ — DONE (Session 9, DaytonaSandboxRunnerLauncher only — K8s deferred)
+12. **stigmer: Runner auth migration** — STIGMER_USER_JWT env var, simplified ChannelProvider, deprecate OBO interceptor **← NEXT**
 13. **stigmer: Runner heartbeat client** — Python side: send heartbeat RPC every 30s
 14. **stigmer: Idle self-termination** — idle watchdog in worker.py
 
@@ -247,10 +297,12 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Context for Resume
 - Both repos are on the `feat/secrets-vault-migration` branch
 - The stigmer-cloud repo has additional uncommitted vault-migration files — separate project
-- The AgentRunner proto is complete (Session 5), Java aggregate is complete (Session 6), Go controller is complete (Session 7), and dispatch integration is complete (Session 8). Next is RunnerLauncher abstraction (item 11) in stigmer-cloud.
-- The dispatch plan file is at `~/.cursor/plans/dispatch_integration_plan_6433a2bb.plan.md`
+- The AgentRunner proto is complete (Session 5), Java aggregate is complete (Session 6), Go controller is complete (Session 7), dispatch integration is complete (Session 8), and RunnerLauncher abstraction is complete (Session 9). Next is runner auth migration (item 12) in stigmer.
+- The launcher plan file is at `~/.cursor/plans/runnerlauncher_daytona_abstraction_b72a36fa.plan.md`
 - The T01 design doc is at `_projects/2026-04/20260420.01.agent-runner-as-resource/tasks/T01_0_plan.md`
 - stigmer-cloud has 2 pre-existing Bazel strict dependency errors in `HttpSecurityConfig.java` and `LlmProxyController.java` from Phase 0 proxy work — unrelated to AgentRunner
+- Daytona Java SDK (io.daytona:sdk-java:0.1.0) added to MODULE.bazel — first Java-side Daytona dependency
+- RunnerLauncher is feature-flagged: prod overlay has type=daytona, application default is noop
 - All previous session context preserved in earlier sections of this file
 
 ## Blockers
@@ -261,8 +313,8 @@ To continue this project, drag this file into chat:
 `@_projects/2026-04/20260420.01.agent-runner-as-resource/next-task.md`
 
 ## Quick Commands
-- "Continue with item 11 — RunnerLauncher abstraction" - KubernetesJobRunnerLauncher + DaytonaSandboxRunnerLauncher
 - "Continue with item 12 — Runner auth migration" - STIGMER_USER_JWT env var, simplified ChannelProvider
+- "Continue with item 13 — Runner heartbeat client" - Python heartbeat RPC every 30s
 - "Show project status" - Get overview of progress
 
 ---
