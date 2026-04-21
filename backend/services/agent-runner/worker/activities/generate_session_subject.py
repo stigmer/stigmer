@@ -20,8 +20,8 @@ from grpc_client.agent_execution_client import AgentExecutionClient
 from grpc_client.agent_instance_client import AgentInstanceClient
 from grpc_client.channel import ChannelProvider
 from grpc_client.session_client import SessionClient
+from worker.auth import get_token
 from worker.config import Config
-from worker.token_manager import get_api_key
 
 _AUTO_CREATED_SUBJECT = "Auto-created session"
 _MAX_SUBJECT_LENGTH = 50
@@ -56,43 +56,36 @@ async def generate_session_subject(
 
     Args:
         execution_id: The agent execution ID to derive context from.
-        invoker_identity_account_id: Identity account ID of the user who
-            triggered the execution, for on-behalf-of gRPC impersonation.
+        invoker_identity_account_id: Retained in signature for Temporal
+            contract compatibility. No longer used for OBO impersonation —
+            the runner authenticates as the user directly.
     """
     activity_logger.info(
         "GenerateSessionSubject started for execution: %s", execution_id
     )
 
     try:
-        await _generate_and_update_subject(execution_id, invoker_identity_account_id)
+        await _generate_and_update_subject(execution_id)
     except Exception:
         activity_logger.exception(
             "Failed to generate session subject for execution %s", execution_id
         )
 
 
-async def _generate_and_update_subject(
-    execution_id: str,
-    invoker_identity_account_id: str | None = None,
-) -> None:
+async def _generate_and_update_subject(execution_id: str) -> None:
     """Core implementation, separated for clean exception boundary."""
-    api_key = get_api_key()
-    if not api_key:
+    token = get_token()
+    if not token:
         activity_logger.warning(
-            "API key not available, skipping subject generation"
+            "Auth token not available, skipping subject generation"
         )
         return
 
-    grpc_provider = ChannelProvider(
-        api_key,
-        invoker_identity_account_id=invoker_identity_account_id,
-    )
-    sys_ch = grpc_provider.channel
-    obo_ch = grpc_provider.obo_channel if invoker_identity_account_id else sys_ch
+    grpc_provider = ChannelProvider(token)
+    ch = grpc_provider.channel
 
     try:
-        # Step 1: Hydrate execution (OBO channel — user has can_view via session ownership)
-        execution_client = AgentExecutionClient(api_key, channel=obo_ch)
+        execution_client = AgentExecutionClient(token, channel=ch)
         execution = await execution_client.get(execution_id)
 
         session_id = execution.spec.session_id
@@ -112,7 +105,7 @@ async def _generate_and_update_subject(
             return
 
         # Step 2: Check if subject still has the auto-created sentinel value
-        session_client = SessionClient(api_key, channel=obo_ch)
+        session_client = SessionClient(token, channel=ch)
         session = await session_client.get(session_id)
 
         if session.spec.subject != _AUTO_CREATED_SUBJECT:
@@ -125,7 +118,7 @@ async def _generate_and_update_subject(
         # Step 3: Resolve agent_id -- prefer execution spec, fall back to session chain
         if not agent_id:
             agent_id = await _resolve_agent_id_from_session(
-                api_key, session, channel=obo_ch
+                token, session, channel=ch
             )
         if not agent_id:
             activity_logger.warning(
@@ -135,7 +128,7 @@ async def _generate_and_update_subject(
             return
 
         # Step 4: Fetch agent metadata for prompt context
-        agent_client = AgentClient(api_key, channel=obo_ch)
+        agent_client = AgentClient(token, channel=ch)
         agent = await agent_client.get(agent_id)
         agent_name = agent.metadata.name
         agent_description = agent.spec.description or ""
@@ -163,7 +156,7 @@ async def _generate_and_update_subject(
 
 
 async def _resolve_agent_id_from_session(
-    api_key: str,
+    token: str,
     session,
     *,
     channel: grpc.aio.Channel | None = None,
@@ -182,7 +175,7 @@ async def _resolve_agent_id_from_session(
         )
         return None
 
-    agent_instance_client = AgentInstanceClient(api_key, channel=channel)
+    agent_instance_client = AgentInstanceClient(token, channel=channel)
     agent_instance = await agent_instance_client.get(agent_instance_id)
     resolved = agent_instance.spec.agent_id
 
@@ -216,7 +209,7 @@ async def _generate_title(
 
     llm_kwargs = worker_config.llm.build_llm_kwargs(
         proxy_endpoint=worker_config.stigmer_proxy_endpoint,
-        proxy_auth_token=worker_config.stigmer_api_key,
+        proxy_auth_token=worker_config.stigmer_token,
     )
 
     model = parse_model_string(

@@ -293,14 +293,17 @@ class CheckpointerConfig:
     auth_token: str | None = None
     
     @classmethod
-    def load_from_env(cls, mode: str) -> "CheckpointerConfig":
+    def load_from_env(
+        cls, mode: str, *, auth_token: str | None = None,
+    ) -> "CheckpointerConfig":
         """Load checkpointer configuration from environment variables.
         
         Args:
-            mode: Execution mode ("local" or "cloud") for default selection
-            
-        Returns:
-            CheckpointerConfig instance with cascaded configuration
+            mode: Execution mode ("local" or "cloud") for default selection.
+            auth_token: The runner's auth token, passed from the parent
+                ``Config`` so the checkpointer does not read env vars
+                independently.  Used as the proxy auth token when the
+                checkpointer type is ``http``.
             
         Environment Variables:
             STIGMER_CHECKPOINTER_TYPE: Checkpointer type
@@ -310,13 +313,6 @@ class CheckpointerConfig:
             STIGMER_CHECKPOINTER_MONGODB_DB: MongoDB database name
             STIGMER_CHECKPOINTER_TTL: TTL in seconds for checkpoint expiration
             STIGMER_PROXY_ENDPOINT: Proxy base URL (required for http type)
-            STIGMER_API_KEY: Proxy auth token (required for http type)
-            
-        Configuration Cascade:
-            1. Environment variables (explicit user config)
-            2. Mode-aware defaults:
-               - local mode: sqlite (persistent, HITL-compatible)
-               - cloud mode: mongodb (persistent, shared)
         """
         # Determine mode-aware defaults
         if mode == "local":
@@ -345,15 +341,11 @@ class CheckpointerConfig:
         ttl_str = os.getenv("STIGMER_CHECKPOINTER_TTL")
         mongodb_ttl_seconds = int(ttl_str) if ttl_str else None
         
-        # HTTP proxy settings (only relevant for http checkpointer type)
         proxy_endpoint = (
             os.getenv("STIGMER_PROXY_ENDPOINT")
             if checkpointer_type == "http" else None
         )
-        auth_token = (
-            os.getenv("STIGMER_API_KEY")
-            if checkpointer_type == "http" else None
-        )
+        effective_auth_token = auth_token if checkpointer_type == "http" else None
         
         # Create config
         config = cls(
@@ -363,7 +355,7 @@ class CheckpointerConfig:
             mongodb_db_name=mongodb_db_name,
             mongodb_ttl_seconds=mongodb_ttl_seconds,
             proxy_endpoint=proxy_endpoint,
-            auth_token=auth_token,
+            auth_token=effective_auth_token,
         )
         
         # Validate before returning
@@ -419,7 +411,7 @@ class CheckpointerConfig:
             if not self.auth_token:
                 raise ValueError(
                     "auth_token is required for http checkpointer. "
-                    "Set STIGMER_API_KEY environment variable."
+                    "Set STIGMER_TOKEN environment variable."
                 )
         
         # Validate TTL if provided
@@ -432,23 +424,30 @@ class CheckpointerConfig:
 @dataclass
 class Config:
     """Worker configuration loaded from environment variables.
-    
+
+    Authentication:
+    ---------------
+    The runner authenticates to the Stigmer backend using a single
+    credential (``STIGMER_TOKEN``), which can be either a user JWT or an
+    API key (``stk_*``).  The token is sent as ``Authorization: Bearer``
+    on every gRPC call — the server determines the credential type by
+    content, not by header.  ``STIGMER_API_KEY`` is accepted as a
+    convenience alias for backward compatibility with existing ``.env``
+    files.
+
     Local Mode (MODE=local):
     ------------------------
-    When MODE=local, the runner operates in local execution mode:
     - Uses filesystem backend instead of Daytona
     - Skips cloud dependencies (Redis, Auth0, etc.)
     - Connects to Stigmer Daemon (localhost:50051) for state/streaming
-    - API key validation is relaxed (accepts dummy values)
-    
+    - Token validation is relaxed (accepts dummy values)
+
     Cloud Mode (MODE=cloud or unset):
     ---------------------------------
-    Standard cloud infrastructure mode:
     - Uses Daytona for sandboxed execution
-    - Requires Redis for pub/sub
-    - Full Auth0 validation
     - Connects to cloud Stigmer backend
-    
+    - Token is required (injected by the launcher or set by the user)
+
     Note: 'MODE' is separate from 'ENV' (development/staging/production).
     - MODE determines execution infrastructure (local filesystem vs cloud sandbox)
     - ENV determines deployment environment (dev/staging/prod)
@@ -465,7 +464,7 @@ class Config:
     
     # Stigmer backend configuration (required for both modes)
     stigmer_backend_endpoint: str
-    stigmer_api_key: str
+    stigmer_token: str
     
     # Side-channel proxy endpoint (HTTP, e.g. https://proxy.stigmer.ai)
     # Used for LLM provider passthrough, checkpoint persistence, artifact storage.
@@ -508,12 +507,27 @@ class Config:
         # Load LLM configuration (mode-aware)
         llm_config = LLMConfig.load_from_env(mode, proxy_active=proxy_active)
         
+        # Resolve auth token early so sub-configs can reference it.
+        stigmer_token = (
+            os.getenv("STIGMER_TOKEN") or os.getenv("STIGMER_API_KEY", "")
+        )
+
+        if not stigmer_token and not is_local:
+            raise ValueError("Missing required credential: set STIGMER_TOKEN.")
+
+        if is_local and not stigmer_token:
+            stigmer_token = "dummy-local-key"
+
         # Load checkpointer configuration (mode-aware)
-        checkpointer_config = CheckpointerConfig.load_from_env(mode)
-        
+        checkpointer_config = CheckpointerConfig.load_from_env(
+            mode, auth_token=stigmer_token,
+        )
+
         # Load artifact storage configuration (mode-aware)
         from worker.storage import ArtifactStorageConfig
-        artifact_storage_config = ArtifactStorageConfig.load_from_env(mode)
+        artifact_storage_config = ArtifactStorageConfig.load_from_env(
+            mode, auth_token=stigmer_token,
+        )
         
         # Load execution mode configuration
         execution_mode_str = os.getenv("STIGMER_EXECUTION_MODE", "local")
@@ -533,17 +547,6 @@ class Config:
         sandbox_auto_pull = os.getenv("STIGMER_SANDBOX_AUTO_PULL", "true").lower() == "true"
         sandbox_cleanup = os.getenv("STIGMER_SANDBOX_CLEANUP", "true").lower() == "true"
         sandbox_ttl = int(os.getenv("STIGMER_SANDBOX_TTL", "3600"))  # 1 hour default
-        
-        # Load Stigmer API configuration
-        stigmer_api_key = os.getenv("STIGMER_API_KEY", "")
-        
-        # In local mode, allow dummy API key for development
-        if not stigmer_api_key and not is_local:
-            raise ValueError("Missing required environment variable: STIGMER_API_KEY")
-        
-        # Use dummy key if missing in local mode
-        if is_local and not stigmer_api_key:
-            stigmer_api_key = "dummy-local-key"
         
         # Load sandbox configuration based on mode
         if is_local:
@@ -569,7 +572,7 @@ class Config:
             task_queue=task_queue,
             max_concurrency=int(os.getenv("TEMPORAL_MAX_CONCURRENCY", "10")),
             stigmer_backend_endpoint=os.getenv("STIGMER_BACKEND_ENDPOINT", default_endpoint),
-            stigmer_api_key=stigmer_api_key,
+            stigmer_token=stigmer_token,
             stigmer_proxy_endpoint=proxy_endpoint,
             sandbox_type=sandbox_type,
             sandbox_root_dir=sandbox_root_dir,

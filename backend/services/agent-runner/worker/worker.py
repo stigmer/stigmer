@@ -6,9 +6,9 @@ from datetime import timedelta
 from temporalio.client import Client
 from temporalio.worker import Worker
 
+from .auth import configure as configure_auth
 from .config import Config
 from .temporal_converter import create_data_converter
-from .token_manager import set_api_key
 
 
 class AgentRunner:
@@ -20,9 +20,8 @@ class AgentRunner:
         self.worker: Worker | None = None
         self.logger = logging.getLogger(__name__)
         
-        # Set global API key for activities
-        set_api_key(config.stigmer_api_key)
-        self.logger.info("Configured Stigmer API authentication")
+        configure_auth(config.stigmer_token)
+        self.logger.info("Configured Stigmer auth token")
         
         # Initialize cloud-mode infrastructure
         if not config.is_local_mode():

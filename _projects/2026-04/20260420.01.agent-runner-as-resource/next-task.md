@@ -12,9 +12,76 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: apis/ai/stigmer/agentic/agentrunner/v1 (new proto resource); backend/services/stigmer-service (proxy endpoints, AgentRunner aggregate, dispatch logic, RunnerLauncher abstraction); backend/services/agent-runner (remove machine account, point clients at proxy, run inside Daytona); client-apps/cli and Stigmer Desktop (stigmer:// URL handler, register-as-AgentRunner flow); cloud frontend (AgentRunner UI for Persistent runners)
 
 ## Current State
-- **Status**: Phase 0 code complete; Phase 1 Java aggregate complete; Phase 1 Go aggregate complete; Phase 1 dispatch integration complete; Phase 1 RunnerLauncher complete; Phase 2 Daytona gates validated
-- **Last Session**: 2026-04-21 — RunnerLauncher Daytona abstraction (Session 9)
-- **Active Task**: Phase 1 item 12 — Runner auth migration
+- **Status**: Phase 0 code complete; Phase 1 Java aggregate complete; Phase 1 Go aggregate complete; Phase 1 dispatch integration complete; Phase 1 RunnerLauncher complete; Phase 1 runner auth migration complete; Phase 2 Daytona gates validated
+- **Last Session**: 2026-04-21 — Runner auth migration (Session 10)
+- **Active Task**: Phase 1 item 13 — Runner heartbeat client
+
+## Session Progress (2026-04-21, Session 10 — Runner Auth Migration)
+
+### Accomplished
+- Migrated agent-runner from machine-account API key + OBO impersonation to single user-owned credential (item 12 from Phase 1)
+- Introduced `STIGMER_TOKEN` as the canonical auth env var (`STIGMER_API_KEY` accepted as convenience alias)
+- Simplified `ChannelProvider` from dual-channel (system + OBO) to single-channel architecture
+- Deleted `OnBehalfOfInterceptor` entirely — no impersonation needed when the runner IS the user
+- Created `worker/auth.py` replacing `worker/token_manager.py` with clean `configure()`/`get_token()` API
+- Renamed `api_key` to `token` across all gRPC client constructors (7 files) and `AuthClientInterceptor`
+- Removed `invoker_identity_account_id` from `ChannelProvider`, `perform_setup()`, and `_perform_setup_core()` signatures
+- Replaced `sys_ch`/`obo_ch` dual-channel pattern in `setup.py` with single `ch` variable
+- Centralized proxy auth: `CheckpointerConfig` and `ArtifactStorageConfig` now receive `auth_token` from parent `Config` instead of reading `STIGMER_API_KEY` independently
+- Updated `DaytonaSandboxRunnerLauncher.buildEnvVars()` in stigmer-cloud: `STIGMER_USER_JWT` → `STIGMER_TOKEN`
+- Fixed all downstream references: `classify_tool_approvals.py`, `sub_agent.py` handler, test files
+
+### Key Decisions Made
+46. **`STIGMER_TOKEN` over `STIGMER_USER_JWT`** — the env var name should be credential-agnostic since the server's auth chain handles both JWTs and API keys (`stk_*`) transparently via the same `Authorization: Bearer` header. One variable, one concept, one code path.
+47. **No backward compatibility with OBO** — clean cut since nobody is using the OBO model in production yet. Simpler than maintaining a detection gate and two code paths.
+48. **`STIGMER_API_KEY` as convenience alias** — existing `.env` files and kustomize overlays continue to work. Both resolve to the same `stigmer_token` field, same single-channel path.
+49. **`invoker_identity_account_id` retained in Temporal activity signatures** — it's part of the Temporal contract with the Java workflow. Removing it from the activity signature would require a coordinated deploy. It's simply ignored by `ChannelProvider` construction now.
+50. **Sub-config auth centralization** — `CheckpointerConfig` and `ArtifactStorageConfig` no longer read `STIGMER_API_KEY` from the environment independently. They receive `auth_token` as a parameter from the parent `Config`, ensuring a single source of truth for the credential.
+
+### Files Created (this session)
+
+**stigmer (1 new file + 1 changelog):**
+- `backend/services/agent-runner/worker/auth.py`
+- `_changelog/2026-04/2026-04-21-151029-runner-auth-migration-stigmer-token.md`
+
+### Files Deleted (this session)
+
+**stigmer (2 deleted):**
+- `backend/services/agent-runner/worker/token_manager.py`
+- `backend/services/agent-runner/grpc_client/auth/on_behalf_of_interceptor.py`
+
+### Files Modified (this session)
+
+**stigmer (17 modified):**
+- `backend/services/agent-runner/worker/config.py` — renamed `stigmer_api_key` to `stigmer_token`, new `STIGMER_TOKEN` resolution, centralized auth for sub-configs
+- `backend/services/agent-runner/worker/worker.py` — import `configure_auth` from `worker.auth`
+- `backend/services/agent-runner/worker/logging.yaml` — updated logger from `grpc_client.auth.token_manager` to `worker.auth`
+- `backend/services/agent-runner/worker/storage/__init__.py` — `ArtifactStorageConfig.load_from_env()` accepts `auth_token` param
+- `backend/services/agent-runner/grpc_client/channel.py` — single-channel `ChannelProvider`, removed OBO
+- `backend/services/agent-runner/grpc_client/auth/client_interceptor.py` — `api_key` → `token`
+- `backend/services/agent-runner/grpc_client/agent_execution_client.py` — `api_key` → `token`
+- `backend/services/agent-runner/grpc_client/agent_client.py` — `api_key` → `token`
+- `backend/services/agent-runner/grpc_client/agent_instance_client.py` — `api_key` → `token`
+- `backend/services/agent-runner/grpc_client/session_client.py` — `api_key` → `token`
+- `backend/services/agent-runner/grpc_client/skill_client.py` — `api_key` → `token`
+- `backend/services/agent-runner/grpc_client/mcp_server_client.py` — `api_key` → `token`
+- `backend/services/agent-runner/grpc_client/execution_context_client.py` — `api_key` → `token`
+- `backend/services/agent-runner/worker/activities/execute_graphton.py` — single channel, `get_token()`
+- `backend/services/agent-runner/worker/activities/generate_session_subject.py` — single channel, `get_token()`
+- `backend/services/agent-runner/worker/activities/discover_mcp_server.py` — single channel, `get_token()`
+- `backend/services/agent-runner/worker/activities/graphton/setup.py` — removed dual-channel, `api_key` → `token`
+
+**stigmer (2 modified — production code referenced by tests):**
+- `backend/services/agent-runner/worker/activities/classify_tool_approvals.py` — `stigmer_api_key` → `stigmer_token`
+- `backend/services/agent-runner/worker/activities/graphton/handlers/sub_agent.py` — `stigmer_api_key` → `stigmer_token`
+
+**stigmer (2 modified — tests):**
+- `backend/services/agent-runner/tests/test_worker_mongodb_validation.py` — updated mock target
+- `backend/services/agent-runner/tests/test_config_session_scoping.py` — updated field name
+
+**stigmer-cloud (2 modified):**
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/launcher/DaytonaSandboxRunnerLauncher.java` — `STIGMER_USER_JWT` → `STIGMER_TOKEN`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/launcher/RunnerLauncher.java` — updated Javadoc
 
 ## Session Progress (2026-04-21, Session 9 — RunnerLauncher Daytona Abstraction)
 
@@ -286,8 +353,8 @@ Drop this file into your conversation to quickly resume work on this project.
 9. ~~**stigmer (Go): AgentRunner store + handlers**~~ — DONE (Session 7)
 10. ~~**stigmer-cloud: Dispatch integration**~~ — DONE (Session 8)
 11. ~~**stigmer-cloud: RunnerLauncher abstraction**~~ — DONE (Session 9, DaytonaSandboxRunnerLauncher only — K8s deferred)
-12. **stigmer: Runner auth migration** — STIGMER_USER_JWT env var, simplified ChannelProvider, deprecate OBO interceptor **← NEXT**
-13. **stigmer: Runner heartbeat client** — Python side: send heartbeat RPC every 30s
+12. ~~**stigmer: Runner auth migration**~~ — DONE (Session 10, STIGMER_TOKEN env var, single-channel ChannelProvider, OBO deleted)
+13. **stigmer: Runner heartbeat client** — Python side: send heartbeat RPC every 30s **← NEXT**
 14. **stigmer: Idle self-termination** — idle watchdog in worker.py
 
 ### Phase 2 Prep (can start in parallel)
@@ -297,7 +364,7 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Context for Resume
 - Both repos are on the `feat/secrets-vault-migration` branch
 - The stigmer-cloud repo has additional uncommitted vault-migration files — separate project
-- The AgentRunner proto is complete (Session 5), Java aggregate is complete (Session 6), Go controller is complete (Session 7), dispatch integration is complete (Session 8), and RunnerLauncher abstraction is complete (Session 9). Next is runner auth migration (item 12) in stigmer.
+- The AgentRunner proto is complete (Session 5), Java aggregate is complete (Session 6), Go controller is complete (Session 7), dispatch integration is complete (Session 8), RunnerLauncher abstraction is complete (Session 9), and runner auth migration is complete (Session 10). Next is runner heartbeat client (item 13) in stigmer.
 - The launcher plan file is at `~/.cursor/plans/runnerlauncher_daytona_abstraction_b72a36fa.plan.md`
 - The T01 design doc is at `_projects/2026-04/20260420.01.agent-runner-as-resource/tasks/T01_0_plan.md`
 - stigmer-cloud has 2 pre-existing Bazel strict dependency errors in `HttpSecurityConfig.java` and `LlmProxyController.java` from Phase 0 proxy work — unrelated to AgentRunner
@@ -306,15 +373,15 @@ Drop this file into your conversation to quickly resume work on this project.
 - All previous session context preserved in earlier sections of this file
 
 ## Blockers
-- None blocking. Item 11 (RunnerLauncher abstraction) can proceed immediately.
+- None blocking. Item 13 (Runner heartbeat client) can proceed immediately.
 
 ## Quick Resume
 To continue this project, drag this file into chat:
 `@_projects/2026-04/20260420.01.agent-runner-as-resource/next-task.md`
 
 ## Quick Commands
-- "Continue with item 12 — Runner auth migration" - STIGMER_USER_JWT env var, simplified ChannelProvider
 - "Continue with item 13 — Runner heartbeat client" - Python heartbeat RPC every 30s
+- "Continue with item 14 — Idle self-termination" - idle watchdog in worker.py
 - "Show project status" - Get overview of progress
 
 ---

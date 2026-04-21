@@ -110,13 +110,12 @@ async def perform_setup(
     execution_id: str,
     thread_id: str,
     is_resume: bool,
-    api_key: str,
+    token: str,
     grpc_provider: ChannelProvider,
     execution_client: AgentExecutionClient,
     retry_executor: GrpcRetryExecutor,
     exit_stack: contextlib.AsyncExitStack,
     logger: logging.Logger,
-    invoker_identity_account_id: str | None = None,
 ) -> SetupResult:
     """Execute all setup phases and return resources for streaming.
 
@@ -133,13 +132,12 @@ async def perform_setup(
             execution_id=execution_id,
             thread_id=thread_id,
             is_resume=is_resume,
-            api_key=api_key,
+            token=token,
             grpc_provider=grpc_provider,
             execution_client=execution_client,
             retry_executor=retry_executor,
             exit_stack=exit_stack,
             logger=logger,
-            invoker_identity_account_id=invoker_identity_account_id,
         )
         return result
     except Exception:
@@ -160,29 +158,25 @@ async def _perform_setup_core(
     execution_id: str,
     thread_id: str,
     is_resume: bool,
-    api_key: str,
+    token: str,
     grpc_provider: ChannelProvider,
     execution_client: AgentExecutionClient,
     retry_executor: GrpcRetryExecutor,
     exit_stack: contextlib.AsyncExitStack,
     logger: logging.Logger,
-    invoker_identity_account_id: str | None = None,
 ) -> tuple[SetupResult, WorkspaceBackend, Any]:
     setup_timer = SetupTimer(logger)
 
     # ─────────────────────────────────────────────────────────────────────
-    # OBO channel and gRPC clients
+    # gRPC clients (single channel — token IS the user)
     # ─────────────────────────────────────────────────────────────────────
-    sys_ch = grpc_provider.channel
-    obo_ch = (
-        grpc_provider.obo_channel if invoker_identity_account_id else sys_ch
-    )
+    ch = grpc_provider.channel
 
-    session_client = SessionClient(api_key, channel=obo_ch)
-    agent_instance_client = AgentInstanceClient(api_key, channel=obo_ch)
-    agent_client = AgentClient(api_key, channel=obo_ch)
-    execution_query_client = AgentExecutionClient(api_key, channel=obo_ch)
-    skill_client = SkillClient(api_key, channel=obo_ch)
+    session_client = SessionClient(token, channel=ch)
+    agent_instance_client = AgentInstanceClient(token, channel=ch)
+    agent_client = AgentClient(token, channel=ch)
+    execution_query_client = AgentExecutionClient(token, channel=ch)
+    skill_client = SkillClient(token, channel=ch)
 
     # ─────────────────────────────────────────────────────────────────────
     # Step 0: Hydrate AgentExecution from database via gRPC
@@ -471,8 +465,8 @@ async def _perform_setup_core(
 
     env_result, skills, mcp_servers = await asyncio.gather(
         _fetch_environment(
-            api_key=api_key,
-            obo_ch=obo_ch,
+            token=token,
+            channel=ch,
             execution_id=execution_id,
             logger=logger,
         ),
@@ -483,8 +477,8 @@ async def _perform_setup_core(
         ),
         _fetch_mcp_servers(
             mcp_server_usages=mcp_server_usages,
-            api_key=api_key,
-            obo_ch=obo_ch,
+            token=token,
+            channel=ch,
             logger=logger,
         ),
     )
@@ -512,8 +506,8 @@ async def _perform_setup_core(
         mcp_servers = await _backfill_undiscovered_servers(
             mcp_servers=mcp_servers,
             merged_env_vars=merged_env_vars,
-            api_key=api_key,
-            obo_ch=obo_ch,
+            token=token,
+            channel=ch,
             logger=logger,
         )
 
@@ -1130,7 +1124,7 @@ async def _perform_setup_core(
 
     llm_kwargs = worker_config.llm.build_llm_kwargs(
         proxy_endpoint=worker_config.stigmer_proxy_endpoint,
-        proxy_auth_token=worker_config.stigmer_api_key,
+        proxy_auth_token=worker_config.stigmer_token,
     )
 
     approval_checker = create_approval_checker(approval_config)
@@ -1351,8 +1345,8 @@ async def _perform_setup_core(
 
 async def _fetch_environment(
     *,
-    api_key: str,
-    obo_ch: Any,
+    token: str,
+    channel: Any,
     execution_id: str,
     logger: logging.Logger,
 ) -> Any:
@@ -1364,7 +1358,7 @@ async def _fetch_environment(
 
     return await resolve_environment(
         execution_context_client=ExecutionContextClient(
-            api_key, channel=obo_ch,
+            token, channel=channel,
         ),
         execution_id=execution_id,
         logger=logger,
@@ -1394,8 +1388,8 @@ async def _fetch_skills(
 async def _fetch_mcp_servers(
     *,
     mcp_server_usages: Any,
-    api_key: str,
-    obo_ch: Any,
+    token: str,
+    channel: Any,
     logger: logging.Logger,
 ) -> list[Any]:
     """Fetch MCP server protos via gRPC.
@@ -1411,7 +1405,7 @@ async def _fetch_mcp_servers(
         [usage.mcp_server_ref.slug for usage in mcp_server_usages],
     )
     try:
-        mcp_server_client = McpServerClient(api_key, channel=obo_ch)
+        mcp_server_client = McpServerClient(token, channel=channel)
         mcp_server_refs = [
             usage.mcp_server_ref for usage in mcp_server_usages
         ]
@@ -1488,8 +1482,8 @@ async def _backfill_undiscovered_servers(
     *,
     mcp_servers: list[Any],
     merged_env_vars: dict[str, str],
-    api_key: str,
-    obo_ch: Any,
+    token: str,
+    channel: Any,
     logger: logging.Logger,
 ) -> list[Any]:
     """Run connect backfill for MCP servers that need it.
@@ -1521,7 +1515,7 @@ async def _backfill_undiscovered_servers(
         [s.metadata.name for _, s in servers_needing_backfill],
     )
 
-    mcp_client = McpServerClient(api_key, channel=obo_ch)
+    mcp_client = McpServerClient(token, channel=channel)
     result = list(mcp_servers)
 
     for idx, server in servers_needing_backfill:

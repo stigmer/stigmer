@@ -1,4 +1,10 @@
-"""gRPC client interceptor for adding Stigmer API key authentication."""
+"""gRPC client interceptor for Stigmer auth token injection.
+
+Attaches ``Authorization: Bearer <token>`` to every outgoing gRPC call.
+The token can be either a user JWT or a platform API key (``stk_*``) —
+the server's auth chain determines the credential type by content, not
+by header.
+"""
 
 from collections.abc import Awaitable, Callable, Sequence
 from typing import Any
@@ -8,7 +14,7 @@ import grpc
 
 class _ClientCallDetails:
     """Custom ClientCallDetails to allow metadata modification."""
-    
+
     def __init__(
         self,
         method: str,
@@ -30,41 +36,17 @@ class AuthClientInterceptor(
     grpc.aio.StreamUnaryClientInterceptor,
     grpc.aio.StreamStreamClientInterceptor,
 ):
-    """
-    gRPC client interceptor that attaches Stigmer API key to all requests.
-    
-    This interceptor adds 'authorization' metadata with 'Bearer <api_key>' format.
-    """
-    
-    def __init__(self, api_key: str):
-        """
-        Initialize interceptor with API key.
-        
-        Args:
-            api_key: Stigmer API key for authentication
-        """
-        self.api_key = api_key
-    
+    """gRPC client interceptor that attaches an auth token to all requests."""
+
+    def __init__(self, token: str):
+        self._token = token
+
     def _augment_call_details(
-        self, 
-        client_call_details: grpc.aio.ClientCallDetails
+        self,
+        client_call_details: grpc.aio.ClientCallDetails,
     ) -> _ClientCallDetails:
-        """
-        Add authorization header to call metadata.
-        
-        Args:
-            client_call_details: Original call details
-            
-        Returns:
-            Modified call details with authorization metadata
-        """
-        # Get current metadata or create empty list
         metadata = list(client_call_details.metadata or [])
-        
-        # Add authorization header with API key
-        metadata.append(("authorization", f"Bearer {self.api_key}"))
-        
-        # Create new call details with updated metadata
+        metadata.append(("authorization", f"Bearer {self._token}"))
         return _ClientCallDetails(
             method=client_call_details.method,
             timeout=client_call_details.timeout,
@@ -72,43 +54,39 @@ class AuthClientInterceptor(
             credentials=client_call_details.credentials,
             wait_for_ready=client_call_details.wait_for_ready,
         )
-    
+
     async def intercept_unary_unary(
         self,
         continuation: Callable[[grpc.aio.ClientCallDetails, Any], Awaitable[Any]],
         client_call_details: grpc.aio.ClientCallDetails,
         request: Any,
     ) -> Any:
-        """Intercept unary-unary calls."""
         new_details = self._augment_call_details(client_call_details)
         return await continuation(new_details, request)
-    
+
     async def intercept_unary_stream(
         self,
         continuation: Callable[[grpc.aio.ClientCallDetails, Any], Awaitable[Any]],
         client_call_details: grpc.aio.ClientCallDetails,
         request: Any,
     ) -> Any:
-        """Intercept unary-stream calls."""
         new_details = self._augment_call_details(client_call_details)
         return await continuation(new_details, request)
-    
+
     async def intercept_stream_unary(
         self,
         continuation: Callable[[grpc.aio.ClientCallDetails, Any], Awaitable[Any]],
         client_call_details: grpc.aio.ClientCallDetails,
         request_iterator: Any,
     ) -> Any:
-        """Intercept stream-unary calls."""
         new_details = self._augment_call_details(client_call_details)
         return await continuation(new_details, request_iterator)
-    
+
     async def intercept_stream_stream(
         self,
         continuation: Callable[[grpc.aio.ClientCallDetails, Any], Awaitable[Any]],
         client_call_details: grpc.aio.ClientCallDetails,
         request_iterator: Any,
     ) -> Any:
-        """Intercept stream-stream calls."""
         new_details = self._augment_call_details(client_call_details)
         return await continuation(new_details, request_iterator)
