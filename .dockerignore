@@ -5,3 +5,13 @@
 **/.env
 **/.env.local
 **/.env.*.local
+
+# Python development artifacts (not needed in production images)
+**/.venv
+**/__pycache__
+**/*.egg-info
+**/.mypy_cache
+**/.ruff_cache
+**/.pytest_cache
+**/build
+**/dist
