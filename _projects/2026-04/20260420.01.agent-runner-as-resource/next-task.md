@@ -12,11 +12,69 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: apis/ai/stigmer/agentic/agentrunner/v1 (new proto resource); backend/services/stigmer-service (proxy endpoints, AgentRunner aggregate, dispatch logic, RunnerLauncher abstraction); backend/services/agent-runner (remove machine account, point clients at proxy, run inside Daytona); client-apps/cli and Stigmer Desktop (stigmer:// URL handler, register-as-AgentRunner flow); cloud frontend (AgentRunner UI for Persistent runners)
 
 ## Current State
-- **Status**: Phase 0 code complete; Phase 1 proto definition complete; Phase 2 Daytona gates validated
-- **Last Session**: 2026-04-20 — AgentRunner proto definition (Session 5)
-- **Active Task**: Phase 1 implementation (Java/Go aggregate, handlers, Temporal integration)
+- **Status**: Phase 0 code complete; Phase 1 Java aggregate complete; Phase 2 Daytona gates validated
+- **Last Session**: 2026-04-21 — AgentRunner aggregate + handlers in stigmer-cloud (Session 6)
+- **Active Task**: Phase 1 item 9 — Go/SQLite AgentRunner store + handlers in stigmer OSS
 
-## Session Progress (2026-04-20, Session 5 — AgentRunner Proto Definition)
+## Session Progress (2026-04-21, Session 6 — AgentRunner Java Aggregate Implementation)
+
+### Accomplished
+- Implemented complete AgentRunner domain aggregate in stigmer-cloud (item 8 from Phase 1)
+- Generated Java stubs from OSS protos via `make protos` — all AgentRunner types available in stigmer-cloud
+- Created FGA authorization model: `agent_runner.fga` type with org/owner/viewer relations
+- Added `can_create_agent_runner: member` to organization.fga (any org member can register a runner)
+- Registered `agent_runner.fga` in `fga.mod`
+- Created `AgentRunnerRepo` (MongoDB, collection `agent_runner`) with label-filtered queries using `$getField`
+- Created `AgentRunnerGrpcAutoController` (annotation-processor marker)
+- Implemented 5 command handlers:
+  - `AgentRunnerCreateHandler` with custom `InitializeRunnerStatus` step (sets task_queue + PENDING phase)
+  - `AgentRunnerUpdateHandler` with custom `PreserveRunnerStatus` step (status is heartbeat-only)
+  - `AgentRunnerDeleteHandler` (standard delete pipeline)
+  - `AgentRunnerApplyHandler` (idempotent create-or-update, primary CLI registration path)
+  - `AgentRunnerHeartbeatHandler` (custom: load, FGA ownership check, phase transition, persist)
+- Implemented 3 query handlers:
+  - `AgentRunnerGetHandler` (standard get with FGA can_view)
+  - `AgentRunnerGetByReferenceHandler` (org+slug resolution, custom auth)
+  - `AgentRunnerListHandler` (FGA-filtered query pattern with label AND semantics)
+- Created MongoDB index migration: unique (org,slug), unique (id), compound (org,phase)
+- Added AgentRunner descriptors to `ProtoFgaSchemaConsistencyTest`
+- Bazel build passes for all new AgentRunner code (pre-existing proxy strict dep errors are separate)
+- Committed: `fbafc288` on `feat/secrets-vault-migration` branch
+
+### Key Decisions Made
+24. **`can_create_agent_runner: member`** — runners are user-managed infrastructure, not admin-controlled resources. Any org member should be able to register their laptop as a runner.
+25. **Heartbeat ownership via FGA `can_edit` check** — not metadata comparison, because FGA is the single source of truth for authorization.
+26. **FAILED phase blocks heartbeat transitions** — a runner in FAILED phase requires explicit investigation; heartbeat cannot automatically recover it.
+27. **Status preservation on update** — the framework's `buildNewState` clears status from input; a custom `PreserveRunnerStatus` step restores status from the existing resource. Status is exclusively managed by heartbeat and server-side transitions.
+28. **Audit timestamps not manually set in InitializeRunnerStatus** — the framework's `setAudit` step handles audit info; the custom step only sets domain-specific fields (task_queue, phase).
+
+### Files Created (this session)
+
+**stigmer-cloud (12 new files):**
+- `backend/services/stigmer-service/src/main/resources/fga/model/agentic/agent_runner.fga`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/repo/AgentRunnerRepo.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/request/controller/AgentRunnerGrpcAutoController.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/request/handler/AgentRunnerCreateHandler.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/request/handler/AgentRunnerUpdateHandler.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/request/handler/AgentRunnerDeleteHandler.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/request/handler/AgentRunnerApplyHandler.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/request/handler/AgentRunnerHeartbeatHandler.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/request/handler/AgentRunnerGetHandler.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/request/handler/AgentRunnerGetByReferenceHandler.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/request/handler/AgentRunnerListHandler.java`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/migrations/U20260421_AgentRunnerIndexes.java`
+
+### Files Modified (this session)
+
+**stigmer-cloud (3 modified + 128 total with stubs):**
+- `backend/services/stigmer-service/src/main/resources/fga/model/fga.mod` — added agent_runner.fga
+- `backend/services/stigmer-service/src/main/resources/fga/model/tenancy/organization.fga` — added can_create_agent_runner: member
+- `backend/services/stigmer-service/src/test/java/ai/stigmer/schema/ProtoFgaSchemaConsistencyTest.java` — added AgentRunner descriptors
+- All generated stubs across Go, Java, Python, TypeScript, Dart (synced from OSS protos via `make protos`)
+
+## Previous Sessions
+
+### Session 5 (2026-04-20) — AgentRunner Proto Definition
 
 ### Accomplished
 - Extensive design brainstorm with principal architect and backend engineer roles
@@ -58,23 +116,21 @@ Drop this file into your conversation to quickly resume work on this project.
 - `apis/ai/stigmer/agentic/agentexecution/v1/api.proto` — added `agent_runner_id = 19` to AgentExecutionStatus
 - All generated stubs across Go, Java, Python, TypeScript (154 files total via `make codegen`)
 
-## Previous Sessions (2026-04-20)
-
-### Session 4 — Side-Channel Proxy FGA Authorization
+### Session 4 (2026-04-20) — Side-Channel Proxy FGA Authorization
 - Implemented FGA-based authorization for all proxy endpoints
 - Created `ProxyAuthorizationService` with 5-minute cache
 - Checkpoints authorized via session, artifacts via execution, LLM is auth-only
 
-### Session 3 — Daytona Operational Gate Validation
+### Session 3 (2026-04-20) — Daytona Operational Gate Validation
 - All 3 Phase 2 operational gates PASSED
 - Decision: bake runner into `Dockerfile.sandbox.full` (sub-second cold start)
 
-### Session 2 — LLM Proxy Wiring
+### Session 2 (2026-04-20) — LLM Proxy Wiring
 - Wired all 6 LLM client construction paths through Side-Channel Proxy
 - Centralized `llm_kwargs` into `LLMConfig.build_llm_kwargs()`
 - Fixed Anthropic SDK auth header mismatch with custom BearerTokenResolver
 
-### Session 1 — Phase 0 Proxy
+### Session 1 (2026-04-20) — Phase 0 Proxy
 - Implemented complete Side-Channel Proxy: LLM passthrough, checkpointer API, artifact presigned URLs, Redis removal
 - Committed in both repos
 
@@ -90,8 +146,8 @@ Drop this file into your conversation to quickly resume work on this project.
 7. **Commit stigmer-cloud HttpSecurityConfig.java change** — BearerTokenResolver still uncommitted
 
 ### Phase 1 Implementation (next coding work)
-8. **stigmer-cloud: AgentRunner aggregate + handlers** — domain entity, MongoDB repository, create/update/delete/heartbeat handlers, FGA tuples
-9. **stigmer (Go): AgentRunner store + handlers** — SQLite store, Go server handlers (dual-edition consistency)
+8. ~~**stigmer-cloud: AgentRunner aggregate + handlers**~~ — DONE (Session 6, commit fbafc288)
+9. **stigmer (Go): AgentRunner store + handlers** — SQLite store, Go server handlers (dual-edition consistency) **← NEXT**
 10. **stigmer-cloud: Dispatch integration** — modify InvokeAgentExecutionWorkflow to resolve runner, read task queue from AgentRunner status, launch ephemeral runner if needed
 11. **stigmer-cloud: RunnerLauncher abstraction** — KubernetesJobRunnerLauncher for Phase 1; DaytonaSandboxRunnerLauncher for Phase 2
 12. **stigmer: Runner auth migration** — STIGMER_USER_JWT env var, simplified ChannelProvider, deprecate OBO interceptor
@@ -105,22 +161,23 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Context for Resume
 - Both repos are on the `feat/secrets-vault-migration` branch
 - The stigmer-cloud repo has additional uncommitted vault-migration files — separate project
-- The AgentRunner proto is complete and stubs are generated. The proto is the contract; implementation builds on it.
-- The plan file for this session is at `~/.cursor/plans/agentrunner_proto_definition_211dbc21.plan.md`
+- The AgentRunner proto is complete (Session 5) and Java aggregate is complete (Session 6). Next is Go/SQLite implementation in stigmer.
+- The plan file for Session 6 is at `~/.cursor/plans/agentrunner_aggregate_handlers_70865614.plan.md`
 - The T01 design doc is at `_projects/2026-04/20260420.01.agent-runner-as-resource/tasks/T01_0_plan.md`
-- All previous session context (Phase 0, LLM wiring, Daytona gates, FGA auth) preserved in earlier sections of this file
+- stigmer-cloud has 2 pre-existing Bazel strict dependency errors in `HttpSecurityConfig.java` and `LlmProxyController.java` from Phase 0 proxy work — unrelated to AgentRunner
+- All previous session context preserved in earlier sections of this file
 
 ## Blockers
-- None blocking. Phase 0 deploy steps are operational tasks. Phase 1 implementation is ready to start.
+- None blocking. Item 9 (Go implementation) can proceed immediately.
 
 ## Quick Resume
 To continue this project, drag this file into chat:
 `@_projects/2026-04/20260420.01.agent-runner-as-resource/next-task.md`
 
 ## Quick Commands
-- "Continue with Phase 1 implementation" - Start AgentRunner aggregate + handlers
+- "Continue with item 9 — Go AgentRunner store + handlers" - Start dual-edition consistency work
+- "Continue with item 10 — dispatch integration" - Wire AgentRunner into execution workflow
 - "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
 
 ---
 
