@@ -497,6 +497,13 @@ class Config:
     # heartbeating is disabled (backward compatible with legacy deployments).
     agent_runner_id: str | None = None
 
+    # Idle self-termination timeout (set by the launcher for ephemeral
+    # runners via STIGMER_IDLE_TIMEOUT_SECONDS).  When set, the worker
+    # shuts down gracefully via SIGTERM after this many seconds of zero
+    # Temporal activity.  When None, the watchdog is disabled (persistent
+    # runners, local dev, legacy deployments).
+    idle_timeout_seconds: int | None = None
+
     @classmethod
     def load_from_env(cls):
         """Load configuration from environment variables."""
@@ -575,7 +582,14 @@ class Config:
         )
 
         agent_runner_id = os.getenv("STIGMER_AGENT_RUNNER_ID") or None
-        
+
+        idle_timeout_raw = os.getenv("STIGMER_IDLE_TIMEOUT_SECONDS")
+        idle_timeout_seconds = (
+            int(idle_timeout_raw) if idle_timeout_raw else None
+        )
+        if idle_timeout_seconds is not None and idle_timeout_seconds <= 0:
+            idle_timeout_seconds = None
+
         # Default backend endpoint based on mode
         default_endpoint = "localhost:50051" if is_local else "localhost:8080"
         
@@ -599,6 +613,7 @@ class Config:
             sandbox_ttl=sandbox_ttl,
             artifact_storage=artifact_storage_config,
             agent_runner_id=agent_runner_id,
+            idle_timeout_seconds=idle_timeout_seconds,
         )
     
     def get_sandbox_config(self, session_id: str | None = None) -> dict:

@@ -12,9 +12,57 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: apis/ai/stigmer/agentic/agentrunner/v1 (new proto resource); backend/services/stigmer-service (proxy endpoints, AgentRunner aggregate, dispatch logic, RunnerLauncher abstraction); backend/services/agent-runner (remove machine account, point clients at proxy, run inside Daytona); client-apps/cli and Stigmer Desktop (stigmer:// URL handler, register-as-AgentRunner flow); cloud frontend (AgentRunner UI for Persistent runners)
 
 ## Current State
-- **Status**: Phase 0 code complete; Phase 1 Java aggregate complete; Phase 1 Go aggregate complete; Phase 1 dispatch integration complete; Phase 1 RunnerLauncher complete; Phase 1 runner auth migration complete; Phase 1 runner heartbeat client complete; Phase 2 Daytona gates validated
-- **Last Session**: 2026-04-21 — Runner heartbeat client (Session 11)
-- **Active Task**: Phase 1 item 14 — Idle self-termination
+- **Status**: Phase 0 code complete; Phase 1 Java aggregate complete; Phase 1 Go aggregate complete; Phase 1 dispatch integration complete; Phase 1 RunnerLauncher complete; Phase 1 runner auth migration complete; Phase 1 runner heartbeat client complete; Phase 1 idle self-termination complete; Phase 2 Daytona gates validated
+- **Last Session**: 2026-04-21 — Idle self-termination + sandbox cleanup (Session 12)
+- **Active Task**: Phase 1 complete. Next: Phase 2 prep (items 15-16)
+
+## Session Progress (2026-04-21, Session 12 — Idle Self-Termination + Sandbox Cleanup)
+
+### Accomplished
+- Implemented Python-side idle watchdog (item 14 from Phase 1)
+- Discovered and fixed latent Daytona auto-stop bug via empirical testing
+- Added server-side sandbox cleanup triggered by STOPPED heartbeats
+- Created `IdleWatchdog` class: asyncio task that polls `execution_tracker` every 30s
+- Extended `execution_tracker` with `last_activity_at` monotonic timestamp for accurate idle detection
+- Added `idle_timeout_seconds` to `Config` (from `STIGMER_IDLE_TIMEOUT_SECONDS` env var, opt-in)
+- Idle watchdog fires SIGTERM to self, reusing existing signal handler for graceful shutdown (final STOPPED heartbeat, Temporal drain, clean exit)
+- Disabled Daytona `autoStopInterval` (changed default from 5 to 0) — see key decision 58
+- Added `idleTimeoutSeconds` config to launcher, passed as `STIGMER_IDLE_TIMEOUT_SECONDS` env var
+- Extended `RunnerLauncher` interface with `deprovisionAsync(AgentRunner)` for sandbox cleanup
+- Implemented `DaytonaSandboxRunnerLauncher.deprovisionAsync()`: loads sandbox by ID and deletes it
+- Created `DeprovisionInfrastructureStep`: pipeline step wired into heartbeat handler, fires on STOPPED phase for ephemeral runners with a sandbox_id
+- Wired `DeprovisionInfrastructureStep` into `AgentRunnerHeartbeatHandler` pipeline (after persist, before sendResponse)
+
+### Key Decisions Made
+58. **Daytona auto-stop disabled (empirically validated)** — Daytona's `autoStopInterval` measures time since the last toolbox API interaction (exec, SSH), NOT whether processes are running. A backgrounded `nohup` worker is invisible to this timer. With `autoStopIntervalMinutes: 5`, Daytona would kill active runners 5 minutes after the `executeCommand` that starts the worker. Fix: set to 0 (disabled), rely on Python idle watchdog for application-level idle detection.
+59. **Python idle watchdog as primary, Daytona as archive-only** — The Python watchdog provides application-level idle awareness (knows about Temporal activities) and triggers graceful shutdown with a final STOPPED heartbeat. Daytona's auto-archive remains at 5 minutes to clean up stopped sandboxes.
+60. **Idle watchdog disabled by default** — `STIGMER_IDLE_TIMEOUT_SECONDS` absent or 0 = no watchdog. The launcher passes the env var for ephemeral runners. Persistent runners and local dev never self-terminate.
+61. **SIGTERM to self (not sys.exit)** — Reuses the existing signal handler infrastructure: sends final STOPPED heartbeat for immediate dispatch feedback, properly drains Temporal worker, closes gRPC channels. `sys.exit(0)` would skip all of this.
+62. **Server-side sandbox cleanup via heartbeat** — When the heartbeat handler receives STOPPED phase for an ephemeral runner with a sandbox_id, `DeprovisionInfrastructureStep` fires `deprovisionAsync`. This is the mirror of `ProvisionInfrastructureStep` on create.
+63. **`last_activity_at` on both increment and decrement** — The idle watchdog polls periodically (30s). Without a timestamp, a short-lived activity that starts and finishes between polls would be missed. Updating on both events means "last time any activity event happened" — a runner that just started an activity is not idle.
+
+### Files Created (this session)
+
+**stigmer (1 new file):**
+- `backend/services/agent-runner/worker/idle_watchdog.py`
+
+**stigmer-cloud (1 new file):**
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/launcher/DeprovisionInfrastructureStep.java`
+
+### Files Modified (this session)
+
+**stigmer (3 modified):**
+- `backend/services/agent-runner/worker/execution_tracker.py` — added `last_activity_at` monotonic timestamp, `from time import monotonic`
+- `backend/services/agent-runner/worker/config.py` — added `idle_timeout_seconds` field, env var parsing
+- `backend/services/agent-runner/worker/worker.py` — IdleWatchdog lifecycle (create, start, stop)
+
+**stigmer-cloud (5 modified):**
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/launcher/RunnerLauncherConfig.java` — disabled autoStopInterval (5→0), added `idleTimeoutSeconds` property
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/launcher/DaytonaSandboxRunnerLauncher.java` — added `STIGMER_IDLE_TIMEOUT_SECONDS` env var, `deprovisionAsync` implementation
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/launcher/RunnerLauncher.java` — added `deprovisionAsync` to interface
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/launcher/NoopRunnerLauncher.java` — no-op `deprovisionAsync`
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/request/handler/AgentRunnerHeartbeatHandler.java` — wired `DeprovisionInfrastructureStep`, updated Javadoc
+- `backend/services/stigmer-service/src/main/resources/application-runner-launcher.yaml` — disabled auto-stop default, added `idle-timeout-seconds`
 
 ## Session Progress (2026-04-21, Session 11 — Runner Heartbeat Client)
 
@@ -402,7 +450,7 @@ Drop this file into your conversation to quickly resume work on this project.
 11. ~~**stigmer-cloud: RunnerLauncher abstraction**~~ — DONE (Session 9, DaytonaSandboxRunnerLauncher only — K8s deferred)
 12. ~~**stigmer: Runner auth migration**~~ — DONE (Session 10, STIGMER_TOKEN env var, single-channel ChannelProvider, OBO deleted)
 13. ~~**stigmer: Runner heartbeat client**~~ — DONE (Session 11, HeartbeatEmitter, execution_tracker, task queue fix, STIGMER_AGENT_RUNNER_ID)
-14. **stigmer: Idle self-termination** — idle watchdog in worker.py **← NEXT**
+14. ~~**stigmer: Idle self-termination**~~ — DONE (Session 12, IdleWatchdog, Daytona auto-stop fix, DeprovisionInfrastructureStep)
 
 ### Phase 2 Prep (can start in parallel)
 15. **Build unified sandbox image** — add agent-runner to `Dockerfile.sandbox.full`
@@ -411,23 +459,26 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Context for Resume
 - Both repos are on the `feat/secrets-vault-migration` branch
 - The stigmer-cloud repo has additional uncommitted vault-migration files — separate project
-- The AgentRunner proto is complete (Session 5), Java aggregate is complete (Session 6), Go controller is complete (Session 7), dispatch integration is complete (Session 8), RunnerLauncher abstraction is complete (Session 9), runner auth migration is complete (Session 10), and runner heartbeat client is complete (Session 11). Next is idle self-termination (item 14) in stigmer.
+- The AgentRunner proto is complete (Session 5), Java aggregate is complete (Session 6), Go controller is complete (Session 7), dispatch integration is complete (Session 8), RunnerLauncher abstraction is complete (Session 9), runner auth migration is complete (Session 10), runner heartbeat client is complete (Session 11), and idle self-termination is complete (Session 12). Phase 1 coding is done. Next: Phase 2 prep (items 15-16).
 - The launcher plan file is at `~/.cursor/plans/runnerlauncher_daytona_abstraction_b72a36fa.plan.md`
 - The T01 design doc is at `_projects/2026-04/20260420.01.agent-runner-as-resource/tasks/T01_0_plan.md`
 - stigmer-cloud has 2 pre-existing Bazel strict dependency errors in `HttpSecurityConfig.java` and `LlmProxyController.java` from Phase 0 proxy work — unrelated to AgentRunner
 - Daytona Java SDK (io.daytona:sdk-java:0.1.0) added to MODULE.bazel — first Java-side Daytona dependency
 - RunnerLauncher is feature-flagged: prod overlay has type=daytona, application default is noop
+- Daytona auto-stop is disabled (0) by default — empirically validated that it kills sandboxes regardless of running processes (Session 12)
+- Stale runner timeout detection (90s heartbeat timeout -> STOPPED + cleanup) is deferred as a follow-up item — the proto documents it but server-side enforcement is not yet implemented
 - All previous session context preserved in earlier sections of this file
 
 ## Blockers
-- None blocking. Item 14 (Idle self-termination) can proceed immediately.
+- None blocking. Phase 1 is complete. Phase 2 prep (items 15-16) can proceed.
 
 ## Quick Resume
 To continue this project, drag this file into chat:
 `@_projects/2026-04/20260420.01.agent-runner-as-resource/next-task.md`
 
 ## Quick Commands
-- "Continue with item 14 — Idle self-termination" - idle watchdog in worker.py
+- "Continue with item 15 — Build unified sandbox image" - add agent-runner to Dockerfile.sandbox.full
+- "Continue with item 16 — Update release pipeline" - widen build context for sandbox image
 - "Show project status" - Get overview of progress
 
 ---
