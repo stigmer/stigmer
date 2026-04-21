@@ -12,7 +12,7 @@ Task Queue:
 Python Worker (this) Registers:
 - ExecuteGraphton activity
 - EnsureThread activity
-- CleanupSandbox activity
+- DiscoverMcpServer activity
 
 Java Worker (stigmer-service) Registers:
 - InvokeAgentExecutionWorkflow (orchestration on agent_execution_stigmer)
@@ -437,19 +437,23 @@ class Config:
 
     Local Mode (MODE=local):
     ------------------------
-    - Uses filesystem backend instead of Daytona
-    - Skips cloud dependencies (Redis, Auth0, etc.)
     - Connects to Stigmer Daemon (localhost:50051) for state/streaming
     - Token validation is relaxed (accepts dummy values)
+    - Workspace root defaults to ./workspace
 
     Cloud Mode (MODE=cloud or unset):
     ---------------------------------
-    - Uses Daytona for sandboxed execution
+    - Runs inside a Daytona sandbox (provisioned by stigmer-service)
     - Connects to cloud Stigmer backend
-    - Token is required (injected by the launcher or set by the user)
+    - Token is required (injected by the launcher)
+    - Workspace root set via WORKSPACE_ROOT_DIR (default /workspace)
+
+    In both modes the runner uses LocalWorkspaceBackend — the sandbox
+    environment is transparent.  MODE gates auth requirements and default
+    endpoints, not the workspace backend.
 
     Note: 'MODE' is separate from 'ENV' (development/staging/production).
-    - MODE determines execution infrastructure (local filesystem vs cloud sandbox)
+    - MODE determines auth/endpoint defaults
     - ENV determines deployment environment (dev/staging/prod)
     """
     
@@ -471,9 +475,9 @@ class Config:
     # In local mode this is unused — the runner talks to providers directly.
     stigmer_proxy_endpoint: str | None
     
-    # Sandbox configuration (mode-specific)
-    sandbox_type: str  # "filesystem" for local, "daytona" for cloud
-    sandbox_root_dir: str | None  # Required for filesystem backend
+    # Workspace configuration (always filesystem — the runner is either on
+    # the host or inside a Daytona sandbox, both are local from its perspective)
+    workspace_root_dir: str  # Workspace root directory
     
     # LLM configuration
     llm: LLMConfig
@@ -561,14 +565,11 @@ class Config:
         sandbox_cleanup = os.getenv("STIGMER_SANDBOX_CLEANUP", "true").lower() == "true"
         sandbox_ttl = int(os.getenv("STIGMER_SANDBOX_TTL", "3600"))  # 1 hour default
         
-        # Load sandbox configuration based on mode
-        if is_local:
-            sandbox_type = os.getenv("SANDBOX_TYPE", "filesystem")
-            sandbox_root_dir = os.getenv("SANDBOX_ROOT_DIR", "./workspace")
-            
-        else:
-            sandbox_type = "daytona"
-            sandbox_root_dir = None
+        # Workspace root: in cloud mode the runner is inside the Daytona
+        # sandbox, so /workspace is the local filesystem.  In local mode
+        # it defaults to ./workspace relative to the runner's cwd.
+        default_workspace_root = "./workspace" if is_local else "/workspace"
+        workspace_root_dir = os.getenv("WORKSPACE_ROOT_DIR", default_workspace_root)
         
         # Temporal task queue resolution cascade:
         # 1. STIGMER_TASK_QUEUE — set by DaytonaSandboxRunnerLauncher for
@@ -602,8 +603,7 @@ class Config:
             stigmer_backend_endpoint=os.getenv("STIGMER_BACKEND_ENDPOINT", default_endpoint),
             stigmer_token=stigmer_token,
             stigmer_proxy_endpoint=proxy_endpoint,
-            sandbox_type=sandbox_type,
-            sandbox_root_dir=sandbox_root_dir,
+            workspace_root_dir=workspace_root_dir,
             llm=llm_config,
             checkpointer=checkpointer_config,
             execution_mode=execution_mode,
@@ -616,27 +616,19 @@ class Config:
             idle_timeout_seconds=idle_timeout_seconds,
         )
     
-    def get_sandbox_config(self, session_id: str | None = None) -> dict:
-        """Get sandbox configuration based on execution mode.
-        
+    def get_workspace_config(self, session_id: str | None = None) -> dict:
+        """Get workspace configuration for the current mode.
+
         Args:
-            session_id: Optional session identifier. When provided in local
-                mode, the workspace root is scoped to a per-session directory
-                (``{SANDBOX_ROOT_DIR}/sessions/{session_id}/``), ensuring each
-                session has an isolated, persistent workspace.  When *None*,
-                the flat ``SANDBOX_ROOT_DIR`` is used (backward-compatible).
-                Ignored in cloud mode (session isolation is handled by
-                Daytona volumes).
-        
+            session_id: Optional session identifier.  When provided, the
+                workspace root is scoped to a per-session directory
+                (``{workspace_root_dir}/sessions/{session_id}/``), ensuring
+                each session has an isolated workspace.  When *None*, the
+                flat ``workspace_root_dir`` is used (backward-compatible).
+
         Returns:
-            Sandbox configuration dict for Graphton agent creation.
-            
-            Local mode:
-                {"type": "filesystem", "root_dir": "<session-scoped path>"}
-            
-            Cloud mode:
-                {"type": "daytona", "snapshot_id": "..."}  # snapshot_id optional
-        
+            ``{"type": "filesystem", "root_dir": "<path>"}``
+
         Raises:
             ValueError: If *session_id* contains path separators or ``..``.
         """
@@ -645,48 +637,14 @@ class Config:
                 f"Invalid session_id '{session_id}': "
                 "must not contain path separators or '..'"
             )
-        
-        if self.mode == "local":
-            if self.sandbox_root_dir is None:
-                raise RuntimeError(
-                    "sandbox_root_dir must be configured in local mode"
-                )
-            root_dir = self.sandbox_root_dir
-            if session_id:
-                root_dir = str(Path(self.sandbox_root_dir) / "sessions" / session_id)
-            return {
-                "type": "filesystem",
-                "root_dir": root_dir,
-            }
-        else:
-            # Cloud mode - Daytona configuration
-            config: dict[str, str] = {"type": "daytona"}
 
-            # Snapshot resolution priority:
-            # 1. SnapshotResolver (discovers latest custom stigmer-mcp-* snapshot)
-            # 2. DAYTONA_DEV_TOOLS_SNAPSHOT_ID env var (fallback for bootstrapping)
-            # 3. None (vanilla sandbox, no snapshot)
-            snapshot_id = None
-
-            from worker.snapshot_resolver import get_snapshot_resolver
-
-            resolver = get_snapshot_resolver()
-            if resolver:
-                snapshot_id = resolver.resolve()
-
-            if not snapshot_id:
-                snapshot_id = os.getenv("DAYTONA_DEV_TOOLS_SNAPSHOT_ID")
-                if snapshot_id:
-                    logger.info(
-                        "No custom snapshot found; using fallback "
-                        "DAYTONA_DEV_TOOLS_SNAPSHOT_ID='%s'",
-                        snapshot_id,
-                    )
-
-            if snapshot_id:
-                config["snapshot_id"] = snapshot_id
-
-            return config
+        root_dir = self.workspace_root_dir
+        if session_id:
+            root_dir = str(Path(self.workspace_root_dir) / "sessions" / session_id)
+        return {
+            "type": "filesystem",
+            "root_dir": root_dir,
+        }
     
     def is_local_mode(self) -> bool:
         """Check if running in local execution mode."""

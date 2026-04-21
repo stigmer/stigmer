@@ -2,11 +2,8 @@
 
 Replaces the old _check_workspace_file_exists() tests.  The sentinel
 check is now done through the unified WorkspaceBackend interface.
-Local-mode tests use real filesystem (via ``tmp_path``); cloud-mode
-tests use mocked sandbox.
+Local-mode tests use real filesystem (via ``tmp_path``).
 """
-
-from unittest.mock import MagicMock
 
 from worker.workspace.local import LocalWorkspaceBackend
 
@@ -38,53 +35,3 @@ class TestFileExistsLocal:
         (tmp_path / "some_dir").mkdir()
         backend = LocalWorkspaceBackend(root_dir=tmp_path)
         assert backend.file_exists("some_dir") is True
-
-
-class TestFileExistsDaytona:
-    """WorkspaceBackend.file_exists() via DaytonaWorkspaceBackend."""
-
-    @staticmethod
-    def _make_backend(*, exit_code: int = 0):
-        from worker.workspace.daytona import DaytonaWorkspaceBackend
-
-        sandbox = MagicMock()
-        result = MagicMock()
-        result.exit_code = exit_code
-        sandbox.process.exec.return_value = result
-
-        backend = DaytonaWorkspaceBackend(
-            sandbox=sandbox, workspace_root="/home/daytona/workspace",
-        )
-        # Reset mock so _ensure_workspace_root() call from __init__ is ignored
-        sandbox.process.exec.reset_mock()
-        sandbox.process.exec.return_value = result
-        return backend, sandbox
-
-    def test_file_exists(self):
-        backend, sandbox = self._make_backend(exit_code=0)
-        assert backend.file_exists("bin/skills/my-skill/SKILL.md") is True
-
-        sandbox.process.exec.assert_called_once()
-        cmd = sandbox.process.exec.call_args[0][0]
-        assert "test -e" in cmd
-        assert "/home/daytona/workspace/bin/skills/my-skill/SKILL.md" in cmd
-
-    def test_file_missing(self):
-        backend, _ = self._make_backend(exit_code=1)
-        assert backend.file_exists("bin/skills/gone/SKILL.md") is False
-
-    def test_exec_raises_returns_false(self):
-        from worker.workspace.daytona import DaytonaWorkspaceBackend
-
-        sandbox = MagicMock()
-        init_result = MagicMock()
-        init_result.exit_code = 0
-        sandbox.process.exec.side_effect = [
-            init_result,                        # _ensure_workspace_root() in __init__
-            RuntimeError("connection lost"),     # file_exists() call
-        ]
-        backend = DaytonaWorkspaceBackend(
-            sandbox=sandbox, workspace_root="/home/daytona/workspace",
-        )
-
-        assert backend.file_exists("bin/skills/error/SKILL.md") is False

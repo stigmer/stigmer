@@ -12,9 +12,93 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: apis/ai/stigmer/agentic/agentrunner/v1 (new proto resource); backend/services/stigmer-service (proxy endpoints, AgentRunner aggregate, dispatch logic, RunnerLauncher abstraction); backend/services/agent-runner (remove machine account, point clients at proxy, run inside Daytona); client-apps/cli and Stigmer Desktop (stigmer:// URL handler, register-as-AgentRunner flow); cloud frontend (AgentRunner UI for Persistent runners)
 
 ## Current State
-- **Status**: Phase 0 code complete; Phase 1 complete; Phase 2 prep complete (items 15-16); Phase 2 Daytona gates validated
-- **Last Session**: 2026-04-21 — Unified sandbox image + optimization (Session 14)
-- **Active Task**: Phase 2 prep complete. Next: Phase 0 deploy ops tasks (items 1-7) or Phase 2 implementation
+- **Status**: Phase 0 code complete; Phase 1 complete; Phase 2 prep complete; Daytona removal complete
+- **Last Session**: 2026-04-21 — Remove Daytona from Agent-Runner (Session 15)
+- **Active Task**: Daytona removal complete. Next: Phase 0 deploy ops tasks (items 1-7) or commit session 15 changes
+
+## Session Progress (2026-04-21, Session 15 — Remove Daytona from Agent-Runner)
+
+### Accomplished
+- Eliminated Daytona Python SDK from agent-runner entirely (item 17)
+- Deleted 8 Daytona modules (~2,200 lines): sandbox_manager, snapshot_resolver, DaytonaWorkspaceBackend, DaytonaMCPClient, daytona_transport, cleanup_sandbox, build_mcp_snapshot, backup file
+- Baked 12 npm + 6 pip seedpack MCP server packages into Dockerfile.sandbox.full (replacing MCP snapshot pipeline)
+- Simplified config: `sandbox_type`/`sandbox_root_dir` → `workspace_root_dir`; `get_sandbox_config()` → `get_workspace_config()`
+- Simplified workspace init: always uses `LocalWorkspaceBackend` (no more cloud/local branching)
+- Simplified MCP connect: always uses `MultiServerMCPClient` (no more DaytonaMCPClient/ephemeral sandbox)
+- Simplified graphton/setup.py: removed sandbox parameter threading and DaytonaMCPClient
+- Removed `daytona` from pyproject.toml and regenerated poetry.lock
+- Deleted MCP snapshot pipeline from stigmer-cloud (13 Java files): McpSnapshotScheduleRegistrar, BuildMcpSnapshotWorkflowImpl, ResolveSnapshotPackagesActivityImpl, all models/configs/types
+- Deleted CleanupSandbox pipeline from stigmer-cloud (8 Java files, 3 edited): removed from session deletion and execution completion; DeprovisionInfrastructureStep is the replacement
+- Updated DaytonaSandboxRunnerLauncher: `CreateSandboxFromSnapshotParams` → `CreateSandboxFromImageParams` (GHCR image directly); snapshot resolution removed; `WORKSPACE_ROOT_DIR=/workspace` added to runner env vars
+- Added Daytona cache-warming step to release.sandbox-cloud.yaml: creates throwaway sandbox after GHCR push to pre-warm image cache
+- Benchmarked sandbox creation: cold pull 53.47s, warm 1.63s (vs snapshot 1.81s — image-based is equivalent)
+- Deleted 7 Daytona test files, rewrote test_config_session_scoping.py
+- Updated execution-modes.md and mcp/__init__.py docs
+
+### Key Decisions Made
+69. **Eliminate MCP snapshot pipeline entirely** — The polyglot snapshot build system (Java schedule + Java activity + Python activity + Daytona snapshot API + resolver cache + rotation) solved a 3-10 second first-run download. Baking packages into the Dockerfile is simpler, has zero staleness gap, and requires no Daytona snapshot API.
+70. **Bake seedpack stdio packages into Dockerfile** — 12 npm + 6 pip packages from the seedpack. Go packages skipped (terraform-mcp-server has `replace` directives preventing `go install`). @playwright/mcp skipped (heavy browser binaries). Image grew from 995 MB to 2.49 GB (uncompressed).
+71. **Image-based sandbox creation (not snapshot-based)** — `CreateSandboxFromImageParams` with the GHCR image reference. Warm creation is 1.63s (vs 1.81s for snapshot). Single pipeline: push → GHCR → production sandboxes.
+72. **CI cache-warming step** — After GHCR push, creates and deletes a throwaway sandbox to force Daytona to pull/cache the new image. The 53s cold pull happens in CI, never in production. `continue-on-error: true` so pipeline succeeds even if Daytona is unreachable.
+73. **Runner always uses LocalWorkspaceBackend** — Whether on a dev laptop or inside a Daytona sandbox, the runner treats everything as local. The cloud/local distinction collapses: MODE only gates auth requirements and endpoint defaults, not workspace backend selection.
+74. **`workspace_root_dir` replaces `sandbox_type`/`sandbox_root_dir`** — Single field, sourced from `WORKSPACE_ROOT_DIR` env var. Defaults to `./workspace` (local) or `/workspace` (cloud, set by launcher).
+
+### Files Created (this session)
+
+**stigmer (1 new file):**
+- `_changelog/2026-04/2026-04-21-185938-remove-daytona-from-agent-runner.md`
+
+### Files Deleted (this session)
+
+**stigmer (8 deleted modules + 7 deleted test files):**
+- `worker/sandbox_manager.py`
+- `worker/snapshot_resolver.py`
+- `worker/workspace/daytona.py`
+- `worker/mcp/daytona_mcp_client.py`
+- `worker/mcp/daytona_transport.py`
+- `worker/activities/cleanup_sandbox.py`
+- `worker/activities/build_mcp_snapshot.py`
+- `worker/sandbox_manager_daytona_only.py.backup`
+- `tests/test_sandbox_manager_volume.py`
+- `tests/integration/benchmark_sandbox_lifecycle.py`
+- `tests/integration/test_daytona_mcp_relay.py`
+- `tests/integration/test_inline_publisher_daytona.py`
+- `tests/integration/test_snapshot_lifecycle.py`
+- `tests/mcp/test_daytona_transport.py`
+- `tests/mcp/test_discover_mcp_sandbox.py`
+
+**stigmer-cloud (21 deleted Java files):**
+- MCP snapshot pipeline: McpSnapshotScheduleRegistrar, BuildMcpSnapshotWorkflowImpl, ResolveSnapshotPackagesActivityImpl, ResolveSnapshotPackagesActivity, BuildMcpSnapshotActivity, BuildMcpSnapshotInput, BuildMcpSnapshotOutput, SnapshotPackages, McpSnapshotTemporalConfig, McpSnapshotTemporalWorkflowTypes, McpServerTemporalConfig, McpServerTemporalWorkerConfig, BuildMcpSnapshotWorkflow
+- CleanupSandbox pipeline: CleanupSandboxActivity, CleanupSandboxWorkflow, CleanupSandboxWorkflowImpl, CleanupSandboxWorkflowCreator, CleanupSandboxStep, SessionTemporalWorkflowTypes, FetchSessionSandboxIdActivity, FetchSessionSandboxIdActivityImpl
+
+### Files Modified (this session)
+
+**stigmer (11 modified):**
+- `.github/workflows/release.sandbox-cloud.yaml` — Added Daytona cache-warming step
+- `backend/services/agent-runner/sandbox/Dockerfile.sandbox.full` — Baked MCP packages, updated comments
+- `backend/services/agent-runner/pyproject.toml` — Removed `daytona` dependency
+- `backend/services/agent-runner/poetry.lock` — Regenerated
+- `backend/services/agent-runner/worker/config.py` — workspace_root_dir, get_workspace_config()
+- `backend/services/agent-runner/worker/workspace/__init__.py` — Always LocalWorkspaceBackend
+- `backend/services/agent-runner/worker/worker.py` — Removed snapshot init, unregistered activities
+- `backend/services/agent-runner/worker/mcp/__init__.py` — Updated docstring
+- `backend/services/agent-runner/worker/activities/discover_mcp_server.py` — Removed sandbox creation
+- `backend/services/agent-runner/worker/activities/graphton/setup.py` — Removed DaytonaMCPClient
+- `backend/services/agent-runner/docs/sandbox/execution-modes.md` — Rewrote for Daytona-free architecture
+
+**stigmer (2 modified tests):**
+- `tests/test_config_session_scoping.py` — Rewritten for get_workspace_config()
+- `tests/test_workspace_integrity_check.py` — Removed Daytona test class
+
+**stigmer-cloud (8 modified):**
+- `backend/services/stigmer-service/.../DaytonaSandboxRunnerLauncher.java` — Image-based creation, WORKSPACE_ROOT_DIR
+- `backend/services/stigmer-service/.../RunnerLauncherConfig.java` — sandboxImage property, removed snapshot config
+- `backend/services/stigmer-service/.../application-runner-launcher.yaml` — sandbox-image, removed snapshot entries
+- `backend/services/stigmer-service/.../application-temporal.yaml` — Removed mcp-server queue and snapshot config
+- `backend/services/stigmer-service/.../AgentExecutionTemporalWorkerConfig.java` — Removed cleanup registrations
+- `backend/services/stigmer-service/.../InvokeAgentExecutionWorkflowImpl.java` — Removed sandbox cleanup in finally
+- `backend/services/stigmer-service/.../SessionDeleteHandler.java` — Removed CleanupSandboxStep
+- `backend/services/stigmer-service/.../HttpSecurityConfig.java` — Pre-existing proxy change (separate)
 
 ## Session Progress (2026-04-21, Session 14 — Unified Sandbox Image + Optimization)
 
@@ -513,22 +597,32 @@ Drop this file into your conversation to quickly resume work on this project.
 15. ~~**Build unified sandbox image**~~ — DONE (Session 14, runner-builder stage, 995 MB optimized image)
 16. ~~**Update release pipeline**~~ — DONE (Session 14, repo-root build context, widened path triggers)
 
+### Daytona Removal (Session 15)
+17. ~~**Remove Daytona SDK from agent-runner**~~ — DONE (Session 15, 8 modules deleted, ~2,200 lines removed, daytona dependency removed)
+18. ~~**Delete MCP snapshot pipeline**~~ — DONE (Session 15, 13 Java files deleted from stigmer-cloud, baked packages into Dockerfile)
+19. ~~**Delete CleanupSandbox pipeline**~~ — DONE (Session 15, 8 Java files deleted, DeprovisionInfrastructureStep is replacement)
+20. ~~**Switch launcher to image-based creation**~~ — DONE (Session 15, CreateSandboxFromImageParams, WORKSPACE_ROOT_DIR)
+21. ~~**Add CI cache-warming step**~~ — DONE (Session 15, throwaway sandbox after GHCR push, 53s absorbed by CI)
+
 ## Context for Resume
 - Both repos are on the `feat/secrets-vault-migration` branch
 - The stigmer-cloud repo has additional uncommitted vault-migration files — separate project
-- Phase 1 coding is complete (Sessions 6-12). Phase 2 prep is complete (Session 14). All 16 implementation items are done.
-- The sandbox image is 995 MB (optimized from 5.32 GB). Cloud CLIs removed; MCP runtimes + agent-runner only.
+- Phase 1 coding is complete (Sessions 6-12). Phase 2 prep is complete (Session 14). All 21 implementation items are done.
+- Agent-runner is Daytona-free: no `daytona` Python dependency, no Daytona SDK imports
+- The sandbox image is 2.49 GB (uncompressed) with MCP packages baked in. Compressed GHCR size is much smaller.
+- Sandbox creation: image-based via `CreateSandboxFromImageParams` with GHCR image reference. Warm: 1.63s, cold: 53s (absorbed by CI cache-warming step).
+- Runner config: `workspace_root_dir` (from `WORKSPACE_ROOT_DIR` env var). Defaults: `./workspace` (local), `/workspace` (cloud).
 - Runner start command uses absolute paths: `nohup /app/.venv/bin/python /app/main.py > /var/log/runner.log 2>&1 &`
 - Poetry pinned to 2.1.2 in sandbox Dockerfile for reproducible builds
 - Daytona auto-stop re-enabled at 120 min as safety net (Session 13); Python idle watchdog (5 min) is primary
 - Stale runner timeout detection (90s heartbeat timeout -> STOPPED + cleanup) is deferred as a follow-up item
 - The T01 design doc is at `_projects/2026-04/20260420.01.agent-runner-as-resource/tasks/T01_0_plan.md`
-- Performance benchmarks documented in `backend/services/agent-runner/sandbox/PERFORMANCE.md`
+- `DAYTONA_API_KEY` is needed as a GitHub Actions secret for the cache-warming step (prod key)
 - stigmer-cloud has 2 pre-existing Bazel strict dependency errors in `HttpSecurityConfig.java` and `LlmProxyController.java` from Phase 0 proxy work — unrelated to AgentRunner
 - All previous session context preserved in earlier sections of this file
 
 ## Blockers
-- None blocking. Phase 1 and Phase 2 prep are complete. Next: Phase 0 deploy (ops tasks) or further Phase 2 implementation.
+- None blocking. Phase 1, Phase 2 prep, and Daytona removal are all complete. Next: Phase 0 deploy (ops tasks).
 
 ## Quick Resume
 To continue this project, drag this file into chat:

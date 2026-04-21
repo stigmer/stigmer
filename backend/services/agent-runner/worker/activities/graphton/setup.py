@@ -1,9 +1,9 @@
 """Execution setup pipeline for Graphton agent.
 
 Hydrates the execution from the database, resolves the full resource chain
-(session -> agent_instance -> agent), provisions workspace and sandbox,
-loads skills / MCP servers / environment, creates the LangGraph agent graph,
-and returns a ``SetupResult`` containing everything the streaming phase needs.
+(session -> agent_instance -> agent), provisions workspace, loads skills /
+MCP servers / environment, creates the LangGraph agent graph, and returns a
+``SetupResult`` containing everything the streaming phase needs.
 
 Extracted from ``execute_graphton.py``.
 """
@@ -13,7 +13,6 @@ from __future__ import annotations
 import contextlib
 import dataclasses
 import logging
-import os
 from typing import TYPE_CHECKING, Any
 
 from graphton import SummarizationConfig, create_deep_agent
@@ -58,7 +57,6 @@ from worker.activities.relevance import (
 )
 from worker.checkpointer import create_checkpointer
 from worker.mcp import transform_all_mcp_configs
-from worker.sandbox_manager import SandboxManager
 from worker.storage import create_artifact_storage
 from worker.workspace import (
     LocalWorkspaceBackend,
@@ -94,7 +92,6 @@ class SetupResult:
     execution_client: AgentExecutionClient
     retry_executor: GrpcRetryExecutor
     workspace_backend: WorkspaceBackend
-    sandbox: Any | None
     artifact_storage: Any
     inline_publisher: InlinePublisher
     writeback_coordinator: WriteBackCoordinator | None
@@ -389,57 +386,33 @@ async def _perform_setup_core(
         )
 
     # ─────────────────────────────────────────────────────────────────────
-    # Sandbox & workspace initialisation
+    # Workspace initialisation
     # ─────────────────────────────────────────────────────────────────────
-    setup_timer.start("sandbox")
-    sandbox_config = worker_config.get_sandbox_config(session_id=session_id)
+    setup_timer.start("workspace")
+    workspace_config = worker_config.get_workspace_config(session_id=session_id)
     logger.info(
-        "Sandbox mode: %s - using %s backend",
-        worker_config.mode, sandbox_config.get("type"),
+        "Workspace mode: %s - using %s backend",
+        worker_config.mode, workspace_config.get("type"),
     )
 
-    sandbox_manager = None
-    if worker_config.mode != "local":
-        daytona_api_key = os.environ.get("DAYTONA_API_KEY")
-        if not daytona_api_key:
-            raise ValueError(
-                "DAYTONA_API_KEY environment variable required for "
-                "cloud mode"
-            )
-        sandbox_manager = SandboxManager(daytona_api_key=daytona_api_key)
-        if snapshot_id := sandbox_config.get("snapshot_id"):
-            logger.info("Using Daytona snapshot: %s", snapshot_id)
-
-    resolved_session_id: str | None = (
-        execution.spec.session_id if execution.spec.session_id else None
-    )
-
-    heartbeat_during_setup("sandbox_init", {
+    heartbeat_during_setup("workspace_init", {
         "mode": worker_config.mode,
-        "sandbox_type": sandbox_config.get("type"),
+        "workspace_type": workspace_config.get("type"),
     })
     await report_setup_progress(
         execution_client, execution_id,
-        "Initializing sandbox\u2026", logger,
+        "Initializing workspace\u2026", logger,
     )
 
     workspace_init = await initialize_workspace(
         worker_config=worker_config,
-        sandbox_config=sandbox_config,
-        sandbox_manager=sandbox_manager,
-        session_id=resolved_session_id,
-        session_client=session_client,
+        workspace_config=workspace_config,
+        session_id=session_id,
         activity_logger=logger,
-        heartbeat_fn=lambda phase: heartbeat_during_setup(phase),
     )
     workspace_backend = workspace_init.backend
-    sandbox = workspace_init.sandbox
-    is_new_sandbox = workspace_init.is_new_sandbox
 
-    heartbeat_during_setup("workspace_ready", {
-        "is_new_sandbox": is_new_sandbox,
-        "sandbox_id": sandbox.id if sandbox else None,
-    })
+    heartbeat_during_setup("workspace_ready", {})
 
     # ─────────────────────────────────────────────────────────────────────
     # Parallel gRPC fetches: environment, skills, MCP servers
@@ -632,7 +605,7 @@ async def _perform_setup_core(
                 )
                 logger.info(
                     "[RESUME] Skipped skill write — reusing %d skills "
-                    "already in sandbox: %s",
+                    "already in workspace: %s",
                     len(skills), [s.metadata.name for s in skills],
                 )
             else:
@@ -684,23 +657,6 @@ async def _perform_setup_core(
                     "Successfully wrote %d skills: %s",
                     len(skills), [s.metadata.name for s in skills],
                 )
-
-                if sandbox is not None:
-                    logger.info(
-                        "[skill-diag] workspace_root = %r",
-                        workspace_backend.root_dir,
-                    )
-                    for _sid, spath in skill_paths.items():
-                        diag_result = workspace_backend.execute(
-                            f"ls -la {spath}/ 2>&1 | head -20",
-                            timeout=5,
-                        )
-                        logger.info(
-                            "[skill-diag] ls %s/  exit=%d  output=%s",
-                            spath,
-                            diag_result.exit_code,
-                            diag_result.stdout[:300],
-                        )
 
                 if skill_paths:
                     for _vid, vpath in skill_paths.items():
@@ -774,7 +730,7 @@ async def _perform_setup_core(
                 })
             logger.info(
                 "[RESUME] Skipped attachment injection — reusing "
-                "%d attachments already in sandbox",
+                "%d attachments already in workspace",
                 len(injected_files),
             )
         else:
@@ -931,7 +887,6 @@ async def _perform_setup_core(
             execution_id=execution_id,
             provision_results=provision_results,
             workspace_entries=list(session.spec.workspace_entries),
-            sandbox=sandbox,
             workspace_backend=workspace_backend,
             logger=logger,
         )
@@ -1068,38 +1023,26 @@ async def _perform_setup_core(
         injected_files=injected_files if injected_files else [],
     )
 
-    if sandbox is not None:
-        sandbox_config_for_agent: dict[str, Any] = {
-            "type": "daytona",
-            "sandbox_id": sandbox.id,
-            "workspace_root": workspace_backend.root_dir,
-        }
-        logger.info(
-            "Configuring agent to use existing sandbox %s "
-            "(workspace_root=%s)",
-            sandbox.id, workspace_backend.root_dir,
+    sandbox_config_for_agent: dict[str, Any] = workspace_config.copy()
+    sandbox_config_for_agent["root_dir"] = workspace_backend.root_dir
+    if workspace_init.platform_dir:
+        sandbox_config_for_agent["platform_dir"] = (
+            workspace_init.platform_dir
         )
-    else:
-        sandbox_config_for_agent = sandbox_config.copy()
-        sandbox_config_for_agent["root_dir"] = workspace_backend.root_dir
-        if workspace_init.platform_dir:
-            sandbox_config_for_agent["platform_dir"] = (
-                workspace_init.platform_dir
-            )
-        logger.info(
-            "Configuring agent for local mode (root=%s, platform_dir=%s)",
-            workspace_backend.root_dir, workspace_init.platform_dir,
-        )
+    logger.info(
+        "Configuring agent workspace (root=%s, platform_dir=%s)",
+        workspace_backend.root_dir, workspace_init.platform_dir,
+    )
 
     if merged_env_vars:
         sandbox_config_for_agent["env_vars"] = dict(merged_env_vars)
         logger.info(
-            "Injecting %d env var(s) into sandbox config for "
+            "Injecting %d env var(s) into workspace config for "
             "shell execution",
             len(merged_env_vars),
         )
 
-    if len(provision_results) > 1 and sandbox is None:
+    if len(provision_results) > 1:
         local_roots: dict[str, str] = {
             pr.entry_name: pr.root_dir
             for pr in provision_results
@@ -1184,9 +1127,9 @@ async def _perform_setup_core(
 
     # Built-in subagent types (explore, shell)
     #
-    # Always injected when a sandbox is available, regardless of whether
-    # proto-defined subagents exist.  These provide specialized,
-    # tool-restricted subagent types that prevent scope violations.
+    # Always injected regardless of whether proto-defined subagents exist.
+    # These provide specialized, tool-restricted subagent types that
+    # prevent scope violations.
     try:
         builtin_subagents = create_builtin_subagents(
             sandbox_config=sandbox_config_for_agent,
@@ -1232,15 +1175,10 @@ async def _perform_setup_core(
 
     inline_publisher = InlinePublisher(
         workspace_backend=workspace_backend,
-        sandbox=sandbox,
         artifact_storage=artifact_storage,
         status_builder=status_builder,
         execution_id=execution_id,
         logger=logger,
-    )
-
-    mcp_client = _maybe_create_daytona_mcp_client(
-        sandbox, mcp_servers_config, logger,
     )
 
     # Build the agent graph
@@ -1253,7 +1191,6 @@ async def _perform_setup_core(
         mcp_tools=(
             mcp_tools_config if mcp_tools_config else None
         ),
-        mcp_client=mcp_client,
         tools=None,
         subagents=transformed_subagents,
         sandbox_config=sandbox_config_for_agent,
@@ -1271,14 +1208,10 @@ async def _perform_setup_core(
         agent_kwargs["recursion_limit"] = recursion_limit
     agent_graph = create_deep_agent(**agent_kwargs)
 
-    logger.info(
-        "Graphton agent created successfully with %s sandbox",
-        "new" if is_new_sandbox else "reused",
-    )
+    logger.info("Graphton agent created successfully")
 
     heartbeat_during_setup("agent_created", {
         "model": api_model_id,
-        "sandbox_new": is_new_sandbox,
         "has_subagents": (
             transformed_subagents is not None
             and len(transformed_subagents) > 0
@@ -1328,7 +1261,6 @@ async def _perform_setup_core(
         execution_client=execution_client,
         retry_executor=retry_executor,
         workspace_backend=workspace_backend,
-        sandbox=sandbox,
         artifact_storage=artifact_storage,
         inline_publisher=inline_publisher,
         writeback_coordinator=writeback_coordinator,
@@ -1546,48 +1478,3 @@ async def _backfill_undiscovered_servers(
             )
 
     return result
-
-
-def _maybe_create_daytona_mcp_client(
-    sandbox: Any | None,
-    mcp_servers_config: dict[str, dict[str, Any]],
-    logger: logging.Logger,
-) -> Any | None:
-    """Create a DaytonaMCPClient when sandbox and stdio servers are present.
-
-    In cloud mode (``sandbox is not None``), stdio MCP servers run inside
-    the Daytona sandbox instead of as local subprocesses.  This function
-    encapsulates the three-way gating decision:
-
-    1. No sandbox (local/OSS mode) → ``None`` (use default subprocess transport)
-    2. Sandbox present but all servers are HTTP → ``None`` (no stdio to route)
-    3. Sandbox present and at least one stdio server → ``DaytonaMCPClient``
-
-    Returns:
-        A ``DaytonaMCPClient`` instance, or ``None`` when sandbox routing
-        is not applicable.
-    """
-    if sandbox is None or not mcp_servers_config:
-        return None
-
-    has_stdio = any(
-        v.get("transport") == "stdio"
-        for v in mcp_servers_config.values()
-    )
-    if not has_stdio:
-        return None
-
-    from worker.mcp.daytona_mcp_client import DaytonaMCPClient
-
-    client = DaytonaMCPClient(servers=mcp_servers_config, sandbox=sandbox)
-
-    stdio_count = sum(
-        1 for v in mcp_servers_config.values()
-        if v.get("transport") == "stdio"
-    )
-    logger.info(
-        "Created DaytonaMCPClient for %d sandboxed stdio server(s)",
-        stdio_count,
-    )
-
-    return client

@@ -261,12 +261,14 @@ export STIGMER_EXECUTION_MODE=sandbox
 stigmer server start
 ```
 
-### From Daytona Only (Old)
+### From Daytona SDK Runner (Old)
 
 **Before:**
 ```bash
-# Always used Daytona sandbox
+# Runner managed Daytona sandboxes directly via the SDK
 DAYTONA_API_KEY=xxx stigmer-agent-runner
+# Runner called SandboxManager, DaytonaWorkspaceBackend, DaytonaMCPClient
+# Runner resolved MCP snapshots via SnapshotResolver
 ```
 
 **After:**
@@ -274,13 +276,18 @@ DAYTONA_API_KEY=xxx stigmer-agent-runner
 # Default: Local mode (no Daytona needed)
 stigmer server start
 
-# Optional: Use Docker sandbox
-export STIGMER_EXECUTION_MODE=sandbox
-stigmer server start
-
-# Or: Still use Daytona (cloud mode)
-MODE=cloud DAYTONA_API_KEY=xxx stigmer server start
+# Cloud mode: Runner runs INSIDE a Daytona sandbox (provisioned by stigmer-service)
+# No DAYTONA_API_KEY needed — the runner is just a process in a container
+MODE=cloud stigmer server start
 ```
+
+Key differences:
+- The runner no longer creates or manages Daytona sandboxes
+- `stigmer-service` (Java) provisions sandboxes via `DaytonaSandboxRunnerLauncher`
+- The runner always uses `LocalWorkspaceBackend` — whether on a laptop or inside a sandbox
+- `MODE=cloud` means "running inside a sandbox provisioned by stigmer-service", not "use the Daytona SDK"
+- `DAYTONA_API_KEY` is no longer needed by the runner
+- `SandboxManager`, `DaytonaWorkspaceBackend`, `DaytonaMCPClient`, and `SnapshotResolver` are all deleted
 
 ---
 
@@ -363,32 +370,34 @@ stigmer server start
 # Shared environment, reproducible, customizable
 ```
 
-### For Daytona Users
+### For Cloud Deployments
 
 ```bash
-# Recommended: Cloud mode with Daytona
-MODE=cloud DAYTONA_API_KEY=xxx stigmer server start
+# stigmer-service provisions a Daytona sandbox and launches the runner inside it.
+# The runner receives MODE=cloud and WORKSPACE_ROOT_DIR=/workspace from the launcher.
+# No Daytona API key or SDK usage on the runner side.
+MODE=cloud stigmer server start
 
-# Full Daytona integration, persistent workspaces
+# The runner behaves identically to local mode from a workspace perspective —
+# LocalWorkspaceBackend reads/writes the local filesystem at /workspace.
 ```
 
 ---
 
 ## Persistent Session Workspace
 
-Agent executions run within sessions. Each session gets an isolated, persistent workspace that survives sandbox lifecycle events (stop, archive, destroy, recreate). This ensures the agent can resume after approval without losing files.
+Agent executions run within sessions. Each session gets an isolated, persistent workspace that survives across activity invocations. This ensures the agent can resume after approval without losing files.
 
 ### How It Works
 
-**The Problem:** Agent workspaces live on the sandbox filesystem. When a sandbox dies between the pause (waiting for approval) and resume, all files are lost -- skills, attachments, and agent work products.
+**The Problem:** Agent workspaces must survive across Temporal activity invocations. When a HITL (human-in-the-loop) approval pauses execution, the workspace files (skills, attachments, work products) must be intact when execution resumes.
 
-**The Solution:** Decouple workspace storage from sandbox compute. Workspace files live on persistent storage; sandboxes are ephemeral compute.
+**The Solution:** Workspace files are stored on persistent storage scoped to the session. In local mode, this is a directory on the host. In cloud mode, this is a directory inside the Daytona sandbox's persistent volume.
 
 ```
 Session (persistent)
 ├── thread_id    → LangGraph checkpoint (conversation state)
-├── sandbox_id   → Sandbox ID (ephemeral compute, runtime packages)
-└── Persistent workspace (files survive sandbox lifecycle)
+└── Persistent workspace (files survive across activity invocations)
     ├── bin/skills/          → Agent skill files
     ├── bin/attachments/     → User-uploaded files
     └── ...                  → Agent work products
@@ -396,7 +405,7 @@ Session (persistent)
 
 ### Local Mode
 
-Each session gets its own directory under `{SANDBOX_ROOT_DIR}/sessions/{session_id}/`. Files persist as long as the directory exists.
+Each session gets its own directory under `{WORKSPACE_ROOT_DIR}/sessions/{session_id}/`. Files persist as long as the directory exists.
 
 ```
 workspace/
@@ -411,90 +420,92 @@ workspace/
 
 **Configuration:** Automatic when `session_id` is provided. No additional setup needed.
 
-### Cloud Mode (Daytona)
+### Cloud Mode
 
-A single global Daytona Volume (`stigmer-workspaces`) is created at worker startup and shared across all sessions. Each session mounts a unique subpath.
+In cloud mode the runner runs inside a Daytona sandbox provisioned by `stigmer-service`. The workspace is a local directory inside the sandbox (typically `/workspace`). From the runner's perspective, this is identical to local mode — it uses `LocalWorkspaceBackend` and reads/writes the local filesystem.
 
 ```
-Daytona Volume: stigmer-workspaces
+/workspace/                          → WORKSPACE_ROOT_DIR (inside the sandbox)
 └── sessions/
-    ├── abc-123-def/    → Mounted at /home/daytona/workspace in sandbox A
-    └── xyz-789-ghi/    → Mounted at /home/daytona/workspace in sandbox B
+    ├── abc-123-def/    → Session 1 workspace
+    │   ├── bin/skills/
+    │   └── ...
+    └── xyz-789-ghi/    → Session 2 workspace
+        ├── bin/skills/
+        └── ...
 ```
 
 **Key properties:**
-- Volume auto-created at worker startup via `daytona.volume.get("stigmer-workspaces", create=True)` (idempotent)
-- Volume ID cached in worker memory; re-fetched on restart
-- Mount path: `/home/daytona/workspace`
-- Subpath isolation via `sessions/{session_id}` (UUID-based, no collision risk)
-- Volume name configurable via `DAYTONA_VOLUME_NAME` env var (default: `stigmer-workspaces`)
-
-### Sandbox Recovery Chain
-
-Before creating a new sandbox, the system attempts to recover the existing one. This preserves runtime state (installed packages, compiled tools) in addition to workspace files.
-
-| Sandbox State | Action | Timeout | Files | Packages |
-|---|---|---|---|---|
-| **STARTED** | Health check, reuse | 5s | Intact | Intact |
-| **STOPPED** | `sandbox.start()` | 60s | Intact | Intact |
-| **ARCHIVED** | `sandbox.start()` (restore) | 120s | Intact | Intact |
-| **ERROR** (recoverable) | `sandbox.recover()` | 60s | Intact | Intact |
-| **DESTROYED / Gone** | Create new + mount volume | ~30s | Intact (volume) | Lost |
-| **Transitional** | Create new + mount volume | ~30s | Intact (volume) | Lost |
-
-Sandbox `auto_delete_interval` is set to `-1` (disabled) so Daytona does not delete sandboxes behind our back.
+- The runner does not manage sandbox lifecycle — `stigmer-service` handles creation, recovery, and cleanup
+- Workspace persistence is handled by the sandbox's volume mount (configured by the launcher)
+- The runner uses `LocalWorkspaceBackend` in both modes — the sandbox environment is transparent
 
 ### Resume Integrity Check
 
 On the resume-after-approval path, a sentinel file check verifies that workspace files are intact before trusting the fast-path:
 
 1. The first skill's `SKILL.md` is used as the sentinel (deterministic, always written first)
-2. Local mode: `Path.exists()` on the local filesystem
-3. Cloud mode: `test -f <path>` via `sandbox.process.exec()`
-4. If the check passes: fast-path is used (skills and attachments are not re-written)
-5. If the check fails: graceful fallback to full setup with `[RESUME-FALLBACK]` warning logged
+2. `Path.exists()` on the local filesystem (both local and cloud mode use `LocalWorkspaceBackend`)
+3. If the check passes: fast-path is used (skills and attachments are not re-written)
+4. If the check fails: graceful fallback to full setup with `[RESUME-FALLBACK]` warning logged
 
-This provides defense-in-depth: if a volume mount fails silently or data is corrupted, the agent still gets served correctly (just with a re-write penalty), and ops gets alerted via the warning log.
+This provides defense-in-depth: if workspace data is lost or corrupted, the agent still gets served correctly (just with a re-write penalty), and ops gets alerted via the warning log.
 
 ### Configuration Reference
 
 ```bash
-# Volume name for persistent workspace (cloud mode)
-DAYTONA_VOLUME_NAME=stigmer-workspaces  # Default: stigmer-workspaces
-
-# Workspace root directory (local mode)
-SANDBOX_ROOT_DIR=./workspace  # Default: ./workspace
+# Workspace root directory
+# Local mode default: ./workspace
+# Cloud mode default: /workspace
+WORKSPACE_ROOT_DIR=./workspace
 ```
 
 ---
 
-## MCP Server Execution in Cloud Mode
+## MCP Server Execution
 
-In cloud mode (`MODE=cloud`), stdio MCP servers are started inside the Daytona sandbox rather than the agent-runner pod. This is a security boundary: untrusted MCP server code (downloaded via `npx`, `uvx`, or `go run`) never executes in the agent-runner container.
+Stdio MCP servers always run as local subprocesses via `MultiServerMCPClient`, regardless of mode. In cloud mode the runner is inside a Daytona sandbox, so "local subprocess" means "inside the sandbox" — untrusted MCP server code never executes in the runner's host environment.
 
 ### How It Works
 
 | Transport | Where It Runs | Notes |
 |-----------|--------------|-------|
-| **stdio** (cloud mode) | Daytona sandbox | Process started via Daytona session API; stdio relayed over the network |
-| **stdio** (local mode) | Host subprocess | Standard subprocess, same as before |
-| **HTTP / streamable_http** | Remote endpoint | Unaffected by this change; connects to a URL |
+| **stdio** (any mode) | Local subprocess via `MultiServerMCPClient` | In cloud mode, "local" = inside the Daytona sandbox |
+| **HTTP / streamable_http** | Remote endpoint | Connects to a URL, unaffected by mode |
 
 ### Agent Execution Path
 
-During agent execution, the workspace sandbox is already warm (created during workspace initialization). Stdio MCP servers start inside this existing sandbox with zero additional cold start. The `DaytonaMCPClient` wrapper routes stdio servers through `daytona_stdio_client` and delegates HTTP servers to `MultiServerMCPClient`.
+During agent execution, stdio MCP servers are started as local subprocesses inside the runner process (or the sandbox container in cloud mode). `MultiServerMCPClient` manages the subprocess lifecycle. There is no network relay or remote process execution — stdio is always local.
 
 ### Connect/Discover Workflow
 
-When a user connects a new MCP server, the `DiscoverMcpServerCapabilities` activity creates an **ephemeral** Daytona sandbox to run the stdio MCP server for tool discovery. The sandbox is deleted immediately after discovery completes. This preserves the immediate-discovery UX (tools and approval policies are visible at connect time) while maintaining the security boundary.
+When a user connects a new MCP server, the `DiscoverMcpServerCapabilities` activity runs on the runner and connects to the MCP server using `MultiServerMCPClient`. For stdio servers this starts a local subprocess; for HTTP servers it connects to the remote endpoint. Discovery completes synchronously within the activity.
 
-### Agent-Runner Dockerfile
+### MCP Packages in Docker Image
 
-The agent-runner Docker image no longer contains MCP runtimes (Node.js, Go, uvx). These runtimes live in the sandbox image. This reduces the agent-runner image size and attack surface.
+MCP runtimes (Node.js, Go, uvx) and commonly used MCP packages are baked into the sandbox Docker image (`Dockerfile.sandbox.full`). There is no runtime snapshot resolution or package download — everything needed is pre-installed in the image. This eliminates cold-start latency from package installation and removes the need for `SnapshotResolver` or the MCP snapshot build pipeline.
 
 ### Local/OSS Mode
 
-Local mode is unaffected. Stdio MCP servers continue to run as local subprocesses using whatever runtimes are installed on the host machine.
+Local mode is unaffected. Stdio MCP servers run as local subprocesses using whatever runtimes are installed on the host machine.
+
+---
+
+## Architecture: Runner vs. stigmer-service Responsibilities
+
+The agent-runner is intentionally simple — it is a stateless worker that executes commands on a local filesystem. All infrastructure orchestration is handled by `stigmer-service` (Java).
+
+| Responsibility | Owner | Notes |
+|----------------|-------|-------|
+| Provisioning Daytona sandboxes | `stigmer-service` | Via `DaytonaSandboxRunnerLauncher` |
+| Sandbox lifecycle (start/stop/recover) | `stigmer-service` | Runner is unaware of sandbox management |
+| Workspace file I/O | `agent-runner` | Via `LocalWorkspaceBackend` |
+| MCP server subprocess management | `agent-runner` | Via `MultiServerMCPClient` |
+| LLM calls | `agent-runner` | Direct or via Side-Channel Proxy |
+| Temporal activity execution | `agent-runner` | Polls per-runner task queue |
+| Runner identity and heartbeat | `agent-runner` | Reports to stigmer-service via gRPC |
+
+The runner does not import or use the Daytona SDK. It does not need `DAYTONA_API_KEY`. It treats its filesystem as local, whether that filesystem is a developer's laptop or a Daytona sandbox's `/workspace` volume.
 
 ---
 
