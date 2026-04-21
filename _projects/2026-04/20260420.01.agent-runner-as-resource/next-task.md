@@ -12,9 +12,38 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: apis/ai/stigmer/agentic/agentrunner/v1 (new proto resource); backend/services/stigmer-service (proxy endpoints, AgentRunner aggregate, dispatch logic, RunnerLauncher abstraction); backend/services/agent-runner (remove machine account, point clients at proxy, run inside Daytona); client-apps/cli and Stigmer Desktop (stigmer:// URL handler, register-as-AgentRunner flow); cloud frontend (AgentRunner UI for Persistent runners)
 
 ## Current State
-- **Status**: Phase 0 code complete; Phase 1 complete; Phase 2 prep complete; Daytona removal complete; Proxy consolidated; Sandbox image slimmed with on-demand MCP bootstrap
-- **Last Session**: 2026-04-21 — Slim Sandbox Image + On-Demand MCP Bootstrap (Session 17)
-- **Active Task**: All code changes committed. Next: Phase 0 deploy ops tasks (items 1, 2, 4, 6, 7)
+- **Status**: Phase 0 code complete; Phase 1 complete; Phase 2 prep complete; Daytona removal complete; Proxy consolidated; Sandbox image slimmed; Bazel build fixed and validated
+- **Last Session**: 2026-04-21 — Fix Bazel Build (Session 18)
+- **Active Task**: All code changes committed. Next: Phase 0 deploy ops tasks (items 2, 4, 6, 7)
+
+## Session Progress (2026-04-21, Session 18 — Fix Bazel Build)
+
+### Accomplished
+- Fixed Bazel build for stigmer-service — was completely broken due to Maven resolution failure
+- Discovered Daytona Java SDK Maven Central coordinates mismatch: docs say `io.daytona:sdk-java:0.1.0` but actual artifact is `io.daytona:sdk` with Daytona release version numbers (0.161.0+)
+- Fixed MODULE.bazel: `io.daytona:sdk-java:0.1.0` → `io.daytona:sdk:0.168.0`
+- Fixed BUILD.bazel: updated Bazel label `@maven//:io_daytona_sdk_java` → `@maven//:io_daytona_sdk`
+- Added two missing Bazel strict dependencies for Phase 0 proxy controllers:
+  - `@maven//:org_apache_tomcat_embed_tomcat_embed_core` (provides `jakarta.servlet.http.HttpServletRequest`)
+  - `@maven//:org_springframework_spring_webmvc` (provides `StreamingResponseBody`)
+- Validated: library build (537 actions), fat JAR, container image, 25/25 tests pass — all green
+- Committed in stigmer-cloud: `878db46a`
+
+### Key Decisions Made
+85. **Daytona SDK artifact is `io.daytona:sdk`, not `io.daytona:sdk-java`** — Daytona docs are misleading. The actual Maven Central artifact uses `sdk` as the artifact ID, with versions matching Daytona release numbers (0.161.0, 0.162.0, ..., 0.168.0). Version `0.1.0` was never published.
+86. **Servlet API comes from `tomcat-embed-core`, not standalone `jakarta.servlet-api`** — Spring Boot bundles the servlet API inside Tomcat's embedded core JAR. The standalone `jakarta.servlet:jakarta.servlet-api` artifact is not in the resolved transitive graph.
+87. **Use latest Daytona SDK `0.168.0`** — API-compatible with the code written against documented 0.1.0 (same package structure `io.daytona.sdk.*`, same classes). Latest release from April 21, 2026.
+
+### Files Modified (this session)
+
+**stigmer-cloud (2 modified):**
+- `MODULE.bazel` — Daytona SDK coordinates: `io.daytona:sdk-java:0.1.0` → `io.daytona:sdk:0.168.0`
+- `backend/services/stigmer-service/BUILD.bazel` — Fixed Daytona label, added tomcat-embed-core and spring-webmvc strict deps
+
+### Files Created (this session)
+
+**stigmer-cloud (1 new file):**
+- `_changelog/2026-04/2026-04-21-202111-fix-bazel-build-daytona-sdk-strict-deps.md`
 
 ## Session Progress (2026-04-21, Session 17 — Slim Sandbox Image + On-Demand MCP Bootstrap)
 
@@ -672,7 +701,7 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Next Steps
 
 ### Phase 0 Deploy (remaining ops tasks)
-1. **Validate Bazel build** — confirm gRPC + Tomcat coexistence
+1. ~~**Validate Bazel build**~~ — DONE (Session 18, commit 878db46a): fixed Daytona SDK coordinates + strict deps, 25/25 tests pass
 2. **Deploy proxy to staging** — verify `/health` on port 8081
 3. ~~**DNS setup**~~ — ELIMINATED: proxy consolidated under `api.stigmer.ai` via path-based routing (Session 16)
 4. **Apply supplementary HTTPRoute** — `kubectl apply -f stigmer-proxy-path-route.yaml` (routes `api.stigmer.ai/v1/proxy` to port 8081)
@@ -704,8 +733,9 @@ Drop this file into your conversation to quickly resume work on this project.
 - Both repos are on the `feat/secrets-vault-migration` branch
 - The stigmer-cloud repo has additional uncommitted vault-migration files — separate project
 - Phase 1 coding is complete (Sessions 6-12). Phase 2 prep is complete (Session 14). All 21 implementation items are done.
+- Bazel build is fully green (Session 18): library, fat JAR, container image, 25/25 tests pass
 - Agent-runner is Daytona-free: no `daytona` Python dependency, no Daytona SDK imports
-- The sandbox image is 2.49 GB (uncompressed) with MCP packages baked in. Compressed GHCR size is much smaller.
+- The sandbox image is ~800 MB (uncompressed, post-slim) with on-demand MCP bootstrap
 - Sandbox creation: image-based via `CreateSandboxFromImageParams` with GHCR image reference. Warm: 1.63s, cold: 53s (absorbed by CI cache-warming step).
 - Runner config: `workspace_root_dir` (from `WORKSPACE_ROOT_DIR` env var). Defaults: `./workspace` (local), `/workspace` (cloud).
 - Runner start command uses absolute paths: `nohup /app/.venv/bin/python /app/main.py > /var/log/runner.log 2>&1 &`
@@ -714,7 +744,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - Stale runner timeout detection (90s heartbeat timeout -> STOPPED + cleanup) is deferred as a follow-up item
 - The T01 design doc is at `_projects/2026-04/20260420.01.agent-runner-as-resource/tasks/T01_0_plan.md`
 - `DAYTONA_API_KEY` is needed as a GitHub Actions secret for the cache-warming step (prod key)
-- stigmer-cloud has 2 pre-existing Bazel strict dependency errors in `HttpSecurityConfig.java` and `LlmProxyController.java` from Phase 0 proxy work — unrelated to AgentRunner
+- Daytona Java SDK Maven coordinates: `io.daytona:sdk:0.168.0` (NOT `io.daytona:sdk-java:0.1.0` as docs claim)
 - All previous session context preserved in earlier sections of this file
 
 ## Blockers
