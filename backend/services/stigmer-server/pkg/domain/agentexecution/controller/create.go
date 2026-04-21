@@ -569,6 +569,17 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 		Str("execution_id", executionID).
 		Msg("Starting Temporal workflow")
 
+	// Resolve runner dispatch: per-runner queue or global fallback
+	dispatch, err := agentexecutiontemporal.ResolveActivityTaskQueue(
+		ctx.Context(), s.store, execution.GetSpec().GetSessionId(), s.workflowCreator.FallbackRunnerQueue())
+	if err != nil {
+		log.Warn().
+			Err(err).
+			Str("execution_id", executionID).
+			Msg("Runner dispatch failed")
+		return grpclib.WrapError(err, codes.FailedPrecondition, err.Error())
+	}
+
 	// Construct the slim workflow input from the execution.
 	// Only orchestration coordinates are included; secrets (runtime_env)
 	// have already been cleared by createExecutionContextStep.
@@ -579,10 +590,11 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 		CallbackToken:    execution.GetSpec().GetCallbackToken(),
 		AutoApproveAll:   execution.GetSpec().GetAutoApproveAll(),
 		ParentWorkflowID: execution.GetSpec().GetParentWorkflowId(),
+		AgentRunnerID:    dispatch.AgentRunnerID,
 	}
 
-	// Start the Temporal workflow with slim input
-	if err := s.workflowCreator.Create(workflowInput); err != nil {
+	// Start the Temporal workflow with slim input and dispatch routing
+	if err := s.workflowCreator.Create(workflowInput, &dispatch); err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", executionID).

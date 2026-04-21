@@ -21,4 +21,8 @@ type InvokeAgentExecutionWorkflowInput struct {
 	AutoApproveAll           bool   `json:"auto_approve_all,omitempty"`
 	ParentWorkflowID         string `json:"parent_workflow_id,omitempty"`
 	InvokerIdentityAccountID string `json:"invoker_identity_account_id,omitempty"`
+	// AgentRunnerID is the ID of the AgentRunner resolved by dispatch, or empty
+	// when using the global shared runner queue. The workflow records this on
+	// AgentExecutionStatus.agent_runner_id for observability.
+	AgentRunnerID string `json:"agent_runner_id,omitempty"`
 }
