@@ -1,37 +1,105 @@
-# Full Cloud Sandbox (~1-2GB)
-# Cloud sandbox for Daytona-based agent execution. Published to GHCR.
+# Cloud Sandbox with Agent Runner
+# Daytona sandbox image for cloud-mode agent execution. Published to GHCR.
 #
-# All MCP server runtimes (npx, uvx, go run) plus cloud CLIs:
-# - Python, Node, Go, uv/uvx
-# - AWS CLI, gcloud, az
-# - kubectl, helm, terraform, pulumi
-# - Docker CLI, GitHub CLI, and more
+# Build context: Repository root
+# Build command: docker build -f backend/services/agent-runner/sandbox/Dockerfile.sandbox.full .
 #
-# Use this for:
-# - Daytona sandbox snapshots (base image for MCP snapshot builder)
-# - Cloud-mode agent execution
-# - Enterprise teams needing cloud CLI access from agent workspaces
+# This image provides:
+#   1. MCP server runtimes: npx (Node.js), uvx (Python), go run (Go)
+#   2. Agent-runner Python worker (virtualenv + source + dependencies)
+#   3. Core utilities: git, curl, jq, yq, yamllint
 #
-# Platform: linux/amd64 only (several tools bundle x86_64 binaries)
+# Cloud CLIs (aws, gcloud, az, kubectl, terraform, pulumi, helm, etc.) are
+# NOT included. Agents that need them can install on-demand or use MCP
+# snapshots that layer additional tools on top of this base image.
+#
+# The agent-runner is baked in per DD01 (unified sandbox image). Daytona
+# creates sandboxes from snapshots of this image, giving sub-second cold
+# start. The runner process is started by stigmer-service via
+# sandbox.process.exec() after sandbox creation — CMD stays /bin/bash
+# per Daytona convention.
+#
+# The standalone Dockerfile (backend/services/agent-runner/Dockerfile)
+# remains for K8s pod deployment, local/OSS mode, and CI testing.
+#
+# Platform: linux/amd64 only (Go toolchain COPY is architecture-specific)
 
+# ---------- Agent Runner Builder ----------
+# Builds the Python virtualenv with all runner dependencies.
+# Uses debian:bookworm-slim (same as the sandbox runtime stage) so that
+# virtualenv symlinks target /usr/bin/python3 and pyvenv.cfg paths are
+# valid in the final image without any post-copy fixups.
+FROM debian:bookworm-slim AS runner-builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-venv \
+    git \
+    curl \
+    ca-certificates \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Match repository structure so Poetry's editable (path) dependencies resolve
+WORKDIR /app/backend/services/agent-runner
+
+ARG POETRY_VERSION=2.1.2
+RUN curl -fsSL https://install.python-poetry.org | POETRY_VERSION=${POETRY_VERSION} python3 - && \
+    mv /root/.local/bin/poetry /usr/local/bin/poetry
+
+# Copy dependency files first for optimal layer caching
+COPY backend/services/agent-runner/pyproject.toml backend/services/agent-runner/poetry.lock* ./
+
+# Copy local path dependencies referenced in pyproject.toml
+COPY backend/libs/python/graphton /app/backend/libs/python/graphton
+COPY apis/stubs/python /app/apis/stubs/python
+
+# Install dependencies into in-project virtualenv
+ENV POETRY_VIRTUALENVS_IN_PROJECT=true
+RUN poetry config virtualenvs.in-project true && \
+    poetry install --only main --no-interaction --no-ansi --no-root
+
+# WORKAROUND: deepagents-cli (0.0.3) ships files in the `deepagents/` namespace that
+# overwrite clean files from the `deepagents` package during installation. This is an
+# upstream packaging defect — both packages write to the same directory, and the CLI
+# package's copies are corrupted/truncated. Reinstalling `deepagents` after Poetry
+# restores the correct files. The verification step below will catch any regression.
+RUN .venv/bin/pip install --force-reinstall --no-deps deepagents==0.4.0
+
+# Verify deepagents is importable (catches corrupted PyPI packages at build time)
+RUN .venv/bin/python -c "\
+from deepagents.middleware.subagents import SubAgentMiddleware; \
+from deepagents.middleware.filesystem import FilesystemMiddleware; \
+from deepagents import create_deep_agent; \
+print('deepagents import verification passed')"
+
+# Verify all LangGraph checkpointer backends are importable.
+# langgraph-checkpoint-mongodb and langgraph-checkpoint-sqlite are separate
+# pip packages that share the langgraph.checkpoint namespace. If a version
+# upgrade breaks namespace package resolution, this gate catches it at build
+# time instead of causing a runtime crash loop in production.
+RUN .venv/bin/python -c "\
+from langgraph.checkpoint.memory import MemorySaver; \
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver; \
+from langgraph.checkpoint.mongodb import MongoDBSaver; \
+print('checkpointer import verification passed')"
+
+# ---------- Sandbox Image ----------
 FROM debian:bookworm-slim
 
-# Install base utilities
-RUN apt-get update && apt-get install -y \
+# Install base utilities and MCP server runtimes
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
     git \
     ca-certificates \
-    gnupg \
-    lsb-release \
-    apt-transport-https \
-    software-properties-common \
     jq \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python3, pip, and Node.js
-RUN apt-get update && apt-get install -y \
+# Install Python3, pip, Node.js, and npm (MCP server runtimes: npx, uvx)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     python3-venv \
@@ -58,86 +126,29 @@ RUN YQ_VERSION=v4.40.5 && \
     wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64 && \
     chmod +x /usr/local/bin/yq
 
-# Install GitHub CLI
-RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
-    dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
-    chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | \
-    tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
-    apt-get update && \
-    apt-get install -y gh && \
-    rm -rf /var/lib/apt/lists/*
+# ---------- Agent Runner ----------
+# Baked in per DD01: the runner IS the sandbox. stigmer-service starts the
+# worker process via sandbox.process.exec() after sandbox creation.
+COPY backend/services/agent-runner/ /app/
+COPY backend/libs/python/graphton /app/backend/libs/python/graphton
+COPY apis/stubs/python /app/apis/stubs/python
+COPY --from=runner-builder /app/backend/services/agent-runner/.venv /app/.venv
 
-# Install kubectl
-RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
-    install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
-    rm kubectl
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
-# Install Terraform
-RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
-    tee /etc/apt/sources.list.d/hashicorp.list && \
-    apt-get update && \
-    apt-get install -y terraform && \
-    rm -rf /var/lib/apt/lists/*
+# Verify runner dependencies are importable in the final image.
+# Uses cd /app so that worker.* resolves on sys.path (WORKDIR is /workspace).
+RUN cd /app && /app/.venv/bin/python -c "\
+from worker.config import Config; \
+from deepagents.middleware.subagents import SubAgentMiddleware; \
+print('agent-runner import verification passed')"
 
-# Install Pulumi
-RUN curl -fsSL https://get.pulumi.com | sh && \
-    mv /root/.pulumi/bin/* /usr/local/bin/
-
-# Install Docker CLI
-RUN install -m 0755 -d /etc/apt/keyrings && \
-    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
-    chmod a+r /etc/apt/keyrings/docker.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
-    $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
-    apt-get update && \
-    apt-get install -y docker-ce-cli && \
-    rm -rf /var/lib/apt/lists/*
-
-# Install Tekton CLI (tkn)
-RUN TKN_VERSION=0.35.1 && \
-    curl -LO https://github.com/tektoncd/cli/releases/download/v${TKN_VERSION}/tkn_${TKN_VERSION}_Linux_x86_64.tar.gz && \
-    tar xvzf tkn_${TKN_VERSION}_Linux_x86_64.tar.gz && \
-    install -o root -g root -m 0755 tkn /usr/local/bin/tkn && \
-    rm -f tkn tkn_${TKN_VERSION}_Linux_x86_64.tar.gz
-
-# Install AWS CLI v2
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
-    unzip awscliv2.zip && \
-    ./aws/install && \
-    rm -rf aws awscliv2.zip
-
-# Install Google Cloud SDK
-RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
-    tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
-    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
-    gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg && \
-    apt-get update && apt-get install -y google-cloud-cli && \
-    rm -rf /var/lib/apt/lists/*
-
-# Install Azure CLI
-RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
-
-# Install Helm
-RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-
-# Set working directory
+# Set working directory (Daytona convention — user workspace, not runner code)
 WORKDIR /workspace
 
-# Verify installations
-RUN gh --version && \
-    kubectl version --client && \
-    terraform version && \
-    pulumi version && \
-    docker --version && \
-    tkn version && \
-    aws --version && \
-    gcloud version && \
-    az version && \
-    helm version && \
-    jq --version && \
-    git --version && \
+# Verify MCP runtimes and core utilities
+RUN git --version && \
     python3 --version && \
     python --version && \
     pip3 --version && \
@@ -146,7 +157,9 @@ RUN gh --version && \
     go version && \
     uv --version && \
     uvx --version && \
+    jq --version && \
     yq --version && \
-    yamllint --version
+    yamllint --version && \
+    /app/.venv/bin/python --version
 
 CMD ["/bin/bash"]

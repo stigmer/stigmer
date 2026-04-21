@@ -1,13 +1,21 @@
 name: release.sandbox-cloud
 
 # Builds the full (cloud) sandbox image used by Daytona in cloud mode.
-# Triggers on main when Dockerfile.sandbox.full changes — no semver tags needed.
+# Triggers on main when the sandbox Dockerfile, runner code, or runner
+# dependencies change. No semver tags — latest + commit SHA.
 on:
   push:
     branches:
       - main
     paths:
       - 'backend/services/agent-runner/sandbox/Dockerfile.sandbox.full'
+      - 'backend/services/agent-runner/pyproject.toml'
+      - 'backend/services/agent-runner/poetry.lock'
+      - 'backend/services/agent-runner/main.py'
+      - 'backend/services/agent-runner/worker/**'
+      - 'backend/services/agent-runner/grpc_client/**'
+      - 'backend/libs/python/graphton/**'
+      - 'apis/stubs/python/**'
   workflow_dispatch:
 
 jobs:
@@ -40,10 +48,9 @@ jobs:
 
       - name: Build and push full sandbox image
         run: |
-          cd backend/services/agent-runner/sandbox
           docker buildx build \
             --platform linux/amd64 \
-            --file Dockerfile.sandbox.full \
+            --file backend/services/agent-runner/sandbox/Dockerfile.sandbox.full \
             --tag ghcr.io/${{ github.repository_owner }}/agent-sandbox-full:latest \
             --tag ghcr.io/${{ github.repository_owner }}/agent-sandbox-full:main-${{ steps.tags.outputs.short_sha }} \
             --push \
