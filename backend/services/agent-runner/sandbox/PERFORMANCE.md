@@ -5,7 +5,7 @@ Performance characteristics of the cloud sandbox image
 
 ## Image Size
 
-**995 MB** (0.97 GB) as of 2026-04-21.
+**~800 MB** (estimated) as of 2026-04-21.
 
 | Component | Size | Purpose |
 |-----------|------|---------|
@@ -18,9 +18,29 @@ Performance characteristics of the cloud sandbox image
 | yq | 10 MB | YAML processor |
 | Runner source + deps | 7 MB | worker/, grpc_client/, graphton, proto stubs |
 
+MCP server packages (npm, pip, go modules) are **not** baked into the image.
+They are installed on-demand at sandbox startup by `bootstrap.sh`,
+which reads `STIGMER_BOOTSTRAP_NPM_PACKAGES` and
+`STIGMER_BOOTSTRAP_PIP_PACKAGES` env vars set by stigmer-service.
+This keeps the image slim and agent-specific.
+
 Cloud CLIs (aws, gcloud, az, kubectl, terraform, pulumi, helm, etc.)
-are NOT included. Agents install them on-demand or use MCP snapshots
-that layer additional tools on top of this base image.
+are NOT included. Agents install them on-demand.
+
+## Bootstrap Latency
+
+MCP server packages are installed at sandbox startup before the
+agent-runner process starts. Typical install times:
+
+| Packages | Estimated Time | Example |
+|----------|---------------|---------|
+| 0 (HTTP-only MCP servers) | 0s | No bootstrap needed |
+| 1-2 npm packages | 3-8s | filesystem + git MCP servers |
+| 3-5 npm + 1-2 pip packages | 8-15s | Typical agent with mixed MCP servers |
+
+This cost is paid once per sandbox lifetime (not per execution).
+Sandboxes persist across the session, so subsequent executions
+within the same session see no install latency.
 
 ## Daytona Sandbox Lifecycle
 

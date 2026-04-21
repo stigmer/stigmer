@@ -12,9 +12,60 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: apis/ai/stigmer/agentic/agentrunner/v1 (new proto resource); backend/services/stigmer-service (proxy endpoints, AgentRunner aggregate, dispatch logic, RunnerLauncher abstraction); backend/services/agent-runner (remove machine account, point clients at proxy, run inside Daytona); client-apps/cli and Stigmer Desktop (stigmer:// URL handler, register-as-AgentRunner flow); cloud frontend (AgentRunner UI for Persistent runners)
 
 ## Current State
-- **Status**: Phase 0 code complete; Phase 1 complete; Phase 2 prep complete; Daytona removal complete
-- **Last Session**: 2026-04-21 — Remove Daytona from Agent-Runner (Session 15)
-- **Active Task**: Daytona removal complete. Next: Phase 0 deploy ops tasks (items 1-7) or commit session 15 changes
+- **Status**: Phase 0 code complete; Phase 1 complete; Phase 2 prep complete; Daytona removal complete; Proxy consolidated under api.stigmer.ai
+- **Last Session**: 2026-04-21 — Consolidate Proxy Under api.stigmer.ai (Session 16)
+- **Active Task**: Proxy consolidation complete. Next: Phase 0 deploy ops tasks (items 1, 2, 4, 6, 7) or commit session 15+16 changes
+
+## Session Progress (2026-04-21, Session 16 — Consolidate Proxy Under api.stigmer.ai)
+
+### Accomplished
+- Consolidated Side-Channel Proxy from separate `proxy.stigmer.ai` hostname to path-based routing on existing `api.stigmer.ai`
+- Analyzed OpenMCF KubernetesDeployment Pulumi module to confirm port handling, Gateway naming, and path-routing limitations
+- Deleted 4 proxy-specific infra resources (Gateway, Certificate, 2 HTTPRoutes, CORS EnvoyFilter) — never applied to cluster
+- Created 1 supplementary HTTPRoute: `api.stigmer.ai/v1/proxy` → `stigmer-service:8081`
+- Added `x-api-key` to `stigmer-service-gateway-cors.yaml` allowed headers for Anthropic SDK compatibility
+- Updated `STIGMER_PROXY_ENDPOINT` from `https://proxy.stigmer.ai` to `https://api.stigmer.ai` in agent-runner kustomize
+- Updated all `proxy.stigmer.ai` references across both repos (changelogs, docs, code comments, project files)
+- Revised Phase 0 deploy task list: items 3 (DNS setup) and 5 (Planton secrets group) eliminated
+
+### Key Decisions Made
+75. **Proxy endpoints belong under api.stigmer.ai** — They're API endpoints served by the same pod, authenticated by the same pipeline. A separate hostname for a different port of the same service leaks an implementation detail into the public DNS surface.
+76. **Supplementary HTTPRoute pattern** — The OpenMCF KubernetesDeployment module doesn't support path-based routing (hardcoded `PathPrefix /` with single backend). A manually-managed HTTPRoute alongside the module-managed Gateway follows the established pattern used by CORS EnvoyFilters.
+77. **Gateway API longest-prefix-match** — `/v1/proxy` is more specific than `/`, guaranteeing proxy traffic routes to port 8081 while everything else continues to port 80 (gRPC). Standard Gateway API semantics, well-tested in Istio.
+78. **`isIngressPort: false` is correct for http-proxy** — The module creates the Service port (for cluster-internal access and HTTPRoute backend), while external routing is handled by the supplementary resource.
+
+### Files Created (this session)
+
+**stigmer (1 new file):**
+- `_changelog/2026-04/2026-04-21-195319-consolidate-proxy-under-api-stigmer-ai.md`
+
+**stigmer-cloud (1 new file):**
+- `_ops/planton/infra-hub/kubernetes/stigmer-proxy-path-route.yaml`
+
+### Files Deleted (this session)
+
+**stigmer-cloud (4 deleted):**
+- `_ops/planton/infra-hub/kubernetes/stigmer-proxy-gateway.yaml`
+- `_ops/planton/infra-hub/kubernetes/stigmer-proxy-httproute.yaml`
+- `_ops/planton/infra-hub/kubernetes/stigmer-proxy-certificate.yaml`
+- `_ops/planton/infra-hub/kubernetes/stigmer-proxy-gateway-cors.yaml`
+
+### Files Modified (this session)
+
+**stigmer (7 modified):**
+- `_kustomize/overlays/prod/service.yaml` — STIGMER_PROXY_ENDPOINT → https://api.stigmer.ai
+- `worker/config.py` — updated 2 docstring references
+- `worker/storage/proxy.py` — updated module docstring
+- `worker/checkpointer/http_saver.py` — updated module docstring
+- `_changelog/2026-04/2026-04-20-191935-llm-proxy-base-url-wiring.md` — updated proxy reference
+- `_projects/.../README.md` — updated proxy reference
+- `_projects/.../checkpoints/2026-04-20-session-1.md` — updated proxy reference
+- `_projects/.../next-task.md` — updated Phase 0 tasks and current state
+
+**stigmer-cloud (3 modified):**
+- `_ops/planton/infra-hub/kubernetes/stigmer-service-gateway-cors.yaml` — added x-api-key to allowed headers
+- `_changelog/2026-04/2026-04-20-185017-side-channel-proxy-phase-0.md` — updated 6 proxy.stigmer.ai references
+- `backend/services/stigmer-service/.../LlmProxyController.java` — updated Javadoc example URL
 
 ## Session Progress (2026-04-21, Session 15 — Remove Daytona from Agent-Runner)
 
@@ -578,9 +629,9 @@ Drop this file into your conversation to quickly resume work on this project.
 ### Phase 0 Deploy (remaining ops tasks)
 1. **Validate Bazel build** — confirm gRPC + Tomcat coexistence
 2. **Deploy proxy to staging** — verify `/health` on port 8081
-3. **DNS setup** — `proxy.stigmer.ai` DNS record
-4. **Apply Gateway API resources** — kubectl apply the 4 YAML files
-5. **Create Planton secrets group** — OpenAI and Anthropic API keys
+3. ~~**DNS setup**~~ — ELIMINATED: proxy consolidated under `api.stigmer.ai` via path-based routing (Session 16)
+4. **Apply supplementary HTTPRoute** — `kubectl apply -f stigmer-proxy-path-route.yaml` (routes `api.stigmer.ai/v1/proxy` to port 8081)
+5. ~~**Create Planton secrets group**~~ — ELIMINATED: LLM provider API keys already on stigmer-service pod via base kustomize
 6. **End-to-end test** — trigger execution, verify all calls route through proxy
 7. **Commit stigmer-cloud HttpSecurityConfig.java change** — BearerTokenResolver still uncommitted
 

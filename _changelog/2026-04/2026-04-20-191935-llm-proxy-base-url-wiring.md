@@ -58,7 +58,7 @@ Centralize proxy-aware LLM kwargs construction in `LLMConfig.build_llm_kwargs()`
 
 ## Impact
 
-- **agent-runner**: All LLM traffic can now route through `proxy.stigmer.ai` — the last infrastructure dependency removed from the runner
+- **agent-runner**: All LLM traffic can now route through `api.stigmer.ai/v1/proxy` — the last infrastructure dependency removed from the runner
 - **graphton library**: Remains proxy-unaware (kwargs flow through existing `**model_kwargs` path) — clean separation of concerns
 - **stigmer-service**: Proxy security now handles both OpenAI and Anthropic SDK auth conventions
 

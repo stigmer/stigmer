@@ -1,7 +1,7 @@
 """Proxy-backed artifact storage for cloud deployments.
 
 Routes artifact upload/download through the Stigmer Side-Channel Proxy
-(proxy.stigmer.ai) using presigned URLs. The runner never holds R2/S3
+(api.stigmer.ai/v1/proxy) using presigned URLs. The runner never holds R2/S3
 credentials — it calls the proxy to get a presigned URL, then uses
 plain HTTPS for the actual data transfer.
 

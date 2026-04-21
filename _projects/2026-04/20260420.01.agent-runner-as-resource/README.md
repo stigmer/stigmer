@@ -22,7 +22,7 @@ The combined fix is a single architectural shift: **the runner becomes a credent
 A new HTTP service (initially as endpoints inside `stigmer-service`, extracted to its own deployment if traffic warrants it) that fronts every external call the runner makes today.
 
 ```
-runner          ─►  POST proxy.stigmer.ai/v1/llm/openai/chat/completions
+runner          ─►  POST api.stigmer.ai/v1/proxy/llm/openai/v1/chat/completions
    (carries        Authorization: Bearer <user JWT>
     only the
     user JWT)      proxy validates user, looks up OPENAI_API_KEY for org from vault,

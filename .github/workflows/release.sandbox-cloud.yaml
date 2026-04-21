@@ -9,6 +9,7 @@ on:
       - main
     paths:
       - 'backend/services/agent-runner/sandbox/Dockerfile.sandbox.full'
+      - 'backend/services/agent-runner/sandbox/bootstrap.sh'
       - 'backend/services/agent-runner/pyproject.toml'
       - 'backend/services/agent-runner/poetry.lock'
       - 'backend/services/agent-runner/main.py'
