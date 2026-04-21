@@ -13,8 +13,25 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: Phase 0 code complete; Phase 1 Java aggregate complete; Phase 1 Go aggregate complete; Phase 1 dispatch integration complete; Phase 1 RunnerLauncher complete; Phase 1 runner auth migration complete; Phase 1 runner heartbeat client complete; Phase 1 idle self-termination complete; Phase 2 Daytona gates validated
-- **Last Session**: 2026-04-21 — Idle self-termination + sandbox cleanup (Session 12)
+- **Last Session**: 2026-04-21 — Daytona auto-stop safety net (Session 13)
 - **Active Task**: Phase 1 complete. Next: Phase 2 prep (items 15-16)
+
+## Session Progress (2026-04-21, Session 13 — Daytona Auto-Stop Safety Net)
+
+### Accomplished
+- Re-enabled Daytona `autoStopInterval` at 120 minutes (2 hours) as a last-resort safety net
+- Previously disabled (0) in Session 12 due to the toolbox API interaction timing issue
+- At 2 hours, the risk of killing active runners is negligible — no legitimate execution runs 2h without Daytona API interaction
+- Updated Javadoc and YAML comments to describe the safety-net role
+
+### Key Decisions Made
+64. **Daytona auto-stop at 2h as safety net** — The Python idle watchdog (5 min) is the primary mechanism. Daytona's 2h auto-stop is a last-resort backstop for hung processes or watchdog failures. This partially reverses decision 58 (which disabled auto-stop entirely) while keeping the timeout far enough from normal operations to be safe.
+
+### Files Modified (this session)
+
+**stigmer-cloud (2 modified):**
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/launcher/RunnerLauncherConfig.java` — autoStopIntervalMinutes default 0→120, updated Javadoc
+- `backend/services/stigmer-service/src/main/resources/application-runner-launcher.yaml` — auto-stop-interval-minutes default 0→120, updated comment
 
 ## Session Progress (2026-04-21, Session 12 — Idle Self-Termination + Sandbox Cleanup)
 
