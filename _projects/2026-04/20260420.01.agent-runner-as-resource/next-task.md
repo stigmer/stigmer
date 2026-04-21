@@ -12,9 +12,53 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: apis/ai/stigmer/agentic/agentrunner/v1 (new proto resource); backend/services/stigmer-service (proxy endpoints, AgentRunner aggregate, dispatch logic, RunnerLauncher abstraction); backend/services/agent-runner (remove machine account, point clients at proxy, run inside Daytona); client-apps/cli and Stigmer Desktop (stigmer:// URL handler, register-as-AgentRunner flow); cloud frontend (AgentRunner UI for Persistent runners)
 
 ## Current State
-- **Status**: Phase 0 code complete; Phase 1 Java aggregate complete; Phase 2 Daytona gates validated
-- **Last Session**: 2026-04-21 — AgentRunner aggregate + handlers in stigmer-cloud (Session 6)
-- **Active Task**: Phase 1 item 9 — Go/SQLite AgentRunner store + handlers in stigmer OSS
+- **Status**: Phase 0 code complete; Phase 1 Java aggregate complete; Phase 1 Go aggregate complete; Phase 2 Daytona gates validated
+- **Last Session**: 2026-04-21 — Go AgentRunner controller implementation in stigmer OSS (Session 7)
+- **Active Task**: Phase 1 item 10 — Dispatch integration (wire AgentRunner into execution workflow)
+
+## Session Progress (2026-04-21, Session 7 — Go AgentRunner Controller Implementation)
+
+### Accomplished
+- Implemented complete AgentRunner controller in stigmer OSS (item 9 from Phase 1)
+- Created `AgentRunnerController` struct implementing both `AgentRunnerCommandControllerServer` and `AgentRunnerQueryControllerServer`
+- Implemented 5 command handlers using the pipeline framework:
+  - `Create` with custom `initializeRunnerStatusStep` (sets task_queue + PENDING phase)
+  - `Update` with custom `preserveRunnerStatusStep` (status is heartbeat-only)
+  - `Delete` (standard delete pipeline)
+  - `Apply` (idempotent create-or-update, primary CLI registration path)
+  - `Heartbeat` (fully custom: atomic read-modify-write via `store.UpdateResource`, FAILED gate, phase transitions, reactivation timestamps)
+- Implemented 3 query handlers:
+  - `Get` (standard get by ID via `LoadTargetStep`)
+  - `GetByReference` (org+slug resolution via `LoadByReferenceStep`)
+  - `List` (custom `listRunnersByOrgAndLabelsStep` with org filtering + AND-semantics label matching)
+- Registered AgentRunner controllers in `server.go` (both command + query)
+- `go build ./...` passes cleanly; `go vet` passes cleanly
+- Dual-edition behavioral consistency verified against Java aggregate (Session 6)
+
+### Key Decisions Made
+29. **No search indexing for AgentRunner** — runners are infrastructure, not user-authored content like Agents or Workflows. Consistent with the domain model: search indexes surface blueprints, not runtime infrastructure.
+30. **Heartbeat uses `store.UpdateResource` atomic RMW** — not a pipeline. The heartbeat is a single atomic operation: load, validate phase, mutate status, persist. The pipeline framework's step-by-step pattern doesn't fit because the input type (`AgentRunnerHeartbeatInput`) differs from the resource type (`AgentRunner`).
+31. **Error handling in heartbeat distinguishes store.ErrNotFound from domain errors** — `UpdateResource` returns `store.ErrNotFound` when the runner doesn't exist, but the `modify` callback returns gRPC status errors (e.g., `FAILED_PRECONDITION`). The handler uses `errors.Is` and `status.FromError` to route correctly.
+32. **No FGA/IAM in OSS heartbeat** — consistent with all other OSS handlers. Cloud has `VerifyCallerOwnership` via FGA `can_edit`; OSS skips it.
+33. **List handler does not paginate** — consistent with Session list and AgentExecution list in OSS. Proto supports `page_info` for cloud use; OSS returns all matching results.
+
+### Files Created (this session)
+
+**stigmer (9 new files):**
+- `backend/services/stigmer-server/pkg/domain/agentrunner/controller/agentrunner_controller.go`
+- `backend/services/stigmer-server/pkg/domain/agentrunner/controller/create.go`
+- `backend/services/stigmer-server/pkg/domain/agentrunner/controller/update.go`
+- `backend/services/stigmer-server/pkg/domain/agentrunner/controller/delete.go`
+- `backend/services/stigmer-server/pkg/domain/agentrunner/controller/apply.go`
+- `backend/services/stigmer-server/pkg/domain/agentrunner/controller/heartbeat.go`
+- `backend/services/stigmer-server/pkg/domain/agentrunner/controller/get.go`
+- `backend/services/stigmer-server/pkg/domain/agentrunner/controller/get_by_reference.go`
+- `backend/services/stigmer-server/pkg/domain/agentrunner/controller/list.go`
+
+### Files Modified (this session)
+
+**stigmer (1 modified):**
+- `backend/services/stigmer-server/pkg/server/server.go` — added import for `agentrunnerv1` and `agentrunnercontroller`, registered both command and query controllers
 
 ## Session Progress (2026-04-21, Session 6 — AgentRunner Java Aggregate Implementation)
 
@@ -147,8 +191,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### Phase 1 Implementation (next coding work)
 8. ~~**stigmer-cloud: AgentRunner aggregate + handlers**~~ — DONE (Session 6, commit fbafc288)
-9. **stigmer (Go): AgentRunner store + handlers** — SQLite store, Go server handlers (dual-edition consistency) **← NEXT**
-10. **stigmer-cloud: Dispatch integration** — modify InvokeAgentExecutionWorkflow to resolve runner, read task queue from AgentRunner status, launch ephemeral runner if needed
+9. ~~**stigmer (Go): AgentRunner store + handlers**~~ — DONE (Session 7)
+10. **stigmer-cloud: Dispatch integration** — modify InvokeAgentExecutionWorkflow to resolve runner, read task queue from AgentRunner status, launch ephemeral runner if needed **← NEXT**
 11. **stigmer-cloud: RunnerLauncher abstraction** — KubernetesJobRunnerLauncher for Phase 1; DaytonaSandboxRunnerLauncher for Phase 2
 12. **stigmer: Runner auth migration** — STIGMER_USER_JWT env var, simplified ChannelProvider, deprecate OBO interceptor
 13. **stigmer: Runner heartbeat client** — Python side: send heartbeat RPC every 30s
@@ -161,22 +205,22 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Context for Resume
 - Both repos are on the `feat/secrets-vault-migration` branch
 - The stigmer-cloud repo has additional uncommitted vault-migration files — separate project
-- The AgentRunner proto is complete (Session 5) and Java aggregate is complete (Session 6). Next is Go/SQLite implementation in stigmer.
-- The plan file for Session 6 is at `~/.cursor/plans/agentrunner_aggregate_handlers_70865614.plan.md`
+- The AgentRunner proto is complete (Session 5), Java aggregate is complete (Session 6), and Go controller is complete (Session 7). Next is dispatch integration (item 10) in stigmer-cloud.
+- The plan file for Session 7 is at `~/.cursor/plans/go_agentrunner_store_handlers_f1ec6e8c.plan.md`
 - The T01 design doc is at `_projects/2026-04/20260420.01.agent-runner-as-resource/tasks/T01_0_plan.md`
 - stigmer-cloud has 2 pre-existing Bazel strict dependency errors in `HttpSecurityConfig.java` and `LlmProxyController.java` from Phase 0 proxy work — unrelated to AgentRunner
 - All previous session context preserved in earlier sections of this file
 
 ## Blockers
-- None blocking. Item 9 (Go implementation) can proceed immediately.
+- None blocking. Item 10 (dispatch integration) can proceed immediately.
 
 ## Quick Resume
 To continue this project, drag this file into chat:
 `@_projects/2026-04/20260420.01.agent-runner-as-resource/next-task.md`
 
 ## Quick Commands
-- "Continue with item 9 — Go AgentRunner store + handlers" - Start dual-edition consistency work
 - "Continue with item 10 — dispatch integration" - Wire AgentRunner into execution workflow
+- "Continue with item 11 — RunnerLauncher abstraction" - KubernetesJobRunnerLauncher + DaytonaSandboxRunnerLauncher
 - "Show project status" - Get overview of progress
 
 ---
