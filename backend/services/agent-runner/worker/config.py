@@ -4,9 +4,9 @@ Polyglot Workflow Configuration:
 ================================
 This Python worker runs activities for Java-orchestrated Temporal workflows.
 
-Task Queue: "agent_execution_runner" (agent-runner owns Python activities)
-- Configured via: TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE
-- Default: "agent_execution_runner"
+Task Queue:
+- Per-runner queues: "agent-runner:{runner-id}" (set via STIGMER_TASK_QUEUE)
+- Global fallback: "agent_execution_runner" (legacy TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE)
 - Java workflows run on separate queue: "agent_execution_stigmer"
 
 Python Worker (this) Registers:
@@ -491,6 +491,12 @@ class Config:
     # Artifact storage configuration (for attachments and outputs)
     artifact_storage: "ArtifactStorageConfig"
 
+    # AgentRunner resource identity (set by the launcher for cloud runners,
+    # or by CLI for persistent runners).  When set, the worker sends
+    # heartbeat RPCs every 30s to report phase and capacity.  When None,
+    # heartbeating is disabled (backward compatible with legacy deployments).
+    agent_runner_id: str | None = None
+
     @classmethod
     def load_from_env(cls):
         """Load configuration from environment variables."""
@@ -557,10 +563,18 @@ class Config:
             sandbox_type = "daytona"
             sandbox_root_dir = None
         
-        # Load Temporal task queue for Python activities
-        # Environment: TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE
-        # Default: "agent_execution_runner"
-        task_queue = os.getenv("TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE", "agent_execution_runner")
+        # Temporal task queue resolution cascade:
+        # 1. STIGMER_TASK_QUEUE — set by DaytonaSandboxRunnerLauncher for
+        #    per-runner queues (format: "agent-runner:{runner-id}")
+        # 2. TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE — legacy env var
+        # 3. "agent_execution_runner" — global default
+        task_queue = (
+            os.getenv("STIGMER_TASK_QUEUE")
+            or os.getenv("TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE")
+            or "agent_execution_runner"
+        )
+
+        agent_runner_id = os.getenv("STIGMER_AGENT_RUNNER_ID") or None
         
         # Default backend endpoint based on mode
         default_endpoint = "localhost:50051" if is_local else "localhost:8080"
@@ -584,6 +598,7 @@ class Config:
             sandbox_cleanup=sandbox_cleanup,
             sandbox_ttl=sandbox_ttl,
             artifact_storage=artifact_storage_config,
+            agent_runner_id=agent_runner_id,
         )
     
     def get_sandbox_config(self, session_id: str | None = None) -> dict:

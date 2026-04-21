@@ -4,6 +4,8 @@ import logging
 
 from temporalio import activity
 
+from worker import execution_tracker
+
 activity_logger = logging.getLogger(__name__)
 
 
@@ -23,16 +25,17 @@ async def ensure_thread(session_id: str, agent_id: str) -> str:
         thread_id: The LangGraph thread ID for state persistence
     """
     activity_logger.info(f"EnsureThread called for session: {session_id}, agent: {agent_id}")
-    
-    # If session exists, use session-based thread ID
-    # Otherwise create ephemeral thread ID based on agent
-    if session_id:
-        thread_id = f"thread-{session_id}"
-        activity_logger.info(f"Using session-based thread_id: {thread_id}")
-    else:
-        # Ephemeral execution without session
-        import uuid
-        thread_id = f"ephemeral-{agent_id}-{uuid.uuid4().hex[:8]}"
-        activity_logger.info(f"Created ephemeral thread_id: {thread_id}")
-    
-    return thread_id
+
+    execution_tracker.increment()
+    try:
+        if session_id:
+            thread_id = f"thread-{session_id}"
+            activity_logger.info(f"Using session-based thread_id: {thread_id}")
+        else:
+            import uuid
+            thread_id = f"ephemeral-{agent_id}-{uuid.uuid4().hex[:8]}"
+            activity_logger.info(f"Created ephemeral thread_id: {thread_id}")
+
+        return thread_id
+    finally:
+        execution_tracker.decrement()

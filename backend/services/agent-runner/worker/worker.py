@@ -8,6 +8,7 @@ from temporalio.worker import Worker
 
 from .auth import configure as configure_auth
 from .config import Config
+from .heartbeat import HeartbeatEmitter
 from .temporal_converter import create_data_converter
 
 
@@ -18,10 +19,19 @@ class AgentRunner:
         self.config = config
         self.client: Client | None = None
         self.worker: Worker | None = None
+        self._heartbeat: HeartbeatEmitter | None = None
         self.logger = logging.getLogger(__name__)
         
         configure_auth(config.stigmer_token)
         self.logger.info("Configured Stigmer auth token")
+
+        if config.agent_runner_id:
+            self._heartbeat = HeartbeatEmitter(
+                agent_runner_id=config.agent_runner_id,
+                token=config.stigmer_token,
+                backend_endpoint=config.stigmer_backend_endpoint,
+                max_concurrency=config.max_concurrency,
+            )
         
         # Initialize cloud-mode infrastructure
         if not config.is_local_mode():
@@ -195,16 +205,31 @@ class AgentRunner:
         )
     
     async def start(self):
-        """Start the Temporal worker (blocking)."""
+        """Start the heartbeat emitter and Temporal worker (blocking)."""
+        if self._heartbeat is not None:
+            await self._heartbeat.start()
+
         self.logger.info(f"Starting Temporal worker on task queue: {self.config.task_queue}")
         if self.worker:
             await self.worker.run()
     
     async def shutdown(self):
-        """Shutdown the worker and close connections."""
+        """Shutdown the worker and close connections.
+
+        Order matters: the heartbeat emitter sends a final STOPPED heartbeat
+        before the Temporal worker drains its activities, so the server sees
+        the runner go offline immediately rather than waiting for the 90s
+        heartbeat timeout.
+        """
         self.logger.info("Shutting down worker...")
+
+        if self._heartbeat is not None:
+            try:
+                await self._heartbeat.stop()
+                self.logger.info("✓ Heartbeat emitter stopped")
+            except Exception as e:
+                self.logger.error(f"Error stopping heartbeat emitter: {e}")
         
-        # Stop worker
         if self.worker:
             try:
                 await self.worker.shutdown()
