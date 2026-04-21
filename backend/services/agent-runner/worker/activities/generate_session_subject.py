@@ -20,6 +20,7 @@ from grpc_client.agent_execution_client import AgentExecutionClient
 from grpc_client.agent_instance_client import AgentInstanceClient
 from grpc_client.channel import ChannelProvider
 from grpc_client.session_client import SessionClient
+from worker import execution_tracker
 from worker.auth import get_token
 from worker.config import Config
 
@@ -64,12 +65,15 @@ async def generate_session_subject(
         "GenerateSessionSubject started for execution: %s", execution_id
     )
 
+    execution_tracker.increment()
     try:
         await _generate_and_update_subject(execution_id)
     except Exception:
         activity_logger.exception(
             "Failed to generate session subject for execution %s", execution_id
         )
+    finally:
+        execution_tracker.decrement()
 
 
 async def _generate_and_update_subject(execution_id: str) -> None:

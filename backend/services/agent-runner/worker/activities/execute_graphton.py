@@ -22,6 +22,7 @@ from temporalio import activity
 
 from grpc_client.agent_execution_client import AgentExecutionClient
 from grpc_client.channel import ChannelProvider
+from worker import execution_tracker
 
 # ─── Re-exports for backward compatibility with test imports ─────────────
 from worker.activities.graphton.attachments import (
@@ -189,6 +190,7 @@ async def execute_graphton(
     else:
         approval_decisions = []
 
+    execution_tracker.increment()
     try:
         return await _execute_graphton_impl(
             execution_id, thread_id, approval_decisions, activity_logger,
@@ -232,6 +234,8 @@ async def execute_graphton(
             retry_executor=None,
             logger=activity_logger,
         )
+    finally:
+        execution_tracker.decrement()
 
 
 async def _execute_graphton_impl(

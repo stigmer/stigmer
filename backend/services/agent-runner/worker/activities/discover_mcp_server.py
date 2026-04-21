@@ -43,6 +43,7 @@ from temporalio.common import RetryPolicy
 from grpc_client.channel import ChannelProvider
 from grpc_client.execution_context_client import ExecutionContextClient
 from grpc_client.mcp_server_client import McpServerClient
+from worker import execution_tracker
 from worker.auth import get_token
 from worker.mcp.config_transformer import _inject_platform_env, transform_mcp_config
 
@@ -125,6 +126,8 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
     if not token:
         raise RuntimeError("Auth token not available for MCP server discovery")
 
+    execution_tracker.increment()
+
     grpc_provider = ChannelProvider(token)
     ch = grpc_provider.channel
 
@@ -182,6 +185,7 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
         if sandbox is not None and sandbox_manager is not None:
             await _cleanup_discovery_sandbox(sandbox_manager, sandbox.id)
         await grpc_provider.close()
+        execution_tracker.decrement()
 
 
 async def _resolve_env_vars_for_discovery(

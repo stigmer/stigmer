@@ -12,9 +12,56 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: apis/ai/stigmer/agentic/agentrunner/v1 (new proto resource); backend/services/stigmer-service (proxy endpoints, AgentRunner aggregate, dispatch logic, RunnerLauncher abstraction); backend/services/agent-runner (remove machine account, point clients at proxy, run inside Daytona); client-apps/cli and Stigmer Desktop (stigmer:// URL handler, register-as-AgentRunner flow); cloud frontend (AgentRunner UI for Persistent runners)
 
 ## Current State
-- **Status**: Phase 0 code complete; Phase 1 Java aggregate complete; Phase 1 Go aggregate complete; Phase 1 dispatch integration complete; Phase 1 RunnerLauncher complete; Phase 1 runner auth migration complete; Phase 2 Daytona gates validated
-- **Last Session**: 2026-04-21 — Runner auth migration (Session 10)
-- **Active Task**: Phase 1 item 13 — Runner heartbeat client
+- **Status**: Phase 0 code complete; Phase 1 Java aggregate complete; Phase 1 Go aggregate complete; Phase 1 dispatch integration complete; Phase 1 RunnerLauncher complete; Phase 1 runner auth migration complete; Phase 1 runner heartbeat client complete; Phase 2 Daytona gates validated
+- **Last Session**: 2026-04-21 — Runner heartbeat client (Session 11)
+- **Active Task**: Phase 1 item 14 — Idle self-termination
+
+## Session Progress (2026-04-21, Session 11 — Runner Heartbeat Client)
+
+### Accomplished
+- Implemented Python-side heartbeat emitter (item 13 from Phase 1)
+- Created `HeartbeatEmitter` class: asyncio task that sends heartbeat RPC every 30s
+- Created `AgentRunnerClient` gRPC client following existing client patterns
+- Created `execution_tracker` module for process-wide active execution counting
+- Integrated heartbeat lifecycle into `AgentRunner` worker: start after Temporal, stop before shutdown
+- Final STOPPED heartbeat sent on graceful shutdown for immediate dispatch feedback (vs 90s timeout)
+- Fixed env var mismatch: Python `Config` now reads `STIGMER_TASK_QUEUE` (what the launcher passes), falling back to `TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE` and then global default
+- Added `STIGMER_AGENT_RUNNER_ID` env var to `DaytonaSandboxRunnerLauncher.buildEnvVars()` so the runner process knows its resource identity
+- Added `agent_runner_id` field to `Config` (from `STIGMER_AGENT_RUNNER_ID` env var, optional)
+- Instrumented all 7 activity functions with `execution_tracker.increment()`/`decrement()` for accurate phase reporting (READY vs BUSY)
+- Heartbeat is opt-in: no `STIGMER_AGENT_RUNNER_ID` = no heartbeat loop (backward compatible)
+
+### Key Decisions Made
+51. **Task queue env var cascade: `STIGMER_TASK_QUEUE` > `TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE` > default** — The launcher passes `STIGMER_TASK_QUEUE` with per-runner queue names. The legacy env var is retained for backward compatibility. Without this fix, per-runner queues from the launcher were silently ignored.
+52. **Final STOPPED heartbeat on shutdown** — Faster dispatch feedback (immediate vs 90s server timeout). The 90s timeout remains as the safety net for crashes.
+53. **Heartbeat opt-in via `STIGMER_AGENT_RUNNER_ID`** — When the env var is absent, no heartbeat emitter is created. Existing local/legacy deployments are unaffected.
+54. **All activities tracked, not just `execute_graphton`** — `max_concurrent_activities` governs all registered activities. Any at-capacity state should be reflected in the heartbeat phase.
+55. **Connection info gathered once at init** — Hostname, OS, arch, and runner version are static for the process lifetime. No need to re-gather on every tick.
+56. **NOT_FOUND stops heartbeat loop** — If the runner resource was deleted, heartbeating is pointless. The worker continues processing activities on its queue (Temporal doesn't care about AgentRunner state).
+57. **`STIGMER_AGENT_RUNNER_ID` as env var, not derived from task queue** — The runner ID and task queue are separate concerns. The launcher knows both and passes both explicitly. Deriving one from the other would be fragile coupling.
+
+### Files Created (this session)
+
+**stigmer (3 new files):**
+- `backend/services/agent-runner/grpc_client/agent_runner_client.py`
+- `backend/services/agent-runner/worker/heartbeat.py`
+- `backend/services/agent-runner/worker/execution_tracker.py`
+
+### Files Modified (this session)
+
+**stigmer (9 modified):**
+- `backend/services/agent-runner/worker/config.py` — added `agent_runner_id` field, fixed task queue env var cascade
+- `backend/services/agent-runner/worker/worker.py` — HeartbeatEmitter lifecycle (create, start, stop)
+- `backend/services/agent-runner/worker/activities/execute_graphton.py` — execution_tracker instrumentation
+- `backend/services/agent-runner/worker/activities/ensure_thread.py` — execution_tracker instrumentation
+- `backend/services/agent-runner/worker/activities/build_mcp_snapshot.py` — execution_tracker instrumentation
+- `backend/services/agent-runner/worker/activities/cleanup_sandbox.py` — execution_tracker instrumentation
+- `backend/services/agent-runner/worker/activities/discover_mcp_server.py` — execution_tracker instrumentation
+- `backend/services/agent-runner/worker/activities/generate_session_subject.py` — execution_tracker instrumentation
+- `backend/services/agent-runner/worker/activities/classify_tool_approvals.py` — execution_tracker instrumentation
+
+**stigmer-cloud (1 modified):**
+- `backend/services/stigmer-service/src/main/java/ai/stigmer/domain/agentic/agentrunner/launcher/DaytonaSandboxRunnerLauncher.java` — added `STIGMER_AGENT_RUNNER_ID` env var, refactored `buildEnvVars` signature
 
 ## Session Progress (2026-04-21, Session 10 — Runner Auth Migration)
 
@@ -354,8 +401,8 @@ Drop this file into your conversation to quickly resume work on this project.
 10. ~~**stigmer-cloud: Dispatch integration**~~ — DONE (Session 8)
 11. ~~**stigmer-cloud: RunnerLauncher abstraction**~~ — DONE (Session 9, DaytonaSandboxRunnerLauncher only — K8s deferred)
 12. ~~**stigmer: Runner auth migration**~~ — DONE (Session 10, STIGMER_TOKEN env var, single-channel ChannelProvider, OBO deleted)
-13. **stigmer: Runner heartbeat client** — Python side: send heartbeat RPC every 30s **← NEXT**
-14. **stigmer: Idle self-termination** — idle watchdog in worker.py
+13. ~~**stigmer: Runner heartbeat client**~~ — DONE (Session 11, HeartbeatEmitter, execution_tracker, task queue fix, STIGMER_AGENT_RUNNER_ID)
+14. **stigmer: Idle self-termination** — idle watchdog in worker.py **← NEXT**
 
 ### Phase 2 Prep (can start in parallel)
 15. **Build unified sandbox image** — add agent-runner to `Dockerfile.sandbox.full`
@@ -364,7 +411,7 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Context for Resume
 - Both repos are on the `feat/secrets-vault-migration` branch
 - The stigmer-cloud repo has additional uncommitted vault-migration files — separate project
-- The AgentRunner proto is complete (Session 5), Java aggregate is complete (Session 6), Go controller is complete (Session 7), dispatch integration is complete (Session 8), RunnerLauncher abstraction is complete (Session 9), and runner auth migration is complete (Session 10). Next is runner heartbeat client (item 13) in stigmer.
+- The AgentRunner proto is complete (Session 5), Java aggregate is complete (Session 6), Go controller is complete (Session 7), dispatch integration is complete (Session 8), RunnerLauncher abstraction is complete (Session 9), runner auth migration is complete (Session 10), and runner heartbeat client is complete (Session 11). Next is idle self-termination (item 14) in stigmer.
 - The launcher plan file is at `~/.cursor/plans/runnerlauncher_daytona_abstraction_b72a36fa.plan.md`
 - The T01 design doc is at `_projects/2026-04/20260420.01.agent-runner-as-resource/tasks/T01_0_plan.md`
 - stigmer-cloud has 2 pre-existing Bazel strict dependency errors in `HttpSecurityConfig.java` and `LlmProxyController.java` from Phase 0 proxy work — unrelated to AgentRunner
@@ -373,14 +420,13 @@ Drop this file into your conversation to quickly resume work on this project.
 - All previous session context preserved in earlier sections of this file
 
 ## Blockers
-- None blocking. Item 13 (Runner heartbeat client) can proceed immediately.
+- None blocking. Item 14 (Idle self-termination) can proceed immediately.
 
 ## Quick Resume
 To continue this project, drag this file into chat:
 `@_projects/2026-04/20260420.01.agent-runner-as-resource/next-task.md`
 
 ## Quick Commands
-- "Continue with item 13 — Runner heartbeat client" - Python heartbeat RPC every 30s
 - "Continue with item 14 — Idle self-termination" - idle watchdog in worker.py
 - "Show project status" - Get overview of progress
 

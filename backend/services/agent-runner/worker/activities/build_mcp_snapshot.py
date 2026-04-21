@@ -38,6 +38,7 @@ from dataclasses import dataclass, field
 
 from temporalio import activity
 
+from worker import execution_tracker
 from worker.activities.graphton.temporal_helpers import run_sync_with_heartbeat
 from worker.snapshot_resolver import (
     SNAPSHOT_NAME_PREFIX,
@@ -280,82 +281,86 @@ async def build_mcp_snapshot(
         logger.info("DAYTONA_API_KEY not set — skipping snapshot build")
         return output
 
-    from daytona import Daytona, DaytonaConfig
-
-    daytona = Daytona(DaytonaConfig(api_key=api_key))
-
-    if input.base_image:
-        base_image = input.base_image
-    else:
-        base_image = os.getenv(
-            "STIGMER_MCP_SNAPSHOT_BASE_IMAGE",
-            "ghcr.io/stigmer/agent-sandbox-full:latest",
-        )
-    packages = _resolve_packages(input)
-
-    total_count = sum(len(v) for v in packages.values())
-    if total_count == 0:
-        logger.info("No MCP server packages configured — skipping snapshot build")
-        return output
-
-    logger.info(
-        "Building MCP snapshot: base=%s, npm=%d, pip=%d, go=%d",
-        base_image,
-        len(packages["npm"]),
-        len(packages["pip"]),
-        len(packages["go"]),
-    )
-
-    # 1. Build image
-    image = _build_image(base_image, packages)
-
-    # 2. Create snapshot
-    from daytona.common.snapshot import CreateSnapshotParams
-
-    snapshot_name = generate_snapshot_name()
-    logger.info("Creating snapshot: %s", snapshot_name)
-
-    def _on_logs(line: str) -> None:
-        logger.info("[snapshot-build] %s", line)
-
+    execution_tracker.increment()
     try:
-        await run_sync_with_heartbeat(
-            daytona.snapshot.create,
-            CreateSnapshotParams(name=snapshot_name, image=image),
-            phase_name=f"snapshot_create:{snapshot_name}",
-            log=logger,
-            on_logs=_on_logs,
-        )
-        output.snapshot_name = snapshot_name
-        logger.info("Snapshot created successfully: %s", snapshot_name)
-    except Exception as e:
-        error_str = str(e)
-        msg = f"Snapshot creation failed: {error_str}"
-        logger.error(msg)
-        if "unauthorized" in error_str.lower():
-            logger.error(
-                "Base image '%s' could not be pulled. Verify that the GHCR "
-                "package is set to public visibility, or configure registry "
-                "credentials in the Daytona dashboard (Registries).",
-                base_image,
+        from daytona import Daytona, DaytonaConfig
+
+        daytona = Daytona(DaytonaConfig(api_key=api_key))
+
+        if input.base_image:
+            base_image = input.base_image
+        else:
+            base_image = os.getenv(
+                "STIGMER_MCP_SNAPSHOT_BASE_IMAGE",
+                "ghcr.io/stigmer/agent-sandbox-full:latest",
             )
-        output.errors.append(msg)
+        packages = _resolve_packages(input)
+
+        total_count = sum(len(v) for v in packages.values())
+        if total_count == 0:
+            logger.info("No MCP server packages configured — skipping snapshot build")
+            return output
+
+        logger.info(
+            "Building MCP snapshot: base=%s, npm=%d, pip=%d, go=%d",
+            base_image,
+            len(packages["npm"]),
+            len(packages["pip"]),
+            len(packages["go"]),
+        )
+
+        # 1. Build image
+        image = _build_image(base_image, packages)
+
+        # 2. Create snapshot
+        from daytona.common.snapshot import CreateSnapshotParams
+
+        snapshot_name = generate_snapshot_name()
+        logger.info("Creating snapshot: %s", snapshot_name)
+
+        def _on_logs(line: str) -> None:
+            logger.info("[snapshot-build] %s", line)
+
+        try:
+            await run_sync_with_heartbeat(
+                daytona.snapshot.create,
+                CreateSnapshotParams(name=snapshot_name, image=image),
+                phase_name=f"snapshot_create:{snapshot_name}",
+                log=logger,
+                on_logs=_on_logs,
+            )
+            output.snapshot_name = snapshot_name
+            logger.info("Snapshot created successfully: %s", snapshot_name)
+        except Exception as e:
+            error_str = str(e)
+            msg = f"Snapshot creation failed: {error_str}"
+            logger.error(msg)
+            if "unauthorized" in error_str.lower():
+                logger.error(
+                    "Base image '%s' could not be pulled. Verify that the GHCR "
+                    "package is set to public visibility, or configure registry "
+                    "credentials in the Daytona dashboard (Registries).",
+                    base_image,
+                )
+            output.errors.append(msg)
+            return output
+
+        # 3. Rotate old snapshots
+        await run_sync_with_heartbeat(
+            _rotate_snapshots,
+            daytona,
+            input.snapshots_to_keep,
+            output,
+            phase_name="snapshot_rotate",
+            log=logger,
+        )
+
+        # 4. Invalidate the resolver cache so the next sandbox uses the new snapshot
+        resolver = get_snapshot_resolver()
+        if resolver:
+            resolver.invalidate()
+            logger.info("Snapshot resolver cache invalidated")
+
         return output
-
-    # 3. Rotate old snapshots
-    await run_sync_with_heartbeat(
-        _rotate_snapshots,
-        daytona,
-        input.snapshots_to_keep,
-        output,
-        phase_name="snapshot_rotate",
-        log=logger,
-    )
-
-    # 4. Invalidate the resolver cache so the next sandbox uses the new snapshot
-    resolver = get_snapshot_resolver()
-    if resolver:
-        resolver.invalidate()
-        logger.info("Snapshot resolver cache invalidated")
-
-    return output
+    finally:
+        execution_tracker.decrement()
