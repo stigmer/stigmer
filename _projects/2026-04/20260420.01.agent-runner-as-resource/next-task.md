@@ -12,9 +12,54 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: apis/ai/stigmer/agentic/agentrunner/v1 (new proto resource); backend/services/stigmer-service (proxy endpoints, AgentRunner aggregate, dispatch logic, RunnerLauncher abstraction); backend/services/agent-runner (remove machine account, point clients at proxy, run inside Daytona); client-apps/cli and Stigmer Desktop (stigmer:// URL handler, register-as-AgentRunner flow); cloud frontend (AgentRunner UI for Persistent runners)
 
 ## Current State
-- **Status**: Phase 0 code complete; Phase 1 complete; Phase 2 prep complete; Daytona removal complete; Proxy consolidated under api.stigmer.ai
-- **Last Session**: 2026-04-21 — Consolidate Proxy Under api.stigmer.ai (Session 16)
-- **Active Task**: Proxy consolidation complete. Next: Phase 0 deploy ops tasks (items 1, 2, 4, 6, 7) or commit session 15+16 changes
+- **Status**: Phase 0 code complete; Phase 1 complete; Phase 2 prep complete; Daytona removal complete; Proxy consolidated; Sandbox image slimmed with on-demand MCP bootstrap
+- **Last Session**: 2026-04-21 — Slim Sandbox Image + On-Demand MCP Bootstrap (Session 17)
+- **Active Task**: All code changes committed. Next: Phase 0 deploy ops tasks (items 1, 2, 4, 6, 7)
+
+## Session Progress (2026-04-21, Session 17 — Slim Sandbox Image + On-Demand MCP Bootstrap)
+
+### Accomplished
+- Brainstormed sandbox image strategy: analyzed per-agent image building, Daytona snapshots, and user-provided custom images
+- Designed three-tier strategy: Tier 1 (slim base + bootstrap), Tier 2 (Daytona per-agent snapshots), Tier 3 (user custom images)
+- Implemented Tier 1: removed 12 npm + 6 pip pre-installed MCP packages from Dockerfile.sandbox.full
+- Retained Go toolchain (206 MB) — core MCP servers (Stigmer, Planton, GitHub) are Go-based
+- Created `bootstrap.sh` script: installs agent-specific MCP packages at sandbox startup from env vars
+- Created `McpBootstrapResolver` service (stigmer-cloud): traces session → agent → MCP servers, extracts npm/pip package names
+- Updated `AgentRunnerDispatchService`: resolves bootstrap packages and sets them as labels on ephemeral runners
+- Updated `DaytonaSandboxRunnerLauncher`: reads bootstrap labels from runner, passes as sandbox env vars
+- Updated runner-start-command: runs `bootstrap.sh` before runner process
+- Estimated image reduction: ~995 MB → ~800 MB (pre-installed MCP packages removed, Go retained)
+
+### Key Decisions Made
+79. **Go toolchain stays in base image** — Stigmer, Planton, and GitHub MCP servers are all Go-based. On-demand Go installation is too heavy (entire toolchain download, not just a package). The 206 MB cost is justified.
+80. **MCP packages are NOT baked into the image** — They are installed on-demand at sandbox startup by `bootstrap.sh`, reading `STIGMER_BOOTSTRAP_NPM_PACKAGES` and `STIGMER_BOOTSTRAP_PIP_PACKAGES` env vars. This keeps the image agent-agnostic.
+81. **Bootstrap info flows via runner labels** — `AgentRunnerDispatchService` resolves packages and stores them as labels on the runner proto. `DaytonaSandboxRunnerLauncher` reads labels and sets env vars. No interface changes to `RunnerLauncher`.
+82. **Heuristic package extraction** — `npx -y <pkg>` → npm package; `uvx <pkg>` → pip package. Custom commands (node, python) are skipped — those servers install on-demand at first invocation via npx/uvx.
+83. **Tier 2 (Daytona per-agent snapshots) deferred** — Will revisit when bootstrap latency (5-15s) becomes a measurable pain point for high-frequency agents. Daytona's declarative builder + snapshot API is the intended mechanism.
+84. **User-provided custom images (Tier 3) rejected for now** — Opens registry auth, security scanning, and agent-runner version mismatch concerns. Custom packages are better served via MCP server definitions + bootstrap.
+
+### Files Created (this session)
+
+**stigmer (2 new files):**
+- `backend/services/agent-runner/sandbox/bootstrap.sh`
+- `_changelog/2026-04/2026-04-21-slim-sandbox-image-on-demand-mcp-bootstrap.md`
+
+**stigmer-cloud (1 new file):**
+- `backend/services/stigmer-service/.../agentrunner/launcher/McpBootstrapResolver.java`
+
+### Files Modified (this session)
+
+**stigmer (4 modified):**
+- `backend/services/agent-runner/sandbox/Dockerfile.sandbox.full` — Removed pre-installed npm/pip MCP packages, added bootstrap.sh COPY, updated header comments
+- `backend/services/agent-runner/sandbox/PERFORMANCE.md` — Updated image size, added bootstrap latency section
+- `backend/services/agent-runner/docs/sandbox/execution-modes.md` — Replaced "MCP Packages in Docker Image" with "MCP Package Bootstrap" section
+- `.github/workflows/release.sandbox-cloud.yaml` — Added bootstrap.sh to path triggers
+
+**stigmer-cloud (4 modified):**
+- `backend/services/stigmer-service/.../dispatch/AgentRunnerDispatchService.java` — Injected McpBootstrapResolver, set bootstrap labels on ephemeral runners
+- `backend/services/stigmer-service/.../launcher/DaytonaSandboxRunnerLauncher.java` — Read bootstrap labels from runner, add to sandbox env vars
+- `backend/services/stigmer-service/.../launcher/RunnerLauncherConfig.java` — Updated runner-start-command default to run bootstrap.sh first
+- `backend/services/stigmer-service/src/main/resources/application-runner-launcher.yaml` — Updated runner-start-command default and comment
 
 ## Session Progress (2026-04-21, Session 16 — Consolidate Proxy Under api.stigmer.ai)
 
