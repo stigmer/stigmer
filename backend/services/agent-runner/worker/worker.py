@@ -9,6 +9,7 @@ from temporalio.worker import Worker
 from .auth import configure as configure_auth
 from .config import Config
 from .heartbeat import HeartbeatEmitter
+from .idle_watchdog import IdleWatchdog
 from .temporal_converter import create_data_converter
 
 
@@ -20,6 +21,7 @@ class AgentRunner:
         self.client: Client | None = None
         self.worker: Worker | None = None
         self._heartbeat: HeartbeatEmitter | None = None
+        self._idle_watchdog: IdleWatchdog | None = None
         self.logger = logging.getLogger(__name__)
         
         configure_auth(config.stigmer_token)
@@ -31,6 +33,11 @@ class AgentRunner:
                 token=config.stigmer_token,
                 backend_endpoint=config.stigmer_backend_endpoint,
                 max_concurrency=config.max_concurrency,
+            )
+
+        if config.idle_timeout_seconds:
+            self._idle_watchdog = IdleWatchdog(
+                timeout_seconds=config.idle_timeout_seconds,
             )
         
         # Initialize cloud-mode infrastructure
@@ -205,9 +212,12 @@ class AgentRunner:
         )
     
     async def start(self):
-        """Start the heartbeat emitter and Temporal worker (blocking)."""
+        """Start the heartbeat emitter, idle watchdog, and Temporal worker (blocking)."""
         if self._heartbeat is not None:
             await self._heartbeat.start()
+
+        if self._idle_watchdog is not None:
+            await self._idle_watchdog.start()
 
         self.logger.info(f"Starting Temporal worker on task queue: {self.config.task_queue}")
         if self.worker:
@@ -216,12 +226,21 @@ class AgentRunner:
     async def shutdown(self):
         """Shutdown the worker and close connections.
 
-        Order matters: the heartbeat emitter sends a final STOPPED heartbeat
-        before the Temporal worker drains its activities, so the server sees
-        the runner go offline immediately rather than waiting for the 90s
-        heartbeat timeout.
+        Order matters:
+        1. Idle watchdog stops first (prevent re-trigger during drain)
+        2. Heartbeat emitter sends a final STOPPED heartbeat so the server
+           sees the runner go offline immediately (vs 90s heartbeat timeout)
+           and triggers sandbox cleanup
+        3. Temporal worker drains in-flight activities and exits
         """
         self.logger.info("Shutting down worker...")
+
+        if self._idle_watchdog is not None:
+            try:
+                await self._idle_watchdog.stop()
+                self.logger.info("✓ Idle watchdog stopped")
+            except Exception as e:
+                self.logger.error(f"Error stopping idle watchdog: {e}")
 
         if self._heartbeat is not None:
             try:
