@@ -27,7 +27,6 @@ func readPIDFile(dir, filename string) int {
 	if err != nil {
 		return 0
 	}
-	// PID is always on the first line; some PID files have extra metadata lines.
 	line := strings.TrimSpace(string(data))
 	if idx := strings.IndexByte(line, '\n'); idx > 0 {
 		line = line[:idx]
@@ -92,16 +91,14 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%dd %dh", days, hours)
 }
 
-// createBasicHealthState creates a fallback HealthState by reading PID files
-// directly when health-state.json is not available.
+// createBasicHealthState creates a fallback HealthState by probing PID files
+// and TCP ports when health-state.json is not available.
 func createBasicHealthState(dataDir string, daemonPID int) *daemon.HealthState {
 	hs := &daemon.HealthState{
 		DaemonPID:  daemonPID,
 		Components: make(map[string]*daemon.ComponentState),
 	}
 
-	// Temporal: live TCP probe is the only reliable way to check reachability
-	// when health-state.json is missing (e.g. legacy daemon, crash recovery).
 	temporalAddr := fmt.Sprintf("localhost:%d", temporal.DefaultTemporalPort)
 	conn, err := net.DialTimeout("tcp", temporalAddr, 200*time.Millisecond)
 	if err != nil {
@@ -151,8 +148,6 @@ func createBasicHealthState(dataDir string, daemonPID int) *daemon.HealthState {
 		hs.Components["agent-runner"] = &daemon.ComponentState{State: "stopped"}
 	}
 
-	// Web console runs in-process (no PID file). A TCP probe is the only
-	// way to detect it in the fallback path.
 	webConsoleAddr := fmt.Sprintf("localhost:%d", daemon.WebConsolePort)
 	wcConn, wcErr := net.DialTimeout("tcp", webConsoleAddr, 200*time.Millisecond)
 	if wcErr == nil {
