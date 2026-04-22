@@ -19,28 +19,29 @@ Performance characteristics of the cloud sandbox image
 | Runner source + deps | 7 MB | worker/, grpc_client/, graphton, proto stubs |
 
 MCP server packages (npm, pip, go modules) are **not** baked into the image.
-They are installed on-demand at sandbox startup by `bootstrap.sh`,
-which reads `STIGMER_BOOTSTRAP_NPM_PACKAGES` and
-`STIGMER_BOOTSTRAP_PIP_PACKAGES` env vars set by stigmer-service.
-This keeps the image slim and agent-specific.
+They are installed on-demand by the agent-runner during execution setup,
+derived from the merged (agent + session) MCP server specs. This keeps
+the image slim and agent-specific.
 
 Cloud CLIs (aws, gcloud, az, kubectl, terraform, pulumi, helm, etc.)
 are NOT included. Agents install them on-demand.
 
-## Bootstrap Latency
+## MCP Package Install Latency
 
-MCP server packages are installed at sandbox startup before the
-agent-runner process starts. Typical install times:
+MCP server packages are installed by the agent-runner during execution
+setup (after fetching MCP server specs, before config transformation).
+The user sees an "Installing tools..." status during this phase.
+Typical install times:
 
 | Packages | Estimated Time | Example |
 |----------|---------------|---------|
-| 0 (HTTP-only MCP servers) | 0s | No bootstrap needed |
+| 0 (HTTP-only MCP servers) | 0s | No install needed |
 | 1-2 npm packages | 3-8s | filesystem + git MCP servers |
 | 3-5 npm + 1-2 pip packages | 8-15s | Typical agent with mixed MCP servers |
 
-This cost is paid once per sandbox lifetime (not per execution).
-Sandboxes persist across the session, so subsequent executions
-within the same session see no install latency.
+This cost is paid on the first execution per sandbox. Packages persist
+in the sandbox across the session, so subsequent executions see
+near-instant startup.
 
 ## Daytona Sandbox Lifecycle
 

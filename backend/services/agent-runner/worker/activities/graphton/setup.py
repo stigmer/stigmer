@@ -56,7 +56,7 @@ from worker.activities.relevance import (
     build_relevance_prompt_section,
 )
 from worker.checkpointer import create_checkpointer
-from worker.mcp import transform_all_mcp_configs
+from worker.mcp import install_mcp_packages, transform_all_mcp_configs
 from worker.storage import create_artifact_storage
 from worker.workspace import (
     LocalWorkspaceBackend,
@@ -468,6 +468,25 @@ async def _perform_setup_core(
         execution_client, execution_id,
         "Configuring environment\u2026", logger,
     )
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Pre-install MCP packages: derive npm/pip package names from the
+    # merged (agent + session) server specs and install them so that
+    # npx/uvx find them locally instead of downloading at first use.
+    # ─────────────────────────────────────────────────────────────────────
+    if mcp_servers:
+        await report_setup_progress(
+            execution_client, execution_id,
+            "Installing tools\u2026", logger,
+        )
+        setup_timer.start("mcp_package_install")
+        install_result = await install_mcp_packages(mcp_servers, logger)
+        setup_timer.stop("mcp_package_install")
+        heartbeat_during_setup("mcp_packages_installed", {
+            "installed": install_result.installed,
+            "failed": install_result.failed,
+            "skipped": install_result.skipped,
+        })
 
     # ─────────────────────────────────────────────────────────────────────
     # Connect backfill: trigger the connect RPC for MCP servers that are

@@ -6,6 +6,8 @@ This module provides:
    LangGraph's ``MultiServerMCPClient`` format.
 -  **Placeholder resolution** — ``${VAR}`` substitution in server args
    and HTTP headers.
+-  **Package installation** — pre-installs npm/pip packages required by
+   stdio MCP servers so ``npx -y`` / ``uvx`` find them locally.
 
 Stdio MCP servers run as local subprocesses via ``MultiServerMCPClient``.
 In cloud mode the runner is inside a Daytona sandbox (provisioned by
@@ -16,6 +18,10 @@ from worker.mcp.config_transformer import (
     McpConfigResult,
     transform_all_mcp_configs,
     transform_mcp_config,
+)
+from worker.mcp.package_installer import (
+    InstallResult,
+    install_mcp_packages,
 )
 from worker.mcp.placeholder_resolver import (
     PlaceholderResolutionError,
@@ -28,6 +34,9 @@ __all__ = [
     "transform_mcp_config",
     "transform_all_mcp_configs",
     "McpConfigResult",
+    # Package installation
+    "install_mcp_packages",
+    "InstallResult",
     # Placeholder resolution
     "PlaceholderResolver",
     "PlaceholderResolutionError",

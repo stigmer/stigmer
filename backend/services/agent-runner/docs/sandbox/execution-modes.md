@@ -211,10 +211,6 @@ STIGMER_SANDBOX_CLEANUP=true  # Default: true
 
 # Sandbox container lifetime (for reuse)
 STIGMER_SANDBOX_TTL=3600  # Seconds, default: 1 hour
-
-# MCP package bootstrap (set by stigmer-service, not user-configured)
-STIGMER_BOOTSTRAP_NPM_PACKAGES=  # Comma-separated npm packages
-STIGMER_BOOTSTRAP_PIP_PACKAGES=  # Comma-separated pip packages
 ```
 
 ### CLI Flags (Future)
@@ -485,33 +481,36 @@ During agent execution, stdio MCP servers are started as local subprocesses insi
 
 When a user connects a new MCP server, the `DiscoverMcpServerCapabilities` activity runs on the runner and connects to the MCP server using `MultiServerMCPClient`. For stdio servers this starts a local subprocess; for HTTP servers it connects to the remote endpoint. Discovery completes synchronously within the activity.
 
-### MCP Package Bootstrap
+### MCP Package Installation
 
 MCP runtimes (Node.js, uv/uvx) are included in the sandbox Docker image
 (`Dockerfile.sandbox.full`). MCP server **packages** are NOT baked into the
-image — they are installed on-demand at sandbox startup by `bootstrap.sh`.
+image — they are installed on-demand by the agent-runner during execution
+setup.
 
 **How it works:**
 
-1. When stigmer-service provisions a sandbox, it resolves the agent's MCP
-   server definitions and extracts the required npm/pip package names.
-2. These are passed as env vars on the sandbox:
-   - `STIGMER_BOOTSTRAP_NPM_PACKAGES` — comma-separated npm package names
-     (e.g. `@modelcontextprotocol/server-filesystem,@brave/brave-search-mcp-server`)
-   - `STIGMER_BOOTSTRAP_PIP_PACKAGES` — comma-separated pip package names
-     (e.g. `mcp-server-fetch,postgres-mcp`)
-3. Before the runner process starts, `bootstrap.sh` reads these env vars
-   and installs the packages via `npm install -g` / `uv tool install`.
+1. During execution setup, the agent-runner fetches MCP server specs from
+   both the agent blueprint and the session (merged via
+   `merge_mcp_server_usages`).
+2. The `package_installer` module inspects each stdio server's `command`
+   and `args` to extract installable package names:
+   - `npx -y <package>` → npm package (`npm install -g`)
+   - `uvx <package>` → pip package (`uv tool install`)
+   - Custom commands (`node`, `python`, etc.) are skipped.
+3. Packages are installed concurrently as async subprocesses.
 4. Individual package failures are logged but do not block the runner.
    Failed packages will attempt on-demand install via `npx -y` / `uvx`
    when the MCP server is first invoked.
+5. The user sees an "Installing tools..." status during this phase,
+   and Temporal heartbeats continue flowing.
 
-**Bootstrap latency:** Typically 5-15 seconds for 1-5 packages. This cost
-is paid once per sandbox lifetime. Sandboxes persist across the session,
-so subsequent executions see no install latency.
+**Install latency:** Typically 5-15 seconds for 1-5 packages on first
+execution. Packages persist in the sandbox, so subsequent executions
+in the same session see near-instant startup.
 
 **Agents with no stdio MCP servers** (HTTP-only or no MCP servers):
-bootstrap is a no-op (both env vars are empty).
+the installer is a no-op.
 
 ### Local/OSS Mode
 
