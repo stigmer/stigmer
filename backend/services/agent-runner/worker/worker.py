@@ -8,7 +8,6 @@ from temporalio.worker import Worker
 
 from .auth import configure as configure_auth
 from .config import Config
-from .heartbeat import HeartbeatEmitter
 from .idle_watchdog import IdleWatchdog
 from .temporal_converter import create_data_converter
 
@@ -20,20 +19,11 @@ class Runner:
         self.config = config
         self.client: Client | None = None
         self.worker: Worker | None = None
-        self._heartbeat: HeartbeatEmitter | None = None
         self._idle_watchdog: IdleWatchdog | None = None
         self.logger = logging.getLogger(__name__)
         
         configure_auth(config.stigmer_token)
         self.logger.info("Configured Stigmer auth token")
-
-        if config.runner_id:
-            self._heartbeat = HeartbeatEmitter(
-                runner_id=config.runner_id,
-                token=config.stigmer_token,
-                backend_endpoint=config.stigmer_backend_endpoint,
-                max_concurrency=config.max_concurrency,
-            )
 
         if config.idle_timeout_seconds:
             self._idle_watchdog = IdleWatchdog(
@@ -174,10 +164,7 @@ class Runner:
         )
     
     async def start(self):
-        """Start the heartbeat emitter, idle watchdog, and Temporal worker (blocking)."""
-        if self._heartbeat is not None:
-            await self._heartbeat.start()
-
+        """Start the idle watchdog and Temporal worker (blocking)."""
         if self._idle_watchdog is not None:
             await self._idle_watchdog.start()
 
@@ -190,10 +177,7 @@ class Runner:
 
         Order matters:
         1. Idle watchdog stops first (prevent re-trigger during drain)
-        2. Heartbeat emitter sends a final STOPPED heartbeat so the server
-           sees the runner go offline immediately (vs 90s heartbeat timeout)
-           and triggers sandbox cleanup
-        3. Temporal worker drains in-flight activities and exits
+        2. Temporal worker drains in-flight activities and exits
         """
         self.logger.info("Shutting down worker...")
 
@@ -203,13 +187,6 @@ class Runner:
                 self.logger.info("✓ Idle watchdog stopped")
             except Exception as e:
                 self.logger.error(f"Error stopping idle watchdog: {e}")
-
-        if self._heartbeat is not None:
-            try:
-                await self._heartbeat.stop()
-                self.logger.info("✓ Heartbeat emitter stopped")
-            except Exception as e:
-                self.logger.error(f"Error stopping heartbeat emitter: {e}")
         
         if self.worker:
             try:

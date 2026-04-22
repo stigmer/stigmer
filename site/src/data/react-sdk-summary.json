@@ -151,8 +151,8 @@
       "slug": "workspace",
       "title": "Workspace",
       "description": "Hooks and components for file entries, folder browsing, and code editing.",
-      "hooks": 2,
-      "components": 3
+      "hooks": 1,
+      "components": 2
     }
   ]
 }

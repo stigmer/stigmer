@@ -368,7 +368,6 @@ export function SessionLauncher() {
           gitHubConnection={gitHubConnection}
           enableGitHub
           enableLocal={deploymentMode === "local"}
-          enableFolderBrowser={deploymentMode === "local"}
           agentRef={agentRef}
           onAgentRefChange={setAgentRef}
           onAgentResolutionChange={setResolution}

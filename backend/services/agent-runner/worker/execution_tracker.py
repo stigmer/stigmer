@@ -1,8 +1,5 @@
 """Process-wide counter for active Temporal activity executions.
 
-The heartbeat emitter reads this counter to determine the runner's phase
-(READY vs BUSY) and to report ``current_executions`` on each heartbeat.
-
 The idle watchdog reads :func:`last_activity_at` to determine how long
 the runner has been idle.  The timestamp is monotonic (immune to wall-
 clock adjustments) and is updated on every :func:`increment` and

@@ -3,17 +3,13 @@
 Monitors the execution tracker and initiates graceful process shutdown
 via SIGTERM when no Temporal activities have run for a configurable
 period.  The existing signal handler in ``main.py`` handles the rest:
-final STOPPED heartbeat, Temporal worker drain, and clean exit.
+Temporal worker drain and clean exit.  The Go supervisor (CLI daemon)
+handles runner lifecycle reporting (heartbeats, STOPPED transition)
+over its bidi gRPC stream.
 
 The watchdog is opt-in: disabled when ``STIGMER_IDLE_TIMEOUT_SECONDS``
 is absent or zero.  The launcher passes this env var for ephemeral
 (cloud-provisioned) runners; persistent and local runners never set it.
-
-Daytona's ``autoStopInterval`` is NOT sufficient as a replacement:
-it measures toolbox API interaction time, not running processes.  A
-backgrounded ``nohup`` worker is invisible to Daytona's idle detector.
-The Python watchdog provides application-level idle awareness and
-graceful shutdown with a final STOPPED heartbeat.
 """
 
 from __future__ import annotations
@@ -35,7 +31,6 @@ class IdleWatchdog:
     Args:
         timeout_seconds: Seconds of zero activity before shutdown.
         check_interval_seconds: Polling interval for the idle check.
-            Defaults to 30s (matches heartbeat cadence).
     """
 
     def __init__(

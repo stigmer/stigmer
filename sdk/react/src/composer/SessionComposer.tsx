@@ -110,8 +110,6 @@ export interface SessionComposerProps {
   readonly enableGitHub?: boolean;
   /** Show the Local Folder source button. @default false */
   readonly enableLocal?: boolean;
-  /** Use the visual folder browser instead of a text input. @default false */
-  readonly enableFolderBrowser?: boolean;
 
   /**
    * Organization slug for agent, MCP server, and skill searches.
@@ -332,7 +330,6 @@ export function SessionComposer({
   gitHubConnection,
   enableGitHub = true,
   enableLocal = false,
-  enableFolderBrowser = false,
   org,
   agentRef,
   onAgentRefChange,
@@ -1270,7 +1267,6 @@ export function SessionComposer({
                   gitHubConnection={gitHubConnection}
                   enableGitHub={enableGitHub}
                   enableLocal={enableLocal}
-                  enableFolderBrowser={enableFolderBrowser}
                 />
               : null
           }
