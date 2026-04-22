@@ -7,7 +7,8 @@ from ai.stigmer.agentic.runner.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_do
 
 
 class RunnerCommandControllerStub(object):
-    """RunnerCommandController handles write operations for runners.
+    """RunnerCommandController handles write operations and the bidirectional
+    command stream for runners.
 
     Two creation patterns are supported:
 
@@ -19,9 +20,9 @@ class RunnerCommandControllerStub(object):
     with metadata label stigmer.ai/system-managed: "true". The runner is
     torn down via delete when the execution completes.
 
-    The heartbeat RPC is called by the runner process on a regular interval
-    (default 30s) to report liveness and state. It is the runner's only
-    ongoing communication channel with the server.
+    After registration, the runner opens the connect bidi stream — its only
+    ongoing communication channel with the server. Heartbeats flow runner to
+    server; commands (e.g., ListDirectory) flow server to runner.
     """
 
     def __init__(self, channel):
@@ -50,15 +51,16 @@ class RunnerCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_api__pb2.Runner.FromString,
                 _registered_method=True)
-        self.heartbeat = channel.unary_unary(
-                '/ai.stigmer.agentic.runner.v1.RunnerCommandController/heartbeat',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerHeartbeatInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_api__pb2.Runner.FromString,
+        self.connect = channel.stream_stream(
+                '/ai.stigmer.agentic.runner.v1.RunnerCommandController/connect',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerStreamClientMessage.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerStreamServerMessage.FromString,
                 _registered_method=True)
 
 
 class RunnerCommandControllerServicer(object):
-    """RunnerCommandController handles write operations for runners.
+    """RunnerCommandController handles write operations and the bidirectional
+    command stream for runners.
 
     Two creation patterns are supported:
 
@@ -70,9 +72,9 @@ class RunnerCommandControllerServicer(object):
     with metadata label stigmer.ai/system-managed: "true". The runner is
     torn down via delete when the execution completes.
 
-    The heartbeat RPC is called by the runner process on a regular interval
-    (default 30s) to report liveness and state. It is the runner's only
-    ongoing communication channel with the server.
+    After registration, the runner opens the connect bidi stream — its only
+    ongoing communication channel with the server. Heartbeats flow runner to
+    server; commands (e.g., ListDirectory) flow server to runner.
     """
 
     def apply(self, request, context):
@@ -104,7 +106,7 @@ class RunnerCommandControllerServicer(object):
 
         @internal
         Used for updating spec fields (e.g., description). Status fields are
-        updated via heartbeat, not via this RPC.
+        updated via the connect stream heartbeat, not via this RPC.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -122,22 +124,27 @@ class RunnerCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def heartbeat(self, request, context):
-        """Report runner liveness and operational state.
+    def connect(self, request_iterator, context):
+        """Establish a bidirectional command stream between the runner and the server.
 
-        Called by the runner process every 30 seconds. Updates status fields
-        (phase, last_heartbeat_at, current_executions, connection_info) without
-        modifying spec or metadata.
+        This is the runner's primary ongoing communication channel. The runner
+        pushes heartbeats (liveness + state); the server pushes commands
+        (e.g., ListDirectory for workspace browsing). Both directions use the
+        same open connection.
 
-        If the runner is in PENDING or STOPPED phase, a heartbeat transitions it
-        to the phase reported in the input (typically READY). This enables the
-        "restart and reconnect" flow: a stopped runner resumes heartbeating and
-        goes back to READY with the same identity and task queue.
+        Stream lifecycle:
+        1. Runner calls apply to register/reactivate, then opens this stream.
+        2. First message MUST be a RunnerHeartbeat (authenticates via runner_id).
+        3. Runner sends heartbeats every 30s.
+        4. Server pushes RunnerCommandRequest when the UI triggers an operation.
+        5. Runner handles commands locally and sends RunnerCommandResponse.
+        6. On graceful shutdown: runner sends phase=STOPPED heartbeat, closes stream.
+        7. On disconnect: server starts heartbeat timeout (90s) -> STOPPED.
 
         @internal
-        Authorization is handled in the handler: the caller must own the runner.
-        Skipped at the interceptor level because the input is RunnerHeartbeatInput
-        (not a resource), and the ownership check requires a DB lookup.
+        Authorization is handled via the first heartbeat message: the server
+        looks up the runner_id and verifies ownership. Skipped at the interceptor
+        level because the stream input is not a resource type.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -166,10 +173,10 @@ def add_RunnerCommandControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerId.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_api__pb2.Runner.SerializeToString,
             ),
-            'heartbeat': grpc.unary_unary_rpc_method_handler(
-                    servicer.heartbeat,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerHeartbeatInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_api__pb2.Runner.SerializeToString,
+            'connect': grpc.stream_stream_rpc_method_handler(
+                    servicer.connect,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerStreamClientMessage.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerStreamServerMessage.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -180,7 +187,8 @@ def add_RunnerCommandControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class RunnerCommandController(object):
-    """RunnerCommandController handles write operations for runners.
+    """RunnerCommandController handles write operations and the bidirectional
+    command stream for runners.
 
     Two creation patterns are supported:
 
@@ -192,9 +200,9 @@ class RunnerCommandController(object):
     with metadata label stigmer.ai/system-managed: "true". The runner is
     torn down via delete when the execution completes.
 
-    The heartbeat RPC is called by the runner process on a regular interval
-    (default 30s) to report liveness and state. It is the runner's only
-    ongoing communication channel with the server.
+    After registration, the runner opens the connect bidi stream — its only
+    ongoing communication channel with the server. Heartbeats flow runner to
+    server; commands (e.g., ListDirectory) flow server to runner.
     """
 
     @staticmethod
@@ -306,7 +314,7 @@ class RunnerCommandController(object):
             _registered_method=True)
 
     @staticmethod
-    def heartbeat(request,
+    def connect(request_iterator,
             target,
             options=(),
             channel_credentials=None,
@@ -316,12 +324,12 @@ class RunnerCommandController(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
+        return grpc.experimental.stream_stream(
+            request_iterator,
             target,
-            '/ai.stigmer.agentic.runner.v1.RunnerCommandController/heartbeat',
-            ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerHeartbeatInput.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_api__pb2.Runner.FromString,
+            '/ai.stigmer.agentic.runner.v1.RunnerCommandController/connect',
+            ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerStreamClientMessage.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerStreamServerMessage.FromString,
             options,
             channel_credentials,
             insecure,

@@ -41,7 +41,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "tigmer/agentic/runner/v1/io.proto\0328ai/st" +
       "igmer/commons/apiresource/rpc_service_op" +
       "tions.proto\032+ai/stigmer/commons/rpc/meth" +
-      "od_options.proto2\232\005\n\027RunnerCommandContro" +
+      "od_options.proto2\265\005\n\027RunnerCommandContro" +
       "ller\022S\n\005apply\022$.ai.stigmer.agentic.runne" +
       "r.v1.Runner\032$.ai.stigmer.agentic.runner." +
       "v1.Runner\022\240\001\n\006create\022$.ai.stigmer.agenti" +
@@ -55,14 +55,15 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "lete\022&.ai.stigmer.agentic.runner.v1.Runn" +
       "erId\032$.ai.stigmer.agentic.runner.v1.Runn" +
       "er\".\302\270\030*\010\003\020.\"\005value*\035unauthorized to del" +
-      "ete runner\022k\n\theartbeat\0222.ai.stigmer.age" +
-      "ntic.runner.v1.RunnerHeartbeatInput\032$.ai" +
-      ".stigmer.agentic.runner.v1.Runner\"\004\320\270\030\001\032" +
-      "\004\240\377+.B\243\001B\014CommandProtoP\001\242\002\004ASAR\252\002\034Ai.Sti" +
-      "gmer.Agentic.Runner.V1\312\002\034Ai\\Stigmer\\Agen" +
-      "tic\\Runner\\V1\342\002(Ai\\Stigmer\\Agentic\\Runne" +
-      "r\\V1\\GPBMetadata\352\002 Ai::Stigmer::Agentic:" +
-      ":Runner::V1b\006proto3"
+      "ete runner\022\205\001\n\007connect\0227.ai.stigmer.agen" +
+      "tic.runner.v1.RunnerStreamClientMessage\032" +
+      "7.ai.stigmer.agentic.runner.v1.RunnerStr" +
+      "eamServerMessage\"\004\320\270\030\001(\0010\001\032\004\240\377+.B\243\001B\014Com" +
+      "mandProtoP\001\242\002\004ASAR\252\002\034Ai.Stigmer.Agentic." +
+      "Runner.V1\312\002\034Ai\\Stigmer\\Agentic\\Runner\\V1" +
+      "\342\002(Ai\\Stigmer\\Agentic\\Runner\\V1\\GPBMetad" +
+      "ata\352\002 Ai::Stigmer::Agentic::Runner::V1b\006" +
+      "proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

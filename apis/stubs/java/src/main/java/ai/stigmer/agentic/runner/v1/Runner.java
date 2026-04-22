@@ -15,8 +15,8 @@ package ai.stigmer.agentic.runner.v1;
  *
  * Runner follows the Kubernetes Node pattern:
  * - **Thin spec**: the user declares intent (a name, a description). That's it.
- * - **Rich status**: the runner process self-reports everything via heartbeat —
- * phase, capacity, machine info, task queue.
+ * - **Rich status**: the runner process self-reports everything via the
+ * connect stream — phase, capacity, machine info, task queue.
  * - **Identity persists across restarts**: a runner that stops and restarts
  * reconnects to the same resource. The CLI stores the runner ID locally and
  * calls apply to reactivate the same identity, same queue.
@@ -533,8 +533,8 @@ private static final long serialVersionUID = 0L;
    *
    * Runner follows the Kubernetes Node pattern:
    * - **Thin spec**: the user declares intent (a name, a description). That's it.
-   * - **Rich status**: the runner process self-reports everything via heartbeat —
-   * phase, capacity, machine info, task queue.
+   * - **Rich status**: the runner process self-reports everything via the
+   * connect stream — phase, capacity, machine info, task queue.
    * - **Identity persists across restarts**: a runner that stops and restarts
    * reconnects to the same resource. The CLI stores the runner ID locally and
    * calls apply to reactivate the same identity, same queue.

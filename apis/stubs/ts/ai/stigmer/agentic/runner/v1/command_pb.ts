@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { RunnerSchema } from "./api_pb";
 import { file_ai_stigmer_agentic_runner_v1_api } from "./api_pb";
-import type { RunnerHeartbeatInputSchema, RunnerIdSchema } from "./io_pb";
+import type { RunnerIdSchema, RunnerStreamClientMessageSchema, RunnerStreamServerMessageSchema } from "./io_pb";
 import { file_ai_stigmer_agentic_runner_v1_io } from "./io_pb";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb";
@@ -15,10 +15,11 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/runner/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_runner_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvcnVubmVyL3YxL2NvbW1hbmQucHJvdG8SHGFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEymgUKF1J1bm5lckNvbW1hbmRDb250cm9sbGVyElMKBWFwcGx5EiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lchKgAQoGY3JlYXRlEiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciJKwrgYRggZEB4iDG1ldGFkYXRhLm9yZyoydW5hdXRob3JpemVkIHRvIGNyZWF0ZSBydW5uZXIgaW4gdGhpcyBvcmdhbml6YXRpb24SigEKBnVwZGF0ZRIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyGiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIiNMK4GDAIAhAuIgttZXRhZGF0YS5pZCoddW5hdXRob3JpemVkIHRvIHVwZGF0ZSBydW5uZXIShgEKBmRlbGV0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVySWQaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciIuwrgYKggDEC4iBXZhbHVlKh11bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHJ1bm5lchJrCgloZWFydGJlYXQSMi5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lckhlYXJ0YmVhdElucHV0GiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIiBNC4GAEaBKD/Ky5iBnByb3RvMw", [file_ai_stigmer_agentic_runner_v1_api, file_ai_stigmer_agentic_runner_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvcnVubmVyL3YxL2NvbW1hbmQucHJvdG8SHGFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEytQUKF1J1bm5lckNvbW1hbmRDb250cm9sbGVyElMKBWFwcGx5EiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lchKgAQoGY3JlYXRlEiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciJKwrgYRggZEB4iDG1ldGFkYXRhLm9yZyoydW5hdXRob3JpemVkIHRvIGNyZWF0ZSBydW5uZXIgaW4gdGhpcyBvcmdhbml6YXRpb24SigEKBnVwZGF0ZRIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyGiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIiNMK4GDAIAhAuIgttZXRhZGF0YS5pZCoddW5hdXRob3JpemVkIHRvIHVwZGF0ZSBydW5uZXIShgEKBmRlbGV0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVySWQaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciIuwrgYKggDEC4iBXZhbHVlKh11bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHJ1bm5lchKFAQoHY29ubmVjdBI3LmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyU3RyZWFtQ2xpZW50TWVzc2FnZRo3LmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyU3RyZWFtU2VydmVyTWVzc2FnZSIE0LgYASgBMAEaBKD/Ky5iBnByb3RvMw", [file_ai_stigmer_agentic_runner_v1_api, file_ai_stigmer_agentic_runner_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
- * RunnerCommandController handles write operations for runners.
+ * RunnerCommandController handles write operations and the bidirectional
+ * command stream for runners.
  *
  * Two creation patterns are supported:
  *
@@ -30,9 +31,9 @@ export const file_ai_stigmer_agentic_runner_v1_command: GenFile = /*@__PURE__*/
  *    with metadata label stigmer.ai/system-managed: "true". The runner is
  *    torn down via delete when the execution completes.
  *
- * The heartbeat RPC is called by the runner process on a regular interval
- * (default 30s) to report liveness and state. It is the runner's only
- * ongoing communication channel with the server.
+ * After registration, the runner opens the connect bidi stream — its only
+ * ongoing communication channel with the server. Heartbeats flow runner to
+ * server; commands (e.g., ListDirectory) flow server to runner.
  *
  * @generated from service ai.stigmer.agentic.runner.v1.RunnerCommandController
  */
@@ -72,7 +73,7 @@ export const RunnerCommandController: GenService<{
    *
    * @internal
    * Used for updating spec fields (e.g., description). Status fields are
-   * updated via heartbeat, not via this RPC.
+   * updated via the connect stream heartbeat, not via this RPC.
    *
    * @generated from rpc ai.stigmer.agentic.runner.v1.RunnerCommandController.update
    */
@@ -97,28 +98,33 @@ export const RunnerCommandController: GenService<{
     output: typeof RunnerSchema;
   },
   /**
-   * Report runner liveness and operational state.
+   * Establish a bidirectional command stream between the runner and the server.
    *
-   * Called by the runner process every 30 seconds. Updates status fields
-   * (phase, last_heartbeat_at, current_executions, connection_info) without
-   * modifying spec or metadata.
+   * This is the runner's primary ongoing communication channel. The runner
+   * pushes heartbeats (liveness + state); the server pushes commands
+   * (e.g., ListDirectory for workspace browsing). Both directions use the
+   * same open connection.
    *
-   * If the runner is in PENDING or STOPPED phase, a heartbeat transitions it
-   * to the phase reported in the input (typically READY). This enables the
-   * "restart and reconnect" flow: a stopped runner resumes heartbeating and
-   * goes back to READY with the same identity and task queue.
+   * Stream lifecycle:
+   *   1. Runner calls apply to register/reactivate, then opens this stream.
+   *   2. First message MUST be a RunnerHeartbeat (authenticates via runner_id).
+   *   3. Runner sends heartbeats every 30s.
+   *   4. Server pushes RunnerCommandRequest when the UI triggers an operation.
+   *   5. Runner handles commands locally and sends RunnerCommandResponse.
+   *   6. On graceful shutdown: runner sends phase=STOPPED heartbeat, closes stream.
+   *   7. On disconnect: server starts heartbeat timeout (90s) -> STOPPED.
    *
    * @internal
-   * Authorization is handled in the handler: the caller must own the runner.
-   * Skipped at the interceptor level because the input is RunnerHeartbeatInput
-   * (not a resource), and the ownership check requires a DB lookup.
+   * Authorization is handled via the first heartbeat message: the server
+   * looks up the runner_id and verifies ownership. Skipped at the interceptor
+   * level because the stream input is not a resource type.
    *
-   * @generated from rpc ai.stigmer.agentic.runner.v1.RunnerCommandController.heartbeat
+   * @generated from rpc ai.stigmer.agentic.runner.v1.RunnerCommandController.connect
    */
-  heartbeat: {
-    methodKind: "unary";
-    input: typeof RunnerHeartbeatInputSchema;
-    output: typeof RunnerSchema;
+  connect: {
+    methodKind: "bidi_streaming";
+    input: typeof RunnerStreamClientMessageSchema;
+    output: typeof RunnerStreamServerMessageSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_runner_v1_command, 0);

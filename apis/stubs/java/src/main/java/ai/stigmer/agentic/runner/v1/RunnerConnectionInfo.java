@@ -8,7 +8,8 @@ package ai.stigmer.agentic.runner.v1;
 /**
  * <pre>
  * RunnerConnectionInfo contains self-reported details about the runner's
- * host environment. Populated by the runner process on each heartbeat call.
+ * host environment. Populated by the runner process on each heartbeat
+ * message sent over the connect stream.
  *
  * This information is used for:
  * - UI display: "Alice's MacBook Pro (darwin/arm64)"
@@ -447,7 +448,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * RunnerConnectionInfo contains self-reported details about the runner's
-   * host environment. Populated by the runner process on each heartbeat call.
+   * host environment. Populated by the runner process on each heartbeat
+   * message sent over the connect stream.
    *
    * This information is used for:
    * - UI display: "Alice's MacBook Pro (darwin/arm64)"

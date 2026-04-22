@@ -7,26 +7,25 @@ package ai.stigmer.agentic.runner.v1;
 
 /**
  * <pre>
- * RunnerHeartbeatInput is sent by the runner process on a regular
- * interval (default 30s) to report liveness and operational state.
+ * RunnerHeartbeat reports runner liveness and operational state over the
+ * connect stream.
  *
- * The server uses heartbeat absence to detect stale runners: if no heartbeat
- * arrives within the timeout window (default 90s = 3x interval), the runner
- * transitions to STOPPED. When a stopped runner resumes heartbeating, it
- * transitions back to READY.
+ * Sent every 30 seconds. The first message on a new stream MUST be a
+ * heartbeat — it authenticates the stream by runner_id lookup.
  *
- * The heartbeat is intentionally lightweight — it carries only the fields that
- * change frequently. Static runner identity (name, org, description) is set
- * once via create/apply and does not repeat on every heartbeat.
+ * The server's processing logic mirrors the legacy unary heartbeat: update
+ * phase, last_heartbeat_at, current_executions, and connection_info on the
+ * Runner resource. A heartbeat from a PENDING or STOPPED runner transitions
+ * it to the reported phase (typically READY).
  * </pre>
  *
- * Protobuf type {@code ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput}
+ * Protobuf type {@code ai.stigmer.agentic.runner.v1.RunnerHeartbeat}
  */
 @com.google.protobuf.Generated
-public final class RunnerHeartbeatInput extends
+public final class RunnerHeartbeat extends
     com.google.protobuf.GeneratedMessage implements
-    // @@protoc_insertion_point(message_implements:ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput)
-    RunnerHeartbeatInputOrBuilder {
+    // @@protoc_insertion_point(message_implements:ai.stigmer.agentic.runner.v1.RunnerHeartbeat)
+    RunnerHeartbeatOrBuilder {
 private static final long serialVersionUID = 0L;
   static {
     com.google.protobuf.RuntimeVersion.validateProtobufGencodeVersion(
@@ -35,33 +34,33 @@ private static final long serialVersionUID = 0L;
       /* minor= */ 34,
       /* patch= */ 0,
       /* suffix= */ "",
-      "RunnerHeartbeatInput");
+      "RunnerHeartbeat");
   }
-  // Use RunnerHeartbeatInput.newBuilder() to construct.
-  private RunnerHeartbeatInput(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+  // Use RunnerHeartbeat.newBuilder() to construct.
+  private RunnerHeartbeat(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
     super(builder);
   }
-  private RunnerHeartbeatInput() {
+  private RunnerHeartbeat() {
     runnerId_ = "";
     phase_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
       getDescriptor() {
-    return ai.stigmer.agentic.runner.v1.IoProto.internal_static_ai_stigmer_agentic_runner_v1_RunnerHeartbeatInput_descriptor;
+    return ai.stigmer.agentic.runner.v1.IoProto.internal_static_ai_stigmer_agentic_runner_v1_RunnerHeartbeat_descriptor;
   }
 
   @java.lang.Override
   public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-    return ai.stigmer.agentic.runner.v1.IoProto.internal_static_ai_stigmer_agentic_runner_v1_RunnerHeartbeatInput_descriptor;
+    return ai.stigmer.agentic.runner.v1.IoProto.internal_static_ai_stigmer_agentic_runner_v1_RunnerHeartbeat_descriptor;
   }
 
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
-    return ai.stigmer.agentic.runner.v1.IoProto.internal_static_ai_stigmer_agentic_runner_v1_RunnerHeartbeatInput_fieldAccessorTable
+    return ai.stigmer.agentic.runner.v1.IoProto.internal_static_ai_stigmer_agentic_runner_v1_RunnerHeartbeat_fieldAccessorTable
         .ensureFieldAccessorsInitialized(
-            ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput.class, ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput.Builder.class);
+            ai.stigmer.agentic.runner.v1.RunnerHeartbeat.class, ai.stigmer.agentic.runner.v1.RunnerHeartbeat.Builder.class);
   }
 
   private int bitField0_;
@@ -73,7 +72,7 @@ private static final long serialVersionUID = 0L;
    * ID of the runner sending the heartbeat.
    * </pre>
    *
-   * <code>string runner_id = 1 [json_name = "runnerId", (.buf.validate.field) = { ... }</code>
+   * <code>string runner_id = 1 [json_name = "runnerId"];</code>
    * @return The runnerId.
    */
   @java.lang.Override
@@ -94,7 +93,7 @@ private static final long serialVersionUID = 0L;
    * ID of the runner sending the heartbeat.
    * </pre>
    *
-   * <code>string runner_id = 1 [json_name = "runnerId", (.buf.validate.field) = { ... }</code>
+   * <code>string runner_id = 1 [json_name = "runnerId"];</code>
    * @return The bytes for runnerId.
    */
   @java.lang.Override
@@ -120,7 +119,7 @@ private static final long serialVersionUID = 0L;
    * Typically READY (accepting work) or BUSY (at capacity).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase", (.buf.validate.field) = { ... }</code>
+   * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase"];</code>
    * @return The enum numeric value on the wire for phase.
    */
   @java.lang.Override public int getPhaseValue() {
@@ -132,7 +131,7 @@ private static final long serialVersionUID = 0L;
    * Typically READY (accepting work) or BUSY (at capacity).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase", (.buf.validate.field) = { ... }</code>
+   * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase"];</code>
    * @return The phase.
    */
   @java.lang.Override public ai.stigmer.agentic.runner.v1.RunnerPhase getPhase() {
@@ -159,9 +158,9 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connectionInfo_;
   /**
    * <pre>
-   * Self-reported machine information. The runner sends this on every
-   * heartbeat so that version upgrades and hostname changes are reflected
-   * without requiring a full resource update.
+   * Self-reported machine information. Sent on every heartbeat so that
+   * version upgrades and hostname changes are reflected without requiring
+   * a full resource update.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 4 [json_name = "connectionInfo"];</code>
@@ -173,9 +172,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Self-reported machine information. The runner sends this on every
-   * heartbeat so that version upgrades and hostname changes are reflected
-   * without requiring a full resource update.
+   * Self-reported machine information. Sent on every heartbeat so that
+   * version upgrades and hostname changes are reflected without requiring
+   * a full resource update.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 4 [json_name = "connectionInfo"];</code>
@@ -187,9 +186,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Self-reported machine information. The runner sends this on every
-   * heartbeat so that version upgrades and hostname changes are reflected
-   * without requiring a full resource update.
+   * Self-reported machine information. Sent on every heartbeat so that
+   * version upgrades and hostname changes are reflected without requiring
+   * a full resource update.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 4 [json_name = "connectionInfo"];</code>
@@ -259,10 +258,10 @@ private static final long serialVersionUID = 0L;
     if (obj == this) {
      return true;
     }
-    if (!(obj instanceof ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput)) {
+    if (!(obj instanceof ai.stigmer.agentic.runner.v1.RunnerHeartbeat)) {
       return super.equals(obj);
     }
-    ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput other = (ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput) obj;
+    ai.stigmer.agentic.runner.v1.RunnerHeartbeat other = (ai.stigmer.agentic.runner.v1.RunnerHeartbeat) obj;
 
     if (!getRunnerId()
         .equals(other.getRunnerId())) return false;
@@ -300,44 +299,44 @@ private static final long serialVersionUID = 0L;
     return hash;
   }
 
-  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput parseFrom(
+  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeat parseFrom(
       java.nio.ByteBuffer data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput parseFrom(
+  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeat parseFrom(
       java.nio.ByteBuffer data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput parseFrom(
+  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeat parseFrom(
       com.google.protobuf.ByteString data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput parseFrom(
+  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeat parseFrom(
       com.google.protobuf.ByteString data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput parseFrom(byte[] data)
+  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeat parseFrom(byte[] data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput parseFrom(
+  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeat parseFrom(
       byte[] data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput parseFrom(java.io.InputStream input)
+  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeat parseFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseWithIOException(PARSER, input);
   }
-  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput parseFrom(
+  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeat parseFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -345,26 +344,26 @@ private static final long serialVersionUID = 0L;
         .parseWithIOException(PARSER, input, extensionRegistry);
   }
 
-  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput parseDelimitedFrom(java.io.InputStream input)
+  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeat parseDelimitedFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseDelimitedWithIOException(PARSER, input);
   }
 
-  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput parseDelimitedFrom(
+  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeat parseDelimitedFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
   }
-  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput parseFrom(
+  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeat parseFrom(
       com.google.protobuf.CodedInputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseWithIOException(PARSER, input);
   }
-  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput parseFrom(
+  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeat parseFrom(
       com.google.protobuf.CodedInputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -377,7 +376,7 @@ private static final long serialVersionUID = 0L;
   public static Builder newBuilder() {
     return DEFAULT_INSTANCE.toBuilder();
   }
-  public static Builder newBuilder(ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput prototype) {
+  public static Builder newBuilder(ai.stigmer.agentic.runner.v1.RunnerHeartbeat prototype) {
     return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
   }
   @java.lang.Override
@@ -394,39 +393,38 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * RunnerHeartbeatInput is sent by the runner process on a regular
-   * interval (default 30s) to report liveness and operational state.
+   * RunnerHeartbeat reports runner liveness and operational state over the
+   * connect stream.
    *
-   * The server uses heartbeat absence to detect stale runners: if no heartbeat
-   * arrives within the timeout window (default 90s = 3x interval), the runner
-   * transitions to STOPPED. When a stopped runner resumes heartbeating, it
-   * transitions back to READY.
+   * Sent every 30 seconds. The first message on a new stream MUST be a
+   * heartbeat — it authenticates the stream by runner_id lookup.
    *
-   * The heartbeat is intentionally lightweight — it carries only the fields that
-   * change frequently. Static runner identity (name, org, description) is set
-   * once via create/apply and does not repeat on every heartbeat.
+   * The server's processing logic mirrors the legacy unary heartbeat: update
+   * phase, last_heartbeat_at, current_executions, and connection_info on the
+   * Runner resource. A heartbeat from a PENDING or STOPPED runner transitions
+   * it to the reported phase (typically READY).
    * </pre>
    *
-   * Protobuf type {@code ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput}
+   * Protobuf type {@code ai.stigmer.agentic.runner.v1.RunnerHeartbeat}
    */
   public static final class Builder extends
       com.google.protobuf.GeneratedMessage.Builder<Builder> implements
-      // @@protoc_insertion_point(builder_implements:ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput)
-      ai.stigmer.agentic.runner.v1.RunnerHeartbeatInputOrBuilder {
+      // @@protoc_insertion_point(builder_implements:ai.stigmer.agentic.runner.v1.RunnerHeartbeat)
+      ai.stigmer.agentic.runner.v1.RunnerHeartbeatOrBuilder {
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return ai.stigmer.agentic.runner.v1.IoProto.internal_static_ai_stigmer_agentic_runner_v1_RunnerHeartbeatInput_descriptor;
+      return ai.stigmer.agentic.runner.v1.IoProto.internal_static_ai_stigmer_agentic_runner_v1_RunnerHeartbeat_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return ai.stigmer.agentic.runner.v1.IoProto.internal_static_ai_stigmer_agentic_runner_v1_RunnerHeartbeatInput_fieldAccessorTable
+      return ai.stigmer.agentic.runner.v1.IoProto.internal_static_ai_stigmer_agentic_runner_v1_RunnerHeartbeat_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput.class, ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput.Builder.class);
+              ai.stigmer.agentic.runner.v1.RunnerHeartbeat.class, ai.stigmer.agentic.runner.v1.RunnerHeartbeat.Builder.class);
     }
 
-    // Construct using ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput.newBuilder()
+    // Construct using ai.stigmer.agentic.runner.v1.RunnerHeartbeat.newBuilder()
     private Builder() {
       maybeForceBuilderInitialization();
     }
@@ -460,17 +458,17 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public com.google.protobuf.Descriptors.Descriptor
         getDescriptorForType() {
-      return ai.stigmer.agentic.runner.v1.IoProto.internal_static_ai_stigmer_agentic_runner_v1_RunnerHeartbeatInput_descriptor;
+      return ai.stigmer.agentic.runner.v1.IoProto.internal_static_ai_stigmer_agentic_runner_v1_RunnerHeartbeat_descriptor;
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput getDefaultInstanceForType() {
-      return ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput.getDefaultInstance();
+    public ai.stigmer.agentic.runner.v1.RunnerHeartbeat getDefaultInstanceForType() {
+      return ai.stigmer.agentic.runner.v1.RunnerHeartbeat.getDefaultInstance();
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput build() {
-      ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput result = buildPartial();
+    public ai.stigmer.agentic.runner.v1.RunnerHeartbeat build() {
+      ai.stigmer.agentic.runner.v1.RunnerHeartbeat result = buildPartial();
       if (!result.isInitialized()) {
         throw newUninitializedMessageException(result);
       }
@@ -478,14 +476,14 @@ private static final long serialVersionUID = 0L;
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput buildPartial() {
-      ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput result = new ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput(this);
+    public ai.stigmer.agentic.runner.v1.RunnerHeartbeat buildPartial() {
+      ai.stigmer.agentic.runner.v1.RunnerHeartbeat result = new ai.stigmer.agentic.runner.v1.RunnerHeartbeat(this);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
     }
 
-    private void buildPartial0(ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput result) {
+    private void buildPartial0(ai.stigmer.agentic.runner.v1.RunnerHeartbeat result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
         result.runnerId_ = runnerId_;
@@ -508,16 +506,16 @@ private static final long serialVersionUID = 0L;
 
     @java.lang.Override
     public Builder mergeFrom(com.google.protobuf.Message other) {
-      if (other instanceof ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput) {
-        return mergeFrom((ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput)other);
+      if (other instanceof ai.stigmer.agentic.runner.v1.RunnerHeartbeat) {
+        return mergeFrom((ai.stigmer.agentic.runner.v1.RunnerHeartbeat)other);
       } else {
         super.mergeFrom(other);
         return this;
       }
     }
 
-    public Builder mergeFrom(ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput other) {
-      if (other == ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput.getDefaultInstance()) return this;
+    public Builder mergeFrom(ai.stigmer.agentic.runner.v1.RunnerHeartbeat other) {
+      if (other == ai.stigmer.agentic.runner.v1.RunnerHeartbeat.getDefaultInstance()) return this;
       if (!other.getRunnerId().isEmpty()) {
         runnerId_ = other.runnerId_;
         bitField0_ |= 0x00000001;
@@ -603,7 +601,7 @@ private static final long serialVersionUID = 0L;
      * ID of the runner sending the heartbeat.
      * </pre>
      *
-     * <code>string runner_id = 1 [json_name = "runnerId", (.buf.validate.field) = { ... }</code>
+     * <code>string runner_id = 1 [json_name = "runnerId"];</code>
      * @return The runnerId.
      */
     public java.lang.String getRunnerId() {
@@ -623,7 +621,7 @@ private static final long serialVersionUID = 0L;
      * ID of the runner sending the heartbeat.
      * </pre>
      *
-     * <code>string runner_id = 1 [json_name = "runnerId", (.buf.validate.field) = { ... }</code>
+     * <code>string runner_id = 1 [json_name = "runnerId"];</code>
      * @return The bytes for runnerId.
      */
     public com.google.protobuf.ByteString
@@ -644,7 +642,7 @@ private static final long serialVersionUID = 0L;
      * ID of the runner sending the heartbeat.
      * </pre>
      *
-     * <code>string runner_id = 1 [json_name = "runnerId", (.buf.validate.field) = { ... }</code>
+     * <code>string runner_id = 1 [json_name = "runnerId"];</code>
      * @param value The runnerId to set.
      * @return This builder for chaining.
      */
@@ -661,7 +659,7 @@ private static final long serialVersionUID = 0L;
      * ID of the runner sending the heartbeat.
      * </pre>
      *
-     * <code>string runner_id = 1 [json_name = "runnerId", (.buf.validate.field) = { ... }</code>
+     * <code>string runner_id = 1 [json_name = "runnerId"];</code>
      * @return This builder for chaining.
      */
     public Builder clearRunnerId() {
@@ -675,7 +673,7 @@ private static final long serialVersionUID = 0L;
      * ID of the runner sending the heartbeat.
      * </pre>
      *
-     * <code>string runner_id = 1 [json_name = "runnerId", (.buf.validate.field) = { ... }</code>
+     * <code>string runner_id = 1 [json_name = "runnerId"];</code>
      * @param value The bytes for runnerId to set.
      * @return This builder for chaining.
      */
@@ -696,7 +694,7 @@ private static final long serialVersionUID = 0L;
      * Typically READY (accepting work) or BUSY (at capacity).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase", (.buf.validate.field) = { ... }</code>
+     * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase"];</code>
      * @return The enum numeric value on the wire for phase.
      */
     @java.lang.Override public int getPhaseValue() {
@@ -708,7 +706,7 @@ private static final long serialVersionUID = 0L;
      * Typically READY (accepting work) or BUSY (at capacity).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase", (.buf.validate.field) = { ... }</code>
+     * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase"];</code>
      * @param value The enum numeric value on the wire for phase to set.
      * @throws IllegalArgumentException if UNRECOGNIZED is provided.
      * @return This builder for chaining.
@@ -725,7 +723,7 @@ private static final long serialVersionUID = 0L;
      * Typically READY (accepting work) or BUSY (at capacity).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase", (.buf.validate.field) = { ... }</code>
+     * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase"];</code>
      * @return The phase.
      */
     @java.lang.Override
@@ -739,7 +737,7 @@ private static final long serialVersionUID = 0L;
      * Typically READY (accepting work) or BUSY (at capacity).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase", (.buf.validate.field) = { ... }</code>
+     * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase"];</code>
      * @param value The phase to set.
      * @return This builder for chaining.
      */
@@ -756,7 +754,7 @@ private static final long serialVersionUID = 0L;
      * Typically READY (accepting work) or BUSY (at capacity).
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase", (.buf.validate.field) = { ... }</code>
+     * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase"];</code>
      * @return This builder for chaining.
      */
     public Builder clearPhase() {
@@ -815,9 +813,9 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.runner.v1.RunnerConnectionInfo, ai.stigmer.agentic.runner.v1.RunnerConnectionInfo.Builder, ai.stigmer.agentic.runner.v1.RunnerConnectionInfoOrBuilder> connectionInfoBuilder_;
     /**
      * <pre>
-     * Self-reported machine information. The runner sends this on every
-     * heartbeat so that version upgrades and hostname changes are reflected
-     * without requiring a full resource update.
+     * Self-reported machine information. Sent on every heartbeat so that
+     * version upgrades and hostname changes are reflected without requiring
+     * a full resource update.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 4 [json_name = "connectionInfo"];</code>
@@ -828,9 +826,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Self-reported machine information. The runner sends this on every
-     * heartbeat so that version upgrades and hostname changes are reflected
-     * without requiring a full resource update.
+     * Self-reported machine information. Sent on every heartbeat so that
+     * version upgrades and hostname changes are reflected without requiring
+     * a full resource update.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 4 [json_name = "connectionInfo"];</code>
@@ -845,9 +843,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Self-reported machine information. The runner sends this on every
-     * heartbeat so that version upgrades and hostname changes are reflected
-     * without requiring a full resource update.
+     * Self-reported machine information. Sent on every heartbeat so that
+     * version upgrades and hostname changes are reflected without requiring
+     * a full resource update.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 4 [json_name = "connectionInfo"];</code>
@@ -867,9 +865,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Self-reported machine information. The runner sends this on every
-     * heartbeat so that version upgrades and hostname changes are reflected
-     * without requiring a full resource update.
+     * Self-reported machine information. Sent on every heartbeat so that
+     * version upgrades and hostname changes are reflected without requiring
+     * a full resource update.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 4 [json_name = "connectionInfo"];</code>
@@ -887,9 +885,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Self-reported machine information. The runner sends this on every
-     * heartbeat so that version upgrades and hostname changes are reflected
-     * without requiring a full resource update.
+     * Self-reported machine information. Sent on every heartbeat so that
+     * version upgrades and hostname changes are reflected without requiring
+     * a full resource update.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 4 [json_name = "connectionInfo"];</code>
@@ -914,9 +912,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Self-reported machine information. The runner sends this on every
-     * heartbeat so that version upgrades and hostname changes are reflected
-     * without requiring a full resource update.
+     * Self-reported machine information. Sent on every heartbeat so that
+     * version upgrades and hostname changes are reflected without requiring
+     * a full resource update.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 4 [json_name = "connectionInfo"];</code>
@@ -933,9 +931,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Self-reported machine information. The runner sends this on every
-     * heartbeat so that version upgrades and hostname changes are reflected
-     * without requiring a full resource update.
+     * Self-reported machine information. Sent on every heartbeat so that
+     * version upgrades and hostname changes are reflected without requiring
+     * a full resource update.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 4 [json_name = "connectionInfo"];</code>
@@ -947,9 +945,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Self-reported machine information. The runner sends this on every
-     * heartbeat so that version upgrades and hostname changes are reflected
-     * without requiring a full resource update.
+     * Self-reported machine information. Sent on every heartbeat so that
+     * version upgrades and hostname changes are reflected without requiring
+     * a full resource update.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 4 [json_name = "connectionInfo"];</code>
@@ -964,9 +962,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Self-reported machine information. The runner sends this on every
-     * heartbeat so that version upgrades and hostname changes are reflected
-     * without requiring a full resource update.
+     * Self-reported machine information. Sent on every heartbeat so that
+     * version upgrades and hostname changes are reflected without requiring
+     * a full resource update.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 4 [json_name = "connectionInfo"];</code>
@@ -985,23 +983,23 @@ private static final long serialVersionUID = 0L;
       return connectionInfoBuilder_;
     }
 
-    // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput)
+    // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.runner.v1.RunnerHeartbeat)
   }
 
-  // @@protoc_insertion_point(class_scope:ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput)
-  private static final ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput DEFAULT_INSTANCE;
+  // @@protoc_insertion_point(class_scope:ai.stigmer.agentic.runner.v1.RunnerHeartbeat)
+  private static final ai.stigmer.agentic.runner.v1.RunnerHeartbeat DEFAULT_INSTANCE;
   static {
-    DEFAULT_INSTANCE = new ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput();
+    DEFAULT_INSTANCE = new ai.stigmer.agentic.runner.v1.RunnerHeartbeat();
   }
 
-  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput getDefaultInstance() {
+  public static ai.stigmer.agentic.runner.v1.RunnerHeartbeat getDefaultInstance() {
     return DEFAULT_INSTANCE;
   }
 
-  private static final com.google.protobuf.Parser<RunnerHeartbeatInput>
-      PARSER = new com.google.protobuf.AbstractParser<RunnerHeartbeatInput>() {
+  private static final com.google.protobuf.Parser<RunnerHeartbeat>
+      PARSER = new com.google.protobuf.AbstractParser<RunnerHeartbeat>() {
     @java.lang.Override
-    public RunnerHeartbeatInput parsePartialFrom(
+    public RunnerHeartbeat parsePartialFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -1020,17 +1018,17 @@ private static final long serialVersionUID = 0L;
     }
   };
 
-  public static com.google.protobuf.Parser<RunnerHeartbeatInput> parser() {
+  public static com.google.protobuf.Parser<RunnerHeartbeat> parser() {
     return PARSER;
   }
 
   @java.lang.Override
-  public com.google.protobuf.Parser<RunnerHeartbeatInput> getParserForType() {
+  public com.google.protobuf.Parser<RunnerHeartbeat> getParserForType() {
     return PARSER;
   }
 
   @java.lang.Override
-  public ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput getDefaultInstanceForType() {
+  public ai.stigmer.agentic.runner.v1.RunnerHeartbeat getDefaultInstanceForType() {
     return DEFAULT_INSTANCE;
   }
 

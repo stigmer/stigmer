@@ -5,9 +5,9 @@ import { stripUndefined } from "./proto-utils";
 import { type ResourceRef } from "./types";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { RunnerSchema, type Runner } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
+import { RunnerSchema, type Runner, type RunnerStreamServerMessage } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
 import { RunnerCommandController } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/command_pb";
-import { RunnerIdSchema, RunnerHeartbeatInputSchema, ListRunnersRequestSchema, RunnerListSchema, type RunnerHeartbeatInput, type ListRunnersRequest, type RunnerList } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/io_pb";
+import { RunnerIdSchema, RunnerStreamClientMessageSchema, RunnerStreamServerMessageSchema, ListRunnersRequestSchema, RunnerListSchema, type RunnerStreamClientMessage, type RunnerStreamServerMessage, type ListRunnersRequest, type RunnerList } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/io_pb";
 import { RunnerQueryController } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/query_pb";
 import { RunnerSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -48,9 +48,11 @@ export class RunnerClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async heartbeat(input: RunnerHeartbeatInput): Promise<Runner> {
+  async *connect(input: RunnerStreamClientMessage, signal?: AbortSignal): AsyncGenerator<RunnerStreamServerMessage> {
     try {
-      return await this.command.heartbeat(input);
+      for await (const msg of this.command.connect(input, { signal })) {
+        yield msg;
+      }
     } catch (e) { throw wrapError(e); }
   }
 
