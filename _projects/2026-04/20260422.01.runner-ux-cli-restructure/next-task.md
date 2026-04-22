@@ -12,9 +12,35 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: client-apps/cli (command structure, daemon, runner lifecycle); sdk/react (runner hooks, session composer); client-apps/web (runner picker, settings page); backend/services/stigmer-server (dispatch enhancement, session auto-bind)
 
 ## Current State
-- **Status**: T08 complete, ready for T09
-- **Last Session**: 2026-04-22 — T08 implemented (web UI runner picker in session composer)
-- **Active Task**: T09 — Web UI — Settings > Runners Page
+- **Status**: T09 complete — all 8 tasks complete, project done
+- **Last Session**: 2026-04-22 — T09 implemented (Settings > Runners admin page)
+- **Active Task**: None — all tasks complete
+
+## Session Progress (2026-04-22, Session 8)
+- Implemented T09: Web UI — Settings > Runners Page
+- SDK-first: `RunnerListPanel` built in `@stigmer/react`, consumed by Console
+- Extracted shared phase utilities from `RunnerPicker` into `sdk/react/src/runner/phase.ts`:
+  - `phaseLabel()`, `phaseDotColor()`, `isActivePhase()`, `PHASE_SORT_ORDER`
+  - Refactored `RunnerPicker.tsx` to import from `phase.ts` (pure refactor, identical behavior)
+- New files created:
+  - `sdk/react/src/runner/phase.ts` — shared phase display utilities (pure functions, no React)
+  - `sdk/react/src/runner/RunnerListPanel.tsx` — card-row admin panel with phase badges, system-managed indicators, machine info, responsive metadata columns
+  - `client-apps/web/src/components/settings/RunnersSection.tsx` — Console section wrapper
+  - `client-apps/web/src/app/settings/runners/page.tsx` — thin Next.js route
+- Modified files:
+  - `sdk/react/src/runner/RunnerPicker.tsx` — refactored to use shared phase.ts
+  - `sdk/react/src/runner/index.ts` — added RunnerListPanel + phase utility exports
+  - `sdk/react/src/index.ts` — added to SDK public API
+  - `client-apps/web/src/components/layout/settings-nav.ts` — new "Infrastructure" nav group with Runners item
+- TypeScript typecheck: 0 new errors (4 pre-existing in generated bidi stream code)
+- Linter: 0 errors across all 8 modified/created files
+- Design decisions:
+  - Card-row list (not HTML table) — matches existing settings panel visual language (`ApiKeyListPanel` pattern)
+  - New "Infrastructure" settings nav group — clean taxonomy, separate from Configuration (credentials/integration) and Organization (team/identity)
+  - `includeSystemManaged: true` default for admin view — full fleet visibility
+  - "System" badge on system-managed runners — distinguishes ephemeral from user-created
+  - Read-only panel in v1 — no create/delete (runners created via CLI or cloud auto-provisioning)
+  - Phase utilities exported as public API — platform builders can use them for custom runner UIs
 
 ## Session Progress (2026-04-22, Session 7)
 - Implemented T08: Web UI — Runner Picker in Session Composer
@@ -59,15 +85,14 @@ Drop this file into your conversation to quickly resume work on this project.
 | T06 | Embedded Runner Identity in `stigmer up` | **Complete** | T04, T05 |
 | T07 | Dispatch Enhancement — Fail Fast Without Runner | **Complete** | T06 |
 | T08 | Web UI — Runner Picker in Session Composer | **Complete** | T04 |
-| T09 | Web UI — Settings > Runners Page | Pending | T08 |
+| T09 | Web UI — Settings > Runners Page | **Complete** | T08 |
 
 ## Next Steps
-1. **Start T09** — Settings > Runners page (admin view of all runners in org)
-2. Create `client-apps/web/src/app/settings/runners/page.tsx` — thin Next.js page
-3. Create `RunnerList` component in `sdk/react/` or `client-apps/web/` (evaluate SDK vs Console placement)
-4. Reuse `useRunnerList` with `includeSystemManaged: true` for full admin visibility
-5. Columns: Name, Phase, Machine, OS/Arch, Runner Version, Current Executions, Last Heartbeat
-6. Add "Runners" nav item to `settings-nav.ts`
+1. **Project complete** — all 8 tasks (T02-T09) are done
+2. Remaining work is outside this project scope:
+   - Phase 0 deploy (proxy, HTTPRoute) — needed before cloud runner mode testing
+   - Runner command stream integration into web UI (folder browser revival) — separate project (20260422.02)
+   - Polling/real-time runner status updates — deferred, currently fetch-on-mount only
 
 ## Key Architectural Decisions
 
@@ -92,6 +117,9 @@ Drop this file into your conversation to quickly resume work on this project.
 19. **Runner picker Tier 1 placement**: runner selection sits alongside Model Selector in the toolbar's Tier 1, not behind the Configure menu. Both answer "how should this execute?" (which LLM + which machine). Simple single-select, not a multi-step config flow. (T08 decision)
 20. **`null` = Auto**: runner picker default is "Auto" — backend decides. Platform builders who omit `onRunnerIdChange` never see the picker. Zero runner awareness needed for basic usage. (T08 decision)
 21. **Client-side system-managed filtering**: `useRunnerList` filters `stigmer.ai/system-managed: "true"` labels by default. `includeSystemManaged: true` exposes them for admin views. (T08 decision)
+22. **Settings "Infrastructure" nav group**: Runners live in a new "Infrastructure" group, separate from "Configuration" (credentials/integration) and "Organization" (team/identity). Forward-looking taxonomy for future infra items (storage, proxies). (T09 decision)
+23. **RunnerListPanel in SDK**: Admin runner list is an SDK component (`@stigmer/react`), not Console-specific. Platform builders running their own Stigmer need runner fleet visibility. Follows `ApiKeyListPanel` / `OrgMembersPanel` pattern. (T09 decision)
+24. **Shared phase utilities**: Phase display logic (labels, colors, sort order) extracted to `phase.ts` and shared between `RunnerPicker` and `RunnerListPanel`. Exported as public API for platform builders who build custom runner UIs. (T09 decision)
 
 ## Key Files
 
@@ -126,15 +154,20 @@ Drop this file into your conversation to quickly resume work on this project.
 - `backend/services/stigmer-server/pkg/domain/session/controller/resolve_runner.go` — session auto-bind step
 - `backend/services/stigmer-server/pkg/domain/session/controller/create.go` — pipeline wired with ResolveDefaultRunner step
 
-### Web / SDK (completed in T08)
+### Web / SDK (completed in T08 + T09)
 - `sdk/react/src/runner/useRunnerList.ts` — data hook for runner list with system-managed filtering
-- `sdk/react/src/runner/RunnerPicker.tsx` — styled runner picker component (Base UI Select)
-- `sdk/react/src/runner/index.ts` — barrel exports
+- `sdk/react/src/runner/RunnerPicker.tsx` — styled runner picker component (Base UI Select), refactored to use shared phase.ts
+- `sdk/react/src/runner/phase.ts` — shared phase utilities (phaseLabel, phaseDotColor, isActivePhase, PHASE_SORT_ORDER)
+- `sdk/react/src/runner/RunnerListPanel.tsx` — admin panel component: card-row list with phase badges, system badges, machine info
+- `sdk/react/src/runner/index.ts` — barrel exports (hooks, components, phase utilities)
 - `sdk/react/src/session/useCreateSession.ts` — `runnerId` added to `SharedSessionFields`
 - `sdk/react/src/composer/SessionComposer.tsx` — runner props + toolbar integration
 - `sdk/react/src/composer/ComposerToolbar.tsx` — RunnerPicker in Tier 1
-- `sdk/react/src/index.ts` — runner module exported
+- `sdk/react/src/index.ts` — runner module exported (including RunnerListPanel + phase utils)
 - `client-apps/web/src/components/session/SessionLauncher.tsx` — runnerId state wired
+- `client-apps/web/src/components/settings/RunnersSection.tsx` — Console settings section
+- `client-apps/web/src/app/settings/runners/page.tsx` — Next.js route
+- `client-apps/web/src/components/layout/settings-nav.ts` — "Infrastructure" nav group added
 
 ## Context for Resume
 - The "Runner as a Resource" project (Phase 0-2) is code complete (Sessions 1-18 of 20260420.01)
@@ -151,12 +184,10 @@ Drop this file into your conversation to quickly resume work on this project.
 - Folder browser revival (replacing deleted `api_fs.go`) can build on selected `runnerId` + `sendCommand(ListDirectory)` from runner-command-stream project
 
 ## Blockers
-- None for T09 (all local/web UI work)
-- T09 can proceed independently of Phase 0 deploy
-- Cloud runner testing blocked on Phase 0 deploy (proxy must be live)
+- None — project complete
+- Cloud runner testing still blocked on Phase 0 deploy (proxy must be live)
 
 ## Quick Commands
-- "Start T09" — Begin Settings > Runners page
 - "Show project status" — Overview of progress
 - "Review T01 plan" — Read T01_0_plan.md
 

@@ -628,10 +628,19 @@ export type {
   UseCreateAgentInstanceReturn,
 } from "./agent-instance";
 
-// Runner — data hook and styled picker component
-export { useRunnerList, RunnerPicker } from "./runner";
+// Runner — data hook, styled picker, admin list panel, and phase utilities
+export {
+  useRunnerList,
+  RunnerPicker,
+  RunnerListPanel,
+  phaseLabel,
+  phaseDotColor,
+  isActivePhase,
+  PHASE_SORT_ORDER,
+} from "./runner";
 export type {
   UseRunnerListOptions,
   UseRunnerListReturn,
   RunnerPickerProps,
+  RunnerListPanelProps,
 } from "./runner";

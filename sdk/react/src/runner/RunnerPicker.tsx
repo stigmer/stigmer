@@ -5,6 +5,12 @@ import { Select } from "@base-ui/react/select";
 import { RunnerPhase } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/enum_pb";
 import type { Runner } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
 import { useRunnerList } from "./useRunnerList";
+import {
+  isActivePhase,
+  phaseLabel,
+  phaseDotColor,
+  PHASE_SORT_ORDER,
+} from "./phase";
 
 /**
  * Sentinel value representing "Auto" (let the backend decide).
@@ -83,8 +89,7 @@ export function RunnerPicker({
     const inact: Runner[] = [];
 
     for (const r of runners) {
-      const phase = r.status?.phase;
-      if (phase === RunnerPhase.READY || phase === RunnerPhase.BUSY) {
+      if (isActivePhase(r.status?.phase ?? RunnerPhase.UNSPECIFIED)) {
         act.push(r);
       } else {
         inact.push(r);
@@ -236,38 +241,17 @@ function RunnerItem({
           </span>
         )}
       </div>
-      <span className="ml-auto shrink-0 text-[0.6rem] text-muted-foreground">
-        {PHASE_LABELS[phase] ?? ""}
+      <span className="ml-auto shrink-0 text-[0.6rem] lowercase text-muted-foreground">
+        {phaseLabel(phase)}
       </span>
     </Select.Item>
   );
 }
 
-const PHASE_LABELS: Partial<Record<RunnerPhase, string>> = {
-  [RunnerPhase.READY]: "ready",
-  [RunnerPhase.BUSY]: "busy",
-  [RunnerPhase.STOPPED]: "stopped",
-  [RunnerPhase.PENDING]: "pending",
-  [RunnerPhase.FAILED]: "failed",
-};
-
 function PhaseDot({ phase }: { phase: RunnerPhase }) {
-  let color: string;
-  switch (phase) {
-    case RunnerPhase.READY:
-      color = "bg-success";
-      break;
-    case RunnerPhase.BUSY:
-      color = "bg-warning";
-      break;
-    default:
-      color = "bg-muted-foreground";
-      break;
-  }
-
   return (
     <span
-      className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${color}`}
+      className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${phaseDotColor(phase)}`}
       aria-hidden="true"
     />
   );
@@ -284,15 +268,6 @@ function phaseThenName(a: Runner, b: Runner): number {
   if (phaseOrder !== 0) return phaseOrder;
   return (a.metadata?.name ?? "").localeCompare(b.metadata?.name ?? "");
 }
-
-const PHASE_SORT_ORDER: Record<RunnerPhase, number> = {
-  [RunnerPhase.READY]: 0,
-  [RunnerPhase.BUSY]: 1,
-  [RunnerPhase.PENDING]: 2,
-  [RunnerPhase.STOPPED]: 3,
-  [RunnerPhase.FAILED]: 4,
-  [RunnerPhase.UNSPECIFIED]: 5,
-};
 
 // ---------------------------------------------------------------------------
 // Icons

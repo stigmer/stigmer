@@ -8,6 +8,7 @@ import {
   KeyRound,
   Link,
   Plug,
+  Server,
   ShieldCheck,
   Users,
 } from "lucide-react";
@@ -53,6 +54,14 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
       },
       { href: "/settings/environments", label: "Environments", icon: Box },
       { href: "/settings/oauth-apps", label: "OAuth Apps", icon: AppWindow },
+    ],
+  },
+  {
+    label: "Infrastructure",
+    description:
+      "Compute resources that execute your agents and workflows.",
+    items: [
+      { href: "/settings/runners", label: "Runners", icon: Server },
     ],
   },
   {
