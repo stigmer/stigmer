@@ -12,9 +12,30 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: client-apps/cli (command structure, daemon, runner lifecycle); sdk/react (runner hooks, session composer); client-apps/web (runner picker, settings page); backend/services/stigmer-server (dispatch enhancement, session auto-bind)
 
 ## Current State
-- **Status**: T07 complete, ready for T08
-- **Last Session**: 2026-04-22 — T07 implemented (dispatch fail-fast + session auto-bind)
-- **Active Task**: T08 — Web UI — Runner Picker in Session Composer
+- **Status**: T08 complete, ready for T09
+- **Last Session**: 2026-04-22 — T08 implemented (web UI runner picker in session composer)
+- **Active Task**: T09 — Web UI — Settings > Runners Page
+
+## Session Progress (2026-04-22, Session 7)
+- Implemented T08: Web UI — Runner Picker in Session Composer
+- Created `sdk/react/src/runner/` module — first runner-aware code in the React SDK
+- Three new files:
+  - `useRunnerList.ts` — data hook calling `stigmer.runner.list()` with system-managed label filtering
+  - `RunnerPicker.tsx` — `@base-ui/react` Select component with Auto option, phase-aware grouping (Available/Offline), phase indicator dots, hostname subtitles
+  - `index.ts` — barrel exports for hook, component, and types
+- Added `runnerId?: string` to `SharedSessionFields` in `useCreateSession.ts` — bridges the React hook to the TS SDK's existing `SessionInput.runnerId`
+- Integrated `RunnerPicker` into `SessionComposer` Tier 1 toolbar (alongside Model Selector) via `ComposerToolbar.tsx`
+  - Opt-in via `runnerId`/`onRunnerIdChange` props — platform builders who don't provide these never see the picker
+- Exported `useRunnerList`, `RunnerPicker`, and types from `sdk/react/src/index.ts`
+- Wired `runnerId` state in Console's `SessionLauncher.tsx` — flows through to `createSession({ runnerId })`
+- TypeScript typecheck: 0 new errors (4 pre-existing in generated bidi stream code)
+- Linter: 0 errors across all modified/created files
+- Design decisions:
+  - Tier 1 placement (not Configure menu) — runner is a simple execution parameter like model, not a complex config flow
+  - `null` = "Auto" — backend decides (session auto-bind in OSS, cloud auto-provisioning in Cloud)
+  - Client-side system-managed filtering — `stigmer.ai/system-managed: "true"` labels filtered by default, `includeSystemManaged` option for T09
+  - No chip in Zone 2 — runner is dropdown state (like model), not additive context (like agent/MCP)
+  - No polling in v1 — fetch on mount + `refetch()` callback
 
 ## Session Progress (2026-04-22, Session 6)
 - Implemented T07: Dispatch Enhancement — Fail Fast Without Runner
@@ -37,14 +58,16 @@ Drop this file into your conversation to quickly resume work on this project.
 | T05 | Multi-Runner Management | **Complete** | T04 |
 | T06 | Embedded Runner Identity in `stigmer up` | **Complete** | T04, T05 |
 | T07 | Dispatch Enhancement — Fail Fast Without Runner | **Complete** | T06 |
-| T08 | Web UI — Runner Picker in Session Composer | Pending | T04 |
+| T08 | Web UI — Runner Picker in Session Composer | **Complete** | T04 |
 | T09 | Web UI — Settings > Runners Page | Pending | T08 |
 
 ## Next Steps
-1. **Start T08** — Web UI: runner picker in session composer
-2. Create `useListRunners` React hook in `sdk/react/`
-3. Add runner picker dropdown to `SessionComposer` showing READY/BUSY runners + "Cloud (auto)" default
-4. Wire `runnerId` through `useCreateSession` into `SessionSpec`
+1. **Start T09** — Settings > Runners page (admin view of all runners in org)
+2. Create `client-apps/web/src/app/settings/runners/page.tsx` — thin Next.js page
+3. Create `RunnerList` component in `sdk/react/` or `client-apps/web/` (evaluate SDK vs Console placement)
+4. Reuse `useRunnerList` with `includeSystemManaged: true` for full admin visibility
+5. Columns: Name, Phase, Machine, OS/Arch, Runner Version, Current Executions, Last Heartbeat
+6. Add "Runners" nav item to `settings-nav.ts`
 
 ## Key Architectural Decisions
 
@@ -66,6 +89,9 @@ Drop this file into your conversation to quickly resume work on this project.
 16. **Session auto-bind**: when a session is created with no `runner_id` and exactly one READY runner exists, the session is automatically bound to it. This is the OSS equivalent of cloud's ephemeral runner auto-provisioning. Session creation never fails due to runner state. (T07 decision)
 17. **Global fallback queue retired**: `ResolveActivityTaskQueue` no longer falls back to a global queue. All dispatch now resolves to a specific runner or fails with actionable guidance. `FallbackRunnerQueue()` removed. (T07 decision)
 18. **Dispatch auto-route as safety net**: when a session has no `runner_id` at execution time (auto-bind didn't apply, or session created before runner started), dispatch scans for available runners and auto-routes. READY preferred over BUSY. (T07 decision)
+19. **Runner picker Tier 1 placement**: runner selection sits alongside Model Selector in the toolbar's Tier 1, not behind the Configure menu. Both answer "how should this execute?" (which LLM + which machine). Simple single-select, not a multi-step config flow. (T08 decision)
+20. **`null` = Auto**: runner picker default is "Auto" — backend decides. Platform builders who omit `onRunnerIdChange` never see the picker. Zero runner awareness needed for basic usage. (T08 decision)
+21. **Client-side system-managed filtering**: `useRunnerList` filters `stigmer.ai/system-managed: "true"` labels by default. `includeSystemManaged: true` exposes them for admin views. (T08 decision)
 
 ## Key Files
 
@@ -100,35 +126,37 @@ Drop this file into your conversation to quickly resume work on this project.
 - `backend/services/stigmer-server/pkg/domain/session/controller/resolve_runner.go` — session auto-bind step
 - `backend/services/stigmer-server/pkg/domain/session/controller/create.go` — pipeline wired with ResolveDefaultRunner step
 
-### Web / SDK (T08-T09)
-- `sdk/react/src/composer/SessionComposer.tsx` — needs runner picker
-- `sdk/react/src/session/useCreateSession.ts` — needs runnerId passthrough
+### Web / SDK (completed in T08)
+- `sdk/react/src/runner/useRunnerList.ts` — data hook for runner list with system-managed filtering
+- `sdk/react/src/runner/RunnerPicker.tsx` — styled runner picker component (Base UI Select)
+- `sdk/react/src/runner/index.ts` — barrel exports
+- `sdk/react/src/session/useCreateSession.ts` — `runnerId` added to `SharedSessionFields`
+- `sdk/react/src/composer/SessionComposer.tsx` — runner props + toolbar integration
+- `sdk/react/src/composer/ComposerToolbar.tsx` — RunnerPicker in Tier 1
+- `sdk/react/src/index.ts` — runner module exported
+- `client-apps/web/src/components/session/SessionLauncher.tsx` — runnerId state wired
 
 ## Context for Resume
 - The "Runner as a Resource" project (Phase 0-2) is code complete (Sessions 1-18 of 20260420.01)
 - Runner proto, backend handlers, SDK client, heartbeat, dispatch, launcher all exist
 - The agent-runner Python process supports STIGMER_RUNNER_ID and heartbeat via HeartbeatEmitter
-- The TypeScript SDK has RunnerClient and SessionInput.runnerId but they are unused by the React layer
+- The TypeScript SDK has RunnerClient and SessionInput.runnerId — now used by the React layer (T08)
 - Phase 0 deploy (proxy, HTTPRoute) is pending — needed before cloud runner mode testing
-- T02-T07 are on `feat/secrets-vault-migration` branch
+- T02-T08 are on `feat/secrets-vault-migration` branch
 - `stigmer up` is now a runner command (cloud-first), no longer starts a server
 - `stigmer up server` starts the full local dev stack with embedded runner identity
-- Runner command stream project (20260422.02) will replace Python heartbeat with Go supervisor + bidi gRPC stream — T04/T05/T06 are forward-compatible
-- `ServerOnly` daemon mode (T02) still exists as internal capability, not user-facing
-- Runner is now a CLI-visible resource kind in the type registry
-- Embedded runner registered as first-class Runner resource with heartbeat (T06)
-- Daemon manages embedded runner state file lifecycle (create on start, remove on shutdown)
-- Session auto-bind resolves sole READY runner at session creation time (T07)
-- Dispatch auto-routes to available runner when session has no binding (T07)
-- Global fallback queue retired — all dispatch resolves to specific runners (T07)
+- Runner command stream project (20260422.02) completed T02-T07 — bidi stream, sendCommand API all live
+- The full runner selection flow is now live: user picks runner in composer → `session.create({ runnerId })` → backend binds session → executions route to runner's task queue
+- `useRunnerList` hook ready for reuse in T09 with `includeSystemManaged: true`
+- Folder browser revival (replacing deleted `api_fs.go`) can build on selected `runnerId` + `sendCommand(ListDirectory)` from runner-command-stream project
 
 ## Blockers
-- None for T08 (all local/web UI work)
-- T08-T09 (web UI) can proceed independently of Phase 0 deploy
+- None for T09 (all local/web UI work)
+- T09 can proceed independently of Phase 0 deploy
 - Cloud runner testing blocked on Phase 0 deploy (proxy must be live)
 
 ## Quick Commands
-- "Start T08" — Begin web UI runner picker
+- "Start T09" — Begin Settings > Runners page
 - "Show project status" — Overview of progress
 - "Review T01 plan" — Read T01_0_plan.md
 

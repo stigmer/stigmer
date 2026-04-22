@@ -187,6 +187,24 @@ export interface SessionComposerProps {
   readonly onSkillRefsChange?: (refs: ResourceRef[]) => void;
 
   /**
+   * Currently selected runner ID, or `null` for "Auto" (backend decides).
+   *
+   * When `onRunnerIdChange` is provided and `org` is set, renders a
+   * runner picker in the toolbar's Tier 1 (alongside Model Selector).
+   *
+   * The selected runner ID flows through to `session.create({ runnerId })`
+   * so the session is bound to that runner's task queue.
+   */
+  readonly runnerId?: string | null;
+  /**
+   * Called when the user selects a different runner. `null` = "Auto".
+   *
+   * Providing this callback enables the runner picker in the toolbar.
+   * Requires `org` to be set (same prerequisite as agent/MCP pickers).
+   */
+  readonly onRunnerIdChange?: (runnerId: string | null) => void;
+
+  /**
    * Session variables state managed by {@link useSessionVariables}.
    * When provided, renders a "Session Variables" trigger in the toolbar
    * that opens a key-value editor for environment variables.
@@ -339,6 +357,8 @@ export function SessionComposer({
   onMcpServerUsagesChange,
   skillRefs,
   onSkillRefsChange,
+  runnerId,
+  onRunnerIdChange,
   sessionVariables,
   enableAttachments = true,
   onAttachmentValidationError,
@@ -361,6 +381,7 @@ export function SessionComposer({
   const showMcp = onMcpServerUsagesChange != null && org != null;
   const showWorkspace = workspace != null;
   const showSkills = onSkillRefsChange != null && org != null;
+  const showRunner = onRunnerIdChange != null && org != null;
   const showSessionVars = sessionVariables != null;
   const showAttach = enableAttachments;
 
@@ -1276,6 +1297,10 @@ export function SessionComposer({
           configActivePanel={configActivePanel}
           onConfigActivePanelChange={handleConfigActivePanelChange}
           renderConfigPanel={renderConfigPanel}
+          showRunner={showRunner}
+          runnerOrg={org ?? ""}
+          runnerId={runnerId ?? null}
+          onRunnerIdChange={onRunnerIdChange ?? (() => {})}
           showModelSelector={showModelSelector}
           modelId={modelId}
           onModelChange={handleModelChange}
