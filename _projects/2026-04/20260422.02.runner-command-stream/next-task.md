@@ -12,9 +12,9 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: apis/ai/stigmer/agentic/runner/v1/ (proto); client-apps/cli/internal/cli/daemon/ (Go supervisor); backend/services/stigmer-server/ (Go stream handler); stigmer-cloud/backend/services/stigmer-service/ (Java stream handler)
 
 ## Current State
-- **Status**: T05 complete, ready for T06 or T07
-- **Last Session**: 2026-04-22 — T05 implemented (Go CLI stream client)
-- **Active Task**: T06 (Cloud Server Handler — Java) or T07 (API for UI to Trigger Commands)
+- **Status**: T06 complete, ready for T07
+- **Last Session**: 2026-04-22 — T06 implemented (Cloud bidi stream handler — Java)
+- **Active Task**: T07 (API for UI to Trigger Commands)
 
 ## Session Progress (2026-04-22, Session 1)
 - Reviewed T01 plan and confirmed key decisions
@@ -84,6 +84,21 @@ Drop this file into your conversation to quickly resume work on this project.
   - Full CLI builds cleanly (`go build ./...`), go vet clean, existing tests pass
   - All 77 stigmer-server build targets still pass
 
+## Session Progress (2026-04-22, Session 5)
+- Implemented T06: Cloud Server Handler (Java)
+  - Extended grpc-request framework with `BidiStreamHandler` interface, `RequestFactory` bidi map, `RequestRouter.route(StreamObserver)` overload
+  - Created `RunnerHeartbeatService` — extracted domain logic from 4 pipeline steps into standalone service (authenticate, process, transitionToStopped)
+  - Created `RunnerStreamRegistry` — ConcurrentHashMap-based in-memory stream tracking with CompletableFuture-based command routing, ReentrantLock send serialization
+  - Created `RunnerStreamEntry` — per-runner connection state (observer, send lock, pending futures)
+  - Created `RunnerCommandRedisCoordinator` — Redis Pub/Sub for cross-instance command routing (subscribe on connect, unsubscribe on disconnect, Base64-encoded protobuf)
+  - Added `RedisMessageListenerContainer` bean to redis-starter
+  - Created `RunnerConnectHandler` — first bidi stream handler in Java service (auth, heartbeat, command dispatch, disconnect)
+  - Deleted `RunnerHeartbeatHandler` (299 lines, 4 inner classes) and `DeprovisionInfrastructureStep` (79 lines, referenced deleted `RunnerHeartbeatInput`)
+  - Surprise: `DeprovisionInfrastructureStep` not in original delete plan but referenced deleted `RunnerHeartbeatInput` type — logic moved to `RunnerHeartbeatService.triggerDeprovisionIfNeeded()`
+  - All T06 code compiles; pre-existing `SessionUpdateSandboxIdHandler` failure is unrelated
+  - Auto-generated `RunnerCommandController.java` correctly dispatches `connect` to `RunnerConnectHandler`
+  - Net: +1,170 / -432 lines across 12 files
+
 ## Task Overview (8 tasks)
 
 | Task | Title | Status | Dependencies |
@@ -92,17 +107,14 @@ Drop this file into your conversation to quickly resume work on this project.
 | T03 | Delete Python Heartbeat + Hacky Local FS Endpoint | **Complete** | T02 |
 | T04 | OSS Server Handler (Go) | **Complete** | T02 |
 | T05 | Go Client in CLI Daemon | **Complete** | T04 |
-| T06 | Cloud Server Handler (Java) | Pending | T02 |
+| T06 | Cloud Server Handler (Java) | **Complete** | T02 |
 | T07 | API for UI to Trigger Commands | Pending | T04, T06 |
 | T08 | Integration Testing | Pending | T05, T07 |
 
 ## Next Steps
-1. **T06 and T07 have different dependency chains**:
-   - T06 (Java cloud handler) depends only on T02 (proto) — can start immediately
-   - T07 (sendCommand API) depends on T04 (OSS handler) + T06 (cloud handler) — blocked until T06 completes
-2. **T06** — Implement `connect` stream handler in stigmer-service (Java) with Redis pub/sub for cross-instance coordination
-3. After T06: **T07** — Add `sendCommand` unary RPC + proto definition, implement in both OSS (delegates to `StreamRegistry.SendCommand`) and Cloud (Redis routing)
-4. After T05 + T07: **T08** — Integration testing (full loop: CLI → stream → server → command → response)
+1. **T07 is now unblocked** — both OSS (T04) and Cloud (T06) stream handlers are complete
+2. **T07** — Add `sendCommand` unary RPC to proto + `RunnerSendCommandInput` message, implement handler in both OSS (delegates to `StreamRegistry.SendCommand`) and Cloud (delegates to `RunnerStreamRegistry.sendCommandLocally` or `RunnerCommandRedisCoordinator.sendCommand`)
+3. After T05 + T07: **T08** — Integration testing (full loop: CLI → stream → server → command → response)
 
 ## Key Architectural Decisions
 
@@ -111,7 +123,7 @@ Drop this file into your conversation to quickly resume work on this project.
 3. **First heartbeat authenticates**: The first message on a new stream MUST be a `RunnerHeartbeat`. Server validates runner_id ownership.
 4. **Enriched ListDirectoryResponse**: Includes `home_directory`, `current_directory`, and `is_hidden` on `DirectoryEntry` — preserves UI feature parity with the deleted `api_fs.go` endpoint.
 5. **SDK codegen gap**: `stigmer-codegen` tool doesn't handle bidi streaming RPCs. Manual fix applied to `sdk/go/internal/gen/runner.go`. Tool needs a patch (separate task).
-6. **Immediate STOPPED on disconnect (OSS)**: No grace period — single server instance means a broken stream is genuinely unreachable. Reactivation via heartbeat handles reconnection. Cloud (T06) may use a grace period.
+6. **Immediate STOPPED on disconnect (both OSS and Cloud)**: No grace period in either edition. A broken stream means the runner is genuinely unreachable. The runner reconnects within seconds and the first heartbeat reactivates to READY. A grace period would create a lie (UI shows READY while runner is unreachable) for a theoretical 1-5 second benefit during rolling deploys.
 7. **Replace on dual-connect**: If a runner reconnects fast, the new stream evicts the old entry. No ALREADY_EXISTS rejection.
 8. **runner_id mismatch rejection**: A different runner_id on an established stream is INVALID_ARGUMENT — one stream, one runner identity.
 9. **CommandStream interface for portability**: The client uses an exported `CommandStream` interface so the same `RunnerStreamClient` works with both the SDK wrapper (standalone) and raw gRPC (daemon) via factory functions.
@@ -119,8 +131,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Known Compilation Failures (Expected)
 
-These will be resolved as subsequent tasks are completed:
-- stigmer-cloud Java service — implements deleted heartbeat handler (resolved in T06)
+None — all known compilation failures from proto changes have been resolved across both repos.
 
 ## Key Files
 
@@ -145,6 +156,14 @@ These will be resolved as subsequent tasks are completed:
 - `client-apps/cli/internal/cli/daemon/daemon_process.go` — daemon stream lifecycle integration
 - `client-apps/cli/internal/cli/runner/start.go` — standalone runner stream integration
 
+### Cloud Server (completed in T06)
+- `stigmer-cloud/backend/libs/java/grpc/grpc-request/.../handler/BidiStreamHandler.java` — bidi stream handler interface (framework)
+- `stigmer-cloud/backend/services/stigmer-service/.../runner/request/handler/RunnerConnectHandler.java` — bidi stream handler
+- `stigmer-cloud/backend/services/stigmer-service/.../runner/service/RunnerHeartbeatService.java` — extracted heartbeat domain logic
+- `stigmer-cloud/backend/services/stigmer-service/.../runner/stream/RunnerStreamRegistry.java` — in-memory stream registry
+- `stigmer-cloud/backend/services/stigmer-service/.../runner/stream/RunnerStreamEntry.java` — per-runner stream state
+- `stigmer-cloud/backend/services/stigmer-service/.../runner/stream/RunnerCommandRedisCoordinator.java` — Redis pub/sub cross-instance routing
+
 ## Context for Resume
 - T01 plan is at `_projects/2026-04/20260422.02.runner-command-stream/tasks/T01_0_plan.md`
 - This project coordinates with `20260422.01.runner-ux-cli-restructure` — T08/T09 (web UI) of that project depend on T07 of this project (sendCommand API)
@@ -153,17 +172,16 @@ These will be resolved as subsequent tasks are completed:
 - T03 changes committed: `50eb11559 refactor: delete Python heartbeat and local FS hack (T03)`
 - T04 changes committed: `5028f181b feat(backend/stigmer-server): implement bidi stream handler for runner commands (T04)`
 - T05 changes committed: `617f0c969 feat(cli): implement bidi stream client for runner command channel (T05)`
-- The OSS loop is now complete: CLI opens stream → server authenticates → heartbeats flow → commands can be pushed
-- Only remaining OSS compilation failure is in stigmer-cloud Java service (T06)
-- `StreamRegistry.SendCommand` is fully implemented and ready for T07's `sendCommand` RPC handler
+- T06 changes committed: `10b59afe feat(backend): implement bidi stream handler for runner commands (T06)` (stigmer-cloud)
+- The full loop is now complete in both editions: CLI opens stream → server authenticates → heartbeats flow → commands can be pushed → response routed back
+- `StreamRegistry.SendCommand` (Go) and `RunnerStreamRegistry.sendCommandLocally` + `RunnerCommandRedisCoordinator.sendCommand` (Java) are fully implemented — ready for T07's `sendCommand` RPC handler
+- Redis pub/sub pattern established for cross-instance coordination (first usage in codebase)
 
 ## Blockers
-- None for T06
-- T07 blocked on T06 (needs cloud handler before adding the sendCommand proto + API)
+- None for T07 — all dependencies (T04, T06) are complete
 
 ## Quick Commands
-- "Start T06" — Implement Cloud server connect handler (Java)
-- "Start T07" — Implement sendCommand API (after T06)
+- "Start T07" — Implement sendCommand API (proto + OSS + Cloud handlers)
 - "Show project status" — Overview of progress
 - "Review T01 plan" — Read T01_0_plan.md
 
