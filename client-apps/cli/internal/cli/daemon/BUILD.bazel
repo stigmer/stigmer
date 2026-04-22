@@ -3,11 +3,11 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "daemon",
     srcs = [
-        "runner_native.go",
         "daemon.go",
         "daemon_process.go",
         "download.go",
         "reset.go",
+        "runner_native.go",
         "secrets.go",
         "startup_config.go",
     ],
@@ -27,6 +27,8 @@ go_library(
         "@com_github_pkg_errors//:errors",
         "@com_github_rs_zerolog//:zerolog",
         "@com_github_rs_zerolog//log",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/agentic/runner/v1:runner",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/commons/apiresource",
         "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/tenancy/organization/v1:organization",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//credentials/insecure",
