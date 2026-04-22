@@ -5,10 +5,11 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.runner.v1.ListRunnersRequest;
 import ai.stigmer.agentic.runner.v1.Runner;
 import ai.stigmer.agentic.runner.v1.RunnerCommandControllerGrpc;
-import ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput;
 import ai.stigmer.agentic.runner.v1.RunnerId;
 import ai.stigmer.agentic.runner.v1.RunnerList;
 import ai.stigmer.agentic.runner.v1.RunnerQueryControllerGrpc;
+import ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage;
+import ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
@@ -47,9 +48,10 @@ public final class RunnerClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public Runner heartbeat(RunnerHeartbeatInput input) {
+    public StigmerStream<RunnerStreamServerMessage> connect(RunnerStreamClientMessage input) {
         try {
-            return command.heartbeat(input);
+            java.util.Iterator<RunnerStreamServerMessage> iter = command.connect(input);
+            return new StigmerStream<>(iter);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

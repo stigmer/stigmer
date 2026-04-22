@@ -4,7 +4,8 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * RunnerCommandController handles write operations for runners.
+ * RunnerCommandController handles write operations and the bidirectional
+ * command stream for runners.
  * Two creation patterns are supported:
  * 1. **CLI/Desktop (persistent runners)**: The client calls apply with a slug
  *    stored in ~/.stigmer/runner.json. If the runner exists, it reactivates.
@@ -12,9 +13,9 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * 2. **Platform (ephemeral runners)**: The execution workflow calls create
  *    with metadata label stigmer.ai/system-managed: "true". The runner is
  *    torn down via delete when the execution completes.
- * The heartbeat RPC is called by the runner process on a regular interval
- * (default 30s) to report liveness and state. It is the runner's only
- * ongoing communication channel with the server.
+ * After registration, the runner opens the connect bidi stream — its only
+ * ongoing communication channel with the server. Heartbeats flow runner to
+ * server; commands (e.g., ListDirectory) flow server to runner.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -149,35 +150,35 @@ public final class RunnerCommandControllerGrpc {
     return getDeleteMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput,
-      ai.stigmer.agentic.runner.v1.Runner> getHeartbeatMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage,
+      ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage> getConnectMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "heartbeat",
-      requestType = ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput.class,
-      responseType = ai.stigmer.agentic.runner.v1.Runner.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput,
-      ai.stigmer.agentic.runner.v1.Runner> getHeartbeatMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput, ai.stigmer.agentic.runner.v1.Runner> getHeartbeatMethod;
-    if ((getHeartbeatMethod = RunnerCommandControllerGrpc.getHeartbeatMethod) == null) {
+      fullMethodName = SERVICE_NAME + '/' + "connect",
+      requestType = ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage.class,
+      responseType = ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.BIDI_STREAMING)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage,
+      ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage> getConnectMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage, ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage> getConnectMethod;
+    if ((getConnectMethod = RunnerCommandControllerGrpc.getConnectMethod) == null) {
       synchronized (RunnerCommandControllerGrpc.class) {
-        if ((getHeartbeatMethod = RunnerCommandControllerGrpc.getHeartbeatMethod) == null) {
-          RunnerCommandControllerGrpc.getHeartbeatMethod = getHeartbeatMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput, ai.stigmer.agentic.runner.v1.Runner>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "heartbeat"))
+        if ((getConnectMethod = RunnerCommandControllerGrpc.getConnectMethod) == null) {
+          RunnerCommandControllerGrpc.getConnectMethod = getConnectMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage, ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.BIDI_STREAMING)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "connect"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput.getDefaultInstance()))
+                  ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.runner.v1.Runner.getDefaultInstance()))
-              .setSchemaDescriptor(new RunnerCommandControllerMethodDescriptorSupplier("heartbeat"))
+                  ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage.getDefaultInstance()))
+              .setSchemaDescriptor(new RunnerCommandControllerMethodDescriptorSupplier("connect"))
               .build();
         }
       }
     }
-    return getHeartbeatMethod;
+    return getConnectMethod;
   }
 
   /**
@@ -241,7 +242,8 @@ public final class RunnerCommandControllerGrpc {
 
   /**
    * <pre>
-   * RunnerCommandController handles write operations for runners.
+   * RunnerCommandController handles write operations and the bidirectional
+   * command stream for runners.
    * Two creation patterns are supported:
    * 1. **CLI/Desktop (persistent runners)**: The client calls apply with a slug
    *    stored in ~/.stigmer/runner.json. If the runner exists, it reactivates.
@@ -249,9 +251,9 @@ public final class RunnerCommandControllerGrpc {
    * 2. **Platform (ephemeral runners)**: The execution workflow calls create
    *    with metadata label stigmer.ai/system-managed: "true". The runner is
    *    torn down via delete when the execution completes.
-   * The heartbeat RPC is called by the runner process on a regular interval
-   * (default 30s) to report liveness and state. It is the runner's only
-   * ongoing communication channel with the server.
+   * After registration, the runner opens the connect bidi stream — its only
+   * ongoing communication channel with the server. Heartbeats flow runner to
+   * server; commands (e.g., ListDirectory) flow server to runner.
    * </pre>
    */
   public interface AsyncService {
@@ -289,7 +291,7 @@ public final class RunnerCommandControllerGrpc {
      * Update an existing runner.
      * &#64;internal
      * Used for updating spec fields (e.g., description). Status fields are
-     * updated via heartbeat, not via this RPC.
+     * updated via the connect stream heartbeat, not via this RPC.
      * </pre>
      */
     default void update(ai.stigmer.agentic.runner.v1.Runner request,
@@ -313,30 +315,36 @@ public final class RunnerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Report runner liveness and operational state.
-     * Called by the runner process every 30 seconds. Updates status fields
-     * (phase, last_heartbeat_at, current_executions, connection_info) without
-     * modifying spec or metadata.
-     * If the runner is in PENDING or STOPPED phase, a heartbeat transitions it
-     * to the phase reported in the input (typically READY). This enables the
-     * "restart and reconnect" flow: a stopped runner resumes heartbeating and
-     * goes back to READY with the same identity and task queue.
+     * Establish a bidirectional command stream between the runner and the server.
+     * This is the runner's primary ongoing communication channel. The runner
+     * pushes heartbeats (liveness + state); the server pushes commands
+     * (e.g., ListDirectory for workspace browsing). Both directions use the
+     * same open connection.
+     * Stream lifecycle:
+     *   1. Runner calls apply to register/reactivate, then opens this stream.
+     *   2. First message MUST be a RunnerHeartbeat (authenticates via runner_id).
+     *   3. Runner sends heartbeats every 30s.
+     *   4. Server pushes RunnerCommandRequest when the UI triggers an operation.
+     *   5. Runner handles commands locally and sends RunnerCommandResponse.
+     *   6. On graceful shutdown: runner sends phase=STOPPED heartbeat, closes stream.
+     *   7. On disconnect: server starts heartbeat timeout (90s) -&gt; STOPPED.
      * &#64;internal
-     * Authorization is handled in the handler: the caller must own the runner.
-     * Skipped at the interceptor level because the input is RunnerHeartbeatInput
-     * (not a resource), and the ownership check requires a DB lookup.
+     * Authorization is handled via the first heartbeat message: the server
+     * looks up the runner_id and verifies ownership. Skipped at the interceptor
+     * level because the stream input is not a resource type.
      * </pre>
      */
-    default void heartbeat(ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.Runner> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getHeartbeatMethod(), responseObserver);
+    default io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage> connect(
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage> responseObserver) {
+      return io.grpc.stub.ServerCalls.asyncUnimplementedStreamingCall(getConnectMethod(), responseObserver);
     }
   }
 
   /**
    * Base class for the server implementation of the service RunnerCommandController.
    * <pre>
-   * RunnerCommandController handles write operations for runners.
+   * RunnerCommandController handles write operations and the bidirectional
+   * command stream for runners.
    * Two creation patterns are supported:
    * 1. **CLI/Desktop (persistent runners)**: The client calls apply with a slug
    *    stored in ~/.stigmer/runner.json. If the runner exists, it reactivates.
@@ -344,9 +352,9 @@ public final class RunnerCommandControllerGrpc {
    * 2. **Platform (ephemeral runners)**: The execution workflow calls create
    *    with metadata label stigmer.ai/system-managed: "true". The runner is
    *    torn down via delete when the execution completes.
-   * The heartbeat RPC is called by the runner process on a regular interval
-   * (default 30s) to report liveness and state. It is the runner's only
-   * ongoing communication channel with the server.
+   * After registration, the runner opens the connect bidi stream — its only
+   * ongoing communication channel with the server. Heartbeats flow runner to
+   * server; commands (e.g., ListDirectory) flow server to runner.
    * </pre>
    */
   public static abstract class RunnerCommandControllerImplBase
@@ -360,7 +368,8 @@ public final class RunnerCommandControllerGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service RunnerCommandController.
    * <pre>
-   * RunnerCommandController handles write operations for runners.
+   * RunnerCommandController handles write operations and the bidirectional
+   * command stream for runners.
    * Two creation patterns are supported:
    * 1. **CLI/Desktop (persistent runners)**: The client calls apply with a slug
    *    stored in ~/.stigmer/runner.json. If the runner exists, it reactivates.
@@ -368,9 +377,9 @@ public final class RunnerCommandControllerGrpc {
    * 2. **Platform (ephemeral runners)**: The execution workflow calls create
    *    with metadata label stigmer.ai/system-managed: "true". The runner is
    *    torn down via delete when the execution completes.
-   * The heartbeat RPC is called by the runner process on a regular interval
-   * (default 30s) to report liveness and state. It is the runner's only
-   * ongoing communication channel with the server.
+   * After registration, the runner opens the connect bidi stream — its only
+   * ongoing communication channel with the server. Heartbeats flow runner to
+   * server; commands (e.g., ListDirectory) flow server to runner.
    * </pre>
    */
   public static final class RunnerCommandControllerStub
@@ -421,7 +430,7 @@ public final class RunnerCommandControllerGrpc {
      * Update an existing runner.
      * &#64;internal
      * Used for updating spec fields (e.g., description). Status fields are
-     * updated via heartbeat, not via this RPC.
+     * updated via the connect stream heartbeat, not via this RPC.
      * </pre>
      */
     public void update(ai.stigmer.agentic.runner.v1.Runner request,
@@ -447,31 +456,37 @@ public final class RunnerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Report runner liveness and operational state.
-     * Called by the runner process every 30 seconds. Updates status fields
-     * (phase, last_heartbeat_at, current_executions, connection_info) without
-     * modifying spec or metadata.
-     * If the runner is in PENDING or STOPPED phase, a heartbeat transitions it
-     * to the phase reported in the input (typically READY). This enables the
-     * "restart and reconnect" flow: a stopped runner resumes heartbeating and
-     * goes back to READY with the same identity and task queue.
+     * Establish a bidirectional command stream between the runner and the server.
+     * This is the runner's primary ongoing communication channel. The runner
+     * pushes heartbeats (liveness + state); the server pushes commands
+     * (e.g., ListDirectory for workspace browsing). Both directions use the
+     * same open connection.
+     * Stream lifecycle:
+     *   1. Runner calls apply to register/reactivate, then opens this stream.
+     *   2. First message MUST be a RunnerHeartbeat (authenticates via runner_id).
+     *   3. Runner sends heartbeats every 30s.
+     *   4. Server pushes RunnerCommandRequest when the UI triggers an operation.
+     *   5. Runner handles commands locally and sends RunnerCommandResponse.
+     *   6. On graceful shutdown: runner sends phase=STOPPED heartbeat, closes stream.
+     *   7. On disconnect: server starts heartbeat timeout (90s) -&gt; STOPPED.
      * &#64;internal
-     * Authorization is handled in the handler: the caller must own the runner.
-     * Skipped at the interceptor level because the input is RunnerHeartbeatInput
-     * (not a resource), and the ownership check requires a DB lookup.
+     * Authorization is handled via the first heartbeat message: the server
+     * looks up the runner_id and verifies ownership. Skipped at the interceptor
+     * level because the stream input is not a resource type.
      * </pre>
      */
-    public void heartbeat(ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.Runner> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getHeartbeatMethod(), getCallOptions()), request, responseObserver);
+    public io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage> connect(
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage> responseObserver) {
+      return io.grpc.stub.ClientCalls.asyncBidiStreamingCall(
+          getChannel().newCall(getConnectMethod(), getCallOptions()), responseObserver);
     }
   }
 
   /**
    * A stub to allow clients to do synchronous rpc calls to service RunnerCommandController.
    * <pre>
-   * RunnerCommandController handles write operations for runners.
+   * RunnerCommandController handles write operations and the bidirectional
+   * command stream for runners.
    * Two creation patterns are supported:
    * 1. **CLI/Desktop (persistent runners)**: The client calls apply with a slug
    *    stored in ~/.stigmer/runner.json. If the runner exists, it reactivates.
@@ -479,9 +494,9 @@ public final class RunnerCommandControllerGrpc {
    * 2. **Platform (ephemeral runners)**: The execution workflow calls create
    *    with metadata label stigmer.ai/system-managed: "true". The runner is
    *    torn down via delete when the execution completes.
-   * The heartbeat RPC is called by the runner process on a regular interval
-   * (default 30s) to report liveness and state. It is the runner's only
-   * ongoing communication channel with the server.
+   * After registration, the runner opens the connect bidi stream — its only
+   * ongoing communication channel with the server. Heartbeats flow runner to
+   * server; commands (e.g., ListDirectory) flow server to runner.
    * </pre>
    */
   public static final class RunnerCommandControllerBlockingV2Stub
@@ -530,7 +545,7 @@ public final class RunnerCommandControllerGrpc {
      * Update an existing runner.
      * &#64;internal
      * Used for updating spec fields (e.g., description). Status fields are
-     * updated via heartbeat, not via this RPC.
+     * updated via the connect stream heartbeat, not via this RPC.
      * </pre>
      */
     public ai.stigmer.agentic.runner.v1.Runner update(ai.stigmer.agentic.runner.v1.Runner request) throws io.grpc.StatusException {
@@ -554,30 +569,38 @@ public final class RunnerCommandControllerGrpc {
 
     /**
      * <pre>
-     * Report runner liveness and operational state.
-     * Called by the runner process every 30 seconds. Updates status fields
-     * (phase, last_heartbeat_at, current_executions, connection_info) without
-     * modifying spec or metadata.
-     * If the runner is in PENDING or STOPPED phase, a heartbeat transitions it
-     * to the phase reported in the input (typically READY). This enables the
-     * "restart and reconnect" flow: a stopped runner resumes heartbeating and
-     * goes back to READY with the same identity and task queue.
+     * Establish a bidirectional command stream between the runner and the server.
+     * This is the runner's primary ongoing communication channel. The runner
+     * pushes heartbeats (liveness + state); the server pushes commands
+     * (e.g., ListDirectory for workspace browsing). Both directions use the
+     * same open connection.
+     * Stream lifecycle:
+     *   1. Runner calls apply to register/reactivate, then opens this stream.
+     *   2. First message MUST be a RunnerHeartbeat (authenticates via runner_id).
+     *   3. Runner sends heartbeats every 30s.
+     *   4. Server pushes RunnerCommandRequest when the UI triggers an operation.
+     *   5. Runner handles commands locally and sends RunnerCommandResponse.
+     *   6. On graceful shutdown: runner sends phase=STOPPED heartbeat, closes stream.
+     *   7. On disconnect: server starts heartbeat timeout (90s) -&gt; STOPPED.
      * &#64;internal
-     * Authorization is handled in the handler: the caller must own the runner.
-     * Skipped at the interceptor level because the input is RunnerHeartbeatInput
-     * (not a resource), and the ownership check requires a DB lookup.
+     * Authorization is handled via the first heartbeat message: the server
+     * looks up the runner_id and verifies ownership. Skipped at the interceptor
+     * level because the stream input is not a resource type.
      * </pre>
      */
-    public ai.stigmer.agentic.runner.v1.Runner heartbeat(ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getHeartbeatMethod(), getCallOptions(), request);
+    @io.grpc.ExperimentalApi("https://github.com/grpc/grpc-java/issues/10918")
+    public io.grpc.stub.BlockingClientCall<ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage, ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage>
+        connect() {
+      return io.grpc.stub.ClientCalls.blockingBidiStreamingCall(
+          getChannel(), getConnectMethod(), getCallOptions());
     }
   }
 
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service RunnerCommandController.
    * <pre>
-   * RunnerCommandController handles write operations for runners.
+   * RunnerCommandController handles write operations and the bidirectional
+   * command stream for runners.
    * Two creation patterns are supported:
    * 1. **CLI/Desktop (persistent runners)**: The client calls apply with a slug
    *    stored in ~/.stigmer/runner.json. If the runner exists, it reactivates.
@@ -585,9 +608,9 @@ public final class RunnerCommandControllerGrpc {
    * 2. **Platform (ephemeral runners)**: The execution workflow calls create
    *    with metadata label stigmer.ai/system-managed: "true". The runner is
    *    torn down via delete when the execution completes.
-   * The heartbeat RPC is called by the runner process on a regular interval
-   * (default 30s) to report liveness and state. It is the runner's only
-   * ongoing communication channel with the server.
+   * After registration, the runner opens the connect bidi stream — its only
+   * ongoing communication channel with the server. Heartbeats flow runner to
+   * server; commands (e.g., ListDirectory) flow server to runner.
    * </pre>
    */
   public static final class RunnerCommandControllerBlockingStub
@@ -636,7 +659,7 @@ public final class RunnerCommandControllerGrpc {
      * Update an existing runner.
      * &#64;internal
      * Used for updating spec fields (e.g., description). Status fields are
-     * updated via heartbeat, not via this RPC.
+     * updated via the connect stream heartbeat, not via this RPC.
      * </pre>
      */
     public ai.stigmer.agentic.runner.v1.Runner update(ai.stigmer.agentic.runner.v1.Runner request) {
@@ -657,33 +680,13 @@ public final class RunnerCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
     }
-
-    /**
-     * <pre>
-     * Report runner liveness and operational state.
-     * Called by the runner process every 30 seconds. Updates status fields
-     * (phase, last_heartbeat_at, current_executions, connection_info) without
-     * modifying spec or metadata.
-     * If the runner is in PENDING or STOPPED phase, a heartbeat transitions it
-     * to the phase reported in the input (typically READY). This enables the
-     * "restart and reconnect" flow: a stopped runner resumes heartbeating and
-     * goes back to READY with the same identity and task queue.
-     * &#64;internal
-     * Authorization is handled in the handler: the caller must own the runner.
-     * Skipped at the interceptor level because the input is RunnerHeartbeatInput
-     * (not a resource), and the ownership check requires a DB lookup.
-     * </pre>
-     */
-    public ai.stigmer.agentic.runner.v1.Runner heartbeat(ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getHeartbeatMethod(), getCallOptions(), request);
-    }
   }
 
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service RunnerCommandController.
    * <pre>
-   * RunnerCommandController handles write operations for runners.
+   * RunnerCommandController handles write operations and the bidirectional
+   * command stream for runners.
    * Two creation patterns are supported:
    * 1. **CLI/Desktop (persistent runners)**: The client calls apply with a slug
    *    stored in ~/.stigmer/runner.json. If the runner exists, it reactivates.
@@ -691,9 +694,9 @@ public final class RunnerCommandControllerGrpc {
    * 2. **Platform (ephemeral runners)**: The execution workflow calls create
    *    with metadata label stigmer.ai/system-managed: "true". The runner is
    *    torn down via delete when the execution completes.
-   * The heartbeat RPC is called by the runner process on a regular interval
-   * (default 30s) to report liveness and state. It is the runner's only
-   * ongoing communication channel with the server.
+   * After registration, the runner opens the connect bidi stream — its only
+   * ongoing communication channel with the server. Heartbeats flow runner to
+   * server; commands (e.g., ListDirectory) flow server to runner.
    * </pre>
    */
   public static final class RunnerCommandControllerFutureStub
@@ -744,7 +747,7 @@ public final class RunnerCommandControllerGrpc {
      * Update an existing runner.
      * &#64;internal
      * Used for updating spec fields (e.g., description). Status fields are
-     * updated via heartbeat, not via this RPC.
+     * updated via the connect stream heartbeat, not via this RPC.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.runner.v1.Runner> update(
@@ -767,35 +770,13 @@ public final class RunnerCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getDeleteMethod(), getCallOptions()), request);
     }
-
-    /**
-     * <pre>
-     * Report runner liveness and operational state.
-     * Called by the runner process every 30 seconds. Updates status fields
-     * (phase, last_heartbeat_at, current_executions, connection_info) without
-     * modifying spec or metadata.
-     * If the runner is in PENDING or STOPPED phase, a heartbeat transitions it
-     * to the phase reported in the input (typically READY). This enables the
-     * "restart and reconnect" flow: a stopped runner resumes heartbeating and
-     * goes back to READY with the same identity and task queue.
-     * &#64;internal
-     * Authorization is handled in the handler: the caller must own the runner.
-     * Skipped at the interceptor level because the input is RunnerHeartbeatInput
-     * (not a resource), and the ownership check requires a DB lookup.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.runner.v1.Runner> heartbeat(
-        ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getHeartbeatMethod(), getCallOptions()), request);
-    }
   }
 
   private static final int METHODID_APPLY = 0;
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_DELETE = 3;
-  private static final int METHODID_HEARTBEAT = 4;
+  private static final int METHODID_CONNECT = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -830,10 +811,6 @@ public final class RunnerCommandControllerGrpc {
           serviceImpl.delete((ai.stigmer.agentic.runner.v1.RunnerId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.Runner>) responseObserver);
           break;
-        case METHODID_HEARTBEAT:
-          serviceImpl.heartbeat((ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.Runner>) responseObserver);
-          break;
         default:
           throw new AssertionError();
       }
@@ -844,6 +821,9 @@ public final class RunnerCommandControllerGrpc {
     public io.grpc.stub.StreamObserver<Req> invoke(
         io.grpc.stub.StreamObserver<Resp> responseObserver) {
       switch (methodId) {
+        case METHODID_CONNECT:
+          return (io.grpc.stub.StreamObserver<Req>) serviceImpl.connect(
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage>) responseObserver);
         default:
           throw new AssertionError();
       }
@@ -881,12 +861,12 @@ public final class RunnerCommandControllerGrpc {
               ai.stigmer.agentic.runner.v1.Runner>(
                 service, METHODID_DELETE)))
         .addMethod(
-          getHeartbeatMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
+          getConnectMethod(),
+          io.grpc.stub.ServerCalls.asyncBidiStreamingCall(
             new MethodHandlers<
-              ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput,
-              ai.stigmer.agentic.runner.v1.Runner>(
-                service, METHODID_HEARTBEAT)))
+              ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage,
+              ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage>(
+                service, METHODID_CONNECT)))
         .build();
   }
 
@@ -939,7 +919,7 @@ public final class RunnerCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getDeleteMethod())
-              .addMethod(getHeartbeatMethod())
+              .addMethod(getConnectMethod())
               .build();
         }
       }

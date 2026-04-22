@@ -4,6 +4,7 @@ package gen
 
 import (
 	"context"
+	"io"
 
 	runnerv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/runner/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
@@ -44,9 +45,36 @@ func (r *RunnerClient) Delete(ctx context.Context, id string) (*runnerv1.Runner,
 	return resp, wrapErr(err)
 }
 
-func (r *RunnerClient) Heartbeat(ctx context.Context, input *runnerv1.RunnerHeartbeatInput) (*runnerv1.Runner, error) {
-	resp, err := r.command.Heartbeat(ctx, input)
-	return resp, wrapErr(err)
+// RunnerConnectStream wraps the bidi stream for Connect.
+type RunnerConnectStream struct {
+	stream runnerv1.RunnerCommandController_ConnectClient
+}
+
+func (s *RunnerConnectStream) Send(msg *runnerv1.RunnerStreamClientMessage) error {
+	return wrapErr(s.stream.Send(msg))
+}
+
+func (s *RunnerConnectStream) Recv() (*runnerv1.RunnerStreamServerMessage, error) {
+	msg, err := s.stream.Recv()
+	if err != nil {
+		if err == io.EOF {
+			return nil, io.EOF
+		}
+		return nil, wrapErr(err)
+	}
+	return msg, nil
+}
+
+func (s *RunnerConnectStream) CloseSend() error {
+	return wrapErr(s.stream.CloseSend())
+}
+
+func (r *RunnerClient) Connect(ctx context.Context, opts ...grpc.CallOption) (*RunnerConnectStream, error) {
+	stream, err := r.command.Connect(ctx, opts...)
+	if err != nil {
+		return nil, wrapErr(err)
+	}
+	return &RunnerConnectStream{stream: stream}, nil
 }
 
 func (r *RunnerClient) Get(ctx context.Context, id string) (*runnerv1.Runner, error) {

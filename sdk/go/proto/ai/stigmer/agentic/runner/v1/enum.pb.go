@@ -24,7 +24,7 @@ const (
 // RunnerPhase tracks the operational state of a runner process.
 //
 // Phase transitions are driven by two sources:
-// - The runner process itself (via heartbeat RPC): PENDING -> READY, READY <-> BUSY
+// - The runner process itself (via connect stream heartbeat): PENDING -> READY, READY <-> BUSY
 // - The server (via heartbeat timeout or explicit stop): any -> STOPPED, any -> FAILED
 //
 // Transition diagram:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Iterator
 
 import grpc
 
@@ -50,9 +51,10 @@ class RunnerClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def heartbeat(self, input: io_pb2.RunnerHeartbeatInput) -> api_pb2.Runner:
+    def connect(self, input: io_pb2.RunnerStreamClientMessage) -> Iterator[io_pb2.RunnerStreamServerMessage]:
         try:
-            return self._command.heartbeat(input)
+            for msg in self._command.connect(input):
+                yield msg
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

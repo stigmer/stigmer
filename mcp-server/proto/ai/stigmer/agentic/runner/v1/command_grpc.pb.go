@@ -19,18 +19,19 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RunnerCommandController_Apply_FullMethodName     = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/apply"
-	RunnerCommandController_Create_FullMethodName    = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/create"
-	RunnerCommandController_Update_FullMethodName    = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/update"
-	RunnerCommandController_Delete_FullMethodName    = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/delete"
-	RunnerCommandController_Heartbeat_FullMethodName = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/heartbeat"
+	RunnerCommandController_Apply_FullMethodName   = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/apply"
+	RunnerCommandController_Create_FullMethodName  = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/create"
+	RunnerCommandController_Update_FullMethodName  = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/update"
+	RunnerCommandController_Delete_FullMethodName  = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/delete"
+	RunnerCommandController_Connect_FullMethodName = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/connect"
 )
 
 // RunnerCommandControllerClient is the client API for RunnerCommandController service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// RunnerCommandController handles write operations for runners.
+// RunnerCommandController handles write operations and the bidirectional
+// command stream for runners.
 //
 // Two creation patterns are supported:
 //
@@ -42,9 +43,9 @@ const (
 //     with metadata label stigmer.ai/system-managed: "true". The runner is
 //     torn down via delete when the execution completes.
 //
-// The heartbeat RPC is called by the runner process on a regular interval
-// (default 30s) to report liveness and state. It is the runner's only
-// ongoing communication channel with the server.
+// After registration, the runner opens the connect bidi stream — its only
+// ongoing communication channel with the server. Heartbeats flow runner to
+// server; commands (e.g., ListDirectory) flow server to runner.
 type RunnerCommandControllerClient interface {
 	// Create or update a runner.
 	//
@@ -64,7 +65,7 @@ type RunnerCommandControllerClient interface {
 	//
 	// @internal
 	// Used for updating spec fields (e.g., description). Status fields are
-	// updated via heartbeat, not via this RPC.
+	// updated via the connect stream heartbeat, not via this RPC.
 	Update(ctx context.Context, in *Runner, opts ...grpc.CallOption) (*Runner, error)
 	// Delete a runner.
 	//
@@ -73,22 +74,27 @@ type RunnerCommandControllerClient interface {
 	// For system-managed runners: called by the execution workflow during
 	// cleanup after the execution completes.
 	Delete(ctx context.Context, in *RunnerId, opts ...grpc.CallOption) (*Runner, error)
-	// Report runner liveness and operational state.
+	// Establish a bidirectional command stream between the runner and the server.
 	//
-	// Called by the runner process every 30 seconds. Updates status fields
-	// (phase, last_heartbeat_at, current_executions, connection_info) without
-	// modifying spec or metadata.
+	// This is the runner's primary ongoing communication channel. The runner
+	// pushes heartbeats (liveness + state); the server pushes commands
+	// (e.g., ListDirectory for workspace browsing). Both directions use the
+	// same open connection.
 	//
-	// If the runner is in PENDING or STOPPED phase, a heartbeat transitions it
-	// to the phase reported in the input (typically READY). This enables the
-	// "restart and reconnect" flow: a stopped runner resumes heartbeating and
-	// goes back to READY with the same identity and task queue.
+	// Stream lifecycle:
+	//  1. Runner calls apply to register/reactivate, then opens this stream.
+	//  2. First message MUST be a RunnerHeartbeat (authenticates via runner_id).
+	//  3. Runner sends heartbeats every 30s.
+	//  4. Server pushes RunnerCommandRequest when the UI triggers an operation.
+	//  5. Runner handles commands locally and sends RunnerCommandResponse.
+	//  6. On graceful shutdown: runner sends phase=STOPPED heartbeat, closes stream.
+	//  7. On disconnect: server starts heartbeat timeout (90s) -> STOPPED.
 	//
 	// @internal
-	// Authorization is handled in the handler: the caller must own the runner.
-	// Skipped at the interceptor level because the input is RunnerHeartbeatInput
-	// (not a resource), and the ownership check requires a DB lookup.
-	Heartbeat(ctx context.Context, in *RunnerHeartbeatInput, opts ...grpc.CallOption) (*Runner, error)
+	// Authorization is handled via the first heartbeat message: the server
+	// looks up the runner_id and verifies ownership. Skipped at the interceptor
+	// level because the stream input is not a resource type.
+	Connect(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[RunnerStreamClientMessage, RunnerStreamServerMessage], error)
 }
 
 type runnerCommandControllerClient struct {
@@ -139,21 +145,25 @@ func (c *runnerCommandControllerClient) Delete(ctx context.Context, in *RunnerId
 	return out, nil
 }
 
-func (c *runnerCommandControllerClient) Heartbeat(ctx context.Context, in *RunnerHeartbeatInput, opts ...grpc.CallOption) (*Runner, error) {
+func (c *runnerCommandControllerClient) Connect(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[RunnerStreamClientMessage, RunnerStreamServerMessage], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Runner)
-	err := c.cc.Invoke(ctx, RunnerCommandController_Heartbeat_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &RunnerCommandController_ServiceDesc.Streams[0], RunnerCommandController_Connect_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[RunnerStreamClientMessage, RunnerStreamServerMessage]{ClientStream: stream}
+	return x, nil
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RunnerCommandController_ConnectClient = grpc.BidiStreamingClient[RunnerStreamClientMessage, RunnerStreamServerMessage]
 
 // RunnerCommandControllerServer is the server API for RunnerCommandController service.
 // All implementations should embed UnimplementedRunnerCommandControllerServer
 // for forward compatibility.
 //
-// RunnerCommandController handles write operations for runners.
+// RunnerCommandController handles write operations and the bidirectional
+// command stream for runners.
 //
 // Two creation patterns are supported:
 //
@@ -165,9 +175,9 @@ func (c *runnerCommandControllerClient) Heartbeat(ctx context.Context, in *Runne
 //     with metadata label stigmer.ai/system-managed: "true". The runner is
 //     torn down via delete when the execution completes.
 //
-// The heartbeat RPC is called by the runner process on a regular interval
-// (default 30s) to report liveness and state. It is the runner's only
-// ongoing communication channel with the server.
+// After registration, the runner opens the connect bidi stream — its only
+// ongoing communication channel with the server. Heartbeats flow runner to
+// server; commands (e.g., ListDirectory) flow server to runner.
 type RunnerCommandControllerServer interface {
 	// Create or update a runner.
 	//
@@ -187,7 +197,7 @@ type RunnerCommandControllerServer interface {
 	//
 	// @internal
 	// Used for updating spec fields (e.g., description). Status fields are
-	// updated via heartbeat, not via this RPC.
+	// updated via the connect stream heartbeat, not via this RPC.
 	Update(context.Context, *Runner) (*Runner, error)
 	// Delete a runner.
 	//
@@ -196,22 +206,27 @@ type RunnerCommandControllerServer interface {
 	// For system-managed runners: called by the execution workflow during
 	// cleanup after the execution completes.
 	Delete(context.Context, *RunnerId) (*Runner, error)
-	// Report runner liveness and operational state.
+	// Establish a bidirectional command stream between the runner and the server.
 	//
-	// Called by the runner process every 30 seconds. Updates status fields
-	// (phase, last_heartbeat_at, current_executions, connection_info) without
-	// modifying spec or metadata.
+	// This is the runner's primary ongoing communication channel. The runner
+	// pushes heartbeats (liveness + state); the server pushes commands
+	// (e.g., ListDirectory for workspace browsing). Both directions use the
+	// same open connection.
 	//
-	// If the runner is in PENDING or STOPPED phase, a heartbeat transitions it
-	// to the phase reported in the input (typically READY). This enables the
-	// "restart and reconnect" flow: a stopped runner resumes heartbeating and
-	// goes back to READY with the same identity and task queue.
+	// Stream lifecycle:
+	//  1. Runner calls apply to register/reactivate, then opens this stream.
+	//  2. First message MUST be a RunnerHeartbeat (authenticates via runner_id).
+	//  3. Runner sends heartbeats every 30s.
+	//  4. Server pushes RunnerCommandRequest when the UI triggers an operation.
+	//  5. Runner handles commands locally and sends RunnerCommandResponse.
+	//  6. On graceful shutdown: runner sends phase=STOPPED heartbeat, closes stream.
+	//  7. On disconnect: server starts heartbeat timeout (90s) -> STOPPED.
 	//
 	// @internal
-	// Authorization is handled in the handler: the caller must own the runner.
-	// Skipped at the interceptor level because the input is RunnerHeartbeatInput
-	// (not a resource), and the ownership check requires a DB lookup.
-	Heartbeat(context.Context, *RunnerHeartbeatInput) (*Runner, error)
+	// Authorization is handled via the first heartbeat message: the server
+	// looks up the runner_id and verifies ownership. Skipped at the interceptor
+	// level because the stream input is not a resource type.
+	Connect(grpc.BidiStreamingServer[RunnerStreamClientMessage, RunnerStreamServerMessage]) error
 }
 
 // UnimplementedRunnerCommandControllerServer should be embedded to have
@@ -233,8 +248,8 @@ func (UnimplementedRunnerCommandControllerServer) Update(context.Context, *Runne
 func (UnimplementedRunnerCommandControllerServer) Delete(context.Context, *RunnerId) (*Runner, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
-func (UnimplementedRunnerCommandControllerServer) Heartbeat(context.Context, *RunnerHeartbeatInput) (*Runner, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Heartbeat not implemented")
+func (UnimplementedRunnerCommandControllerServer) Connect(grpc.BidiStreamingServer[RunnerStreamClientMessage, RunnerStreamServerMessage]) error {
+	return status.Errorf(codes.Unimplemented, "method Connect not implemented")
 }
 func (UnimplementedRunnerCommandControllerServer) testEmbeddedByValue() {}
 
@@ -328,23 +343,12 @@ func _RunnerCommandController_Delete_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RunnerCommandController_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RunnerHeartbeatInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RunnerCommandControllerServer).Heartbeat(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RunnerCommandController_Heartbeat_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RunnerCommandControllerServer).Heartbeat(ctx, req.(*RunnerHeartbeatInput))
-	}
-	return interceptor(ctx, in, info, handler)
+func _RunnerCommandController_Connect_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(RunnerCommandControllerServer).Connect(&grpc.GenericServerStream[RunnerStreamClientMessage, RunnerStreamServerMessage]{ServerStream: stream})
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RunnerCommandController_ConnectServer = grpc.BidiStreamingServer[RunnerStreamClientMessage, RunnerStreamServerMessage]
 
 // RunnerCommandController_ServiceDesc is the grpc.ServiceDesc for RunnerCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -369,11 +373,14 @@ var RunnerCommandController_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "delete",
 			Handler:    _RunnerCommandController_Delete_Handler,
 		},
+	},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "heartbeat",
-			Handler:    _RunnerCommandController_Heartbeat_Handler,
+			StreamName:    "connect",
+			Handler:       _RunnerCommandController_Connect_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "ai/stigmer/agentic/runner/v1/command.proto",
 }

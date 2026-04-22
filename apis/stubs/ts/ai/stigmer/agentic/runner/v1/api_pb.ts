@@ -32,8 +32,8 @@ export const file_ai_stigmer_agentic_runner_v1_api: GenFile = /*@__PURE__*/
  *
  * Runner follows the Kubernetes Node pattern:
  * - **Thin spec**: the user declares intent (a name, a description). That's it.
- * - **Rich status**: the runner process self-reports everything via heartbeat —
- *   phase, capacity, machine info, task queue.
+ * - **Rich status**: the runner process self-reports everything via the
+ *   connect stream — phase, capacity, machine info, task queue.
  * - **Identity persists across restarts**: a runner that stops and restarts
  *   reconnects to the same resource. The CLI stores the runner ID locally and
  *   calls apply to reactivate the same identity, same queue.
@@ -189,7 +189,8 @@ export const RunnerStatusSchema: GenMessage<RunnerStatus> = /*@__PURE__*/
 
 /**
  * RunnerConnectionInfo contains self-reported details about the runner's
- * host environment. Populated by the runner process on each heartbeat call.
+ * host environment. Populated by the runner process on each heartbeat
+ * message sent over the connect stream.
  *
  * This information is used for:
  * - UI display: "Alice's MacBook Pro (darwin/arm64)"

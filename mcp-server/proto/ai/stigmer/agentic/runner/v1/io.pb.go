@@ -69,92 +69,6 @@ func (x *RunnerId) GetValue() string {
 	return ""
 }
 
-// RunnerHeartbeatInput is sent by the runner process on a regular
-// interval (default 30s) to report liveness and operational state.
-//
-// The server uses heartbeat absence to detect stale runners: if no heartbeat
-// arrives within the timeout window (default 90s = 3x interval), the runner
-// transitions to STOPPED. When a stopped runner resumes heartbeating, it
-// transitions back to READY.
-//
-// The heartbeat is intentionally lightweight — it carries only the fields that
-// change frequently. Static runner identity (name, org, description) is set
-// once via create/apply and does not repeat on every heartbeat.
-type RunnerHeartbeatInput struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// ID of the runner sending the heartbeat.
-	RunnerId string `protobuf:"bytes,1,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
-	// Current operational phase as reported by the runner.
-	// Typically READY (accepting work) or BUSY (at capacity).
-	Phase RunnerPhase `protobuf:"varint,2,opt,name=phase,proto3,enum=ai.stigmer.agentic.runner.v1.RunnerPhase" json:"phase,omitempty"`
-	// Number of executions currently in progress on this runner.
-	CurrentExecutions int32 `protobuf:"varint,3,opt,name=current_executions,json=currentExecutions,proto3" json:"current_executions,omitempty"`
-	// Self-reported machine information. The runner sends this on every
-	// heartbeat so that version upgrades and hostname changes are reflected
-	// without requiring a full resource update.
-	ConnectionInfo *RunnerConnectionInfo `protobuf:"bytes,4,opt,name=connection_info,json=connectionInfo,proto3" json:"connection_info,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *RunnerHeartbeatInput) Reset() {
-	*x = RunnerHeartbeatInput{}
-	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RunnerHeartbeatInput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RunnerHeartbeatInput) ProtoMessage() {}
-
-func (x *RunnerHeartbeatInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RunnerHeartbeatInput.ProtoReflect.Descriptor instead.
-func (*RunnerHeartbeatInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *RunnerHeartbeatInput) GetRunnerId() string {
-	if x != nil {
-		return x.RunnerId
-	}
-	return ""
-}
-
-func (x *RunnerHeartbeatInput) GetPhase() RunnerPhase {
-	if x != nil {
-		return x.Phase
-	}
-	return RunnerPhase_RUNNER_PHASE_UNSPECIFIED
-}
-
-func (x *RunnerHeartbeatInput) GetCurrentExecutions() int32 {
-	if x != nil {
-		return x.CurrentExecutions
-	}
-	return 0
-}
-
-func (x *RunnerHeartbeatInput) GetConnectionInfo() *RunnerConnectionInfo {
-	if x != nil {
-		return x.ConnectionInfo
-	}
-	return nil
-}
-
 // ListRunnersRequest is the input for listing runners within an organization.
 type ListRunnersRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -174,7 +88,7 @@ type ListRunnersRequest struct {
 
 func (x *ListRunnersRequest) Reset() {
 	*x = ListRunnersRequest{}
-	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -186,7 +100,7 @@ func (x *ListRunnersRequest) String() string {
 func (*ListRunnersRequest) ProtoMessage() {}
 
 func (x *ListRunnersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -199,7 +113,7 @@ func (x *ListRunnersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRunnersRequest.ProtoReflect.Descriptor instead.
 func (*ListRunnersRequest) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ListRunnersRequest) GetOrg() string {
@@ -236,7 +150,7 @@ type RunnerList struct {
 
 func (x *RunnerList) Reset() {
 	*x = RunnerList{}
-	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -248,7 +162,7 @@ func (x *RunnerList) String() string {
 func (*RunnerList) ProtoMessage() {}
 
 func (x *RunnerList) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -261,7 +175,7 @@ func (x *RunnerList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunnerList.ProtoReflect.Descriptor instead.
 func (*RunnerList) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *RunnerList) GetTotalCount() int32 {
@@ -278,18 +192,676 @@ func (x *RunnerList) GetItems() []*Runner {
 	return nil
 }
 
+// RunnerStreamClientMessage is the envelope for all runner-to-server messages
+// on the connect bidi stream.
+//
+// The runner sends two types of messages:
+// - Heartbeats: periodic liveness reports (every 30s)
+// - Command responses: replies to server-initiated commands
+type RunnerStreamClientMessage struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Message:
+	//
+	//	*RunnerStreamClientMessage_Heartbeat
+	//	*RunnerStreamClientMessage_CommandResponse
+	Message       isRunnerStreamClientMessage_Message `protobuf_oneof:"message"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunnerStreamClientMessage) Reset() {
+	*x = RunnerStreamClientMessage{}
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunnerStreamClientMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunnerStreamClientMessage) ProtoMessage() {}
+
+func (x *RunnerStreamClientMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunnerStreamClientMessage.ProtoReflect.Descriptor instead.
+func (*RunnerStreamClientMessage) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *RunnerStreamClientMessage) GetMessage() isRunnerStreamClientMessage_Message {
+	if x != nil {
+		return x.Message
+	}
+	return nil
+}
+
+func (x *RunnerStreamClientMessage) GetHeartbeat() *RunnerHeartbeat {
+	if x != nil {
+		if x, ok := x.Message.(*RunnerStreamClientMessage_Heartbeat); ok {
+			return x.Heartbeat
+		}
+	}
+	return nil
+}
+
+func (x *RunnerStreamClientMessage) GetCommandResponse() *RunnerCommandResponse {
+	if x != nil {
+		if x, ok := x.Message.(*RunnerStreamClientMessage_CommandResponse); ok {
+			return x.CommandResponse
+		}
+	}
+	return nil
+}
+
+type isRunnerStreamClientMessage_Message interface {
+	isRunnerStreamClientMessage_Message()
+}
+
+type RunnerStreamClientMessage_Heartbeat struct {
+	Heartbeat *RunnerHeartbeat `protobuf:"bytes,1,opt,name=heartbeat,proto3,oneof"`
+}
+
+type RunnerStreamClientMessage_CommandResponse struct {
+	CommandResponse *RunnerCommandResponse `protobuf:"bytes,2,opt,name=command_response,json=commandResponse,proto3,oneof"`
+}
+
+func (*RunnerStreamClientMessage_Heartbeat) isRunnerStreamClientMessage_Message() {}
+
+func (*RunnerStreamClientMessage_CommandResponse) isRunnerStreamClientMessage_Message() {}
+
+// RunnerStreamServerMessage is the envelope for all server-to-runner messages
+// on the connect bidi stream.
+//
+// The server sends command requests when the UI or API triggers an operation
+// that requires runner-side execution (e.g., browsing the runner's filesystem).
+type RunnerStreamServerMessage struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Message:
+	//
+	//	*RunnerStreamServerMessage_CommandRequest
+	Message       isRunnerStreamServerMessage_Message `protobuf_oneof:"message"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunnerStreamServerMessage) Reset() {
+	*x = RunnerStreamServerMessage{}
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunnerStreamServerMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunnerStreamServerMessage) ProtoMessage() {}
+
+func (x *RunnerStreamServerMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunnerStreamServerMessage.ProtoReflect.Descriptor instead.
+func (*RunnerStreamServerMessage) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *RunnerStreamServerMessage) GetMessage() isRunnerStreamServerMessage_Message {
+	if x != nil {
+		return x.Message
+	}
+	return nil
+}
+
+func (x *RunnerStreamServerMessage) GetCommandRequest() *RunnerCommandRequest {
+	if x != nil {
+		if x, ok := x.Message.(*RunnerStreamServerMessage_CommandRequest); ok {
+			return x.CommandRequest
+		}
+	}
+	return nil
+}
+
+type isRunnerStreamServerMessage_Message interface {
+	isRunnerStreamServerMessage_Message()
+}
+
+type RunnerStreamServerMessage_CommandRequest struct {
+	CommandRequest *RunnerCommandRequest `protobuf:"bytes,1,opt,name=command_request,json=commandRequest,proto3,oneof"`
+}
+
+func (*RunnerStreamServerMessage_CommandRequest) isRunnerStreamServerMessage_Message() {}
+
+// RunnerHeartbeat reports runner liveness and operational state over the
+// connect stream.
+//
+// Sent every 30 seconds. The first message on a new stream MUST be a
+// heartbeat — it authenticates the stream by runner_id lookup.
+//
+// The server's processing logic mirrors the legacy unary heartbeat: update
+// phase, last_heartbeat_at, current_executions, and connection_info on the
+// Runner resource. A heartbeat from a PENDING or STOPPED runner transitions
+// it to the reported phase (typically READY).
+type RunnerHeartbeat struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ID of the runner sending the heartbeat.
+	RunnerId string `protobuf:"bytes,1,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
+	// Current operational phase as reported by the runner.
+	// Typically READY (accepting work) or BUSY (at capacity).
+	Phase RunnerPhase `protobuf:"varint,2,opt,name=phase,proto3,enum=ai.stigmer.agentic.runner.v1.RunnerPhase" json:"phase,omitempty"`
+	// Number of executions currently in progress on this runner.
+	CurrentExecutions int32 `protobuf:"varint,3,opt,name=current_executions,json=currentExecutions,proto3" json:"current_executions,omitempty"`
+	// Self-reported machine information. Sent on every heartbeat so that
+	// version upgrades and hostname changes are reflected without requiring
+	// a full resource update.
+	ConnectionInfo *RunnerConnectionInfo `protobuf:"bytes,4,opt,name=connection_info,json=connectionInfo,proto3" json:"connection_info,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *RunnerHeartbeat) Reset() {
+	*x = RunnerHeartbeat{}
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunnerHeartbeat) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunnerHeartbeat) ProtoMessage() {}
+
+func (x *RunnerHeartbeat) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunnerHeartbeat.ProtoReflect.Descriptor instead.
+func (*RunnerHeartbeat) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *RunnerHeartbeat) GetRunnerId() string {
+	if x != nil {
+		return x.RunnerId
+	}
+	return ""
+}
+
+func (x *RunnerHeartbeat) GetPhase() RunnerPhase {
+	if x != nil {
+		return x.Phase
+	}
+	return RunnerPhase_RUNNER_PHASE_UNSPECIFIED
+}
+
+func (x *RunnerHeartbeat) GetCurrentExecutions() int32 {
+	if x != nil {
+		return x.CurrentExecutions
+	}
+	return 0
+}
+
+func (x *RunnerHeartbeat) GetConnectionInfo() *RunnerConnectionInfo {
+	if x != nil {
+		return x.ConnectionInfo
+	}
+	return nil
+}
+
+// RunnerCommandRequest is a server-initiated command pushed to the runner
+// over the connect stream.
+//
+// Each request carries a unique request_id for correlation with the
+// RunnerCommandResponse. The command set is fixed at compile time by the
+// oneof — no arbitrary code execution. Adding a new command type requires
+// a proto change and a runner upgrade.
+type RunnerCommandRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Unique identifier for this request. Generated by the server.
+	// The runner MUST echo this in the corresponding RunnerCommandResponse.
+	RequestId string `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	// The command to execute. Extensible via oneof — each new command type
+	// is a proto addition, not a runtime plugin.
+	//
+	// Types that are valid to be assigned to Command:
+	//
+	//	*RunnerCommandRequest_ListDirectory
+	Command       isRunnerCommandRequest_Command `protobuf_oneof:"command"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunnerCommandRequest) Reset() {
+	*x = RunnerCommandRequest{}
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunnerCommandRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunnerCommandRequest) ProtoMessage() {}
+
+func (x *RunnerCommandRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunnerCommandRequest.ProtoReflect.Descriptor instead.
+func (*RunnerCommandRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *RunnerCommandRequest) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *RunnerCommandRequest) GetCommand() isRunnerCommandRequest_Command {
+	if x != nil {
+		return x.Command
+	}
+	return nil
+}
+
+func (x *RunnerCommandRequest) GetListDirectory() *ListDirectoryRequest {
+	if x != nil {
+		if x, ok := x.Command.(*RunnerCommandRequest_ListDirectory); ok {
+			return x.ListDirectory
+		}
+	}
+	return nil
+}
+
+type isRunnerCommandRequest_Command interface {
+	isRunnerCommandRequest_Command()
+}
+
+type RunnerCommandRequest_ListDirectory struct {
+	ListDirectory *ListDirectoryRequest `protobuf:"bytes,2,opt,name=list_directory,json=listDirectory,proto3,oneof"`
+}
+
+func (*RunnerCommandRequest_ListDirectory) isRunnerCommandRequest_Command() {}
+
+// RunnerCommandResponse is the runner's reply to a RunnerCommandRequest.
+//
+// Sent on the connect stream after the runner handles a command locally.
+// The request_id correlates this response to the original request.
+type RunnerCommandResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Echoed from RunnerCommandRequest.request_id.
+	RequestId string `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	// Types that are valid to be assigned to Result:
+	//
+	//	*RunnerCommandResponse_ListDirectory
+	//	*RunnerCommandResponse_Error
+	Result        isRunnerCommandResponse_Result `protobuf_oneof:"result"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunnerCommandResponse) Reset() {
+	*x = RunnerCommandResponse{}
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunnerCommandResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunnerCommandResponse) ProtoMessage() {}
+
+func (x *RunnerCommandResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunnerCommandResponse.ProtoReflect.Descriptor instead.
+func (*RunnerCommandResponse) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RunnerCommandResponse) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *RunnerCommandResponse) GetResult() isRunnerCommandResponse_Result {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+func (x *RunnerCommandResponse) GetListDirectory() *ListDirectoryResponse {
+	if x != nil {
+		if x, ok := x.Result.(*RunnerCommandResponse_ListDirectory); ok {
+			return x.ListDirectory
+		}
+	}
+	return nil
+}
+
+func (x *RunnerCommandResponse) GetError() *RunnerCommandError {
+	if x != nil {
+		if x, ok := x.Result.(*RunnerCommandResponse_Error); ok {
+			return x.Error
+		}
+	}
+	return nil
+}
+
+type isRunnerCommandResponse_Result interface {
+	isRunnerCommandResponse_Result()
+}
+
+type RunnerCommandResponse_ListDirectory struct {
+	ListDirectory *ListDirectoryResponse `protobuf:"bytes,2,opt,name=list_directory,json=listDirectory,proto3,oneof"`
+}
+
+type RunnerCommandResponse_Error struct {
+	Error *RunnerCommandError `protobuf:"bytes,3,opt,name=error,proto3,oneof"`
+}
+
+func (*RunnerCommandResponse_ListDirectory) isRunnerCommandResponse_Result() {}
+
+func (*RunnerCommandResponse_Error) isRunnerCommandResponse_Result() {}
+
+// ListDirectoryRequest asks the runner to list the contents of a directory
+// on its host machine.
+//
+// Used by the session composer's workspace picker to let users browse the
+// runner's filesystem and select a project directory.
+type ListDirectoryRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Directory path to list. Absolute or ~-relative.
+	// If empty, defaults to the runner's home directory.
+	Path          string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDirectoryRequest) Reset() {
+	*x = ListDirectoryRequest{}
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDirectoryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDirectoryRequest) ProtoMessage() {}
+
+func (x *ListDirectoryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDirectoryRequest.ProtoReflect.Descriptor instead.
+func (*ListDirectoryRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ListDirectoryRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+// ListDirectoryResponse returns the directory listing from the runner.
+type ListDirectoryResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Absolute path after ~ expansion and symlink resolution.
+	ResolvedPath string `protobuf:"bytes,1,opt,name=resolved_path,json=resolvedPath,proto3" json:"resolved_path,omitempty"`
+	// Directory entries, sorted: directories first, then alphabetical.
+	Entries []*DirectoryEntry `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Absolute path to the runner user's home directory.
+	// Enables the UI "Home" navigation button.
+	HomeDirectory string `protobuf:"bytes,3,opt,name=home_directory,json=homeDirectory,proto3" json:"home_directory,omitempty"`
+	// Current working directory of the runner process.
+	// Enables the UI "CWD" navigation shortcut.
+	CurrentDirectory string `protobuf:"bytes,4,opt,name=current_directory,json=currentDirectory,proto3" json:"current_directory,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ListDirectoryResponse) Reset() {
+	*x = ListDirectoryResponse{}
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDirectoryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDirectoryResponse) ProtoMessage() {}
+
+func (x *ListDirectoryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDirectoryResponse.ProtoReflect.Descriptor instead.
+func (*ListDirectoryResponse) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ListDirectoryResponse) GetResolvedPath() string {
+	if x != nil {
+		return x.ResolvedPath
+	}
+	return ""
+}
+
+func (x *ListDirectoryResponse) GetEntries() []*DirectoryEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *ListDirectoryResponse) GetHomeDirectory() string {
+	if x != nil {
+		return x.HomeDirectory
+	}
+	return ""
+}
+
+func (x *ListDirectoryResponse) GetCurrentDirectory() string {
+	if x != nil {
+		return x.CurrentDirectory
+	}
+	return ""
+}
+
+// DirectoryEntry represents a single entry in a directory listing.
+type DirectoryEntry struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// File or directory name (not a full path).
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// True if this entry is a directory (or a symlink to one).
+	IsDirectory bool `protobuf:"varint,2,opt,name=is_directory,json=isDirectory,proto3" json:"is_directory,omitempty"`
+	// True if the entry name starts with a dot (Unix hidden convention).
+	// Enables the UI "show hidden files" toggle.
+	IsHidden      bool `protobuf:"varint,3,opt,name=is_hidden,json=isHidden,proto3" json:"is_hidden,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DirectoryEntry) Reset() {
+	*x = DirectoryEntry{}
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DirectoryEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DirectoryEntry) ProtoMessage() {}
+
+func (x *DirectoryEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DirectoryEntry.ProtoReflect.Descriptor instead.
+func (*DirectoryEntry) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *DirectoryEntry) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *DirectoryEntry) GetIsDirectory() bool {
+	if x != nil {
+		return x.IsDirectory
+	}
+	return false
+}
+
+func (x *DirectoryEntry) GetIsHidden() bool {
+	if x != nil {
+		return x.IsHidden
+	}
+	return false
+}
+
+// RunnerCommandError is returned when a command fails on the runner side.
+type RunnerCommandError struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Human-readable error description.
+	// Example: "permission denied: /root", "directory not found: /nonexistent"
+	Message       string `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunnerCommandError) Reset() {
+	*x = RunnerCommandError{}
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunnerCommandError) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunnerCommandError) ProtoMessage() {}
+
+func (x *RunnerCommandError) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunnerCommandError.ProtoReflect.Descriptor instead.
+func (*RunnerCommandError) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *RunnerCommandError) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_runner_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_runner_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"%ai/stigmer/agentic/runner/v1/io.proto\x12\x1cai.stigmer.agentic.runner.v1\x1a&ai/stigmer/agentic/runner/v1/api.proto\x1a'ai/stigmer/agentic/runner/v1/enum.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"(\n" +
 	"\bRunnerId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x92\x02\n" +
-	"\x14RunnerHeartbeatInput\x12#\n" +
-	"\trunner_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\brunnerId\x12I\n" +
-	"\x05phase\x18\x02 \x01(\x0e2).ai.stigmer.agentic.runner.v1.RunnerPhaseB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05phase\x12-\n" +
-	"\x12current_executions\x18\x03 \x01(\x05R\x11currentExecutions\x12[\n" +
-	"\x0fconnection_info\x18\x04 \x01(\v22.ai.stigmer.agentic.runner.v1.RunnerConnectionInfoR\x0econnectionInfo\"\xff\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xff\x01\n" +
 	"\x12ListRunnersRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12T\n" +
 	"\x06labels\x18\x02 \x03(\v2<.ai.stigmer.agentic.runner.v1.ListRunnersRequest.LabelsEntryR\x06labels\x12=\n" +
@@ -301,7 +873,43 @@ const file_ai_stigmer_agentic_runner_v1_io_proto_rawDesc = "" +
 	"RunnerList\x12\x1f\n" +
 	"\vtotal_count\x18\x01 \x01(\x05R\n" +
 	"totalCount\x12:\n" +
-	"\x05items\x18\x02 \x03(\v2$.ai.stigmer.agentic.runner.v1.RunnerR\x05itemsB\x93\x02\n" +
+	"\x05items\x18\x02 \x03(\v2$.ai.stigmer.agentic.runner.v1.RunnerR\x05items\"\xd7\x01\n" +
+	"\x19RunnerStreamClientMessage\x12M\n" +
+	"\theartbeat\x18\x01 \x01(\v2-.ai.stigmer.agentic.runner.v1.RunnerHeartbeatH\x00R\theartbeat\x12`\n" +
+	"\x10command_response\x18\x02 \x01(\v23.ai.stigmer.agentic.runner.v1.RunnerCommandResponseH\x00R\x0fcommandResponseB\t\n" +
+	"\amessage\"\x85\x01\n" +
+	"\x19RunnerStreamServerMessage\x12]\n" +
+	"\x0fcommand_request\x18\x01 \x01(\v22.ai.stigmer.agentic.runner.v1.RunnerCommandRequestH\x00R\x0ecommandRequestB\t\n" +
+	"\amessage\"\xfb\x01\n" +
+	"\x0fRunnerHeartbeat\x12\x1b\n" +
+	"\trunner_id\x18\x01 \x01(\tR\brunnerId\x12?\n" +
+	"\x05phase\x18\x02 \x01(\x0e2).ai.stigmer.agentic.runner.v1.RunnerPhaseR\x05phase\x12-\n" +
+	"\x12current_executions\x18\x03 \x01(\x05R\x11currentExecutions\x12[\n" +
+	"\x0fconnection_info\x18\x04 \x01(\v22.ai.stigmer.agentic.runner.v1.RunnerConnectionInfoR\x0econnectionInfo\"\x9d\x01\n" +
+	"\x14RunnerCommandRequest\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x12[\n" +
+	"\x0elist_directory\x18\x02 \x01(\v22.ai.stigmer.agentic.runner.v1.ListDirectoryRequestH\x00R\rlistDirectoryB\t\n" +
+	"\acommand\"\xe8\x01\n" +
+	"\x15RunnerCommandResponse\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x12\\\n" +
+	"\x0elist_directory\x18\x02 \x01(\v23.ai.stigmer.agentic.runner.v1.ListDirectoryResponseH\x00R\rlistDirectory\x12H\n" +
+	"\x05error\x18\x03 \x01(\v20.ai.stigmer.agentic.runner.v1.RunnerCommandErrorH\x00R\x05errorB\b\n" +
+	"\x06result\"*\n" +
+	"\x14ListDirectoryRequest\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\"\xd8\x01\n" +
+	"\x15ListDirectoryResponse\x12#\n" +
+	"\rresolved_path\x18\x01 \x01(\tR\fresolvedPath\x12F\n" +
+	"\aentries\x18\x02 \x03(\v2,.ai.stigmer.agentic.runner.v1.DirectoryEntryR\aentries\x12%\n" +
+	"\x0ehome_directory\x18\x03 \x01(\tR\rhomeDirectory\x12+\n" +
+	"\x11current_directory\x18\x04 \x01(\tR\x10currentDirectory\"d\n" +
+	"\x0eDirectoryEntry\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
+	"\fis_directory\x18\x02 \x01(\bR\visDirectory\x12\x1b\n" +
+	"\tis_hidden\x18\x03 \x01(\bR\bisHidden\".\n" +
+	"\x12RunnerCommandError\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessageB\x93\x02\n" +
 	" com.ai.stigmer.agentic.runner.v1B\aIoProtoP\x01ZQgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/runner/v1;runnerv1\xa2\x02\x04ASAR\xaa\x02\x1cAi.Stigmer.Agentic.Runner.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Runner\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Runner\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Runner::V1b\x06proto3"
 
 var (
@@ -316,29 +924,44 @@ func file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_ai_stigmer_agentic_runner_v1_io_proto_goTypes = []any{
-	(*RunnerId)(nil),             // 0: ai.stigmer.agentic.runner.v1.RunnerId
-	(*RunnerHeartbeatInput)(nil), // 1: ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput
-	(*ListRunnersRequest)(nil),   // 2: ai.stigmer.agentic.runner.v1.ListRunnersRequest
-	(*RunnerList)(nil),           // 3: ai.stigmer.agentic.runner.v1.RunnerList
-	nil,                          // 4: ai.stigmer.agentic.runner.v1.ListRunnersRequest.LabelsEntry
-	(RunnerPhase)(0),             // 5: ai.stigmer.agentic.runner.v1.RunnerPhase
-	(*RunnerConnectionInfo)(nil), // 6: ai.stigmer.agentic.runner.v1.RunnerConnectionInfo
-	(*rpc.PageInfo)(nil),         // 7: ai.stigmer.commons.rpc.PageInfo
-	(*Runner)(nil),               // 8: ai.stigmer.agentic.runner.v1.Runner
+	(*RunnerId)(nil),                  // 0: ai.stigmer.agentic.runner.v1.RunnerId
+	(*ListRunnersRequest)(nil),        // 1: ai.stigmer.agentic.runner.v1.ListRunnersRequest
+	(*RunnerList)(nil),                // 2: ai.stigmer.agentic.runner.v1.RunnerList
+	(*RunnerStreamClientMessage)(nil), // 3: ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage
+	(*RunnerStreamServerMessage)(nil), // 4: ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage
+	(*RunnerHeartbeat)(nil),           // 5: ai.stigmer.agentic.runner.v1.RunnerHeartbeat
+	(*RunnerCommandRequest)(nil),      // 6: ai.stigmer.agentic.runner.v1.RunnerCommandRequest
+	(*RunnerCommandResponse)(nil),     // 7: ai.stigmer.agentic.runner.v1.RunnerCommandResponse
+	(*ListDirectoryRequest)(nil),      // 8: ai.stigmer.agentic.runner.v1.ListDirectoryRequest
+	(*ListDirectoryResponse)(nil),     // 9: ai.stigmer.agentic.runner.v1.ListDirectoryResponse
+	(*DirectoryEntry)(nil),            // 10: ai.stigmer.agentic.runner.v1.DirectoryEntry
+	(*RunnerCommandError)(nil),        // 11: ai.stigmer.agentic.runner.v1.RunnerCommandError
+	nil,                               // 12: ai.stigmer.agentic.runner.v1.ListRunnersRequest.LabelsEntry
+	(*rpc.PageInfo)(nil),              // 13: ai.stigmer.commons.rpc.PageInfo
+	(*Runner)(nil),                    // 14: ai.stigmer.agentic.runner.v1.Runner
+	(RunnerPhase)(0),                  // 15: ai.stigmer.agentic.runner.v1.RunnerPhase
+	(*RunnerConnectionInfo)(nil),      // 16: ai.stigmer.agentic.runner.v1.RunnerConnectionInfo
 }
 var file_ai_stigmer_agentic_runner_v1_io_proto_depIdxs = []int32{
-	5, // 0: ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput.phase:type_name -> ai.stigmer.agentic.runner.v1.RunnerPhase
-	6, // 1: ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput.connection_info:type_name -> ai.stigmer.agentic.runner.v1.RunnerConnectionInfo
-	4, // 2: ai.stigmer.agentic.runner.v1.ListRunnersRequest.labels:type_name -> ai.stigmer.agentic.runner.v1.ListRunnersRequest.LabelsEntry
-	7, // 3: ai.stigmer.agentic.runner.v1.ListRunnersRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	8, // 4: ai.stigmer.agentic.runner.v1.RunnerList.items:type_name -> ai.stigmer.agentic.runner.v1.Runner
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	12, // 0: ai.stigmer.agentic.runner.v1.ListRunnersRequest.labels:type_name -> ai.stigmer.agentic.runner.v1.ListRunnersRequest.LabelsEntry
+	13, // 1: ai.stigmer.agentic.runner.v1.ListRunnersRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	14, // 2: ai.stigmer.agentic.runner.v1.RunnerList.items:type_name -> ai.stigmer.agentic.runner.v1.Runner
+	5,  // 3: ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage.heartbeat:type_name -> ai.stigmer.agentic.runner.v1.RunnerHeartbeat
+	7,  // 4: ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage.command_response:type_name -> ai.stigmer.agentic.runner.v1.RunnerCommandResponse
+	6,  // 5: ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage.command_request:type_name -> ai.stigmer.agentic.runner.v1.RunnerCommandRequest
+	15, // 6: ai.stigmer.agentic.runner.v1.RunnerHeartbeat.phase:type_name -> ai.stigmer.agentic.runner.v1.RunnerPhase
+	16, // 7: ai.stigmer.agentic.runner.v1.RunnerHeartbeat.connection_info:type_name -> ai.stigmer.agentic.runner.v1.RunnerConnectionInfo
+	8,  // 8: ai.stigmer.agentic.runner.v1.RunnerCommandRequest.list_directory:type_name -> ai.stigmer.agentic.runner.v1.ListDirectoryRequest
+	9,  // 9: ai.stigmer.agentic.runner.v1.RunnerCommandResponse.list_directory:type_name -> ai.stigmer.agentic.runner.v1.ListDirectoryResponse
+	11, // 10: ai.stigmer.agentic.runner.v1.RunnerCommandResponse.error:type_name -> ai.stigmer.agentic.runner.v1.RunnerCommandError
+	10, // 11: ai.stigmer.agentic.runner.v1.ListDirectoryResponse.entries:type_name -> ai.stigmer.agentic.runner.v1.DirectoryEntry
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_runner_v1_io_proto_init() }
@@ -348,13 +971,27 @@ func file_ai_stigmer_agentic_runner_v1_io_proto_init() {
 	}
 	file_ai_stigmer_agentic_runner_v1_api_proto_init()
 	file_ai_stigmer_agentic_runner_v1_enum_proto_init()
+	file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[3].OneofWrappers = []any{
+		(*RunnerStreamClientMessage_Heartbeat)(nil),
+		(*RunnerStreamClientMessage_CommandResponse)(nil),
+	}
+	file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[4].OneofWrappers = []any{
+		(*RunnerStreamServerMessage_CommandRequest)(nil),
+	}
+	file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[6].OneofWrappers = []any{
+		(*RunnerCommandRequest_ListDirectory)(nil),
+	}
+	file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[7].OneofWrappers = []any{
+		(*RunnerCommandResponse_ListDirectory)(nil),
+		(*RunnerCommandResponse_Error)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_runner_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_runner_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

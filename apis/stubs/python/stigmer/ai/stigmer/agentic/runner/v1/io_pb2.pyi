@@ -16,18 +16,6 @@ class RunnerId(_message.Message):
     value: str
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
-class RunnerHeartbeatInput(_message.Message):
-    __slots__ = ("runner_id", "phase", "current_executions", "connection_info")
-    RUNNER_ID_FIELD_NUMBER: _ClassVar[int]
-    PHASE_FIELD_NUMBER: _ClassVar[int]
-    CURRENT_EXECUTIONS_FIELD_NUMBER: _ClassVar[int]
-    CONNECTION_INFO_FIELD_NUMBER: _ClassVar[int]
-    runner_id: str
-    phase: _enum_pb2.RunnerPhase
-    current_executions: int
-    connection_info: _api_pb2.RunnerConnectionInfo
-    def __init__(self, runner_id: _Optional[str] = ..., phase: _Optional[_Union[_enum_pb2.RunnerPhase, str]] = ..., current_executions: _Optional[int] = ..., connection_info: _Optional[_Union[_api_pb2.RunnerConnectionInfo, _Mapping]] = ...) -> None: ...
-
 class ListRunnersRequest(_message.Message):
     __slots__ = ("org", "labels", "page_info")
     class LabelsEntry(_message.Message):
@@ -52,3 +40,81 @@ class RunnerList(_message.Message):
     total_count: int
     items: _containers.RepeatedCompositeFieldContainer[_api_pb2.Runner]
     def __init__(self, total_count: _Optional[int] = ..., items: _Optional[_Iterable[_Union[_api_pb2.Runner, _Mapping]]] = ...) -> None: ...
+
+class RunnerStreamClientMessage(_message.Message):
+    __slots__ = ("heartbeat", "command_response")
+    HEARTBEAT_FIELD_NUMBER: _ClassVar[int]
+    COMMAND_RESPONSE_FIELD_NUMBER: _ClassVar[int]
+    heartbeat: RunnerHeartbeat
+    command_response: RunnerCommandResponse
+    def __init__(self, heartbeat: _Optional[_Union[RunnerHeartbeat, _Mapping]] = ..., command_response: _Optional[_Union[RunnerCommandResponse, _Mapping]] = ...) -> None: ...
+
+class RunnerStreamServerMessage(_message.Message):
+    __slots__ = ("command_request",)
+    COMMAND_REQUEST_FIELD_NUMBER: _ClassVar[int]
+    command_request: RunnerCommandRequest
+    def __init__(self, command_request: _Optional[_Union[RunnerCommandRequest, _Mapping]] = ...) -> None: ...
+
+class RunnerHeartbeat(_message.Message):
+    __slots__ = ("runner_id", "phase", "current_executions", "connection_info")
+    RUNNER_ID_FIELD_NUMBER: _ClassVar[int]
+    PHASE_FIELD_NUMBER: _ClassVar[int]
+    CURRENT_EXECUTIONS_FIELD_NUMBER: _ClassVar[int]
+    CONNECTION_INFO_FIELD_NUMBER: _ClassVar[int]
+    runner_id: str
+    phase: _enum_pb2.RunnerPhase
+    current_executions: int
+    connection_info: _api_pb2.RunnerConnectionInfo
+    def __init__(self, runner_id: _Optional[str] = ..., phase: _Optional[_Union[_enum_pb2.RunnerPhase, str]] = ..., current_executions: _Optional[int] = ..., connection_info: _Optional[_Union[_api_pb2.RunnerConnectionInfo, _Mapping]] = ...) -> None: ...
+
+class RunnerCommandRequest(_message.Message):
+    __slots__ = ("request_id", "list_directory")
+    REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
+    LIST_DIRECTORY_FIELD_NUMBER: _ClassVar[int]
+    request_id: str
+    list_directory: ListDirectoryRequest
+    def __init__(self, request_id: _Optional[str] = ..., list_directory: _Optional[_Union[ListDirectoryRequest, _Mapping]] = ...) -> None: ...
+
+class RunnerCommandResponse(_message.Message):
+    __slots__ = ("request_id", "list_directory", "error")
+    REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
+    LIST_DIRECTORY_FIELD_NUMBER: _ClassVar[int]
+    ERROR_FIELD_NUMBER: _ClassVar[int]
+    request_id: str
+    list_directory: ListDirectoryResponse
+    error: RunnerCommandError
+    def __init__(self, request_id: _Optional[str] = ..., list_directory: _Optional[_Union[ListDirectoryResponse, _Mapping]] = ..., error: _Optional[_Union[RunnerCommandError, _Mapping]] = ...) -> None: ...
+
+class ListDirectoryRequest(_message.Message):
+    __slots__ = ("path",)
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    path: str
+    def __init__(self, path: _Optional[str] = ...) -> None: ...
+
+class ListDirectoryResponse(_message.Message):
+    __slots__ = ("resolved_path", "entries", "home_directory", "current_directory")
+    RESOLVED_PATH_FIELD_NUMBER: _ClassVar[int]
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    HOME_DIRECTORY_FIELD_NUMBER: _ClassVar[int]
+    CURRENT_DIRECTORY_FIELD_NUMBER: _ClassVar[int]
+    resolved_path: str
+    entries: _containers.RepeatedCompositeFieldContainer[DirectoryEntry]
+    home_directory: str
+    current_directory: str
+    def __init__(self, resolved_path: _Optional[str] = ..., entries: _Optional[_Iterable[_Union[DirectoryEntry, _Mapping]]] = ..., home_directory: _Optional[str] = ..., current_directory: _Optional[str] = ...) -> None: ...
+
+class DirectoryEntry(_message.Message):
+    __slots__ = ("name", "is_directory", "is_hidden")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    IS_DIRECTORY_FIELD_NUMBER: _ClassVar[int]
+    IS_HIDDEN_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    is_directory: bool
+    is_hidden: bool
+    def __init__(self, name: _Optional[str] = ..., is_directory: bool = ..., is_hidden: bool = ...) -> None: ...
+
+class RunnerCommandError(_message.Message):
+    __slots__ = ("message",)
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    message: str
+    def __init__(self, message: _Optional[str] = ...) -> None: ...

@@ -6,8 +6,8 @@
 package ai.stigmer.agentic.runner.v1;
 
 @com.google.protobuf.Generated
-public interface RunnerHeartbeatInputOrBuilder extends
-    // @@protoc_insertion_point(interface_extends:ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput)
+public interface RunnerHeartbeatOrBuilder extends
+    // @@protoc_insertion_point(interface_extends:ai.stigmer.agentic.runner.v1.RunnerHeartbeat)
     com.google.protobuf.MessageOrBuilder {
 
   /**
@@ -15,7 +15,7 @@ public interface RunnerHeartbeatInputOrBuilder extends
    * ID of the runner sending the heartbeat.
    * </pre>
    *
-   * <code>string runner_id = 1 [json_name = "runnerId", (.buf.validate.field) = { ... }</code>
+   * <code>string runner_id = 1 [json_name = "runnerId"];</code>
    * @return The runnerId.
    */
   java.lang.String getRunnerId();
@@ -24,7 +24,7 @@ public interface RunnerHeartbeatInputOrBuilder extends
    * ID of the runner sending the heartbeat.
    * </pre>
    *
-   * <code>string runner_id = 1 [json_name = "runnerId", (.buf.validate.field) = { ... }</code>
+   * <code>string runner_id = 1 [json_name = "runnerId"];</code>
    * @return The bytes for runnerId.
    */
   com.google.protobuf.ByteString
@@ -36,7 +36,7 @@ public interface RunnerHeartbeatInputOrBuilder extends
    * Typically READY (accepting work) or BUSY (at capacity).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase", (.buf.validate.field) = { ... }</code>
+   * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase"];</code>
    * @return The enum numeric value on the wire for phase.
    */
   int getPhaseValue();
@@ -46,7 +46,7 @@ public interface RunnerHeartbeatInputOrBuilder extends
    * Typically READY (accepting work) or BUSY (at capacity).
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase", (.buf.validate.field) = { ... }</code>
+   * <code>.ai.stigmer.agentic.runner.v1.RunnerPhase phase = 2 [json_name = "phase"];</code>
    * @return The phase.
    */
   ai.stigmer.agentic.runner.v1.RunnerPhase getPhase();
@@ -63,9 +63,9 @@ public interface RunnerHeartbeatInputOrBuilder extends
 
   /**
    * <pre>
-   * Self-reported machine information. The runner sends this on every
-   * heartbeat so that version upgrades and hostname changes are reflected
-   * without requiring a full resource update.
+   * Self-reported machine information. Sent on every heartbeat so that
+   * version upgrades and hostname changes are reflected without requiring
+   * a full resource update.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 4 [json_name = "connectionInfo"];</code>
@@ -74,9 +74,9 @@ public interface RunnerHeartbeatInputOrBuilder extends
   boolean hasConnectionInfo();
   /**
    * <pre>
-   * Self-reported machine information. The runner sends this on every
-   * heartbeat so that version upgrades and hostname changes are reflected
-   * without requiring a full resource update.
+   * Self-reported machine information. Sent on every heartbeat so that
+   * version upgrades and hostname changes are reflected without requiring
+   * a full resource update.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 4 [json_name = "connectionInfo"];</code>
@@ -85,9 +85,9 @@ public interface RunnerHeartbeatInputOrBuilder extends
   ai.stigmer.agentic.runner.v1.RunnerConnectionInfo getConnectionInfo();
   /**
    * <pre>
-   * Self-reported machine information. The runner sends this on every
-   * heartbeat so that version upgrades and hostname changes are reflected
-   * without requiring a full resource update.
+   * Self-reported machine information. Sent on every heartbeat so that
+   * version upgrades and hostname changes are reflected without requiring
+   * a full resource update.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 4 [json_name = "connectionInfo"];</code>

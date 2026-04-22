@@ -36,16 +36,16 @@ Runner runner = client.runners().get("rnr_01j5q3k7m8r2s4tnz2hfp0q0c3");
 
 ## Methods
 
-| Method | Description |
-|--------|-------------|
-| [`get`](#get) | Get a single runner by ID. |
-| [`getByReference`](#getbyreference) | Get a runner by its organization-scoped reference (org/slug). |
-| [`list`](#list) | List runners within an organization. |
-| [`apply`](#apply) | Create or update a runner. |
-| [`create`](#create) | Create a new runner. |
-| [`update`](#update) | Update an existing runner. |
-| [`delete`](#delete) | Delete a runner. |
-| [`heartbeat`](#heartbeat) | Report runner liveness and operational state. |
+| Method | Description | Streaming |
+|--------|-------------|-----------|
+| [`get`](#get) | Get a single runner by ID. | |
+| [`getByReference`](#getbyreference) | Get a runner by its organization-scoped reference (org/slug). | |
+| [`list`](#list) | List runners within an organization. | |
+| [`apply`](#apply) | Create or update a runner. | |
+| [`create`](#create) | Create a new runner. | |
+| [`update`](#update) | Update an existing runner. | |
+| [`delete`](#delete) | Delete a runner. | |
+| [`connect`](#connect) | Establish a bidirectional command stream between the runner and the server. | Server |
 
 ### get
 
@@ -384,60 +384,55 @@ Runner runner = client.runners().delete(id);
 
 **Returns**: [`Runner`](#runner)
 
-### heartbeat
+### connect
 
-Report runner liveness and operational state.
+> **Server Streaming** — This method returns a stream of updates, not a single response.
 
-Called by the runner process every 30 seconds. Updates status fields (phase, last_heartbeat_at, current_executions, connection_info) without modifying spec or metadata.
+Establish a bidirectional command stream between the runner and the server.
 
-If the runner is in PENDING or STOPPED phase, a heartbeat transitions it to the phase reported in the input (typically READY). This enables the "restart and reconnect" flow: a stopped runner resumes heartbeating and goes back to READY with the same identity and task queue.
+This is the runner's primary ongoing communication channel. The runner pushes heartbeats (liveness + state); the server pushes commands (e.g., ListDirectory for workspace browsing). Both directions use the same open connection.
+
+Stream lifecycle: 1. Runner calls apply to register/reactivate, then opens this stream. 2. First message MUST be a RunnerHeartbeat (authenticates via runner_id). 3. Runner sends heartbeats every 30s. 4. Server pushes RunnerCommandRequest when the UI triggers an operation. 5. Runner handles commands locally and sends RunnerCommandResponse. 6. On graceful shutdown: runner sends phase=STOPPED heartbeat, closes stream. 7. On disconnect: server starts heartbeat timeout (90s) -&gt; STOPPED.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const runner = await stigmer.runner.heartbeat({
-  runnerId: "...",
-  phase: "...",
-  currentExecutions: 0,
-  connectionInfo: {},
-});
+const stream = stigmer.runner.connect(input);
+for await (const runnerStreamServerMessage of stream) {
+  // process runnerStreamServerMessage
+}
 ```
 </Tab>
 <Tab value="Go">
 ```go
-runner, err := client.Runner.Heartbeat(ctx, &stigmer.RunnerHeartbeatInput{
-  RunnerId:          "...",
-  Phase:             "...",
-  CurrentExecutions: 0,
-  ConnectionInfo:    &stigmer.RunnerConnectionInfoInput{},
-})
+stream, err := client.Runner.Connect(ctx, input)
+for {
+    runnerStreamServerMessage, err := stream.Recv()
+    if err != nil {
+        break
+    }
+    // process runnerStreamServerMessage
+}
 ```
 </Tab>
 <Tab value="Python">
 ```python
-runner = client.runners.heartbeat(RunnerHeartbeatInput(
-    runner_id="...",
-    phase="...",
-    current_executions=0,
-    connection_info=None,
-))
+for runner_stream_server_message in client.runners.connect(input):
+    # process runner_stream_server_message
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Runner runner = client.runners().heartbeat(RunnerHeartbeatInput.builder()
-    .runnerId("...")
-    .phase("...")
-    .currentExecutions(0)
-    .connectionInfo(null)
-    .build());
+client.runners().connect(input, runnerStreamServerMessage -> {
+    // process runnerStreamServerMessage
+});
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`RunnerHeartbeatInput`](#runnerheartbeatinput)
+**Parameters**: [`RunnerStreamClientMessage`](#runnerstreamclientmessage)
 
-**Returns**: [`Runner`](#runner)
+**Returns**: Stream&lt;[`RunnerStreamServerMessage`](#runnerstreamservermessage)&gt;
 
 ## Types
 
@@ -455,16 +450,24 @@ Input for creating or updating a Runner.
   }}
 />
 
-### RunnerHeartbeatInput
+### RunnerStreamClientMessage
 
-RunnerHeartbeatInput is sent by the runner process on a regular interval (default 30s) to report liveness and operational state.
+RunnerStreamClientMessage is the envelope for all runner-to-server messages on the connect bidi stream.
 
 <TypeTable
   type={{
-    runnerId: { type: "string", description: "ID of the runner sending the heartbeat.", required: true },
-    phase: { type: "RunnerPhase", description: "Current operational phase as reported by the runner.", typeDescriptionLink: "#runnerphase" },
-    currentExecutions: { type: "number", description: "Number of executions currently in progress on this runner." },
-    connectionInfo: { type: "RunnerConnectionInfoInput", description: "Self-reported machine information." },
+    heartbeat: { type: "RunnerHeartbeatInput", description: "" },
+    commandResponse: { type: "RunnerCommandResponseInput", description: "" },
+  }}
+/>
+
+### RunnerStreamServerMessage
+
+RunnerStreamServerMessage is the envelope for all server-to-runner messages on the connect bidi stream.
+
+<TypeTable
+  type={{
+    commandRequest: { type: "RunnerCommandRequestInput", description: "" },
   }}
 />
 

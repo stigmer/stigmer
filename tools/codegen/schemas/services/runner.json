@@ -29,7 +29,7 @@
           "inputFullType": "ai.stigmer.agentic.runner.v1.Runner",
           "outputType": "Runner",
           "outputFullType": "ai.stigmer.agentic.runner.v1.Runner",
-          "description": "Update an existing runner.\n\n @internal\n Used for updating spec fields (e.g., description). Status fields are\n updated via heartbeat, not via this RPC."
+          "description": "Update an existing runner.\n\n @internal\n Used for updating spec fields (e.g., description). Status fields are\n updated via the connect stream heartbeat, not via this RPC."
         },
         {
           "name": "Delete",
@@ -40,12 +40,14 @@
           "description": "Delete a runner.\n\n @internal\n For persistent runners: removes the resource and its task queue.\n For system-managed runners: called by the execution workflow during\n cleanup after the execution completes."
         },
         {
-          "name": "Heartbeat",
-          "inputType": "RunnerHeartbeatInput",
-          "inputFullType": "ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput",
-          "outputType": "Runner",
-          "outputFullType": "ai.stigmer.agentic.runner.v1.Runner",
-          "description": "Report runner liveness and operational state.\n\n Called by the runner process every 30 seconds. Updates status fields\n (phase, last_heartbeat_at, current_executions, connection_info) without\n modifying spec or metadata.\n\n If the runner is in PENDING or STOPPED phase, a heartbeat transitions it\n to the phase reported in the input (typically READY). This enables the\n \"restart and reconnect\" flow: a stopped runner resumes heartbeating and\n goes back to READY with the same identity and task queue.\n\n @internal\n Authorization is handled in the handler: the caller must own the runner.\n Skipped at the interceptor level because the input is RunnerHeartbeatInput\n (not a resource), and the ownership check requires a DB lookup."
+          "name": "Connect",
+          "inputType": "RunnerStreamClientMessage",
+          "inputFullType": "ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage",
+          "outputType": "RunnerStreamServerMessage",
+          "outputFullType": "ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage",
+          "serverStreaming": true,
+          "clientStreaming": true,
+          "description": "Establish a bidirectional command stream between the runner and the server.\n\n This is the runner's primary ongoing communication channel. The runner\n pushes heartbeats (liveness + state); the server pushes commands\n (e.g., ListDirectory for workspace browsing). Both directions use the\n same open connection.\n\n Stream lifecycle:\n   1. Runner calls apply to register/reactivate, then opens this stream.\n   2. First message MUST be a RunnerHeartbeat (authenticates via runner_id).\n   3. Runner sends heartbeats every 30s.\n   4. Server pushes RunnerCommandRequest when the UI triggers an operation.\n   5. Runner handles commands locally and sends RunnerCommandResponse.\n   6. On graceful shutdown: runner sends phase=STOPPED heartbeat, closes stream.\n   7. On disconnect: server starts heartbeat timeout (90s) -\u003e STOPPED.\n\n @internal\n Authorization is handled via the first heartbeat message: the server\n looks up the runner_id and verifies ownership. Skipped at the interceptor\n level because the stream input is not a resource type."
         }
       ]
     },
@@ -82,62 +84,54 @@
   ],
   "methodTypes": [
     {
-      "name": "RunnerHeartbeatInput",
-      "description": "RunnerHeartbeatInput is sent by the runner process on a regular\n interval (default 30s) to report liveness and operational state.\n\n The server uses heartbeat absence to detect stale runners: if no heartbeat\n arrives within the timeout window (default 90s = 3x interval), the runner\n transitions to STOPPED. When a stopped runner resumes heartbeating, it\n transitions back to READY.\n\n The heartbeat is intentionally lightweight — it carries only the fields that\n change frequently. Static runner identity (name, org, description) is set\n once via create/apply and does not repeat on every heartbeat.",
-      "protoType": "ai.stigmer.agentic.runner.v1.RunnerHeartbeatInput",
+      "name": "RunnerStreamClientMessage",
+      "description": "RunnerStreamClientMessage is the envelope for all runner-to-server messages\n on the connect bidi stream.\n\n The runner sends two types of messages:\n - Heartbeats: periodic liveness reports (every 30s)\n - Command responses: replies to server-initiated commands",
+      "protoType": "ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage",
       "protoFile": "apis/ai/stigmer/agentic/runner/v1/io.proto",
       "fields": [
         {
-          "name": "RunnerId",
-          "jsonName": "runnerId",
-          "protoField": "runner_id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "ID of the runner sending the heartbeat.",
-          "required": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "Phase",
-          "jsonName": "phase",
-          "protoField": "phase",
-          "type": {
-            "kind": "string",
-            "enumType": "ai.stigmer.agentic.runner.v1.RunnerPhase",
-            "enumValues": [
-              "RUNNER_PHASE_PENDING",
-              "RUNNER_PHASE_READY",
-              "RUNNER_PHASE_BUSY",
-              "RUNNER_PHASE_STOPPED",
-              "RUNNER_PHASE_FAILED"
-            ]
-          },
-          "description": "Current operational phase as reported by the runner.\n Typically READY (accepting work) or BUSY (at capacity).",
-          "required": false
-        },
-        {
-          "name": "CurrentExecutions",
-          "jsonName": "currentExecutions",
-          "protoField": "current_executions",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Number of executions currently in progress on this runner.",
-          "required": false
-        },
-        {
-          "name": "ConnectionInfo",
-          "jsonName": "connectionInfo",
-          "protoField": "connection_info",
+          "name": "Heartbeat",
+          "jsonName": "heartbeat",
+          "protoField": "heartbeat",
           "type": {
             "kind": "message",
-            "messageType": "RunnerConnectionInfo"
+            "messageType": "RunnerHeartbeat"
           },
-          "description": "Self-reported machine information. The runner sends this on every\n heartbeat so that version upgrades and hostname changes are reflected\n without requiring a full resource update.",
-          "required": false
+          "description": "",
+          "required": false,
+          "oneofGroup": "message"
+        },
+        {
+          "name": "CommandResponse",
+          "jsonName": "commandResponse",
+          "protoField": "command_response",
+          "type": {
+            "kind": "message",
+            "messageType": "RunnerCommandResponse"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "message"
+        }
+      ]
+    },
+    {
+      "name": "RunnerStreamServerMessage",
+      "description": "RunnerStreamServerMessage is the envelope for all server-to-runner messages\n on the connect bidi stream.\n\n The server sends command requests when the UI or API triggers an operation\n that requires runner-side execution (e.g., browsing the runner's filesystem).",
+      "protoType": "ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage",
+      "protoFile": "apis/ai/stigmer/agentic/runner/v1/io.proto",
+      "fields": [
+        {
+          "name": "CommandRequest",
+          "jsonName": "commandRequest",
+          "protoField": "command_request",
+          "type": {
+            "kind": "message",
+            "messageType": "RunnerCommandRequest"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "message"
         }
       ]
     },
@@ -311,38 +305,6 @@
   ],
   "enumTypes": [
     {
-      "name": "RunnerPhase",
-      "description": "RunnerPhase tracks the operational state of a runner process.\n\n Phase transitions are driven by two sources:\n - The runner process itself (via heartbeat RPC): PENDING -\u003e READY, READY \u003c-\u003e BUSY\n - The server (via heartbeat timeout or explicit stop): any -\u003e STOPPED, any -\u003e FAILED\n\n Transition diagram:\n   PENDING  -\u003e READY   (first heartbeat received)\n   READY    -\u003e BUSY    (runner reports max capacity reached)\n   BUSY     -\u003e READY   (runner reports capacity freed)\n   READY    -\u003e STOPPED (heartbeat timeout or explicit stop)\n   BUSY     -\u003e STOPPED (heartbeat timeout or explicit stop)\n   STOPPED  -\u003e READY   (runner restarts and heartbeats again)\n   any      -\u003e FAILED  (unrecoverable error reported by runner or server)",
-      "protoType": "ai.stigmer.agentic.runner.v1.RunnerPhase",
-      "values": [
-        {
-          "name": "RUNNER_PHASE_PENDING",
-          "number": 1,
-          "description": "Resource created but no heartbeat received yet.\n This is the initial phase after create/apply, before the runner\n process has started polling its task queue and heartbeating."
-        },
-        {
-          "name": "RUNNER_PHASE_READY",
-          "number": 2,
-          "description": "Runner is heartbeating and accepting new executions."
-        },
-        {
-          "name": "RUNNER_PHASE_BUSY",
-          "number": 3,
-          "description": "Runner is heartbeating but at maximum concurrent execution capacity.\n New executions should not be dispatched to this runner."
-        },
-        {
-          "name": "RUNNER_PHASE_STOPPED",
-          "number": 4,
-          "description": "Runner has stopped heartbeating (timeout) or was explicitly stopped.\n The resource is retained for identity persistence — a runner that\n restarts and resumes heartbeating transitions back to READY."
-        },
-        {
-          "name": "RUNNER_PHASE_FAILED",
-          "number": 5,
-          "description": "Unrecoverable error. Runner or server reported a fatal condition.\n Requires investigation; does not auto-recover on heartbeat."
-        }
-      ]
-    },
-    {
       "name": "ApiResourceKind",
       "description": "API resource kinds for Stigmer.",
       "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
@@ -465,6 +427,38 @@
       ]
     },
     {
+      "name": "RunnerPhase",
+      "description": "RunnerPhase tracks the operational state of a runner process.\n\n Phase transitions are driven by two sources:\n - The runner process itself (via connect stream heartbeat): PENDING -\u003e READY, READY \u003c-\u003e BUSY\n - The server (via heartbeat timeout or explicit stop): any -\u003e STOPPED, any -\u003e FAILED\n\n Transition diagram:\n   PENDING  -\u003e READY   (first heartbeat received)\n   READY    -\u003e BUSY    (runner reports max capacity reached)\n   BUSY     -\u003e READY   (runner reports capacity freed)\n   READY    -\u003e STOPPED (heartbeat timeout or explicit stop)\n   BUSY     -\u003e STOPPED (heartbeat timeout or explicit stop)\n   STOPPED  -\u003e READY   (runner restarts and heartbeats again)\n   any      -\u003e FAILED  (unrecoverable error reported by runner or server)",
+      "protoType": "ai.stigmer.agentic.runner.v1.RunnerPhase",
+      "values": [
+        {
+          "name": "RUNNER_PHASE_PENDING",
+          "number": 1,
+          "description": "Resource created but no heartbeat received yet.\n This is the initial phase after create/apply, before the runner\n process has started polling its task queue and heartbeating."
+        },
+        {
+          "name": "RUNNER_PHASE_READY",
+          "number": 2,
+          "description": "Runner is heartbeating and accepting new executions."
+        },
+        {
+          "name": "RUNNER_PHASE_BUSY",
+          "number": 3,
+          "description": "Runner is heartbeating but at maximum concurrent execution capacity.\n New executions should not be dispatched to this runner."
+        },
+        {
+          "name": "RUNNER_PHASE_STOPPED",
+          "number": 4,
+          "description": "Runner has stopped heartbeating (timeout) or was explicitly stopped.\n The resource is retained for identity persistence — a runner that\n restarts and resumes heartbeating transitions back to READY."
+        },
+        {
+          "name": "RUNNER_PHASE_FAILED",
+          "number": 5,
+          "description": "Unrecoverable error. Runner or server reported a fatal condition.\n Requires investigation; does not auto-recover on heartbeat."
+        }
+      ]
+    },
+    {
       "name": "ApiResourceVisibility",
       "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
@@ -482,7 +476,7 @@
       ]
     }
   ],
-  "resourceDescription": "Runner represents a process that executes work on the Stigmer platform.\n\n Runners are the computational backbone of the platform. Every execution\n runs on a runner — whether auto-created by the platform for a cloud\n execution or started by a user on their own machine via CLI or desktop app.\n\n Runner follows the Kubernetes Node pattern:\n - **Thin spec**: the user declares intent (a name, a description). That's it.\n - **Rich status**: the runner process self-reports everything via heartbeat —\n   phase, capacity, machine info, task queue.\n - **Identity persists across restarts**: a runner that stops and restarts\n   reconnects to the same resource. The CLI stores the runner ID locally and\n   calls apply to reactivate the same identity, same queue.\n\n Two creation patterns:\n - **User-created (persistent)**: user runs `stigmer runner start`, runner\n   appears in the session composer, user selects it for their sessions.\n - **System-managed (ephemeral)**: platform auto-creates a runner for a cloud\n   execution, labels it stigmer.ai/system-managed: \"true\", tears it down when\n   the execution completes. Hidden from the session composer.\n\n Sessions bind to a runner via SessionSpec.runner_id. Executions record\n which runner handled them via AgentExecutionStatus.runner_id.",
+  "resourceDescription": "Runner represents a process that executes work on the Stigmer platform.\n\n Runners are the computational backbone of the platform. Every execution\n runs on a runner — whether auto-created by the platform for a cloud\n execution or started by a user on their own machine via CLI or desktop app.\n\n Runner follows the Kubernetes Node pattern:\n - **Thin spec**: the user declares intent (a name, a description). That's it.\n - **Rich status**: the runner process self-reports everything via the\n   connect stream — phase, capacity, machine info, task queue.\n - **Identity persists across restarts**: a runner that stops and restarts\n   reconnects to the same resource. The CLI stores the runner ID locally and\n   calls apply to reactivate the same identity, same queue.\n\n Two creation patterns:\n - **User-created (persistent)**: user runs `stigmer runner start`, runner\n   appears in the session composer, user selects it for their sessions.\n - **System-managed (ephemeral)**: platform auto-creates a runner for a cloud\n   execution, labels it stigmer.ai/system-managed: \"true\", tears it down when\n   the execution completes. Hidden from the session composer.\n\n Sessions bind to a runner via SessionSpec.runner_id. Executions record\n which runner handled them via AgentExecutionStatus.runner_id.",
   "statusType": {
     "name": "RunnerStatus",
     "description": "RunnerStatus contains all operational state for a runner.\n\n Every field here is either system-managed (phase, task_queue) or\n runner-reported via heartbeat (last_heartbeat_at, current_executions,\n connection_info). None of it is user-declared — that separation is the\n spec/status invariant.",
@@ -702,7 +696,7 @@
     },
     {
       "name": "RunnerConnectionInfo",
-      "description": "RunnerConnectionInfo contains self-reported details about the runner's\n host environment. Populated by the runner process on each heartbeat call.\n\n This information is used for:\n - UI display: \"Alice's MacBook Pro (darwin/arm64)\"\n - Debugging: matching runner behavior to specific OS/arch combinations\n - Version tracking: ensuring runners stay up-to-date",
+      "description": "RunnerConnectionInfo contains self-reported details about the runner's\n host environment. Populated by the runner process on each heartbeat\n message sent over the connect stream.\n\n This information is used for:\n - UI display: \"Alice's MacBook Pro (darwin/arm64)\"\n - Debugging: matching runner behavior to specific OS/arch combinations\n - Version tracking: ensuring runners stay up-to-date",
       "protoType": "ai.stigmer.agentic.runner.v1.RunnerConnectionInfo",
       "protoFile": "apis/ai/stigmer/agentic/runner/v1/api.proto",
       "fields": [

@@ -5,10 +5,11 @@
 
 import { Runner } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
-import { RunnerHeartbeatInput, RunnerId } from "./io_pb.js";
+import { RunnerId, RunnerStreamClientMessage, RunnerStreamServerMessage } from "./io_pb.js";
 
 /**
- * RunnerCommandController handles write operations for runners.
+ * RunnerCommandController handles write operations and the bidirectional
+ * command stream for runners.
  *
  * Two creation patterns are supported:
  *
@@ -20,9 +21,9 @@ import { RunnerHeartbeatInput, RunnerId } from "./io_pb.js";
  *    with metadata label stigmer.ai/system-managed: "true". The runner is
  *    torn down via delete when the execution completes.
  *
- * The heartbeat RPC is called by the runner process on a regular interval
- * (default 30s) to report liveness and state. It is the runner's only
- * ongoing communication channel with the server.
+ * After registration, the runner opens the connect bidi stream — its only
+ * ongoing communication channel with the server. Heartbeats flow runner to
+ * server; commands (e.g., ListDirectory) flow server to runner.
  *
  * @generated from service ai.stigmer.agentic.runner.v1.RunnerCommandController
  */
@@ -66,7 +67,7 @@ export const RunnerCommandController = {
      *
      * @internal
      * Used for updating spec fields (e.g., description). Status fields are
-     * updated via heartbeat, not via this RPC.
+     * updated via the connect stream heartbeat, not via this RPC.
      *
      * @generated from rpc ai.stigmer.agentic.runner.v1.RunnerCommandController.update
      */
@@ -93,29 +94,34 @@ export const RunnerCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Report runner liveness and operational state.
+     * Establish a bidirectional command stream between the runner and the server.
      *
-     * Called by the runner process every 30 seconds. Updates status fields
-     * (phase, last_heartbeat_at, current_executions, connection_info) without
-     * modifying spec or metadata.
+     * This is the runner's primary ongoing communication channel. The runner
+     * pushes heartbeats (liveness + state); the server pushes commands
+     * (e.g., ListDirectory for workspace browsing). Both directions use the
+     * same open connection.
      *
-     * If the runner is in PENDING or STOPPED phase, a heartbeat transitions it
-     * to the phase reported in the input (typically READY). This enables the
-     * "restart and reconnect" flow: a stopped runner resumes heartbeating and
-     * goes back to READY with the same identity and task queue.
+     * Stream lifecycle:
+     *   1. Runner calls apply to register/reactivate, then opens this stream.
+     *   2. First message MUST be a RunnerHeartbeat (authenticates via runner_id).
+     *   3. Runner sends heartbeats every 30s.
+     *   4. Server pushes RunnerCommandRequest when the UI triggers an operation.
+     *   5. Runner handles commands locally and sends RunnerCommandResponse.
+     *   6. On graceful shutdown: runner sends phase=STOPPED heartbeat, closes stream.
+     *   7. On disconnect: server starts heartbeat timeout (90s) -> STOPPED.
      *
      * @internal
-     * Authorization is handled in the handler: the caller must own the runner.
-     * Skipped at the interceptor level because the input is RunnerHeartbeatInput
-     * (not a resource), and the ownership check requires a DB lookup.
+     * Authorization is handled via the first heartbeat message: the server
+     * looks up the runner_id and verifies ownership. Skipped at the interceptor
+     * level because the stream input is not a resource type.
      *
-     * @generated from rpc ai.stigmer.agentic.runner.v1.RunnerCommandController.heartbeat
+     * @generated from rpc ai.stigmer.agentic.runner.v1.RunnerCommandController.connect
      */
-    heartbeat: {
-      name: "heartbeat",
-      I: RunnerHeartbeatInput,
-      O: Runner,
-      kind: MethodKind.Unary,
+    connect: {
+      name: "connect",
+      I: RunnerStreamClientMessage,
+      O: RunnerStreamServerMessage,
+      kind: MethodKind.BiDiStreaming,
     },
   }
 } as const;
