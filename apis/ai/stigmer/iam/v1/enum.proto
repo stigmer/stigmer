@@ -49,7 +49,6 @@ enum IamPermission {
   // Platform-level permissions.
   can_bootstrap_iam = 17;
   can_manage_identity_accounts = 18;
-  can_update_execution_status = 19;
 
   // Back-office access permission.
   login_to_back_office = 20;

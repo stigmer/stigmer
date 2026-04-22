@@ -26,11 +26,11 @@ var File_ai_stigmer_agentic_workflowexecution_v1_command_proto protoreflect.File
 
 const file_ai_stigmer_agentic_workflowexecution_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"5ai/stigmer/agentic/workflowexecution/v1/command.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a0ai/stigmer/agentic/workflowexecution/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xaa\x11\n" +
+	"5ai/stigmer/agentic/workflowexecution/v1/command.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a0ai/stigmer/agentic/workflowexecution/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xaf\x11\n" +
 	"\"WorkflowExecutionCommandController\x12\x86\x01\n" +
 	"\x06create\x12:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"\x04и\x18\x01\x12\xc2\x01\n" +
-	"\x06update\x12:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"@¸\x18<\b\x02\x104\"\vmetadata.id*)unauthorized to update workflow execution\x12\xdc\x01\n" +
-	"\fupdateStatus\x12K.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"C¸\x18?\b\x13\x10\x1f*0unauthorized to update workflow execution status2\astigmer\x12\xe2\x01\n" +
+	"\x06update\x12:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"@¸\x18<\b\x02\x104\"\vmetadata.id*)unauthorized to update workflow execution\x12\xe1\x01\n" +
+	"\fupdateStatus\x12K.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"H¸\x18D\b\x02\x104\"\fexecution_id*0unauthorized to update workflow execution status\x12\xe2\x01\n" +
 	"\x0esubmitApproval\x12D.ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"N¸\x18J\b\x02\x104\"\fexecution_id*6unauthorized to submit approval for workflow execution\x12\xaf\x01\n" +
 	"\x06delete\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\":¸\x186\b\x02\x104\"\x05value*)unauthorized to delete workflow execution\x12\xcd\x01\n" +
 	"\n" +
