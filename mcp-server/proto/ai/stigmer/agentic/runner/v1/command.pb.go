@@ -26,34 +26,39 @@ var File_ai_stigmer_agentic_runner_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_runner_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/runner/v1/command.proto\x12\x1cai.stigmer.agentic.runner.v1\x1a&ai/stigmer/agentic/runner/v1/api.proto\x1a%ai/stigmer/agentic/runner/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xb5\x05\n" +
+	"*ai/stigmer/agentic/runner/v1/command.proto\x12\x1cai.stigmer.agentic.runner.v1\x1a&ai/stigmer/agentic/runner/v1/api.proto\x1a%ai/stigmer/agentic/runner/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xf3\x06\n" +
 	"\x17RunnerCommandController\x12S\n" +
 	"\x05apply\x12$.ai.stigmer.agentic.runner.v1.Runner\x1a$.ai.stigmer.agentic.runner.v1.Runner\x12\xa0\x01\n" +
 	"\x06create\x12$.ai.stigmer.agentic.runner.v1.Runner\x1a$.ai.stigmer.agentic.runner.v1.Runner\"J¸\x18F\b\x19\x10\x1e\"\fmetadata.org*2unauthorized to create runner in this organization\x12\x8a\x01\n" +
 	"\x06update\x12$.ai.stigmer.agentic.runner.v1.Runner\x1a$.ai.stigmer.agentic.runner.v1.Runner\"4¸\x180\b\x02\x10.\"\vmetadata.id*\x1dunauthorized to update runner\x12\x86\x01\n" +
-	"\x06delete\x12&.ai.stigmer.agentic.runner.v1.RunnerId\x1a$.ai.stigmer.agentic.runner.v1.Runner\".¸\x18*\b\x03\x10.\"\x05value*\x1dunauthorized to delete runner\x12\x85\x01\n" +
+	"\x06delete\x12&.ai.stigmer.agentic.runner.v1.RunnerId\x1a$.ai.stigmer.agentic.runner.v1.Runner\".¸\x18*\b\x03\x10.\"\x05value*\x1dunauthorized to delete runner\x12\xbb\x01\n" +
+	"\vsendCommand\x124.ai.stigmer.agentic.runner.v1.RunnerSendCommandInput\x1a3.ai.stigmer.agentic.runner.v1.RunnerCommandResponse\"A¸\x18=\b\x01\x10.\"\trunner_id*,unauthorized to send commands to this runner\x12\x85\x01\n" +
 	"\aconnect\x127.ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage\x1a7.ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage\"\x04и\x18\x01(\x010\x01\x1a\x04\xa0\xff+.B\x98\x02\n" +
 	" com.ai.stigmer.agentic.runner.v1B\fCommandProtoP\x01ZQgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/runner/v1;runnerv1\xa2\x02\x04ASAR\xaa\x02\x1cAi.Stigmer.Agentic.Runner.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Runner\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Runner\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Runner::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_runner_v1_command_proto_goTypes = []any{
 	(*Runner)(nil),                    // 0: ai.stigmer.agentic.runner.v1.Runner
 	(*RunnerId)(nil),                  // 1: ai.stigmer.agentic.runner.v1.RunnerId
-	(*RunnerStreamClientMessage)(nil), // 2: ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage
-	(*RunnerStreamServerMessage)(nil), // 3: ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage
+	(*RunnerSendCommandInput)(nil),    // 2: ai.stigmer.agentic.runner.v1.RunnerSendCommandInput
+	(*RunnerStreamClientMessage)(nil), // 3: ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage
+	(*RunnerCommandResponse)(nil),     // 4: ai.stigmer.agentic.runner.v1.RunnerCommandResponse
+	(*RunnerStreamServerMessage)(nil), // 5: ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage
 }
 var file_ai_stigmer_agentic_runner_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.runner.v1.RunnerCommandController.apply:input_type -> ai.stigmer.agentic.runner.v1.Runner
 	0, // 1: ai.stigmer.agentic.runner.v1.RunnerCommandController.create:input_type -> ai.stigmer.agentic.runner.v1.Runner
 	0, // 2: ai.stigmer.agentic.runner.v1.RunnerCommandController.update:input_type -> ai.stigmer.agentic.runner.v1.Runner
 	1, // 3: ai.stigmer.agentic.runner.v1.RunnerCommandController.delete:input_type -> ai.stigmer.agentic.runner.v1.RunnerId
-	2, // 4: ai.stigmer.agentic.runner.v1.RunnerCommandController.connect:input_type -> ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage
-	0, // 5: ai.stigmer.agentic.runner.v1.RunnerCommandController.apply:output_type -> ai.stigmer.agentic.runner.v1.Runner
-	0, // 6: ai.stigmer.agentic.runner.v1.RunnerCommandController.create:output_type -> ai.stigmer.agentic.runner.v1.Runner
-	0, // 7: ai.stigmer.agentic.runner.v1.RunnerCommandController.update:output_type -> ai.stigmer.agentic.runner.v1.Runner
-	0, // 8: ai.stigmer.agentic.runner.v1.RunnerCommandController.delete:output_type -> ai.stigmer.agentic.runner.v1.Runner
-	3, // 9: ai.stigmer.agentic.runner.v1.RunnerCommandController.connect:output_type -> ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
+	2, // 4: ai.stigmer.agentic.runner.v1.RunnerCommandController.sendCommand:input_type -> ai.stigmer.agentic.runner.v1.RunnerSendCommandInput
+	3, // 5: ai.stigmer.agentic.runner.v1.RunnerCommandController.connect:input_type -> ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage
+	0, // 6: ai.stigmer.agentic.runner.v1.RunnerCommandController.apply:output_type -> ai.stigmer.agentic.runner.v1.Runner
+	0, // 7: ai.stigmer.agentic.runner.v1.RunnerCommandController.create:output_type -> ai.stigmer.agentic.runner.v1.Runner
+	0, // 8: ai.stigmer.agentic.runner.v1.RunnerCommandController.update:output_type -> ai.stigmer.agentic.runner.v1.Runner
+	0, // 9: ai.stigmer.agentic.runner.v1.RunnerCommandController.delete:output_type -> ai.stigmer.agentic.runner.v1.Runner
+	4, // 10: ai.stigmer.agentic.runner.v1.RunnerCommandController.sendCommand:output_type -> ai.stigmer.agentic.runner.v1.RunnerCommandResponse
+	5, // 11: ai.stigmer.agentic.runner.v1.RunnerCommandController.connect:output_type -> ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage
+	6, // [6:12] is the sub-list for method output_type
+	0, // [0:6] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

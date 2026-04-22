@@ -12,9 +12,9 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: apis/ai/stigmer/agentic/runner/v1/ (proto); client-apps/cli/internal/cli/daemon/ (Go supervisor); backend/services/stigmer-server/ (Go stream handler); stigmer-cloud/backend/services/stigmer-service/ (Java stream handler)
 
 ## Current State
-- **Status**: T06 complete, ready for T07
-- **Last Session**: 2026-04-22 — T06 implemented (Cloud bidi stream handler — Java)
-- **Active Task**: T07 (API for UI to Trigger Commands)
+- **Status**: T07 complete, ready for T08
+- **Last Session**: 2026-04-22 — T07 implemented (sendCommand API — Proto + Go + Java)
+- **Active Task**: T08 (Integration Testing)
 
 ## Session Progress (2026-04-22, Session 1)
 - Reviewed T01 plan and confirmed key decisions
@@ -99,6 +99,32 @@ Drop this file into your conversation to quickly resume work on this project.
   - Auto-generated `RunnerCommandController.java` correctly dispatches `connect` to `RunnerConnectHandler`
   - Net: +1,170 / -432 lines across 12 files
 
+## Session Progress (2026-04-22, Session 7)
+- Implemented T07: API for UI to Trigger Commands (sendCommand)
+  - Added `RunnerSendCommandInput` message to `io.proto` with `runner_id` + `oneof command` (mirrors `RunnerCommandRequest.command` without exposing stream-internal `request_id`)
+  - Added `sendCommand` unary RPC to `command.proto` with `rpc.config` authorization (`can_view` on runner resource)
+  - Ran `make codegen` (stigmer) and `make protos` (stigmer-cloud) — all stubs regenerated
+  - Re-applied SDK Go codegen fix for bidi stream (`sdk/go/internal/gen/runner.go`) — codegen tool still overwrites manual fix on each run
+  - Created `send_command.go` (Go OSS handler):
+    - Validates input (runner_id required, command oneof set)
+    - Loads runner from store, returns NOT_FOUND if missing
+    - Phase gate: STOPPED/PENDING/FAILED get specific FAILED_PRECONDITION errors
+    - 10-second context timeout matching Java's hardcoded timeout
+    - Builds `RunnerCommandRequest` with UUID request_id, copies command from input oneof
+    - Delegates to `StreamRegistry.SendCommand` for stream routing and response correlation
+  - Created `RunnerSendCommandHandler.java` (Java Cloud handler):
+    - Implements `OperationHandlerV2<RunnerSendCommandInput, RunnerCommandResponse>` directly (not CRUD pipeline)
+    - Wired via `@RequestRoute` to auto-generated `RunnerCommandController.Method.sendCommand`
+    - FGA authorization: checks caller has `can_view` on runner via `IamPolicyGrpcRepo`
+    - Local-first routing: `streamRegistry.isConnectedLocally()` → local send, else Redis coordinator
+    - Same phase gate and error contract as Go handler
+  - Fixed `RunnerCommandRedisCoordinator.InboundCommandListener.onMessage()`:
+    - Previously swallowed `StatusRuntimeException` from `sendCommandLocally()` — requesting pod waited full 10s timeout
+    - Now publishes a `RunnerCommandResponse` with `RunnerCommandError` to Redis response channel, enabling fast fail with accurate error message
+  - Updated stale Javadoc on `RunnerGrpcAutoController.java` (listed `heartbeat` instead of `connect, sendCommand`)
+  - Updated `BUILD.bazel` for Go runner controller (added `send_command.go`)
+  - All 77 stigmer-server Bazel targets pass; stigmer-cloud compiles clean (pre-existing `SessionUpdateSandboxIdHandler` failure is unrelated)
+
 ## Task Overview (8 tasks)
 
 | Task | Title | Status | Dependencies |
@@ -108,13 +134,13 @@ Drop this file into your conversation to quickly resume work on this project.
 | T04 | OSS Server Handler (Go) | **Complete** | T02 |
 | T05 | Go Client in CLI Daemon | **Complete** | T04 |
 | T06 | Cloud Server Handler (Java) | **Complete** | T02 |
-| T07 | API for UI to Trigger Commands | Pending | T04, T06 |
+| T07 | API for UI to Trigger Commands | **Complete** | T04, T06 |
 | T08 | Integration Testing | Pending | T05, T07 |
 
 ## Next Steps
-1. **T07 is now unblocked** — both OSS (T04) and Cloud (T06) stream handlers are complete
-2. **T07** — Add `sendCommand` unary RPC to proto + `RunnerSendCommandInput` message, implement handler in both OSS (delegates to `StreamRegistry.SendCommand`) and Cloud (delegates to `RunnerStreamRegistry.sendCommandLocally` or `RunnerCommandRedisCoordinator.sendCommand`)
-3. After T05 + T07: **T08** — Integration testing (full loop: CLI → stream → server → command → response)
+1. **T08 is now unblocked** — all dependencies (T05, T07) are complete
+2. **T08** — Integration testing (full loop: CLI → stream → server → sendCommand → runner response)
+3. After T08: project complete — web UI for workspace picker is tracked in `20260422.01.runner-ux-cli-restructure` (T08/T09 of that project)
 
 ## Key Architectural Decisions
 
@@ -128,6 +154,9 @@ Drop this file into your conversation to quickly resume work on this project.
 8. **runner_id mismatch rejection**: A different runner_id on an established stream is INVALID_ARGUMENT — one stream, one runner identity.
 9. **CommandStream interface for portability**: The client uses an exported `CommandStream` interface so the same `RunnerStreamClient` works with both the SDK wrapper (standalone) and raw gRPC (daemon) via factory functions.
 10. **current_executions hardcoded to 0**: File-based IPC with the Python agent-runner is deferred. The heartbeat reports 0 for now.
+11. **sendCommand uses dedicated `RunnerSendCommandInput`**: Separate `oneof command` rather than embedding `RunnerCommandRequest`. Keeps external API clean (no `request_id` exposure), decouples public surface from stream protocol internals.
+12. **sendCommand authorization is `can_view`**: If you can see the runner in the session composer, you can send read-only commands. All current commands are read-only (ListDirectory). Write commands would warrant a finer-grained permission.
+13. **Local-first routing in Cloud**: `sendCommand` handler checks `isConnectedLocally()` before falling back to Redis coordinator, avoiding unnecessary pub/sub round-trip when the API handler and stream are on the same pod.
 
 ## Known Compilation Failures (Expected)
 
@@ -156,6 +185,13 @@ None — all known compilation failures from proto changes have been resolved ac
 - `client-apps/cli/internal/cli/daemon/daemon_process.go` — daemon stream lifecycle integration
 - `client-apps/cli/internal/cli/runner/start.go` — standalone runner stream integration
 
+### sendCommand API (completed in T07)
+- `apis/ai/stigmer/agentic/runner/v1/command.proto` — `sendCommand` RPC with `rpc.config` auth
+- `apis/ai/stigmer/agentic/runner/v1/io.proto` — `RunnerSendCommandInput` message
+- `backend/services/stigmer-server/pkg/domain/runner/controller/send_command.go` — Go OSS handler
+- `stigmer-cloud/backend/services/stigmer-service/.../runner/request/handler/RunnerSendCommandHandler.java` — Java Cloud handler
+- `stigmer-cloud/backend/services/stigmer-service/.../runner/stream/RunnerCommandRedisCoordinator.java` — Redis error response fix
+
 ### Cloud Server (completed in T06)
 - `stigmer-cloud/backend/libs/java/grpc/grpc-request/.../handler/BidiStreamHandler.java` — bidi stream handler interface (framework)
 - `stigmer-cloud/backend/services/stigmer-service/.../runner/request/handler/RunnerConnectHandler.java` — bidi stream handler
@@ -174,14 +210,15 @@ None — all known compilation failures from proto changes have been resolved ac
 - T05 changes committed: `617f0c969 feat(cli): implement bidi stream client for runner command channel (T05)`
 - T06 changes committed: `10b59afe feat(backend): implement bidi stream handler for runner commands (T06)` (stigmer-cloud)
 - The full loop is now complete in both editions: CLI opens stream → server authenticates → heartbeats flow → commands can be pushed → response routed back
-- `StreamRegistry.SendCommand` (Go) and `RunnerStreamRegistry.sendCommandLocally` + `RunnerCommandRedisCoordinator.sendCommand` (Java) are fully implemented — ready for T07's `sendCommand` RPC handler
-- Redis pub/sub pattern established for cross-instance coordination (first usage in codebase)
+- `sendCommand` API is live: UI/API callers can now send typed commands (e.g., ListDirectory) to any connected runner
+- Redis pub/sub error response gap fixed: cross-instance command failures now propagate immediately instead of timing out
+- SDK Go codegen still needs a patch for bidi streaming — manual fix reapplied in T07 (same as T02)
 
 ## Blockers
-- None for T07 — all dependencies (T04, T06) are complete
+- None for T08 — all dependencies (T05, T07) are complete
 
 ## Quick Commands
-- "Start T07" — Implement sendCommand API (proto + OSS + Cloud handlers)
+- "Start T08" — Integration testing (full loop: CLI → stream → server → sendCommand → response)
 - "Show project status" — Overview of progress
 - "Review T01 plan" — Read T01_0_plan.md
 

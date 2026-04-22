@@ -5,9 +5,11 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.runner.v1.ListRunnersRequest;
 import ai.stigmer.agentic.runner.v1.Runner;
 import ai.stigmer.agentic.runner.v1.RunnerCommandControllerGrpc;
+import ai.stigmer.agentic.runner.v1.RunnerCommandResponse;
 import ai.stigmer.agentic.runner.v1.RunnerId;
 import ai.stigmer.agentic.runner.v1.RunnerList;
 import ai.stigmer.agentic.runner.v1.RunnerQueryControllerGrpc;
+import ai.stigmer.agentic.runner.v1.RunnerSendCommandInput;
 import ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage;
 import ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
@@ -45,6 +47,12 @@ public final class RunnerClient {
     public Runner delete(String id) {
         try {
             return command.delete(RunnerId.newBuilder().setValue(id).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public RunnerCommandResponse sendCommand(RunnerSendCommandInput input) {
+        try {
+            return command.sendCommand(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/runner/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_runner_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvcnVubmVyL3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxIiEKCFJ1bm5lcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi3AEKEkxpc3RSdW5uZXJzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESTAoGbGFiZWxzGAIgAygLMjwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5MaXN0UnVubmVyc1JlcXVlc3QuTGFiZWxzRW50cnkSMwoJcGFnZV9pbmZvGAMgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlYKClJ1bm5lckxpc3QSEwoLdG90YWxfY291bnQYASABKAUSMwoFaXRlbXMYAiADKAsyJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciK7AQoZUnVubmVyU3RyZWFtQ2xpZW50TWVzc2FnZRJCCgloZWFydGJlYXQYASABKAsyLS5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lckhlYXJ0YmVhdEgAEk8KEGNvbW1hbmRfcmVzcG9uc2UYAiABKAsyMy5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lckNvbW1hbmRSZXNwb25zZUgAQgkKB21lc3NhZ2UidQoZUnVubmVyU3RyZWFtU2VydmVyTWVzc2FnZRJNCg9jb21tYW5kX3JlcXVlc3QYASABKAsyMi5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lckNvbW1hbmRSZXF1ZXN0SABCCQoHbWVzc2FnZSLHAQoPUnVubmVySGVhcnRiZWF0EhEKCXJ1bm5lcl9pZBgBIAEoCRI4CgVwaGFzZRgCIAEoDjIpLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyUGhhc2USGgoSY3VycmVudF9leGVjdXRpb25zGAMgASgFEksKD2Nvbm5lY3Rpb25faW5mbxgEIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyQ29ubmVjdGlvbkluZm8igwEKFFJ1bm5lckNvbW1hbmRSZXF1ZXN0EhIKCnJlcXVlc3RfaWQYASABKAkSTAoObGlzdF9kaXJlY3RvcnkYAiABKAsyMi5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLkxpc3REaXJlY3RvcnlSZXF1ZXN0SABCCQoHY29tbWFuZCLHAQoVUnVubmVyQ29tbWFuZFJlc3BvbnNlEhIKCnJlcXVlc3RfaWQYASABKAkSTQoObGlzdF9kaXJlY3RvcnkYAiABKAsyMy5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLkxpc3REaXJlY3RvcnlSZXNwb25zZUgAEkEKBWVycm9yGAMgASgLMjAuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXJDb21tYW5kRXJyb3JIAEIICgZyZXN1bHQiJAoUTGlzdERpcmVjdG9yeVJlcXVlc3QSDAoEcGF0aBgBIAEoCSKgAQoVTGlzdERpcmVjdG9yeVJlc3BvbnNlEhUKDXJlc29sdmVkX3BhdGgYASABKAkSPQoHZW50cmllcxgCIAMoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuRGlyZWN0b3J5RW50cnkSFgoOaG9tZV9kaXJlY3RvcnkYAyABKAkSGQoRY3VycmVudF9kaXJlY3RvcnkYBCABKAkiRwoORGlyZWN0b3J5RW50cnkSDAoEbmFtZRgBIAEoCRIUCgxpc19kaXJlY3RvcnkYAiABKAgSEQoJaXNfaGlkZGVuGAMgASgIIiUKElJ1bm5lckNvbW1hbmRFcnJvchIPCgdtZXNzYWdlGAEgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_runner_v1_api, file_ai_stigmer_agentic_runner_v1_enum, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
+  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvcnVubmVyL3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxIiEKCFJ1bm5lcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi3AEKEkxpc3RSdW5uZXJzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESTAoGbGFiZWxzGAIgAygLMjwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5MaXN0UnVubmVyc1JlcXVlc3QuTGFiZWxzRW50cnkSMwoJcGFnZV9pbmZvGAMgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlYKClJ1bm5lckxpc3QSEwoLdG90YWxfY291bnQYASABKAUSMwoFaXRlbXMYAiADKAsyJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciKMAQoWUnVubmVyU2VuZENvbW1hbmRJbnB1dBIZCglydW5uZXJfaWQYASABKAlCBrpIA8gBARJMCg5saXN0X2RpcmVjdG9yeRgCIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuTGlzdERpcmVjdG9yeVJlcXVlc3RIAEIJCgdjb21tYW5kIrsBChlSdW5uZXJTdHJlYW1DbGllbnRNZXNzYWdlEkIKCWhlYXJ0YmVhdBgBIAEoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVySGVhcnRiZWF0SAASTwoQY29tbWFuZF9yZXNwb25zZRgCIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyQ29tbWFuZFJlc3BvbnNlSABCCQoHbWVzc2FnZSJ1ChlSdW5uZXJTdHJlYW1TZXJ2ZXJNZXNzYWdlEk0KD2NvbW1hbmRfcmVxdWVzdBgBIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyQ29tbWFuZFJlcXVlc3RIAEIJCgdtZXNzYWdlIscBCg9SdW5uZXJIZWFydGJlYXQSEQoJcnVubmVyX2lkGAEgASgJEjgKBXBoYXNlGAIgASgOMikuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXJQaGFzZRIaChJjdXJyZW50X2V4ZWN1dGlvbnMYAyABKAUSSwoPY29ubmVjdGlvbl9pbmZvGAQgASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXJDb25uZWN0aW9uSW5mbyKDAQoUUnVubmVyQ29tbWFuZFJlcXVlc3QSEgoKcmVxdWVzdF9pZBgBIAEoCRJMCg5saXN0X2RpcmVjdG9yeRgCIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuTGlzdERpcmVjdG9yeVJlcXVlc3RIAEIJCgdjb21tYW5kIscBChVSdW5uZXJDb21tYW5kUmVzcG9uc2USEgoKcmVxdWVzdF9pZBgBIAEoCRJNCg5saXN0X2RpcmVjdG9yeRgCIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuTGlzdERpcmVjdG9yeVJlc3BvbnNlSAASQQoFZXJyb3IYAyABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lckNvbW1hbmRFcnJvckgAQggKBnJlc3VsdCIkChRMaXN0RGlyZWN0b3J5UmVxdWVzdBIMCgRwYXRoGAEgASgJIqABChVMaXN0RGlyZWN0b3J5UmVzcG9uc2USFQoNcmVzb2x2ZWRfcGF0aBgBIAEoCRI9CgdlbnRyaWVzGAIgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5EaXJlY3RvcnlFbnRyeRIWCg5ob21lX2RpcmVjdG9yeRgDIAEoCRIZChFjdXJyZW50X2RpcmVjdG9yeRgEIAEoCSJHCg5EaXJlY3RvcnlFbnRyeRIMCgRuYW1lGAEgASgJEhQKDGlzX2RpcmVjdG9yeRgCIAEoCBIRCglpc19oaWRkZW4YAyABKAgiJQoSUnVubmVyQ29tbWFuZEVycm9yEg8KB21lc3NhZ2UYASABKAliBnByb3RvMw", [file_ai_stigmer_agentic_runner_v1_api, file_ai_stigmer_agentic_runner_v1_enum, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
 
 /**
  * RunnerId wraps a runner identifier.
@@ -108,6 +108,49 @@ export const RunnerListSchema: GenMessage<RunnerList> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_runner_v1_io, 2);
 
 /**
+ * RunnerSendCommandInput is the request for the sendCommand unary RPC.
+ *
+ * Allows API callers (web UI, CLI) to send a typed command to a connected
+ * runner and receive the response synchronously. The server wraps the command
+ * in a RunnerCommandRequest with a generated request_id, pushes it to the
+ * runner's bidi stream, and returns the runner's response.
+ *
+ * The command oneof mirrors RunnerCommandRequest.command — callers specify
+ * the command directly without dealing with stream protocol details like
+ * request_id.
+ *
+ * @generated from message ai.stigmer.agentic.runner.v1.RunnerSendCommandInput
+ */
+export type RunnerSendCommandInput = Message<"ai.stigmer.agentic.runner.v1.RunnerSendCommandInput"> & {
+  /**
+   * ID of the runner to send the command to.
+   *
+   * @generated from field: string runner_id = 1;
+   */
+  runnerId: string;
+
+  /**
+   * The command to execute on the runner.
+   *
+   * @generated from oneof ai.stigmer.agentic.runner.v1.RunnerSendCommandInput.command
+   */
+  command: {
+    /**
+     * @generated from field: ai.stigmer.agentic.runner.v1.ListDirectoryRequest list_directory = 2;
+     */
+    value: ListDirectoryRequest;
+    case: "listDirectory";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.runner.v1.RunnerSendCommandInput.
+ * Use `create(RunnerSendCommandInputSchema)` to create a new message.
+ */
+export const RunnerSendCommandInputSchema: GenMessage<RunnerSendCommandInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 3);
+
+/**
  * RunnerStreamClientMessage is the envelope for all runner-to-server messages
  * on the connect bidi stream.
  *
@@ -141,7 +184,7 @@ export type RunnerStreamClientMessage = Message<"ai.stigmer.agentic.runner.v1.Ru
  * Use `create(RunnerStreamClientMessageSchema)` to create a new message.
  */
 export const RunnerStreamClientMessageSchema: GenMessage<RunnerStreamClientMessage> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 3);
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 4);
 
 /**
  * RunnerStreamServerMessage is the envelope for all server-to-runner messages
@@ -170,7 +213,7 @@ export type RunnerStreamServerMessage = Message<"ai.stigmer.agentic.runner.v1.Ru
  * Use `create(RunnerStreamServerMessageSchema)` to create a new message.
  */
 export const RunnerStreamServerMessageSchema: GenMessage<RunnerStreamServerMessage> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 4);
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 5);
 
 /**
  * RunnerHeartbeat reports runner liveness and operational state over the
@@ -224,7 +267,7 @@ export type RunnerHeartbeat = Message<"ai.stigmer.agentic.runner.v1.RunnerHeartb
  * Use `create(RunnerHeartbeatSchema)` to create a new message.
  */
 export const RunnerHeartbeatSchema: GenMessage<RunnerHeartbeat> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 5);
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 6);
 
 /**
  * RunnerCommandRequest is a server-initiated command pushed to the runner
@@ -266,7 +309,7 @@ export type RunnerCommandRequest = Message<"ai.stigmer.agentic.runner.v1.RunnerC
  * Use `create(RunnerCommandRequestSchema)` to create a new message.
  */
 export const RunnerCommandRequestSchema: GenMessage<RunnerCommandRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 6);
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 7);
 
 /**
  * RunnerCommandResponse is the runner's reply to a RunnerCommandRequest.
@@ -307,7 +350,7 @@ export type RunnerCommandResponse = Message<"ai.stigmer.agentic.runner.v1.Runner
  * Use `create(RunnerCommandResponseSchema)` to create a new message.
  */
 export const RunnerCommandResponseSchema: GenMessage<RunnerCommandResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 7);
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 8);
 
 /**
  * ListDirectoryRequest asks the runner to list the contents of a directory
@@ -333,7 +376,7 @@ export type ListDirectoryRequest = Message<"ai.stigmer.agentic.runner.v1.ListDir
  * Use `create(ListDirectoryRequestSchema)` to create a new message.
  */
 export const ListDirectoryRequestSchema: GenMessage<ListDirectoryRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 8);
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 9);
 
 /**
  * ListDirectoryResponse returns the directory listing from the runner.
@@ -377,7 +420,7 @@ export type ListDirectoryResponse = Message<"ai.stigmer.agentic.runner.v1.ListDi
  * Use `create(ListDirectoryResponseSchema)` to create a new message.
  */
 export const ListDirectoryResponseSchema: GenMessage<ListDirectoryResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 9);
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 10);
 
 /**
  * DirectoryEntry represents a single entry in a directory listing.
@@ -413,7 +456,7 @@ export type DirectoryEntry = Message<"ai.stigmer.agentic.runner.v1.DirectoryEntr
  * Use `create(DirectoryEntrySchema)` to create a new message.
  */
 export const DirectoryEntrySchema: GenMessage<DirectoryEntry> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 10);
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 11);
 
 /**
  * RunnerCommandError is returned when a command fails on the runner side.
@@ -435,5 +478,5 @@ export type RunnerCommandError = Message<"ai.stigmer.agentic.runner.v1.RunnerCom
  * Use `create(RunnerCommandErrorSchema)` to create a new message.
  */
 export const RunnerCommandErrorSchema: GenMessage<RunnerCommandError> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 11);
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 12);
 

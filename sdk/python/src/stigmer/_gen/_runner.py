@@ -51,6 +51,12 @@ class RunnerClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def send_command(self, input: io_pb2.RunnerSendCommandInput) -> io_pb2.RunnerCommandResponse:
+        try:
+            return self._command.sendCommand(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def connect(self, input: io_pb2.RunnerStreamClientMessage) -> Iterator[io_pb2.RunnerStreamServerMessage]:
         try:
             for msg in self._command.connect(input):

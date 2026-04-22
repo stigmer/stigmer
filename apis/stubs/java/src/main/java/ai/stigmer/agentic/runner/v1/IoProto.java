@@ -47,6 +47,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_runner_v1_RunnerList_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_runner_v1_RunnerSendCommandInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_runner_v1_RunnerSendCommandInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_runner_v1_RunnerStreamClientMessage_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -115,47 +120,51 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001" +
       "\"i\n\nRunnerList\022\037\n\013total_count\030\001 \001(\005R\ntot" +
       "alCount\022:\n\005items\030\002 \003(\0132$.ai.stigmer.agen" +
-      "tic.runner.v1.RunnerR\005items\"\327\001\n\031RunnerSt" +
-      "reamClientMessage\022M\n\theartbeat\030\001 \001(\0132-.a" +
-      "i.stigmer.agentic.runner.v1.RunnerHeartb" +
-      "eatH\000R\theartbeat\022`\n\020command_response\030\002 \001" +
-      "(\01323.ai.stigmer.agentic.runner.v1.Runner" +
-      "CommandResponseH\000R\017commandResponseB\t\n\007me" +
-      "ssage\"\205\001\n\031RunnerStreamServerMessage\022]\n\017c" +
-      "ommand_request\030\001 \001(\01322.ai.stigmer.agenti" +
-      "c.runner.v1.RunnerCommandRequestH\000R\016comm" +
-      "andRequestB\t\n\007message\"\373\001\n\017RunnerHeartbea" +
-      "t\022\033\n\trunner_id\030\001 \001(\tR\010runnerId\022?\n\005phase\030" +
-      "\002 \001(\0162).ai.stigmer.agentic.runner.v1.Run" +
-      "nerPhaseR\005phase\022-\n\022current_executions\030\003 " +
-      "\001(\005R\021currentExecutions\022[\n\017connection_inf" +
-      "o\030\004 \001(\01322.ai.stigmer.agentic.runner.v1.R" +
-      "unnerConnectionInfoR\016connectionInfo\"\235\001\n\024" +
-      "RunnerCommandRequest\022\035\n\nrequest_id\030\001 \001(\t" +
-      "R\trequestId\022[\n\016list_directory\030\002 \001(\01322.ai" +
+      "tic.runner.v1.RunnerR\005items\"\245\001\n\026RunnerSe" +
+      "ndCommandInput\022#\n\trunner_id\030\001 \001(\tB\006\272H\003\310\001" +
+      "\001R\010runnerId\022[\n\016list_directory\030\002 \001(\01322.ai" +
       ".stigmer.agentic.runner.v1.ListDirectory" +
-      "RequestH\000R\rlistDirectoryB\t\n\007command\"\350\001\n\025" +
-      "RunnerCommandResponse\022\035\n\nrequest_id\030\001 \001(" +
-      "\tR\trequestId\022\\\n\016list_directory\030\002 \001(\01323.a" +
-      "i.stigmer.agentic.runner.v1.ListDirector" +
-      "yResponseH\000R\rlistDirectory\022H\n\005error\030\003 \001(" +
-      "\01320.ai.stigmer.agentic.runner.v1.RunnerC" +
-      "ommandErrorH\000R\005errorB\010\n\006result\"*\n\024ListDi" +
-      "rectoryRequest\022\022\n\004path\030\001 \001(\tR\004path\"\330\001\n\025L" +
-      "istDirectoryResponse\022#\n\rresolved_path\030\001 " +
-      "\001(\tR\014resolvedPath\022F\n\007entries\030\002 \003(\0132,.ai." +
-      "stigmer.agentic.runner.v1.DirectoryEntry" +
-      "R\007entries\022%\n\016home_directory\030\003 \001(\tR\rhomeD" +
-      "irectory\022+\n\021current_directory\030\004 \001(\tR\020cur" +
-      "rentDirectory\"d\n\016DirectoryEntry\022\022\n\004name\030" +
-      "\001 \001(\tR\004name\022!\n\014is_directory\030\002 \001(\010R\013isDir" +
-      "ectory\022\033\n\tis_hidden\030\003 \001(\010R\010isHidden\".\n\022R" +
-      "unnerCommandError\022\030\n\007message\030\001 \001(\tR\007mess" +
-      "ageB\236\001B\007IoProtoP\001\242\002\004ASAR\252\002\034Ai.Stigmer.Ag" +
-      "entic.Runner.V1\312\002\034Ai\\Stigmer\\Agentic\\Run" +
-      "ner\\V1\342\002(Ai\\Stigmer\\Agentic\\Runner\\V1\\GP" +
-      "BMetadata\352\002 Ai::Stigmer::Agentic::Runner" +
-      "::V1b\006proto3"
+      "RequestH\000R\rlistDirectoryB\t\n\007command\"\327\001\n\031" +
+      "RunnerStreamClientMessage\022M\n\theartbeat\030\001" +
+      " \001(\0132-.ai.stigmer.agentic.runner.v1.Runn" +
+      "erHeartbeatH\000R\theartbeat\022`\n\020command_resp" +
+      "onse\030\002 \001(\01323.ai.stigmer.agentic.runner.v" +
+      "1.RunnerCommandResponseH\000R\017commandRespon" +
+      "seB\t\n\007message\"\205\001\n\031RunnerStreamServerMess" +
+      "age\022]\n\017command_request\030\001 \001(\01322.ai.stigme" +
+      "r.agentic.runner.v1.RunnerCommandRequest" +
+      "H\000R\016commandRequestB\t\n\007message\"\373\001\n\017Runner" +
+      "Heartbeat\022\033\n\trunner_id\030\001 \001(\tR\010runnerId\022?" +
+      "\n\005phase\030\002 \001(\0162).ai.stigmer.agentic.runne" +
+      "r.v1.RunnerPhaseR\005phase\022-\n\022current_execu" +
+      "tions\030\003 \001(\005R\021currentExecutions\022[\n\017connec" +
+      "tion_info\030\004 \001(\01322.ai.stigmer.agentic.run" +
+      "ner.v1.RunnerConnectionInfoR\016connectionI" +
+      "nfo\"\235\001\n\024RunnerCommandRequest\022\035\n\nrequest_" +
+      "id\030\001 \001(\tR\trequestId\022[\n\016list_directory\030\002 " +
+      "\001(\01322.ai.stigmer.agentic.runner.v1.ListD" +
+      "irectoryRequestH\000R\rlistDirectoryB\t\n\007comm" +
+      "and\"\350\001\n\025RunnerCommandResponse\022\035\n\nrequest" +
+      "_id\030\001 \001(\tR\trequestId\022\\\n\016list_directory\030\002" +
+      " \001(\01323.ai.stigmer.agentic.runner.v1.List" +
+      "DirectoryResponseH\000R\rlistDirectory\022H\n\005er" +
+      "ror\030\003 \001(\01320.ai.stigmer.agentic.runner.v1" +
+      ".RunnerCommandErrorH\000R\005errorB\010\n\006result\"*" +
+      "\n\024ListDirectoryRequest\022\022\n\004path\030\001 \001(\tR\004pa" +
+      "th\"\330\001\n\025ListDirectoryResponse\022#\n\rresolved" +
+      "_path\030\001 \001(\tR\014resolvedPath\022F\n\007entries\030\002 \003" +
+      "(\0132,.ai.stigmer.agentic.runner.v1.Direct" +
+      "oryEntryR\007entries\022%\n\016home_directory\030\003 \001(" +
+      "\tR\rhomeDirectory\022+\n\021current_directory\030\004 " +
+      "\001(\tR\020currentDirectory\"d\n\016DirectoryEntry\022" +
+      "\022\n\004name\030\001 \001(\tR\004name\022!\n\014is_directory\030\002 \001(" +
+      "\010R\013isDirectory\022\033\n\tis_hidden\030\003 \001(\010R\010isHid" +
+      "den\".\n\022RunnerCommandError\022\030\n\007message\030\001 \001" +
+      "(\tR\007messageB\236\001B\007IoProtoP\001\242\002\004ASAR\252\002\034Ai.St" +
+      "igmer.Agentic.Runner.V1\312\002\034Ai\\Stigmer\\Age" +
+      "ntic\\Runner\\V1\342\002(Ai\\Stigmer\\Agentic\\Runn" +
+      "er\\V1\\GPBMetadata\352\002 Ai::Stigmer::Agentic" +
+      "::Runner::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -189,56 +198,62 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_runner_v1_RunnerList_descriptor,
         new java.lang.String[] { "TotalCount", "Items", });
-    internal_static_ai_stigmer_agentic_runner_v1_RunnerStreamClientMessage_descriptor =
+    internal_static_ai_stigmer_agentic_runner_v1_RunnerSendCommandInput_descriptor =
       getDescriptor().getMessageType(3);
+    internal_static_ai_stigmer_agentic_runner_v1_RunnerSendCommandInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_runner_v1_RunnerSendCommandInput_descriptor,
+        new java.lang.String[] { "RunnerId", "ListDirectory", "Command", });
+    internal_static_ai_stigmer_agentic_runner_v1_RunnerStreamClientMessage_descriptor =
+      getDescriptor().getMessageType(4);
     internal_static_ai_stigmer_agentic_runner_v1_RunnerStreamClientMessage_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_runner_v1_RunnerStreamClientMessage_descriptor,
         new java.lang.String[] { "Heartbeat", "CommandResponse", "Message", });
     internal_static_ai_stigmer_agentic_runner_v1_RunnerStreamServerMessage_descriptor =
-      getDescriptor().getMessageType(4);
+      getDescriptor().getMessageType(5);
     internal_static_ai_stigmer_agentic_runner_v1_RunnerStreamServerMessage_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_runner_v1_RunnerStreamServerMessage_descriptor,
         new java.lang.String[] { "CommandRequest", "Message", });
     internal_static_ai_stigmer_agentic_runner_v1_RunnerHeartbeat_descriptor =
-      getDescriptor().getMessageType(5);
+      getDescriptor().getMessageType(6);
     internal_static_ai_stigmer_agentic_runner_v1_RunnerHeartbeat_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_runner_v1_RunnerHeartbeat_descriptor,
         new java.lang.String[] { "RunnerId", "Phase", "CurrentExecutions", "ConnectionInfo", });
     internal_static_ai_stigmer_agentic_runner_v1_RunnerCommandRequest_descriptor =
-      getDescriptor().getMessageType(6);
+      getDescriptor().getMessageType(7);
     internal_static_ai_stigmer_agentic_runner_v1_RunnerCommandRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_runner_v1_RunnerCommandRequest_descriptor,
         new java.lang.String[] { "RequestId", "ListDirectory", "Command", });
     internal_static_ai_stigmer_agentic_runner_v1_RunnerCommandResponse_descriptor =
-      getDescriptor().getMessageType(7);
+      getDescriptor().getMessageType(8);
     internal_static_ai_stigmer_agentic_runner_v1_RunnerCommandResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_runner_v1_RunnerCommandResponse_descriptor,
         new java.lang.String[] { "RequestId", "ListDirectory", "Error", "Result", });
     internal_static_ai_stigmer_agentic_runner_v1_ListDirectoryRequest_descriptor =
-      getDescriptor().getMessageType(8);
+      getDescriptor().getMessageType(9);
     internal_static_ai_stigmer_agentic_runner_v1_ListDirectoryRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_runner_v1_ListDirectoryRequest_descriptor,
         new java.lang.String[] { "Path", });
     internal_static_ai_stigmer_agentic_runner_v1_ListDirectoryResponse_descriptor =
-      getDescriptor().getMessageType(9);
+      getDescriptor().getMessageType(10);
     internal_static_ai_stigmer_agentic_runner_v1_ListDirectoryResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_runner_v1_ListDirectoryResponse_descriptor,
         new java.lang.String[] { "ResolvedPath", "Entries", "HomeDirectory", "CurrentDirectory", });
     internal_static_ai_stigmer_agentic_runner_v1_DirectoryEntry_descriptor =
-      getDescriptor().getMessageType(10);
+      getDescriptor().getMessageType(11);
     internal_static_ai_stigmer_agentic_runner_v1_DirectoryEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_runner_v1_DirectoryEntry_descriptor,
         new java.lang.String[] { "Name", "IsDirectory", "IsHidden", });
     internal_static_ai_stigmer_agentic_runner_v1_RunnerCommandError_descriptor =
-      getDescriptor().getMessageType(11);
+      getDescriptor().getMessageType(12);
     internal_static_ai_stigmer_agentic_runner_v1_RunnerCommandError_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_runner_v1_RunnerCommandError_descriptor,

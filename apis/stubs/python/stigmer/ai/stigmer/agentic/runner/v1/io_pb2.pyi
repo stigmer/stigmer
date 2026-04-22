@@ -41,6 +41,14 @@ class RunnerList(_message.Message):
     items: _containers.RepeatedCompositeFieldContainer[_api_pb2.Runner]
     def __init__(self, total_count: _Optional[int] = ..., items: _Optional[_Iterable[_Union[_api_pb2.Runner, _Mapping]]] = ...) -> None: ...
 
+class RunnerSendCommandInput(_message.Message):
+    __slots__ = ("runner_id", "list_directory")
+    RUNNER_ID_FIELD_NUMBER: _ClassVar[int]
+    LIST_DIRECTORY_FIELD_NUMBER: _ClassVar[int]
+    runner_id: str
+    list_directory: ListDirectoryRequest
+    def __init__(self, runner_id: _Optional[str] = ..., list_directory: _Optional[_Union[ListDirectoryRequest, _Mapping]] = ...) -> None: ...
+
 class RunnerStreamClientMessage(_message.Message):
     __slots__ = ("heartbeat", "command_response")
     HEARTBEAT_FIELD_NUMBER: _ClassVar[int]
