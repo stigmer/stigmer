@@ -2,10 +2,13 @@ package runner
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"syscall"
 	"time"
 
@@ -33,13 +36,19 @@ type StartOptions struct {
 // runtime, starts the agent-runner process in the foreground, and waits
 // for it to exit or for a shutdown signal.
 func Start(ctx context.Context, opts StartOptions) error {
+	if reaped := ReapStaleRunners(); len(reaped) > 0 {
+		for _, name := range reaped {
+			log.Debug().Str("name", name).Msg("Cleaned up stale runner state")
+		}
+	}
+
 	name, err := resolveRunnerName(opts.Name)
 	if err != nil {
 		return errors.Wrap(err, "failed to resolve runner name")
 	}
 
-	if IsActive(name) {
-		return errors.Errorf("runner %q is already running", name)
+	if err := checkNameConflict(name); err != nil {
+		return err
 	}
 
 	cfg, err := config.Load()
@@ -128,15 +137,126 @@ func Start(ctx context.Context, opts StartOptions) error {
 	return exitErr
 }
 
+const maxSlugLength = 63
+
+var validSlugPattern = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
+
 func resolveRunnerName(flagValue string) (string, error) {
 	if flagValue != "" {
+		if err := validateSlug(flagValue); err != nil {
+			return "", err
+		}
 		return flagValue, nil
 	}
 	hostname, err := os.Hostname()
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get hostname for default runner name")
 	}
-	return hostname, nil
+	slug := sanitizeToSlug(hostname)
+	if slug == "" {
+		return "", errors.New(
+			"hostname could not be converted to a valid runner name\n\n" +
+				"Provide an explicit name:\n" +
+				"  stigmer up --name <name>",
+		)
+	}
+	if slug != hostname {
+		climsg.Info("Using %q as runner name (sanitized from hostname %q)", slug, hostname)
+	}
+	return slug, nil
+}
+
+func validateSlug(s string) error {
+	if len(s) > maxSlugLength {
+		return fmt.Errorf(
+			"runner name %q is too long (%d chars, max %d)\n\n"+
+				"Use a shorter name:\n"+
+				"  stigmer up --name <name>",
+			s, len(s), maxSlugLength,
+		)
+	}
+	if !validSlugPattern.MatchString(s) {
+		return fmt.Errorf(
+			"runner name %q is not a valid slug\n\n"+
+				"Names must be lowercase alphanumeric with hyphens, and cannot\n"+
+				"start or end with a hyphen. Examples: my-runner, build-01, macbook",
+			s,
+		)
+	}
+	return nil
+}
+
+// sanitizeToSlug converts an arbitrary hostname into a slug-safe string.
+// Returns empty string if the hostname cannot be salvaged.
+func sanitizeToSlug(hostname string) string {
+	s := strings.ToLower(hostname)
+	s = strings.Map(func(r rune) rune {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			return r
+		}
+		return '-'
+	}, s)
+
+	// Collapse consecutive hyphens.
+	for strings.Contains(s, "--") {
+		s = strings.ReplaceAll(s, "--", "-")
+	}
+	s = strings.Trim(s, "-")
+
+	if len(s) > maxSlugLength {
+		s = s[:maxSlugLength]
+		s = strings.TrimRight(s, "-")
+	}
+	return s
+}
+
+func checkNameConflict(name string) error {
+	state, err := LoadState(name)
+	if err != nil {
+		return nil
+	}
+	if !isProcessAlive(state.PID) {
+		_ = RemoveState(name)
+		return nil
+	}
+
+	return fmt.Errorf(
+		"runner %q is already running\n"+
+			"  PID:     %d\n"+
+			"  Backend: %s\n"+
+			"  Started: %s\n\n"+
+			"To start another runner, provide a different name:\n"+
+			"  stigmer up --name <name>\n\n"+
+			"To see all active runners:\n"+
+			"  stigmer list runners",
+		name, state.PID, state.BackendEndpoint, formatRelativeTime(state.StartedAt),
+	)
+}
+
+func formatRelativeTime(t time.Time) string {
+	d := time.Since(t)
+	switch {
+	case d < time.Minute:
+		return "just now"
+	case d < time.Hour:
+		m := int(d.Minutes())
+		if m == 1 {
+			return "1 minute ago"
+		}
+		return fmt.Sprintf("%d minutes ago", m)
+	case d < 24*time.Hour:
+		h := int(d.Hours())
+		if h == 1 {
+			return "1 hour ago"
+		}
+		return fmt.Sprintf("%d hours ago", h)
+	default:
+		days := int(d.Hours() / 24)
+		if days == 1 {
+			return "1 day ago"
+		}
+		return fmt.Sprintf("%d days ago", days)
+	}
 }
 
 func createClient(info *BackendInfo) (*stigmer.Client, error) {

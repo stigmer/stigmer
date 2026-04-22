@@ -17,10 +17,12 @@ import (
 //	| Skill        | -     | -        | Y   | Y    | Y      | -   | Y    | -      | -        |
 //	| McpServer    | Y     | Y        | Y   | Y    | Y      | -   | -    | -      | -        |
 //	| Project      | Y*    | Y        | Y   | Y    | Y      | -   | -    | -      | -        |
+//	| Runner       | Y     | -        | Y   | Y*** | -      | -   | -    | -      | -        |
 //	| Execution    | -     | -        | Y   | Y    | Y**    | -   | -    | -      | Y        |
 //
 // *Project "apply" triggers SDK synthesis mode
 // **Execution "delete" maps to cancel operation
+// ***Runner "list" reads local state files (~/.stigmer/runners/), not the backend
 //
 // Note: agent_execution is special - it uses its own AgentExecutionQueryController RPCs,
 // not the unified SearchService. It is included here for documentation and validation
@@ -118,6 +120,11 @@ var verbSupport = map[apiresourcekind.ApiResourceKind]map[Verb]bool{
 		VerbGet:    true,
 		VerbList:   true,
 		VerbDelete: true,
+	},
+	apiresourcekind.ApiResourceKind_runner: {
+		VerbApply: true,
+		VerbGet:   true,
+		VerbList:  true,
 	},
 }
 

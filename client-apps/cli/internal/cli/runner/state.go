@@ -99,8 +99,63 @@ func IsActive(name string) bool {
 }
 
 // ListActiveRunners returns the names of all runners that have state files
-// and whose PIDs are still alive.
+// and whose PIDs are still alive. Stale state files (dead PIDs) are removed
+// as a side effect.
 func ListActiveRunners() ([]string, error) {
+	states, err := loadAllStates()
+	if err != nil {
+		return nil, err
+	}
+	var active []string
+	for name, state := range states {
+		if isProcessAlive(state.PID) {
+			active = append(active, name)
+		} else {
+			_ = RemoveState(name)
+		}
+	}
+	return active, nil
+}
+
+// ListAllRunnerStates returns name-keyed state for every active runner.
+// Stale state files (dead PIDs) are removed as a side effect.
+func ListAllRunnerStates() (map[string]*RunnerState, error) {
+	states, err := loadAllStates()
+	if err != nil {
+		return nil, err
+	}
+	active := make(map[string]*RunnerState, len(states))
+	for name, state := range states {
+		if isProcessAlive(state.PID) {
+			active[name] = state
+		} else {
+			_ = RemoveState(name)
+		}
+	}
+	return active, nil
+}
+
+// ReapStaleRunners removes state files for runners whose PIDs are no longer
+// alive. Returns the names of reaped runners for caller logging.
+func ReapStaleRunners() []string {
+	states, err := loadAllStates()
+	if err != nil {
+		return nil
+	}
+	var reaped []string
+	for name, state := range states {
+		if !isProcessAlive(state.PID) {
+			if err := RemoveState(name); err == nil {
+				reaped = append(reaped, name)
+			}
+		}
+	}
+	return reaped
+}
+
+// loadAllStates reads every .json file in the runners directory and returns
+// name-keyed state. Files that fail to parse are silently skipped.
+func loadAllStates() (map[string]*RunnerState, error) {
 	dir, err := RunnersDir()
 	if err != nil {
 		return nil, err
@@ -109,17 +164,19 @@ func ListActiveRunners() ([]string, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list runners directory")
 	}
-	var active []string
+	states := make(map[string]*RunnerState, len(entries))
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
 			continue
 		}
 		name := strings.TrimSuffix(entry.Name(), ".json")
-		if IsActive(name) {
-			active = append(active, name)
+		state, err := LoadState(name)
+		if err != nil {
+			continue
 		}
+		states[name] = state
 	}
-	return active, nil
+	return states, nil
 }
 
 func isProcessAlive(pid int) bool {

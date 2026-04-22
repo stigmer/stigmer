@@ -2,7 +2,11 @@ package root
 
 import (
 	"fmt"
+	"os"
+	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -13,10 +17,12 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/execution"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/organization"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/runner"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/search"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/session"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/types"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/display"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -43,6 +49,7 @@ The type can be specified using any alias:
   - skills, skill
   - executions, execution, exec
   - sessions, session, ses
+  - runners, runner, rnr     (local active runners)
 
 Both singular and plural forms are accepted.`,
 		Example: `  # List available resource types
@@ -58,7 +65,10 @@ Both singular and plural forms are accepted.`,
   stigmer list agents --limit 10
 
   # Output as YAML or JSON
-  stigmer list agents --output yaml`,
+  stigmer list agents --output yaml
+
+  # List active runners on this machine
+  stigmer list runners`,
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := executeList(listOptions{
@@ -113,6 +123,13 @@ func isOrganizationType(typeArg string) bool {
 	return normalized == "organization" || normalized == "organizations" || normalized == "org" || normalized == "orgs"
 }
 
+// isRunnerType checks if the type arg refers to runners.
+// Runners are listed from local state files, not the backend.
+func isRunnerType(typeArg string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(typeArg))
+	return normalized == "runner" || normalized == "runners" || normalized == "rnr"
+}
+
 // executeList lists resources of a given type.
 func executeList(opts listOptions) error {
 	// Special case: "types" lists available resource types from the local registry.
@@ -136,11 +153,16 @@ func executeList(opts listOptions) error {
 		return executeListOrganizations(opts)
 	}
 
+	// Special case: Runners are listed from local state files, no backend needed
+	if isRunnerType(opts.TypeArg) {
+		return executeListRunners()
+	}
+
 	// Step 1: Resolve type from alias
 	reg := types.DefaultRegistry()
 	info, ok := reg.GetByAlias(opts.TypeArg)
 	if !ok {
-		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: types, organizations, agents, workflows, mcpservers, projects, skills, executions, sessions", opts.TypeArg)
+		return fmt.Errorf("unknown resource type: %s\n\nAvailable types: types, organizations, agents, workflows, mcpservers, projects, skills, executions, sessions, runners", opts.TypeArg)
 	}
 
 	// Step 2: Check verb support
@@ -429,6 +451,73 @@ func executeListOrganizations(opts listOptions) error {
 
 	organization.DisplayListResult(orgs, opts.OutputFormat)
 	return nil
+}
+
+// executeListRunners lists active runners from local state files.
+// This is entirely local — no backend connection needed.
+func executeListRunners() error {
+	states, err := runner.ListAllRunnerStates()
+	if err != nil {
+		return errors.Wrap(err, "failed to list runners")
+	}
+
+	if len(states) == 0 {
+		display.DisplayEmptyResults("runners", "")
+		fmt.Println()
+		climsg.Info("Start a runner:")
+		climsg.Info("  stigmer up")
+		fmt.Println()
+		return nil
+	}
+
+	names := make([]string, 0, len(states))
+	for name := range states {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	tbl := display.NewTable(
+		[]string{"NAME", "PID", "BACKEND", "TASK QUEUE", "STARTED"},
+		display.WithAdaptive(),
+	)
+	for _, name := range names {
+		s := states[name]
+		tbl.AddRow(name, strconv.Itoa(s.PID), s.BackendEndpoint, s.TaskQueue, formatRunnerAge(s.StartedAt))
+	}
+
+	fmt.Println()
+	tbl.Render(os.Stdout)
+	fmt.Println()
+	return nil
+}
+
+func formatRunnerAge(t time.Time) string {
+	if t.IsZero() {
+		return "-"
+	}
+	d := time.Since(t)
+	switch {
+	case d < time.Minute:
+		return "just now"
+	case d < time.Hour:
+		m := int(d.Minutes())
+		if m == 1 {
+			return "1m ago"
+		}
+		return fmt.Sprintf("%dm ago", m)
+	case d < 24*time.Hour:
+		h := int(d.Hours())
+		if h == 1 {
+			return "1h ago"
+		}
+		return fmt.Sprintf("%dh ago", h)
+	default:
+		days := int(d.Hours() / 24)
+		if days == 1 {
+			return "1d ago"
+		}
+		return fmt.Sprintf("%dd ago", days)
+	}
 }
 
 // parsePhaseFilter parses a phase string to ExecutionPhase.
