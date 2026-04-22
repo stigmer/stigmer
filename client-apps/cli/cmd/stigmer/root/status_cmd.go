@@ -2,15 +2,43 @@ package root
 
 import (
 	"os"
+	"strings"
 	"time"
 
+	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/bootstrap"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/llm"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
 
-func handleServerStatus(format clioutput.OutputFormat) {
+// NewStatusCommand creates the top-level 'stigmer status' command.
+func NewStatusCommand() *cobra.Command {
+	var jsonOutput, quietOutput bool
+
+	cmd := &cobra.Command{
+		Use:   "status",
+		Short: "Show service status",
+		Long: `Show the status of the Stigmer server and its managed processes.
+
+Displays whether the server is running, its PID, uptime, LLM configuration,
+and the status of dependent services.`,
+		Example: `  # Show server status
+  stigmer status
+
+  # Machine-readable output
+  stigmer status --json`,
+		Run: func(cmd *cobra.Command, args []string) {
+			handleStatus(resolveResultFormat(jsonOutput, quietOutput))
+		},
+	}
+
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
+	return cmd
+}
+
+func handleStatus(format clioutput.OutputFormat) {
 	renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
 
 	dataDir, err := config.GetDataDir()
@@ -22,12 +50,11 @@ func handleServerStatus(format clioutput.OutputFormat) {
 
 	if !running {
 		result := clioutput.Warning("Stigmer server is not running")
-		result.Hint("To start: stigmer server")
+		result.Hint("To start: stigmer up")
 		renderer.Render(result)
 		return
 	}
 
-	// Read the daemon's health state file (written atomically by the daemon process)
 	hs := daemon.LoadHealthState(dataDir)
 	if hs == nil {
 		hs = createBasicHealthState(dataDir, pid)
@@ -58,8 +85,6 @@ func handleServerStatus(format clioutput.OutputFormat) {
 		label := componentLabels[name]
 		cs, ok := hs.Components[name]
 		if !ok {
-			// Web console is optional (depends on build tag and --no-web).
-			// Only show it when it has a health state entry.
 			if name == "web-console" {
 				continue
 			}
@@ -100,7 +125,6 @@ func handleServerStatus(format clioutput.OutputFormat) {
 	renderer.Render(result)
 }
 
-// addComponentSection appends a section for a managed component.
 func addComponentSection(result *clioutput.CommandResult, name string, cs *daemon.ComponentState) {
 	sec := result.AddSection(name)
 
@@ -131,16 +155,10 @@ func addComponentSection(result *clioutput.CommandResult, name string, cs *daemo
 	}
 
 	if state == "failed" || state == "stopped" {
-		result.Hintf("View %s logs: stigmer server logs --component %s",
-			name, componentNameToFlag(name))
+		result.Hintf("View %s logs: stigmer logs --component %s", name, name)
 	}
 }
 
-func componentNameToFlag(name string) string {
-	return name
-}
-
-// addBootstrapSection appends the bootstrap/seedpack status.
 func addBootstrapSection(result *clioutput.CommandResult, dataDir string) {
 	sec := result.AddSection("Bootstrap")
 
@@ -152,5 +170,61 @@ func addBootstrapSection(result *clioutput.CommandResult, dataDir string) {
 
 	if status.SeedpackHash != "" {
 		sec.Field("Seedpack Hash", status.SeedpackHash)
+	}
+}
+
+func addLLMSections(result *clioutput.CommandResult, cfg *config.Config) {
+	provider := cfg.Backend.Local.ResolveLLMProvider()
+	model := cfg.Backend.Local.ResolveLLMModel()
+
+	sec := result.AddSection("LLM Configuration")
+
+	switch provider {
+	case "ollama":
+		running, pid, models, err := llm.GetStatus()
+		if err != nil {
+			sec.Fieldf("Provider", "Local (Error: %v)", err)
+			return
+		}
+
+		if running {
+			sec.Field("Provider", "Local ✓ Running")
+			if pid > 0 {
+				sec.Fieldf("PID", "%d", pid)
+			}
+			sec.Field("Model", model)
+			if len(models) > 0 {
+				sec.Field("Available", strings.Join(models, ", "))
+			}
+		} else {
+			sec.Field("Provider", "Local ✗ Not Running")
+			sec.Fieldf("Model", "%s (will be downloaded on first use)", model)
+		}
+
+	case "anthropic":
+		sec.Field("Provider", "Anthropic (Cloud)")
+		sec.Field("Model", model)
+		if apiKey := cfg.Backend.Local.ResolveLLMAPIKey(); apiKey != "" {
+			sec.Field("API Key", "Configured ✓")
+		} else {
+			sec.Field("API Key", "Not configured ✗")
+		}
+
+	case "openai":
+		sec.Field("Provider", "OpenAI (Cloud)")
+		sec.Field("Model", model)
+		if apiKey := cfg.Backend.Local.ResolveLLMAPIKey(); apiKey != "" {
+			sec.Field("API Key", "Configured ✓")
+		} else {
+			sec.Field("API Key", "Not configured ✗")
+		}
+
+	case "":
+		sec.Field("Provider", "Not configured")
+		sec.Field("Status", "Agents will not execute")
+		sec.Field("Setup", "Run 'stigmer setup' to configure")
+
+	default:
+		sec.Fieldf("Provider", "Unknown (%s)", provider)
 	}
 }

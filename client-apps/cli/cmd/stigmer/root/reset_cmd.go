@@ -12,7 +12,8 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
 
-func newServerResetCommand() *cobra.Command {
+// NewResetCommand creates the top-level 'stigmer reset' command.
+func NewResetCommand() *cobra.Command {
 	var force, includeConfig bool
 
 	cmd := &cobra.Command{
@@ -24,8 +25,16 @@ binaries — then automatically restart the server fresh.
 
 Configuration (config.yaml) is preserved by default. Use --include-config
 to also remove it; the setup wizard will run again on next start.`,
+		Example: `  # Reset and restart
+  stigmer reset
+
+  # Reset without confirmation prompt
+  stigmer reset --force
+
+  # Full reset including configuration
+  stigmer reset --include-config`,
 		Run: func(cmd *cobra.Command, args []string) {
-			handleServerReset(force, includeConfig)
+			handleReset(force, includeConfig)
 		},
 	}
 
@@ -36,7 +45,7 @@ to also remove it; the setup wizard will run again on next start.`,
 	return cmd
 }
 
-func handleServerReset(force, includeConfig bool) {
+func handleReset(force, includeConfig bool) {
 	configDir, err := config.GetConfigDir()
 	if err != nil {
 		climsg.Error("Failed to determine config directory")
@@ -106,6 +115,6 @@ func printResetSummary(result *daemon.ResetResult, includeConfig bool) {
 
 	climsg.Success("Reset complete")
 	if includeConfig {
-		climsg.Info("Run 'stigmer server' to reconfigure and start fresh")
+		climsg.Info("Run 'stigmer up' to reconfigure and start fresh")
 	}
 }

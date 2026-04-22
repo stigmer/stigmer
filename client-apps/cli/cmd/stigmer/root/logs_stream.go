@@ -12,8 +12,9 @@ import (
 )
 
 // streamLogs streams a log file in real-time (like kubectl logs -f).
-// First shows existing logs (last n lines if specified, or all if n=0), then streams new ones.
-// Handles file replacement (e.g., server restart) by detecting inode changes.
+// First shows existing logs (last n lines if specified, or all if n=0),
+// then streams new ones. Handles file replacement (e.g., server restart)
+// by detecting inode changes.
 func streamLogs(logFile string, tailLines int) error {
 	file, err := os.Open(logFile)
 	if err != nil {
@@ -53,7 +54,6 @@ func streamLogs(logFile string, tailLines int) error {
 		return fmt.Errorf("error reading existing logs: %w", err)
 	}
 
-	// Position at the end for tailing
 	if _, err := file.Seek(0, io.SeekEnd); err != nil {
 		return fmt.Errorf("failed to seek to end: %w", err)
 	}
@@ -72,17 +72,14 @@ func streamLogs(logFile string, tailLines int) error {
 			if err == io.EOF {
 				time.Sleep(100 * time.Millisecond)
 
-				// Check if the file was replaced (e.g., server restart creates a new file)
 				pathStat, statErr := os.Stat(logFile)
 				if statErr != nil {
-					// File deleted; wait for it to reappear
 					time.Sleep(500 * time.Millisecond)
 					continue
 				}
 
 				newInode := getInode(pathStat)
 				if newInode != currentInode {
-					// File was replaced — reopen and read from the beginning
 					file.Close()
 					file, err = os.Open(logFile)
 					if err != nil {
@@ -95,7 +92,6 @@ func streamLogs(logFile string, tailLines int) error {
 					continue
 				}
 
-				// Check if file was truncated
 				currentPos, _ := file.Seek(0, io.SeekCurrent)
 				if pathStat.Size() < currentPos {
 					file.Seek(0, io.SeekStart)
@@ -110,7 +106,6 @@ func streamLogs(logFile string, tailLines int) error {
 	}
 }
 
-// getInode extracts the inode number from os.FileInfo to detect file replacement
 func getInode(info os.FileInfo) uint64 {
 	if stat, ok := info.Sys().(*syscall.Stat_t); ok {
 		return stat.Ino
@@ -118,7 +113,7 @@ func getInode(info os.FileInfo) uint64 {
 	return 0
 }
 
-// showLastNLines shows the last N lines of a file (like tail -n N)
+// showLastNLines shows the last N lines of a file (like tail -n N).
 func showLastNLines(logFile string, n int) error {
 	file, err := os.Open(logFile)
 	if err != nil {
