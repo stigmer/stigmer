@@ -7,7 +7,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { RunnerSchema, type Runner, type RunnerStreamServerMessage } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
 import { RunnerCommandController } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/command_pb";
-import { RunnerIdSchema, RunnerStreamClientMessageSchema, RunnerStreamServerMessageSchema, ListRunnersRequestSchema, RunnerListSchema, type RunnerStreamClientMessage, type RunnerStreamServerMessage, type ListRunnersRequest, type RunnerList } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/io_pb";
+import { RunnerIdSchema, RunnerSendCommandInputSchema, RunnerCommandResponseSchema, RunnerStreamClientMessageSchema, RunnerStreamServerMessageSchema, ListRunnersRequestSchema, RunnerListSchema, type RunnerSendCommandInput, type RunnerCommandResponse, type RunnerStreamClientMessage, type RunnerStreamServerMessage, type ListRunnersRequest, type RunnerList } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/io_pb";
 import { RunnerQueryController } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/query_pb";
 import { RunnerSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -45,6 +45,12 @@ export class RunnerClient {
   async delete(id: string): Promise<Runner> {
     try {
       return await this.command.delete(create(RunnerIdSchema, { value: id }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async sendCommand(input: RunnerSendCommandInput): Promise<RunnerCommandResponse> {
+    try {
+      return await this.command.sendCommand(input);
     } catch (e) { throw wrapError(e); }
   }
 

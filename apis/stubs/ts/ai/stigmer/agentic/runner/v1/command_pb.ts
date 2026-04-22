@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { RunnerSchema } from "./api_pb";
 import { file_ai_stigmer_agentic_runner_v1_api } from "./api_pb";
-import type { RunnerIdSchema, RunnerStreamClientMessageSchema, RunnerStreamServerMessageSchema } from "./io_pb";
+import type { RunnerCommandResponseSchema, RunnerIdSchema, RunnerSendCommandInputSchema, RunnerStreamClientMessageSchema, RunnerStreamServerMessageSchema } from "./io_pb";
 import { file_ai_stigmer_agentic_runner_v1_io } from "./io_pb";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/runner/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_runner_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvcnVubmVyL3YxL2NvbW1hbmQucHJvdG8SHGFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEytQUKF1J1bm5lckNvbW1hbmRDb250cm9sbGVyElMKBWFwcGx5EiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lchKgAQoGY3JlYXRlEiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciJKwrgYRggZEB4iDG1ldGFkYXRhLm9yZyoydW5hdXRob3JpemVkIHRvIGNyZWF0ZSBydW5uZXIgaW4gdGhpcyBvcmdhbml6YXRpb24SigEKBnVwZGF0ZRIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyGiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIiNMK4GDAIAhAuIgttZXRhZGF0YS5pZCoddW5hdXRob3JpemVkIHRvIHVwZGF0ZSBydW5uZXIShgEKBmRlbGV0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVySWQaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciIuwrgYKggDEC4iBXZhbHVlKh11bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHJ1bm5lchKFAQoHY29ubmVjdBI3LmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyU3RyZWFtQ2xpZW50TWVzc2FnZRo3LmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyU3RyZWFtU2VydmVyTWVzc2FnZSIE0LgYASgBMAEaBKD/Ky5iBnByb3RvMw", [file_ai_stigmer_agentic_runner_v1_api, file_ai_stigmer_agentic_runner_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvcnVubmVyL3YxL2NvbW1hbmQucHJvdG8SHGFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEy8wYKF1J1bm5lckNvbW1hbmRDb250cm9sbGVyElMKBWFwcGx5EiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lchKgAQoGY3JlYXRlEiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciJKwrgYRggZEB4iDG1ldGFkYXRhLm9yZyoydW5hdXRob3JpemVkIHRvIGNyZWF0ZSBydW5uZXIgaW4gdGhpcyBvcmdhbml6YXRpb24SigEKBnVwZGF0ZRIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyGiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIiNMK4GDAIAhAuIgttZXRhZGF0YS5pZCoddW5hdXRob3JpemVkIHRvIHVwZGF0ZSBydW5uZXIShgEKBmRlbGV0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVySWQaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciIuwrgYKggDEC4iBXZhbHVlKh11bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHJ1bm5lchK7AQoLc2VuZENvbW1hbmQSNC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lclNlbmRDb21tYW5kSW5wdXQaMy5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lckNvbW1hbmRSZXNwb25zZSJBwrgYPQgBEC4iCXJ1bm5lcl9pZCosdW5hdXRob3JpemVkIHRvIHNlbmQgY29tbWFuZHMgdG8gdGhpcyBydW5uZXIShQEKB2Nvbm5lY3QSNy5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lclN0cmVhbUNsaWVudE1lc3NhZ2UaNy5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lclN0cmVhbVNlcnZlck1lc3NhZ2UiBNC4GAEoATABGgSg/ysuYgZwcm90bzM", [file_ai_stigmer_agentic_runner_v1_api, file_ai_stigmer_agentic_runner_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * RunnerCommandController handles write operations and the bidirectional
@@ -96,6 +96,24 @@ export const RunnerCommandController: GenService<{
     methodKind: "unary";
     input: typeof RunnerIdSchema;
     output: typeof RunnerSchema;
+  },
+  /**
+   * Send a command to a connected runner and return the response synchronously.
+   *
+   * This is the API entry point for UI-triggered runner commands. The server
+   * looks up the runner's active bidi stream, pushes the command, and blocks
+   * until the runner responds or the timeout (10s) expires.
+   *
+   * Requires an active connect stream — returns UNAVAILABLE if the runner
+   * is not connected. Returns FAILED_PRECONDITION if the runner's phase
+   * prevents command delivery (STOPPED, PENDING, FAILED).
+   *
+   * @generated from rpc ai.stigmer.agentic.runner.v1.RunnerCommandController.sendCommand
+   */
+  sendCommand: {
+    methodKind: "unary";
+    input: typeof RunnerSendCommandInputSchema;
+    output: typeof RunnerCommandResponseSchema;
   },
   /**
    * Establish a bidirectional command stream between the runner and the server.

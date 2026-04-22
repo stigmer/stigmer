@@ -150,6 +150,37 @@ public final class RunnerCommandControllerGrpc {
     return getDeleteMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.RunnerSendCommandInput,
+      ai.stigmer.agentic.runner.v1.RunnerCommandResponse> getSendCommandMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "sendCommand",
+      requestType = ai.stigmer.agentic.runner.v1.RunnerSendCommandInput.class,
+      responseType = ai.stigmer.agentic.runner.v1.RunnerCommandResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.RunnerSendCommandInput,
+      ai.stigmer.agentic.runner.v1.RunnerCommandResponse> getSendCommandMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.RunnerSendCommandInput, ai.stigmer.agentic.runner.v1.RunnerCommandResponse> getSendCommandMethod;
+    if ((getSendCommandMethod = RunnerCommandControllerGrpc.getSendCommandMethod) == null) {
+      synchronized (RunnerCommandControllerGrpc.class) {
+        if ((getSendCommandMethod = RunnerCommandControllerGrpc.getSendCommandMethod) == null) {
+          RunnerCommandControllerGrpc.getSendCommandMethod = getSendCommandMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.runner.v1.RunnerSendCommandInput, ai.stigmer.agentic.runner.v1.RunnerCommandResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "sendCommand"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.runner.v1.RunnerSendCommandInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.runner.v1.RunnerCommandResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new RunnerCommandControllerMethodDescriptorSupplier("sendCommand"))
+              .build();
+        }
+      }
+    }
+    return getSendCommandMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage,
       ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage> getConnectMethod;
 
@@ -315,6 +346,22 @@ public final class RunnerCommandControllerGrpc {
 
     /**
      * <pre>
+     * Send a command to a connected runner and return the response synchronously.
+     * This is the API entry point for UI-triggered runner commands. The server
+     * looks up the runner's active bidi stream, pushes the command, and blocks
+     * until the runner responds or the timeout (10s) expires.
+     * Requires an active connect stream — returns UNAVAILABLE if the runner
+     * is not connected. Returns FAILED_PRECONDITION if the runner's phase
+     * prevents command delivery (STOPPED, PENDING, FAILED).
+     * </pre>
+     */
+    default void sendCommand(ai.stigmer.agentic.runner.v1.RunnerSendCommandInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.RunnerCommandResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSendCommandMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Establish a bidirectional command stream between the runner and the server.
      * This is the runner's primary ongoing communication channel. The runner
      * pushes heartbeats (liveness + state); the server pushes commands
@@ -456,6 +503,23 @@ public final class RunnerCommandControllerGrpc {
 
     /**
      * <pre>
+     * Send a command to a connected runner and return the response synchronously.
+     * This is the API entry point for UI-triggered runner commands. The server
+     * looks up the runner's active bidi stream, pushes the command, and blocks
+     * until the runner responds or the timeout (10s) expires.
+     * Requires an active connect stream — returns UNAVAILABLE if the runner
+     * is not connected. Returns FAILED_PRECONDITION if the runner's phase
+     * prevents command delivery (STOPPED, PENDING, FAILED).
+     * </pre>
+     */
+    public void sendCommand(ai.stigmer.agentic.runner.v1.RunnerSendCommandInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.RunnerCommandResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getSendCommandMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Establish a bidirectional command stream between the runner and the server.
      * This is the runner's primary ongoing communication channel. The runner
      * pushes heartbeats (liveness + state); the server pushes commands
@@ -565,6 +629,22 @@ public final class RunnerCommandControllerGrpc {
     public ai.stigmer.agentic.runner.v1.Runner delete(ai.stigmer.agentic.runner.v1.RunnerId request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Send a command to a connected runner and return the response synchronously.
+     * This is the API entry point for UI-triggered runner commands. The server
+     * looks up the runner's active bidi stream, pushes the command, and blocks
+     * until the runner responds or the timeout (10s) expires.
+     * Requires an active connect stream — returns UNAVAILABLE if the runner
+     * is not connected. Returns FAILED_PRECONDITION if the runner's phase
+     * prevents command delivery (STOPPED, PENDING, FAILED).
+     * </pre>
+     */
+    public ai.stigmer.agentic.runner.v1.RunnerCommandResponse sendCommand(ai.stigmer.agentic.runner.v1.RunnerSendCommandInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getSendCommandMethod(), getCallOptions(), request);
     }
 
     /**
@@ -680,6 +760,22 @@ public final class RunnerCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Send a command to a connected runner and return the response synchronously.
+     * This is the API entry point for UI-triggered runner commands. The server
+     * looks up the runner's active bidi stream, pushes the command, and blocks
+     * until the runner responds or the timeout (10s) expires.
+     * Requires an active connect stream — returns UNAVAILABLE if the runner
+     * is not connected. Returns FAILED_PRECONDITION if the runner's phase
+     * prevents command delivery (STOPPED, PENDING, FAILED).
+     * </pre>
+     */
+    public ai.stigmer.agentic.runner.v1.RunnerCommandResponse sendCommand(ai.stigmer.agentic.runner.v1.RunnerSendCommandInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getSendCommandMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -770,13 +866,31 @@ public final class RunnerCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getDeleteMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Send a command to a connected runner and return the response synchronously.
+     * This is the API entry point for UI-triggered runner commands. The server
+     * looks up the runner's active bidi stream, pushes the command, and blocks
+     * until the runner responds or the timeout (10s) expires.
+     * Requires an active connect stream — returns UNAVAILABLE if the runner
+     * is not connected. Returns FAILED_PRECONDITION if the runner's phase
+     * prevents command delivery (STOPPED, PENDING, FAILED).
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.runner.v1.RunnerCommandResponse> sendCommand(
+        ai.stigmer.agentic.runner.v1.RunnerSendCommandInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getSendCommandMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_APPLY = 0;
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_DELETE = 3;
-  private static final int METHODID_CONNECT = 4;
+  private static final int METHODID_SEND_COMMAND = 4;
+  private static final int METHODID_CONNECT = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -810,6 +924,10 @@ public final class RunnerCommandControllerGrpc {
         case METHODID_DELETE:
           serviceImpl.delete((ai.stigmer.agentic.runner.v1.RunnerId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.Runner>) responseObserver);
+          break;
+        case METHODID_SEND_COMMAND:
+          serviceImpl.sendCommand((ai.stigmer.agentic.runner.v1.RunnerSendCommandInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.RunnerCommandResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -860,6 +978,13 @@ public final class RunnerCommandControllerGrpc {
               ai.stigmer.agentic.runner.v1.RunnerId,
               ai.stigmer.agentic.runner.v1.Runner>(
                 service, METHODID_DELETE)))
+        .addMethod(
+          getSendCommandMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.runner.v1.RunnerSendCommandInput,
+              ai.stigmer.agentic.runner.v1.RunnerCommandResponse>(
+                service, METHODID_SEND_COMMAND)))
         .addMethod(
           getConnectMethod(),
           io.grpc.stub.ServerCalls.asyncBidiStreamingCall(
@@ -919,6 +1044,7 @@ public final class RunnerCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getDeleteMethod())
+              .addMethod(getSendCommandMethod())
               .addMethod(getConnectMethod())
               .build();
         }

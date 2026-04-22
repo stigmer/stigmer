@@ -45,7 +45,13 @@ func (r *RunnerClient) Delete(ctx context.Context, id string) (*runnerv1.Runner,
 	return resp, wrapErr(err)
 }
 
-// RunnerConnectStream wraps the bidi stream for Connect.
+func (r *RunnerClient) SendCommand(ctx context.Context, input *runnerv1.RunnerSendCommandInput) (*runnerv1.RunnerCommandResponse, error) {
+	resp, err := r.command.SendCommand(ctx, input)
+	return resp, wrapErr(err)
+}
+
+// RunnerConnectStream wraps the bidi stream for Connect, providing
+// Send, Recv, and CloseSend for the runner command channel.
 type RunnerConnectStream struct {
 	stream runnerv1.RunnerCommandController_ConnectClient
 }

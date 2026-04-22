@@ -72,6 +72,22 @@ service RunnerCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete runner";
   }
 
+  // Send a command to a connected runner and return the response synchronously.
+  //
+  // This is the API entry point for UI-triggered runner commands. The server
+  // looks up the runner's active bidi stream, pushes the command, and blocks
+  // until the runner responds or the timeout (10s) expires.
+  //
+  // Requires an active connect stream — returns UNAVAILABLE if the runner
+  // is not connected. Returns FAILED_PRECONDITION if the runner's phase
+  // prevents command delivery (STOPPED, PENDING, FAILED).
+  rpc sendCommand(RunnerSendCommandInput) returns (RunnerCommandResponse) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = runner;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "runner_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to send commands to this runner";
+  }
+
   // Establish a bidirectional command stream between the runner and the server.
   //
   // This is the runner's primary ongoing communication channel. The runner

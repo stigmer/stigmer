@@ -46,6 +46,7 @@ Runner runner = client.runners().get("rnr_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`update`](#update) | Update an existing runner. | |
 | [`delete`](#delete) | Delete a runner. | |
 | [`connect`](#connect) | Establish a bidirectional command stream between the runner and the server. | Server |
+| [`sendCommand`](#sendcommand) | Send a command to a connected runner and return the response synchronously. | |
 
 ### get
 
@@ -434,6 +435,53 @@ client.runners().connect(input, runnerStreamServerMessage -> {
 
 **Returns**: Stream&lt;[`RunnerStreamServerMessage`](#runnerstreamservermessage)&gt;
 
+### sendCommand
+
+Send a command to a connected runner and return the response synchronously.
+
+This is the API entry point for UI-triggered runner commands. The server looks up the runner's active bidi stream, pushes the command, and blocks until the runner responds or the timeout (10s) expires.
+
+Requires an active connect stream — returns UNAVAILABLE if the runner is not connected. Returns FAILED_PRECONDITION if the runner's phase prevents command delivery (STOPPED, PENDING, FAILED).
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const runnerCommandResponse = await stigmer.runner.sendCommand({
+  runnerId: "...",
+  listDirectory: {},
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+runnerCommandResponse, err := client.Runner.SendCommand(ctx, &stigmer.RunnerSendCommandInput{
+  RunnerId:      "...",
+  ListDirectory: &stigmer.ListDirectoryRequestInput{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+runner_command_response = client.runners.send_command(RunnerSendCommandInput(
+    runner_id="...",
+    list_directory=None,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+RunnerCommandResponse runnerCommandResponse = client.runners().sendCommand(RunnerSendCommandInput.builder()
+    .runnerId("...")
+    .listDirectory(null)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`RunnerSendCommandInput`](#runnersendcommandinput)
+
+**Returns**: [`RunnerCommandResponse`](#runnercommandresponse)
+
 ## Types
 
 ### RunnerInput
@@ -447,6 +495,29 @@ Input for creating or updating a Runner.
     org: { type: "string", description: "Organization slug.", required: true },
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     description: { type: "string", description: "Human-readable purpose of this runner." },
+  }}
+/>
+
+### RunnerSendCommandInput
+
+RunnerSendCommandInput is the request for the sendCommand unary RPC.
+
+<TypeTable
+  type={{
+    runnerId: { type: "string", description: "ID of the runner to send the command to.", required: true },
+    listDirectory: { type: "ListDirectoryRequestInput", description: "" },
+  }}
+/>
+
+### RunnerCommandResponse
+
+RunnerCommandResponse is the runner's reply to a RunnerCommandRequest.
+
+<TypeTable
+  type={{
+    requestId: { type: "string", description: "Echoed from RunnerCommandRequest.request_id." },
+    listDirectory: { type: "ListDirectoryResponseInput", description: "" },
+    error: { type: "RunnerCommandErrorInput", description: "" },
   }}
 />
 

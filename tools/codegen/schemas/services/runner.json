@@ -40,6 +40,14 @@
           "description": "Delete a runner.\n\n @internal\n For persistent runners: removes the resource and its task queue.\n For system-managed runners: called by the execution workflow during\n cleanup after the execution completes."
         },
         {
+          "name": "SendCommand",
+          "inputType": "RunnerSendCommandInput",
+          "inputFullType": "ai.stigmer.agentic.runner.v1.RunnerSendCommandInput",
+          "outputType": "RunnerCommandResponse",
+          "outputFullType": "ai.stigmer.agentic.runner.v1.RunnerCommandResponse",
+          "description": "Send a command to a connected runner and return the response synchronously.\n\n This is the API entry point for UI-triggered runner commands. The server\n looks up the runner's active bidi stream, pushes the command, and blocks\n until the runner responds or the timeout (10s) expires.\n\n Requires an active connect stream — returns UNAVAILABLE if the runner\n is not connected. Returns FAILED_PRECONDITION if the runner's phase\n prevents command delivery (STOPPED, PENDING, FAILED)."
+        },
+        {
           "name": "Connect",
           "inputType": "RunnerStreamClientMessage",
           "inputFullType": "ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage",
@@ -83,6 +91,81 @@
     }
   ],
   "methodTypes": [
+    {
+      "name": "RunnerSendCommandInput",
+      "description": "RunnerSendCommandInput is the request for the sendCommand unary RPC.\n\n Allows API callers (web UI, CLI) to send a typed command to a connected\n runner and receive the response synchronously. The server wraps the command\n in a RunnerCommandRequest with a generated request_id, pushes it to the\n runner's bidi stream, and returns the runner's response.\n\n The command oneof mirrors RunnerCommandRequest.command — callers specify\n the command directly without dealing with stream protocol details like\n request_id.",
+      "protoType": "ai.stigmer.agentic.runner.v1.RunnerSendCommandInput",
+      "protoFile": "apis/ai/stigmer/agentic/runner/v1/io.proto",
+      "fields": [
+        {
+          "name": "RunnerId",
+          "jsonName": "runnerId",
+          "protoField": "runner_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the runner to send the command to.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "ListDirectory",
+          "jsonName": "listDirectory",
+          "protoField": "list_directory",
+          "type": {
+            "kind": "message",
+            "messageType": "ListDirectoryRequest"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "command"
+        }
+      ]
+    },
+    {
+      "name": "RunnerCommandResponse",
+      "description": "RunnerCommandResponse is the runner's reply to a RunnerCommandRequest.\n\n Sent on the connect stream after the runner handles a command locally.\n The request_id correlates this response to the original request.",
+      "protoType": "ai.stigmer.agentic.runner.v1.RunnerCommandResponse",
+      "protoFile": "apis/ai/stigmer/agentic/runner/v1/io.proto",
+      "fields": [
+        {
+          "name": "RequestId",
+          "jsonName": "requestId",
+          "protoField": "request_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Echoed from RunnerCommandRequest.request_id.",
+          "required": false
+        },
+        {
+          "name": "ListDirectory",
+          "jsonName": "listDirectory",
+          "protoField": "list_directory",
+          "type": {
+            "kind": "message",
+            "messageType": "ListDirectoryResponse"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "result"
+        },
+        {
+          "name": "Error",
+          "jsonName": "error",
+          "protoField": "error",
+          "type": {
+            "kind": "message",
+            "messageType": "RunnerCommandError"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "result"
+        }
+      ]
+    },
     {
       "name": "RunnerStreamClientMessage",
       "description": "RunnerStreamClientMessage is the envelope for all runner-to-server messages\n on the connect bidi stream.\n\n The runner sends two types of messages:\n - Heartbeats: periodic liveness reports (every 30s)\n - Command responses: replies to server-initiated commands",

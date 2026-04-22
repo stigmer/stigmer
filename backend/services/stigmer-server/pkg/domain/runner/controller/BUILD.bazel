@@ -12,6 +12,7 @@ go_library(
         "heartbeat.go",
         "list.go",
         "runner_controller.go",
+        "send_command.go",
         "stream_registry.go",
         "update.go",
     ],

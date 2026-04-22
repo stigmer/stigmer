@@ -19,11 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RunnerCommandController_Apply_FullMethodName   = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/apply"
-	RunnerCommandController_Create_FullMethodName  = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/create"
-	RunnerCommandController_Update_FullMethodName  = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/update"
-	RunnerCommandController_Delete_FullMethodName  = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/delete"
-	RunnerCommandController_Connect_FullMethodName = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/connect"
+	RunnerCommandController_Apply_FullMethodName       = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/apply"
+	RunnerCommandController_Create_FullMethodName      = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/create"
+	RunnerCommandController_Update_FullMethodName      = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/update"
+	RunnerCommandController_Delete_FullMethodName      = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/delete"
+	RunnerCommandController_SendCommand_FullMethodName = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/sendCommand"
+	RunnerCommandController_Connect_FullMethodName     = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/connect"
 )
 
 // RunnerCommandControllerClient is the client API for RunnerCommandController service.
@@ -74,6 +75,16 @@ type RunnerCommandControllerClient interface {
 	// For system-managed runners: called by the execution workflow during
 	// cleanup after the execution completes.
 	Delete(ctx context.Context, in *RunnerId, opts ...grpc.CallOption) (*Runner, error)
+	// Send a command to a connected runner and return the response synchronously.
+	//
+	// This is the API entry point for UI-triggered runner commands. The server
+	// looks up the runner's active bidi stream, pushes the command, and blocks
+	// until the runner responds or the timeout (10s) expires.
+	//
+	// Requires an active connect stream — returns UNAVAILABLE if the runner
+	// is not connected. Returns FAILED_PRECONDITION if the runner's phase
+	// prevents command delivery (STOPPED, PENDING, FAILED).
+	SendCommand(ctx context.Context, in *RunnerSendCommandInput, opts ...grpc.CallOption) (*RunnerCommandResponse, error)
 	// Establish a bidirectional command stream between the runner and the server.
 	//
 	// This is the runner's primary ongoing communication channel. The runner
@@ -145,6 +156,16 @@ func (c *runnerCommandControllerClient) Delete(ctx context.Context, in *RunnerId
 	return out, nil
 }
 
+func (c *runnerCommandControllerClient) SendCommand(ctx context.Context, in *RunnerSendCommandInput, opts ...grpc.CallOption) (*RunnerCommandResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RunnerCommandResponse)
+	err := c.cc.Invoke(ctx, RunnerCommandController_SendCommand_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runnerCommandControllerClient) Connect(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[RunnerStreamClientMessage, RunnerStreamServerMessage], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &RunnerCommandController_ServiceDesc.Streams[0], RunnerCommandController_Connect_FullMethodName, cOpts...)
@@ -206,6 +227,16 @@ type RunnerCommandControllerServer interface {
 	// For system-managed runners: called by the execution workflow during
 	// cleanup after the execution completes.
 	Delete(context.Context, *RunnerId) (*Runner, error)
+	// Send a command to a connected runner and return the response synchronously.
+	//
+	// This is the API entry point for UI-triggered runner commands. The server
+	// looks up the runner's active bidi stream, pushes the command, and blocks
+	// until the runner responds or the timeout (10s) expires.
+	//
+	// Requires an active connect stream — returns UNAVAILABLE if the runner
+	// is not connected. Returns FAILED_PRECONDITION if the runner's phase
+	// prevents command delivery (STOPPED, PENDING, FAILED).
+	SendCommand(context.Context, *RunnerSendCommandInput) (*RunnerCommandResponse, error)
 	// Establish a bidirectional command stream between the runner and the server.
 	//
 	// This is the runner's primary ongoing communication channel. The runner
@@ -247,6 +278,9 @@ func (UnimplementedRunnerCommandControllerServer) Update(context.Context, *Runne
 }
 func (UnimplementedRunnerCommandControllerServer) Delete(context.Context, *RunnerId) (*Runner, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedRunnerCommandControllerServer) SendCommand(context.Context, *RunnerSendCommandInput) (*RunnerCommandResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendCommand not implemented")
 }
 func (UnimplementedRunnerCommandControllerServer) Connect(grpc.BidiStreamingServer[RunnerStreamClientMessage, RunnerStreamServerMessage]) error {
 	return status.Errorf(codes.Unimplemented, "method Connect not implemented")
@@ -343,6 +377,24 @@ func _RunnerCommandController_Delete_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RunnerCommandController_SendCommand_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RunnerSendCommandInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunnerCommandControllerServer).SendCommand(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RunnerCommandController_SendCommand_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunnerCommandControllerServer).SendCommand(ctx, req.(*RunnerSendCommandInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RunnerCommandController_Connect_Handler(srv interface{}, stream grpc.ServerStream) error {
 	return srv.(RunnerCommandControllerServer).Connect(&grpc.GenericServerStream[RunnerStreamClientMessage, RunnerStreamServerMessage]{ServerStream: stream})
 }
@@ -372,6 +424,10 @@ var RunnerCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "delete",
 			Handler:    _RunnerCommandController_Delete_Handler,
+		},
+		{
+			MethodName: "sendCommand",
+			Handler:    _RunnerCommandController_SendCommand_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

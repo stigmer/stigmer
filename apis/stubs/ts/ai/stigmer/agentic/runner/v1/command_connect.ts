@@ -5,7 +5,7 @@
 
 import { Runner } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
-import { RunnerId, RunnerStreamClientMessage, RunnerStreamServerMessage } from "./io_pb.js";
+import { RunnerCommandResponse, RunnerId, RunnerSendCommandInput, RunnerStreamClientMessage, RunnerStreamServerMessage } from "./io_pb.js";
 
 /**
  * RunnerCommandController handles write operations and the bidirectional
@@ -91,6 +91,25 @@ export const RunnerCommandController = {
       name: "delete",
       I: RunnerId,
       O: Runner,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Send a command to a connected runner and return the response synchronously.
+     *
+     * This is the API entry point for UI-triggered runner commands. The server
+     * looks up the runner's active bidi stream, pushes the command, and blocks
+     * until the runner responds or the timeout (10s) expires.
+     *
+     * Requires an active connect stream — returns UNAVAILABLE if the runner
+     * is not connected. Returns FAILED_PRECONDITION if the runner's phase
+     * prevents command delivery (STOPPED, PENDING, FAILED).
+     *
+     * @generated from rpc ai.stigmer.agentic.runner.v1.RunnerCommandController.sendCommand
+     */
+    sendCommand: {
+      name: "sendCommand",
+      I: RunnerSendCommandInput,
+      O: RunnerCommandResponse,
       kind: MethodKind.Unary,
     },
     /**

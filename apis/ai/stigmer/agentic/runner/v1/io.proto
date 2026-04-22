@@ -39,6 +39,30 @@ message RunnerList {
 }
 
 // ---------------------------------------------------------------------------
+// sendCommand API input (used by RunnerCommandController.sendCommand)
+// ---------------------------------------------------------------------------
+
+// RunnerSendCommandInput is the request for the sendCommand unary RPC.
+//
+// Allows API callers (web UI, CLI) to send a typed command to a connected
+// runner and receive the response synchronously. The server wraps the command
+// in a RunnerCommandRequest with a generated request_id, pushes it to the
+// runner's bidi stream, and returns the runner's response.
+//
+// The command oneof mirrors RunnerCommandRequest.command — callers specify
+// the command directly without dealing with stream protocol details like
+// request_id.
+message RunnerSendCommandInput {
+  // ID of the runner to send the command to.
+  string runner_id = 1 [(buf.validate.field).required = true];
+
+  // The command to execute on the runner.
+  oneof command {
+    ListDirectoryRequest list_directory = 2;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Bidi stream envelope messages (used by RunnerCommandController.connect)
 // ---------------------------------------------------------------------------
 
