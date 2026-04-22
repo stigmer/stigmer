@@ -7,14 +7,12 @@
 # This image provides:
 #   1. MCP server runtimes: npx (Node.js), uvx (Python), go run (Go)
 #   2. Agent-runner Python worker (virtualenv + source + dependencies)
-#   3. Bootstrap script for on-demand MCP server package installation
-#   4. Core utilities: git, curl, jq, yq, yamllint
+#   3. Core utilities: git, curl, jq, yq, yamllint
 #
-# MCP server packages (npm, pip, go modules) are NOT baked into the image. They are
-# installed on-demand at sandbox startup by bootstrap.sh, which reads
-# STIGMER_BOOTSTRAP_NPM_PACKAGES and STIGMER_BOOTSTRAP_PIP_PACKAGES env
-# vars set by stigmer-service during sandbox creation. This keeps the
-# image slim and agent-specific.
+# MCP server packages (npm, pip, go modules) are NOT baked into the image.
+# They are installed on-demand by the agent-runner during execution setup,
+# derived from the merged (agent + session) MCP server specs. This keeps
+# the image slim and agent-specific.
 #
 # Cloud CLIs (aws, gcloud, az, kubectl, terraform, pulumi, helm, etc.) are
 # NOT included. Agents that need them can install on-demand.
@@ -153,13 +151,6 @@ print('agent-runner import verification passed')"
 
 # Set working directory (Daytona convention — user workspace, not runner code)
 WORKDIR /workspace
-
-# ---------- Bootstrap Script ----------
-# Installs agent-specific MCP server packages at sandbox startup.
-# Reads STIGMER_BOOTSTRAP_NPM_PACKAGES and STIGMER_BOOTSTRAP_PIP_PACKAGES
-# env vars (comma-separated) set by stigmer-service during sandbox creation.
-COPY backend/services/agent-runner/sandbox/bootstrap.sh /app/sandbox/bootstrap.sh
-RUN chmod +x /app/sandbox/bootstrap.sh
 
 # Verify MCP runtimes and core utilities
 RUN git --version && \
