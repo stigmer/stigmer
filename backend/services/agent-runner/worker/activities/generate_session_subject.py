@@ -148,8 +148,7 @@ async def _generate_and_update_subject(execution_id: str) -> None:
 
         # Step 6: Update subject via field-level RPC (race-safe).
         # This atomically sets only spec.subject on the server, avoiding
-        # the lost-update race with sandbox_manager which concurrently
-        # updates spec.sandbox_id on the same session.
+        # lost-update races with other concurrent field-level updates.
         await session_client.update_subject(session_id, generated_subject)
 
         activity_logger.info(

@@ -9,7 +9,6 @@ public class GeneratedClient {
     public final AgentClient agent;
     public final AgentExecutionClient agentExecution;
     public final AgentInstanceClient agentInstance;
-    public final AgentRunnerClient agentrunner;
     public final ApiKeyClient apiKey;
     public final EnvironmentClient environment;
     public final ExecutionContextClient executionContext;
@@ -22,6 +21,7 @@ public class GeneratedClient {
     public final OrganizationClient organization;
     public final PlatformClientClient platformclient;
     public final ProjectClient project;
+    public final RunnerClient runner;
     public final SessionClient session;
     public final SkillClient skill;
     public final WorkflowClient workflow;
@@ -32,7 +32,6 @@ public class GeneratedClient {
         this.agent = new AgentClient(channel);
         this.agentExecution = new AgentExecutionClient(channel);
         this.agentInstance = new AgentInstanceClient(channel);
-        this.agentrunner = new AgentRunnerClient(channel);
         this.apiKey = new ApiKeyClient(channel);
         this.environment = new EnvironmentClient(channel);
         this.executionContext = new ExecutionContextClient(channel);
@@ -45,6 +44,7 @@ public class GeneratedClient {
         this.organization = new OrganizationClient(channel);
         this.platformclient = new PlatformClientClient(channel);
         this.project = new ProjectClient(channel);
+        this.runner = new RunnerClient(channel);
         this.session = new SessionClient(channel);
         this.skill = new SkillClient(channel);
         this.workflow = new WorkflowClient(channel);

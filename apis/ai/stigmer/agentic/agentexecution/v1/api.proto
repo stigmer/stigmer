@@ -226,12 +226,12 @@ message AgentExecutionStatus {
   SetupProgress setup_progress = 18;
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Agent Runner Binding (AgentRunner Resource)
+  // Runner Binding (Runner Resource)
   //
   // Records which runner handled this execution for observability.
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // ID of the AgentRunner that executed this execution.
+  // ID of the Runner that executed this execution.
   //
   // Set once when the execution is dispatched to a runner; immutable after.
   // For cloud executions, this references the system-managed ephemeral runner
@@ -239,7 +239,7 @@ message AgentExecutionStatus {
   // references the user-created persistent runner selected via the session.
   //
   // Used for observability: "which runner handled this work?"
-  string agent_runner_id = 19;
+  string runner_id = 19;
 }
 
 // Setup progress reported during the EXECUTION_PENDING phase.

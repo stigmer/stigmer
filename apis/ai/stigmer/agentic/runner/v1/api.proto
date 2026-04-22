@@ -1,0 +1,129 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.runner.v1;
+
+import "ai/stigmer/agentic/runner/v1/enum.proto";
+import "ai/stigmer/agentic/runner/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// Runner represents a process that executes work on the Stigmer platform.
+//
+// Runners are the computational backbone of the platform. Every execution
+// runs on a runner — whether auto-created by the platform for a cloud
+// execution or started by a user on their own machine via CLI or desktop app.
+//
+// Runner follows the Kubernetes Node pattern:
+// - **Thin spec**: the user declares intent (a name, a description). That's it.
+// - **Rich status**: the runner process self-reports everything via heartbeat —
+//   phase, capacity, machine info, task queue.
+// - **Identity persists across restarts**: a runner that stops and restarts
+//   reconnects to the same resource. The CLI stores the runner ID locally and
+//   calls apply to reactivate the same identity, same queue.
+//
+// Two creation patterns:
+// - **User-created (persistent)**: user runs `stigmer runner start`, runner
+//   appears in the session composer, user selects it for their sessions.
+// - **System-managed (ephemeral)**: platform auto-creates a runner for a cloud
+//   execution, labels it stigmer.ai/system-managed: "true", tears it down when
+//   the execution completes. Hidden from the session composer.
+//
+// Sessions bind to a runner via SessionSpec.runner_id. Executions record
+// which runner handled them via AgentExecutionStatus.runner_id.
+message Runner {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Runner'];
+
+  // Standard resource metadata including name, organization, and labels.
+  //
+  // Notable labels:
+  // - stigmer.ai/system-managed: "true" — set on ephemeral runners created by
+  //   the platform for cloud executions. These are hidden from the session
+  //   composer and garbage-collected after the execution completes.
+  // - stigmer.ai/sandbox-id: "<id>" — set by the launcher when a cloud sandbox
+  //   is provisioned for this runner. Used by the deprovisioning step for
+  //   cleanup. Empty for local runners.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // User-declared desired state. Intentionally thin — see RunnerSpec.
+  RunnerSpec spec = 4;
+
+  // System-managed operational state reported by the runner process.
+  RunnerStatus status = 5;
+}
+
+// RunnerStatus contains all operational state for a runner.
+//
+// Every field here is either system-managed (phase, task_queue) or
+// runner-reported via heartbeat (last_heartbeat_at, current_executions,
+// connection_info). None of it is user-declared — that separation is the
+// spec/status invariant.
+message RunnerStatus {
+  // Standard audit information (created_at, updated_at, created_by, etc.)
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+
+  // Current operational phase of the runner process.
+  RunnerPhase phase = 1;
+
+  // Temporal task queue this runner polls for work.
+  // Format: "runner:{runner-id}"
+  // Set by the server when the runner resource is created; immutable after.
+  // The execution workflow reads this field to route activities to the runner.
+  string task_queue = 2;
+
+  // Timestamp of the last successful heartbeat from the runner process.
+  // Used by the server to detect stale runners: if now - last_heartbeat_at
+  // exceeds the heartbeat timeout (default 90s), the phase transitions to
+  // STOPPED.
+  google.protobuf.Timestamp last_heartbeat_at = 3;
+
+  // Timestamp when this runner first transitioned to READY.
+  google.protobuf.Timestamp started_at = 4;
+
+  // Timestamp when this runner last transitioned to STOPPED or FAILED.
+  // Empty while the runner is active (PENDING, READY, or BUSY).
+  google.protobuf.Timestamp stopped_at = 5;
+
+  // Number of executions currently in progress on this runner.
+  // Reported by the runner on each heartbeat. Used by the dispatch logic
+  // to determine runner availability and load.
+  int32 current_executions = 6;
+
+  // Field 7 was sandbox_id — now tracked via metadata label
+  // stigmer.ai/sandbox-id instead of a status field.
+  reserved 7;
+
+  // Self-reported information about the machine running this runner.
+  // Populated by the runner process on each heartbeat.
+  RunnerConnectionInfo connection_info = 8;
+}
+
+// RunnerConnectionInfo contains self-reported details about the runner's
+// host environment. Populated by the runner process on each heartbeat call.
+//
+// This information is used for:
+// - UI display: "Alice's MacBook Pro (darwin/arm64)"
+// - Debugging: matching runner behavior to specific OS/arch combinations
+// - Version tracking: ensuring runners stay up-to-date
+message RunnerConnectionInfo {
+  // Hostname or user-friendly machine name.
+  // Example: "Alice's MacBook Pro", "ci-runner-3.internal"
+  string hostname = 1;
+
+  // Operating system reported by the runner process.
+  // Example: "darwin", "linux", "windows"
+  string os = 2;
+
+  // CPU architecture reported by the runner process.
+  // Example: "arm64", "amd64"
+  string arch = 3;
+
+  // Version of the runner software.
+  // Example: "0.4.2"
+  string runner_version = 4;
+}

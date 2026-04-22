@@ -93,7 +93,7 @@ func (c *InvokeAgentExecutionWorkflowCreator) Create(input *workflows.InvokeAgen
 		Str("stigmer_queue", c.config.StigmerQueue).
 		Str("activity_queue", activityQueue)
 	if dispatch != nil && dispatch.HasRunner() {
-		logEvent.Str("agent_runner_id", dispatch.AgentRunnerID).
+		logEvent.Str("runner_id", dispatch.RunnerID).
 			Msg("Started InvokeAgentExecutionWorkflow (routed to per-runner queue)")
 	} else {
 		logEvent.Msg("Started InvokeAgentExecutionWorkflow (global runner queue)")

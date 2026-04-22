@@ -36,11 +36,6 @@ class SessionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionSubjectRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.FromString,
                 _registered_method=True)
-        self.updateSandboxId = channel.unary_unary(
-                '/ai.stigmer.agentic.session.v1.SessionCommandController/updateSandboxId',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionSandboxIdRequest.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.FromString,
-                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.session.v1.SessionCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionId.SerializeToString,
@@ -74,7 +69,7 @@ class SessionCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """Update an existing session (e.g., subject, thread_id, sandbox_id).
+        """Update an existing session (e.g., subject, thread_id).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -89,33 +84,14 @@ class SessionCommandControllerServicer(object):
 
         @internal
         Server-side field-level update, race-safe. Atomically modifies only
-        spec.subject without touching other fields. Eliminates the lost-update
-        race between GenerateSessionSubject and sandbox_manager, which both run
-        in parallel during agent execution.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def updateSandboxId(self, request, context):
-        """Set the session sandbox ID.
-
-        This is a targeted update that modifies only the sandbox ID field,
-        leaving other session fields untouched. Use this instead of the full
-        update RPC when you only need to change the sandbox assignment.
-
-        @internal
-        Server-side field-level update, race-safe. Atomically modifies only
-        spec.sandbox_id without touching other fields. Eliminates the lost-update
-        race between sandbox_manager and GenerateSessionSubject, which both run
-        in parallel during agent execution.
+        spec.subject without touching other fields.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def delete(self, request, context):
-        """Delete a session (also cleans up thread and sandbox).
+        """Delete a session (also cleans up thread).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -142,11 +118,6 @@ def add_SessionCommandControllerServicer_to_server(servicer, server):
             'updateSubject': grpc.unary_unary_rpc_method_handler(
                     servicer.updateSubject,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionSubjectRequest.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.SerializeToString,
-            ),
-            'updateSandboxId': grpc.unary_unary_rpc_method_handler(
-                    servicer.updateSandboxId,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionSandboxIdRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -263,33 +234,6 @@ class SessionCommandController(object):
             target,
             '/ai.stigmer.agentic.session.v1.SessionCommandController/updateSubject',
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionSubjectRequest.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def updateSandboxId(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.agentic.session.v1.SessionCommandController/updateSandboxId',
-            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionSandboxIdRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.FromString,
             options,
             channel_credentials,

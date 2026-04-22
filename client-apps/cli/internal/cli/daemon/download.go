@@ -348,9 +348,9 @@ func extractBinaryFromTarGz(archivePath, binaryName, destPath string) error {
 	return fmt.Errorf("%s not found in archive", binaryName)
 }
 
-// downloadAgentRunnerBinary downloads the agent-runner binary from GitHub releases
+// downloadRunnerBinary downloads the runner binary from GitHub releases
 // matching the CLI version for compatibility
-func downloadAgentRunnerBinary(dataDir string, version string) (string, error) {
+func downloadRunnerBinary(dataDir string, version string) (string, error) {
 	log.Info().Str("version", version).Msg("Downloading agent-runner from GitHub releases")
 
 	// Determine platform

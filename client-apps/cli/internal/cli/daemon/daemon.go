@@ -42,8 +42,8 @@ const (
 	// WorkflowRunnerPIDFileName stores the workflow-runner PID.
 	WorkflowRunnerPIDFileName = "workflow-runner.pid"
 
-	// AgentRunnerPIDFileName stores the agent-runner PID.
-	AgentRunnerPIDFileName = "agent-runner.pid"
+	// RunnerPIDFileName stores the agent-runner PID.
+	RunnerPIDFileName = "agent-runner.pid"
 )
 
 // StartOptions provides options for starting the daemon.
@@ -190,7 +190,7 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		return errors.New("agent-runner Python source is not available")
 	}
 
-	pythonBin, appDir, err := bootstrapAgentRunnerRuntime()
+	pythonBin, appDir, err := bootstrapRunnerRuntime()
 	if err != nil {
 		return errors.Wrap(err, "failed to bootstrap agent-runner runtime")
 	}
@@ -321,7 +321,7 @@ func cleanupOrphanedProcesses(dataDir string) {
 		"daemon":          filepath.Join(dataDir, PIDFileName),
 		"stigmer-server":  filepath.Join(dataDir, StigmerServerPIDFileName),
 		"workflow-runner": filepath.Join(dataDir, WorkflowRunnerPIDFileName),
-		"agent-runner":    filepath.Join(dataDir, AgentRunnerPIDFileName),
+		"agent-runner":    filepath.Join(dataDir, RunnerPIDFileName),
 	}
 
 	orphansFound := false

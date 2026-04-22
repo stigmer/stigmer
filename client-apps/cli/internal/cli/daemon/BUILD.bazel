@@ -3,7 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "daemon",
     srcs = [
-        "agent_runner_native.go",
+        "runner_native.go",
         "daemon.go",
         "daemon_process.go",
         "download.go",

@@ -15,9 +15,7 @@ package embedded
 //
 // User impact: Users need Docker and internet connectivity on first run only.
 
-// GetAgentRunnerBinary returns nil to trigger Docker pull for Linux ARM64
-func GetAgentRunnerBinary() ([]byte, error) {
-	// Return nil to signal that binary is not embedded
-	// This triggers the Docker image pull in daemon.go:ensureAgentRunnerImage()
+// GetRunnerBinary returns nil to trigger Docker pull for Linux ARM64
+func GetRunnerBinary() ([]byte, error) {
 	return nil, nil
 }

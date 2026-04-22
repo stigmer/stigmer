@@ -42,7 +42,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Sandbox ID for persistent file storage across executions.\n\n @internal\n Created on first execution (Daytona sandbox), reused for file persistence.",
+      "description": "Deprecated: sandbox lifecycle is now managed at the Runner level via\n the stigmer.ai/sandbox-id metadata label on the Runner resource.\n Existing sessions may still have this field populated; new sessions\n should not set it.",
       "required": false
     },
     {
@@ -90,13 +90,13 @@
       "required": false
     },
     {
-      "name": "AgentRunnerId",
-      "jsonName": "agentRunnerId",
-      "protoField": "agent_runner_id",
+      "name": "RunnerId",
+      "jsonName": "runnerId",
+      "protoField": "runner_id",
       "type": {
         "kind": "string"
       },
-      "description": "AgentRunner that executes work for this session.\n\n When set, all executions in this session route to this runner's task queue.\n When empty, the platform auto-creates an ephemeral cloud runner on first\n execution and sets this field.\n\n For persistent runners (user-created via CLI/desktop), this is set by the\n session composer when the user picks their runner. For cloud executions,\n this is set automatically by the system.\n\n @internal\n The execution workflow reads this field to resolve the Temporal task queue\n for scheduling Python activities. When empty, the workflow calls the\n RunnerLauncher to spawn an ephemeral runner and populates this field.",
+      "description": "Runner that executes work for this session.\n\n When set, all executions in this session route to this runner's task queue.\n When empty, the platform auto-creates an ephemeral cloud runner on first\n execution and sets this field.\n\n For persistent runners (user-created via CLI/desktop), this is set by the\n session composer when the user picks their runner. For cloud executions,\n this is set automatically by the system.\n\n @internal\n The execution workflow reads this field to resolve the Temporal task queue\n for scheduling activities. When empty, the workflow calls the\n RunnerLauncher to spawn an ephemeral runner and populates this field.",
       "required": false
     },
     {

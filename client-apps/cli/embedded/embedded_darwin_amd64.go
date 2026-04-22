@@ -12,9 +12,7 @@ package embedded
 //
 // User impact: Intel Mac users need internet connectivity on first run only.
 
-// GetAgentRunnerBinary returns nil to trigger download fallback for Intel Macs
-func GetAgentRunnerBinary() ([]byte, error) {
-	// Return nil to signal that binary is not embedded
-	// This triggers the download fallback in daemon.go:findAgentRunnerBinary()
+// GetRunnerBinary returns nil to trigger download fallback for Intel Macs
+func GetRunnerBinary() ([]byte, error) {
 	return nil, nil
 }

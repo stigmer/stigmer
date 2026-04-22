@@ -45,10 +45,12 @@ type SessionSpec struct {
 	// @internal
 	// Generated on first execution, persists across all executions.
 	ThreadId string `protobuf:"bytes,3,opt,name=thread_id,json=threadId,proto3" json:"thread_id,omitempty"`
-	// Sandbox ID for persistent file storage across executions.
+	// Deprecated: sandbox lifecycle is now managed at the Runner level via
+	// the stigmer.ai/sandbox-id metadata label on the Runner resource.
+	// Existing sessions may still have this field populated; new sessions
+	// should not set it.
 	//
-	// @internal
-	// Created on first execution (Daytona sandbox), reused for file persistence.
+	// Deprecated: Marked as deprecated in ai/stigmer/agentic/session/v1/spec.proto.
 	SandboxId string `protobuf:"bytes,4,opt,name=sandbox_id,json=sandboxId,proto3" json:"sandbox_id,omitempty"`
 	// Custom key-value pairs for client-specific information.
 	Metadata map[string]string `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -73,7 +75,7 @@ type SessionSpec struct {
 	// runner merges these with the agent's mcp_server_usages when constructing
 	// the execution graph.
 	McpServerUsages []*v1.McpServerUsage `protobuf:"bytes,7,rep,name=mcp_server_usages,json=mcpServerUsages,proto3" json:"mcp_server_usages,omitempty"`
-	// AgentRunner that executes work for this session.
+	// Runner that executes work for this session.
 	//
 	// When set, all executions in this session route to this runner's task queue.
 	// When empty, the platform auto-creates an ephemeral cloud runner on first
@@ -85,9 +87,9 @@ type SessionSpec struct {
 	//
 	// @internal
 	// The execution workflow reads this field to resolve the Temporal task queue
-	// for scheduling Python activities. When empty, the workflow calls the
+	// for scheduling activities. When empty, the workflow calls the
 	// RunnerLauncher to spawn an ephemeral runner and populates this field.
-	AgentRunnerId string `protobuf:"bytes,9,opt,name=agent_runner_id,json=agentRunnerId,proto3" json:"agent_runner_id,omitempty"`
+	RunnerId string `protobuf:"bytes,9,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
 	// Skills to inject into this session's context.
 	//
 	// Provides domain-specific knowledge for this specific conversation without
@@ -152,6 +154,7 @@ func (x *SessionSpec) GetThreadId() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in ai/stigmer/agentic/session/v1/spec.proto.
 func (x *SessionSpec) GetSandboxId() string {
 	if x != nil {
 		return x.SandboxId
@@ -180,9 +183,9 @@ func (x *SessionSpec) GetMcpServerUsages() []*v1.McpServerUsage {
 	return nil
 }
 
-func (x *SessionSpec) GetAgentRunnerId() string {
+func (x *SessionSpec) GetRunnerId() string {
 	if x != nil {
-		return x.AgentRunnerId
+		return x.RunnerId
 	}
 	return ""
 }
@@ -198,18 +201,18 @@ var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xd9\x06\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xd2\x06\n" +
 	"\vSessionSpec\x12*\n" +
 	"\x11agent_instance_id\x18\x01 \x01(\tR\x0fagentInstanceId\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12\x1b\n" +
-	"\tthread_id\x18\x03 \x01(\tR\bthreadId\x12\x1d\n" +
+	"\tthread_id\x18\x03 \x01(\tR\bthreadId\x12!\n" +
 	"\n" +
-	"sandbox_id\x18\x04 \x01(\tR\tsandboxId\x12T\n" +
+	"sandbox_id\x18\x04 \x01(\tB\x02\x18\x01R\tsandboxId\x12T\n" +
 	"\bmetadata\x18\x05 \x03(\v28.ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntryR\bmetadata\x12Z\n" +
 	"\x11workspace_entries\x18\x06 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12\xea\x01\n" +
 	"\x11mcp_server_usages\x18\a \x03(\v2+.ai.stigmer.agentic.agent.v1.McpServerUsageB\x90\x01\xbaH\x8c\x01\x92\x01\x88\x01\"\x85\x01\xba\x01\x81\x01\n" +
-	"\x1esession_mcp_server_usages.kind\x12?mcp_server_usages must reference resources with kind=mcp_server\x1a\x1ethis.mcp_server_ref.kind == 44R\x0fmcpServerUsages\x12&\n" +
-	"\x0fagent_runner_id\x18\t \x01(\tR\ragentRunnerId\x12\xc3\x01\n" +
+	"\x1esession_mcp_server_usages.kind\x12?mcp_server_usages must reference resources with kind=mcp_server\x1a\x1ethis.mcp_server_ref.kind == 44R\x0fmcpServerUsages\x12\x1b\n" +
+	"\trunner_id\x18\t \x01(\tR\brunnerId\x12\xc3\x01\n" +
 	"\n" +
 	"skill_refs\x18\b \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBn\xbaHg\x92\x01d\"b\xba\x01_\n" +
 	"\x17session_skill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\x1a;\n" +

@@ -9,7 +9,6 @@ type Client struct {
 	Agent             *AgentClient
 	AgentExecution    *AgentExecutionClient
 	AgentInstance     *AgentInstanceClient
-	AgentRunner       *AgentRunnerClient
 	ApiKey            *ApiKeyClient
 	Environment       *EnvironmentClient
 	ExecutionContext  *ExecutionContextClient
@@ -22,6 +21,7 @@ type Client struct {
 	Organization      *OrganizationClient
 	PlatformClient    *PlatformClientClient
 	Project           *ProjectClient
+	Runner            *RunnerClient
 	Session           *SessionClient
 	Skill             *SkillClient
 	Workflow          *WorkflowClient
@@ -35,7 +35,6 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		Agent:             NewAgentClient(conn),
 		AgentExecution:    NewAgentExecutionClient(conn),
 		AgentInstance:     NewAgentInstanceClient(conn),
-		AgentRunner:       NewAgentRunnerClient(conn),
 		ApiKey:            NewApiKeyClient(conn),
 		Environment:       NewEnvironmentClient(conn),
 		ExecutionContext:  NewExecutionContextClient(conn),
@@ -48,6 +47,7 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		Organization:      NewOrganizationClient(conn),
 		PlatformClient:    NewPlatformClientClient(conn),
 		Project:           NewProjectClient(conn),
+		Runner:            NewRunnerClient(conn),
 		Session:           NewSessionClient(conn),
 		Skill:             NewSkillClient(conn),
 		Workflow:          NewWorkflowClient(conn),

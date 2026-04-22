@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.runner.v1;
+
+// RunnerSpec defines the user-declared desired state of a runner.
+//
+// Runner follows the Kubernetes Node pattern: the spec is intentionally
+// thin because the runner is infrastructure that registers itself. The user's
+// intent when creating a runner is minimal — "I want a runner with this name."
+// All operational state (phase, queue, machine info, capacity) is reported by
+// the runner process via heartbeat and lives in RunnerStatus.
+//
+// For system-managed (ephemeral) runners created by the platform for cloud
+// executions, the spec is typically empty — the platform fills in metadata
+// labels (stigmer.ai/system-managed: "true") and the runner self-reports
+// everything else.
+message RunnerSpec {
+  // Human-readable purpose of this runner.
+  // Example: "Development runner on my MacBook", "CI/CD build server"
+  string description = 1;
+}

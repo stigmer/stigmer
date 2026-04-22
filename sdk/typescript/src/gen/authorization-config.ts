@@ -23,7 +23,7 @@ export const GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> =
   [ApiResourceKind.skill, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.mcp_server, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.agent_instance, [IamRole.owner, IamRole.viewer]],
-  [ApiResourceKind.agent_runner, [IamRole.owner, IamRole.viewer]],
+  [ApiResourceKind.runner, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.workflow, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.workflow_instance, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.workflow_execution, [IamRole.owner, IamRole.viewer]],

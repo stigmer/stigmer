@@ -162,12 +162,12 @@ public enum IamPermission
   can_connect(22),
   /**
    * <pre>
-   * Organization-level agent runner create permission.
+   * Organization-level runner create permission.
    * </pre>
    *
-   * <code>can_create_agent_runner = 25;</code>
+   * <code>can_create_runner = 25;</code>
    */
-  can_create_agent_runner(25),
+  can_create_runner(25),
   UNRECOGNIZED(-1),
   ;
 
@@ -318,12 +318,12 @@ public enum IamPermission
   public static final int can_connect_VALUE = 22;
   /**
    * <pre>
-   * Organization-level agent runner create permission.
+   * Organization-level runner create permission.
    * </pre>
    *
-   * <code>can_create_agent_runner = 25;</code>
+   * <code>can_create_runner = 25;</code>
    */
-  public static final int can_create_agent_runner_VALUE = 25;
+  public static final int can_create_runner_VALUE = 25;
 
 
   public final int getNumber() {
@@ -375,7 +375,7 @@ public enum IamPermission
       case 19: return can_update_execution_status;
       case 20: return login_to_back_office;
       case 22: return can_connect;
-      case 25: return can_create_agent_runner;
+      case 25: return can_create_runner;
       default: return null;
     }
   }

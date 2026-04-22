@@ -1,4 +1,4 @@
-"""Periodic heartbeat emitter for the AgentRunner resource.
+"""Periodic heartbeat emitter for the Runner resource.
 
 Sends a heartbeat RPC to the Stigmer backend every ``interval_seconds``
 (default 30s), reporting the runner's phase, active execution count, and
@@ -19,15 +19,15 @@ import socket
 from importlib.metadata import PackageNotFoundError, version
 
 import grpc
-from ai.stigmer.agentic.agentrunner.v1.api_pb2 import AgentRunnerConnectionInfo
-from ai.stigmer.agentic.agentrunner.v1.enum_pb2 import (
-    AGENT_RUNNER_PHASE_BUSY,
-    AGENT_RUNNER_PHASE_READY,
-    AGENT_RUNNER_PHASE_STOPPED,
+from ai.stigmer.agentic.runner.v1.api_pb2 import RunnerConnectionInfo
+from ai.stigmer.agentic.runner.v1.enum_pb2 import (
+    RUNNER_PHASE_BUSY,
+    RUNNER_PHASE_READY,
+    RUNNER_PHASE_STOPPED,
 )
-from ai.stigmer.agentic.agentrunner.v1.io_pb2 import AgentRunnerHeartbeatInput
+from ai.stigmer.agentic.runner.v1.io_pb2 import RunnerHeartbeatInput
 
-from grpc_client.agent_runner_client import AgentRunnerClient
+from grpc_client.runner_client import RunnerClient
 from grpc_client.auth.client_interceptor import AuthClientInterceptor
 from grpc_client.channel import create_channel
 from worker import execution_tracker
@@ -35,14 +35,14 @@ from worker import execution_tracker
 logger = logging.getLogger(__name__)
 
 
-def _gather_connection_info() -> AgentRunnerConnectionInfo:
+def _gather_connection_info() -> RunnerConnectionInfo:
     """Collect static host information (gathered once at init)."""
     try:
         runner_version = version("agent-runner")
     except PackageNotFoundError:
         runner_version = "dev"
 
-    return AgentRunnerConnectionInfo(
+    return RunnerConnectionInfo(
         hostname=socket.gethostname(),
         os=platform.system().lower(),
         arch=platform.machine(),
@@ -54,7 +54,7 @@ class HeartbeatEmitter:
     """Sends periodic heartbeat RPCs to the Stigmer backend.
 
     Args:
-        agent_runner_id: The runner's resource ID.
+        runner_id: The runner's resource ID.
         token: Auth token (JWT or API key) for gRPC calls.
         backend_endpoint: Stigmer backend gRPC address.
         max_concurrency: Maximum concurrent activities (from Temporal worker
@@ -65,13 +65,13 @@ class HeartbeatEmitter:
 
     def __init__(
         self,
-        agent_runner_id: str,
+        runner_id: str,
         token: str,
         backend_endpoint: str,
         max_concurrency: int,
         interval_seconds: int = 30,
     ) -> None:
-        self._agent_runner_id = agent_runner_id
+        self._runner_id = runner_id
         self._token = token
         self._backend_endpoint = backend_endpoint
         self._max_concurrency = max_concurrency
@@ -79,7 +79,7 @@ class HeartbeatEmitter:
         self._connection_info = _gather_connection_info()
         self._task: asyncio.Task[None] | None = None
         self._channel: grpc.aio.Channel | None = None
-        self._client: AgentRunnerClient | None = None
+        self._client: RunnerClient | None = None
         self._stopped = False
 
     async def start(self) -> None:
@@ -88,7 +88,7 @@ class HeartbeatEmitter:
         self._channel = create_channel(
             self._backend_endpoint, interceptors=[interceptor],
         )
-        self._client = AgentRunnerClient(
+        self._client = RunnerClient(
             self._token, channel=self._channel,
         )
         self._task = asyncio.create_task(
@@ -96,7 +96,7 @@ class HeartbeatEmitter:
         )
         logger.info(
             "Heartbeat emitter started for runner %s (interval=%ds)",
-            self._agent_runner_id, self._interval,
+            self._runner_id, self._interval,
         )
 
     async def stop(self) -> None:
@@ -120,11 +120,11 @@ class HeartbeatEmitter:
             self._channel = None
             self._client = None
 
-        logger.info("Heartbeat emitter stopped for runner %s", self._agent_runner_id)
+        logger.info("Heartbeat emitter stopped for runner %s", self._runner_id)
 
-    def _build_input(self, phase: int) -> AgentRunnerHeartbeatInput:
-        return AgentRunnerHeartbeatInput(
-            agent_runner_id=self._agent_runner_id,
+    def _build_input(self, phase: int) -> RunnerHeartbeatInput:
+        return RunnerHeartbeatInput(
+            runner_id=self._runner_id,
             phase=phase,
             current_executions=execution_tracker.get_count(),
             connection_info=self._connection_info,
@@ -132,8 +132,8 @@ class HeartbeatEmitter:
 
     def _current_phase(self) -> int:
         if execution_tracker.get_count() >= self._max_concurrency:
-            return AGENT_RUNNER_PHASE_BUSY
-        return AGENT_RUNNER_PHASE_READY
+            return RUNNER_PHASE_BUSY
+        return RUNNER_PHASE_READY
 
     async def _loop(self) -> None:
         """Tick every ``_interval`` seconds, sending a heartbeat each time."""
@@ -148,8 +148,8 @@ class HeartbeatEmitter:
             await self._client.heartbeat(self._build_input(phase))
             logger.debug(
                 "Heartbeat sent: runner=%s phase=%s executions=%d",
-                self._agent_runner_id,
-                "READY" if phase == AGENT_RUNNER_PHASE_READY else "BUSY",
+                self._runner_id,
+                "READY" if phase == RUNNER_PHASE_READY else "BUSY",
                 execution_tracker.get_count(),
             )
         except grpc.RpcError as e:
@@ -158,20 +158,20 @@ class HeartbeatEmitter:
                 logger.error(
                     "Runner %s not found on server — stopping heartbeat. "
                     "The runner resource may have been deleted.",
-                    self._agent_runner_id,
+                    self._runner_id,
                 )
                 self._stop_loop()
             elif code == grpc.StatusCode.FAILED_PRECONDITION:
                 logger.warning(
                     "Runner %s is in FAILED phase on server — heartbeat "
                     "rejected. Investigate and recreate the runner.",
-                    self._agent_runner_id,
+                    self._runner_id,
                 )
             else:
                 logger.warning(
                     "Heartbeat failed for runner %s (will retry next "
                     "interval): %s",
-                    self._agent_runner_id, e,
+                    self._runner_id, e,
                 )
 
     async def _send_stopped(self) -> None:
@@ -180,17 +180,17 @@ class HeartbeatEmitter:
             return
         try:
             await self._client.heartbeat(
-                self._build_input(AGENT_RUNNER_PHASE_STOPPED),
+                self._build_input(RUNNER_PHASE_STOPPED),
             )
             logger.info(
                 "Final STOPPED heartbeat sent for runner %s",
-                self._agent_runner_id,
+                self._runner_id,
             )
         except Exception as e:
             logger.warning(
                 "Failed to send final STOPPED heartbeat for runner %s "
                 "(server will timeout after 90s): %s",
-                self._agent_runner_id, e,
+                self._runner_id, e,
             )
 
     def _stop_loop(self) -> None:
