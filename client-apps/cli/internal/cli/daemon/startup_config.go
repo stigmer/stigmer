@@ -27,6 +27,10 @@ type StartupConfig struct {
 	SandboxTTL      int    `json:"sandbox_ttl"`
 
 	StigmerServerPID int `json:"stigmer_server_pid"`
+
+	// ServerOnly indicates the daemon was started in server-only mode
+	// (control plane only, no runners).
+	ServerOnly bool `json:"server_only"`
 }
 
 func saveStartupConfig(config *StartupConfig) error {
