@@ -51,7 +51,7 @@
                 "skill",
                 "mcp_server",
                 "agent_instance",
-                "agent_runner",
+                "runner",
                 "workflow",
                 "workflow_instance",
                 "workflow_execution",
@@ -270,9 +270,9 @@
           "description": "Configured deployment of an agent with environment-specific overrides."
         },
         {
-          "name": "agent_runner",
+          "name": "runner",
           "number": 46,
-          "description": "Process that executes agent work, either user-created or system-managed."
+          "description": "Process that executes work, either user-created or system-managed."
         },
         {
           "name": "workflow",

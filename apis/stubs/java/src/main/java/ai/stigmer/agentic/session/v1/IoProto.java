@@ -56,11 +56,6 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_session_v1_UpdateSessionSubjectRequest_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_session_v1_UpdateSessionSandboxIdRequest_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_session_v1_UpdateSessionSandboxIdRequest_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -86,13 +81,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\030\002 \001(\005R\010pageSize\022\035\n\npage_token\030\003 \001(\tR\tpa" +
       "geToken\"O\n\033UpdateSessionSubjectRequest\022\026" +
       "\n\002id\030\001 \001(\tB\006\272H\003\310\001\001R\002id\022\030\n\007subject\030\002 \001(\tR" +
-      "\007subject\"V\n\035UpdateSessionSandboxIdReques" +
-      "t\022\026\n\002id\030\001 \001(\tB\006\272H\003\310\001\001R\002id\022\035\n\nsandbox_id\030" +
-      "\002 \001(\tR\tsandboxIdB\242\001B\007IoProtoP\001\242\002\004ASAS\252\002\035" +
-      "Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\Stigm" +
-      "er\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Agent" +
-      "ic\\Session\\V1\\GPBMetadata\352\002!Ai::Stigmer:" +
-      ":Agentic::Session::V1b\006proto3"
+      "\007subjectB\242\001B\007IoProtoP\001\242\002\004ASAS\252\002\035Ai.Stigm" +
+      "er.Agentic.Session.V1\312\002\035Ai\\Stigmer\\Agent" +
+      "ic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Sessi" +
+      "on\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agentic" +
+      "::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -136,12 +129,6 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_UpdateSessionSubjectRequest_descriptor,
         new java.lang.String[] { "Id", "Subject", });
-    internal_static_ai_stigmer_agentic_session_v1_UpdateSessionSandboxIdRequest_descriptor =
-      getDescriptor().getMessageType(6);
-    internal_static_ai_stigmer_agentic_session_v1_UpdateSessionSandboxIdRequest_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_session_v1_UpdateSessionSandboxIdRequest_descriptor,
-        new java.lang.String[] { "Id", "SandboxId", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.session.v1.ApiProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

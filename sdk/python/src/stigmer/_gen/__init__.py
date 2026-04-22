@@ -4,7 +4,6 @@ from ._client import GeneratedClient
 from ._agent import AgentClient, AgentInput, McpServerUsageInput, ToolApprovalOverrideInput, SubAgentInput, McpAccessInput, EnvVarDeclarationInput
 from ._agentexecution import AgentExecutionClient, AgentExecutionInput, ExecutionConfigInput, ContextManagementConfigInput, AttachmentInput
 from ._agentinstance import AgentInstanceClient, AgentInstanceInput
-from ._agentrunner import AgentRunnerClient, AgentRunnerInput
 from ._apikey import ApiKeyClient, ApiKeyInput
 from ._environment import EnvironmentClient, EnvironmentInput
 from ._executioncontext import ExecutionContextClient, ExecutionContextInput
@@ -17,6 +16,7 @@ from ._oauthapp import OAuthAppClient, OAuthAppInput
 from ._organization import OrganizationClient, OrganizationInput
 from ._platformclient import PlatformClientClient, PlatformClientInput
 from ._project import ProjectClient, ProjectInput
+from ._runner import RunnerClient, RunnerInput
 from ._session import SessionClient, SessionInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput
 from ._skill import SkillClient, SkillInput
 from ._workflow import WorkflowClient, WorkflowInput, WorkflowDocumentInput, WorkflowTaskInput, ExportInput, FlowControlInput
@@ -57,8 +57,6 @@ __all__ = [
     "AttachmentInput",
     "AgentInstanceClient",
     "AgentInstanceInput",
-    "AgentRunnerClient",
-    "AgentRunnerInput",
     "ApiKeyClient",
     "ApiKeyInput",
     "EnvironmentClient",
@@ -88,6 +86,8 @@ __all__ = [
     "PlatformClientInput",
     "ProjectClient",
     "ProjectInput",
+    "RunnerClient",
+    "RunnerInput",
     "SessionClient",
     "SessionInput",
     "WorkspaceEntryInput",

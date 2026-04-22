@@ -1,4 +1,4 @@
-"""Idle self-termination watchdog for ephemeral AgentRunners.
+"""Idle self-termination watchdog for ephemeral runners.
 
 Monitors the execution tracker and initiates graceful process shutdown
 via SIGTERM when no Temporal activities have run for a configurable

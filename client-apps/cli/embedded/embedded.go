@@ -39,10 +39,10 @@ func (p Platform) IsSupported() bool {
 // - embedded_darwin_amd64.go (for macOS Intel)
 // - embedded_linux_amd64.go (for Linux AMD64)
 //
-// Architecture: Docker-based agent-runner (as of Jan 2026)
-// --------------------------------------------------------
-// All platforms now use Docker images for the agent-runner instead of embedding binaries.
-// Each platform file provides GetAgentRunnerBinary() which returns nil to trigger Docker pull.
+// Architecture: Docker-based runner (as of Jan 2026)
+// --------------------------------------------------
+// All platforms now use Docker images for the runner instead of embedding binaries.
+// Each platform file provides GetRunnerBinary() which returns nil to trigger Docker pull.
 //
 // The daemon automatically pulls ghcr.io/stigmer/agent-runner:<version> on first start.
 // Benefits:

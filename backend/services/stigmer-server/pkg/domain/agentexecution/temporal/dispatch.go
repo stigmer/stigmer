@@ -6,24 +6,24 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
-	agentrunnerv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentrunner/v1"
+	runnerv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/runner/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 )
 
-// DispatchResult holds the resolved Temporal task queue and optional AgentRunner
-// ID for routing Python activities. When AgentRunnerID is empty, the global
+// DispatchResult holds the resolved Temporal task queue and optional Runner
+// ID for routing Python activities. When RunnerID is empty, the global
 // shared runner queue was used (backward-compatible path).
 type DispatchResult struct {
-	TaskQueue     string
-	AgentRunnerID string
+	TaskQueue string
+	RunnerID  string
 }
 
-// HasRunner returns true when dispatch resolved to a specific AgentRunner
+// HasRunner returns true when dispatch resolved to a specific Runner
 // (per-runner queue) rather than falling back to the global shared queue.
 func (d DispatchResult) HasRunner() bool {
-	return d.AgentRunnerID != ""
+	return d.RunnerID != ""
 }
 
 // ResolveActivityTaskQueue determines which Temporal task queue an execution's
@@ -31,8 +31,8 @@ func (d DispatchResult) HasRunner() bool {
 //
 // Resolution logic:
 //  1. If sessionID is empty, return the global fallback queue.
-//  2. Load the session; if it has no agent_runner_id, return global fallback.
-//  3. Load the AgentRunner by ID.
+//  2. Load the session; if it has no runner_id, return global fallback.
+//  3. Load the Runner by ID.
 //  4. Verify the runner is in an active phase (READY or BUSY).
 //  5. Return the runner's per-runner task queue from its status.
 //
@@ -59,57 +59,57 @@ func ResolveActivityTaskQueue(ctx context.Context, s store.Store, sessionID stri
 		return DispatchResult{}, fmt.Errorf("failed to load session for dispatch: %w", err)
 	}
 
-	agentRunnerID := session.GetSpec().GetAgentRunnerId()
-	if agentRunnerID == "" {
+	runnerID := session.GetSpec().GetRunnerId()
+	if runnerID == "" {
 		log.Debug().Str("session_id", sessionID).
-			Msg("Session has no bound agent runner, using global runner queue")
+			Msg("Session has no bound runner, using global runner queue")
 		return DispatchResult{TaskQueue: fallbackQueue}, nil
 	}
 
-	runner := &agentrunnerv1.AgentRunner{}
-	if err := s.GetResource(ctx, apiresourcekind.ApiResourceKind_agent_runner, agentRunnerID, runner); err != nil {
+	runner := &runnerv1.Runner{}
+	if err := s.GetResource(ctx, apiresourcekind.ApiResourceKind_runner, runnerID, runner); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return DispatchResult{}, fmt.Errorf(
-				"agent runner '%s' not found — it may have been deleted", agentRunnerID)
+				"runner '%s' not found — it may have been deleted", runnerID)
 		}
-		return DispatchResult{}, fmt.Errorf("failed to load agent runner for dispatch: %w", err)
+		return DispatchResult{}, fmt.Errorf("failed to load runner for dispatch: %w", err)
 	}
 
 	phase := runner.GetStatus().GetPhase()
 	if !isActivePhase(phase) {
 		return DispatchResult{}, fmt.Errorf(
-			"agent runner '%s' is in %s phase and cannot accept work",
+			"runner '%s' is in %s phase and cannot accept work",
 			runner.GetMetadata().GetName(), formatPhase(phase))
 	}
 
 	taskQueue := runner.GetStatus().GetTaskQueue()
 	if taskQueue == "" {
 		return DispatchResult{}, fmt.Errorf(
-			"agent runner '%s' has no task queue configured", agentRunnerID)
+			"runner '%s' has no task queue configured", runnerID)
 	}
 
 	log.Info().
 		Str("session_id", sessionID).
-		Str("agent_runner_id", agentRunnerID).
+		Str("runner_id", runnerID).
 		Str("phase", phase.String()).
 		Str("task_queue", taskQueue).
 		Msg("Dispatch resolved to per-runner queue")
 
-	return DispatchResult{TaskQueue: taskQueue, AgentRunnerID: agentRunnerID}, nil
+	return DispatchResult{TaskQueue: taskQueue, RunnerID: runnerID}, nil
 }
 
-func isActivePhase(phase agentrunnerv1.AgentRunnerPhase) bool {
-	return phase == agentrunnerv1.AgentRunnerPhase_AGENT_RUNNER_PHASE_READY ||
-		phase == agentrunnerv1.AgentRunnerPhase_AGENT_RUNNER_PHASE_BUSY
+func isActivePhase(phase runnerv1.RunnerPhase) bool {
+	return phase == runnerv1.RunnerPhase_RUNNER_PHASE_READY ||
+		phase == runnerv1.RunnerPhase_RUNNER_PHASE_BUSY
 }
 
-func formatPhase(phase agentrunnerv1.AgentRunnerPhase) string {
+func formatPhase(phase runnerv1.RunnerPhase) string {
 	switch phase {
-	case agentrunnerv1.AgentRunnerPhase_AGENT_RUNNER_PHASE_PENDING:
+	case runnerv1.RunnerPhase_RUNNER_PHASE_PENDING:
 		return "PENDING"
-	case agentrunnerv1.AgentRunnerPhase_AGENT_RUNNER_PHASE_STOPPED:
+	case runnerv1.RunnerPhase_RUNNER_PHASE_STOPPED:
 		return "STOPPED"
-	case agentrunnerv1.AgentRunnerPhase_AGENT_RUNNER_PHASE_FAILED:
+	case runnerv1.RunnerPhase_RUNNER_PHASE_FAILED:
 		return "FAILED"
 	default:
 		return phase.String()

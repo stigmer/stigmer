@@ -53,26 +53,11 @@ message ListSessionsByAgentRequest {
 // @internal
 // Field-level update that atomically modifies only the subject field,
 // avoiding the lost-update race condition that occurs when multiple
-// activities (e.g., GenerateSessionSubject and sandbox_manager) concurrently
-// perform full-resource updates on the same session.
+// activities concurrently perform full-resource updates on the same session.
 message UpdateSessionSubjectRequest {
   // Session ID to update.
   string id = 1 [(buf.validate.field).required = true];
 
   // New subject value. Empty string clears the subject.
   string subject = 2;
-}
-
-// UpdateSessionSandboxIdRequest sets the sandbox ID for a session.
-//
-// @internal
-// Field-level update that atomically modifies only the sandbox_id field,
-// avoiding the lost-update race condition that occurs when multiple
-// activities concurrently perform full-resource updates on the same session.
-message UpdateSessionSandboxIdRequest {
-  // Session ID to update.
-  string id = 1 [(buf.validate.field).required = true];
-
-  // New sandbox ID.
-  string sandbox_id = 2;
 }

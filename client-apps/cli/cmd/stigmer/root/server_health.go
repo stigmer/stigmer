@@ -137,7 +137,7 @@ func createBasicHealthState(dataDir string, daemonPID int) *daemon.HealthState {
 		hs.Components["workflow-runner"] = &daemon.ComponentState{State: "stopped"}
 	}
 
-	arPID := readPIDFile(dataDir, daemon.AgentRunnerPIDFileName)
+	arPID := readPIDFile(dataDir, daemon.RunnerPIDFileName)
 	if arPID > 0 {
 		state := "running"
 		if !isProcessAlive(arPID) {

@@ -7,7 +7,6 @@ import grpc
 from ._agent import AgentClient
 from ._agentexecution import AgentExecutionClient
 from ._agentinstance import AgentInstanceClient
-from ._agentrunner import AgentRunnerClient
 from ._apikey import ApiKeyClient
 from ._environment import EnvironmentClient
 from ._executioncontext import ExecutionContextClient
@@ -20,6 +19,7 @@ from ._oauthapp import OAuthAppClient
 from ._organization import OrganizationClient
 from ._platformclient import PlatformClientClient
 from ._project import ProjectClient
+from ._runner import RunnerClient
 from ._session import SessionClient
 from ._skill import SkillClient
 from ._workflow import WorkflowClient
@@ -34,7 +34,6 @@ class GeneratedClient:
         self.agents = AgentClient(channel)
         self.agent_executions = AgentExecutionClient(channel)
         self.agent_instances = AgentInstanceClient(channel)
-        self.agentrunners = AgentRunnerClient(channel)
         self.api_keys = ApiKeyClient(channel)
         self.environments = EnvironmentClient(channel)
         self.execution_contexts = ExecutionContextClient(channel)
@@ -47,6 +46,7 @@ class GeneratedClient:
         self.organizations = OrganizationClient(channel)
         self.platformclients = PlatformClientClient(channel)
         self.projects = ProjectClient(channel)
+        self.runners = RunnerClient(channel)
         self.sessions = SessionClient(channel)
         self.skills = SkillClient(channel)
         self.workflows = WorkflowClient(channel)

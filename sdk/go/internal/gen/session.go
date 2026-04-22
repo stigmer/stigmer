@@ -43,11 +43,6 @@ func (s *SessionClient) UpdateSubject(ctx context.Context, input *sessionv1.Upda
 	return resp, wrapErr(err)
 }
 
-func (s *SessionClient) UpdateSandboxId(ctx context.Context, input *sessionv1.UpdateSessionSandboxIdRequest) (*sessionv1.Session, error) {
-	resp, err := s.command.UpdateSandboxId(ctx, input)
-	return resp, wrapErr(err)
-}
-
 func (s *SessionClient) Delete(ctx context.Context, id string) (*sessionv1.Session, error) {
 	resp, err := s.command.Delete(ctx, &sessionv1.SessionId{Value: id})
 	return resp, wrapErr(err)
@@ -81,7 +76,7 @@ type SessionInput struct {
 	Metadata         map[string]string
 	WorkspaceEntries []*WorkspaceEntryInput
 	McpServerUsages  []*McpServerUsageInput
-	AgentRunnerId    string
+	RunnerId         string
 	SkillRefs        []ResourceRef
 }
 
@@ -134,7 +129,7 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 	for _, item := range i.McpServerUsages {
 		resource.Spec.McpServerUsages = append(resource.Spec.McpServerUsages, item.toProto())
 	}
-	resource.Spec.AgentRunnerId = i.AgentRunnerId
+	resource.Spec.RunnerId = i.RunnerId
 	for _, r := range i.SkillRefs {
 		resource.Spec.SkillRefs = append(resource.Spec.SkillRefs, r.toProto())
 	}
@@ -175,7 +170,7 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 		for _, item := range s.GetMcpServerUsages() {
 			input.McpServerUsages = append(input.McpServerUsages, mcpServerUsageInputFromProto(item))
 		}
-		input.AgentRunnerId = s.GetAgentRunnerId()
+		input.RunnerId = s.GetRunnerId()
 		for _, r := range s.GetSkillRefs() {
 			input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
 		}

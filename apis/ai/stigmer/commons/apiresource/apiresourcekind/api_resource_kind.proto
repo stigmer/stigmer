@@ -391,15 +391,15 @@ enum ApiResourceKind {
     }
   }];
 
-  // Process that executes agent work, either user-created or system-managed.
-  agent_runner = 46 [(kind_meta) = {
+  // Process that executes work, either user-created or system-managed.
+  runner = 46 [(kind_meta) = {
     group: agentic
     version: v1
-    name: "AgentRunner"
-    display_name: "Agent Runner"
-    id_prefix: "arn"
+    name: "Runner"
+    display_name: "Runner"
+    id_prefix: "rnr"
     is_versioned: false
-    not_search_indexed: false
+    not_search_indexed: true
     tier: open_source
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION

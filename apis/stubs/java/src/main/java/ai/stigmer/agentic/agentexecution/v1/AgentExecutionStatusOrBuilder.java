@@ -837,7 +837,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
 
   /**
    * <pre>
-   * ID of the AgentRunner that executed this execution.
+   * ID of the Runner that executed this execution.
    *
    * Set once when the execution is dispatched to a runner; immutable after.
    * For cloud executions, this references the system-managed ephemeral runner
@@ -847,13 +847,13 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    * Used for observability: "which runner handled this work?"
    * </pre>
    *
-   * <code>string agent_runner_id = 19 [json_name = "agentRunnerId"];</code>
-   * @return The agentRunnerId.
+   * <code>string runner_id = 19 [json_name = "runnerId"];</code>
+   * @return The runnerId.
    */
-  java.lang.String getAgentRunnerId();
+  java.lang.String getRunnerId();
   /**
    * <pre>
-   * ID of the AgentRunner that executed this execution.
+   * ID of the Runner that executed this execution.
    *
    * Set once when the execution is dispatched to a runner; immutable after.
    * For cloud executions, this references the system-managed ephemeral runner
@@ -863,9 +863,9 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    * Used for observability: "which runner handled this work?"
    * </pre>
    *
-   * <code>string agent_runner_id = 19 [json_name = "agentRunnerId"];</code>
-   * @return The bytes for agentRunnerId.
+   * <code>string runner_id = 19 [json_name = "runnerId"];</code>
+   * @return The bytes for runnerId.
    */
   com.google.protobuf.ByteString
-      getAgentRunnerIdBytes();
+      getRunnerIdBytes();
 }

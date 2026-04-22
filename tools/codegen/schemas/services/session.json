@@ -29,7 +29,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.Session",
           "outputType": "Session",
           "outputFullType": "ai.stigmer.agentic.session.v1.Session",
-          "description": "Update an existing session (e.g., subject, thread_id, sandbox_id)."
+          "description": "Update an existing session (e.g., subject, thread_id)."
         },
         {
           "name": "UpdateSubject",
@@ -37,15 +37,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest",
           "outputType": "Session",
           "outputFullType": "ai.stigmer.agentic.session.v1.Session",
-          "description": "Set the session subject.\n\n This is a targeted update that modifies only the subject field,\n leaving other session fields untouched. Use this instead of the full\n update RPC when you only need to change the session subject.\n\n @internal\n Server-side field-level update, race-safe. Atomically modifies only\n spec.subject without touching other fields. Eliminates the lost-update\n race between GenerateSessionSubject and sandbox_manager, which both run\n in parallel during agent execution."
-        },
-        {
-          "name": "UpdateSandboxId",
-          "inputType": "UpdateSessionSandboxIdRequest",
-          "inputFullType": "ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest",
-          "outputType": "Session",
-          "outputFullType": "ai.stigmer.agentic.session.v1.Session",
-          "description": "Set the session sandbox ID.\n\n This is a targeted update that modifies only the sandbox ID field,\n leaving other session fields untouched. Use this instead of the full\n update RPC when you only need to change the sandbox assignment.\n\n @internal\n Server-side field-level update, race-safe. Atomically modifies only\n spec.sandbox_id without touching other fields. Eliminates the lost-update\n race between sandbox_manager and GenerateSessionSubject, which both run\n in parallel during agent execution."
+          "description": "Set the session subject.\n\n This is a targeted update that modifies only the subject field,\n leaving other session fields untouched. Use this instead of the full\n update RPC when you only need to change the session subject.\n\n @internal\n Server-side field-level update, race-safe. Atomically modifies only\n spec.subject without touching other fields."
         },
         {
           "name": "Delete",
@@ -53,7 +45,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.SessionId",
           "outputType": "Session",
           "outputFullType": "ai.stigmer.agentic.session.v1.Session",
-          "description": "Delete a session (also cleans up thread and sandbox)."
+          "description": "Delete a session (also cleans up thread)."
         }
       ]
     },
@@ -91,7 +83,7 @@
   "methodTypes": [
     {
       "name": "UpdateSessionSubjectRequest",
-      "description": "UpdateSessionSubjectRequest sets the conversation title for a session.\n\n @internal\n Field-level update that atomically modifies only the subject field,\n avoiding the lost-update race condition that occurs when multiple\n activities (e.g., GenerateSessionSubject and sandbox_manager) concurrently\n perform full-resource updates on the same session.",
+      "description": "UpdateSessionSubjectRequest sets the conversation title for a session.\n\n @internal\n Field-level update that atomically modifies only the subject field,\n avoiding the lost-update race condition that occurs when multiple\n activities concurrently perform full-resource updates on the same session.",
       "protoType": "ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest",
       "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
       "fields": [
@@ -116,37 +108,6 @@
             "kind": "string"
           },
           "description": "New subject value. Empty string clears the subject.",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "UpdateSessionSandboxIdRequest",
-      "description": "UpdateSessionSandboxIdRequest sets the sandbox ID for a session.\n\n @internal\n Field-level update that atomically modifies only the sandbox_id field,\n avoiding the lost-update race condition that occurs when multiple\n activities concurrently perform full-resource updates on the same session.",
-      "protoType": "ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest",
-      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
-      "fields": [
-        {
-          "name": "Id",
-          "jsonName": "id",
-          "protoField": "id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Session ID to update.",
-          "required": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "SandboxId",
-          "jsonName": "sandboxId",
-          "protoField": "sandbox_id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "New sandbox ID.",
           "required": false
         }
       ]
@@ -382,9 +343,9 @@
           "description": "Configured deployment of an agent with environment-specific overrides."
         },
         {
-          "name": "agent_runner",
+          "name": "runner",
           "number": 46,
-          "description": "Process that executes agent work, either user-created or system-managed."
+          "description": "Process that executes work, either user-created or system-managed."
         },
         {
           "name": "workflow",

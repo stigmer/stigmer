@@ -5,7 +5,7 @@
 
 import { Session } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
-import { SessionId, UpdateSessionSandboxIdRequest, UpdateSessionSubjectRequest } from "./io_pb.js";
+import { SessionId, UpdateSessionSubjectRequest } from "./io_pb.js";
 
 /**
  * SessionCommandController handles write operations for agent sessions.
@@ -45,7 +45,7 @@ export const SessionCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update an existing session (e.g., subject, thread_id, sandbox_id).
+     * Update an existing session (e.g., subject, thread_id).
      *
      * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.update
      */
@@ -64,9 +64,7 @@ export const SessionCommandController = {
      *
      * @internal
      * Server-side field-level update, race-safe. Atomically modifies only
-     * spec.subject without touching other fields. Eliminates the lost-update
-     * race between GenerateSessionSubject and sandbox_manager, which both run
-     * in parallel during agent execution.
+     * spec.subject without touching other fields.
      *
      * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.updateSubject
      */
@@ -77,28 +75,7 @@ export const SessionCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Set the session sandbox ID.
-     *
-     * This is a targeted update that modifies only the sandbox ID field,
-     * leaving other session fields untouched. Use this instead of the full
-     * update RPC when you only need to change the sandbox assignment.
-     *
-     * @internal
-     * Server-side field-level update, race-safe. Atomically modifies only
-     * spec.sandbox_id without touching other fields. Eliminates the lost-update
-     * race between sandbox_manager and GenerateSessionSubject, which both run
-     * in parallel during agent execution.
-     *
-     * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.updateSandboxId
-     */
-    updateSandboxId: {
-      name: "updateSandboxId",
-      I: UpdateSessionSandboxIdRequest,
-      O: Session,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Delete a session (also cleans up thread and sandbox).
+     * Delete a session (also cleans up thread).
      *
      * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.delete
      */

@@ -1,4 +1,4 @@
-"""Tests for AgentRunner MongoDB connectivity validation.
+"""Tests for Runner MongoDB connectivity validation.
 
 Covers the _validate_mongodb_connectivity startup check that runs in
 cloud mode when the checkpointer type is mongodb.  Verifies:
@@ -15,8 +15,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 
-def _make_agent_runner(checkpointer_type="mongodb", mongodb_uri="mongodb://localhost:27017", mongodb_db_name="stigmer_checkpoints"):
-    """Build an AgentRunner with cloud-mode config, bypassing other init steps.
+def _make_runner(checkpointer_type="mongodb", mongodb_uri="mongodb://localhost:27017", mongodb_db_name="stigmer_checkpoints"):
+    """Build a Runner with cloud-mode config, bypassing other init steps.
 
     Patches Redis, Daytona, and MongoDB validation so we can test
     _validate_mongodb_connectivity in isolation afterward.
@@ -40,21 +40,21 @@ def _make_agent_runner(checkpointer_type="mongodb", mongodb_uri="mongodb://local
 
     with (
         patch("worker.worker.configure_auth"),
-        patch("worker.worker.AgentRunner._initialize_redis"),
-        patch("worker.worker.AgentRunner._validate_mongodb_connectivity"),
+        patch("worker.worker.Runner._initialize_redis"),
+        patch("worker.worker.Runner._validate_mongodb_connectivity"),
     ):
-        from worker.worker import AgentRunner
-        runner = AgentRunner(config)
+        from worker.worker import Runner
+        runner = Runner(config)
 
     return runner
 
 
 class TestValidateMongoDBConnectivity:
-    """Tests for AgentRunner._validate_mongodb_connectivity."""
+    """Tests for Runner._validate_mongodb_connectivity."""
 
     def test_successful_ping(self):
         """Ping succeeds — no exception, info log emitted."""
-        runner = _make_agent_runner()
+        runner = _make_runner()
 
         mock_client = MagicMock()
         mock_client.admin.command.return_value = {"ok": 1}
@@ -67,7 +67,7 @@ class TestValidateMongoDBConnectivity:
 
     def test_connection_failure_raises_runtime_error(self):
         """ConnectionFailure produces a RuntimeError with network guidance."""
-        runner = _make_agent_runner()
+        runner = _make_runner()
 
         from pymongo.errors import ConnectionFailure
 
@@ -82,7 +82,7 @@ class TestValidateMongoDBConnectivity:
 
     def test_operation_failure_raises_runtime_error(self):
         """OperationFailure produces a RuntimeError with provisioning guidance."""
-        runner = _make_agent_runner()
+        runner = _make_runner()
 
         from pymongo.errors import OperationFailure
 
@@ -97,7 +97,7 @@ class TestValidateMongoDBConnectivity:
 
     def test_skipped_for_memory_checkpointer(self):
         """No-op when checkpointer type is not mongodb."""
-        runner = _make_agent_runner(checkpointer_type="memory", mongodb_uri=None)
+        runner = _make_runner(checkpointer_type="memory", mongodb_uri=None)
 
         with patch("pymongo.MongoClient") as mock_cls:
             runner._validate_mongodb_connectivity()
@@ -105,7 +105,7 @@ class TestValidateMongoDBConnectivity:
 
     def test_skipped_for_sqlite_checkpointer(self):
         """No-op when checkpointer type is sqlite."""
-        runner = _make_agent_runner(
+        runner = _make_runner(
             checkpointer_type="sqlite",
             mongodb_uri=None,
             mongodb_db_name="unused",
@@ -117,14 +117,14 @@ class TestValidateMongoDBConnectivity:
 
     def test_missing_uri_raises_value_error(self):
         """Missing mongodb_uri raises ValueError before attempting connection."""
-        runner = _make_agent_runner(mongodb_uri=None)
+        runner = _make_runner(mongodb_uri=None)
 
         with pytest.raises(ValueError, match="STIGMER_CHECKPOINTER_MONGODB_URI"):
             runner._validate_mongodb_connectivity()
 
     def test_client_closed_even_on_unexpected_error(self):
         """Client is always closed, even on unexpected exceptions."""
-        runner = _make_agent_runner()
+        runner = _make_runner()
 
         mock_client = MagicMock()
         mock_client.admin.command.side_effect = TypeError("unexpected")

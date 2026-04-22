@@ -29,7 +29,7 @@ service SessionCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to create session in this organization";
   }
 
-  // Update an existing session (e.g., subject, thread_id, sandbox_id).
+  // Update an existing session (e.g., subject, thread_id).
   rpc update(Session) returns (Session) {
     option (ai.stigmer.commons.rpc.config).resource_kind = session;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -45,9 +45,7 @@ service SessionCommandController {
   //
   // @internal
   // Server-side field-level update, race-safe. Atomically modifies only
-  // spec.subject without touching other fields. Eliminates the lost-update
-  // race between GenerateSessionSubject and sandbox_manager, which both run
-  // in parallel during agent execution.
+  // spec.subject without touching other fields.
   rpc updateSubject(UpdateSessionSubjectRequest) returns (Session) {
     option (ai.stigmer.commons.rpc.config).resource_kind = session;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
@@ -55,25 +53,7 @@ service SessionCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update session subject";
   }
 
-  // Set the session sandbox ID.
-  //
-  // This is a targeted update that modifies only the sandbox ID field,
-  // leaving other session fields untouched. Use this instead of the full
-  // update RPC when you only need to change the sandbox assignment.
-  //
-  // @internal
-  // Server-side field-level update, race-safe. Atomically modifies only
-  // spec.sandbox_id without touching other fields. Eliminates the lost-update
-  // race between sandbox_manager and GenerateSessionSubject, which both run
-  // in parallel during agent execution.
-  rpc updateSandboxId(UpdateSessionSandboxIdRequest) returns (Session) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = session;
-    option (ai.stigmer.commons.rpc.config).permission = can_edit;
-    option (ai.stigmer.commons.rpc.config).field_path = "id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update session sandbox";
-  }
-
-  // Delete a session (also cleans up thread and sandbox).
+  // Delete a session (also cleans up thread).
   rpc delete(SessionId) returns (Session) {
     option (ai.stigmer.commons.rpc.config).resource_kind = session;
     option (ai.stigmer.commons.rpc.config).permission = can_delete;

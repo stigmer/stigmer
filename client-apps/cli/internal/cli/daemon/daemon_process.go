@@ -452,7 +452,7 @@ func buildComponents(cliBin, dataDir, logDir string, grpcPort int) []*managedCom
 		},
 		{
 			name:    "agent-runner",
-			pidFile: filepath.Join(dataDir, AgentRunnerPIDFileName),
+			pidFile: filepath.Join(dataDir, RunnerPIDFileName),
 			state:   &ComponentState{},
 			startFn: func() (*exec.Cmd, error) {
 				if pythonBin == "" || appDir == "" {
@@ -462,7 +462,7 @@ func buildComponents(cliBin, dataDir, logDir string, grpcPort int) []*managedCom
 				if _, err := os.Stat(mainPy); err != nil {
 					return nil, errors.Wrapf(err, "agent-runner entry point not found at %s", mainPy)
 				}
-				env := buildAgentRunnerEnv(dataDir, grpcPort)
+				env := buildRunnerEnv(dataDir, grpcPort)
 				return startChildProcessWithDir(pythonBin, []string{mainPy}, appDir, logDir, "agent-runner", env)
 			},
 		},
@@ -489,9 +489,9 @@ func buildWorkflowRunnerEnv(grpcPort int) []string {
 	return env
 }
 
-// buildAgentRunnerEnv constructs the environment for native agent-runner.
+// buildRunnerEnv constructs the environment for the native runner process.
 // Values are inherited from the daemon's own environment (set by StartWithOptions).
-func buildAgentRunnerEnv(dataDir string, grpcPort int) []string {
+func buildRunnerEnv(dataDir string, grpcPort int) []string {
 	workspaceDir := filepath.Join(dataDir, "workspace")
 	artifactsDir := filepath.Join(dataDir, "artifacts")
 

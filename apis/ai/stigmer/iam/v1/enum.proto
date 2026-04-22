@@ -57,8 +57,8 @@ enum IamPermission {
   // MCP server connect permission.
   can_connect = 22;
 
-  // Organization-level agent runner create permission.
-  can_create_agent_runner = 25;
+  // Organization-level runner create permission.
+  can_create_runner = 25;
 }
 
 // IamRole defines the roles that can be assigned to principals on resources

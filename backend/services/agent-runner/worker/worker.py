@@ -13,7 +13,7 @@ from .idle_watchdog import IdleWatchdog
 from .temporal_converter import create_data_converter
 
 
-class AgentRunner:
+class Runner:
     """Temporal worker that executes Graphton agent activities."""
     
     def __init__(self, config: Config):
@@ -27,9 +27,9 @@ class AgentRunner:
         configure_auth(config.stigmer_token)
         self.logger.info("Configured Stigmer auth token")
 
-        if config.agent_runner_id:
+        if config.runner_id:
             self._heartbeat = HeartbeatEmitter(
-                agent_runner_id=config.agent_runner_id,
+                runner_id=config.runner_id,
                 token=config.stigmer_token,
                 backend_endpoint=config.stigmer_backend_endpoint,
                 max_concurrency=config.max_concurrency,

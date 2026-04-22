@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.runner.v1;
+
+import "ai/stigmer/agentic/runner/v1/api.proto";
+import "ai/stigmer/agentic/runner/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// RunnerCommandController handles write operations for runners.
+//
+// Two creation patterns are supported:
+//
+// 1. **CLI/Desktop (persistent runners)**: The client calls apply with a slug
+//    stored in ~/.stigmer/runner.json. If the runner exists, it reactivates.
+//    If not, it creates. This is the primary registration path.
+//
+// 2. **Platform (ephemeral runners)**: The execution workflow calls create
+//    with metadata label stigmer.ai/system-managed: "true". The runner is
+//    torn down via delete when the execution completes.
+//
+// The heartbeat RPC is called by the runner process on a regular interval
+// (default 30s) to report liveness and state. It is the runner's only
+// ongoing communication channel with the server.
+service RunnerCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = runner;
+
+  // Create or update a runner.
+  //
+  // @internal
+  // Primary registration path for CLI/Desktop runners. The handler determines
+  // whether to create or update based on whether the resource already exists
+  // (resolved by org + slug). Authorization is handled in the handler.
+  rpc apply(Runner) returns (Runner);
+
+  // Create a new runner.
+  //
+  // @internal
+  // Authorization: Caller must have can_create_runner permission in the
+  // organization. The server generates the task queue name (runner:{id})
+  // and sets the initial phase to PENDING.
+  rpc create(Runner) returns (Runner) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_runner;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to create runner in this organization";
+  }
+
+  // Update an existing runner.
+  //
+  // @internal
+  // Used for updating spec fields (e.g., description). Status fields are
+  // updated via heartbeat, not via this RPC.
+  rpc update(Runner) returns (Runner) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = runner;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update runner";
+  }
+
+  // Delete a runner.
+  //
+  // @internal
+  // For persistent runners: removes the resource and its task queue.
+  // For system-managed runners: called by the execution workflow during
+  // cleanup after the execution completes.
+  rpc delete(RunnerId) returns (Runner) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = runner;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete runner";
+  }
+
+  // Report runner liveness and operational state.
+  //
+  // Called by the runner process every 30 seconds. Updates status fields
+  // (phase, last_heartbeat_at, current_executions, connection_info) without
+  // modifying spec or metadata.
+  //
+  // If the runner is in PENDING or STOPPED phase, a heartbeat transitions it
+  // to the phase reported in the input (typically READY). This enables the
+  // "restart and reconnect" flow: a stopped runner resumes heartbeating and
+  // goes back to READY with the same identity and task queue.
+  //
+  // @internal
+  // Authorization is handled in the handler: the caller must own the runner.
+  // Skipped at the interceptor level because the input is RunnerHeartbeatInput
+  // (not a resource), and the ownership check requires a DB lookup.
+  rpc heartbeat(RunnerHeartbeatInput) returns (Runner) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+}

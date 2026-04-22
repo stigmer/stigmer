@@ -103,8 +103,8 @@ if err != nil {
     return err
 }
 
-// Get agent-runner binary for current platform
-agentData, err := embedded.GetAgentRunnerBinary()
+// Get runner binary for current platform
+agentData, err := embedded.GetRunnerBinary()
 if err != nil {
     return err
 }

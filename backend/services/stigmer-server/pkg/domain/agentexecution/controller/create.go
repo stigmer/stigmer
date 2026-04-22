@@ -590,7 +590,7 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 		CallbackToken:    execution.GetSpec().GetCallbackToken(),
 		AutoApproveAll:   execution.GetSpec().GetAutoApproveAll(),
 		ParentWorkflowID: execution.GetSpec().GetParentWorkflowId(),
-		AgentRunnerID:    dispatch.AgentRunnerID,
+		RunnerID:         dispatch.RunnerID,
 	}
 
 	// Start the Temporal workflow with slim input and dispatch routing

@@ -17,7 +17,7 @@ import (
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
-	agentrunnerv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentrunner/v1"
+	runnerv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/runner/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
@@ -32,7 +32,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
 	agentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller"
-	agentrunnercontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentrunner/controller"
+	runnercontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/runner/controller"
 	agentexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/controller"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	agentinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/controller"
@@ -340,12 +340,12 @@ func Run() error {
 
 	log.Info().Msg("Registered Organization controllers")
 
-	// Create and register AgentRunner controller
-	agentRunnerController := agentrunnercontroller.NewAgentRunnerController(store)
-	agentrunnerv1.RegisterAgentRunnerCommandControllerServer(grpcServer, agentRunnerController)
-	agentrunnerv1.RegisterAgentRunnerQueryControllerServer(grpcServer, agentRunnerController)
+	// Create and register Runner controller
+	runnerController := runnercontroller.NewRunnerController(store)
+	runnerv1.RegisterRunnerCommandControllerServer(grpcServer, runnerController)
+	runnerv1.RegisterRunnerQueryControllerServer(grpcServer, runnerController)
 
-	log.Info().Msg("Registered AgentRunner controllers")
+	log.Info().Msg("Registered Runner controllers")
 
 	// Create and register SearchService controller (CQRS Query Service)
 	// The search service provides unified search across all searchable resources
