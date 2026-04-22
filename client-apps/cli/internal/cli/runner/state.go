@@ -14,9 +14,13 @@ import (
 
 const runnersDirName = "runners"
 
-// RunnerState is the on-disk representation of a running standalone runner.
+// RunnerState is the on-disk representation of a running runner.
 // Persisted at ~/.stigmer/runners/<name>.json so that `stigmer down runner`
 // can find and stop it.
+//
+// The daemon writes state files for the embedded runner with
+// ManagedByDaemon=true. These runners are stopped via `stigmer down`
+// (daemon shutdown), not via `stigmer down runner`.
 type RunnerState struct {
 	RunnerID        string    `json:"runner_id"`
 	Slug            string    `json:"slug"`
@@ -25,6 +29,7 @@ type RunnerState struct {
 	PID             int       `json:"pid"`
 	TaskQueue       string    `json:"task_queue"`
 	StartedAt       time.Time `json:"started_at"`
+	ManagedByDaemon bool      `json:"managed_by_daemon,omitempty"`
 }
 
 // RunnersDir returns the path to ~/.stigmer/runners/, creating it if needed.

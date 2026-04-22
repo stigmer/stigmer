@@ -15,10 +15,18 @@ const stopTimeout = 5 * time.Second
 // StopRunner stops a single named runner by sending SIGTERM to its recorded
 // PID. The running process handles SIGTERM by sending a STOPPED heartbeat
 // (via the Python HeartbeatEmitter's shutdown path) and then exiting.
+//
+// Daemon-managed runners (ManagedByDaemon=true) cannot be stopped
+// independently — they are stopped when the daemon shuts down.
 func StopRunner(name string) error {
 	state, err := LoadState(name)
 	if err != nil {
 		return errors.Wrapf(err, "no state found for runner %q", name)
+	}
+
+	if state.ManagedByDaemon {
+		climsg.Info("Runner %q is managed by the daemon. Use 'stigmer down' to stop it.", name)
+		return nil
 	}
 
 	if !isProcessAlive(state.PID) {
@@ -50,20 +58,29 @@ func StopRunner(name string) error {
 	return nil
 }
 
-// StopAllRunners stops every runner that has a state file and a live PID.
+// StopAllRunners stops every standalone runner that has a state file and a
+// live PID. Daemon-managed runners are skipped — they are stopped when the
+// daemon shuts down via `stigmer down`.
 func StopAllRunners() error {
-	runners, err := ListActiveRunners()
+	states, err := ListAllRunnerStates()
 	if err != nil {
 		return errors.Wrap(err, "failed to list active runners")
 	}
 
-	if len(runners) == 0 {
-		climsg.Info("No active runners found")
+	var names []string
+	for name, state := range states {
+		if !state.ManagedByDaemon {
+			names = append(names, name)
+		}
+	}
+
+	if len(names) == 0 {
+		climsg.Info("No active standalone runners found")
 		return nil
 	}
 
 	var firstErr error
-	for _, name := range runners {
+	for _, name := range names {
 		if err := StopRunner(name); err != nil {
 			climsg.Warning("Failed to stop runner %q: %v", name, err)
 			if firstErr == nil {
