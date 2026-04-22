@@ -627,3 +627,11 @@ export type {
   UsePersonalAgentInstanceReturn,
   UseCreateAgentInstanceReturn,
 } from "./agent-instance";
+
+// Runner — data hook and styled picker component
+export { useRunnerList, RunnerPicker } from "./runner";
+export type {
+  UseRunnerListOptions,
+  UseRunnerListReturn,
+  RunnerPickerProps,
+} from "./runner";

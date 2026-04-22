@@ -260,6 +260,7 @@ export function SessionLauncher() {
   const [resolution, setResolution] = useState<AgentResolution | null>(null);
   const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
+  const [runnerId, setRunnerId] = useState<string | null>(null);
   const { create: createSession } = useCreateSession();
   const { create: createExecution } = useCreateAgentExecution();
   const { agent: defaultAgent } = useDefaultAgent(org);
@@ -288,6 +289,7 @@ export function SessionLauncher() {
             : undefined,
           mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
           skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
+          runnerId: runnerId ?? undefined,
         };
 
         const executionFields = {
@@ -343,6 +345,7 @@ export function SessionLauncher() {
       workspace,
       mcpServerUsages,
       skillRefs,
+      runnerId,
       agentRef,
       resolution,
       defaultAgent,
@@ -377,6 +380,8 @@ export function SessionLauncher() {
           onMcpServerUsagesChange={setMcpServerUsages}
           skillRefs={skillRefs}
           onSkillRefsChange={setSkillRefs}
+          runnerId={runnerId}
+          onRunnerIdChange={setRunnerId}
           sessionVariables={sessionVariables}
           defaultModelId={validModelId}
           onModelChange={setModelId}
