@@ -9,16 +9,17 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	stigmer "github.com/stigmer/stigmer/sdk/go"
-	runnerv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/runner/v1"
 	"google.golang.org/grpc/keepalive"
 
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
@@ -130,9 +131,39 @@ func Start(ctx context.Context, opts StartOptions) error {
 
 	climsg.Success("Runner %q started (PID %d)", name, proc.Process.Pid)
 
+	// Start the bidi command stream alongside the Python process.
+	// The stream sends heartbeats and handles server-initiated commands.
+	streamCtx, streamCancel := context.WithCancel(context.Background())
+	var streamWg sync.WaitGroup
+
+	rsc := daemon.NewRunnerStreamClient(daemon.RunnerStreamConfig{
+		RunnerID: runnerID,
+		ConnectFn: func(ctx context.Context) (daemon.CommandStream, error) {
+			s, err := client.Runner.Connect(ctx)
+			if err != nil {
+				return nil, err
+			}
+			return s, nil
+		},
+	})
+
+	streamWg.Add(1)
+	go func() {
+		defer streamWg.Done()
+		if err := rsc.Run(streamCtx); err != nil && streamCtx.Err() == nil {
+			log.Warn().Err(err).Msg("Runner stream exited unexpectedly")
+		}
+	}()
+
 	exitErr := waitForExitOrSignal(proc)
 
-	shutdown(client, runnerID, name)
+	// Cancel the stream context — triggers STOPPED heartbeat inside Run.
+	streamCancel()
+	streamWg.Wait()
+
+	if err := RemoveState(name); err != nil {
+		log.Warn().Err(err).Str("name", name).Msg("Failed to remove runner state")
+	}
 
 	return exitErr
 }
@@ -383,26 +414,3 @@ func terminateChild(cmd *exec.Cmd, exitCh <-chan error) error {
 	}
 }
 
-func shutdown(client *stigmer.Client, runnerID, name string) {
-	if runnerID != "" {
-		sendStoppedHeartbeat(client, runnerID)
-	}
-	if err := RemoveState(name); err != nil {
-		log.Warn().Err(err).Str("name", name).Msg("Failed to remove runner state")
-	}
-}
-
-func sendStoppedHeartbeat(client *stigmer.Client, runnerID string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	_, err := client.Runner.Heartbeat(ctx, &runnerv1.RunnerHeartbeatInput{
-		RunnerId: runnerID,
-		Phase:    runnerv1.RunnerPhase_RUNNER_PHASE_STOPPED,
-	})
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed to send STOPPED heartbeat (non-fatal)")
-	} else {
-		log.Info().Msg("Sent STOPPED heartbeat to backend")
-	}
-}

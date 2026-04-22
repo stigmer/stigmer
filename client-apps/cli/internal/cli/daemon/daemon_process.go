@@ -18,16 +18,19 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
-	"github.com/stigmer/stigmer/client-apps/cli/embedded/webconsole"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/seedpackbootstrap"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal"
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	runnerv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/runner/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	orgv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1"
 
+	"github.com/stigmer/stigmer/client-apps/cli/embedded/webconsole"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/seedpackbootstrap"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -528,6 +531,57 @@ func RunDaemonProcess() error {
 
 	writeHealthState(dataDir, hs)
 
+	// Start the runner command stream if the embedded runner is registered.
+	// The stream sends heartbeats and handles server-initiated commands
+	// (e.g., ListDirectory for workspace browsing).
+	var streamClient *stigmer.Client
+	var streamCancel context.CancelFunc
+	var streamWg sync.WaitGroup
+
+	if embeddedIdentity != nil {
+		endpoint := fmt.Sprintf("localhost:%d", grpcPort)
+		sdkClient, sdkErr := stigmer.NewClient(
+			stigmer.WithBaseURL(endpoint),
+			stigmer.WithInsecure(),
+			stigmer.WithKeepaliveParams(keepalive.ClientParameters{
+				Time:                30 * time.Second,
+				Timeout:             10 * time.Second,
+				PermitWithoutStream: true,
+			}),
+		)
+		if sdkErr != nil {
+			log.Warn().Err(sdkErr).Msg("Failed to create SDK client for runner stream (non-fatal)")
+		} else {
+			streamClient = sdkClient
+
+			var streamCtx context.Context
+			streamCtx, streamCancel = context.WithCancel(context.Background())
+
+			rsc := NewRunnerStreamClient(RunnerStreamConfig{
+				RunnerID: embeddedIdentity.RunnerID,
+				ConnectFn: func(ctx context.Context) (CommandStream, error) {
+					s, err := sdkClient.Runner.Connect(ctx)
+					if err != nil {
+						return nil, err
+					}
+					return s, nil
+				},
+			})
+
+			streamWg.Add(1)
+			go func() {
+				defer streamWg.Done()
+				if err := rsc.Run(streamCtx); err != nil && streamCtx.Err() == nil {
+					log.Warn().Err(err).Msg("Runner stream exited unexpectedly")
+				}
+			}()
+
+			log.Info().
+				Str("runner_id", embeddedIdentity.RunnerID).
+				Msg("Runner command stream started")
+		}
+	}
+
 	// Start health monitoring
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
@@ -544,8 +598,19 @@ func RunDaemonProcess() error {
 	sig := <-sigCh
 	log.Info().Str("signal", sig.String()).Msg("Received shutdown signal")
 
+	// Cancel health monitor
 	cancel()
 	wg.Wait()
+
+	// Cancel runner stream first — sends STOPPED heartbeat before children stop.
+	if streamCancel != nil {
+		streamCancel()
+		streamWg.Wait()
+		log.Info().Msg("Runner command stream stopped")
+	}
+	if streamClient != nil {
+		streamClient.Close()
+	}
 
 	// Stop the web console HTTP server before stopping child processes.
 	if webConsoleServer != nil {
