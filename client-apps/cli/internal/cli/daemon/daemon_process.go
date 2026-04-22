@@ -230,7 +230,8 @@ func RunDaemonProcess() error {
 		writeHealthState(dataDir, hs)
 	}
 
-	components := buildComponents(cliBin, dataDir, logDir, grpcPort)
+	serverOnly := os.Getenv("STIGMER_SERVER_ONLY") == "true"
+	components := buildComponents(cliBin, dataDir, logDir, grpcPort, serverOnly)
 
 	// Start components sequentially. stigmer-server must be first because
 	// workflow-runner and agent-runner communicate with it.
@@ -420,11 +421,10 @@ func findSiblingBinary(cliBin, name string) (string, error) {
 }
 
 // buildComponents constructs the list of managed components in startup order.
-func buildComponents(cliBin, dataDir, logDir string, grpcPort int) []*managedComponent {
-	pythonBin := os.Getenv("STIGMER_AGENT_RUNNER_PYTHON_BIN")
-	appDir := os.Getenv("STIGMER_AGENT_RUNNER_APP_DIR")
-
-	return []*managedComponent{
+// When serverOnly is true, only the control plane (stigmer-server) is included;
+// workflow-runner and agent-runner are omitted.
+func buildComponents(cliBin, dataDir, logDir string, grpcPort int, serverOnly bool) []*managedComponent {
+	components := []*managedComponent{
 		{
 			name:    "stigmer-server",
 			pidFile: filepath.Join(dataDir, StigmerServerPIDFileName),
@@ -437,7 +437,17 @@ func buildComponents(cliBin, dataDir, logDir string, grpcPort int) []*managedCom
 				return startChildProcess(bin, nil, logDir, "stigmer-server", os.Environ())
 			},
 		},
-		{
+	}
+
+	if serverOnly {
+		return components
+	}
+
+	pythonBin := os.Getenv("STIGMER_AGENT_RUNNER_PYTHON_BIN")
+	appDir := os.Getenv("STIGMER_AGENT_RUNNER_APP_DIR")
+
+	return append(components,
+		&managedComponent{
 			name:    "workflow-runner",
 			pidFile: filepath.Join(dataDir, WorkflowRunnerPIDFileName),
 			state:   &ComponentState{},
@@ -450,7 +460,7 @@ func buildComponents(cliBin, dataDir, logDir string, grpcPort int) []*managedCom
 				return startChildProcess(bin, nil, logDir, "workflow-runner", env)
 			},
 		},
-		{
+		&managedComponent{
 			name:    "agent-runner",
 			pidFile: filepath.Join(dataDir, RunnerPIDFileName),
 			state:   &ComponentState{},
@@ -466,7 +476,7 @@ func buildComponents(cliBin, dataDir, logDir string, grpcPort int) []*managedCom
 				return startChildProcessWithDir(pythonBin, []string{mainPy}, appDir, logDir, "agent-runner", env)
 			},
 		},
-	}
+	)
 }
 
 // buildWorkflowRunnerEnv constructs the environment for workflow-runner.
