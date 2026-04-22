@@ -569,9 +569,9 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecution
 		Str("execution_id", executionID).
 		Msg("Starting Temporal workflow")
 
-	// Resolve runner dispatch: per-runner queue or global fallback
+	// Resolve runner dispatch: per-runner queue from session binding or best available runner
 	dispatch, err := agentexecutiontemporal.ResolveActivityTaskQueue(
-		ctx.Context(), s.store, execution.GetSpec().GetSessionId(), s.workflowCreator.FallbackRunnerQueue())
+		ctx.Context(), s.store, execution.GetSpec().GetSessionId())
 	if err != nil {
 		log.Warn().
 			Err(err).

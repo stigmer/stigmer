@@ -9,6 +9,7 @@ go_library(
         "get.go",
         "list.go",
         "list_by_agent.go",
+        "resolve_runner.go",
         "session_controller.go",
         "update.go",
         "update_subject.go",
@@ -18,6 +19,7 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
         "//apis/stubs/go/ai/stigmer/agentic/agentinstance/v1:agentinstance",
+        "//apis/stubs/go/ai/stigmer/agentic/runner/v1:runner",
         "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
@@ -42,6 +44,7 @@ go_test(
     srcs = ["session_controller_test.go"],
     embed = [":controller"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/runner/v1:runner",
         "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
