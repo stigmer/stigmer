@@ -1,41 +1,94 @@
 package root
 
 import (
+	"context"
+
 	"github.com/spf13/cobra"
-	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
-	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/runner"
 )
 
-// NewUpCommand creates the 'stigmer up' command for starting services.
+// NewUpCommand creates the 'stigmer up' command. The default (no subcommand)
+// starts a runner — the cloud-first behavior. Use 'stigmer up server' to
+// start the full local development stack.
 func NewUpCommand() *cobra.Command {
 	var jsonOutput, quietOutput bool
 
 	cmd := &cobra.Command{
 		Use:   "up",
-		Short: "Start Stigmer services",
-		Long: `Start Stigmer services with smart defaults.
+		Short: "Start a runner",
+		Long: `Start a Stigmer agent runner connected to a backend.
 
-In local mode (default), starts the full Stigmer stack: Temporal,
-stigmer-server, and agent-runner.
+By default, connects to the configured backend (cloud or local).
+Use --endpoint and --token to connect to any backend without
+requiring a config file (useful in CI/CD, containers, sandboxes).
 
-In cloud mode, standalone runner support is coming in a future release.
-
-Use 'stigmer up server' to start only the control plane without runners.
-Use 'stigmer up runner' to start a standalone runner (coming soon).`,
-		Example: `  # Start everything (server + runner)
+Use 'stigmer up server' to start the full local development stack
+(Temporal, stigmer-server, and an embedded runner).`,
+		Example: `  # Start a runner (uses configured backend)
   stigmer up
 
-  # Start with the web console open
-  stigmer up --open
+  # Start a runner with explicit credentials
+  stigmer up --endpoint api.stigmer.ai:443 --token sk-...
 
-  # Start in sandbox execution mode
-  stigmer up --execution-mode sandbox
+  # Start a runner with a custom name
+  stigmer up --name my-macbook
 
-  # Start only the control plane
+  # Start the full local development stack
   stigmer up server`,
 		Run: func(cmd *cobra.Command, args []string) {
-			handleUpDefault(cmd, resolveResultFormat(jsonOutput, quietOutput))
+			handleUpRunner(cmd)
+		},
+	}
+
+	cmd.Flags().String("endpoint", "", "Backend gRPC endpoint (overrides config)")
+	cmd.Flags().String("token", "", "API key / auth token (overrides config and env)")
+	cmd.Flags().String("name", "", "Runner name (default: hostname)")
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
+
+	cmd.AddCommand(newUpServerCommand())
+	cmd.AddCommand(newUpRunnerCommand())
+
+	return cmd
+}
+
+func handleUpRunner(cmd *cobra.Command) {
+	name, _ := cmd.Flags().GetString("name")
+	endpoint, _ := cmd.Flags().GetString("endpoint")
+	token, _ := cmd.Flags().GetString("token")
+
+	err := runner.Start(context.Background(), runner.StartOptions{
+		Name:             name,
+		EndpointOverride: endpoint,
+		TokenOverride:    token,
+	})
+	if err != nil {
+		clierr.Handle(err)
+	}
+}
+
+func newUpServerCommand() *cobra.Command {
+	var jsonOutput, quietOutput bool
+
+	cmd := &cobra.Command{
+		Use:   "server",
+		Short: "Start the full local development stack",
+		Long: `Start the complete local Stigmer stack: Temporal, stigmer-server,
+and an embedded agent runner. This is the quickstart command for
+local development — no cloud account needed.`,
+		Example: `  # Start the full local stack
+  stigmer up server
+
+  # Start with the web console open
+  stigmer up server --open
+
+  # Start in sandbox execution mode
+  stigmer up server --execution-mode sandbox
+
+  # Start without the web console
+  stigmer up server --no-web`,
+		Run: func(cmd *cobra.Command, args []string) {
+			prepareAndStartServer(cmd, resolveResultFormat(jsonOutput, quietOutput), false)
 		},
 	}
 
@@ -48,77 +101,36 @@ Use 'stigmer up runner' to start a standalone runner (coming soon).`,
 	cmd.Flags().Bool("open", false, "Open the web console in your browser after startup")
 	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
 
-	cmd.AddCommand(newUpServerCommand())
-	cmd.AddCommand(newUpRunnerCommand())
-
-	return cmd
-}
-
-func handleUpDefault(cmd *cobra.Command, format clioutput.OutputFormat) {
-	cfg, err := config.Load()
-	if err != nil {
-		climsg.Warning("Failed to load config, using defaults")
-		cfg = config.GetDefault()
-	}
-
-	if cfg.IsCloudMode() {
-		climsg.Info("Cloud backend is active.")
-		climsg.Info("Standalone runner mode is not yet available.")
-		climsg.Info("")
-		climsg.Info("To start a local development server:")
-		climsg.Info("  stigmer config backend set local")
-		climsg.Info("  stigmer up")
-		return
-	}
-
-	prepareAndStartServer(cmd, format, false)
-}
-
-func newUpServerCommand() *cobra.Command {
-	var jsonOutput, quietOutput bool
-
-	cmd := &cobra.Command{
-		Use:   "server",
-		Short: "Start the control plane only",
-		Long: `Start only the Stigmer control plane (Temporal + stigmer-server)
-without any runners. Use this when you want to manage runners
-independently with 'stigmer up runner'.`,
-		Example: `  # Start control plane only
-  stigmer up server
-
-  # Start without the web console
-  stigmer up server --no-web`,
-		Run: func(cmd *cobra.Command, args []string) {
-			prepareAndStartServer(cmd, resolveResultFormat(jsonOutput, quietOutput), true)
-		},
-	}
-
-	cmd.Flags().Bool("no-web", false, "Disable the embedded web console")
-	cmd.Flags().Bool("open", false, "Open the web console in your browser after startup")
-	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
-
 	return cmd
 }
 
 func newUpRunnerCommand() *cobra.Command {
+	var jsonOutput, quietOutput bool
+
 	cmd := &cobra.Command{
 		Use:   "runner",
-		Short: "Start a standalone runner",
-		Long: `Start a standalone agent runner process.
+		Short: "Start a runner",
+		Long: `Start a standalone Stigmer agent runner connected to a backend.
 
-This feature is coming in a future release. It will allow you to register
-your local machine as a runner connected to either a local or cloud backend.`,
+Identical to 'stigmer up' — provided for clarity when used alongside
+'stigmer up server'.`,
+		Example: `  # Start a runner against the configured backend
+  stigmer up runner
+
+  # Start a runner against a specific backend
+  stigmer up runner --endpoint my-server:7234 --token sk-...
+
+  # Start a runner with a custom name
+  stigmer up runner --name build-machine`,
 		Run: func(cmd *cobra.Command, args []string) {
-			climsg.Info("Standalone runner mode is not yet available.")
-			climsg.Info("It will be available in a future release.")
-			climsg.Info("")
-			climsg.Info("To start the full stack (server + runner):")
-			climsg.Info("  stigmer up")
+			handleUpRunner(cmd)
 		},
 	}
 
+	cmd.Flags().String("endpoint", "", "Backend gRPC endpoint (overrides config)")
+	cmd.Flags().String("token", "", "API key / auth token (overrides config and env)")
 	cmd.Flags().String("name", "", "Runner name (default: hostname)")
-	cmd.Flags().String("backend", "", "Backend endpoint to connect to (auto-detected by default)")
+	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
 
 	return cmd
 }

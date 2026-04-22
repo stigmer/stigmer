@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "runner",
+    srcs = [
+        "backend_info.go",
+        "bootstrap.go",
+        "copydir.go",
+        "runner_env.go",
+        "start.go",
+        "state.go",
+        "stop.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/runner",
+    visibility = ["//client-apps/cli:__subpackages__"],
+    deps = [
+        "//client-apps/cli/embedded",
+        "//client-apps/cli/embedded/agentrunner",
+        "//client-apps/cli/internal/cli/config",
+        "//client-apps/cli/internal/cli/daemon",
+        "//client-apps/cli/internal/cli/pythonrt",
+        "//client-apps/cli/pkg/climsg",
+        "@com_github_pkg_errors//:errors",
+        "@com_github_rs_zerolog//log",
+        "@com_github_stigmer_stigmer_sdk_go//:go",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/agentic/runner/v1:runner",
+        "@org_golang_google_grpc//keepalive",
+    ],
+)
