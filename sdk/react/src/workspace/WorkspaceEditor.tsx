@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect, type KeyboardEvent } from "react";
+import { useState, useCallback, type KeyboardEvent } from "react";
 import type { UseWorkspaceEntriesReturn } from "./useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 import { GitHubRepoPicker } from "../github/GitHubRepoPicker";
-import { FolderBrowser } from "./FolderBrowser";
 import { useScrollShadows } from "../internal/useScrollShadows";
 import { ScrollFade } from "../internal/ScrollFade";
 
@@ -22,13 +21,9 @@ export interface WorkspaceEditorProps {
   readonly enableGitHub?: boolean;
   /** Show the Local Folder source button. Default: false (set by Console based on deployment mode). */
   readonly enableLocal?: boolean;
-  /** Use the visual folder browser instead of a text input for local paths. Requires the /api/fs/list endpoint. Default: false. */
-  readonly enableFolderBrowser?: boolean;
 }
 
 type ActivePanel = "none" | "github" | "local";
-
-const STORAGE_KEY_LAST_FOLDER = "stigmer:folder:last-path";
 
 const TYPE_LABELS: Record<string, string> = {
   git: "GitHub",
@@ -72,7 +67,6 @@ export function WorkspaceEditor({
   gitHubConnection,
   enableGitHub = true,
   enableLocal = false,
-  enableFolderBrowser = false,
 }: WorkspaceEditorProps) {
   const [activePanel, setActivePanel] = useState<ActivePanel>(
     enableGitHub ? "github" : "none",
@@ -81,18 +75,6 @@ export function WorkspaceEditor({
   const [manualBranch, setManualBranch] = useState("");
   const entryList = useScrollShadows();
   const [localPath, setLocalPath] = useState("");
-  const [lastFolderPath, setLastFolderPath] = useState<string | undefined>(
-    () => {
-      if (typeof window === "undefined") return undefined;
-      return localStorage.getItem(STORAGE_KEY_LAST_FOLDER) ?? undefined;
-    },
-  );
-
-  useEffect(() => {
-    if (lastFolderPath) {
-      localStorage.setItem(STORAGE_KEY_LAST_FOLDER, lastFolderPath);
-    }
-  }, [lastFolderPath]);
 
   const handleGitHubSelect = useCallback(
     (repoUrl: string, branch: string) => {
@@ -241,46 +223,34 @@ export function WorkspaceEditor({
       {/* Local folder panel */}
       {activePanel === "local" && (
         <div className="rounded-md border border-border bg-card p-3">
-          {enableFolderBrowser ? (
-            <FolderBrowser
-              initialPath={lastFolderPath}
-              onSelect={(path) => {
-                setLastFolderPath(path);
-                workspace.addLocalPath(path);
-                setActivePanel("none");
-              }}
-              onCancel={() => setActivePanel("none")}
+          <div className="space-y-2">
+            <input
+              type="text"
+              placeholder="/path/to/project"
+              value={localPath}
+              onChange={(e) => setLocalPath(e.target.value)}
+              onKeyDown={handleKeyDown(handleLocalAdd)}
+              className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              autoFocus
             />
-          ) : (
-            <div className="space-y-2">
-              <input
-                type="text"
-                placeholder="/path/to/project"
-                value={localPath}
-                onChange={(e) => setLocalPath(e.target.value)}
-                onKeyDown={handleKeyDown(handleLocalAdd)}
-                className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                autoFocus
-              />
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setActivePanel("none")}
-                  className="rounded-md px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleLocalAdd}
-                  disabled={!localPath.trim()}
-                  className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40"
-                >
-                  Add
-                </button>
-              </div>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setActivePanel("none")}
+                className="rounded-md px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleLocalAdd}
+                disabled={!localPath.trim()}
+                className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40"
+              >
+                Add
+              </button>
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>

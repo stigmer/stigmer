@@ -29,22 +29,16 @@ export type {
   ModelSelectorProps,
 } from "./models";
 
-// Workspace — behavior hooks, data hook, and styled components
+// Workspace — behavior hooks and styled components
 export {
   useWorkspaceEntries,
   WorkspaceEditor,
-  useFolderListing,
-  FolderBrowser,
   WorkspaceSummary,
 } from "./workspace";
 export type {
   WorkspaceEntry,
   UseWorkspaceEntriesReturn,
   WorkspaceEditorProps,
-  FolderEntry,
-  FolderListing,
-  UseFolderListingReturn,
-  FolderBrowserProps,
   WorkspaceSummaryProps,
 } from "./workspace";
 

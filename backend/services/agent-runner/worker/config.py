@@ -495,12 +495,6 @@ class Config:
     # Artifact storage configuration (for attachments and outputs)
     artifact_storage: "ArtifactStorageConfig"
 
-    # Runner resource identity (set by the launcher for cloud runners,
-    # or by CLI for persistent runners).  When set, the worker sends
-    # heartbeat RPCs every 30s to report phase and capacity.  When None,
-    # heartbeating is disabled (backward compatible with legacy deployments).
-    runner_id: str | None = None
-
     # Idle self-termination timeout (set by the launcher for ephemeral
     # runners via STIGMER_IDLE_TIMEOUT_SECONDS).  When set, the worker
     # shuts down gracefully via SIGTERM after this many seconds of zero
@@ -582,8 +576,6 @@ class Config:
             or "agent_execution_runner"
         )
 
-        runner_id = os.getenv("STIGMER_RUNNER_ID") or None
-
         idle_timeout_raw = os.getenv("STIGMER_IDLE_TIMEOUT_SECONDS")
         idle_timeout_seconds = (
             int(idle_timeout_raw) if idle_timeout_raw else None
@@ -612,7 +604,6 @@ class Config:
             sandbox_cleanup=sandbox_cleanup,
             sandbox_ttl=sandbox_ttl,
             artifact_storage=artifact_storage_config,
-            runner_id=runner_id,
             idle_timeout_seconds=idle_timeout_seconds,
         )
     
