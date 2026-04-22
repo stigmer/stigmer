@@ -50,7 +50,7 @@ func newDownServerCommand() *cobra.Command {
 		Long:    `Stop the Stigmer control plane and all managed processes (Temporal, stigmer-server).`,
 		Example: `  stigmer down server`,
 		Run: func(cmd *cobra.Command, args []string) {
-			handleStop(resolveResultFormat(jsonOutput, quietOutput))
+			handleStopServer(resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
 
@@ -82,6 +82,14 @@ By default, stops all active runners. Use --name to stop a specific runner.`,
 }
 
 func handleStop(format clioutput.OutputFormat) {
+	handleStopServer(format)
+
+	if err := runner.StopAllRunners(); err != nil {
+		clierr.Handle(err)
+	}
+}
+
+func handleStopServer(format clioutput.OutputFormat) {
 	renderer := clioutput.NewRenderer(format, os.Stdout, os.Stderr)
 
 	dataDir, err := config.GetDataDir()
