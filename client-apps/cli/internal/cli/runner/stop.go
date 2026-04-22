@@ -14,7 +14,7 @@ const stopTimeout = 5 * time.Second
 
 // StopRunner stops a single named runner by sending SIGTERM to its recorded
 // PID. The running process handles SIGTERM by sending a STOPPED heartbeat
-// (via the Python HeartbeatEmitter's shutdown path) and then exiting.
+// over the bidi command stream and then exiting.
 //
 // Daemon-managed runners (ManagedByDaemon=true) cannot be stopped
 // independently — they are stopped when the daemon shuts down.
