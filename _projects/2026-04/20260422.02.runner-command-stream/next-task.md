@@ -12,9 +12,9 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: apis/ai/stigmer/agentic/runner/v1/ (proto); client-apps/cli/internal/cli/daemon/ (Go supervisor); backend/services/stigmer-server/ (Go stream handler); stigmer-cloud/backend/services/stigmer-service/ (Java stream handler)
 
 ## Current State
-- **Status**: T03 complete, ready for T04
-- **Last Session**: 2026-04-22 — T03 implemented (deleted Python heartbeat + local FS hack)
-- **Active Task**: T04 — OSS Server Handler (Go)
+- **Status**: T04 complete, ready for T05 or T06
+- **Last Session**: 2026-04-22 — T04 implemented (OSS bidi stream handler)
+- **Active Task**: T05 (Go Client in CLI Daemon) or T06 (Cloud Server Handler — Java)
 
 ## Session Progress (2026-04-22, Session 1)
 - Reviewed T01 plan and confirmed key decisions
@@ -39,24 +39,42 @@ Drop this file into your conversation to quickly resume work on this project.
   - Net: -1,404 lines across 21 files
   - Surprise: `SessionComposer.tsx` not in T01 plan but required update (threads `enableFolderBrowser`)
 
+## Session Progress (2026-04-22, Session 3)
+- Implemented T04: OSS Server Handler (Go)
+  - Created `stream_registry.go` — in-memory stream registry with Register/Unregister/SendCommand/DeliverResponse
+    - `sync.RWMutex` on streams map, per-entry `sendMu` for stream.Send serialization
+    - Pending request map (`request_id → response channel`) for command correlation
+    - Replace-on-dual-connect: new stream evicts stale entry (fast restart support)
+    - `SendCommand` blocks until response or context deadline — ready for T07
+  - Created `connect.go` — bidi stream handler (first in codebase)
+    - Phase 1: Authentication (first heartbeat validates runner_id + loads from store)
+    - Phase 2: Registration in StreamRegistry
+    - Phase 3: Recv loop dispatches heartbeats and command responses
+    - Phase 4: Deferred disconnect cleanup (Unregister + STOPPED transition)
+    - Terminal errors (NOT_FOUND, FAILED_PRECONDITION) close stream; transient errors continue
+  - Refactored `heartbeat.go` — deleted `Heartbeat()` unary handler, changed `applyHeartbeat` param to `*RunnerHeartbeat`
+  - Modified `runner_controller.go` — added `streamRegistry` field, constructor init, `GetStreamRegistry()` getter
+  - Updated `BUILD.bazel` — gazelle resolved new deps (uuid, grpc, codes)
+  - Resolved known compilation failure: `heartbeat.go` no longer references deleted `RunnerHeartbeatInput`
+  - All 77 stigmer-server build targets pass
+
 ## Task Overview (8 tasks)
 
 | Task | Title | Status | Dependencies |
 |------|-------|--------|--------------|
 | T02 | Proto & Codegen | **Complete** | None |
 | T03 | Delete Python Heartbeat + Hacky Local FS Endpoint | **Complete** | T02 |
-| T04 | OSS Server Handler (Go) | Pending | T02 |
+| T04 | OSS Server Handler (Go) | **Complete** | T02 |
 | T05 | Go Client in CLI Daemon | Pending | T04 |
 | T06 | Cloud Server Handler (Java) | Pending | T02 |
 | T07 | API for UI to Trigger Commands | Pending | T04, T06 |
 | T08 | Integration Testing | Pending | T05, T07 |
 
 ## Next Steps
-1. **Start T04** — Implement `connect` bidi stream handler in stigmer-server (Go)
-2. Create `backend/services/stigmer-server/pkg/domain/runner/controller/connect.go` — bidi stream handler
-3. Create `backend/services/stigmer-server/pkg/domain/runner/stream_registry.go` — in-memory stream registry
-4. Refactor/delete `heartbeat.go` — extract heartbeat processing logic, delete unary handler
-5. T04 and T06 can proceed in parallel (Go server and Java server are independent)
+1. **T05 and T06 can proceed in parallel** (Go CLI daemon client and Java cloud server are independent)
+2. **T05** — Implement stream client in Go CLI daemon: open bidi stream after `apply`, send heartbeats, handle commands, reconnect with exponential backoff
+3. **T06** — Implement `connect` stream handler in stigmer-service (Java) with Redis pub/sub for cross-instance coordination
+4. After both: **T07** — Add `sendCommand` unary RPC that delegates to `StreamRegistry.SendCommand`
 
 ## Key Architectural Decisions
 
@@ -65,11 +83,13 @@ Drop this file into your conversation to quickly resume work on this project.
 3. **First heartbeat authenticates**: The first message on a new stream MUST be a `RunnerHeartbeat`. Server validates runner_id ownership.
 4. **Enriched ListDirectoryResponse**: Includes `home_directory`, `current_directory`, and `is_hidden` on `DirectoryEntry` — preserves UI feature parity with the deleted `api_fs.go` endpoint.
 5. **SDK codegen gap**: `stigmer-codegen` tool doesn't handle bidi streaming RPCs. Manual fix applied to `sdk/go/internal/gen/runner.go`. Tool needs a patch (separate task).
+6. **Immediate STOPPED on disconnect (OSS)**: No grace period — single server instance means a broken stream is genuinely unreachable. Reactivation via heartbeat handles reconnection. Cloud (T06) may use a grace period.
+7. **Replace on dual-connect**: If a runner reconnects fast, the new stream evicts the old entry. No ALREADY_EXISTS rejection.
+8. **runner_id mismatch rejection**: A different runner_id on an established stream is INVALID_ARGUMENT — one stream, one runner identity.
 
 ## Known Compilation Failures (Expected)
 
 These will be resolved as subsequent tasks are completed:
-- `backend/services/stigmer-server/pkg/domain/runner/controller/heartbeat.go` — references deleted `RunnerHeartbeatInput`, implements deleted `Heartbeat()` (resolved in T04)
 - `client-apps/cli/internal/cli/runner/start.go` — calls `client.Runner.Heartbeat()` (resolved in T05)
 - stigmer-cloud Java service — implements deleted heartbeat handler (resolved in T06)
 
@@ -84,10 +104,11 @@ These will be resolved as subsequent tasks are completed:
 ### SDK (manually fixed in T02)
 - `sdk/go/internal/gen/runner.go` — bidi stream wrapper (Send/Recv/CloseSend)
 
-### Server (T04 target)
-- `backend/services/stigmer-server/pkg/domain/runner/controller/heartbeat.go` — to be refactored into connect handler
-- `backend/services/stigmer-server/pkg/domain/runner/controller/connect.go` — new bidi stream handler
-- `backend/services/stigmer-server/pkg/domain/runner/stream_registry.go` — new in-memory stream registry
+### Server (completed in T04)
+- `backend/services/stigmer-server/pkg/domain/runner/controller/connect.go` — bidi stream handler
+- `backend/services/stigmer-server/pkg/domain/runner/controller/stream_registry.go` — in-memory stream registry
+- `backend/services/stigmer-server/pkg/domain/runner/controller/heartbeat.go` — refactored heartbeat domain logic
+- `backend/services/stigmer-server/pkg/domain/runner/controller/runner_controller.go` — controller with StreamRegistry
 
 ### CLI Daemon (T05 target)
 - `client-apps/cli/internal/cli/daemon/runner_stream.go` — new stream client
@@ -97,16 +118,18 @@ These will be resolved as subsequent tasks are completed:
 - T01 plan is at `_projects/2026-04/20260422.02.runner-command-stream/tasks/T01_0_plan.md`
 - This project coordinates with `20260422.01.runner-ux-cli-restructure` — T08/T09 (web UI) of that project depend on T07 of this project (sendCommand API)
 - Both repos are on `feat/secrets-vault-migration` branch
-- T02 changes are committed: `9e3f5cb48 feat(apis/runner): add bidi command stream proto, delete unary heartbeat`
-- T03 changes are committed in this session
+- T02 changes committed: `9e3f5cb48 feat(apis/runner): add bidi command stream proto, delete unary heartbeat`
+- T03 changes committed: `50eb11559 refactor: delete Python heartbeat and local FS hack (T03)`
+- T04 changes ready to commit (this session)
 - Python heartbeat code is fully deleted — the Go daemon (T05) will own heartbeat over the bidi stream
 - Local FS hack fully deleted — `ListDirectory` over bidi stream (T04-T07) replaces it
+- `StreamRegistry.SendCommand` is fully implemented and ready for T07's `sendCommand` RPC handler
 
 ## Blockers
-- None for T04 or T06
+- None for T05 or T06
 
 ## Quick Commands
-- "Start T04" — Implement OSS server connect handler
+- "Start T05" — Implement Go CLI daemon stream client
 - "Start T06" — Implement Cloud server connect handler (Java)
 - "Show project status" — Overview of progress
 - "Review T01 plan" — Read T01_0_plan.md

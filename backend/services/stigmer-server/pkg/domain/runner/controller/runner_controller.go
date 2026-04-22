@@ -9,21 +9,30 @@ import (
 //
 // Runner is its own aggregate root with these invariants:
 //   - task_queue is set once at create time ("runner:{id}"), immutable after
-//   - status is exclusively managed by heartbeat and server-side transitions, never by update RPC
+//   - status is exclusively managed by the connect stream and server-side transitions, never by update RPC
 //   - FAILED phase blocks heartbeat transitions — requires explicit intervention
 //   - Identity persists across restarts (apply reactivates, does not recreate)
 //
-// No cross-aggregate dependencies: unlike Agent (which creates a default AgentInstance),
-// Runner is self-contained. No downstream clients are needed.
+// The StreamRegistry tracks active bidi streams for command routing. It is
+// created internally and exposed via GetStreamRegistry for use by the
+// sendCommand API handler (T07).
 type RunnerController struct {
 	runnerv1.UnimplementedRunnerCommandControllerServer
 	runnerv1.UnimplementedRunnerQueryControllerServer
-	store store.Store
+	store          store.Store
+	streamRegistry *StreamRegistry
 }
 
-// NewRunnerController creates a new RunnerController.
+// NewRunnerController creates a new RunnerController with an initialized StreamRegistry.
 func NewRunnerController(store store.Store) *RunnerController {
 	return &RunnerController{
-		store: store,
+		store:          store,
+		streamRegistry: NewStreamRegistry(),
 	}
+}
+
+// GetStreamRegistry returns the stream registry for external command routing.
+// Used by the sendCommand API handler to push commands to connected runners.
+func (c *RunnerController) GetStreamRegistry() *StreamRegistry {
+	return c.streamRegistry
 }
