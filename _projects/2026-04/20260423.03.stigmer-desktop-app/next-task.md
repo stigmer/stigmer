@@ -13,9 +13,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: T06 complete, ready for T04
-- **Last Session**: 2026-04-23 — T06 complete (CLI sidecar integration for runner management)
-- **Active Task**: T04 (next)
+- **Status**: T04 complete, ready for T08
+- **Last Session**: 2026-04-23 — T04 complete (system tray integration)
+- **Active Task**: T08 (next)
 
 ## Task Overview
 
@@ -24,90 +24,89 @@ Drop this file into your conversation to quickly resume work on this project.
 | T01 | Design & task plan | **Complete** | None |
 | T02 | Tauri project scaffolding | **Complete** | None |
 | T03 | Core app shell (routing, layout, auth) | **Complete** | T02 |
-| T04 | System tray integration | Pending | T03 |
+| T04 | System tray integration | **Complete** | T03 |
 | T05 | `stigmer://` URL scheme handling | Pending | T03, Phase 3 T02 |
 | T06 | Sidecar — bundle CLI for runner management | **Complete** | T03 |
 | T07 | Auto-updater & distribution pipeline | Pending | T06 |
 | T08 | Desktop-specific features (file picker, notifications) | Pending | T03 |
 | T09 | End-to-end testing & polish | Pending | All |
 
-## Session Progress (2026-04-23, Session 3)
+## Session Progress (2026-04-23, Session 4)
 
-### T06: Sidecar — Bundle CLI for Runner Management (completed)
+### T04: System Tray Integration (completed)
 
-Bundled the Go CLI binary as a Tauri sidecar and built a Rust process manager + React hook integration layer so the desktop app can start, stop, monitor, and stream logs from local runner processes.
+Added a native system tray to the desktop app with a dynamic menu reflecting runner state, hide-to-tray window behavior, and quick actions (stop runners, open window, quit).
 
-#### Rust Layer (`src-tauri/`)
+#### New: `tray.rs` (~120 lines)
 
-- **`sidecar.rs`** (~350 lines) — Process manager that spawns/kills CLI child processes, tracks PIDs in memory, captures stdout/stderr into a 2000-line ring buffer, reads `~/.stigmer/runners/*.json` state files directly from Rust (no CLI spawn needed for listing), reaps stale processes (dead PIDs), and emits lifecycle events (`runner:started`, `runner:log`, `runner:stopped`, `runner:error`) to the frontend. Five Tauri commands exposed: `start_runner`, `stop_runner`, `stop_all_runners`, `list_local_runners`, `get_runner_logs`.
-- **`lib.rs`** — Registers `tauri-plugin-shell`, manages `ProcessManager` state, wires all commands, and handles graceful shutdown on `ExitRequested` (SIGTERM → 3s wait → SIGKILL).
+The tray module, entirely Rust-side with no frontend changes needed:
 
-#### Configuration
+- **`setup_tray`** — Creates the tray icon during app setup via `TrayIconBuilder`. Embeds the existing `icon.png` at compile time using `include_bytes!`. Sets up the menu event handler (Open / Stop All / Quit) and enables `show_menu_on_left_click` for macOS menu bar compatibility.
+- **`refresh_tray_state`** — Called after every runner state change. Uses a non-blocking `try_lock()` on `ProcessManager` to read runner names (skips gracefully if contended — the next state change triggers another refresh). Updates tooltip ("Stigmer — Idle" or "Stigmer — N runners active") and rebuilds the menu.
+- **`build_menu`** — Constructs the native menu dynamically. When idle: "No active runners" (disabled). When runners active: each runner name as a disabled status item, plus "Stop All Runners". Always includes "Open Stigmer" and "Quit Stigmer".
+- **`show_main_window`** — Brings the main window back from hidden state (show + unminimize + focus).
 
-- **`Cargo.toml`** — Added `tauri-plugin-shell`, `tokio`, `dirs`, `log`, `hostname`, `libc`.
-- **`tauri.conf.json`** — Added `bundle.externalBin: ["binaries/stigmer"]`.
-- **`capabilities/default.json`** — Scoped `shell:allow-spawn` and `shell:allow-execute` permissions for the stigmer sidecar with regex arg validators.
-- **`package.json`** — Added `@tauri-apps/plugin-shell`.
+#### Modified: `lib.rs`
 
-#### Dev Workflow
+- Added `mod tray;` and `.setup()` hook calling `tray::setup_tray(app)`.
+- Added `WindowEvent::CloseRequested` handler: `api.prevent_close()` + `window.hide()` for hide-to-tray behavior.
+- Existing `ExitRequested` handler preserved for runner cleanup on quit.
 
-- **`scripts/setup-sidecar-dev.sh`** — Finds the CLI binary (Bazel output → GOPATH → system PATH) and creates a target-triple symlink at `src-tauri/binaries/stigmer-<triple>`.
-- **`binaries/.gitignore`** — Platform-specific binaries are ignored; created by the dev script, injected by CI for production.
+#### Modified: `sidecar.rs`
 
-#### React Hooks (`src/hooks/`)
+- Added `ProcessManager::runner_names()` — non-blocking `try_lock` method exposing runner names to the tray without risk of deadlock.
+- Added `stop_all_managed()` — shared async helper used by both the Tauri command and the tray menu's "Stop All Runners" action. Eliminates duplicated stop logic.
+- Refactored `stop_all_runners` command to delegate to `stop_all_managed`.
+- Restructured `stop_runner` to release the ProcessManager lock before calling `refresh_tray_state` (prevents lock contention with `try_lock`).
+- Added `refresh_tray_state` calls at all state change points: after start, after terminate, after stop, and inside `stop_all_managed`.
 
-- **`tauri.ts`** — Typed wrappers for all five `invoke()` commands and four `listen()` event subscriptions matching the Rust struct shapes exactly.
-- **`useLocalRunners.ts`** — Fetches local runner state on mount, auto-refreshes on `runner:started`/`runner:stopped` events. Returns a name-keyed `Map` for efficient lookup.
-- **`useStartRunner.ts`** — Async callback with loading/error state. Detects auth errors and surfaces a clear onboarding message about `stigmer auth login`.
-- **`useStopLocalRunner.ts`** — Async callback with loading/error state.
-- **`useRunnerLogs.ts`** — Fetches initial log buffer, subscribes to live `runner:log` events, caps at 2000 lines.
+#### Modified: `Cargo.toml`
 
-#### Enhanced Settings > Runners Page
-
-- **`SettingsRunners.tsx`** (rewritten from 11-line wrapper to ~300 lines) — Unified runner list composing `useRunnerList` (SDK, server-side) with `useLocalRunners` (desktop, local processes). Shows "Local" badge on locally-running processes, "Start Runner" button with dialog, per-runner Stop and Logs actions, auth error banner with guidance, streaming log viewer panel.
-- **`StartRunnerDialog.tsx`** — Modal for starting a runner with optional name/endpoint/token fields.
-- **`RunnerLogViewer.tsx`** — Side panel with live-streaming log output, auto-scrolling, and "Live" indicator.
+- Added `tray-icon` and `image-png` features to the `tauri` dependency (pulled `tray-icon v0.21.3`, `image v0.25.10`, `png v0.18.1` as transitive deps).
 
 ### Key Decisions
 
-- **DD-T06-01: CLI handles its own credentials** — No credential-bridging from desktop OAuth to CLI. The sidecar uses the CLI's existing resolution chain (`--token` flag > `STIGMER_API_KEY` env > `~/.stigmer/config.yaml`). Throwaway auth plumbing avoided; Phase 3 launch token API will be the clean solution.
-- **DD-T06-02: Unified runner view with local awareness** — Single list from server API augmented with local process badges, not two separate sections. Avoids duplicate entries and matches user mental model.
-- **DD-T06-03: Process manager, not command runner** — Rust layer manages long-running child processes with PID tracking, ring buffers, and events, not one-shot command execution.
-- **DD-T06-04: Dev symlink workflow** — Local binary symlink for development; production cross-compilation deferred to T07.
+- **DD-T04-01: Tray is a Rust-only concern** — No Tauri commands exposed to frontend, no React hooks created. The tray reads from `ProcessManager` (Rust state) and controls the native window (Rust API). Adding a JS bridge would be unnecessary complexity.
+- **DD-T04-02: Refresh-on-change, not polling** — Tray menu is rebuilt when runner state changes, not on a timer. Event-driven, zero-overhead when idle.
+- **DD-T04-03: Single icon, status in tooltip and menu** — Single tray icon (Stigmer logo) for v1. Status communicated via tooltip text and menu items. Icon state variants (green/red dot overlays) deferred to a polish pass with designer-created assets.
+- **DD-T04-04: Hide-to-tray on window close** — Closing the window hides it to tray; runners continue running. "Quit Stigmer" in tray menu is the only exit path, triggering the existing `ExitRequested` → `shutdown_all_sync` flow.
+- **DD-T04-05: Programmatic tray, not declarative config** — Tray created entirely in Rust code via `TrayIconBuilder`, not via `tauri.conf.json` `trayIcon` config. Declarative config would create a duplicate tray icon since we need programmatic control for dynamic menus and event handlers.
+- **DD-T04-06: Non-blocking lock for tray refresh** — `runner_names()` uses `try_lock()` instead of `lock().await` to avoid deadlocks when called from both sync (tray event handlers) and async (sidecar commands) contexts. If contended, the refresh is skipped — the next state change will trigger another.
 
 ### Surprises Discovered
 
-1. CLI's `stigmer up runner` does NOT have a `--runtime` flag (Docker is Phase 3 T03). Sidecar command signature omits `runtime`.
-2. Python bootstrap latency is significant on first run (minutes). Log viewer streams progress naturally.
-3. `list runners` CLI command is local-only (`~/.stigmer/runners/*.json`); Rust reads files directly rather than spawning CLI.
+1. Tauri 2's `tray-icon` is a Cargo feature on `tauri`, not a separate plugin. No `tauri-plugin-tray` crate exists.
+2. `tauri.conf.json` `trayIcon` config creates the tray declaratively — using it alongside programmatic `TrayIconBuilder` would create duplicate icons.
+3. `stop_all_runners` held the `ProcessManager` lock for the entire stop loop including event emissions. Refactored to `stop_all_managed` with explicit `drop(runners)` before `refresh_tray_state` to prevent deadlock with `try_lock`.
+4. `stop_runner` similarly held the lock through the emit+return path. Restructured to scope the lock guard tightly, releasing before calling refresh.
 
 ### Files Changed
 
-- 1 new Rust module (`sidecar.rs`, ~350 lines)
-- 1 rewritten Rust entry (`lib.rs`)
-- 5 new React hook files (`tauri.ts`, `useLocalRunners.ts`, `useStartRunner.ts`, `useStopLocalRunner.ts`, `useRunnerLogs.ts`)
-- 3 new React component files (`SettingsRunners.tsx` rewritten, `StartRunnerDialog.tsx`, `RunnerLogViewer.tsx`)
-- 1 new dev script (`setup-sidecar-dev.sh`)
-- 5 config files modified (`Cargo.toml`, `package.json`, `tauri.conf.json`, `capabilities/default.json`, plus Cargo.lock/gen schemas auto-updated)
+- 1 new Rust module (`tray.rs`, ~120 lines)
+- 2 modified Rust files (`lib.rs` expanded from 27→41 lines, `sidecar.rs` restructured with ~50 lines net additions)
+- 1 config file modified (`Cargo.toml`, added 2 features)
+- Auto-updated: `Cargo.lock` (5 new transitive dependencies)
+- Zero frontend changes
 - Rust: zero `cargo clippy` warnings
 - TypeScript: zero `tsc` errors
 
 ## Next Steps
 
-1. **T04: System tray integration** — Native tray icon, runner status indicators (leveraging local runner state from T06), quick actions (Start/Stop runner, Open Stigmer, Settings, Quit)
-2. **T08: Desktop-specific features** — Native file picker for workspace selection, native notifications for runner events, keyboard shortcuts
-3. **T07: Auto-updater & distribution pipeline** — Cross-platform CLI compilation, `.dmg`/`.AppImage`/`.msi` builds, update manifest hosting (depends on T06 for sidecar bundling)
-4. **T05: `stigmer://` URL scheme** — Deep linking (blocked on Phase 3 T02 launch tokens)
+1. **T08: Desktop-specific features** — Native file picker for workspace selection, native notifications for runner events (leveraging tray infrastructure), keyboard shortcuts
+2. **T07: Auto-updater & distribution pipeline** — Cross-platform CLI compilation, `.dmg`/`.AppImage`/`.msi` builds, update manifest hosting
+3. **T05: `stigmer://` URL scheme** — Deep linking (blocked on Phase 3 T02 launch tokens)
+4. **Polish: Tray icon state variants** — Designer-created icons for idle/active/error states, macOS template image support
 
 ## Context for Resume
 
-- The desktop app now has full local runner management via the CLI sidecar
-- `ProcessManager` in Rust tracks all runners spawned by the desktop app (child processes with PID, log buffer, lifecycle events)
-- Local runner state files (`~/.stigmer/runners/*.json`) are read directly by Rust — no CLI spawn needed for listing
-- The `start_runner` command accepts optional `endpoint` and `token` — forward-compatible with Phase 3 launch token exchange
-- Auth error detection in `useStartRunner` checks for CLI auth failure patterns and shows an onboarding guide
-- The `SettingsRunners` page composes SDK's `useRunnerList` (server) with desktop's `useLocalRunners` (local) for a unified view
-- Graceful shutdown on app exit sends SIGTERM to all managed runners, waits 3s, then SIGKILL
+- The desktop app now has a persistent system tray with dynamic runner status
+- Hide-to-tray: closing the window hides it; "Quit Stigmer" from the tray menu is the exit path
+- `tray::refresh_tray_state` is the single function that syncs tray state — called from every runner lifecycle event in `sidecar.rs`
+- `stop_all_managed` is the shared helper for stopping all runners — used by both the Tauri command and tray menu action
+- `ProcessManager::runner_names()` uses `try_lock()` for non-blocking access — safe to call from any context
+- The tray module has zero dependency on the frontend — purely Rust-side
+- Tray menu is fully dynamic: runner items appear/disappear as processes start/stop, "Stop All Runners" only visible when runners exist
+- No `tauri.conf.json` changes for tray — everything is programmatic via `TrayIconBuilder`
 - Dev workflow: run `./scripts/setup-sidecar-dev.sh` to create the sidecar symlink before `cargo tauri dev`
 - Pre-existing typecheck errors in web app (`LibraryBreadcrumbContext`) and `sdk/typescript/src/gen/runner.ts` — not introduced by this work
 
@@ -117,7 +116,7 @@ Bundled the Go CLI binary as a Tauri sidecar and built a Rust process manager + 
 
 ## Quick Commands
 
-- "Start T04" — Begin system tray integration
+- "Start T08" — Begin desktop-specific features (file picker, notifications, shortcuts)
 - "Show project status" — Get overview of progress
 - "Run desktop" — `make desktop-dev` to launch the desktop app (run `./scripts/setup-sidecar-dev.sh` first for sidecar)
 
