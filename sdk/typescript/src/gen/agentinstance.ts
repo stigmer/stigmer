@@ -85,7 +85,7 @@ export interface AgentInstanceInput {
 }
 
 function buildAgentInstanceProto(input: AgentInstanceInput): AgentInstance {
-  const environmentRefs = input.environmentRefs?.map(r => create(ApiResourceReferenceSchema, r));
+  const environmentRefs = input.environmentRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 53 }));
   return Object.assign(create(AgentInstanceSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "AgentInstance",

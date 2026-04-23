@@ -40,7 +40,8 @@
         }
       },
       "description": "References to Environment resources providing secrets and configuration at runtime.\n\n @internal\n Environments are merged in order: later environments override earlier ones.\n Example: [base-env, aws-prod-env, github-team-env]\n This allows layering of configurations (base → specific overrides).",
-      "required": false
+      "required": false,
+      "referenceKind": 53
     }
   ]
 }

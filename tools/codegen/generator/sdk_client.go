@@ -382,6 +382,7 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	needsEnvironmentV1 := false
 	needsTimestamppb := false
 	needsStructpb := false
+	needsRefKindOverride := false
 	if specSchema != nil {
 		scanFieldsForImports := func(fields []*FieldSchema) {
 			for _, f := range fields {
@@ -403,6 +404,9 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 				}
 				if f.Type.Kind == "struct" {
 					needsStructpb = true
+				}
+				if f.ReferenceKind != 0 {
+					needsRefKindOverride = true
 				}
 			}
 		}
@@ -444,7 +448,7 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	if needsApiResource || hasInputType {
 		buf.WriteString("\tapiresource \"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource\"\n")
 	}
-	if needsSearch || needsApiResourceRef {
+	if needsSearch || needsApiResourceRef || needsRefKindOverride {
 		buf.WriteString("\tapiresourcekind \"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind\"\n")
 	}
 	if needsSearch {
@@ -864,7 +868,14 @@ func emitToProtoField(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap m
 
 	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference":
 		fmt.Fprintf(buf, "\tif i.%s.Org != \"\" || i.%s.Slug != \"\" {\n", f.Name, f.Name)
-		fmt.Fprintf(buf, "\t\tresource.Spec.%s = i.%s.toProto()\n", protoField, f.Name)
+		if f.ReferenceKind != 0 {
+			enumName := apiResourceKindEnumNames[f.ReferenceKind]
+			fmt.Fprintf(buf, "\t\tref := i.%s.toProto()\n", f.Name)
+			fmt.Fprintf(buf, "\t\tref.Kind = apiresourcekind.ApiResourceKind_%s\n", enumName)
+			fmt.Fprintf(buf, "\t\tresource.Spec.%s = ref\n", protoField)
+		} else {
+			fmt.Fprintf(buf, "\t\tresource.Spec.%s = i.%s.toProto()\n", protoField, f.Name)
+		}
 		buf.WriteString("\t}\n")
 
 	case f.Type.Kind == "message" && f.OneofGroup != "":
@@ -884,7 +895,14 @@ func emitToProtoField(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap m
 		elemMsg := f.Type.ElementType.MessageType
 		if elemMsg == "ApiResourceReference" {
 			fmt.Fprintf(buf, "\tfor _, r := range i.%s {\n", f.Name)
-			fmt.Fprintf(buf, "\t\tresource.Spec.%s = append(resource.Spec.%s, r.toProto())\n", protoField, protoField)
+			if f.ReferenceKind != 0 {
+				enumName := apiResourceKindEnumNames[f.ReferenceKind]
+				buf.WriteString("\t\tref := r.toProto()\n")
+				fmt.Fprintf(buf, "\t\tref.Kind = apiresourcekind.ApiResourceKind_%s\n", enumName)
+				fmt.Fprintf(buf, "\t\tresource.Spec.%s = append(resource.Spec.%s, ref)\n", protoField, protoField)
+			} else {
+				fmt.Fprintf(buf, "\t\tresource.Spec.%s = append(resource.Spec.%s, r.toProto())\n", protoField, protoField)
+			}
 			buf.WriteString("\t}\n")
 		} else {
 			fmt.Fprintf(buf, "\tfor _, item := range i.%s {\n", f.Name)
@@ -1004,6 +1022,10 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 			needsImperative = true
 			break
 		}
+		if field.ReferenceKind != 0 {
+			needsImperative = true
+			break
+		}
 	}
 
 	if needsImperative {
@@ -1022,7 +1044,14 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 				buf.WriteString("\t\t}\n\t}\n")
 			} else if field.Type.Kind == "message" {
 				if field.Type.MessageType == "ApiResourceReference" {
-					fmt.Fprintf(buf, "\tp.%s = i.%s.toProto()\n", pf, field.Name)
+					if field.ReferenceKind != 0 {
+						enumName := apiResourceKindEnumNames[field.ReferenceKind]
+						fmt.Fprintf(buf, "\tref := i.%s.toProto()\n", field.Name)
+						fmt.Fprintf(buf, "\tref.Kind = apiresourcekind.ApiResourceKind_%s\n", enumName)
+						fmt.Fprintf(buf, "\tp.%s = ref\n", pf)
+					} else {
+						fmt.Fprintf(buf, "\tp.%s = i.%s.toProto()\n", pf, field.Name)
+					}
 				}
 			} else if field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "message" {
 				continue
