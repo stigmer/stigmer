@@ -97,6 +97,12 @@ impl ProcessManager {
         }
     }
 
+    /// Returns the names of all desktop-managed runners, or None if the lock is contended.
+    pub(crate) fn runner_names(&self) -> Option<Vec<String>> {
+        let guard = self.runners.try_lock().ok()?;
+        Some(guard.keys().cloned().collect())
+    }
+
     /// Sends SIGTERM to every managed runner and waits briefly for exit.
     /// Called during application shutdown to prevent zombie processes.
     pub fn shutdown_all_sync(&self) {
@@ -205,6 +211,40 @@ fn read_all_runner_states() -> Result<Vec<LocalRunnerInfo>, String> {
 }
 
 // ---------------------------------------------------------------------------
+// Shared runner operations
+// ---------------------------------------------------------------------------
+
+/// Stops all desktop-managed runners and emits lifecycle events.
+/// Used by both the `stop_all_runners` Tauri command and the tray "Stop All Runners" action.
+pub(crate) async fn stop_all_managed(app: &AppHandle) {
+    let mgr = app.state::<ProcessManager>();
+    let mut runners = mgr.runners.lock().await;
+    let names: Vec<String> = runners.keys().cloned().collect();
+
+    for name in names {
+        if let Some(runner) = runners.remove(&name) {
+            #[cfg(unix)]
+            unsafe {
+                libc::kill(runner.pid as i32, libc::SIGTERM);
+            }
+            #[cfg(not(unix))]
+            drop(runner);
+
+            let _ = app.emit(
+                "runner:stopped",
+                RunnerStoppedEvent {
+                    name,
+                    exit_code: None,
+                },
+            );
+        }
+    }
+
+    drop(runners);
+    crate::tray::refresh_tray_state(app);
+}
+
+// ---------------------------------------------------------------------------
 // Tauri commands
 // ---------------------------------------------------------------------------
 
@@ -273,6 +313,7 @@ pub async fn start_runner(
         name: runner_name.clone(),
         pid,
     });
+    crate::tray::refresh_tray_state(&app);
 
     let event_app = app.clone();
     let event_name = runner_name.clone();
@@ -337,6 +378,7 @@ pub async fn start_runner(
                             exit_code: payload.code,
                         },
                     );
+                    crate::tray::refresh_tray_state(&event_app);
                     break;
                 }
                 CommandEvent::Error(msg) => {
@@ -362,20 +404,22 @@ pub async fn stop_runner(
     state: State<'_, ProcessManager>,
     runner_name: String,
 ) -> Result<(), String> {
-    let mut runners = state.runners.lock().await;
-
-    if let Some(runner) = runners.remove(&runner_name) {
-        #[cfg(unix)]
-        {
+    let was_managed = {
+        let mut runners = state.runners.lock().await;
+        if let Some(runner) = runners.remove(&runner_name) {
+            #[cfg(unix)]
             unsafe {
                 libc::kill(runner.pid as i32, libc::SIGTERM);
             }
-        }
-        #[cfg(not(unix))]
-        {
+            #[cfg(not(unix))]
             drop(runner);
+            true
+        } else {
+            false
         }
+    };
 
+    if was_managed {
         let _ = app.emit(
             "runner:stopped",
             RunnerStoppedEvent {
@@ -383,9 +427,9 @@ pub async fn stop_runner(
                 exit_code: None,
             },
         );
+        crate::tray::refresh_tray_state(&app);
         return Ok(());
     }
-    drop(runners);
 
     // Not managed by this desktop instance — try stopping via the CLI.
     let sidecar = app
@@ -408,36 +452,8 @@ pub async fn stop_runner(
 }
 
 #[tauri::command]
-pub async fn stop_all_runners(
-    app: AppHandle,
-    state: State<'_, ProcessManager>,
-) -> Result<(), String> {
-    let mut runners = state.runners.lock().await;
-    let names: Vec<String> = runners.keys().cloned().collect();
-
-    for name in &names {
-        if let Some(runner) = runners.remove(name) {
-            #[cfg(unix)]
-            {
-                unsafe {
-                    libc::kill(runner.pid as i32, libc::SIGTERM);
-                }
-            }
-            #[cfg(not(unix))]
-            {
-                drop(runner);
-            }
-
-            let _ = app.emit(
-                "runner:stopped",
-                RunnerStoppedEvent {
-                    name: name.clone(),
-                    exit_code: None,
-                },
-            );
-        }
-    }
-
+pub async fn stop_all_runners(app: AppHandle) -> Result<(), String> {
+    stop_all_managed(&app).await;
     Ok(())
 }
 
