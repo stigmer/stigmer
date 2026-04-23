@@ -180,7 +180,7 @@ function buildToolApprovalOverrideProto(input: ToolApprovalOverrideInput) {
 
 function buildMcpServerUsageProto(input: McpServerUsageInput) {
   const msg = create(McpServerUsageSchema);
-  if (input.mcpServerRef) msg.mcpServerRef = create(ApiResourceReferenceSchema, input.mcpServerRef);
+  if (input.mcpServerRef) msg.mcpServerRef = create(ApiResourceReferenceSchema, { ...input.mcpServerRef, kind: 44 });
   if (input.enabledTools) msg.enabledTools = input.enabledTools;
   if (input.toolApprovalOverrides) msg.toolApprovalOverrides = input.toolApprovalOverrides.map(buildToolApprovalOverrideProto);
   return msg;
@@ -189,7 +189,7 @@ function buildMcpServerUsageProto(input: McpServerUsageInput) {
 function buildSessionProto(input: SessionInput): Session {
   const workspaceEntries = input.workspaceEntries?.map(buildWorkspaceEntryProto);
   const mcpServerUsages = input.mcpServerUsages?.map(buildMcpServerUsageProto);
-  const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, r));
+  const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
   return Object.assign(create(SessionSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Session",

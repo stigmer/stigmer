@@ -42,26 +42,28 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n1ai/stigmer/agentic/workflowinstance/v1" +
       "/spec.proto\022&ai.stigmer.agentic.workflow" +
-      "instance.v1\032\'ai/stigmer/commons/apiresou" +
-      "rce/io.proto\032\033buf/validate/validate.prot" +
-      "o\"\272\002\n\024WorkflowInstanceSpec\022(\n\013workflow_i" +
-      "d\030\001 \001(\tB\007\272H\004r\002\020\001R\nworkflowId\022 \n\013descript" +
-      "ion\030\002 \001(\tR\013description\022\325\001\n\020environment_r" +
-      "efs\030\003 \003(\01324.ai.stigmer.commons.apiresour" +
-      "ce.ApiResourceReferenceBt\272Hq\222\001n\"l\272\001i\n\025en" +
-      "vironment_refs.kind\022?environment_refs mu" +
-      "st reference resources with kind=environ" +
-      "ment\032\017this.kind == 53R\017environmentRefsB\310" +
-      "\001B\tSpecProtoP\001\242\002\004ASAW\252\002&Ai.Stigmer.Agent" +
-      "ic.Workflowinstance.V1\312\002&Ai\\Stigmer\\Agen" +
-      "tic\\Workflowinstance\\V1\342\0022Ai\\Stigmer\\Age" +
-      "ntic\\Workflowinstance\\V1\\GPBMetadata\352\002*A" +
-      "i::Stigmer::Agentic::Workflowinstance::V" +
-      "1b\006proto3"
+      "instance.v1\0322ai/stigmer/commons/apiresou" +
+      "rce/field_options.proto\032\'ai/stigmer/comm" +
+      "ons/apiresource/io.proto\032\033buf/validate/v" +
+      "alidate.proto\"\276\002\n\024WorkflowInstanceSpec\022(" +
+      "\n\013workflow_id\030\001 \001(\tB\007\272H\004r\002\020\001R\nworkflowId" +
+      "\022 \n\013description\030\002 \001(\tR\013description\022\331\001\n\020e" +
+      "nvironment_refs\030\003 \003(\01324.ai.stigmer.commo" +
+      "ns.apiresource.ApiResourceReferenceBx\272Hq" +
+      "\222\001n\"l\272\001i\n\025environment_refs.kind\022?environ" +
+      "ment_refs must reference resources with " +
+      "kind=environment\032\017this.kind == 53\340\205,5R\017e" +
+      "nvironmentRefsB\310\001B\tSpecProtoP\001\242\002\004ASAW\252\002&" +
+      "Ai.Stigmer.Agentic.Workflowinstance.V1\312\002" +
+      "&Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\342" +
+      "\0022Ai\\Stigmer\\Agentic\\Workflowinstance\\V1" +
+      "\\GPBMetadata\352\002*Ai::Stigmer::Agentic::Wor" +
+      "kflowinstance::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
         });
@@ -72,10 +74,12 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_workflowinstance_v1_WorkflowInstanceSpec_descriptor,
         new java.lang.String[] { "WorkflowId", "Description", "EnvironmentRefs", });
     descriptor.resolveAllFeaturesImmutable();
+    ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
+    registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.referenceKind);
     registry.add(build.buf.validate.ValidateProto.field);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);

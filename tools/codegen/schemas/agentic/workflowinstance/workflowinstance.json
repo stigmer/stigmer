@@ -40,7 +40,8 @@
         }
       },
       "description": "Ordered list of Environment resources providing configuration and secrets.\n\n Environments are merged in declaration order — later entries override\n earlier ones when keys conflict.\n\n @internal\n Environments are layered configuration containers that provide:\n - Environment variables (API keys, endpoints, flags)\n - Secrets (credentials, tokens, passwords)\n - Configuration values (timeouts, limits, settings)\n\n Example layering:\n   [base-env, aws-prod-env, github-team-env]\n   └─ base-env: Common settings for all instances\n   └─ aws-prod-env: AWS production credentials (overrides base AWS settings)\n   └─ github-team-env: Team-specific GitHub tokens (overrides generic tokens)\n\n Use Cases:\n - Single env: [prod-env] - Simple, all config in one place\n - Base + specific: [base, prod] - Common config + environment-specific\n - Layered: [base, cloud, team] - Base + cloud credentials + team settings\n\n References use ApiResourceReference which supports:\n - By ID: {id: \"env_abc123\"}\n - By slug: {slug: \"aws-prod-env\"}\n\n At execution time, the WorkflowExecution runtime merges these environments\n and provides the combined configuration to all agents in the workflow.",
-      "required": false
+      "required": false,
+      "referenceKind": 53
     }
   ]
 }

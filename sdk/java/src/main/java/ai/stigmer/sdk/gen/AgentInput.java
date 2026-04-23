@@ -10,6 +10,7 @@ import ai.stigmer.agentic.agent.v1.SubAgent;
 import ai.stigmer.agentic.agent.v1.ToolApprovalOverride;
 import ai.stigmer.agentic.environment.v1.EnvVarDeclaration;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 
 /** Input for creating/updating a Agent. */
 public final class AgentInput {
@@ -57,7 +58,8 @@ public final class AgentInput {
         }
         if (this.skillRefs != null) {
             for (ResourceRef item : this.skillRefs) {
-                spec.addSkillRefs(item.toProto());
+                spec.addSkillRefs(item.toProto().toBuilder()
+                    .setKind(ApiResourceKind.skill).build());
             }
         }
         if (this.subAgents != null) {
@@ -134,7 +136,8 @@ public final class AgentInput {
         McpServerUsage toProto() {
             McpServerUsage.Builder builder = McpServerUsage.newBuilder();
             if (this.mcpServerRef != null) {
-                builder.setMcpServerRef(this.mcpServerRef.toProto());
+                builder.setMcpServerRef(this.mcpServerRef.toProto().toBuilder()
+                    .setKind(ApiResourceKind.mcp_server).build());
             }
             if (this.enabledTools != null) {
                 builder.addAllEnabledTools(this.enabledTools);
@@ -241,7 +244,8 @@ public final class AgentInput {
             }
             if (this.skillRefs != null) {
                 for (ResourceRef item : this.skillRefs) {
-                    builder.addSkillRefs(item.toProto());
+                    builder.addSkillRefs(item.toProto().toBuilder()
+                        .setKind(ApiResourceKind.skill).build());
                 }
             }
             if (this.modelOverride != null) {
