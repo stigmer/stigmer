@@ -412,7 +412,6 @@ function LogoPreview({ url }: { url: string }) {
 
   return (
     <div className="mt-2">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={url}
         alt="Organization logo preview"
