@@ -8,6 +8,7 @@
     "sdk/react",
     "sdk/ink",
     "client-apps/web",
+    "client-apps/desktop",
     "tools/eslint-plugin-stigmer"
   ],
   "scripts": {

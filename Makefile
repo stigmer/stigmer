@@ -248,6 +248,15 @@ libs-build:
 web-build:
 	npm run build -w client-apps/web
 
+desktop-dev: ## Start Stigmer Desktop in dev mode (Tauri + Vite hot-reload)
+	npm run tauri dev -w desktop
+
+desktop-build: ## Build Stigmer Desktop native binary
+	npm run tauri build -w desktop
+
+verify-desktop: ## Typecheck desktop app
+	npm run typecheck -w desktop
+
 validate-demos: ## Run static demo scenario validation (token compliance, manifest alignment)
 	$(MAKE) -C site validate-demos
 
