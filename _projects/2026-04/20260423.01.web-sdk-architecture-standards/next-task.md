@@ -68,8 +68,47 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-23 11:14
-**Current Task**: T01 — Workstreams A and C complete, Workstream B next
-**Status**: In Progress
+**Current Task**: T01 — All three workstreams complete
+**Status**: Complete
+
+## Session Progress (2026-04-23, Session 4)
+
+### Workstream B: Console Domain Organization (Complete)
+
+Restructured `client-apps/web/src/` from feature-folder layout to domain-organized layout. The file tree now answers "which product area?" at a glance.
+
+**Deliverables shipped:**
+- `src/domain/_shared/layout/` — App shell, sidebars, org switcher, user menu (7 files)
+- `src/domain/_shared/org/` — Org context, OrgGate (2 files)
+- `src/domain/_shared/hooks/` — Cross-cutting Console hooks (2 files)
+- `src/domain/_shared/ui/` — Console UI primitives (14 files)
+- `src/domain/session/` — SessionPage, SessionLauncher, session-navigation, draft-session (4 files)
+- `src/domain/settings/` — All settings section panels (11 files)
+- `src/domain/library/` — Library pages, navigation, breadcrumb, with resource-type subdirs (10 files)
+- `src/providers/` — Root provider composition (Providers.tsx, StigmerTransportBridge) (2 files)
+- `src/domain/README.md` — Placement guide and decision tree for new code
+- Deleted empty directories: `components/`, `contexts/`, `hooks/`, `utils/`
+
+**Key structural changes:**
+- `app/` is now routes only (page.tsx, layout.tsx, error.tsx) — no domain components
+- Fixed the `AppShell → @/app/sessions/[id]/SessionPage` cross-boundary import smell
+- `auth/` stays top-level (self-contained infrastructure, not a feature area)
+- `config/` stays top-level (app infrastructure)
+- Colocated library components (AgentListPage, LibraryLanding, etc.) moved from `app/library/` to `domain/library/`
+
+**Metrics verification (no degradation):**
+- `next/*` imports in SDK: 0 (unchanged)
+- `@/` imports in SDK: 0 (unchanged)
+- Console imports of `@stigmer/react`: 30 files, 34 lines (unchanged)
+- Hook-to-component ratio: 1.11 (unchanged)
+- Hardcoded colors: 3 in global-error.tsx (unchanged)
+- Web lint: 0 errors (clean)
+- Pre-existing issues remain: 312 opacity modifier warnings, runner.ts codegen bug
+
+**Deferred items (DD-002 observations for future follow-up):**
+- `app/login/page.tsx` contains auth flow orchestration logic
+- `app/auth/github/callback/page.tsx` contains callback pipeline logic
+- `app/library/layout.tsx` contains list/detail switching orchestration
 
 ## Session Progress (2026-04-23, Session 3)
 
@@ -125,14 +164,15 @@ The cursor rule incorporates the session preamble text that was previously paste
 
 ## Next Steps
 
-1. **Workstream B: Console Domain Organization** — The restructuring, verified against metrics from C
-   - Create `src/domain/` with subdirectories
-   - Move files incrementally, verify with `make lint && make check` after each batch
+All three workstreams are complete. Potential follow-up work:
+
+1. **DD-002 enforcement for thick route files** — Extract auth orchestration from `login/page.tsx`, callback logic from `auth/github/callback/page.tsx`, and list/detail switching from `library/layout.tsx`
+2. **Opacity modifier remediation** — Address the 312 `no-token-opacity-modifiers` warnings by proposing new theme tokens
+3. **Runner.ts codegen fix** — Regenerate proto stubs to resolve the duplicate `RunnerStreamServerMessage` import
 
 ## Quick Commands
 
 After loading context:
-- "Start Workstream C" - Begin architectural metrics work
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review design decisions" - Check the 8 DDs and 5 dont-dos

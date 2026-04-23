@@ -5,12 +5,12 @@ import {
   LibraryNavigationProvider,
   useLibraryNavigation,
   type ActiveDetail,
-} from "@/contexts/library-navigation";
-import { LibraryBreadcrumb } from "./LibraryBreadcrumb";
-import { LibraryBreadcrumbProvider } from "./LibraryBreadcrumbContext";
-import { AgentDetailPageInner } from "./agents/[org]/[slug]/AgentDetailPage";
-import { SkillDetailPageInner } from "./skills/[org]/[slug]/SkillDetailPage";
-import { McpServerDetailPageInner } from "./mcp-servers/[org]/[slug]/McpServerDetailPage";
+} from "@/domain/library/library-navigation";
+import { LibraryBreadcrumb } from "@/domain/library/LibraryBreadcrumb";
+import { LibraryBreadcrumbProvider } from "@/domain/library/LibraryBreadcrumbContext";
+import { AgentDetailPageInner } from "@/domain/library/agents/AgentDetailPage";
+import { SkillDetailPageInner } from "@/domain/library/skills/SkillDetailPage";
+import { McpServerDetailPageInner } from "@/domain/library/mcp-servers/McpServerDetailPage";
 
 export default function LibraryLayout({
   children,

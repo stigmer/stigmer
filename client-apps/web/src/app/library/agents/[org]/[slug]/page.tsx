@@ -1,4 +1,4 @@
-import { AgentDetailPage } from "./AgentDetailPage";
+import { AgentDetailPage } from "@/domain/library/agents/AgentDetailPage";
 
 export async function generateStaticParams() {
   return [{ org: "__placeholder__", slug: "__placeholder__" }];
