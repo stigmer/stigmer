@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterator
 
 import grpc
 
@@ -17,6 +16,7 @@ from ai.stigmer.commons.apiresource import metadata_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
 
 from ._errors import wrap_error
+from ._bidi import BidiStream
 from ._types import ResourceRef
 
 
@@ -57,10 +57,9 @@ class RunnerClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def connect(self, input: io_pb2.RunnerStreamClientMessage) -> Iterator[io_pb2.RunnerStreamServerMessage]:
+    def connect(self) -> BidiStream[io_pb2.RunnerStreamClientMessage, io_pb2.RunnerStreamServerMessage]:
         try:
-            for msg in self._command.connect(input):
-                yield msg
+            return BidiStream(lambda reqs: self._command.connect(reqs))
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
