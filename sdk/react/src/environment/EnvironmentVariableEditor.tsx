@@ -157,7 +157,7 @@ export function EnvironmentVariableEditor({
         {Array.from({ length: 3 }, (_, i) => (
           <div
             key={i}
-            className="bg-muted/40 h-8 animate-pulse rounded"
+            className="bg-muted-subtle h-8 animate-pulse rounded"
             style={{ width: `${85 - i * 10}%` }}
           />
         ))}
@@ -211,7 +211,7 @@ export function EnvironmentVariableEditor({
             onClick={() => setShowAddForm(true)}
             className={cn(
               "mt-1 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
               "transition-colors",
             )}
           >
@@ -396,7 +396,7 @@ function VariableRow({
             {variable.key}
           </span>
           {variable.isSecret && (
-            <span className="text-[0.55rem] uppercase tracking-wider text-muted-foreground/60">
+            <span className="text-[0.55rem] uppercase tracking-wider text-muted-foreground-subtle">
               secret
             </span>
           )}
@@ -584,7 +584,7 @@ function AddVariableForm({
           disabled={!canSubmit}
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "bg-primary text-primary-foreground hover:bg-primary-hover",
             "disabled:pointer-events-none disabled:opacity-40",
           )}
         >
@@ -597,7 +597,7 @@ function AddVariableForm({
           disabled={isAdding}
           className={cn(
             "rounded-md px-3 py-1 text-xs",
-            "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
         >
@@ -626,10 +626,10 @@ function ActionButton({
   children: React.ReactNode;
 }) {
   const colorClass = {
-    primary: "text-primary hover:text-primary/80",
+    primary: "text-primary hover:text-primary-muted",
     muted: "text-muted-foreground hover:text-foreground",
     "muted-danger": "text-muted-foreground hover:text-destructive",
-    danger: "text-destructive hover:text-destructive/80",
+    danger: "text-destructive hover:text-destructive-muted",
   }[variant];
 
   return (

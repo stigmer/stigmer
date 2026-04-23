@@ -96,8 +96,8 @@ function AttachmentChip({
       className={cn(
         "inline-flex max-w-[200px] items-center gap-1 rounded-md px-2 py-0.5 text-xs",
         isError
-          ? "border border-destructive/30 bg-destructive/10 text-destructive"
-          : "bg-muted/50 text-foreground",
+          ? "border border-destructive/30 bg-destructive-subtle text-destructive"
+          : "bg-muted-subtle text-foreground",
         isUploading && "opacity-70",
       )}
     >
@@ -116,7 +116,7 @@ function AttachmentChip({
           type="button"
           onClick={onRetry}
           disabled={disabled}
-          className="shrink-0 text-[0.6rem] font-medium text-destructive underline hover:text-destructive/80 disabled:pointer-events-none"
+          className="shrink-0 text-[0.6rem] font-medium text-destructive underline hover:text-destructive-muted disabled:pointer-events-none"
           aria-label={`Retry uploading ${entry.file.name}`}
         >
           Retry

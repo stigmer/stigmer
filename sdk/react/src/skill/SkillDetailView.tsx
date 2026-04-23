@@ -304,7 +304,7 @@ function GitProvenanceDisplay({
           {repoUrl ? (
             <a
               href={repoUrl}
-              className="text-primary underline underline-offset-2 hover:text-primary/80"
+              className="text-primary underline underline-offset-2 hover:text-primary-muted"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -396,14 +396,14 @@ function LoadingSkeleton({ className }: { readonly className?: string }) {
       <div className="space-y-2">
         <div className="h-3 w-28 animate-pulse rounded bg-muted" />
         <div
-          className="animate-pulse rounded-lg border border-border bg-muted/30"
+          className="animate-pulse rounded-lg border border-border bg-muted-faint"
           style={{ height: "240px" }}
         />
       </div>
       <div className="space-y-2">
         <div className="h-3 w-20 animate-pulse rounded bg-muted" />
         <div
-          className="animate-pulse rounded-lg border border-border bg-muted/30"
+          className="animate-pulse rounded-lg border border-border bg-muted-faint"
           style={{ height: "64px" }}
         />
       </div>
@@ -420,11 +420,11 @@ function NotFoundState({ className }: { readonly className?: string }) {
         className,
       )}
     >
-      <SkillIcon className="size-10 text-muted-foreground/40" />
+      <SkillIcon className="size-10 text-muted-foreground-faint" />
       <p className="text-sm font-medium text-muted-foreground">
         Skill not found
       </p>
-      <p className="text-xs text-muted-foreground/60">
+      <p className="text-xs text-muted-foreground-subtle">
         This skill doesn&apos;t exist or you don&apos;t have access to it.
       </p>
     </div>

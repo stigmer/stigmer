@@ -42,7 +42,7 @@ export function CloudFeatureNotice({
     <div
       role="status"
       className={cn(
-        "bg-muted/50 text-muted-foreground flex items-start gap-2.5 rounded-lg border border-transparent px-4 py-3",
+        "bg-muted-subtle text-muted-foreground flex items-start gap-2.5 rounded-lg border border-transparent px-4 py-3",
         className,
       )}
     >

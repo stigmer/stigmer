@@ -200,7 +200,7 @@ export function ToolCallGroup({
       role="group"
       aria-label={ariaLabel}
       className={cn(
-        "rounded-md border border-border bg-muted/30",
+        "rounded-md border border-border bg-muted-faint",
         className,
       )}
     >
@@ -211,7 +211,7 @@ export function ToolCallGroup({
         onClick={handleToggle}
         className={cn(
           "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors",
-          "hover:bg-muted/50",
+          "hover:bg-muted-subtle",
           "cursor-pointer",
         )}
       >
@@ -231,7 +231,7 @@ export function ToolCallGroup({
       >
         <div className="overflow-hidden">
           {expanded && (
-            <div className="border-t border-border/50">
+            <div className="border-t border-border-muted">
               {toolCalls.map((tc) => (
                 <ToolCallItem
                   key={tc.id || tc.name}

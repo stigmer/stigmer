@@ -86,7 +86,7 @@ export function OrgMembersPanel({
         {Array.from({ length: 3 }, (_, i) => (
           <div
             key={i}
-            className="bg-muted/40 h-14 animate-pulse rounded-lg"
+            className="bg-muted-subtle h-14 animate-pulse rounded-lg"
           />
         ))}
       </div>
@@ -215,7 +215,7 @@ function MemberRow({
   return (
     <div
       role="listitem"
-      className="flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2.5 hover:border-border transition-colors"
+      className="flex items-center gap-3 rounded-lg border border-border-muted px-3 py-2.5 hover:border-border transition-colors"
     >
       {/* Avatar */}
       <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
@@ -255,7 +255,7 @@ function MemberRow({
             type="button"
             onClick={() => startAction("change-role")}
             aria-label={`Change role for ${name}`}
-            className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+            className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground hover:bg-accent-hover transition-colors"
           >
             <EditIcon />
           </button>
@@ -263,7 +263,7 @@ function MemberRow({
             type="button"
             onClick={() => startAction("remove")}
             aria-label={`Remove ${name}`}
-            className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive-subtle transition-colors"
           >
             <TrashIcon />
           </button>
@@ -284,7 +284,7 @@ function RoleBadge({ grant }: { grant: RoleGrant }) {
       className={cn(
         "inline-flex items-center rounded-md border px-2 py-0.5 text-[0.65rem] font-medium",
         grant.isInherited
-          ? "border-border/50 text-muted-foreground bg-muted/50 italic"
+          ? "border-border-muted text-muted-foreground bg-muted-subtle italic"
           : "border-border bg-muted text-foreground",
       )}
       title={
@@ -334,7 +334,7 @@ function RemoveConfirmation({
   return (
     <div
       role="listitem"
-      className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5"
+      className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive-subtle px-3 py-2.5"
     >
       <div className="min-w-0 flex-1">
         <p className="text-xs text-foreground">
@@ -355,7 +355,7 @@ function RemoveConfirmation({
           disabled={isRevoking}
           className={cn(
             "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-            "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+            "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
         >
@@ -368,7 +368,7 @@ function RemoveConfirmation({
           disabled={isRevoking}
           className={cn(
             "rounded-md px-2.5 py-1 text-xs",
-            "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
         >
@@ -460,7 +460,7 @@ function ChangeRoleRow({
   return (
     <div
       role="listitem"
-      className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5 space-y-2"
+      className="rounded-lg border border-primary/30 bg-primary-subtle px-3 py-2.5 space-y-2"
     >
       <p className="text-xs text-foreground">
         Change role for <span className="font-medium">{memberName}</span>
@@ -486,7 +486,7 @@ function ChangeRoleRow({
           disabled={!canConfirm}
           className={cn(
             "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "bg-primary text-primary-foreground hover:bg-primary-hover",
             "disabled:pointer-events-none disabled:opacity-40",
           )}
         >
@@ -499,7 +499,7 @@ function ChangeRoleRow({
           disabled={isWorking}
           className={cn(
             "rounded-md px-2.5 py-1 text-xs",
-            "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
         >

@@ -109,7 +109,7 @@ export function CreateEnvironmentForm({
             className="text-xs font-medium text-muted-foreground"
           >
             Description{" "}
-            <span className="text-muted-foreground/60">(optional)</span>
+            <span className="text-muted-foreground-subtle">(optional)</span>
           </label>
           <input
             id="stgm-new-env-desc"
@@ -140,7 +140,7 @@ export function CreateEnvironmentForm({
           disabled={!canSubmit}
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "bg-primary text-primary-foreground hover:bg-primary-hover",
             "disabled:pointer-events-none disabled:opacity-40",
           )}
         >
@@ -155,7 +155,7 @@ export function CreateEnvironmentForm({
             disabled={isCreating}
             className={cn(
               "rounded-md px-3 py-1.5 text-xs",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >

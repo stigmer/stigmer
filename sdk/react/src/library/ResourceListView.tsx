@@ -352,7 +352,7 @@ export function ResourceListView({
         <div role="search" className="flex items-center gap-2">
           {onSearchChange && (
             <div className="relative flex-1">
-              <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
+              <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground-subtle" />
               <input
                 type="text"
                 value={inputValue}
@@ -361,7 +361,7 @@ export function ResourceListView({
                 aria-label={searchPlaceholder}
                 className={cn(
                   "w-full rounded-md border border-input bg-background py-1.5 pl-8 pr-3 text-sm",
-                  "placeholder:text-muted-foreground/60",
+                  "placeholder:text-muted-foreground-subtle",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 )}
               />
@@ -421,12 +421,12 @@ export function ResourceListView({
                       isGrid
                         ? [
                             "flex h-full rounded-lg border border-border bg-card p-4",
-                            "cursor-pointer hover:border-primary/40 hover:bg-accent/30",
+                            "cursor-pointer hover:border-primary/40 hover:bg-accent-hover",
                             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                           ]
                         : [
                             "rounded-lg px-3 py-2.5",
-                            "cursor-pointer hover:bg-accent/50",
+                            "cursor-pointer hover:bg-accent-hover",
                             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                           ],
                     )}
@@ -511,7 +511,7 @@ function DefaultResourceRow({
               </span>
             ))}
             {item.tags.length > MAX_VISIBLE_TAGS && (
-              <span className="text-[10px] text-muted-foreground/60">
+              <span className="text-[10px] text-muted-foreground-subtle">
                 +{item.tags.length - MAX_VISIBLE_TAGS} more
               </span>
             )}
@@ -712,9 +712,9 @@ function EmptyState({
       role="status"
       className="flex flex-col items-center gap-2 py-8 text-center"
     >
-      {icon && <div className="text-muted-foreground/40">{icon}</div>}
+      {icon && <div className="text-muted-foreground-faint">{icon}</div>}
       <p className="text-sm font-medium text-muted-foreground">{title}</p>
-      <p className="text-xs text-muted-foreground/60">{description}</p>
+      <p className="text-xs text-muted-foreground-subtle">{description}</p>
     </div>
   );
 }

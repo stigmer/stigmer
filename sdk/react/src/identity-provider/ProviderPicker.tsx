@@ -45,11 +45,11 @@ export function ProviderPicker({ onSelect, className }: ProviderPickerProps) {
           onClick={() => onSelect(preset)}
           className={cn(
             "flex flex-col items-start gap-2 rounded-lg px-3 py-3 text-left transition-colors",
-            "border hover:border-primary/60 hover:bg-accent/30",
+            "border hover:border-primary/60 hover:bg-accent-hover",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
             preset.id === "custom"
               ? "border-dashed border-border"
-              : "border-border/60",
+              : "border-border-muted",
           )}
         >
           <ProviderIcon presetId={preset.id} />

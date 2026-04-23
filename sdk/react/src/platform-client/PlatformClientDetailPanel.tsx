@@ -276,7 +276,7 @@ export function PlatformClientDetailPanel({
             onClick={enterEdit}
             className={cn(
               "shrink-0 rounded-md px-2.5 py-1.5 text-xs font-medium",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
               "transition-colors",
             )}
           >
@@ -295,7 +295,7 @@ export function PlatformClientDetailPanel({
       ) : (
         <form onSubmit={handleSave} className="space-y-3">
           {/* Read-only credential info */}
-          <div className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 space-y-1">
+          <div className="rounded-md border border-border-muted bg-muted-faint px-3 py-2 space-y-1">
             <p className="text-[0.65rem] font-medium text-muted-foreground">
               Client ID
             </p>
@@ -341,7 +341,7 @@ export function PlatformClientDetailPanel({
 
           {/* JIT provisioning */}
           <fieldset className="space-y-2.5" disabled={isUpdating}>
-            <hr className="border-border/40" />
+            <hr className="border-border-muted" />
             <legend className="text-xs font-medium text-foreground">
               JIT provisioning
             </legend>
@@ -397,7 +397,7 @@ export function PlatformClientDetailPanel({
 
           {/* Allowed origins */}
           <fieldset className="space-y-2" disabled={isUpdating}>
-            <hr className="border-border/40" />
+            <hr className="border-border-muted" />
             <legend className="text-xs font-medium text-foreground">
               Allowed origins
             </legend>
@@ -430,7 +430,7 @@ export function PlatformClientDetailPanel({
                 disabled={isUpdating || !originInput.trim()}
                 className={cn(
                   "shrink-0 rounded-md px-2.5 py-1.5 text-xs font-medium",
-                  "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                  "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
                   "disabled:pointer-events-none disabled:opacity-50",
                   "transition-colors",
                 )}
@@ -444,7 +444,7 @@ export function PlatformClientDetailPanel({
                 {origins.map((origin) => (
                   <span
                     key={origin}
-                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[0.65rem] font-mono text-foreground"
+                    className="inline-flex items-center gap-1 rounded-full border border-border-muted bg-muted-subtle px-2 py-0.5 text-[0.65rem] font-mono text-foreground"
                   >
                     {origin}
                     <button
@@ -474,7 +474,7 @@ export function PlatformClientDetailPanel({
               disabled={isUpdating}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-                "bg-primary text-primary-foreground hover:bg-primary/90",
+                "bg-primary text-primary-foreground hover:bg-primary-hover",
                 "disabled:pointer-events-none disabled:opacity-40",
               )}
             >
@@ -487,7 +487,7 @@ export function PlatformClientDetailPanel({
               disabled={isUpdating}
               className={cn(
                 "rounded-md px-2.5 py-1.5 text-xs",
-                "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
                 "disabled:pointer-events-none disabled:opacity-50",
               )}
             >
@@ -500,7 +500,7 @@ export function PlatformClientDetailPanel({
       {/* Actions bar (view mode only) */}
       {mode === "view" && (
         <div className="space-y-2 pt-2">
-          <hr className="border-border/40" />
+          <hr className="border-border-muted" />
 
           {/* Rotate Secret */}
           {confirmingRotate ? (
@@ -516,7 +516,7 @@ export function PlatformClientDetailPanel({
                   disabled={isBusy}
                   className={cn(
                     "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-                    "bg-primary text-primary-foreground hover:bg-primary/90",
+                    "bg-primary text-primary-foreground hover:bg-primary-hover",
                     "disabled:pointer-events-none disabled:opacity-50",
                   )}
                 >
@@ -532,7 +532,7 @@ export function PlatformClientDetailPanel({
                   disabled={isBusy}
                   className={cn(
                     "rounded-md px-2.5 py-1 text-xs",
-                    "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                    "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
                     "disabled:pointer-events-none disabled:opacity-50",
                   )}
                 >
@@ -547,7 +547,7 @@ export function PlatformClientDetailPanel({
               disabled={isBusy}
               className={cn(
                 "rounded-md px-2.5 py-1.5 text-xs font-medium",
-                "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
                 "disabled:pointer-events-none disabled:opacity-50",
                 "transition-colors",
               )}
@@ -563,7 +563,7 @@ export function PlatformClientDetailPanel({
 
           {/* Delete */}
           {confirmingDelete ? (
-            <div className="flex items-center justify-between rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+            <div className="flex items-center justify-between rounded-md border border-destructive/30 bg-destructive-subtle px-3 py-2">
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-foreground">
                   Delete{" "}
@@ -583,7 +583,7 @@ export function PlatformClientDetailPanel({
                   disabled={isBusy}
                   className={cn(
                     "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-                    "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                    "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
                     "disabled:pointer-events-none disabled:opacity-50",
                   )}
                 >
@@ -596,7 +596,7 @@ export function PlatformClientDetailPanel({
                   disabled={isBusy}
                   className={cn(
                     "rounded-md px-2.5 py-1 text-xs",
-                    "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                    "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
                     "disabled:pointer-events-none disabled:opacity-50",
                   )}
                 >
@@ -611,7 +611,7 @@ export function PlatformClientDetailPanel({
               disabled={isBusy}
               className={cn(
                 "rounded-md px-2.5 py-1.5 text-xs font-medium",
-                "text-destructive hover:text-destructive-foreground hover:bg-destructive/90",
+                "text-destructive hover:text-destructive-foreground hover:bg-destructive-hover",
                 "disabled:pointer-events-none disabled:opacity-50",
                 "transition-colors",
               )}
@@ -662,7 +662,7 @@ function ViewMode({
       ) : null}
 
       {/* JIT provisioning */}
-      <hr className="border-border/40" />
+      <hr className="border-border-muted" />
       <Field
         label="Auto-provision accounts"
         value={spec?.autoProvisionAccounts ? "Enabled" : "Disabled"}
@@ -681,7 +681,7 @@ function ViewMode({
       {/* Allowed origins */}
       {(spec?.allowedOrigins.length ?? 0) > 0 && (
         <>
-          <hr className="border-border/40" />
+          <hr className="border-border-muted" />
           <div>
             <dt className="text-muted-foreground text-[0.65rem] font-medium">
               Allowed origins
@@ -690,7 +690,7 @@ function ViewMode({
               {spec!.allowedOrigins.map((origin) => (
                 <span
                   key={origin}
-                  className="inline-block rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[0.65rem] font-mono text-foreground"
+                  className="inline-block rounded-full border border-border-muted bg-muted-subtle px-2 py-0.5 text-[0.65rem] font-mono text-foreground"
                 >
                   {origin}
                 </span>

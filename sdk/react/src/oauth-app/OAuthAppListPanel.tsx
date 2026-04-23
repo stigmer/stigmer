@@ -73,7 +73,7 @@ export function OAuthAppListPanel({
         {Array.from({ length: 2 }, (_, i) => (
           <div
             key={i}
-            className="bg-muted/40 h-14 animate-pulse rounded-lg"
+            className="bg-muted-subtle h-14 animate-pulse rounded-lg"
           />
         ))}
       </div>
@@ -136,7 +136,7 @@ function OAuthAppRow({
   return (
     <div
       role="listitem"
-      className="flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2.5 transition-colors hover:border-border"
+      className="flex items-center gap-3 rounded-lg border border-border-muted px-3 py-2.5 transition-colors hover:border-border"
     >
       <OAuthIcon />
 
@@ -166,7 +166,7 @@ function OAuthAppRow({
           aria-label={`Edit ${provider}`}
           className={cn(
             "shrink-0 rounded p-1",
-            "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
             "transition-colors",
           )}
         >

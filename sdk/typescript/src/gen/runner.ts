@@ -6,7 +6,7 @@ import { stripUndefined } from "./proto-utils";
 import { type ResourceRef } from "./types";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { RunnerSchema, type Runner, type RunnerStreamServerMessage } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
+import { RunnerSchema, type Runner } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
 import { RunnerCommandController } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/command_pb";
 import { RunnerIdSchema, RunnerSendCommandInputSchema, RunnerCommandResponseSchema, RunnerStreamClientMessageSchema, RunnerStreamServerMessageSchema, ListRunnersRequestSchema, RunnerListSchema, type RunnerSendCommandInput, type RunnerCommandResponse, type RunnerStreamClientMessage, type RunnerStreamServerMessage, type ListRunnersRequest, type RunnerList } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/io_pb";
 import { RunnerQueryController } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/query_pb";

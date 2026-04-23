@@ -181,7 +181,7 @@ export function OrgProfilePanel({
           onClick={refetch}
           className={cn(
             "rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "bg-primary text-primary-foreground hover:bg-primary-hover",
           )}
         >
           Retry
@@ -317,7 +317,7 @@ export function OrgProfilePanel({
           disabled={!canSubmit}
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "bg-primary text-primary-foreground hover:bg-primary-hover",
             "disabled:pointer-events-none disabled:opacity-40",
           )}
         >
@@ -331,7 +331,7 @@ export function OrgProfilePanel({
             onClick={handleDiscard}
             className={cn(
               "rounded-md px-3 py-1.5 text-xs",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
             )}
           >
             Discard
@@ -385,7 +385,7 @@ function ReadOnlyField({
           onClick={handleCopy}
           className={cn(
             "rounded px-1.5 py-0.5 text-[0.6rem]",
-            "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
             "transition-colors",
           )}
           aria-label={`Copy ${label}`}

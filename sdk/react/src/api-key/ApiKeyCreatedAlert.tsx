@@ -90,7 +90,7 @@ export function ApiKeyCreatedAlert({
           aria-label="Dismiss"
           className={cn(
             "shrink-0 rounded p-1",
-            "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
             "transition-colors",
           )}
         >
@@ -115,7 +115,7 @@ export function ApiKeyCreatedAlert({
           onClick={handleCopy}
           className={cn(
             "inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "bg-primary text-primary-foreground hover:bg-primary-hover",
             "transition-colors",
           )}
         >

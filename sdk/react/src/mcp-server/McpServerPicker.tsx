@@ -617,7 +617,7 @@ export function McpServerPicker({
                   "disabled:pointer-events-none disabled:opacity-50",
                   idx === focusIndex
                     ? "bg-accent text-foreground"
-                    : "text-foreground hover:bg-accent/50",
+                    : "text-foreground hover:bg-accent-hover",
                 )}
                 role="option"
                 aria-selected={idx === focusIndex}
@@ -667,7 +667,7 @@ function SimpleServerRow({
   readonly disabled?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-md bg-muted/30 px-2 py-1 text-xs">
+    <div className="flex items-center gap-2 rounded-md bg-muted-faint px-2 py-1 text-xs">
       <McpServerIcon />
       <span className="min-w-0 flex-1 truncate text-foreground">{slug}</span>
       <button
@@ -711,7 +711,7 @@ function SetupServerRow({
       <div
         className={cn(
           "flex items-center gap-2 rounded-md px-2 py-1 text-xs",
-          hasError ? "bg-destructive/10" : "bg-muted/30",
+          hasError ? "bg-destructive-subtle" : "bg-muted-faint",
         )}
       >
         <StatusIndicator status={entry.status} hasError={hasError} />
@@ -731,7 +731,7 @@ function SetupServerRow({
             disabled={disabled}
             className={cn(
               "shrink-0 rounded px-1.5 py-0.5 text-[0.6rem] font-medium",
-              "text-destructive hover:bg-destructive/10",
+              "text-destructive hover:bg-destructive-subtle",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >
@@ -767,7 +767,7 @@ function SetupServerRow({
             disabled={disabled}
             className={cn(
               "shrink-0 flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[0.6rem] font-medium",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >
@@ -872,7 +872,7 @@ function LoadingSkeleton() {
             style={{ width: `${w}%` }}
           />
           <div
-            className="h-2 rounded bg-muted/60 animate-pulse"
+            className="h-2 rounded bg-muted-subtle animate-pulse"
             style={{ width: `${Math.min(w + 15, 90)}%` }}
           />
         </div>

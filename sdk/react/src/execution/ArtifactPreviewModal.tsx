@@ -447,7 +447,7 @@ function ContentHeader({
             />
           )}
           {detectionLabel && (
-            <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+            <span className="inline-flex items-center rounded-full bg-primary-subtle px-2 py-0.5 text-xs font-medium text-primary">
               {detectionLabel}
             </span>
           )}
@@ -548,7 +548,7 @@ function DirectoryContentView({
   return (
     <div className="p-4">
       {skillDetection.detected && (
-        <div className="mb-4 rounded-md bg-primary/5 p-3">
+        <div className="mb-4 rounded-md bg-primary-subtle p-3">
           <p className="text-sm font-medium text-foreground">
             {skillDetection.skillName}
           </p>
@@ -671,7 +671,7 @@ function ActionBar({
               type="button"
               onClick={onApply}
               className={cn(
-                "text-xs font-medium text-destructive underline transition-colors hover:text-destructive/80",
+                "text-xs font-medium text-destructive underline transition-colors hover:text-destructive-muted",
                 FOCUS_RING_CLASSES,
               )}
             >
@@ -717,7 +717,7 @@ function ApplyButton({
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         "disabled:cursor-not-allowed",
         canApply
-          ? "bg-primary text-primary-foreground hover:bg-primary/90"
+          ? "bg-primary text-primary-foreground hover:bg-primary-hover"
           : "bg-muted text-muted-foreground",
       )}
     >

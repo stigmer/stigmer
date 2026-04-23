@@ -68,7 +68,7 @@ export function ModelSelector({
         className={[
           "inline-flex items-center gap-1.5 rounded-md border border-border",
           "bg-background px-2.5 py-1.5 text-xs text-foreground",
-          "hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           "disabled:pointer-events-none disabled:opacity-50",
           "transition-colors",
           className,

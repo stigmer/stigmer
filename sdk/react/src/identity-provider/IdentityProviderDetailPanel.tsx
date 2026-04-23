@@ -210,7 +210,7 @@ export function IdentityProviderDetailPanel({
             onClick={enterEdit}
             className={cn(
               "shrink-0 rounded-md px-2.5 py-1.5 text-xs font-medium",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
               "transition-colors",
             )}
           >
@@ -341,7 +341,7 @@ export function IdentityProviderDetailPanel({
               disabled={!canSave}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-                "bg-primary text-primary-foreground hover:bg-primary/90",
+                "bg-primary text-primary-foreground hover:bg-primary-hover",
                 "disabled:pointer-events-none disabled:opacity-40",
               )}
             >
@@ -354,7 +354,7 @@ export function IdentityProviderDetailPanel({
               disabled={isUpdating}
               className={cn(
                 "rounded-md px-2.5 py-1.5 text-xs",
-                "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
                 "disabled:pointer-events-none disabled:opacity-50",
               )}
             >
@@ -414,7 +414,7 @@ function ViewMode({
       {/* JIT provisioning fields */}
       {!spec?.isSsoProvider && spec?.autoProvisionAccounts && (
         <>
-          <hr className="border-border/40" />
+          <hr className="border-border-muted" />
           <Field
             label="Auto-provision accounts"
             value={spec.autoProvisionAccounts ? "Enabled" : "Disabled"}
@@ -537,7 +537,7 @@ function CopyableField({
             onClick={handleCopy}
             className={cn(
               "shrink-0 rounded px-1.5 py-0.5 text-[0.6rem]",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
               "transition-colors",
             )}
             aria-label={`Copy ${label}`}
@@ -671,7 +671,7 @@ function JitEditSection({
 }) {
   if (isSso) {
     return (
-      <div className="rounded-md border border-border/60 bg-muted/30 px-3 py-2">
+      <div className="rounded-md border border-border-muted bg-muted-faint px-3 py-2">
         <p className="text-[0.65rem] text-muted-foreground">
           SSO providers automatically provision accounts and grant the{" "}
           <span className="font-medium text-foreground">viewer</span> role on
@@ -683,7 +683,7 @@ function JitEditSection({
 
   return (
     <fieldset className="space-y-2.5" disabled={disabled}>
-      <hr className="border-border/40" />
+      <hr className="border-border-muted" />
       <legend className="text-xs font-medium text-foreground">
         JIT provisioning
       </legend>

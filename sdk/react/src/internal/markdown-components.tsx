@@ -48,7 +48,7 @@ export const MARKDOWN_COMPONENTS: Components = {
     return (
       <a
         href={href}
-        className="text-primary underline underline-offset-2 hover:text-primary/80"
+        className="text-primary underline underline-offset-2 hover:text-primary-muted"
         target="_blank"
         rel="noopener noreferrer"
         {...props}
@@ -174,7 +174,7 @@ export const MARKDOWN_COMPONENTS: Components = {
   th({ children, ...props }: MdProps<"th">) {
     return (
       <th
-        className="border border-border px-3 py-1.5 text-left font-medium text-foreground bg-muted/50"
+        className="border border-border px-3 py-1.5 text-left font-medium text-foreground bg-muted-subtle"
         {...props}
       >
         {children}

@@ -75,7 +75,7 @@ export function ErrorMessage({
     <div
       role="alert"
       className={cn(
-        "bg-destructive/5 border-destructive/20 text-destructive rounded-lg border p-4",
+        "bg-destructive-subtle border-destructive/20 text-destructive rounded-lg border p-4",
         className,
       )}
     >
@@ -90,14 +90,14 @@ export function ErrorMessage({
           <p className="text-sm font-medium">
             {title ?? CATEGORY_TITLES[category]}
           </p>
-          <p className="text-destructive/80 text-sm">{message}</p>
+          <p className="text-destructive-muted text-sm">{message}</p>
 
           {metadata && (
             <div className="pt-1">
               <button
                 type="button"
                 onClick={() => setDetailsOpen((prev) => !prev)}
-                className="text-destructive/60 hover:text-destructive/80 inline-flex items-center gap-1 text-xs transition-colors"
+                className="text-destructive-muted hover:text-destructive-muted inline-flex items-center gap-1 text-xs transition-colors"
               >
                 <ChevronDownIcon
                   className={cn(
@@ -108,7 +108,7 @@ export function ErrorMessage({
                 Technical details
               </button>
               {detailsOpen && (
-                <dl className="text-destructive/60 mt-1.5 space-y-0.5 font-mono text-xs">
+                <dl className="text-destructive-muted mt-1.5 space-y-0.5 font-mono text-xs">
                   <div className="flex gap-2">
                     <dt className="shrink-0">Method:</dt>
                     <dd className="truncate">{metadata.method}</dd>
@@ -129,7 +129,7 @@ export function ErrorMessage({
             onClick={retry}
             className={cn(
               "inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium",
-              "border-destructive/20 text-destructive hover:bg-destructive/10",
+              "border-destructive/20 text-destructive hover:bg-destructive-subtle",
               "transition-colors",
             )}
           >
