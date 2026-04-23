@@ -6,7 +6,7 @@ import (
 	"github.com/stigmer/stigmer/mcp-server/internal/convert"
 	agentinstancev1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/agentinstance/v1"
 	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
-	apiresourcekind "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 // AgentInstanceSpec defines the configurable properties of an agent instance.
@@ -33,19 +33,15 @@ type AgentInstanceInput struct {
 	// Human-readable description for UI and API display.
 	Description string `json:"description,omitempty" jsonschema:"Human-readable description for UI and API display."`
 	// References to Environment resources providing secrets and configuration at runtime. @internal Environments are merged in order: later environments override earlier ones. Example: [base-env, aws-prod-env, github-team-env] This allows layering of configurations (base → specific overrides).
-	EnvironmentRefs []ApiResourceReferenceInput `json:"environment_refs,omitempty" jsonschema:"References to Environment resources providing secrets and configuration at runtime. @internal Environments are merged in order: later environments override earlier ones. Example: [base-env, aws-prod-env, github-team-env] This allows layering of configurations (base → specific overrides)."`
+	EnvironmentRefs []EnvironmentRefInput `json:"environment_refs,omitempty" jsonschema:"References to Environment resources providing secrets and configuration at runtime. @internal Environments are merged in order: later environments override earlier ones. Example: [base-env, aws-prod-env, github-team-env] This allows layering of configurations (base → specific overrides)."`
 }
 
-// Generic reference to any API resource by org and slug. Used across resources to reference other resources (e.g., Environment, Agent, Skill). Canonical format: "org/slug" (e.g., "stigmer/web-search", "acme/my-agent").
-type ApiResourceReferenceInput struct {
+// Identifies a resource by org, slug, and optional version. Kind is auto-populated.
+type EnvironmentRefInput struct {
 	// Organization that owns the referenced resource. When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters). Example: "stigmer", "acme-corp". When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form). Use empty org for same-org references (the common case). Use explicit org for cross-org references (e.g., marketplace resources).
 	Org string `json:"org,omitempty" jsonschema:"Organization that owns the referenced resource. When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters). Example: 'stigmer', 'acme-corp'. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form). Use empty org for same-org references (the common case). Use explicit org for cross-org references (e.g., marketplace resources)."`
-	// Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).
-	Kind string `json:"kind,omitempty" jsonschema:"Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER). Allowed values: api_resource_version, iam_policy, identity_account, api_key, invitation, identity_provider, oauth_app, platform_client, organization, platform, agent, agent_execution, session, skill, mcp_server, agent_instance, runner, workflow, workflow_instance, workflow_execution, environment, execution_context, project."`
 	// Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., "web-search", "code-reviewer"). Length: 1-63 characters.
 	Slug string `json:"slug" jsonschema:"Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., 'web-search', 'code-reviewer'). Length: 1-63 characters."`
-	// Version of the resource (optional, only applicable to versioned resources like Skills). Supports three formats: 1. Empty/unset → Resolves to "latest" (most recent version) 2. Tag name → Resolves to version with this tag (e.g., "stable", "v1.0") 3. Exact hash → Immutable reference to specific version (e.g., "abc123...") Default behavior: Empty means "latest" (current version). This field is ignored for non-versioned resources. Examples: - version: "" → Use latest version - version: "latest" → Use latest version (explicit) - version: "stable" → Use version tagged as "stable" - version: "v1.0" → Use version tagged as "v1.0" - version: "abc123..." → Use exact version with this hash (immutable)
-	Version string `json:"version,omitempty" jsonschema:"Version of the resource (optional, only applicable to versioned resources like Skills). Supports three formats: 1. Empty/unset → Resolves to 'latest' (most recent version) 2. Tag name → Resolves to version with this tag (e.g., 'stable', 'v1.0') 3. Exact hash → Immutable reference to specific version (e.g., 'abc123...') Default behavior: Empty means 'latest' (current version). This field is ignored for non-versioned resources. Examples: - version: '' → Use latest version - version: 'latest' → Use latest version (explicit) - version: 'stable' → Use version tagged as 'stable' - version: 'v1.0' → Use version tagged as 'v1.0' - version: 'abc123...' → Use exact version with this hash (immutable)"`
 }
 
 // ToProto converts the flat MCP input into a fully-formed AgentInstance proto message.
@@ -90,12 +86,10 @@ func (input *AgentInstanceInput) specToProto() (*agentinstancev1.AgentInstanceSp
 	return spec, nil
 }
 
-func (input *ApiResourceReferenceInput) toProto() (*apiresource.ApiResourceReference, error) {
-	result := &apiresource.ApiResourceReference{}
-
-	result.Org = input.Org
-	result.Kind = apiresourcekind.ApiResourceKind(apiresourcekind.ApiResourceKind_value[input.Kind])
-	result.Slug = input.Slug
-	result.Version = input.Version
-	return result, nil
+func (input *EnvironmentRefInput) toProto() (*apiresource.ApiResourceReference, error) {
+	return &apiresource.ApiResourceReference{
+		Org:  input.Org,
+		Slug: input.Slug,
+		Kind: apiresourcekind.ApiResourceKind_environment,
+	}, nil
 }

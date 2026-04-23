@@ -1091,6 +1091,12 @@ func emitPyToProtoFieldAssign(buf *bytes.Buffer, f *FieldSchema, msgVar, selfVar
 		fmt.Fprintf(buf, "%sif %s.%s:\n", indent, selfVar, selfField)
 		fmt.Fprintf(buf, "%s    %s.update(%s.%s)\n", indent, protoAccess(msgVar, protoField), selfVar, selfField)
 
+	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference" && f.ReferenceKind != 0:
+		fmt.Fprintf(buf, "%sif %s.%s is not None:\n", indent, selfVar, selfField)
+		fmt.Fprintf(buf, "%s    _ref = %s.%s._to_proto()\n", indent, selfVar, selfField)
+		fmt.Fprintf(buf, "%s    _ref.kind = %d\n", indent, f.ReferenceKind)
+		fmt.Fprintf(buf, "%s    %s.CopyFrom(_ref)\n", indent, protoAccess(msgVar, protoField))
+
 	case f.Type.Kind == "message":
 		fmt.Fprintf(buf, "%sif %s.%s is not None:\n", indent, selfVar, selfField)
 		fmt.Fprintf(buf, "%s    %s.CopyFrom(%s.%s._to_proto())\n", indent, protoAccess(msgVar, protoField), selfVar, selfField)
@@ -1100,8 +1106,15 @@ func emitPyToProtoFieldAssign(buf *bytes.Buffer, f *FieldSchema, msgVar, selfVar
 		fmt.Fprintf(buf, "%s    %s.extend(%s.%s)\n", indent, protoAccess(msgVar, protoField), selfVar, selfField)
 
 	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message" && f.Type.ElementType.MessageType == "ApiResourceReference":
-		fmt.Fprintf(buf, "%sfor ref in %s.%s:\n", indent, selfVar, selfField)
-		fmt.Fprintf(buf, "%s    %s.append(ref._to_proto())\n", indent, protoAccess(msgVar, protoField))
+		if f.ReferenceKind != 0 {
+			fmt.Fprintf(buf, "%sfor ref in %s.%s:\n", indent, selfVar, selfField)
+			fmt.Fprintf(buf, "%s    _ref = ref._to_proto()\n", indent)
+			fmt.Fprintf(buf, "%s    _ref.kind = %d\n", indent, f.ReferenceKind)
+			fmt.Fprintf(buf, "%s    %s.append(_ref)\n", indent, protoAccess(msgVar, protoField))
+		} else {
+			fmt.Fprintf(buf, "%sfor ref in %s.%s:\n", indent, selfVar, selfField)
+			fmt.Fprintf(buf, "%s    %s.append(ref._to_proto())\n", indent, protoAccess(msgVar, protoField))
+		}
 
 	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message":
 		fmt.Fprintf(buf, "%sfor item in %s.%s:\n", indent, selfVar, selfField)

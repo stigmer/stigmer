@@ -1064,7 +1064,11 @@ func emitTSPreComputeField(buf *bytes.Buffer, f *FieldSchema, typeMap map[string
 
 	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference":
 		imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema")
-		fmt.Fprintf(buf, "  const %s = input.%s ? create(ApiResourceReferenceSchema, input.%s) : undefined;\n", fieldName, fieldName, fieldName)
+		if f.ReferenceKind != 0 {
+			fmt.Fprintf(buf, "  const %s = input.%s ? create(ApiResourceReferenceSchema, { ...input.%s, kind: %d }) : undefined;\n", fieldName, fieldName, fieldName, f.ReferenceKind)
+		} else {
+			fmt.Fprintf(buf, "  const %s = input.%s ? create(ApiResourceReferenceSchema, input.%s) : undefined;\n", fieldName, fieldName, fieldName)
+		}
 
 	case f.Type.Kind == "message":
 		builderName := "build" + f.Type.MessageType + "Proto"
@@ -1072,7 +1076,11 @@ func emitTSPreComputeField(buf *bytes.Buffer, f *FieldSchema, typeMap map[string
 
 	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message" && f.Type.ElementType.MessageType == "ApiResourceReference":
 		imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema")
-		fmt.Fprintf(buf, "  const %s = input.%s?.map(r => create(ApiResourceReferenceSchema, r));\n", fieldName, fieldName)
+		if f.ReferenceKind != 0 {
+			fmt.Fprintf(buf, "  const %s = input.%s?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: %d }));\n", fieldName, fieldName, f.ReferenceKind)
+		} else {
+			fmt.Fprintf(buf, "  const %s = input.%s?.map(r => create(ApiResourceReferenceSchema, r));\n", fieldName, fieldName)
+		}
 
 	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message":
 		builderName := "build" + f.Type.ElementType.MessageType + "Proto"
@@ -1224,8 +1232,13 @@ func emitTSNestedFieldAssign(buf *bytes.Buffer, f *FieldSchema, typeMap map[stri
 
 	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message" && f.Type.ElementType.MessageType == "ApiResourceReference":
 		imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema")
-		fmt.Fprintf(buf, "  if (input.%s) msg.%s = input.%s.map(r => create(ApiResourceReferenceSchema, r));\n",
-			fieldName, fieldName, fieldName)
+		if f.ReferenceKind != 0 {
+			fmt.Fprintf(buf, "  if (input.%s) msg.%s = input.%s.map(r => create(ApiResourceReferenceSchema, { ...r, kind: %d }));\n",
+				fieldName, fieldName, fieldName, f.ReferenceKind)
+		} else {
+			fmt.Fprintf(buf, "  if (input.%s) msg.%s = input.%s.map(r => create(ApiResourceReferenceSchema, r));\n",
+				fieldName, fieldName, fieldName)
+		}
 
 	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message":
 		elemMsg := f.Type.ElementType.MessageType
@@ -1247,8 +1260,13 @@ func emitTSNestedFieldAssign(buf *bytes.Buffer, f *FieldSchema, typeMap map[stri
 
 	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference":
 		imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema")
-		fmt.Fprintf(buf, "  if (input.%s) msg.%s = create(ApiResourceReferenceSchema, input.%s);\n",
-			fieldName, fieldName, fieldName)
+		if f.ReferenceKind != 0 {
+			fmt.Fprintf(buf, "  if (input.%s) msg.%s = create(ApiResourceReferenceSchema, { ...input.%s, kind: %d });\n",
+				fieldName, fieldName, fieldName, f.ReferenceKind)
+		} else {
+			fmt.Fprintf(buf, "  if (input.%s) msg.%s = create(ApiResourceReferenceSchema, input.%s);\n",
+				fieldName, fieldName, fieldName)
+		}
 
 	case f.Type.Kind == "message":
 		msgType := f.Type.MessageType

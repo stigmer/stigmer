@@ -100,12 +100,12 @@ var File_ai_stigmer_agentic_agentinstance_v1_spec_proto protoreflect.FileDescrip
 
 const file_ai_stigmer_agentic_agentinstance_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/agentic/agentinstance/v1/spec.proto\x12#ai.stigmer.agentic.agentinstance.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xb1\x02\n" +
+	".ai/stigmer/agentic/agentinstance/v1/spec.proto\x12#ai.stigmer.agentic.agentinstance.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xb5\x02\n" +
 	"\x11AgentInstanceSpec\x12\"\n" +
 	"\bagent_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aagentId\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\xd5\x01\n" +
-	"\x10environment_refs\x18\x03 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBt\xbaHq\x92\x01n\"l\xba\x01i\n" +
-	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53R\x0fenvironmentRefsB\xc3\x02\n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\xd9\x01\n" +
+	"\x10environment_refs\x18\x03 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
+	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefsB\xc3\x02\n" +
 	"'com.ai.stigmer.agentic.agentinstance.v1B\tSpecProtoP\x01Z\\github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1;agentinstancev1\xa2\x02\x04ASAA\xaa\x02#Ai.Stigmer.Agentic.Agentinstance.V1\xca\x02#Ai\\Stigmer\\Agentic\\Agentinstance\\V1\xe2\x02/Ai\\Stigmer\\Agentic\\Agentinstance\\V1\\GPBMetadata\xea\x02'Ai::Stigmer::Agentic::Agentinstance::V1b\x06proto3"
 
 var (

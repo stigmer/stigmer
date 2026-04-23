@@ -10,6 +10,7 @@ import ai.stigmer.agentic.mcpserver.v1.McpServerSpec;
 import ai.stigmer.agentic.mcpserver.v1.StdioServerConfig;
 import ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 
 /** Input for creating/updating a McpServer. */
 public final class McpServerInput {
@@ -319,7 +320,8 @@ public final class McpServerInput {
         McpServerAuth toProto() {
             McpServerAuth.Builder builder = McpServerAuth.newBuilder();
             if (this.oauthAppRef != null) {
-                builder.setOauthAppRef(this.oauthAppRef.toProto());
+                builder.setOauthAppRef(this.oauthAppRef.toProto().toBuilder()
+                    .setKind(ApiResourceKind.oauth_app).build());
             }
             if (this.targetEnvVar != null) {
                 builder.setTargetEnvVar(this.targetEnvVar);

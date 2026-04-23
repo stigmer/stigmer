@@ -5,6 +5,7 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance;
 import ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 
 /** Input for creating/updating a WorkflowInstance. */
 public final class WorkflowInstanceInput {
@@ -36,7 +37,8 @@ public final class WorkflowInstanceInput {
         }
         if (this.environmentRefs != null) {
             for (ResourceRef item : this.environmentRefs) {
-                spec.addEnvironmentRefs(item.toProto());
+                spec.addEnvironmentRefs(item.toProto().toBuilder()
+                    .setKind(ApiResourceKind.environment).build());
             }
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
