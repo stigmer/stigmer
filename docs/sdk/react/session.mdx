@@ -724,6 +724,7 @@ Shared fields present in both variants of [`CreateSessionInput`](#createsessioni
   type={{
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
     org: { type: "string", description: "Organization slug for the new session.", required: true },
+    runnerId: { type: "string", description: "Runner to bind this session to.  When set, all executions in the session are routed to this runner's task queue. When omitted, the backend auto-selects a runner (session auto-bind in OSS, cloud auto-provisioning in Cloud)." },
     skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for executions in this session." },
     subject: { type: "string", description: "Initial conversation subject (defaults to `PENDING_SUBJECT`)." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace source entries to attach to the session." },

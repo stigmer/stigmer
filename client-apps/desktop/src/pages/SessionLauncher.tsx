@@ -1,7 +1,5 @@
-"use client";
-
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   SessionComposer,
@@ -13,9 +11,7 @@ import {
 } from "@stigmer/react";
 import type { DraftResourceType } from "@stigmer/react";
 import type { ResourceRef } from "@stigmer/sdk";
-import { useActiveOrgSlug } from "@/domain/_shared/org/org-context";
-import { useDeploymentMode } from "@/domain/_shared/hooks/useDeploymentMode";
-import { useSessionNavigation } from "@/domain/session/session-navigation";
+import { useActiveOrgSlug } from "../org/OrgProvider";
 
 const DRAFT_PLACEHOLDERS: Record<DraftResourceType, string> = {
   agent:
@@ -44,22 +40,13 @@ const EDIT_PLACEHOLDERS: Record<DraftResourceType, string> = {
   "mcp-server": "Describe how you\u2019d like to modify this MCP server\u2026",
 };
 
-/**
- * Console-specific session launcher — thin shell that composes SDK hooks
- * with Console routing, org context, and draft-mode URL parameters.
- */
 export function SessionLauncher() {
-  const rawSearchParams = useSearchParams();
-  const draftParams = parseDraftParams(rawSearchParams);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const org = useActiveOrgSlug();
-  const deploymentMode = useDeploymentMode();
   const gitHubConnection = useGitHubConnection(org);
-  const { navigateToSession } = useSessionNavigation();
 
-  // -------------------------------------------------------------------------
-  // Draft param capture (survives URL cleanup + Next.js hydration delay)
-  // -------------------------------------------------------------------------
-
+  const draftParams = parseDraftParams(searchParams);
   const liveDraftType = draftParams?.draftType ?? null;
   const liveEditRef = draftParams?.editRef ?? null;
 
@@ -95,31 +82,21 @@ export function SessionLauncher() {
 
   useEffect(() => {
     if (liveDraftType) {
-      window.history.replaceState({}, "", "/");
+      setSearchParams({}, { replace: true });
     }
-  }, [liveDraftType]);
-
-  // -------------------------------------------------------------------------
-  // SDK hooks
-  // -------------------------------------------------------------------------
+  }, [liveDraftType, setSearchParams]);
 
   const flow = useNewSessionFlow({
     org,
-    onSessionCreated: navigateToSession,
+    onSessionCreated: (id) => navigate(`/sessions/${id}`),
     onError: (msg) => toast.error(msg),
   });
 
   const editPrep = useEditSessionPrep(draftType, editRef);
 
   useEffect(() => {
-    if (editPrep.error) {
-      toast.error(editPrep.error);
-    }
+    if (editPrep.error) toast.error(editPrep.error);
   }, [editPrep.error]);
-
-  // -------------------------------------------------------------------------
-  // Derived UI state
-  // -------------------------------------------------------------------------
 
   const placeholder = draftType
     ? isEditMode
@@ -146,8 +123,8 @@ export function SessionLauncher() {
           org={org}
           workspace={flow.workspace}
           gitHubConnection={gitHubConnection}
-          enableGitHub
-          enableLocal={deploymentMode === "local"}
+          enableGitHub={false}
+          enableLocal
           agentRef={flow.agentRef}
           onAgentRefChange={flow.setAgentRef}
           onAgentResolutionChange={flow.setResolution}

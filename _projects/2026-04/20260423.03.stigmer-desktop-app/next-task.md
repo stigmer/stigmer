@@ -13,9 +13,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: T02 complete, ready for T03
-- **Last Session**: 2026-04-23 — T01 approved, T02 scaffolding complete
-- **Active Task**: T03 (next)
+- **Status**: T03 complete, ready for T04
+- **Last Session**: 2026-04-23 — T03 complete (SDK extraction + desktop app shell)
+- **Active Task**: T04 (next)
 
 ## Task Overview
 
@@ -23,7 +23,7 @@ Drop this file into your conversation to quickly resume work on this project.
 |------|-------|--------|--------------|
 | T01 | Design & task plan | **Complete** | None |
 | T02 | Tauri project scaffolding | **Complete** | None |
-| T03 | Core app shell (routing, layout, auth) | Pending | T02 |
+| T03 | Core app shell (routing, layout, auth) | **Complete** | T02 |
 | T04 | System tray integration | Pending | T03 |
 | T05 | `stigmer://` URL scheme handling | Pending | T03, Phase 3 T02 |
 | T06 | Sidecar — bundle CLI for runner management | Pending | T03 |
@@ -31,84 +31,72 @@ Drop this file into your conversation to quickly resume work on this project.
 | T08 | Desktop-specific features (file picker, notifications) | Pending | T03 |
 | T09 | End-to-end testing & polish | Pending | All |
 
-## Why no new SDK needed
+## Session Progress (2026-04-23, Session 2)
 
-The desktop app is a React frontend in a Tauri native shell:
+### Phase A: SDK Extraction (completed)
 
-- **UI**: `@stigmer/react` SDK — all components already exist (SessionComposer, RunnerPicker, RunnerListPanel, AgentBuilder, settings panels)
-- **Data**: `@stigmer/typescript` SDK — all API clients already exist (gRPC-web, REST, streaming)
-- **Native**: Tauri Rust backend — OS integration (tray, URL scheme, sidecar, notifications)
-- **Runner management**: Go CLI binary bundled as Tauri sidecar
+Extracted session orchestration logic from the web app into reusable SDK hooks:
 
-Same React components, same TypeScript SDK, different shell. Zero duplication.
+- **`useNewSessionFlow`** (`sdk/react/src/session/useNewSessionFlow.ts`) — Orchestrates "create new session" flow: model persistence, agent/resolution/MCP/skill/runner/workspace state, session + first execution creation with default agent fallback. Framework-agnostic.
+- **`useSessionPageFlow`** (`sdk/react/src/session/useSessionPageFlow.ts`) — Orchestrates session page: composes `useSessionConversation` + agent resolution from session instance + workspace sync + follow-up with agent override.
+- **`usePersistedModel`** (`sdk/react/src/session/usePersistedModel.ts`) — Model selection with localStorage persistence, shared between both flows.
+- **`useEditSessionPrep`** (`sdk/react/src/session/useEditSessionPrep.ts`) — Edit-mode draft session preparation (fetch resource, serialize to YAML/ZIP).
+- **`draft.ts`** (`sdk/react/src/session/draft.ts`) — `CREATOR_AGENTS`, `DraftResourceType`/`DraftParams`, `parseDraftParams`/`parseDraftType` moved from web app to SDK.
+- **Web app refactored**: `SessionLauncher.tsx` 407→160 lines, `SessionPage.tsx` 386→210 lines, `draft-session.ts` now re-exports from SDK.
 
-## Architecture Overview
+### Phase B: Desktop App Shell (completed)
 
-```
-┌─────────────────────────────────────────────┐
-│  Tauri Shell (Rust)                         │
-│  ├── System Tray (runner status, actions)   │
-│  ├── URL Scheme Handler (stigmer://)        │
-│  ├── Sidecar Manager (Go CLI binary)        │
-│  └── Auto-Updater                           │
-│                                              │
-│  ┌──────────────────────────────────────┐   │
-│  │  Webview (React)                     │   │
-│  │  @stigmer/react + @stigmer/typescript│   │
-│  │  Same pages as web console           │   │
-│  │  + Native file picker                │   │
-│  │  + Native notifications              │   │
-│  │  + Deep links from tray/notifs       │   │
-│  └──────────────────────────────────────┘   │
-└─────────────────────────────────────────────┘
-```
+Built the complete desktop application infrastructure:
 
-## Distribution Strategy
+- **Routing** (`src/routes.tsx`) — HashRouter with lazy-loaded routes matching web console structure.
+- **App Shell** (`src/shell/AppShell.tsx`, `src/shell/Sidebar.tsx`) — Sidebar with session list via SDK hooks (`useSessionList`, `groupSessionsByTime`, `resolvedSubject`), New Session, Library, Settings navigation.
+- **Auth** (`src/auth/`) — Dual-mode: DisabledAuth for local/OSS, PkceAuth for cloud (Auth0 PKCE with system browser, code exchange, token refresh). Login screen, token storage.
+- **Org Context** (`src/org/OrgProvider.tsx`, `src/org/OrgGate.tsx`) — Full org gating: loading, provisioning poll (OIDC), error+retry, onboarding with SDK's `CreateOrganizationForm`.
+- **Pages** — 14 page components, all thin wrappers over SDK hooks/components:
+  - Session: `SessionLauncher`, `SessionPage` (using extracted SDK hooks)
+  - Library: `LibraryLanding`, `AgentListPage`, `AgentDetailPage`, `SkillListPage`, `SkillDetailPage`, `McpServerListPage`, `McpServerDetailPage`
+  - Settings: `SettingsRunners`, `SettingsApiKeys`, `SettingsEnvironments`, `SettingsMembers`, `SettingsOrgProfile`
 
-- **macOS**: `.dmg` from stigmer.ai/download + `brew install --cask stigmer`
-- **Linux**: `.AppImage` + `.deb` from stigmer.ai/download + apt repository
-- **Windows**: `.msi` from stigmer.ai/download + `winget install stigmer`
-- **Auto-update**: Tauri built-in updater, manifest hosted at `stigmer.ai/desktop/update-manifest.json`
-- **No app stores** — developer tools don't fit store sandboxing
+### Key Decisions
 
-## Related Projects
+- **SDK-first**: All domain logic in SDK, both web and desktop are thin shells
+- **No shared app shell package**: SDK hooks are the sharing layer; sidebar duplication (~200 lines) is acceptable
+- **Auth via PKCE + local callback**: Mirrors CLI pattern, independent from deep-link plugin (T05)
+- **Full OrgGate**: Provisioning poll needed because desktop has no natural delay between auth and org content
 
-- **20260423.02.phase3-persistent-runners-browser-launch** — Builds server-side launch tokens and CLI foundations. This project wraps them in native desktop experience.
-- **20260423.01.web-sdk-architecture-standards** — SDK architecture standards that ensure React SDK components work in any context (web, desktop, embedded).
-- **20260420.01.agent-runner-as-resource** — AgentRunner resource, proxy, dispatch — all backend foundations.
-- **20260422.01.runner-ux-cli-restructure** — CLI runner commands and web UI runner components.
+### Files Changed
 
-## Session Progress (2026-04-23)
+- 5 new SDK files (hooks + types)
+- 20 new desktop files (auth, org, shell, pages, routes)
+- 3 web files refactored (SessionLauncher, SessionPage, draft-session)
+- SDK and web barrel exports updated
+- All three packages typecheck cleanly
 
-- Approved T01 design plan (Tauri 2.x, monorepo placement, distribution strategy)
-- Completed T02: Tauri project scaffolding
-  - Created `client-apps/desktop/` with Tauri 2.10.3 + Vite 6 + React 19
-  - Integrated into npm workspaces, added Makefile targets
-  - Verified: native window opens, theme tokens render, Vite HMR works
-- Upgraded Rust toolchain from 1.86.0 to 1.95.0 (Tauri transitive deps require >= 1.88)
-- Fixed `tauri.conf.json` schema issue (`title` is window-level only in Tauri 2.x)
-- Flagged auth concern: OIDC in embedded webviews is restricted by IdPs, T03+T05 have a dependency not captured in T01
+## Next Steps
+
+1. **T04: System tray integration** — Native tray icon, runner status, quick actions
+2. **T05: `stigmer://` URL scheme** — Deep linking (depends on Phase 3 T02 launch tokens)
+3. **T06: Sidecar** — Bundle Go CLI for runner process management
 
 ## Context for Resume
 
-- The `@stigmer/react` SDK is the primary UI layer — all components are headless-first and theme-token based
-- The `@stigmer/sdk` package handles all API communication — works in any JS runtime
-- The web console at `client-apps/web/` is the reference for page structure and routing
-- The Go CLI at `client-apps/cli/` is the sidecar for runner process management
-- Tauri 2.x is stable and has built-in plugins for: tray-icon, deep-link, updater, dialog, notification, shell
-- Desktop app lives at `client-apps/desktop/` alongside `web/` and `cli/`
-- Dev workflow: `make desktop-dev` or `cd client-apps/desktop && cargo tauri dev`
-- First Rust build takes ~1 min; subsequent builds are incremental (~5s)
-- Pre-existing typecheck error in `sdk/typescript/src/gen/runner.ts` (RunnerStreamServerMessage) — not introduced by desktop work
+- The `@stigmer/react` SDK now has session orchestration hooks (`useNewSessionFlow`, `useSessionPageFlow`, `useEditSessionPrep`) that both web and desktop consume
+- Desktop app at `client-apps/desktop/` has full routing, auth, org context, and all page shells
+- Auth provider auto-detects local vs cloud mode (`VITE_STIGMER_API_URL`)
+- OrgGate includes provisioning poll for OIDC mode (same race condition as web)
+- Desktop pages use `enableGitHub={false}` and `enableLocal` — GitHub integration isn't wired yet (no OAuth popup in Tauri)
+- `SettingsMembers` and `SettingsOrgProfile` resolve org ID from slug via `useOrganization` hook
+- All library list pages use `useAgentList`/`useSkillList`/`useMcpServerList` with scope toggle and pagination
+- Pre-existing typecheck errors in web app (`LibraryBreadcrumbContext`) — not introduced by this work
+- Pre-existing typecheck error in `sdk/typescript/src/gen/runner.ts` — not introduced by desktop work
 
 ## Blockers
 
-- Phase 3 project T02 (launch token endpoints) needed for the `stigmer://` handler (T05)
-- `@stigmer/react` SDK should be reasonably stable (web-sdk-architecture-standards project in progress)
+- Phase 3 project T02 (launch token endpoints) needed for `stigmer://` handler (T05)
 
 ## Quick Commands
 
-- "Start T03" — Begin core app shell (routing, layout, auth)
+- "Start T04" — Begin system tray integration
 - "Show project status" — Get overview of progress
 - "Run desktop" — `make desktop-dev` to launch the desktop app
 

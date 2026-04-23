@@ -2207,16 +2207,16 @@ __metadata:
 
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=65c01f&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=5df3d0&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:^2.5.1"
-  checksum: 10c0/b3abec82bd764b8b824ba98e62771e2a9af9efee684deb90265595fa1ae41c517062480eaa38705f132e478d8198e88ab0b4242e9de65185b88643ff5f3aa47d
+  checksum: 10c0/c0f8a5d8506328cdf1dabc6f03333882335121969232c1d9223c84a050e989071ae32f323ea71e75d9f9ccefefe120cb3779f1b7f6db1723459ee7144cbf104a
   languageName: node
   linkType: hard
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=42a461&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=04313e&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@stigmer/theme": "npm:*"
     react-markdown: "npm:^10.1.0"
@@ -2232,13 +2232,13 @@ __metadata:
   peerDependenciesMeta:
     "@base-ui/react":
       optional: true
-  checksum: 10c0/728f7f954a5dc25f473674a8f13e689dd77622a24b8e17fec925e278994ff858af46a3dbfb08c9267e91a37adb92d22869761c3ccd638847f302c5943439ec66
+  checksum: 10c0/412e61abc19822fcfd4dad01ff2f41bfe9d608ebaddf11ecf4cde460d268be898e379139c72eec5093cf6c0c37656eb5558e2d487955f84500be61604b41bfda
   languageName: node
   linkType: hard
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=e38e03&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=37b374&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2249,7 +2249,7 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/9d43b33a249e22d22a6cd8e6b68298cd69d6d92681d0464efa906c377b89cce196a0c35544cc3f8574949a8fae429dea4539654713474d3df3b227697b9f7727
+  checksum: 10c0/9f404a11386cec0bda96647c8d29d725af11a2fd9e14273df42d7cd3f909305916279fd00adcb3bc9238eca87695cfee7cddf8a4ac138427e79339ab054da38a
   languageName: node
   linkType: hard
 
