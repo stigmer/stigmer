@@ -6,8 +6,8 @@ import {
   useGitHubConnection,
   GITHUB_CALLBACK_MESSAGE_TYPE,
 } from "@stigmer/react";
-import { useActiveOrgSlug } from "@/contexts/org-context";
-import { Button } from "@/components/ui/button";
+import { useActiveOrgSlug } from "@/domain/_shared/org/org-context";
+import { Button } from "@/domain/_shared/ui/button";
 
 /**
  * Whether this page is running inside a popup window opened by the

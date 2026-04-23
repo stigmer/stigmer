@@ -1,4 +1,4 @@
-import { RunnersSection } from "@/components/settings/RunnersSection";
+import { RunnersSection } from "@/domain/settings/RunnersSection";
 
 export default function RunnersPage() {
   return <RunnersSection />;

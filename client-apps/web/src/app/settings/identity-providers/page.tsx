@@ -1,4 +1,4 @@
-import { IdentityProvidersSection } from "@/components/settings/IdentityProvidersSection";
+import { IdentityProvidersSection } from "@/domain/settings/IdentityProvidersSection";
 
 export default function IdentityProvidersPage() {
   return <IdentityProvidersSection />;

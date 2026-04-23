@@ -8,7 +8,7 @@ import {
   getUserMessage,
   type ErrorCategory,
 } from "@stigmer/sdk";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/domain/_shared/ui/button";
 
 interface ErrorPageProps {
   error: Error & { digest?: string };

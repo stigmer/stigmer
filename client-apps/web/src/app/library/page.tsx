@@ -1,4 +1,4 @@
-import { LibraryLanding } from "./LibraryLanding";
+import { LibraryLanding } from "@/domain/library/LibraryLanding";
 
 export default function LibraryPage() {
   return <LibraryLanding />;
