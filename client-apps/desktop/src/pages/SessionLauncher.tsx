@@ -12,6 +12,7 @@ import {
 import type { DraftResourceType } from "@stigmer/react";
 import type { ResourceRef } from "@stigmer/sdk";
 import { useActiveOrgSlug } from "../org/OrgProvider";
+import { useNativeFolderPicker } from "../hooks/useNativeFolderPicker";
 
 const DRAFT_PLACEHOLDERS: Record<DraftResourceType, string> = {
   agent:
@@ -45,6 +46,7 @@ export function SessionLauncher() {
   const navigate = useNavigate();
   const org = useActiveOrgSlug();
   const gitHubConnection = useGitHubConnection(org);
+  const browseLocalFolder = useNativeFolderPicker();
 
   const draftParams = parseDraftParams(searchParams);
   const liveDraftType = draftParams?.draftType ?? null;
@@ -125,6 +127,7 @@ export function SessionLauncher() {
           gitHubConnection={gitHubConnection}
           enableGitHub={false}
           enableLocal
+          onBrowseLocalFolder={browseLocalFolder}
           agentRef={flow.agentRef}
           onAgentRefChange={flow.setAgentRef}
           onAgentResolutionChange={flow.setResolution}

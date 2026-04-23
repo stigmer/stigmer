@@ -3,10 +3,14 @@ mod tray;
 
 use sidecar::ProcessManager;
 use tauri::{Manager, RunEvent, WindowEvent};
+use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .manage(ProcessManager::new())
         .invoke_handler(tauri::generate_handler![
             sidecar::start_runner,
@@ -33,6 +37,7 @@ pub fn run() {
             }
         }
         RunEvent::ExitRequested { .. } => {
+            let _ = app_handle.save_window_state(StateFlags::all());
             let mgr = app_handle.state::<ProcessManager>();
             mgr.shutdown_all_sync();
         }

@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { OrgGate } from "../org/OrgGate";
 import { Sidebar } from "./Sidebar";
+import { useAppShortcuts } from "../hooks/useAppShortcuts";
 
 /**
  * Root layout for the desktop app.
@@ -10,6 +11,8 @@ import { Sidebar } from "./Sidebar";
  * Once an org is available, renders the sidebar + main content.
  */
 export function AppShell() {
+  useAppShortcuts();
+
   return (
     <OrgGate>
       <div className="flex h-screen overflow-hidden bg-background text-foreground">

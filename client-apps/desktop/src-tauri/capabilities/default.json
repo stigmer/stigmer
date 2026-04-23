@@ -5,6 +5,9 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "dialog:default",
+    "notification:default",
+    "window-state:default",
     {
       "identifier": "shell:allow-spawn",
       "allow": [
