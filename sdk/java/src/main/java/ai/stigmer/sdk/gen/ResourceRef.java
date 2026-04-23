@@ -3,34 +3,49 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceReference;
+import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 
 public final class ResourceRef {
     private final String org;
     private final String slug;
     private final String version;
+    private final ApiResourceKind kind;
 
-    private ResourceRef(String org, String slug, String version) {
+    private ResourceRef(String org, String slug, String version, ApiResourceKind kind) {
         this.org = org;
         this.slug = slug;
         this.version = version;
+        this.kind = kind;
     }
 
     public static ResourceRef of(String org, String slug) {
-        return new ResourceRef(org, slug, null);
+        return new ResourceRef(org, slug, null, ApiResourceKind.api_resource_kind_unspecified);
     }
 
     public static ResourceRef of(String org, String slug, String version) {
-        return new ResourceRef(org, slug, version);
+        return new ResourceRef(org, slug, version, ApiResourceKind.api_resource_kind_unspecified);
+    }
+
+    public static ResourceRef skill(String org, String slug) {
+        return new ResourceRef(org, slug, null, ApiResourceKind.skill);
+    }
+
+    public static ResourceRef skill(String org, String slug, String version) {
+        return new ResourceRef(org, slug, version, ApiResourceKind.skill);
     }
 
     public String getOrg() { return org; }
     public String getSlug() { return slug; }
     public String getVersion() { return version; }
+    public ApiResourceKind getKind() { return kind; }
 
     ApiResourceReference toProto() {
         ApiResourceReference.Builder builder = ApiResourceReference.newBuilder()
             .setOrg(this.org)
             .setSlug(this.slug);
+        if (this.kind != null && this.kind != ApiResourceKind.api_resource_kind_unspecified) {
+            builder.setKind(this.kind);
+        }
         if (this.version != null) {
             builder.setVersion(this.version);
         }
