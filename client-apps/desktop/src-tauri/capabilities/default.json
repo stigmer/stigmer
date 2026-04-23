@@ -7,6 +7,8 @@
     "core:default",
     "dialog:default",
     "notification:default",
+    "updater:default",
+    "process:default",
     "window-state:default",
     {
       "identifier": "shell:allow-spawn",
