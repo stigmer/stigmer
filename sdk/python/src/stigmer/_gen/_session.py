@@ -107,7 +107,9 @@ class SessionInput:
         for item in self.mcp_server_usages:
             spec.mcp_server_usages.append(item._to_proto())
         for ref in self.skill_refs:
-            spec.skill_refs.append(ref._to_proto())
+            _ref = ref._to_proto()
+            _ref.kind = 43
+            spec.skill_refs.append(_ref)
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

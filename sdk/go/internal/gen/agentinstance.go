@@ -91,7 +91,9 @@ func (i *AgentInstanceInput) toProto() *agentinstancev1.AgentInstance {
 	resource.Spec.AgentId = i.AgentId
 	resource.Spec.Description = i.Description
 	for _, r := range i.EnvironmentRefs {
-		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, r.toProto())
+		ref := r.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_environment
+		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, ref)
 	}
 	return resource
 }

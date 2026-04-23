@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agentinstance.v1;
 
+import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
 
@@ -23,9 +24,12 @@ message AgentInstanceSpec {
   // Environments are merged in order: later environments override earlier ones.
   // Example: [base-env, aws-prod-env, github-team-env]
   // This allows layering of configurations (base → specific overrides).
-  repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [(buf.validate.field).repeated.items.cel = {
-    id: "environment_refs.kind"
-    message: "environment_refs must reference resources with kind=environment"
-    expression: "this.kind == 53" // 53 = environment enum value
-  }];
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [
+    (ai.stigmer.commons.apiresource.reference_kind) = environment,
+    (buf.validate.field).repeated.items.cel = {
+      id: "environment_refs.kind"
+      message: "environment_refs must reference resources with kind=environment"
+      expression: "this.kind == 53"
+    }
+  ];
 }

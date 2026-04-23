@@ -86,7 +86,9 @@ func (i *WorkflowInstanceInput) toProto() *workflowinstancev1.WorkflowInstance {
 	resource.Spec.WorkflowId = i.WorkflowId
 	resource.Spec.Description = i.Description
 	for _, r := range i.EnvironmentRefs {
-		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, r.toProto())
+		ref := r.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_environment
+		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, ref)
 	}
 	return resource
 }

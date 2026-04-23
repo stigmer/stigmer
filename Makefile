@@ -390,7 +390,6 @@ gen-llms: ## Generate LLM-friendly output (llms.txt, llms-full.txt, per-page .md
 
 .PHONY: release
 release: ## Tag and push a release (usage: make release [bump=patch|minor|major])
-	-$(MAKE) -C apis release
 	@LATEST_TAG=$$(git tag -l "v*" | sort -V | tail -n1); \
 	[ -z "$$LATEST_TAG" ] && LATEST_TAG="v0.0.0"; \
 	VERSION=$$(echo $$LATEST_TAG | sed 's/^v//'); \
@@ -417,6 +416,7 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 	done
 	@echo ""
 	@echo "Tags pushed. CI will handle:"
+	@echo "  - Protos to BSR                  (release.buf.yaml)"
 	@echo "  - CLI binaries + GitHub release  (release.cli.yaml)"
 	@echo "  - @stigmer/* npm packages        (release.npm-libs.yaml)"
 	@echo "  - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)"

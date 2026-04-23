@@ -12,6 +12,7 @@ import ai.stigmer.agentic.session.v1.SessionSpec;
 import ai.stigmer.agentic.session.v1.WorkspaceEntry;
 import ai.stigmer.agentic.session.v1.WorkspaceSource;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
+import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 
 /** Input for creating/updating a Session. */
 public final class SessionInput {
@@ -77,7 +78,8 @@ public final class SessionInput {
         }
         if (this.skillRefs != null) {
             for (ResourceRef item : this.skillRefs) {
-                spec.addSkillRefs(item.toProto());
+                spec.addSkillRefs(item.toProto().toBuilder()
+                    .setKind(ApiResourceKind.skill).build());
             }
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
@@ -304,7 +306,8 @@ public final class SessionInput {
         McpServerUsage toProto() {
             McpServerUsage.Builder builder = McpServerUsage.newBuilder();
             if (this.mcpServerRef != null) {
-                builder.setMcpServerRef(this.mcpServerRef.toProto());
+                builder.setMcpServerRef(this.mcpServerRef.toProto().toBuilder()
+                    .setKind(ApiResourceKind.mcp_server).build());
             }
             if (this.enabledTools != null) {
                 builder.addAllEnabledTools(this.enabledTools);
