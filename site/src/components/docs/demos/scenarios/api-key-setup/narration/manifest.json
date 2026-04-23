@@ -2,14 +2,14 @@
   "steps": [
     {
       "src": "/demos/api-key-setup/step-0.mp3",
-      "durationMs": 5338
+      "durationMs": 5238
     },
     null,
     null,
     null,
     {
       "src": "/demos/api-key-setup/step-4.mp3",
-      "durationMs": 3963
+      "durationMs": 3725
     },
     null,
     null,

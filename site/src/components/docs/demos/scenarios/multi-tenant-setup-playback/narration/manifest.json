@@ -2,11 +2,11 @@
   "steps": [
     {
       "src": "/demos/multi-tenant-setup-playback/step-0.mp3",
-      "durationMs": 9750
+      "durationMs": 9613
     },
     {
       "src": "/demos/multi-tenant-setup-playback/step-1.mp3",
-      "durationMs": 12988
+      "durationMs": 12663
     },
     {
       "src": "/demos/multi-tenant-setup-playback/step-2.mp3",
@@ -26,7 +26,7 @@
     },
     {
       "src": "/demos/multi-tenant-setup-playback/step-6.mp3",
-      "durationMs": 11713
+      "durationMs": 11625
     }
   ]
 }

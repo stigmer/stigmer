@@ -42,25 +42,27 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n.ai/stigmer/agentic/agentinstance/v1/sp" +
       "ec.proto\022#ai.stigmer.agentic.agentinstan" +
-      "ce.v1\032\'ai/stigmer/commons/apiresource/io" +
-      ".proto\032\033buf/validate/validate.proto\"\261\002\n\021" +
-      "AgentInstanceSpec\022\"\n\010agent_id\030\001 \001(\tB\007\272H\004" +
-      "r\002\020\001R\007agentId\022 \n\013description\030\002 \001(\tR\013desc" +
-      "ription\022\325\001\n\020environment_refs\030\003 \003(\01324.ai." +
-      "stigmer.commons.apiresource.ApiResourceR" +
-      "eferenceBt\272Hq\222\001n\"l\272\001i\n\025environment_refs." +
-      "kind\022?environment_refs must reference re" +
-      "sources with kind=environment\032\017this.kind" +
-      " == 53R\017environmentRefsB\274\001B\tSpecProtoP\001\242" +
-      "\002\004ASAA\252\002#Ai.Stigmer.Agentic.Agentinstanc" +
-      "e.V1\312\002#Ai\\Stigmer\\Agentic\\Agentinstance\\" +
-      "V1\342\002/Ai\\Stigmer\\Agentic\\Agentinstance\\V1" +
-      "\\GPBMetadata\352\002\'Ai::Stigmer::Agentic::Age" +
-      "ntinstance::V1b\006proto3"
+      "ce.v1\0322ai/stigmer/commons/apiresource/fi" +
+      "eld_options.proto\032\'ai/stigmer/commons/ap" +
+      "iresource/io.proto\032\033buf/validate/validat" +
+      "e.proto\"\265\002\n\021AgentInstanceSpec\022\"\n\010agent_i" +
+      "d\030\001 \001(\tB\007\272H\004r\002\020\001R\007agentId\022 \n\013description" +
+      "\030\002 \001(\tR\013description\022\331\001\n\020environment_refs" +
+      "\030\003 \003(\01324.ai.stigmer.commons.apiresource." +
+      "ApiResourceReferenceBx\272Hq\222\001n\"l\272\001i\n\025envir" +
+      "onment_refs.kind\022?environment_refs must " +
+      "reference resources with kind=environmen" +
+      "t\032\017this.kind == 53\340\205,5R\017environmentRefsB" +
+      "\274\001B\tSpecProtoP\001\242\002\004ASAA\252\002#Ai.Stigmer.Agen" +
+      "tic.Agentinstance.V1\312\002#Ai\\Stigmer\\Agenti" +
+      "c\\Agentinstance\\V1\342\002/Ai\\Stigmer\\Agentic\\" +
+      "Agentinstance\\V1\\GPBMetadata\352\002\'Ai::Stigm" +
+      "er::Agentic::Agentinstance::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
         });
@@ -71,10 +73,12 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_agentinstance_v1_AgentInstanceSpec_descriptor,
         new java.lang.String[] { "AgentId", "Description", "EnvironmentRefs", });
     descriptor.resolveAllFeaturesImmutable();
+    ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
+    registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.referenceKind);
     registry.add(build.buf.validate.ValidateProto.field);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);

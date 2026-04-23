@@ -238,13 +238,15 @@ func (i *ToolApprovalPolicyInput) toProto() *mcpserverv1.ToolApprovalPolicy {
 }
 
 func (i *McpServerAuthInput) toProto() *mcpserverv1.McpServerAuth {
-	return &mcpserverv1.McpServerAuth{
-		OauthAppRef:       i.OauthAppRef.toProto(),
-		TargetEnvVar:      i.TargetEnvVar,
-		TokenLifetimeHint: i.TokenLifetimeHint,
-		ScopeHints:        i.ScopeHints,
-		DiscoveryUrl:      i.DiscoveryUrl,
-	}
+	p := &mcpserverv1.McpServerAuth{}
+	ref := i.OauthAppRef.toProto()
+	ref.Kind = apiresourcekind.ApiResourceKind_oauth_app
+	p.OauthAppRef = ref
+	p.TargetEnvVar = i.TargetEnvVar
+	p.TokenLifetimeHint = i.TokenLifetimeHint
+	p.ScopeHints = i.ScopeHints
+	p.DiscoveryUrl = i.DiscoveryUrl
+	return p
 }
 
 // McpServerInputFromProto creates a McpServerInput from a proto McpServer resource.

@@ -159,7 +159,7 @@ function buildToolApprovalOverrideProto(input: ToolApprovalOverrideInput) {
 
 function buildMcpServerUsageProto(input: McpServerUsageInput) {
   const msg = create(McpServerUsageSchema);
-  if (input.mcpServerRef) msg.mcpServerRef = create(ApiResourceReferenceSchema, input.mcpServerRef);
+  if (input.mcpServerRef) msg.mcpServerRef = create(ApiResourceReferenceSchema, { ...input.mcpServerRef, kind: 44 });
   if (input.enabledTools) msg.enabledTools = input.enabledTools;
   if (input.toolApprovalOverrides) msg.toolApprovalOverrides = input.toolApprovalOverrides.map(buildToolApprovalOverrideProto);
   return msg;
@@ -178,7 +178,7 @@ function buildSubAgentProto(input: SubAgentInput) {
   if (input.description !== undefined) msg.description = input.description;
   if (input.instructions !== undefined) msg.instructions = input.instructions;
   if (input.mcpAccess) msg.mcpAccess = input.mcpAccess.map(buildMcpAccessProto);
-  if (input.skillRefs) msg.skillRefs = input.skillRefs.map(r => create(ApiResourceReferenceSchema, r));
+  if (input.skillRefs) msg.skillRefs = input.skillRefs.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
   if (input.modelOverride !== undefined) msg.modelOverride = input.modelOverride;
   return msg;
 }
@@ -193,7 +193,7 @@ function buildEnvVarDeclarationProto(input: EnvVarDeclarationInput) {
 
 function buildAgentProto(input: AgentInput): Agent {
   const mcpServerUsages = input.mcpServerUsages?.map(buildMcpServerUsageProto);
-  const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, r));
+  const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
   const subAgents = input.subAgents?.map(buildSubAgentProto);
   let env;
   if (input.env) {

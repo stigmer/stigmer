@@ -130,7 +130,9 @@ class AgentInput:
         for item in self.mcp_server_usages:
             spec.mcp_server_usages.append(item._to_proto())
         for ref in self.skill_refs:
-            spec.skill_refs.append(ref._to_proto())
+            _ref = ref._to_proto()
+            _ref.kind = 43
+            spec.skill_refs.append(_ref)
         for item in self.sub_agents:
             spec.sub_agents.append(item._to_proto())
         for k, v in self.env.items():
@@ -162,7 +164,9 @@ class McpServerUsageInput:
     def _to_proto(self) -> spec_pb2.McpServerUsage:
         msg = spec_pb2.McpServerUsage()
         if self.mcp_server_ref is not None:
-            msg.mcp_server_ref.CopyFrom(self.mcp_server_ref._to_proto())
+            _ref = self.mcp_server_ref._to_proto()
+            _ref.kind = 44
+            msg.mcp_server_ref.CopyFrom(_ref)
         if self.enabled_tools:
             msg.enabled_tools.extend(self.enabled_tools)
         for item in self.tool_approval_overrides:
@@ -208,7 +212,9 @@ class SubAgentInput:
         for item in self.mcp_access:
             msg.mcp_access.append(item._to_proto())
         for ref in self.skill_refs:
-            msg.skill_refs.append(ref._to_proto())
+            _ref = ref._to_proto()
+            _ref.kind = 43
+            msg.skill_refs.append(_ref)
         return msg
 
 

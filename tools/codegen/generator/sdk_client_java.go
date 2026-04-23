@@ -534,35 +534,50 @@ func generateJavaDeleteResourceInput(outputDir string) error {
 func generateJavaResourceRef(outputDir string) error {
 	imports := newJavaImportSet()
 	imports.add("ai.stigmer.commons.apiresource.ApiResourceReference")
+	imports.add("ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind")
 
 	var body bytes.Buffer
 	body.WriteString(`public final class ResourceRef {
     private final String org;
     private final String slug;
     private final String version;
+    private final ApiResourceKind kind;
 
-    private ResourceRef(String org, String slug, String version) {
+    private ResourceRef(String org, String slug, String version, ApiResourceKind kind) {
         this.org = org;
         this.slug = slug;
         this.version = version;
+        this.kind = kind;
     }
 
     public static ResourceRef of(String org, String slug) {
-        return new ResourceRef(org, slug, null);
+        return new ResourceRef(org, slug, null, ApiResourceKind.api_resource_kind_unknown);
     }
 
     public static ResourceRef of(String org, String slug, String version) {
-        return new ResourceRef(org, slug, version);
+        return new ResourceRef(org, slug, version, ApiResourceKind.api_resource_kind_unknown);
+    }
+
+    public static ResourceRef of(String org, ApiResourceKind kind, String slug) {
+        return new ResourceRef(org, slug, null, kind);
+    }
+
+    public static ResourceRef of(String org, ApiResourceKind kind, String slug, String version) {
+        return new ResourceRef(org, slug, version, kind);
     }
 
     public String getOrg() { return org; }
     public String getSlug() { return slug; }
     public String getVersion() { return version; }
+    public ApiResourceKind getKind() { return kind; }
 
     ApiResourceReference toProto() {
         ApiResourceReference.Builder builder = ApiResourceReference.newBuilder()
             .setOrg(this.org)
             .setSlug(this.slug);
+        if (this.kind != null && this.kind != ApiResourceKind.api_resource_kind_unknown) {
+            builder.setKind(this.kind);
+        }
         if (this.version != null) {
             builder.setVersion(this.version);
         }
@@ -1127,6 +1142,7 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	needsStruct := false
 	needsExecCtx := false
 	needsEnvV1 := false
+	needsRefKindOverride := false
 	scanJavaImports := func(fields []*FieldSchema) {
 		for _, f := range fields {
 			if f.Type.Kind == "timestamp" {
@@ -1140,6 +1156,9 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 			}
 			if f.Type.Kind == "map" && f.Type.ValueType != nil && f.Type.ValueType.MessageType == "EnvironmentValue" {
 				needsEnvV1 = true
+			}
+			if f.ReferenceKind != 0 {
+				needsRefKindOverride = true
 			}
 		}
 	}
@@ -1161,6 +1180,9 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	}
 	if needsEnvV1 {
 		imports.add("ai.stigmer.agentic.environment.v1.EnvironmentValue")
+	}
+	if needsRefKindOverride {
+		imports.add("ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind")
 	}
 
 	for _, t := range specTypes {
@@ -1405,7 +1427,13 @@ func emitJavaToProtoField(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]
 
 	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference":
 		fmt.Fprintf(buf, "%sif (this.%s != null) {\n", indent, fieldName)
-		fmt.Fprintf(buf, "%s    spec.%s(this.%s.toProto());\n", indent, javaSetterName(f.ProtoField), fieldName)
+		if f.ReferenceKind != 0 {
+			enumName := apiResourceKindEnumNames[f.ReferenceKind]
+			fmt.Fprintf(buf, "%s    spec.%s(this.%s.toProto().toBuilder()\n", indent, javaSetterName(f.ProtoField), fieldName)
+			fmt.Fprintf(buf, "%s        .setKind(ApiResourceKind.%s).build());\n", indent, enumName)
+		} else {
+			fmt.Fprintf(buf, "%s    spec.%s(this.%s.toProto());\n", indent, javaSetterName(f.ProtoField), fieldName)
+		}
 		fmt.Fprintf(buf, "%s}\n", indent)
 
 	case f.Type.Kind == "message":
@@ -1423,7 +1451,13 @@ func emitJavaToProtoField(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]
 		if elemMsg == "ApiResourceReference" {
 			fmt.Fprintf(buf, "%sif (this.%s != null) {\n", indent, fieldName)
 			fmt.Fprintf(buf, "%s    for (ResourceRef item : this.%s) {\n", indent, fieldName)
-			fmt.Fprintf(buf, "%s        spec.%s(item.toProto());\n", indent, javaAddName(f.ProtoField))
+			if f.ReferenceKind != 0 {
+				enumName := apiResourceKindEnumNames[f.ReferenceKind]
+				fmt.Fprintf(buf, "%s        spec.%s(item.toProto().toBuilder()\n", indent, javaAddName(f.ProtoField))
+				fmt.Fprintf(buf, "%s            .setKind(ApiResourceKind.%s).build());\n", indent, enumName)
+			} else {
+				fmt.Fprintf(buf, "%s        spec.%s(item.toProto());\n", indent, javaAddName(f.ProtoField))
+			}
 			fmt.Fprintf(buf, "%s    }\n", indent)
 			fmt.Fprintf(buf, "%s}\n", indent)
 		} else {
@@ -1518,7 +1552,13 @@ func emitJavaNestedToProtoField(buf *bytes.Buffer, f *FieldSchema, typeMap map[s
 
 	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference":
 		fmt.Fprintf(buf, "%sif (this.%s != null) {\n", indent, fieldName)
-		fmt.Fprintf(buf, "%s    builder.%s(this.%s.toProto());\n", indent, javaSetterName(f.ProtoField), fieldName)
+		if f.ReferenceKind != 0 {
+			enumName := apiResourceKindEnumNames[f.ReferenceKind]
+			fmt.Fprintf(buf, "%s    builder.%s(this.%s.toProto().toBuilder()\n", indent, javaSetterName(f.ProtoField), fieldName)
+			fmt.Fprintf(buf, "%s        .setKind(ApiResourceKind.%s).build());\n", indent, enumName)
+		} else {
+			fmt.Fprintf(buf, "%s    builder.%s(this.%s.toProto());\n", indent, javaSetterName(f.ProtoField), fieldName)
+		}
 		fmt.Fprintf(buf, "%s}\n", indent)
 
 	case f.Type.Kind == "message":
@@ -1536,7 +1576,13 @@ func emitJavaNestedToProtoField(buf *bytes.Buffer, f *FieldSchema, typeMap map[s
 		if elemMsg == "ApiResourceReference" {
 			fmt.Fprintf(buf, "%sif (this.%s != null) {\n", indent, fieldName)
 			fmt.Fprintf(buf, "%s    for (ResourceRef item : this.%s) {\n", indent, fieldName)
-			fmt.Fprintf(buf, "%s        builder.%s(item.toProto());\n", indent, javaAddName(f.ProtoField))
+			if f.ReferenceKind != 0 {
+				enumName := apiResourceKindEnumNames[f.ReferenceKind]
+				fmt.Fprintf(buf, "%s        builder.%s(item.toProto().toBuilder()\n", indent, javaAddName(f.ProtoField))
+				fmt.Fprintf(buf, "%s            .setKind(ApiResourceKind.%s).build());\n", indent, enumName)
+			} else {
+				fmt.Fprintf(buf, "%s        builder.%s(item.toProto());\n", indent, javaAddName(f.ProtoField))
+			}
 			fmt.Fprintf(buf, "%s    }\n", indent)
 			fmt.Fprintf(buf, "%s}\n", indent)
 		} else {
