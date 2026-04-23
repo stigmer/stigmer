@@ -161,3 +161,17 @@ const routes: RouteObject[] = [
 ];
 
 export const router = createHashRouter(routes);
+
+const ROUTE_STORAGE_KEY = "stigmer:lastRoute";
+
+router.subscribe((state) => {
+  const path = state.location.pathname;
+  if (path && path !== "/") {
+    localStorage.setItem(ROUTE_STORAGE_KEY, path);
+  }
+});
+
+const savedRoute = localStorage.getItem(ROUTE_STORAGE_KEY);
+if (savedRoute && savedRoute !== "/") {
+  router.navigate(savedRoute, { replace: true });
+}

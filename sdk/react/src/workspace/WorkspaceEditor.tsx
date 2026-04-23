@@ -21,6 +21,33 @@ export interface WorkspaceEditorProps {
   readonly enableGitHub?: boolean;
   /** Show the Local Folder source button. Default: false (set by Console based on deployment mode). */
   readonly enableLocal?: boolean;
+  /**
+   * Native folder picker callback for desktop environments.
+   *
+   * When provided and `enableLocal` is `true`, clicking the "Local Folder"
+   * button invokes this callback instead of showing the manual path input.
+   * Should resolve to an absolute folder path, or `null` if the user
+   * cancelled the dialog.
+   *
+   * When not provided, falls back to the inline text input for manual
+   * path entry (backward compatible with web environments).
+   *
+   * @example
+   * ```tsx
+   * // Tauri desktop integration
+   * const browseFolder = useCallback(async () => {
+   *   const { open } = await import("@tauri-apps/plugin-dialog");
+   *   return open({ directory: true }) as Promise<string | null>;
+   * }, []);
+   *
+   * <WorkspaceEditor
+   *   workspace={workspace}
+   *   enableLocal
+   *   onBrowseLocalFolder={browseFolder}
+   * />
+   * ```
+   */
+  readonly onBrowseLocalFolder?: () => Promise<string | null>;
 }
 
 type ActivePanel = "none" | "github" | "local";
@@ -67,6 +94,7 @@ export function WorkspaceEditor({
   gitHubConnection,
   enableGitHub = true,
   enableLocal = false,
+  onBrowseLocalFolder,
 }: WorkspaceEditorProps) {
   const [activePanel, setActivePanel] = useState<ActivePanel>(
     enableGitHub ? "github" : "none",
@@ -75,6 +103,7 @@ export function WorkspaceEditor({
   const [manualBranch, setManualBranch] = useState("");
   const entryList = useScrollShadows();
   const [localPath, setLocalPath] = useState("");
+  const [isBrowsing, setIsBrowsing] = useState(false);
 
   const handleGitHubSelect = useCallback(
     (repoUrl: string, branch: string) => {
@@ -100,6 +129,19 @@ export function WorkspaceEditor({
       setActivePanel("none");
     }
   }, [localPath, workspace]);
+
+  const handleBrowseLocalFolder = useCallback(async () => {
+    if (!onBrowseLocalFolder || isBrowsing) return;
+    setIsBrowsing(true);
+    try {
+      const path = await onBrowseLocalFolder();
+      if (path) {
+        workspace.addLocalPath(path);
+      }
+    } finally {
+      setIsBrowsing(false);
+    }
+  }, [onBrowseLocalFolder, isBrowsing, workspace]);
 
   const handleKeyDown = useCallback(
     (handler: () => void) => (e: KeyboardEvent<HTMLInputElement>) => {
@@ -182,8 +224,8 @@ export function WorkspaceEditor({
         {enableLocal && (
           <button
             type="button"
-            onClick={() => togglePanel("local")}
-            disabled={disabled}
+            onClick={onBrowseLocalFolder ? handleBrowseLocalFolder : () => togglePanel("local")}
+            disabled={disabled || isBrowsing}
             className={[
               "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50",
               activePanel === "local"
@@ -192,7 +234,7 @@ export function WorkspaceEditor({
             ].join(" ")}
           >
             <FolderIcon />
-            <span>Local Folder</span>
+            <span>{isBrowsing ? "Opening\u2026" : "Local Folder"}</span>
           </button>
         )}
       </div>

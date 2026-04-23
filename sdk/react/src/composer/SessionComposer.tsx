@@ -110,6 +110,12 @@ export interface SessionComposerProps {
   readonly enableGitHub?: boolean;
   /** Show the Local Folder source button. @default false */
   readonly enableLocal?: boolean;
+  /**
+   * Native folder picker callback passed through to {@link WorkspaceEditor}.
+   * When provided, clicking "Local Folder" opens a native dialog instead
+   * of the inline text input. See {@link WorkspaceEditorProps.onBrowseLocalFolder}.
+   */
+  readonly onBrowseLocalFolder?: () => Promise<string | null>;
 
   /**
    * Organization slug for agent, MCP server, and skill searches.
@@ -348,6 +354,7 @@ export function SessionComposer({
   gitHubConnection,
   enableGitHub = true,
   enableLocal = false,
+  onBrowseLocalFolder,
   org,
   agentRef,
   onAgentRefChange,
@@ -1288,6 +1295,7 @@ export function SessionComposer({
                   gitHubConnection={gitHubConnection}
                   enableGitHub={enableGitHub}
                   enableLocal={enableLocal}
+                  onBrowseLocalFolder={onBrowseLocalFolder}
                 />
               : null
           }
