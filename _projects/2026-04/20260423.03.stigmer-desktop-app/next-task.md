@@ -13,9 +13,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: T08 complete, ready for T07
-- **Last Session**: 2026-04-23 — T08 complete (desktop-specific features)
-- **Active Task**: T07 (next)
+- **Status**: T07 complete, ready for T05 (blocked) or T09
+- **Last Session**: 2026-04-23 — T07 complete (auto-updater & distribution pipeline)
+- **Active Task**: None (T05 blocked on Phase 3 T02; T09 depends on all)
 
 ## Task Overview
 
@@ -27,116 +27,121 @@ Drop this file into your conversation to quickly resume work on this project.
 | T04 | System tray integration | **Complete** | T03 |
 | T05 | `stigmer://` URL scheme handling | Pending | T03, Phase 3 T02 |
 | T06 | Sidecar — bundle CLI for runner management | **Complete** | T03 |
-| T07 | Auto-updater & distribution pipeline | Pending | T06 |
+| T07 | Auto-updater & distribution pipeline | **Complete** | T06 |
 | T08 | Desktop-specific features (file picker, notifications) | **Complete** | T03 |
 | T09 | End-to-end testing & polish | Pending | All |
 
-## Session Progress (2026-04-23, Session 5)
+## Session Progress (2026-04-23, Session 6)
 
-### T08: Desktop-Specific Features (completed)
+### T07: Auto-Updater & Distribution Pipeline (completed)
 
-Implemented four desktop-native features: window state persistence, native OS folder picker for workspace selection, native notifications for runner events, and app-level keyboard shortcuts. Background operation (hide-to-tray) was already complete from T04.
+Implemented Tauri's built-in updater plugin with React-side update UX, a cross-platform GitHub Actions CI workflow, and Makefile release automation.
 
-#### T08.1: Window State Persistence
+#### T07.1: Updater Plugin Integration (Rust + Tauri Config)
 
-Added `tauri-plugin-window-state` to automatically save and restore window size, position, and maximized state across app restarts.
+Added two Tauri plugins (`updater`, `process`) and configured the updater with a real signing keypair.
 
-- **`Cargo.toml`** — Added `tauri-plugin-window-state = "2"` (resolved to v2.4.1).
-- **`lib.rs`** — Registered `tauri_plugin_window_state::Builder::default().build()`. Added explicit `save_window_state(StateFlags::all())` call in `ExitRequested` handler — necessary because we `prevent_close()` and hide the window to tray, so the plugin's automatic save-on-close may not trigger.
-- **`capabilities/default.json`** — Added `window-state:default` permission.
-- **`routes.tsx`** — Added route persistence via `localStorage`. `router.subscribe()` saves the current path on every navigation. On app startup, `router.navigate()` restores the last-viewed page (skips `/` index since that's the default). Pure React, no Tauri plugin needed.
+- **`Cargo.toml`** — Added `tauri-plugin-updater = "2"` (resolved to v2.10.1) and `tauri-plugin-process = "2"` (resolved to v2.3.1).
+- **`lib.rs`** — Registered `tauri_plugin_process::init()` in the builder chain. Registered `tauri_plugin_updater::Builder::new().build()` inside the `setup` closure (updater requires the app handle for initialization, per official Tauri docs).
+- **`capabilities/default.json`** — Added `updater:default` and `process:default` permissions.
+- **`tauri.conf.json`** — Added `bundle.createUpdaterArtifacts: true` (tells Tauri to generate signed `.sig` files and update bundles during builds). Added `plugins.updater` section with the public key and endpoint (`https://github.com/stigmer/stigmer/releases/latest/download/latest.json`).
+- **`package.json`** — Added `@tauri-apps/plugin-updater` and `@tauri-apps/plugin-process`.
+- **Signing keypair** — Generated via `tauri signer generate -w ~/.tauri/stigmer.key`. Public key committed to `tauri.conf.json`. Private key at `~/.tauri/stigmer.key` — must be backed up and added to GitHub Actions as `TAURI_SIGNING_PRIVATE_KEY`.
 
-#### T08.2: Native Folder Picker for Workspace Selection
+#### T07.2: Update Check UX (React)
 
-Two-layer implementation: SDK extension point + desktop integration.
+- **`useAppUpdater.ts`** (new, 86 lines) — Hook that checks for updates 5 seconds after mount (avoids slowing startup), then every 4 hours. Uses a `busyRef` guard to prevent concurrent checks. When an update is found, shows a persistent `sonner` toast with the new version and a "Restart to Update" action button. Clicking the button calls `update.downloadAndInstall()` then `relaunch()` from `@tauri-apps/plugin-process`. State machine: `idle → checking → available` (success path) or `→ error` (failure path). Download path: `available → downloading → ready → relaunch`. Returns `{ status, checkForUpdate }` for future settings page integration.
+- **`App.tsx`** — Mounted `useAppUpdater()` in `AuthenticatedApp`, alongside `useRunnerNotifications()`.
 
-**SDK change (`@stigmer/react`):**
-- **`WorkspaceEditor.tsx`** — Added `onBrowseLocalFolder?: () => Promise<string | null>` prop. When provided and `enableLocal` is true, clicking "Local Folder" invokes the callback directly (opening a native OS dialog) instead of showing the manual text input. Includes `isBrowsing` state for UX feedback ("Opening…" label while dialog is open). Falls back to existing text input when the callback is not provided (backward compatible for web environments).
-- **`SessionComposer.tsx`** — Threaded `onBrowseLocalFolder` prop through to `WorkspaceEditor`.
+#### T07.3: CI Workflow — Cross-Platform Build & Release
 
-**Desktop integration:**
-- **`Cargo.toml`** — Added `tauri-plugin-dialog = "2"` (resolved to v2.7.0).
-- **`lib.rs`** — Registered `tauri_plugin_dialog::init()`.
-- **`capabilities/default.json`** — Added `dialog:default` permission.
-- **`package.json`** — Added `@tauri-apps/plugin-dialog`.
-- **`useNativeFolderPicker.ts`** (new, 21 lines) — Hook wrapping `open({ directory: true, multiple: false, title: "Select project folder" })`. Returns a stable callback passed as `onBrowseLocalFolder`.
-- **`SessionLauncher.tsx`** — Wired `browseLocalFolder` from the hook into `SessionComposer`.
+- **`.github/workflows/release.desktop.yaml`** (new) — Full cross-platform release pipeline.
+  - **Trigger**: Push `desktop-v*` tags (release) or `workflow_dispatch` (build-only).
+  - **Jobs**: `determine-version` → `generate-protos` → `build` (4-platform matrix).
+  - **Build matrix**: macOS arm64, macOS x86_64, Linux x86_64, Windows x86_64.
+  - Each matrix job: download proto stubs → build Go CLI sidecar (no embed tags, lightweight) → install Node deps + build SDK libs → run `tauri-action` for platform build.
+  - **Release**: On tag push, `tauri-action` creates a draft GitHub Release with all platform installers (`.dmg`, `.AppImage`, `.deb`, `.msi`/`.exe`) and `latest.json` for the auto-updater.
+  - **Code signing env vars** included (macOS: APPLE_CERTIFICATE, etc.) — no-ops until secrets are configured.
+  - **Sidecar naming**: Per Tauri convention, `stigmer-<target-triple>` (e.g., `stigmer-aarch64-apple-darwin`, `stigmer-x86_64-pc-windows-msvc.exe`).
 
-#### T08.3: Native OS Notifications for Runner Events
+#### T07.4: Code Signing (Infrastructure Ready)
 
-- **`Cargo.toml`** — Added `tauri-plugin-notification = "2"` (resolved to v2.3.3).
-- **`lib.rs`** — Registered `tauri_plugin_notification::init()`.
-- **`capabilities/default.json`** — Added `notification:default` permission.
-- **`package.json`** — Added `@tauri-apps/plugin-notification`.
-- **`useRunnerNotifications.ts`** (new, 91 lines) — Hook that requests notification permission on mount, subscribes to `runner:started`, `runner:stopped`, and `runner:error` Tauri events (already emitted by `sidecar.rs`), and sends OS notifications. Only fires when the window is not focused (`document.hasFocus()` check). Cleanup unsubscribes all listeners.
-- **`App.tsx`** — Mounted `useRunnerNotifications()` in `AuthenticatedApp`.
+The workflow includes all macOS signing/notarization environment variables (`APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_TEAM_ID`, `APPLE_ID`, `APPLE_PASSWORD`). They are no-ops until the corresponding GitHub secrets are configured. When an Apple Developer ID Application certificate is available, adding the secrets is all that's needed — no workflow changes required.
 
-Notification content:
-| Event | Title | Body |
-|-------|-------|------|
-| `runner:started` | Runner Started | `{name}` is now running |
-| `runner:stopped` | Runner Stopped | `{name}` has stopped (exit code {code}) |
-| `runner:error` | Runner Error | `{name}`: {message} |
+#### T07.5: Makefile Integration
 
-#### T08.4: App-Level Keyboard Shortcuts
-
-- **`useAppShortcuts.ts`** (new, 42 lines) — Hook registering `keydown` listener on `document`. Detects `metaKey` (macOS) vs `ctrlKey` (Windows/Linux). Two shortcuts for v1: `Cmd/Ctrl+N` → new session (`/`), `Cmd/Ctrl+,` → settings (`/settings/runners`). Calls `preventDefault()` to suppress default behavior.
-- **`AppShell.tsx`** — Mounted `useAppShortcuts()` so shortcuts are active on all pages.
+- **`desktop-build`** — Updated with a warning when `TAURI_SIGNING_PRIVATE_KEY` is not set.
+- **`desktop-release`** (new) — Bumps `tauri.conf.json` version, commits the change, creates a `desktop-v*` tag, and pushes. Usage: `make desktop-release bump=patch|minor|major`.
+- **`release`** — Updated help text to mention `make desktop-release` as a separate command.
 
 ### Key Decisions
 
-- **DD-T08-01: SDK callback pattern for native dialogs** — Added `onBrowseLocalFolder` as an optional callback prop to `WorkspaceEditor` and `SessionComposer` rather than coupling the SDK to any native framework. The callback is the integration seam — Tauri apps pass their native dialog, Electron apps pass theirs, web apps don't pass anything and get the text input. Framework-agnostic, backward-compatible.
-- **DD-T08-02: App-level shortcuts over global shortcuts** — Rejected global OS-wide hotkeys (from original T01 plan) in favor of app-level shortcuts. Global shortcuts are aggressive, conflict-prone, and require `tauri-plugin-global-shortcut`. App-level shortcuts follow platform conventions (Cmd+N, Cmd+,), need no Tauri plugin, and don't steal key combinations from other apps.
-- **DD-T08-03: Notifications scoped to runner events only** — Execution-level notifications (HITL approval, agent completion) were deferred. Runner events are already emitted as Tauri events from `sidecar.rs` — zero new backend wiring. Execution events would require gRPC stream subscriptions from the frontend, adding complexity and potential notification noise.
-- **DD-T08-04: Focus-gated notifications** — Notifications only fire when `document.hasFocus()` is false. No point alerting about something the user is already looking at. Simple, no Tauri window-focus API needed.
-- **DD-T08-05: Explicit window state save on exit** — `save_window_state(StateFlags::all())` called in `ExitRequested` handler because `prevent_close()` + hide may prevent the plugin's auto-save. Belt-and-suspenders approach.
-- **DD-T08-06: Route persistence via localStorage** — Used `router.subscribe()` + `router.navigate()` on the hash router rather than the window-state plugin's JS API. Pure React, no additional Tauri dependency for this concern. Saves pathname only (not search params or hash), restores on startup with `replace: true`.
+- **DD-T07-01: Update manifest via GitHub Releases** — `tauri-action` generates `latest.json` automatically with `includeUpdaterJson: true`. Update endpoint points to `https://github.com/stigmer/stigmer/releases/latest/download/latest.json`. Zero infrastructure. Trade-off: coupled to GitHub repo URL; mitigated by future `stigmer.ai` proxy if needed.
+- **DD-T07-02: Independent desktop versioning with `desktop-v*` tags** — Desktop has its own release cadence. Tag format `desktop-v0.1.0` avoids conflicts with CLI's `v*` tags. Version source of truth: `tauri.conf.json`.
+- **DD-T07-03: Updater signing keypair generated** — Public key committed to config; private key at `~/.tauri/stigmer.key`. This key is a permanent commitment: changing it breaks updates for all installed copies. Must be backed up securely and added to GitHub Actions secrets before first release.
+- **DD-T07-04: React-side update check** — Update UX driven from React (`@tauri-apps/plugin-updater` JS API), not Tauri's built-in dialog. Gives full control over the toast-based, non-blocking UX via `sonner`. The hook is desktop-specific (`client-apps/desktop/src/hooks/`), not SDK material.
+- **DD-T07-05: Sidecar built without embed tags** — The Go CLI sidecar is built with `go build -ldflags="-s -w"` (no `-tags embed_agentrunner embed_webconsole`). Produces a smaller binary since the desktop app doesn't need the embedded web console or agent-runner source — it has its own UI and manages runners via CLI commands.
+- **DD-T07-06: Draft releases** — `releaseDraft: true` in `tauri-action`. Releases are created as drafts, reviewed, then published manually. Auto-updater only works with published releases — intentional: prevents broken builds from reaching users.
+- **DD-T07-07: Package manager distribution deferred** — Homebrew cask, winget, apt repo deferred. Premature for v0.1.0. Auto-update means users download once and get updates automatically. Package managers add discoverability but not necessity.
 
 ### Surprises Discovered
 
-1. `npm install` resolved `@tauri-apps/plugin-dialog: "^2"` to `^2.7.0` in package.json (version pinning behavior differs from Cargo's semver ranges).
-2. `tauri-plugin-dialog` pulls `tauri-plugin-fs` as a transitive dependency (used internally for the dialog's file path resolution).
-3. Tauri 2's `cargo check` regenerates the capability schema files (`gen/schemas/*.json`) when new plugin permissions are added — these are auto-generated and should be committed.
-4. `WorkspaceEditor`'s "Local Folder" button had to handle both sync (toggle panel) and async (browse dialog) paths — solved with a simple `isBrowsing` flag rather than introducing a state machine.
+1. `tauri-plugin-updater` must be registered inside the `setup` closure (not the builder chain) because it needs the app handle: `app.handle().plugin(tauri_plugin_updater::Builder::new().build())`.
+2. `relaunch()` comes from `tauri-plugin-process`, not from the updater plugin — separate dependency required.
+3. `tauri signer generate` requires an interactive TTY for the password prompt. Used `expect` to automate in the terminal. Empty password is valid (key is still encrypted with a derived key, just no user password).
+4. `tauri-plugin-updater` pulled in `reqwest` and `rustls` as transitive dependencies (for HTTPS update checks), adding to compile time but no runtime overhead.
+5. The `createUpdaterArtifacts` config key must be `true` (not `"v1Compatible"`) for new Tauri v2 apps — `"v1Compatible"` is only for apps migrating from Tauri v1.
 
 ### Files Changed
 
-- 3 new hooks (`useNativeFolderPicker.ts` 21 lines, `useRunnerNotifications.ts` 91 lines, `useAppShortcuts.ts` 42 lines)
-- 3 Tauri plugins added (`dialog`, `notification`, `window-state`)
-- 2 SDK files modified (`WorkspaceEditor.tsx`, `SessionComposer.tsx`)
-- 5 desktop files modified (`lib.rs`, `Cargo.toml`, `capabilities/default.json`, `App.tsx`, `SessionLauncher.tsx`, `AppShell.tsx`, `routes.tsx`, `package.json`)
-- Auto-updated: `Cargo.lock`, `package-lock.json`, `yarn.lock`, `gen/schemas/*.json`
+- 1 new hook (`useAppUpdater.ts` 86 lines)
+- 1 new CI workflow (`release.desktop.yaml` ~170 lines)
+- 2 Tauri plugins added (`updater` v2.10.1, `process` v2.3.1)
+- 5 desktop files modified (`lib.rs`, `Cargo.toml`, `capabilities/default.json`, `tauri.conf.json`, `package.json`, `App.tsx`)
+- 1 repo file modified (`Makefile` — new `desktop-release` target, updated `desktop-build`, updated `release` help)
+- Signing keypair generated (`~/.tauri/stigmer.key`, `~/.tauri/stigmer.key.pub`)
+- Auto-updated: `Cargo.lock`, `package-lock.json`, `gen/schemas/*.json`
 - Rust: zero `cargo clippy` warnings
 - TypeScript: zero `tsc` errors
 
 ## Next Steps
 
-1. **T07: Auto-updater & distribution pipeline** — Cross-platform CLI compilation, `.dmg`/`.AppImage`/`.msi` builds, update manifest hosting, Tauri's built-in updater plugin
-2. **T05: `stigmer://` URL scheme** — Deep linking (blocked on Phase 3 T02 launch tokens)
-3. **Polish: Tray icon state variants** — Designer-created icons for idle/active/error states, macOS template image support
-4. **Polish: Notification click-to-focus** — When user clicks a notification, bring the Stigmer window to focus (requires platform-specific testing)
+1. **T05: `stigmer://` URL scheme** — Deep linking (blocked on Phase 3 T02 launch tokens)
+2. **T09: End-to-end testing & polish** — Once T05 is unblocked
+3. **Operational: Add GitHub secrets** — `TAURI_SIGNING_PRIVATE_KEY` (content of `~/.tauri/stigmer.key`), `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (empty string). Required before first `desktop-v*` tag push.
+4. **Operational: macOS code signing** — Obtain Apple Developer ID Application certificate, add `APPLE_*` secrets to GitHub. Enables signed/notarized `.dmg` builds.
+5. **Polish: Tray icon state variants** — Designer-created icons for idle/active/error states
+6. **Polish: Notification click-to-focus** — Bring Stigmer window to focus on notification click
+7. **Polish: Settings > About section** — Show current version, update status, manual check button
 
 ## Context for Resume
 
-- T08 added three Tauri plugins: `dialog` (v2.7.0), `notification` (v2.3.3), `window-state` (v2.4.1)
-- Plugin registration pattern: `.plugin(tauri_plugin_X::init())` in `lib.rs` builder chain, plus capability permission in `capabilities/default.json`
-- `onBrowseLocalFolder` is a new public prop on `WorkspaceEditor` and `SessionComposer` in `@stigmer/react` — any platform builder can provide a native folder picker via this callback
-- `useRunnerNotifications` subscribes to the same Tauri events (`runner:started`, `runner:stopped`, `runner:error`) that were already emitted by `sidecar.rs` since T06
-- Window state plugin saves/restores geometry automatically; explicit `save_window_state()` call in `ExitRequested` handler handles the hide-to-tray edge case
-- Route persistence uses `router.subscribe()` / `router.navigate()` on the hash router — stored in `localStorage` under key `stigmer:lastRoute`
-- Keyboard shortcuts are React-only (`useEffect` + `keydown` listener), mounted in `AppShell` — no Tauri plugin needed
-- Dev workflow unchanged: run `./scripts/setup-sidecar-dev.sh` then `cargo tauri dev`
-- Pre-existing typecheck errors in web app (`LibraryBreadcrumbContext`) and `sdk/typescript/src/gen/runner.ts` — not introduced by this work
+- T07 added two Tauri plugins: `updater` (v2.10.1), `process` (v2.3.1)
+- Updater plugin registered in `setup` closure, not builder chain: `app.handle().plugin(tauri_plugin_updater::Builder::new().build())`
+- Process plugin registered in builder chain: `.plugin(tauri_plugin_process::init())`
+- Updater signing public key in `tauri.conf.json` `plugins.updater.pubkey`; private key at `~/.tauri/stigmer.key`
+- Update endpoint: `https://github.com/stigmer/stigmer/releases/latest/download/latest.json`
+- `useAppUpdater` hook: 5s initial delay, 4h interval, `sonner` toast, `busyRef` guard against concurrent checks
+- CI workflow: `desktop-v*` tag → `generate-protos` → 4-platform matrix (macOS arm64/x86_64, Linux x86_64, Windows x86_64) → `tauri-action` with `includeUpdaterJson: true`
+- Go sidecar built without embed tags (no `embed_agentrunner embed_webconsole`) — lightweight CLI binary
+- `make desktop-release bump=patch` bumps `tauri.conf.json` version, commits, tags `desktop-v*`, pushes
+- Draft releases: must be published manually after verification for auto-updater to work
+- Windows: builds but `sidecar.rs` process management (SIGTERM/SIGKILL) is Unix-only — known limitation
+- Dev workflow unchanged: `./scripts/setup-sidecar-dev.sh` then `cargo tauri dev` (or `make desktop-dev`)
+- Pre-existing typecheck errors in web app and `sdk/typescript/src/gen/runner.ts` — not introduced by this work
 
 ## Blockers
 
-- Phase 3 project T02 (launch token endpoints) needed for `stigmer://` handler (T05) and seamless runner auth (DD-T06-01 upgrade path)
+- Phase 3 project T02 (launch token endpoints) needed for `stigmer://` handler (T05)
+- GitHub secrets (`TAURI_SIGNING_PRIVATE_KEY`) needed before first CI release build
 
 ## Quick Commands
 
-- "Start T07" — Begin auto-updater & distribution pipeline
+- "Start T05" — Begin `stigmer://` URL scheme handling (requires Phase 3 T02 to be complete)
+- "Start T09" — Begin end-to-end testing & polish
 - "Show project status" — Get overview of progress
 - "Run desktop" — `make desktop-dev` to launch the desktop app (run `./scripts/setup-sidecar-dev.sh` first for sidecar)
+- "Release desktop" — `make desktop-release bump=patch` (requires `TAURI_SIGNING_PRIVATE_KEY` in GitHub secrets)
 
 ---
 

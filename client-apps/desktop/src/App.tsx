@@ -7,6 +7,7 @@ import { router } from "./routes";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { OrgProvider } from "./org/OrgProvider";
 import { LoginScreen } from "./auth/LoginScreen";
+import { useAppUpdater } from "./hooks/useAppUpdater";
 import { useRunnerNotifications } from "./hooks/useRunnerNotifications";
 
 const BASE_URL = import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:9090";
@@ -30,6 +31,7 @@ export function App() {
 
 function AuthenticatedApp() {
   const { getAccessToken, isAuthenticated, isLoading } = useAuth();
+  useAppUpdater();
   useRunnerNotifications();
 
   const client = useMemo(
