@@ -34,6 +34,9 @@ Use 'stigmer up server' to start the full local development stack
   # Start a runner with a custom name
   stigmer up --name my-macbook
 
+  # Start a runner inside a Docker container
+  stigmer up --runtime docker
+
   # Start the full local development stack
   stigmer up server`,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -44,6 +47,8 @@ Use 'stigmer up server' to start the full local development stack
 	cmd.Flags().String("endpoint", "", "Backend gRPC endpoint (overrides config)")
 	cmd.Flags().String("token", "", "API key / auth token (overrides config and env)")
 	cmd.Flags().String("name", "", "Runner name (default: hostname)")
+	cmd.Flags().String("runtime", "native", "Runner runtime: native (default) or docker")
+	cmd.Flags().String("image", "", "Docker image for the agent runner (only used with --runtime docker)")
 	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
 
 	cmd.AddCommand(newUpServerCommand())
@@ -56,11 +61,15 @@ func handleUpRunner(cmd *cobra.Command) {
 	name, _ := cmd.Flags().GetString("name")
 	endpoint, _ := cmd.Flags().GetString("endpoint")
 	token, _ := cmd.Flags().GetString("token")
+	runtime, _ := cmd.Flags().GetString("runtime")
+	image, _ := cmd.Flags().GetString("image")
 
 	err := runner.Start(context.Background(), runner.StartOptions{
 		Name:             name,
 		EndpointOverride: endpoint,
 		TokenOverride:    token,
+		Runtime:          runtime,
+		Image:            image,
 	})
 	if err != nil {
 		clierr.Handle(err)
@@ -121,7 +130,13 @@ Identical to 'stigmer up' — provided for clarity when used alongside
   stigmer up runner --endpoint my-server:7234 --token sk-...
 
   # Start a runner with a custom name
-  stigmer up runner --name build-machine`,
+  stigmer up runner --name build-machine
+
+  # Start a runner inside a Docker container
+  stigmer up runner --runtime docker
+
+  # Use a specific Docker image
+  stigmer up runner --runtime docker --image ghcr.io/stigmer/agent-runner:latest`,
 		Run: func(cmd *cobra.Command, args []string) {
 			handleUpRunner(cmd)
 		},
@@ -130,6 +145,8 @@ Identical to 'stigmer up' — provided for clarity when used alongside
 	cmd.Flags().String("endpoint", "", "Backend gRPC endpoint (overrides config)")
 	cmd.Flags().String("token", "", "API key / auth token (overrides config and env)")
 	cmd.Flags().String("name", "", "Runner name (default: hostname)")
+	cmd.Flags().String("runtime", "native", "Runner runtime: native (default) or docker")
+	cmd.Flags().String("image", "", "Docker image for the agent runner (only used with --runtime docker)")
 	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
 
 	return cmd

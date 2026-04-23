@@ -14,6 +14,11 @@ import (
 
 const runnersDirName = "runners"
 
+const (
+	RuntimeNative = "native"
+	RuntimeDocker = "docker"
+)
+
 // RunnerState is the on-disk representation of a running runner.
 // Persisted at ~/.stigmer/runners/<name>.json so that `stigmer down runner`
 // can find and stop it.
@@ -30,6 +35,17 @@ type RunnerState struct {
 	TaskQueue       string    `json:"task_queue"`
 	StartedAt       time.Time `json:"started_at"`
 	ManagedByDaemon bool      `json:"managed_by_daemon,omitempty"`
+
+	// Runtime indicates how the agent-runner process was started.
+	// Empty or "native" means a local Python process (PID-tracked).
+	// "docker" means a Docker container (ContainerID-tracked).
+	Runtime     string `json:"runtime,omitempty"`
+	ContainerID string `json:"container_id,omitempty"`
+}
+
+// IsDocker returns true if this runner is managed as a Docker container.
+func (s *RunnerState) IsDocker() bool {
+	return s.Runtime == RuntimeDocker
 }
 
 // RunnersDir returns the path to ~/.stigmer/runners/, creating it if needed.
@@ -93,19 +109,19 @@ func RemoveState(name string) error {
 	return nil
 }
 
-// IsActive checks whether a runner with the given name is still alive by
-// reading its state file and probing the recorded PID.
+// IsActive checks whether a runner with the given name is still alive.
+// For native runners, it probes the recorded PID. For Docker runners,
+// it checks whether the container is still running.
 func IsActive(name string) bool {
 	state, err := LoadState(name)
 	if err != nil {
 		return false
 	}
-	return isProcessAlive(state.PID)
+	return isRunnerAlive(state)
 }
 
 // ListActiveRunners returns the names of all runners that have state files
-// and whose PIDs are still alive. Stale state files (dead PIDs) are removed
-// as a side effect.
+// and are still alive. Stale state files are removed as a side effect.
 func ListActiveRunners() ([]string, error) {
 	states, err := loadAllStates()
 	if err != nil {
@@ -113,7 +129,7 @@ func ListActiveRunners() ([]string, error) {
 	}
 	var active []string
 	for name, state := range states {
-		if isProcessAlive(state.PID) {
+		if isRunnerAlive(state) {
 			active = append(active, name)
 		} else {
 			_ = RemoveState(name)
@@ -123,7 +139,7 @@ func ListActiveRunners() ([]string, error) {
 }
 
 // ListAllRunnerStates returns name-keyed state for every active runner.
-// Stale state files (dead PIDs) are removed as a side effect.
+// Stale state files are removed as a side effect.
 func ListAllRunnerStates() (map[string]*RunnerState, error) {
 	states, err := loadAllStates()
 	if err != nil {
@@ -131,7 +147,7 @@ func ListAllRunnerStates() (map[string]*RunnerState, error) {
 	}
 	active := make(map[string]*RunnerState, len(states))
 	for name, state := range states {
-		if isProcessAlive(state.PID) {
+		if isRunnerAlive(state) {
 			active[name] = state
 		} else {
 			_ = RemoveState(name)
@@ -140,8 +156,8 @@ func ListAllRunnerStates() (map[string]*RunnerState, error) {
 	return active, nil
 }
 
-// ReapStaleRunners removes state files for runners whose PIDs are no longer
-// alive. Returns the names of reaped runners for caller logging.
+// ReapStaleRunners removes state files for runners that are no longer alive.
+// Returns the names of reaped runners for caller logging.
 func ReapStaleRunners() []string {
 	states, err := loadAllStates()
 	if err != nil {
@@ -149,7 +165,7 @@ func ReapStaleRunners() []string {
 	}
 	var reaped []string
 	for name, state := range states {
-		if !isProcessAlive(state.PID) {
+		if !isRunnerAlive(state) {
 			if err := RemoveState(name); err == nil {
 				reaped = append(reaped, name)
 			}
@@ -182,6 +198,15 @@ func loadAllStates() (map[string]*RunnerState, error) {
 		states[name] = state
 	}
 	return states, nil
+}
+
+// isRunnerAlive checks whether a runner is still alive based on its runtime.
+// Native runners are checked via PID probe; Docker runners via container state.
+func isRunnerAlive(state *RunnerState) bool {
+	if state.IsDocker() {
+		return IsContainerAlive(NewDockerClient(), state.ContainerID)
+	}
+	return isProcessAlive(state.PID)
 }
 
 func isProcessAlive(pid int) bool {

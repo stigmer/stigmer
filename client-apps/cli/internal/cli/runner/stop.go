@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"os"
 	"syscall"
 	"time"
@@ -12,12 +13,9 @@ import (
 
 const stopTimeout = 5 * time.Second
 
-// StopRunner stops a single named runner by sending SIGTERM to its recorded
-// PID. The running process handles SIGTERM by sending a STOPPED heartbeat
-// over the bidi command stream and then exiting.
-//
-// Daemon-managed runners (ManagedByDaemon=true) cannot be stopped
-// independently — they are stopped when the daemon shuts down.
+// StopRunner stops a single named runner. For native runners, it sends
+// SIGTERM to the recorded PID. For Docker runners, it stops and removes
+// the container. Daemon-managed runners cannot be stopped independently.
 func StopRunner(name string) error {
 	state, err := LoadState(name)
 	if err != nil {
@@ -29,6 +27,13 @@ func StopRunner(name string) error {
 		return nil
 	}
 
+	if state.IsDocker() {
+		return stopDockerRunner(name, state)
+	}
+	return stopNativeRunner(name, state)
+}
+
+func stopNativeRunner(name string, state *RunnerState) error {
 	if !isProcessAlive(state.PID) {
 		climsg.Warning("Runner %q (PID %d) is not running, cleaning up state", name, state.PID)
 		return RemoveState(name)
@@ -56,6 +61,43 @@ func StopRunner(name string) error {
 
 	climsg.Success("Runner %q stopped", name)
 	return nil
+}
+
+func stopDockerRunner(name string, state *RunnerState) error {
+	dc := NewDockerClient()
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	if !IsContainerAlive(dc, state.ContainerID) {
+		climsg.Warning("Runner %q (container %s) is not running, cleaning up state",
+			name, truncateID(state.ContainerID))
+		_ = dc.Remove(ctx, state.ContainerID)
+		return RemoveState(name)
+	}
+
+	climsg.Info("Stopping runner %q (container %s) ...", name, truncateID(state.ContainerID))
+
+	if err := dc.Stop(ctx, state.ContainerID); err != nil {
+		log.Warn().Err(err).Msg("Failed to stop container gracefully")
+	}
+
+	if err := dc.Remove(ctx, state.ContainerID); err != nil {
+		log.Warn().Err(err).Msg("Failed to remove container")
+	}
+
+	if err := RemoveState(name); err != nil {
+		return errors.Wrapf(err, "failed to clean up state for runner %q", name)
+	}
+
+	climsg.Success("Runner %q stopped", name)
+	return nil
+}
+
+func truncateID(id string) string {
+	if len(id) > 12 {
+		return id[:12]
+	}
+	return id
 }
 
 // StopAllRunners stops every standalone runner that has a state file and a
