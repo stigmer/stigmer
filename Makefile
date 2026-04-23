@@ -211,11 +211,12 @@ tidy: ## Run go mod tidy on all Go modules
 
 # ─── Lint & Check ────────────────────────────
 
-.PHONY: fix lint lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos check check-all
+.PHONY: fix lint verify-web lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos check check-all
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
 	@cd backend/libs/python/graphton && poetry run ruff check --fix .
 	@cd $(AGENT_RUNNER_DIR) && poetry run ruff check --fix .
+	-npm run lint:fix -w @stigmer/react
 	-npm run lint -w client-apps/web -- --fix
 
 lint: ## Run all linters and type checks
@@ -229,8 +230,16 @@ lint: ## Run all linters and type checks
 	@cd $(AGENT_RUNNER_DIR) && poetry install --no-interaction --quiet && \
 		poetry run mypy grpc_client/ worker/ --show-error-codes
 	npm run typecheck -w @stigmer/sdk
+	npm run lint -w @stigmer/react
+	npm run typecheck -w @stigmer/react
 	npm run lint -w client-apps/web
 	$(MAKE) -C site lint
+
+verify-web: ## Lint and typecheck SDK react + web console (~30s)
+	npm run lint -w @stigmer/react
+	npm run typecheck -w @stigmer/react
+	npm run typecheck -w @stigmer/sdk
+	npm run lint -w client-apps/web
 
 libs-build:
 	npm run build:libs
