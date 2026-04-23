@@ -15,14 +15,18 @@ import ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /** Provides operations on runner resources. */
 public final class RunnerClient {
     private final RunnerCommandControllerGrpc.RunnerCommandControllerBlockingStub command;
+    private final RunnerCommandControllerGrpc.RunnerCommandControllerStub commandAsync;
     private final RunnerQueryControllerGrpc.RunnerQueryControllerBlockingStub query;
 
     RunnerClient(Channel channel) {
         this.command = RunnerCommandControllerGrpc.newBlockingStub(channel);
+        this.commandAsync = RunnerCommandControllerGrpc.newStub(channel);
         this.query = RunnerQueryControllerGrpc.newBlockingStub(channel);
     }
 
@@ -56,11 +60,11 @@ public final class RunnerClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public StigmerStream<RunnerStreamServerMessage> connect(RunnerStreamClientMessage input) {
-        try {
-            java.util.Iterator<RunnerStreamServerMessage> iter = command.connect(input);
-            return new StigmerStream<>(iter);
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    public StigmerBidiStream<RunnerStreamClientMessage, RunnerStreamServerMessage> connect() {
+        LinkedBlockingQueue<Object> queue = new LinkedBlockingQueue<>();
+        StreamObserver<RunnerStreamClientMessage> requests = commandAsync.connect(
+            StigmerBidiStream.responseObserver(queue));
+        return new StigmerBidiStream<>(requests, queue);
     }
 
     public Runner get(String id) {
