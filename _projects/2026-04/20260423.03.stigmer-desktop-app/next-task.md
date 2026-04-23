@@ -13,8 +13,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: T03 complete, ready for T04
-- **Last Session**: 2026-04-23 — T03 complete (SDK extraction + desktop app shell)
+- **Status**: T06 complete, ready for T04
+- **Last Session**: 2026-04-23 — T06 complete (CLI sidecar integration for runner management)
 - **Active Task**: T04 (next)
 
 ## Task Overview
@@ -26,79 +26,100 @@ Drop this file into your conversation to quickly resume work on this project.
 | T03 | Core app shell (routing, layout, auth) | **Complete** | T02 |
 | T04 | System tray integration | Pending | T03 |
 | T05 | `stigmer://` URL scheme handling | Pending | T03, Phase 3 T02 |
-| T06 | Sidecar — bundle CLI for runner management | Pending | T03 |
+| T06 | Sidecar — bundle CLI for runner management | **Complete** | T03 |
 | T07 | Auto-updater & distribution pipeline | Pending | T06 |
 | T08 | Desktop-specific features (file picker, notifications) | Pending | T03 |
 | T09 | End-to-end testing & polish | Pending | All |
 
-## Session Progress (2026-04-23, Session 2)
+## Session Progress (2026-04-23, Session 3)
 
-### Phase A: SDK Extraction (completed)
+### T06: Sidecar — Bundle CLI for Runner Management (completed)
 
-Extracted session orchestration logic from the web app into reusable SDK hooks:
+Bundled the Go CLI binary as a Tauri sidecar and built a Rust process manager + React hook integration layer so the desktop app can start, stop, monitor, and stream logs from local runner processes.
 
-- **`useNewSessionFlow`** (`sdk/react/src/session/useNewSessionFlow.ts`) — Orchestrates "create new session" flow: model persistence, agent/resolution/MCP/skill/runner/workspace state, session + first execution creation with default agent fallback. Framework-agnostic.
-- **`useSessionPageFlow`** (`sdk/react/src/session/useSessionPageFlow.ts`) — Orchestrates session page: composes `useSessionConversation` + agent resolution from session instance + workspace sync + follow-up with agent override.
-- **`usePersistedModel`** (`sdk/react/src/session/usePersistedModel.ts`) — Model selection with localStorage persistence, shared between both flows.
-- **`useEditSessionPrep`** (`sdk/react/src/session/useEditSessionPrep.ts`) — Edit-mode draft session preparation (fetch resource, serialize to YAML/ZIP).
-- **`draft.ts`** (`sdk/react/src/session/draft.ts`) — `CREATOR_AGENTS`, `DraftResourceType`/`DraftParams`, `parseDraftParams`/`parseDraftType` moved from web app to SDK.
-- **Web app refactored**: `SessionLauncher.tsx` 407→160 lines, `SessionPage.tsx` 386→210 lines, `draft-session.ts` now re-exports from SDK.
+#### Rust Layer (`src-tauri/`)
 
-### Phase B: Desktop App Shell (completed)
+- **`sidecar.rs`** (~350 lines) — Process manager that spawns/kills CLI child processes, tracks PIDs in memory, captures stdout/stderr into a 2000-line ring buffer, reads `~/.stigmer/runners/*.json` state files directly from Rust (no CLI spawn needed for listing), reaps stale processes (dead PIDs), and emits lifecycle events (`runner:started`, `runner:log`, `runner:stopped`, `runner:error`) to the frontend. Five Tauri commands exposed: `start_runner`, `stop_runner`, `stop_all_runners`, `list_local_runners`, `get_runner_logs`.
+- **`lib.rs`** — Registers `tauri-plugin-shell`, manages `ProcessManager` state, wires all commands, and handles graceful shutdown on `ExitRequested` (SIGTERM → 3s wait → SIGKILL).
 
-Built the complete desktop application infrastructure:
+#### Configuration
 
-- **Routing** (`src/routes.tsx`) — HashRouter with lazy-loaded routes matching web console structure.
-- **App Shell** (`src/shell/AppShell.tsx`, `src/shell/Sidebar.tsx`) — Sidebar with session list via SDK hooks (`useSessionList`, `groupSessionsByTime`, `resolvedSubject`), New Session, Library, Settings navigation.
-- **Auth** (`src/auth/`) — Dual-mode: DisabledAuth for local/OSS, PkceAuth for cloud (Auth0 PKCE with system browser, code exchange, token refresh). Login screen, token storage.
-- **Org Context** (`src/org/OrgProvider.tsx`, `src/org/OrgGate.tsx`) — Full org gating: loading, provisioning poll (OIDC), error+retry, onboarding with SDK's `CreateOrganizationForm`.
-- **Pages** — 14 page components, all thin wrappers over SDK hooks/components:
-  - Session: `SessionLauncher`, `SessionPage` (using extracted SDK hooks)
-  - Library: `LibraryLanding`, `AgentListPage`, `AgentDetailPage`, `SkillListPage`, `SkillDetailPage`, `McpServerListPage`, `McpServerDetailPage`
-  - Settings: `SettingsRunners`, `SettingsApiKeys`, `SettingsEnvironments`, `SettingsMembers`, `SettingsOrgProfile`
+- **`Cargo.toml`** — Added `tauri-plugin-shell`, `tokio`, `dirs`, `log`, `hostname`, `libc`.
+- **`tauri.conf.json`** — Added `bundle.externalBin: ["binaries/stigmer"]`.
+- **`capabilities/default.json`** — Scoped `shell:allow-spawn` and `shell:allow-execute` permissions for the stigmer sidecar with regex arg validators.
+- **`package.json`** — Added `@tauri-apps/plugin-shell`.
+
+#### Dev Workflow
+
+- **`scripts/setup-sidecar-dev.sh`** — Finds the CLI binary (Bazel output → GOPATH → system PATH) and creates a target-triple symlink at `src-tauri/binaries/stigmer-<triple>`.
+- **`binaries/.gitignore`** — Platform-specific binaries are ignored; created by the dev script, injected by CI for production.
+
+#### React Hooks (`src/hooks/`)
+
+- **`tauri.ts`** — Typed wrappers for all five `invoke()` commands and four `listen()` event subscriptions matching the Rust struct shapes exactly.
+- **`useLocalRunners.ts`** — Fetches local runner state on mount, auto-refreshes on `runner:started`/`runner:stopped` events. Returns a name-keyed `Map` for efficient lookup.
+- **`useStartRunner.ts`** — Async callback with loading/error state. Detects auth errors and surfaces a clear onboarding message about `stigmer auth login`.
+- **`useStopLocalRunner.ts`** — Async callback with loading/error state.
+- **`useRunnerLogs.ts`** — Fetches initial log buffer, subscribes to live `runner:log` events, caps at 2000 lines.
+
+#### Enhanced Settings > Runners Page
+
+- **`SettingsRunners.tsx`** (rewritten from 11-line wrapper to ~300 lines) — Unified runner list composing `useRunnerList` (SDK, server-side) with `useLocalRunners` (desktop, local processes). Shows "Local" badge on locally-running processes, "Start Runner" button with dialog, per-runner Stop and Logs actions, auth error banner with guidance, streaming log viewer panel.
+- **`StartRunnerDialog.tsx`** — Modal for starting a runner with optional name/endpoint/token fields.
+- **`RunnerLogViewer.tsx`** — Side panel with live-streaming log output, auto-scrolling, and "Live" indicator.
 
 ### Key Decisions
 
-- **SDK-first**: All domain logic in SDK, both web and desktop are thin shells
-- **No shared app shell package**: SDK hooks are the sharing layer; sidebar duplication (~200 lines) is acceptable
-- **Auth via PKCE + local callback**: Mirrors CLI pattern, independent from deep-link plugin (T05)
-- **Full OrgGate**: Provisioning poll needed because desktop has no natural delay between auth and org content
+- **DD-T06-01: CLI handles its own credentials** — No credential-bridging from desktop OAuth to CLI. The sidecar uses the CLI's existing resolution chain (`--token` flag > `STIGMER_API_KEY` env > `~/.stigmer/config.yaml`). Throwaway auth plumbing avoided; Phase 3 launch token API will be the clean solution.
+- **DD-T06-02: Unified runner view with local awareness** — Single list from server API augmented with local process badges, not two separate sections. Avoids duplicate entries and matches user mental model.
+- **DD-T06-03: Process manager, not command runner** — Rust layer manages long-running child processes with PID tracking, ring buffers, and events, not one-shot command execution.
+- **DD-T06-04: Dev symlink workflow** — Local binary symlink for development; production cross-compilation deferred to T07.
+
+### Surprises Discovered
+
+1. CLI's `stigmer up runner` does NOT have a `--runtime` flag (Docker is Phase 3 T03). Sidecar command signature omits `runtime`.
+2. Python bootstrap latency is significant on first run (minutes). Log viewer streams progress naturally.
+3. `list runners` CLI command is local-only (`~/.stigmer/runners/*.json`); Rust reads files directly rather than spawning CLI.
 
 ### Files Changed
 
-- 5 new SDK files (hooks + types)
-- 20 new desktop files (auth, org, shell, pages, routes)
-- 3 web files refactored (SessionLauncher, SessionPage, draft-session)
-- SDK and web barrel exports updated
-- All three packages typecheck cleanly
+- 1 new Rust module (`sidecar.rs`, ~350 lines)
+- 1 rewritten Rust entry (`lib.rs`)
+- 5 new React hook files (`tauri.ts`, `useLocalRunners.ts`, `useStartRunner.ts`, `useStopLocalRunner.ts`, `useRunnerLogs.ts`)
+- 3 new React component files (`SettingsRunners.tsx` rewritten, `StartRunnerDialog.tsx`, `RunnerLogViewer.tsx`)
+- 1 new dev script (`setup-sidecar-dev.sh`)
+- 5 config files modified (`Cargo.toml`, `package.json`, `tauri.conf.json`, `capabilities/default.json`, plus Cargo.lock/gen schemas auto-updated)
+- Rust: zero `cargo clippy` warnings
+- TypeScript: zero `tsc` errors
 
 ## Next Steps
 
-1. **T04: System tray integration** — Native tray icon, runner status, quick actions
-2. **T05: `stigmer://` URL scheme** — Deep linking (depends on Phase 3 T02 launch tokens)
-3. **T06: Sidecar** — Bundle Go CLI for runner process management
+1. **T04: System tray integration** — Native tray icon, runner status indicators (leveraging local runner state from T06), quick actions (Start/Stop runner, Open Stigmer, Settings, Quit)
+2. **T08: Desktop-specific features** — Native file picker for workspace selection, native notifications for runner events, keyboard shortcuts
+3. **T07: Auto-updater & distribution pipeline** — Cross-platform CLI compilation, `.dmg`/`.AppImage`/`.msi` builds, update manifest hosting (depends on T06 for sidecar bundling)
+4. **T05: `stigmer://` URL scheme** — Deep linking (blocked on Phase 3 T02 launch tokens)
 
 ## Context for Resume
 
-- The `@stigmer/react` SDK now has session orchestration hooks (`useNewSessionFlow`, `useSessionPageFlow`, `useEditSessionPrep`) that both web and desktop consume
-- Desktop app at `client-apps/desktop/` has full routing, auth, org context, and all page shells
-- Auth provider auto-detects local vs cloud mode (`VITE_STIGMER_API_URL`)
-- OrgGate includes provisioning poll for OIDC mode (same race condition as web)
-- Desktop pages use `enableGitHub={false}` and `enableLocal` — GitHub integration isn't wired yet (no OAuth popup in Tauri)
-- `SettingsMembers` and `SettingsOrgProfile` resolve org ID from slug via `useOrganization` hook
-- All library list pages use `useAgentList`/`useSkillList`/`useMcpServerList` with scope toggle and pagination
-- Pre-existing typecheck errors in web app (`LibraryBreadcrumbContext`) — not introduced by this work
-- Pre-existing typecheck error in `sdk/typescript/src/gen/runner.ts` — not introduced by desktop work
+- The desktop app now has full local runner management via the CLI sidecar
+- `ProcessManager` in Rust tracks all runners spawned by the desktop app (child processes with PID, log buffer, lifecycle events)
+- Local runner state files (`~/.stigmer/runners/*.json`) are read directly by Rust — no CLI spawn needed for listing
+- The `start_runner` command accepts optional `endpoint` and `token` — forward-compatible with Phase 3 launch token exchange
+- Auth error detection in `useStartRunner` checks for CLI auth failure patterns and shows an onboarding guide
+- The `SettingsRunners` page composes SDK's `useRunnerList` (server) with desktop's `useLocalRunners` (local) for a unified view
+- Graceful shutdown on app exit sends SIGTERM to all managed runners, waits 3s, then SIGKILL
+- Dev workflow: run `./scripts/setup-sidecar-dev.sh` to create the sidecar symlink before `cargo tauri dev`
+- Pre-existing typecheck errors in web app (`LibraryBreadcrumbContext`) and `sdk/typescript/src/gen/runner.ts` — not introduced by this work
 
 ## Blockers
 
-- Phase 3 project T02 (launch token endpoints) needed for `stigmer://` handler (T05)
+- Phase 3 project T02 (launch token endpoints) needed for `stigmer://` handler (T05) and seamless runner auth (DD-T06-01 upgrade path)
 
 ## Quick Commands
 
 - "Start T04" — Begin system tray integration
 - "Show project status" — Get overview of progress
-- "Run desktop" — `make desktop-dev` to launch the desktop app
+- "Run desktop" — `make desktop-dev` to launch the desktop app (run `./scripts/setup-sidecar-dev.sh` first for sidecar)
 
 ---
 
