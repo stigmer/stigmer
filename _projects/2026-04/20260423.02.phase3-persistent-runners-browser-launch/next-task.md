@@ -13,9 +13,17 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: T02 complete, ready for T03/T05/T06 (parallelizable)
+- **Status**: T02 complete, Desktop T05 complete (deep link handler). Ready for T05/T06/T07 (parallelizable).
 - **Last Session**: 2026-04-23 — T02 complete (server-side launch token endpoints)
 - **Active Task**: None
+
+## Scope Change: Desktop App is Primary `stigmer://` Handler
+
+The Stigmer Desktop app (project 20260423.03, T05) now handles `stigmer://` URLs as the primary receiver. It registers the `stigmer://` scheme via Tauri's deep-link plugin, exchanges the launch token via the SDK, and starts a runner via its CLI sidecar. This changes T03 and T04 in this project:
+
+- **T03 and T04 are deferred** — They provide a CLI-only fallback for users who install the CLI but not the desktop app. Still relevant but no longer on the critical path.
+- **T07 (SDK hooks) is the next high-priority task** — It builds the *triggering* side: `useLaunchLocalRunner` constructs the `stigmer://` URL and opens it from the browser. The desktop app already handles the *receiving* side.
+- **Critical path is now**: T02 (done) → Desktop T05 (done) → T07 → T08 → T09.
 
 ## Task Overview
 
@@ -23,8 +31,8 @@ Drop this file into your conversation to quickly resume work on this project.
 |------|-------|--------|--------------|
 | T01 | Design & task plan | **Complete** | None |
 | T02 | Server-side launch token endpoints | **Complete** | None |
-| T03 | CLI `stigmer://` URL scheme registration (Go) | Pending | None |
-| T04 | CLI URL handler — receive and launch (Go) | Pending | T02, T03 |
+| T03 | CLI `stigmer://` URL scheme registration (Go) | Deferred (CLI-only fallback) | None |
+| T04 | CLI URL handler — receive and launch (Go) | Deferred (CLI-only fallback) | T02, T03 |
 | T05 | Docker placement (Go CLI) | Pending | None |
 | T06 | Runner stop via command stream (Proto + all languages) | Pending | None |
 | T07 | SDK runner action hooks (React) | Pending | T06, T02 |
@@ -92,41 +100,43 @@ All files under `domain/agentic/runner/launch/`:
 
 ## The `stigmer://` Flow (centrepiece)
 
+Primary path (Desktop app installed):
+
 ```
-Browser                          OS                    Stigmer CLI
+Browser                          OS                    Desktop App (Tauri)
   │                               │                         │
-  │ POST /v1/agent-runners/       │                         │
-  │   launch-tokens               │                         │
+  │ createLaunchToken({ org })    │                         │
   │──────────────────────►        │                         │
   │ ◄─── { token, expiresAt }    │                         │
   │                               │                         │
   │ Navigate to                   │                         │
   │ stigmer://launch-runner?      │                         │
-  │   token=<jwt>&runtime=native  │                         │
+  │   token=<token>               │                         │
   │──────────────────────────────►│                         │
-  │                               │ Dispatch to registered  │
-  │                               │ stigmer:// handler      │
+  │                               │ Deep link dispatch      │
   │                               │────────────────────────►│
   │                               │                         │
-  │                               │         POST /v1/agent-runners/
-  │                               │           exchange-launch-token
-  │                               │         ◄─── { stigmerToken }
+  │                               │  exchangeLaunchToken()  │
+  │                               │  ◄── { accessToken }    │
   │                               │                         │
-  │                               │         runner.Start()  │
-  │                               │         apply AgentRunner│
-  │                               │         spawn agent-runner
-  │                               │         heartbeat → Ready│
+  │                               │  invokeStartRunner()    │
+  │                               │  (CLI sidecar:          │
+  │                               │   stigmer up runner     │
+  │                               │   --token <jwt>)        │
+  │                               │  heartbeat → Ready      │
   │                               │                         │
   │ Poll: runner appeared as Ready│                         │
   │◄──────────────────────────────│                         │
 ```
+
+Fallback path (CLI only, no desktop — deferred T03/T04): same flow but the OS dispatches to the CLI binary instead.
 
 ## Related Projects
 
 - **20260420.01.agent-runner-as-resource** — Phase 0-2 (code complete). This project is Phase 3.
 - **20260422.01.runner-ux-cli-restructure** — CLI and UI runner foundations (complete).
 - **20260422.02.runner-command-stream** — Bidi stream + sendCommand (T02-T07 complete, T08 pending).
-- **20260423.03.stigmer-desktop-app** — Companion project. Desktop app will supersede CLI as `stigmer://` handler.
+- **20260423.03.stigmer-desktop-app** — Companion project. Desktop app T05 (complete) is the primary `stigmer://` handler.
 
 ## Context for Resume
 
@@ -142,6 +152,9 @@ Browser                          OS                    Stigmer CLI
 - T02 Java files: `domain/agentic/runner/launch/` — `LaunchTokenService.java`, `RunnerCreateLaunchTokenHandler.java`, `RunnerExchangeLaunchTokenHandler.java`
 - T02 Go stub: `backend/services/stigmer-server/pkg/domain/runner/controller/launch_token.go` — UNIMPLEMENTED
 - T02 generated TS SDK: `RunnerClient` now has `createLaunchToken()` and `exchangeLaunchToken()` methods (auto-generated from proto)
+- Desktop T05 complete: `useDeepLinkHandler` hook in `client-apps/desktop/src/hooks/useDeepLinkHandler.ts` handles `stigmer://launch-runner?token=...` URLs, exchanges the token, and starts a runner via the CLI sidecar
+- Desktop uses `tauri-plugin-deep-link` + `tauri-plugin-single-instance` (with `deep-link` feature) for URL scheme handling
+- T03/T04 deferred: CLI-only fallback for users without the desktop app
 - Pre-existing: `SessionUpdateSandboxIdHandler.java` blocks Java compilation in stigmer-cloud (not T02-related)
 
 ## Blockers
@@ -150,9 +163,9 @@ Browser                          OS                    Stigmer CLI
 
 ## Quick Commands
 
-- "Start T03" — Begin CLI `stigmer://` URL scheme registration (Go)
 - "Start T05" — Begin Docker placement (Go CLI)
 - "Start T06" — Begin runner stop via command stream (Proto + all languages)
+- "Start T07" — Begin SDK runner action hooks (highest priority — builds triggering side for browser launch)
 - "Show project status" — Get overview of progress
 
 ---

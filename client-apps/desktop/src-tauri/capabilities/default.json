@@ -5,11 +5,13 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "core:event:default",
     "dialog:default",
     "notification:default",
     "updater:default",
     "process:default",
     "window-state:default",
+    "deep-link:default",
     {
       "identifier": "shell:allow-spawn",
       "allow": [
