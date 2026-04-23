@@ -13,8 +13,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: T02 complete, Desktop T05 complete (deep link handler). Ready for T05/T06/T07 (parallelizable).
-- **Last Session**: 2026-04-23 — T02 complete (server-side launch token endpoints)
+- **Status**: T02 complete, T05 complete, Desktop T05 complete. Ready for T06/T07 (parallelizable).
+- **Last Session**: 2026-04-23 (Session 3) — T05 complete (Docker placement in Go CLI)
 - **Active Task**: None
 
 ## Scope Change: Desktop App is Primary `stigmer://` Handler
@@ -33,11 +33,43 @@ The Stigmer Desktop app (project 20260423.03, T05) now handles `stigmer://` URLs
 | T02 | Server-side launch token endpoints | **Complete** | None |
 | T03 | CLI `stigmer://` URL scheme registration (Go) | Deferred (CLI-only fallback) | None |
 | T04 | CLI URL handler — receive and launch (Go) | Deferred (CLI-only fallback) | T02, T03 |
-| T05 | Docker placement (Go CLI) | Pending | None |
+| T05 | Docker placement (Go CLI) | **Complete** | None |
 | T06 | Runner stop via command stream (Proto + all languages) | Pending | None |
 | T07 | SDK runner action hooks (React) | Pending | T06, T02 |
 | T08 | Web UI — Settings > Runners full CRUD | Pending | T07 |
 | T09 | Integration testing | Pending | All |
+
+## Session Progress (2026-04-23, Session 3)
+
+### T05: Docker Placement (completed)
+
+Implemented `stigmer up runner --runtime docker` to run the agent-runner inside a Docker container instead of as a native Python process. All Docker interaction via `exec.Command` behind a clean `DockerClient` interface. Runtime type is a CLI-local concern — no proto changes, no server awareness.
+
+#### Architectural Decisions (confirmed before implementation)
+
+- **DD-T05-01: exec.Command, not Docker SDK** — All Docker operations (`run`, `stop`, `rm`, `inspect`) via `exec.Command("docker", ...)` wrapped behind a `DockerClient` interface. Avoids massive dependency tree, enables Podman/nerdctl compatibility for free.
+- **DD-T05-02: CLI-local runtime type** — Runtime (`native` vs `docker`) is stored in the local state file only. The server sees an identical runner regardless of how it was started. Proto modeling deferred until user feedback.
+- **DD-T05-03: State file extension** — `RunnerState` gains `Runtime` and `ContainerID` fields. Existing state files without these fields default to native (backward compatible via `omitempty`).
+- **DD-T05-04: Container naming** — `stigmer-runner-<slug>` as the Docker container name.
+- **DD-T05-05: Image default** — `ghcr.io/stigmer/agent-runner:<cli-version>`. `--image` flag overrides.
+
+#### Code Changes
+
+**New files:**
+- `client-apps/cli/internal/cli/runner/docker.go` — `DockerClient` interface + `execDockerClient` implementation. Methods: `IsAvailable`, `Run`, `Inspect`, `Stop`, `Remove`, `Wait`, `Logs`. Plus `WaitUntilRunning` (polling health check), `IsContainerAlive` (liveness probe), `DefaultImage` (version-tagged image resolution). Single `runDockerCmd` helper captures stdout/stderr separately.
+- `client-apps/cli/internal/cli/runner/docker_test.go` — 11 tests: mock-based `DockerClient` tests for `WaitUntilRunning`, `IsContainerAlive`, `DefaultImage`, `resolveRuntime`, `truncateID`.
+- `client-apps/cli/internal/cli/runner/state_test.go` — 5 tests: `IsDocker()`, backward compatibility (old JSON without Runtime), Docker round-trip, native omits Docker fields, save/load Docker state.
+
+**Modified files:**
+- `client-apps/cli/internal/cli/runner/state.go` — Added `RuntimeNative`/`RuntimeDocker` constants, `Runtime` and `ContainerID` fields on `RunnerState`, `IsDocker()` method, `isRunnerAlive()` dispatcher. Updated `IsActive`, `ListActiveRunners`, `ListAllRunnerStates`, `ReapStaleRunners` to use runtime-aware liveness checks.
+- `client-apps/cli/internal/cli/runner/start.go` — Added `Runtime`/`Image` to `StartOptions`. Extracted `registeredRunner` struct for shared registration phase. Refactored `Start()` into strategy dispatch: `startNativeRunner()` (existing Python path) and `startDockerRunner()` (new container lifecycle with health polling, bidi stream, signal-aware shutdown). Added `buildDockerEnv()` and `resolveRuntime()`.
+- `client-apps/cli/internal/cli/runner/stop.go` — Split `StopRunner` into `stopNativeRunner` (SIGTERM/SIGKILL) and `stopDockerRunner` (docker stop + docker rm). Added `truncateID` for clean container ID display.
+- `client-apps/cli/cmd/stigmer/root/up.go` — Added `--runtime` and `--image` flags to both `stigmer up` and `stigmer up runner`. Updated `handleUpRunner` to pass through. Added Docker examples to help text.
+
+#### Tests
+
+- 16 new tests: all pass. No new dependencies.
+- Full CLI binary compiles cleanly.
 
 ## Session Progress (2026-04-23, Session 2)
 
@@ -155,6 +187,9 @@ Fallback path (CLI only, no desktop — deferred T03/T04): same flow but the OS 
 - Desktop T05 complete: `useDeepLinkHandler` hook in `client-apps/desktop/src/hooks/useDeepLinkHandler.ts` handles `stigmer://launch-runner?token=...` URLs, exchanges the token, and starts a runner via the CLI sidecar
 - Desktop uses `tauri-plugin-deep-link` + `tauri-plugin-single-instance` (with `deep-link` feature) for URL scheme handling
 - T03/T04 deferred: CLI-only fallback for users without the desktop app
+- T05 Docker placement: `DockerClient` interface in `docker.go`, runtime dispatch in `start.go`, `--runtime`/`--image` flags in `up.go`, container lifecycle in `stop.go`, `Runtime`/`ContainerID` fields in `state.go`
+- T05 uses `exec.Command("docker", ...)` — no Docker SDK dependency. Compatible with Podman/nerdctl.
+- T05 container naming: `stigmer-runner-<slug>`. Default image: `ghcr.io/stigmer/agent-runner:<cli-version>`.
 - Pre-existing: `SessionUpdateSandboxIdHandler.java` blocks Java compilation in stigmer-cloud (not T02-related)
 
 ## Blockers
@@ -163,7 +198,6 @@ Fallback path (CLI only, no desktop — deferred T03/T04): same flow but the OS 
 
 ## Quick Commands
 
-- "Start T05" — Begin Docker placement (Go CLI)
 - "Start T06" — Begin runner stop via command stream (Proto + all languages)
 - "Start T07" — Begin SDK runner action hooks (highest priority — builds triggering side for browser launch)
 - "Show project status" — Get overview of progress
