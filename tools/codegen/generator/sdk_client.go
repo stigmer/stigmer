@@ -631,25 +631,50 @@ func generateStreamingMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDef
 	isIDInput := isIDType(m.InputType)
 	streamTypeName := cfg.protoResType + m.Name + "Stream"
 
-	fmt.Fprintf(buf, "// %s wraps the server stream for %s.\n", streamTypeName, m.Name)
-	fmt.Fprintf(buf, "type %s struct {\n", streamTypeName)
-	fmt.Fprintf(buf, "\tstream %s.%s_%sClient\n", inputPkg, svc.Name, m.Name)
-	buf.WriteString("}\n\n")
+	if m.ClientStreaming {
+		// Bidi streaming: Send + Recv + CloseSend, open with CallOptions only.
+		fmt.Fprintf(buf, "// %s wraps the bidi stream for %s, providing\n", streamTypeName, m.Name)
+		fmt.Fprintf(buf, "// Send, Recv, and CloseSend for the %s command channel.\n", strings.ToLower(cfg.protoResType))
+		fmt.Fprintf(buf, "type %s struct {\n", streamTypeName)
+		fmt.Fprintf(buf, "\tstream %s.%s_%sClient\n", inputPkg, svc.Name, m.Name)
+		buf.WriteString("}\n\n")
 
-	fmt.Fprintf(buf, "func (s *%s) Recv() (*%s.%s, error) {\n", streamTypeName, outputPkg, outputType)
-	buf.WriteString("\tmsg, err := s.stream.Recv()\n")
-	buf.WriteString("\tif err != nil {\n\t\tif err == io.EOF {\n\t\t\treturn nil, io.EOF\n\t\t}\n\t\treturn nil, wrapErr(err)\n\t}\n\treturn msg, nil\n}\n\n")
+		fmt.Fprintf(buf, "func (s *%s) Send(msg *%s.%s) error {\n", streamTypeName, inputPkg, inputType)
+		buf.WriteString("\treturn wrapErr(s.stream.Send(msg))\n}\n\n")
 
-	if isIDInput {
-		fmt.Fprintf(buf, "func (%s *%s) %s(ctx context.Context, id string) (*%s, error) {\n",
+		fmt.Fprintf(buf, "func (s *%s) Recv() (*%s.%s, error) {\n", streamTypeName, outputPkg, outputType)
+		buf.WriteString("\tmsg, err := s.stream.Recv()\n")
+		buf.WriteString("\tif err != nil {\n\t\tif err == io.EOF {\n\t\t\treturn nil, io.EOF\n\t\t}\n\t\treturn nil, wrapErr(err)\n\t}\n\treturn msg, nil\n}\n\n")
+
+		fmt.Fprintf(buf, "func (s *%s) CloseSend() error {\n", streamTypeName)
+		buf.WriteString("\treturn wrapErr(s.stream.CloseSend())\n}\n\n")
+
+		fmt.Fprintf(buf, "func (%s *%s) %s(ctx context.Context, opts ...grpc.CallOption) (*%s, error) {\n",
 			receiver, cfg.clientName, m.Name, streamTypeName)
-		fmt.Fprintf(buf, "\tstream, err := %s.%s.%s(ctx, &%s.%s{Value: id})\n",
-			receiver, svc.Role, m.Name, inputPkg, m.InputType)
-	} else {
-		fmt.Fprintf(buf, "func (%s *%s) %s(ctx context.Context, input *%s.%s) (*%s, error) {\n",
-			receiver, cfg.clientName, m.Name, inputPkg, inputType, streamTypeName)
-		fmt.Fprintf(buf, "\tstream, err := %s.%s.%s(ctx, input)\n",
+		fmt.Fprintf(buf, "\tstream, err := %s.%s.%s(ctx, opts...)\n",
 			receiver, svc.Role, m.Name)
+	} else {
+		// Server-streaming: Recv only, open with input message.
+		fmt.Fprintf(buf, "// %s wraps the server stream for %s.\n", streamTypeName, m.Name)
+		fmt.Fprintf(buf, "type %s struct {\n", streamTypeName)
+		fmt.Fprintf(buf, "\tstream %s.%s_%sClient\n", inputPkg, svc.Name, m.Name)
+		buf.WriteString("}\n\n")
+
+		fmt.Fprintf(buf, "func (s *%s) Recv() (*%s.%s, error) {\n", streamTypeName, outputPkg, outputType)
+		buf.WriteString("\tmsg, err := s.stream.Recv()\n")
+		buf.WriteString("\tif err != nil {\n\t\tif err == io.EOF {\n\t\t\treturn nil, io.EOF\n\t\t}\n\t\treturn nil, wrapErr(err)\n\t}\n\treturn msg, nil\n}\n\n")
+
+		if isIDInput {
+			fmt.Fprintf(buf, "func (%s *%s) %s(ctx context.Context, id string) (*%s, error) {\n",
+				receiver, cfg.clientName, m.Name, streamTypeName)
+			fmt.Fprintf(buf, "\tstream, err := %s.%s.%s(ctx, &%s.%s{Value: id})\n",
+				receiver, svc.Role, m.Name, inputPkg, m.InputType)
+		} else {
+			fmt.Fprintf(buf, "func (%s *%s) %s(ctx context.Context, input *%s.%s) (*%s, error) {\n",
+				receiver, cfg.clientName, m.Name, inputPkg, inputType, streamTypeName)
+			fmt.Fprintf(buf, "\tstream, err := %s.%s.%s(ctx, input)\n",
+				receiver, svc.Role, m.Name)
+		}
 	}
 	buf.WriteString("\tif err != nil {\n\t\treturn nil, wrapErr(err)\n\t}\n")
 	fmt.Fprintf(buf, "\treturn &%s{stream: stream}, nil\n}\n\n", streamTypeName)
