@@ -129,7 +129,7 @@ export function WorkspaceEditor({
             {workspace.entries.map((entry) => (
               <div
                 key={entry.id}
-                className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-xs"
+                className="flex items-center gap-2 rounded-md border border-border bg-muted-faint px-2.5 py-1.5 text-xs"
               >
                 <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
                   {TYPE_LABELS[entry.type] ?? entry.type}
@@ -171,7 +171,7 @@ export function WorkspaceEditor({
               "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50",
               activePanel === "github"
                 ? "bg-accent text-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                : "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
             ].join(" ")}
           >
             <GitHubIcon />
@@ -188,7 +188,7 @@ export function WorkspaceEditor({
               "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50",
               activePanel === "local"
                 ? "bg-accent text-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                : "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
             ].join(" ")}
           >
             <FolderIcon />
@@ -245,7 +245,7 @@ export function WorkspaceEditor({
                 type="button"
                 onClick={handleLocalAdd}
                 disabled={!localPath.trim()}
-                className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40"
+                className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary-hover transition-colors disabled:opacity-40"
               >
                 Add
               </button>
@@ -325,7 +325,7 @@ function GitHubPanel({
               <button
                 type="button"
                 onClick={() => connection.connect(redirectUri)}
-                className="inline-flex items-center gap-2 rounded-md bg-foreground px-3 py-1.5 text-xs text-background hover:bg-foreground/90 transition-colors"
+                className="inline-flex items-center gap-2 rounded-md bg-foreground px-3 py-1.5 text-xs text-background hover:bg-foreground-hover transition-colors"
               >
                 <GitHubIcon />
                 <span>Continue with redirect</span>
@@ -336,7 +336,7 @@ function GitHubPanel({
           <button
             type="button"
             onClick={() => connection.connect(redirectUri, { popup: true })}
-            className="inline-flex items-center gap-2 rounded-md bg-foreground px-3 py-1.5 text-xs text-background hover:bg-foreground/90 transition-colors"
+            className="inline-flex items-center gap-2 rounded-md bg-foreground px-3 py-1.5 text-xs text-background hover:bg-foreground-hover transition-colors"
           >
             <GitHubIcon />
             <span>Connect GitHub</span>
@@ -437,7 +437,7 @@ function ManualGitPanel({
           type="button"
           onClick={onAdd}
           disabled={!url.trim()}
-          className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40"
+          className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary-hover transition-colors disabled:opacity-40"
         >
           Add
         </button>

@@ -44,14 +44,14 @@ export function CollapsibleCode({ label, content, className }: CollapsibleCodePr
   return (
     <div className={cn("space-y-1", className)}>
       <span className="font-medium text-muted-foreground">{label}</span>
-      <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/40 p-2 font-mono text-foreground">
+      <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted-subtle p-2 font-mono text-foreground">
         {displayContent}
       </pre>
       {needsTruncation && (
         <button
           type="button"
           onClick={() => setIsExpanded((v) => !v)}
-          className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
+          className="text-xs font-medium text-primary transition-colors hover:text-primary-muted"
         >
           {isExpanded ? "Show less" : `Show all ${lines.length} lines`}
         </button>
@@ -100,7 +100,7 @@ export function CollapsiblePre({ content, className }: CollapsiblePreProps) {
         <button
           type="button"
           onClick={() => setIsExpanded((v) => !v)}
-          className="mt-1 text-xs font-medium text-primary transition-colors hover:text-primary/80"
+          className="mt-1 text-xs font-medium text-primary transition-colors hover:text-primary-muted"
         >
           {isExpanded ? "Show less" : `Show all ${lines.length} lines`}
         </button>
@@ -157,13 +157,13 @@ export function CollapsibleJsonBlock({ label, content }: CollapsibleJsonBlockPro
         </svg>
         {label}
         {!isExpanded && isLong && (
-          <span className="font-normal text-muted-foreground/60">
+          <span className="font-normal text-muted-foreground-subtle">
             ({lines.length} lines)
           </span>
         )}
       </button>
       {isExpanded && (
-        <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/40 p-2 font-mono text-foreground">
+        <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted-subtle p-2 font-mono text-foreground">
           {content}
         </pre>
       )}

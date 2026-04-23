@@ -406,7 +406,7 @@ export function MessageThread({
                   key={item.key}
                   role="article"
                   aria-label="Sending message"
-                  className="ms-[20%] rounded-lg bg-muted/50 px-4 py-3 opacity-70"
+                  className="ms-[20%] rounded-lg bg-muted-subtle px-4 py-3 opacity-70"
                 >
                   <p className="text-sm text-foreground whitespace-pre-wrap">
                     {item.content}

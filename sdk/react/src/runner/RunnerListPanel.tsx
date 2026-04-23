@@ -93,7 +93,7 @@ export function RunnerListPanel({
         {Array.from({ length: 3 }, (_, i) => (
           <div
             key={i}
-            className="bg-muted/40 h-14 animate-pulse rounded-lg"
+            className="bg-muted-subtle h-14 animate-pulse rounded-lg"
           />
         ))}
       </div>
@@ -120,7 +120,7 @@ export function RunnerListPanel({
         <p className="text-muted-foreground text-xs">
           No runners registered.
         </p>
-        <p className="text-muted-foreground/70 max-w-xs text-[0.65rem]">
+        <p className="text-muted-foreground-subtle max-w-xs text-[0.65rem]">
           Start a runner with{" "}
           <code className="bg-muted rounded px-1 py-0.5 font-mono text-[0.6rem]">
             stigmer up
@@ -174,7 +174,7 @@ function RunnerRow({ runner }: { runner: Runner }) {
     <div
       role="listitem"
       className={cn(
-        "flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2.5",
+        "flex items-center gap-3 rounded-lg border border-border-muted px-3 py-2.5",
         "hover:border-border transition-colors",
         !active && "opacity-60",
       )}

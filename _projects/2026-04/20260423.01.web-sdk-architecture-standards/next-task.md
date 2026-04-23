@@ -68,8 +68,40 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-23 11:14
-**Current Task**: T01 — All three workstreams complete
-**Status**: Complete
+**Current Task**: All workstreams + all follow-up items complete
+**Status**: Complete (project finished)
+
+## Session Progress (2026-04-23, Session 5)
+
+### Follow-Up Tasks (All Complete)
+
+Completed all three follow-up items identified at the end of Session 4:
+
+**Phase 1 — Runner.ts codegen fix:**
+- Fixed `sdk_client_ts.go` — added `!m.ClientStreaming` guard to prevent duplicate import
+- Regenerated TS SDK; typecheck now passes cleanly
+
+**Phase 2 — DD-002 route file thinning:**
+- `app/library/layout.tsx`: 61 → 1 line (re-export from `domain/library/LibraryLayout.tsx`)
+- `app/login/page.tsx`: 177 → 12 lines (Suspense wrapper, logic in `auth/login/LoginPageView.tsx`)
+- `app/auth/github/callback/page.tsx`: 142 → 21 lines (Suspense wrapper, logic in `auth/github/GitHubCallbackPageView.tsx`)
+
+**Phase 3 — Opacity modifier token remediation:**
+- Added 8 new `--stgm-*` tokens with values for all 5 presets × light/dark (80 CSS values)
+- Wired 5 existing + 8 new + sidebar tokens into SDK `@theme` bridge (was missing from `sdk/react/src/styles.css`)
+- Replaced 328 class usages across 68 SDK files
+- SDK lint: 0 `no-token-opacity-modifiers` warnings (down from 312)
+
+**Metrics (final):**
+- `next/*` imports in SDK: 0
+- `@/` imports in SDK: 0
+- Console imports of `@stigmer/react`: 31 files
+- Opacity modifier warnings: 0 (down from 312)
+- TS SDK typecheck: PASS (was FAIL)
+- Web lint: 0 errors
+
+**Checkpoint**: `checkpoints/2026-04-23-session-5.md`
+**Changelog**: `_changelog/2026-04/2026-04-23-134002-codegen-fix-dd002-enforcement-opacity-token-remediation.md`
 
 ## Session Progress (2026-04-23, Session 4)
 
@@ -164,11 +196,11 @@ The cursor rule incorporates the session preamble text that was previously paste
 
 ## Next Steps
 
-All three workstreams are complete. Potential follow-up work:
+Project is fully complete. All original workstreams and follow-up items are resolved:
 
-1. **DD-002 enforcement for thick route files** — Extract auth orchestration from `login/page.tsx`, callback logic from `auth/github/callback/page.tsx`, and list/detail switching from `library/layout.tsx`
-2. **Opacity modifier remediation** — Address the 312 `no-token-opacity-modifiers` warnings by proposing new theme tokens
-3. **Runner.ts codegen fix** — Regenerate proto stubs to resolve the duplicate `RunnerStreamServerMessage` import
+- ~~DD-002 enforcement for thick route files~~ — Done (Session 5)
+- ~~Opacity modifier remediation~~ — Done (Session 5)
+- ~~Runner.ts codegen fix~~ — Done (Session 5)
 
 ## Quick Commands
 

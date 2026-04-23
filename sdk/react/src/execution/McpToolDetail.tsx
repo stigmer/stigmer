@@ -94,7 +94,7 @@ export function McpMetadataRow({
         <span className="inline-flex items-center gap-1.5 rounded bg-muted px-1.5 py-0.5 font-mono">
           <McpServerIcon />
           {mcpServerSlug}
-          <span className="text-muted-foreground/60">/</span>
+          <span className="text-muted-foreground-subtle">/</span>
           <span className="text-foreground">{humanizeToolName(toolName)}</span>
         </span>
       )}
@@ -139,7 +139,7 @@ export function McpArgsView({ args }: McpArgsViewProps) {
       <span className="font-medium text-muted-foreground">Arguments</span>
 
       {scalars.length > 0 && (
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-md border border-border bg-muted/30 px-2.5 py-2">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-md border border-border bg-muted-faint px-2.5 py-2">
           {scalars.map(([key, value]) => (
             <ScalarRow key={key} label={key} value={value} />
           ))}
@@ -167,7 +167,7 @@ function ScalarRow({ label, value }: { label: string; value: string }) {
       </dt>
       {isMultiline ? (
         <dd className="min-w-0">
-          <pre className="whitespace-pre-wrap break-words rounded border border-border bg-muted/40 px-2 py-1 font-mono text-foreground">
+          <pre className="whitespace-pre-wrap break-words rounded border border-border bg-muted-subtle px-2 py-1 font-mono text-foreground">
             {value}
           </pre>
         </dd>
@@ -192,7 +192,7 @@ function McpResultView({ result }: { result: string }) {
       <span className="font-medium text-muted-foreground">Result</span>
       <CollapsiblePre
         content={parsed}
-        className="max-h-80 overflow-auto rounded-md border border-border bg-muted/40 p-2 text-foreground"
+        className="max-h-80 overflow-auto rounded-md border border-border bg-muted-subtle p-2 text-foreground"
       />
     </div>
   );

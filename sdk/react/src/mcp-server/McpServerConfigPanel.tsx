@@ -286,7 +286,7 @@ export function McpServerConfigPanel({
           disabled={credentials?.isSubmitting || isOAuthBusy}
           className={cn(
             "mt-0.5 shrink-0 rounded p-0.5",
-            "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
@@ -374,7 +374,7 @@ export function McpServerConfigPanel({
       {error && (
         <div
           role="alert"
-          className="rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-xs text-destructive"
+          className="rounded-md border border-destructive/30 bg-destructive-subtle px-2.5 py-2 text-xs text-destructive"
         >
           {getUserMessage(error)}
         </div>
@@ -535,7 +535,7 @@ function InlineOAuthSignIn({
             }}
             className={cn(
               "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[0.65rem] font-medium",
-              "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+              "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >
@@ -551,7 +551,7 @@ function InlineOAuthSignIn({
             }}
             className={cn(
               "inline-flex items-center rounded px-2 py-0.5 text-[0.65rem] font-medium",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >
@@ -598,7 +598,7 @@ function InlineOAuthSignIn({
             }}
             className={cn(
               "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[0.65rem] font-medium",
-              "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+              "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >
@@ -611,7 +611,7 @@ function InlineOAuthSignIn({
             onClick={() => setRemoveOrgAppPhase("idle")}
             className={cn(
               "inline-flex items-center rounded px-2 py-0.5 text-[0.65rem] font-medium",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >
@@ -669,7 +669,7 @@ function InlineOAuthSignIn({
           className={cn(
             "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[0.65rem] font-medium",
             isConnected && !needsReAuth
-              ? "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+              ? "text-muted-foreground hover:text-foreground hover:bg-accent-hover"
               : "bg-primary text-primary-foreground hover:bg-primary-hover",
             "disabled:pointer-events-none disabled:opacity-50",
           )}

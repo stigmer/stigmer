@@ -62,7 +62,7 @@ function HumanMessage({
     <div
       role="article"
       aria-label="User message"
-      className={cn("ms-[20%] rounded-lg bg-muted/50 px-4 py-3", className)}
+      className={cn("ms-[20%] rounded-lg bg-muted-subtle px-4 py-3", className)}
     >
       <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
     </div>

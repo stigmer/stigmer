@@ -428,7 +428,7 @@ export function GitHubRepoPicker({
             type="button"
             onClick={handleAdd}
             disabled={!selectedBranch}
-            className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40"
+            className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary-hover transition-colors disabled:opacity-40"
           >
             Add
           </button>
@@ -479,7 +479,7 @@ export function GitHubRepoPicker({
             type="button"
             onClick={handleManualAdd}
             disabled={!manualUrl.trim()}
-            className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40"
+            className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary-hover transition-colors disabled:opacity-40"
           >
             Add
           </button>
@@ -502,7 +502,7 @@ export function GitHubRepoPicker({
       className={["space-y-1.5", className].filter(Boolean).join(" ")}
     >
       {/* Mode toggle */}
-      <div className="flex rounded-md border border-border bg-muted/30 p-0.5">
+      <div className="flex rounded-md border border-border bg-muted-faint p-0.5">
         <button
           type="button"
           onClick={() => handleModeSwitch("my-repos")}
@@ -672,7 +672,7 @@ function MyReposList({
     <>
       {groups.map((group, gi) => (
         <div key={group.key}>
-          <div className="sticky top-0 z-[1] bg-card/95 px-2 py-1 text-[0.65rem] font-medium text-muted-foreground backdrop-blur-sm">
+          <div className="sticky top-0 z-[1] bg-card px-2 py-1 text-[0.65rem] font-medium text-muted-foreground backdrop-blur-sm">
             {group.label}
             {!group.isRecent && (
               <span className="ml-1 opacity-50">
@@ -818,7 +818,7 @@ function RepoRow({
         "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
         flatIdx === focusIndex
           ? "bg-accent text-foreground"
-          : "text-foreground hover:bg-accent/50",
+          : "text-foreground hover:bg-accent-hover",
       ].join(" ")}
       role="option"
       aria-selected={flatIdx === focusIndex}

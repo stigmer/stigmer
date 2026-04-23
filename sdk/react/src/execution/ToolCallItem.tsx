@@ -126,7 +126,7 @@ export function ToolCallItem({
 
   if (isNonExpandableRead) {
     return (
-      <div className={cn("border-b border-border/50 last:border-b-0", className)}>
+      <div className={cn("border-b border-border-muted last:border-b-0", className)}>
         <div
           className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs"
         >
@@ -156,15 +156,15 @@ export function ToolCallItem({
       : primaryArg;
 
   return (
-    <div className={cn("border-b border-border/50 last:border-b-0", className)}>
+    <div className={cn("border-b border-border-muted last:border-b-0", className)}>
       <button
         type="button"
         aria-expanded={expanded}
         onClick={() => setExpanded((v) => !v)}
         className={cn(
           "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs transition-colors",
-          "hover:bg-muted/50",
-          expanded && "bg-muted/30",
+          "hover:bg-muted-subtle",
+          expanded && "bg-muted-faint",
         )}
       >
         <span className="shrink-0 text-muted-foreground" aria-hidden="true">

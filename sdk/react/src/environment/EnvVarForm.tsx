@@ -275,7 +275,7 @@ export function EnvVarForm({
                 >
                   <span className="font-mono">{variable.key}</span>
                   {variable.isSecret && (
-                    <span className="text-[0.55rem] uppercase tracking-wider text-muted-foreground/70">
+                    <span className="text-[0.55rem] uppercase tracking-wider text-muted-foreground-subtle">
                       secret
                     </span>
                   )}
@@ -328,13 +328,13 @@ export function EnvVarForm({
                 {variable.description && (
                   <p
                     id={descId}
-                    className="text-[0.6rem] leading-relaxed text-muted-foreground/80"
+                    className="text-[0.6rem] leading-relaxed text-muted-foreground-subtle"
                   >
                     {variable.description}
                   </p>
                 )}
                 {prefilledKeys.has(variable.key) && (
-                  <p className="text-[0.55rem] text-primary/70">
+                  <p className="text-[0.55rem] text-primary-muted">
                     Pre-filled from session variables
                   </p>
                 )}
@@ -378,7 +378,7 @@ export function EnvVarForm({
               Save for future runs
             </span>
             {!saveForFuture && (
-              <span className="block text-[0.6rem] leading-relaxed text-muted-foreground/70">
+              <span className="block text-[0.6rem] leading-relaxed text-muted-foreground-subtle">
                 These values will only be used for this run.
               </span>
             )}
@@ -395,7 +395,7 @@ export function EnvVarForm({
             disabled={isDisabled}
             className={cn(
               "rounded-md px-3 py-1.5 text-xs",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >
@@ -410,7 +410,7 @@ export function EnvVarForm({
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
             "bg-primary text-primary-foreground",
-            "hover:bg-primary/90",
+            "hover:bg-primary-hover",
             "disabled:pointer-events-none disabled:opacity-40",
           )}
         >

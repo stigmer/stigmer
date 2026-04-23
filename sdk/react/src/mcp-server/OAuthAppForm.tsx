@@ -185,7 +185,7 @@ export function OAuthAppForm({
       {error && (
         <div
           role="alert"
-          className="rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-xs text-destructive"
+          className="rounded-md border border-destructive/30 bg-destructive-subtle px-2.5 py-2 text-xs text-destructive"
         >
           {getUserMessage(error)}
         </div>
@@ -199,7 +199,7 @@ export function OAuthAppForm({
           disabled={isDisabled}
           className={cn(
             "rounded-md px-3 py-1.5 text-xs",
-            "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
         >
@@ -210,7 +210,7 @@ export function OAuthAppForm({
           disabled={!canSubmit || isDisabled}
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "bg-primary text-primary-foreground hover:bg-primary-hover",
             "disabled:pointer-events-none disabled:opacity-40",
           )}
         >

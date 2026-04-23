@@ -206,7 +206,7 @@ export function CreatePlatformClientForm({
 
       {/* JIT provisioning */}
       <fieldset className="space-y-2.5" disabled={isCreating}>
-        <hr className="border-border/40" />
+        <hr className="border-border-muted" />
         <legend className="text-xs font-medium text-foreground">
           JIT provisioning
         </legend>
@@ -267,7 +267,7 @@ export function CreatePlatformClientForm({
 
       {/* Allowed origins */}
       <fieldset className="space-y-2" disabled={isCreating}>
-        <hr className="border-border/40" />
+        <hr className="border-border-muted" />
         <legend className="text-xs font-medium text-foreground">
           Allowed origins
         </legend>
@@ -300,7 +300,7 @@ export function CreatePlatformClientForm({
             disabled={isCreating || !originInput.trim()}
             className={cn(
               "shrink-0 rounded-md px-2.5 py-1.5 text-xs font-medium",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
               "disabled:pointer-events-none disabled:opacity-50",
               "transition-colors",
             )}
@@ -314,7 +314,7 @@ export function CreatePlatformClientForm({
             {origins.map((origin) => (
               <span
                 key={origin}
-                className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[0.65rem] font-mono text-foreground"
+                className="inline-flex items-center gap-1 rounded-full border border-border-muted bg-muted-subtle px-2 py-0.5 text-[0.65rem] font-mono text-foreground"
               >
                 {origin}
                 <button
@@ -344,7 +344,7 @@ export function CreatePlatformClientForm({
           disabled={!canSubmit}
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "bg-primary text-primary-foreground hover:bg-primary-hover",
             "disabled:pointer-events-none disabled:opacity-40",
           )}
         >
@@ -359,7 +359,7 @@ export function CreatePlatformClientForm({
             disabled={isCreating}
             className={cn(
               "rounded-md px-3 py-1.5 text-xs",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >

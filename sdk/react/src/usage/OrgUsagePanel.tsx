@@ -61,7 +61,7 @@ export function OrgUsagePanel({ orgId, className }: OrgUsagePanelProps) {
           {DATE_RANGE_PRESETS.map((p) => (
             <div
               key={p}
-              className="h-7 w-16 animate-pulse rounded-md bg-muted/40"
+              className="h-7 w-16 animate-pulse rounded-md bg-muted-subtle"
             />
           ))}
         </div>
@@ -69,11 +69,11 @@ export function OrgUsagePanel({ orgId, className }: OrgUsagePanelProps) {
           {Array.from({ length: 3 }, (_, i) => (
             <div
               key={i}
-              className="h-[72px] animate-pulse rounded-lg bg-muted/40"
+              className="h-[72px] animate-pulse rounded-lg bg-muted-subtle"
             />
           ))}
         </div>
-        <div className="h-40 animate-pulse rounded-lg bg-muted/40" />
+        <div className="h-40 animate-pulse rounded-lg bg-muted-subtle" />
       </div>
     );
   }
@@ -333,7 +333,7 @@ function ModelBreakdownList({
           return (
             <div
               key={`${m.model}\0${m.provider}`}
-              className="border-b border-border/50 px-3.5 py-2 last:border-b-0"
+              className="border-b border-border-muted px-3.5 py-2 last:border-b-0"
             >
               <div
                 role="row"

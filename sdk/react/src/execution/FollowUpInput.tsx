@@ -161,7 +161,7 @@ export function FollowUpInput({
           className="block w-full resize-none bg-transparent px-4 pt-3 pb-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
         />
 
-        <div className="flex items-center justify-between gap-2 border-t border-border/50 px-3 py-2">
+        <div className="flex items-center justify-between gap-2 border-t border-border-muted px-3 py-2">
           <div className="flex items-center gap-2">
             {showModelSelector && (
               <ModelSelector
@@ -176,7 +176,7 @@ export function FollowUpInput({
             type="button"
             disabled={!canSubmit}
             onClick={handleSubmit}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-40"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary-hover disabled:pointer-events-none disabled:opacity-40"
             aria-label="Send message"
           >
             {isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}

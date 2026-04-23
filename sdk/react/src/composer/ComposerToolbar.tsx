@@ -96,7 +96,7 @@ export function ComposerToolbar({
   const hasExecParams = showRunner || showModelSelector;
 
   return (
-    <div className="flex items-center justify-between gap-2 border-t border-border/50 px-3 py-2">
+    <div className="flex items-center justify-between gap-2 border-t border-border-muted px-3 py-2">
       <div className="flex items-center gap-1.5">
         {/* ---- Tier 1: Input augmentation ---- */}
 
@@ -107,7 +107,7 @@ export function ComposerToolbar({
             onClick={onAttachClick}
             className={cn(
               "inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
             aria-label="Attach files"
@@ -115,7 +115,7 @@ export function ComposerToolbar({
             <PaperclipIcon />
             <span>Attach</span>
             {attachmentCount > 0 && (
-              <span className="rounded-full bg-primary/15 px-1.5 text-[0.6rem] font-medium text-primary">
+              <span className="rounded-full bg-primary-subtle px-1.5 text-[0.6rem] font-medium text-primary">
                 {attachmentCount}
               </span>
             )}
@@ -181,7 +181,7 @@ export function ComposerToolbar({
         type="button"
         disabled={!canSend}
         onClick={onSend}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-40"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary-hover disabled:pointer-events-none disabled:opacity-40"
         aria-label="Send message"
       >
         {isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}

@@ -121,7 +121,7 @@ export function ResourceCountCard({
   const rootClasses = cn(
     "flex flex-col rounded-lg border border-border bg-card p-4 text-left no-underline",
     isInteractive && [
-      "cursor-pointer transition-colors hover:bg-accent/50",
+      "cursor-pointer transition-colors hover:bg-accent-hover",
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     ],
     className,

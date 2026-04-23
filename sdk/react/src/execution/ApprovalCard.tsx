@@ -106,7 +106,7 @@ export function ApprovalCard({
 
   const borderClass =
     categoryInfo.category === "delete"
-      ? "border-destructive/30 bg-destructive/5"
+      ? "border-destructive/30 bg-destructive-subtle"
       : "border-warning/30 bg-warning/5";
 
   return (
@@ -119,7 +119,7 @@ export function ApprovalCard({
       <div
         className={cn(
           "flex items-center gap-2 px-2.5 py-1.5 text-xs",
-          "border-b border-border/30",
+          "border-b border-border-muted",
         )}
       >
         <span className="shrink-0 text-warning" aria-hidden="true">
@@ -231,11 +231,11 @@ function ActionButton({
     ),
     skip: cn(
       "border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground",
-      "disabled:bg-muted/30 disabled:text-muted-foreground/50",
+      "disabled:bg-muted-faint disabled:text-muted-foreground-faint",
     ),
     reject: cn(
-      "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-      "disabled:bg-destructive/50 disabled:text-destructive-foreground/70",
+      "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
+      "disabled:bg-destructive-subtle0 disabled:text-destructive-foreground/70",
     ),
   };
 

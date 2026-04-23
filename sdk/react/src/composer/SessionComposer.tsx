@@ -1161,7 +1161,7 @@ export function SessionComposer({
             className="block w-full resize-none bg-transparent px-4 pt-3 pb-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
           />
           {isDragOver && (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-t-xl bg-primary/5">
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-t-xl bg-primary-subtle">
               <span className="text-xs font-medium text-primary">
                 Drop files to attach
               </span>

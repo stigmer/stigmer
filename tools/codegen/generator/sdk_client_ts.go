@@ -660,7 +660,7 @@ func generateTSMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefinition
 func generateTSStreamingMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefinition, schema *ServiceSchemaFile, cfg sdkResourceConfig, imports *tsImportSet) {
 	isIDInput := isIDType(m.InputType)
 	outputType := m.OutputType
-	if outputType != cfg.protoResType {
+	if outputType != cfg.protoResType && !m.ClientStreaming {
 		importBase := deriveTSImportBase(schema.Package)
 		imports.addType(importBase+"/api_pb", outputType)
 	}
