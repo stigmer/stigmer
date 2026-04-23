@@ -7,6 +7,7 @@ import (
 
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
 )
 
@@ -134,7 +135,9 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 		resource.Spec.McpServerUsages = append(resource.Spec.McpServerUsages, item.toProto())
 	}
 	for _, r := range i.SkillRefs {
-		resource.Spec.SkillRefs = append(resource.Spec.SkillRefs, r.toProto())
+		ref := r.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_skill
+		resource.Spec.SkillRefs = append(resource.Spec.SkillRefs, ref)
 	}
 	return resource
 }

@@ -272,7 +272,9 @@ class McpServerAuthInput:
             discovery_url=self.discovery_url,
         )
         if self.oauth_app_ref is not None:
-            msg.oauth_app_ref.CopyFrom(self.oauth_app_ref._to_proto())
+            _ref = self.oauth_app_ref._to_proto()
+            _ref.kind = 22
+            msg.oauth_app_ref.CopyFrom(_ref)
         if self.scope_hints:
             msg.scope_hints.extend(self.scope_hints)
         return msg

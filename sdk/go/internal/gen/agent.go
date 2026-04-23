@@ -163,7 +163,9 @@ func (i *AgentInput) toProto() *agentv1.Agent {
 		resource.Spec.McpServerUsages = append(resource.Spec.McpServerUsages, item.toProto())
 	}
 	for _, r := range i.SkillRefs {
-		resource.Spec.SkillRefs = append(resource.Spec.SkillRefs, r.toProto())
+		ref := r.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_skill
+		resource.Spec.SkillRefs = append(resource.Spec.SkillRefs, ref)
 	}
 	for _, item := range i.SubAgents {
 		resource.Spec.SubAgents = append(resource.Spec.SubAgents, item.toProto())
@@ -178,10 +180,12 @@ func (i *AgentInput) toProto() *agentv1.Agent {
 }
 
 func (i *McpServerUsageInput) toProto() *agentv1.McpServerUsage {
-	return &agentv1.McpServerUsage{
-		McpServerRef: i.McpServerRef.toProto(),
-		EnabledTools: i.EnabledTools,
-	}
+	p := &agentv1.McpServerUsage{}
+	ref := i.McpServerRef.toProto()
+	ref.Kind = apiresourcekind.ApiResourceKind_mcp_server
+	p.McpServerRef = ref
+	p.EnabledTools = i.EnabledTools
+	return p
 }
 
 func (i *ToolApprovalOverrideInput) toProto() *agentv1.ToolApprovalOverride {
@@ -193,12 +197,12 @@ func (i *ToolApprovalOverrideInput) toProto() *agentv1.ToolApprovalOverride {
 }
 
 func (i *SubAgentInput) toProto() *agentv1.SubAgent {
-	return &agentv1.SubAgent{
-		Name:          i.Name,
-		Description:   i.Description,
-		Instructions:  i.Instructions,
-		ModelOverride: i.ModelOverride,
-	}
+	p := &agentv1.SubAgent{}
+	p.Name = i.Name
+	p.Description = i.Description
+	p.Instructions = i.Instructions
+	p.ModelOverride = i.ModelOverride
+	return p
 }
 
 func (i *McpAccessInput) toProto() *agentv1.McpAccess {

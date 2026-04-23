@@ -3,26 +3,26 @@
     null,
     {
       "src": "/demos/agent-creation-tour/step-1.mp3",
-      "durationMs": 5100
+      "durationMs": 5138
     },
     null,
     null,
     {
       "src": "/demos/agent-creation-tour/step-4.mp3",
-      "durationMs": 4375
+      "durationMs": 4550
     },
     null,
     null,
     {
       "src": "/demos/agent-creation-tour/step-7.mp3",
-      "durationMs": 8488
+      "durationMs": 8225
     },
     null,
     null,
     null,
     {
       "src": "/demos/agent-creation-tour/step-11.mp3",
-      "durationMs": 4525
+      "durationMs": 4500
     }
   ]
 }

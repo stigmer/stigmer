@@ -19,19 +19,19 @@ public final class ResourceRef {
     }
 
     public static ResourceRef of(String org, String slug) {
-        return new ResourceRef(org, slug, null, ApiResourceKind.api_resource_kind_unspecified);
+        return new ResourceRef(org, slug, null, ApiResourceKind.api_resource_kind_unknown);
     }
 
     public static ResourceRef of(String org, String slug, String version) {
-        return new ResourceRef(org, slug, version, ApiResourceKind.api_resource_kind_unspecified);
+        return new ResourceRef(org, slug, version, ApiResourceKind.api_resource_kind_unknown);
     }
 
-    public static ResourceRef skill(String org, String slug) {
-        return new ResourceRef(org, slug, null, ApiResourceKind.skill);
+    public static ResourceRef of(String org, ApiResourceKind kind, String slug) {
+        return new ResourceRef(org, slug, null, kind);
     }
 
-    public static ResourceRef skill(String org, String slug, String version) {
-        return new ResourceRef(org, slug, version, ApiResourceKind.skill);
+    public static ResourceRef of(String org, ApiResourceKind kind, String slug, String version) {
+        return new ResourceRef(org, slug, version, kind);
     }
 
     public String getOrg() { return org; }
@@ -43,7 +43,7 @@ public final class ResourceRef {
         ApiResourceReference.Builder builder = ApiResourceReference.newBuilder()
             .setOrg(this.org)
             .setSlug(this.slug);
-        if (this.kind != null && this.kind != ApiResourceKind.api_resource_kind_unspecified) {
+        if (this.kind != null && this.kind != ApiResourceKind.api_resource_kind_unknown) {
             builder.setKind(this.kind);
         }
         if (this.version != null) {

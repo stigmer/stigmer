@@ -10,22 +10,6 @@ import (
 	"strings"
 )
 
-// apiResourceKindEnumNames maps ApiResourceKind proto enum values to Go constant
-// suffix names. This list must stay in sync with api_resource_kind.proto.
-var apiResourceKindEnumNames = map[int32]string{
-	22: "oauth_app",
-	40: "agent",
-	43: "skill",
-	44: "mcp_server",
-	50: "workflow",
-	53: "environment",
-}
-
-// versionedKinds tracks which resource kinds support versioning.
-var versionedKinds = map[int32]bool{
-	43: true, // skill
-}
-
 // mcpInputType describes one Go struct to generate.
 type mcpInputType struct {
 	name        string
