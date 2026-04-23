@@ -1,7 +1,10 @@
+import datetime
+
 from ai.stigmer.agentic.runner.v1 import api_pb2 as _api_pb2
 from ai.stigmer.agentic.runner.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -126,3 +129,35 @@ class RunnerCommandError(_message.Message):
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     message: str
     def __init__(self, message: _Optional[str] = ...) -> None: ...
+
+class CreateLaunchTokenRequest(_message.Message):
+    __slots__ = ("org",)
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    def __init__(self, org: _Optional[str] = ...) -> None: ...
+
+class CreateLaunchTokenResponse(_message.Message):
+    __slots__ = ("token", "expires_at")
+    TOKEN_FIELD_NUMBER: _ClassVar[int]
+    EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
+    token: str
+    expires_at: _timestamp_pb2.Timestamp
+    def __init__(self, token: _Optional[str] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+
+class ExchangeLaunchTokenRequest(_message.Message):
+    __slots__ = ("token",)
+    TOKEN_FIELD_NUMBER: _ClassVar[int]
+    token: str
+    def __init__(self, token: _Optional[str] = ...) -> None: ...
+
+class ExchangeLaunchTokenResponse(_message.Message):
+    __slots__ = ("access_token", "token_type", "expires_in", "org")
+    ACCESS_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    TOKEN_TYPE_FIELD_NUMBER: _ClassVar[int]
+    EXPIRES_IN_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    access_token: str
+    token_type: str
+    expires_in: int
+    org: str
+    def __init__(self, access_token: _Optional[str] = ..., token_type: _Optional[str] = ..., expires_in: _Optional[int] = ..., org: _Optional[str] = ...) -> None: ...

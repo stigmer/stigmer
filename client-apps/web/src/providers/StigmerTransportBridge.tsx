@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useMemo, type ReactNode } from "react";
+import { useTheme } from "next-themes";
 import { Stigmer } from "@stigmer/sdk";
 import { StigmerProvider } from "@stigmer/react";
+import type { ResolvedColorMode } from "@stigmer/react";
 import { useAuth } from "@/auth/use-auth";
 import { getApiBaseUrl } from "@/config/env";
 import { useDeploymentMode } from "@/domain/_shared/hooks/useDeploymentMode";
@@ -15,14 +17,17 @@ import { useDeploymentMode } from "@/domain/_shared/hooks/useDeploymentMode";
  * UNAUTHENTICATED responses). The client instance is memoized on the
  * token-provider callback to avoid unnecessary re-creation.
  *
- * Also derives the deployment mode from the API URL hostname and passes
- * it to the SDK provider so components can gate cloud-only features.
+ * Also derives the deployment mode from the API URL hostname and the
+ * color mode from `next-themes`, passing both to the SDK provider.
  *
  * Must be rendered as a child of `AuthGuard` (auth must be resolved first).
  */
 export function StigmerTransportBridge({ children }: { children: ReactNode }) {
   const { accessToken, logout } = useAuth();
   const deploymentMode = useDeploymentMode();
+  const { resolvedTheme } = useTheme();
+  const colorMode: ResolvedColorMode =
+    resolvedTheme === "dark" ? "dark" : "light";
 
   const getAccessToken = useCallback(() => accessToken, [accessToken]);
   const onUnauthenticated = useCallback(() => logout(), [logout]);
@@ -38,7 +43,11 @@ export function StigmerTransportBridge({ children }: { children: ReactNode }) {
   );
 
   return (
-    <StigmerProvider client={client} deploymentMode={deploymentMode}>
+    <StigmerProvider
+      client={client}
+      deploymentMode={deploymentMode}
+      colorMode={colorMode}
+    >
       {children}
     </StigmerProvider>
   );

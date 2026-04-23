@@ -111,4 +111,34 @@ service RunnerCommandController {
   rpc connect(stream RunnerStreamClientMessage) returns (stream RunnerStreamServerMessage) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
+
+  // Create a one-time launch token for the browser-to-CLI runner handshake.
+  //
+  // Called by the web console when the user clicks "Launch Local Runner."
+  // The server mints a Stigmer JWT for the caller, wraps it in an opaque
+  // token stored in Redis (60s TTL, single-use), and returns the token for
+  // the browser to embed in a stigmer:// URL.
+  //
+  // The caller must have can_create_runner permission in the organization —
+  // if you can create a runner, you can create a launch token.
+  rpc createLaunchToken(CreateLaunchTokenRequest) returns (CreateLaunchTokenResponse) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_runner;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to create runner launch tokens in this organization";
+  }
+
+  // Exchange a one-time launch token for long-lived runner credentials.
+  //
+  // Called by the CLI (or Desktop app) after receiving a stigmer:// URL from
+  // the OS. The token is consumed atomically — a second exchange attempt
+  // returns NOT_FOUND.
+  //
+  // @internal
+  // This RPC is public — no Bearer token is required. The one-time launch
+  // token IS the proof of authorization: it was created by an authenticated
+  // user with can_create_runner permission, and can only be used once.
+  rpc exchangeLaunchToken(ExchangeLaunchTokenRequest) returns (ExchangeLaunchTokenResponse) {
+    option (ai.stigmer.commons.rpc.is_public) = true;
+  }
 }

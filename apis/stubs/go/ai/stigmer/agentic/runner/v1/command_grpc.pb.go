@@ -19,12 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RunnerCommandController_Apply_FullMethodName       = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/apply"
-	RunnerCommandController_Create_FullMethodName      = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/create"
-	RunnerCommandController_Update_FullMethodName      = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/update"
-	RunnerCommandController_Delete_FullMethodName      = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/delete"
-	RunnerCommandController_SendCommand_FullMethodName = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/sendCommand"
-	RunnerCommandController_Connect_FullMethodName     = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/connect"
+	RunnerCommandController_Apply_FullMethodName               = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/apply"
+	RunnerCommandController_Create_FullMethodName              = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/create"
+	RunnerCommandController_Update_FullMethodName              = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/update"
+	RunnerCommandController_Delete_FullMethodName              = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/delete"
+	RunnerCommandController_SendCommand_FullMethodName         = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/sendCommand"
+	RunnerCommandController_Connect_FullMethodName             = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/connect"
+	RunnerCommandController_CreateLaunchToken_FullMethodName   = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/createLaunchToken"
+	RunnerCommandController_ExchangeLaunchToken_FullMethodName = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/exchangeLaunchToken"
 )
 
 // RunnerCommandControllerClient is the client API for RunnerCommandController service.
@@ -106,6 +108,27 @@ type RunnerCommandControllerClient interface {
 	// looks up the runner_id and verifies ownership. Skipped at the interceptor
 	// level because the stream input is not a resource type.
 	Connect(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[RunnerStreamClientMessage, RunnerStreamServerMessage], error)
+	// Create a one-time launch token for the browser-to-CLI runner handshake.
+	//
+	// Called by the web console when the user clicks "Launch Local Runner."
+	// The server mints a Stigmer JWT for the caller, wraps it in an opaque
+	// token stored in Redis (60s TTL, single-use), and returns the token for
+	// the browser to embed in a stigmer:// URL.
+	//
+	// The caller must have can_create_runner permission in the organization —
+	// if you can create a runner, you can create a launch token.
+	CreateLaunchToken(ctx context.Context, in *CreateLaunchTokenRequest, opts ...grpc.CallOption) (*CreateLaunchTokenResponse, error)
+	// Exchange a one-time launch token for long-lived runner credentials.
+	//
+	// Called by the CLI (or Desktop app) after receiving a stigmer:// URL from
+	// the OS. The token is consumed atomically — a second exchange attempt
+	// returns NOT_FOUND.
+	//
+	// @internal
+	// This RPC is public — no Bearer token is required. The one-time launch
+	// token IS the proof of authorization: it was created by an authenticated
+	// user with can_create_runner permission, and can only be used once.
+	ExchangeLaunchToken(ctx context.Context, in *ExchangeLaunchTokenRequest, opts ...grpc.CallOption) (*ExchangeLaunchTokenResponse, error)
 }
 
 type runnerCommandControllerClient struct {
@@ -178,6 +201,26 @@ func (c *runnerCommandControllerClient) Connect(ctx context.Context, opts ...grp
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RunnerCommandController_ConnectClient = grpc.BidiStreamingClient[RunnerStreamClientMessage, RunnerStreamServerMessage]
+
+func (c *runnerCommandControllerClient) CreateLaunchToken(ctx context.Context, in *CreateLaunchTokenRequest, opts ...grpc.CallOption) (*CreateLaunchTokenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateLaunchTokenResponse)
+	err := c.cc.Invoke(ctx, RunnerCommandController_CreateLaunchToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runnerCommandControllerClient) ExchangeLaunchToken(ctx context.Context, in *ExchangeLaunchTokenRequest, opts ...grpc.CallOption) (*ExchangeLaunchTokenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExchangeLaunchTokenResponse)
+	err := c.cc.Invoke(ctx, RunnerCommandController_ExchangeLaunchToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 // RunnerCommandControllerServer is the server API for RunnerCommandController service.
 // All implementations should embed UnimplementedRunnerCommandControllerServer
@@ -258,6 +301,27 @@ type RunnerCommandControllerServer interface {
 	// looks up the runner_id and verifies ownership. Skipped at the interceptor
 	// level because the stream input is not a resource type.
 	Connect(grpc.BidiStreamingServer[RunnerStreamClientMessage, RunnerStreamServerMessage]) error
+	// Create a one-time launch token for the browser-to-CLI runner handshake.
+	//
+	// Called by the web console when the user clicks "Launch Local Runner."
+	// The server mints a Stigmer JWT for the caller, wraps it in an opaque
+	// token stored in Redis (60s TTL, single-use), and returns the token for
+	// the browser to embed in a stigmer:// URL.
+	//
+	// The caller must have can_create_runner permission in the organization —
+	// if you can create a runner, you can create a launch token.
+	CreateLaunchToken(context.Context, *CreateLaunchTokenRequest) (*CreateLaunchTokenResponse, error)
+	// Exchange a one-time launch token for long-lived runner credentials.
+	//
+	// Called by the CLI (or Desktop app) after receiving a stigmer:// URL from
+	// the OS. The token is consumed atomically — a second exchange attempt
+	// returns NOT_FOUND.
+	//
+	// @internal
+	// This RPC is public — no Bearer token is required. The one-time launch
+	// token IS the proof of authorization: it was created by an authenticated
+	// user with can_create_runner permission, and can only be used once.
+	ExchangeLaunchToken(context.Context, *ExchangeLaunchTokenRequest) (*ExchangeLaunchTokenResponse, error)
 }
 
 // UnimplementedRunnerCommandControllerServer should be embedded to have
@@ -284,6 +348,12 @@ func (UnimplementedRunnerCommandControllerServer) SendCommand(context.Context, *
 }
 func (UnimplementedRunnerCommandControllerServer) Connect(grpc.BidiStreamingServer[RunnerStreamClientMessage, RunnerStreamServerMessage]) error {
 	return status.Errorf(codes.Unimplemented, "method Connect not implemented")
+}
+func (UnimplementedRunnerCommandControllerServer) CreateLaunchToken(context.Context, *CreateLaunchTokenRequest) (*CreateLaunchTokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateLaunchToken not implemented")
+}
+func (UnimplementedRunnerCommandControllerServer) ExchangeLaunchToken(context.Context, *ExchangeLaunchTokenRequest) (*ExchangeLaunchTokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExchangeLaunchToken not implemented")
 }
 func (UnimplementedRunnerCommandControllerServer) testEmbeddedByValue() {}
 
@@ -402,6 +472,42 @@ func _RunnerCommandController_Connect_Handler(srv interface{}, stream grpc.Serve
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RunnerCommandController_ConnectServer = grpc.BidiStreamingServer[RunnerStreamClientMessage, RunnerStreamServerMessage]
 
+func _RunnerCommandController_CreateLaunchToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateLaunchTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunnerCommandControllerServer).CreateLaunchToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RunnerCommandController_CreateLaunchToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunnerCommandControllerServer).CreateLaunchToken(ctx, req.(*CreateLaunchTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RunnerCommandController_ExchangeLaunchToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExchangeLaunchTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunnerCommandControllerServer).ExchangeLaunchToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RunnerCommandController_ExchangeLaunchToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunnerCommandControllerServer).ExchangeLaunchToken(ctx, req.(*ExchangeLaunchTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RunnerCommandController_ServiceDesc is the grpc.ServiceDesc for RunnerCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -428,6 +534,14 @@ var RunnerCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "sendCommand",
 			Handler:    _RunnerCommandController_SendCommand_Handler,
+		},
+		{
+			MethodName: "createLaunchToken",
+			Handler:    _RunnerCommandController_CreateLaunchToken_Handler,
+		},
+		{
+			MethodName: "exchangeLaunchToken",
+			Handler:    _RunnerCommandController_ExchangeLaunchToken_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

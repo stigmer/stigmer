@@ -5,7 +5,7 @@
 
 import { Runner } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
-import { RunnerCommandResponse, RunnerId, RunnerSendCommandInput, RunnerStreamClientMessage, RunnerStreamServerMessage } from "./io_pb.js";
+import { CreateLaunchTokenRequest, CreateLaunchTokenResponse, ExchangeLaunchTokenRequest, ExchangeLaunchTokenResponse, RunnerCommandResponse, RunnerId, RunnerSendCommandInput, RunnerStreamClientMessage, RunnerStreamServerMessage } from "./io_pb.js";
 
 /**
  * RunnerCommandController handles write operations and the bidirectional
@@ -141,6 +141,45 @@ export const RunnerCommandController = {
       I: RunnerStreamClientMessage,
       O: RunnerStreamServerMessage,
       kind: MethodKind.BiDiStreaming,
+    },
+    /**
+     * Create a one-time launch token for the browser-to-CLI runner handshake.
+     *
+     * Called by the web console when the user clicks "Launch Local Runner."
+     * The server mints a Stigmer JWT for the caller, wraps it in an opaque
+     * token stored in Redis (60s TTL, single-use), and returns the token for
+     * the browser to embed in a stigmer:// URL.
+     *
+     * The caller must have can_create_runner permission in the organization —
+     * if you can create a runner, you can create a launch token.
+     *
+     * @generated from rpc ai.stigmer.agentic.runner.v1.RunnerCommandController.createLaunchToken
+     */
+    createLaunchToken: {
+      name: "createLaunchToken",
+      I: CreateLaunchTokenRequest,
+      O: CreateLaunchTokenResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Exchange a one-time launch token for long-lived runner credentials.
+     *
+     * Called by the CLI (or Desktop app) after receiving a stigmer:// URL from
+     * the OS. The token is consumed atomically — a second exchange attempt
+     * returns NOT_FOUND.
+     *
+     * @internal
+     * This RPC is public — no Bearer token is required. The one-time launch
+     * token IS the proof of authorization: it was created by an authenticated
+     * user with can_create_runner permission, and can only be used once.
+     *
+     * @generated from rpc ai.stigmer.agentic.runner.v1.RunnerCommandController.exchangeLaunchToken
+     */
+    exchangeLaunchToken: {
+      name: "exchangeLaunchToken",
+      I: ExchangeLaunchTokenRequest,
+      O: ExchangeLaunchTokenResponse,
+      kind: MethodKind.Unary,
     },
   }
 } as const;

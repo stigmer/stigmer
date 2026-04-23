@@ -7,7 +7,7 @@
 @import "@stigmer/theme/presets/fintech.css";
 @import "@stigmer/react/styles.css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark *, [data-stgm-color-mode="dark"] *));
 
 @theme inline {
   --radius-sm: calc(var(--stgm-radius) - 4px);

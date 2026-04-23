@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { RunnerSchema } from "./api_pb";
 import { file_ai_stigmer_agentic_runner_v1_api } from "./api_pb";
-import type { RunnerCommandResponseSchema, RunnerIdSchema, RunnerSendCommandInputSchema, RunnerStreamClientMessageSchema, RunnerStreamServerMessageSchema } from "./io_pb";
+import type { CreateLaunchTokenRequestSchema, CreateLaunchTokenResponseSchema, ExchangeLaunchTokenRequestSchema, ExchangeLaunchTokenResponseSchema, RunnerCommandResponseSchema, RunnerIdSchema, RunnerSendCommandInputSchema, RunnerStreamClientMessageSchema, RunnerStreamServerMessageSchema } from "./io_pb";
 import { file_ai_stigmer_agentic_runner_v1_io } from "./io_pb";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/runner/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_runner_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvcnVubmVyL3YxL2NvbW1hbmQucHJvdG8SHGFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEy8wYKF1J1bm5lckNvbW1hbmRDb250cm9sbGVyElMKBWFwcGx5EiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lchKgAQoGY3JlYXRlEiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciJKwrgYRggZEB4iDG1ldGFkYXRhLm9yZyoydW5hdXRob3JpemVkIHRvIGNyZWF0ZSBydW5uZXIgaW4gdGhpcyBvcmdhbml6YXRpb24SigEKBnVwZGF0ZRIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyGiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIiNMK4GDAIAhAuIgttZXRhZGF0YS5pZCoddW5hdXRob3JpemVkIHRvIHVwZGF0ZSBydW5uZXIShgEKBmRlbGV0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVySWQaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciIuwrgYKggDEC4iBXZhbHVlKh11bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHJ1bm5lchK7AQoLc2VuZENvbW1hbmQSNC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lclNlbmRDb21tYW5kSW5wdXQaMy5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lckNvbW1hbmRSZXNwb25zZSJBwrgYPQgBEC4iCXJ1bm5lcl9pZCosdW5hdXRob3JpemVkIHRvIHNlbmQgY29tbWFuZHMgdG8gdGhpcyBydW5uZXIShQEKB2Nvbm5lY3QSNy5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lclN0cmVhbUNsaWVudE1lc3NhZ2UaNy5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lclN0cmVhbVNlcnZlck1lc3NhZ2UiBNC4GAEoATABGgSg/ysuYgZwcm90bzM", [file_ai_stigmer_agentic_runner_v1_api, file_ai_stigmer_agentic_runner_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvcnVubmVyL3YxL2NvbW1hbmQucHJvdG8SHGFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEy3gkKF1J1bm5lckNvbW1hbmRDb250cm9sbGVyElMKBWFwcGx5EiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lchKgAQoGY3JlYXRlEiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciJKwrgYRggZEB4iDG1ldGFkYXRhLm9yZyoydW5hdXRob3JpemVkIHRvIGNyZWF0ZSBydW5uZXIgaW4gdGhpcyBvcmdhbml6YXRpb24SigEKBnVwZGF0ZRIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyGiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXIiNMK4GDAIAhAuIgttZXRhZGF0YS5pZCoddW5hdXRob3JpemVkIHRvIHVwZGF0ZSBydW5uZXIShgEKBmRlbGV0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVySWQaJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciIuwrgYKggDEC4iBXZhbHVlKh11bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHJ1bm5lchK7AQoLc2VuZENvbW1hbmQSNC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lclNlbmRDb21tYW5kSW5wdXQaMy5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lckNvbW1hbmRSZXNwb25zZSJBwrgYPQgBEC4iCXJ1bm5lcl9pZCosdW5hdXRob3JpemVkIHRvIHNlbmQgY29tbWFuZHMgdG8gdGhpcyBydW5uZXIShQEKB2Nvbm5lY3QSNy5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lclN0cmVhbUNsaWVudE1lc3NhZ2UaNy5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lclN0cmVhbVNlcnZlck1lc3NhZ2UiBNC4GAEoATABEtUBChFjcmVhdGVMYXVuY2hUb2tlbhI2LmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuQ3JlYXRlTGF1bmNoVG9rZW5SZXF1ZXN0GjcuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5DcmVhdGVMYXVuY2hUb2tlblJlc3BvbnNlIk/CuBhLCBkQHiIDb3JnKkB1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIHJ1bm5lciBsYXVuY2ggdG9rZW5zIGluIHRoaXMgb3JnYW5pemF0aW9uEpABChNleGNoYW5nZUxhdW5jaFRva2VuEjguYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5FeGNoYW5nZUxhdW5jaFRva2VuUmVxdWVzdBo5LmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuRXhjaGFuZ2VMYXVuY2hUb2tlblJlc3BvbnNlIgTIuBgBGgSg/ysuYgZwcm90bzM", [file_ai_stigmer_agentic_runner_v1_api, file_ai_stigmer_agentic_runner_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * RunnerCommandController handles write operations and the bidirectional
@@ -143,6 +143,43 @@ export const RunnerCommandController: GenService<{
     methodKind: "bidi_streaming";
     input: typeof RunnerStreamClientMessageSchema;
     output: typeof RunnerStreamServerMessageSchema;
+  },
+  /**
+   * Create a one-time launch token for the browser-to-CLI runner handshake.
+   *
+   * Called by the web console when the user clicks "Launch Local Runner."
+   * The server mints a Stigmer JWT for the caller, wraps it in an opaque
+   * token stored in Redis (60s TTL, single-use), and returns the token for
+   * the browser to embed in a stigmer:// URL.
+   *
+   * The caller must have can_create_runner permission in the organization —
+   * if you can create a runner, you can create a launch token.
+   *
+   * @generated from rpc ai.stigmer.agentic.runner.v1.RunnerCommandController.createLaunchToken
+   */
+  createLaunchToken: {
+    methodKind: "unary";
+    input: typeof CreateLaunchTokenRequestSchema;
+    output: typeof CreateLaunchTokenResponseSchema;
+  },
+  /**
+   * Exchange a one-time launch token for long-lived runner credentials.
+   *
+   * Called by the CLI (or Desktop app) after receiving a stigmer:// URL from
+   * the OS. The token is consumed atomically — a second exchange attempt
+   * returns NOT_FOUND.
+   *
+   * @internal
+   * This RPC is public — no Bearer token is required. The one-time launch
+   * token IS the proof of authorization: it was created by an authenticated
+   * user with can_create_runner permission, and can only be used once.
+   *
+   * @generated from rpc ai.stigmer.agentic.runner.v1.RunnerCommandController.exchangeLaunchToken
+   */
+  exchangeLaunchToken: {
+    methodKind: "unary";
+    input: typeof ExchangeLaunchTokenRequestSchema;
+    output: typeof ExchangeLaunchTokenResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_runner_v1_command, 0);

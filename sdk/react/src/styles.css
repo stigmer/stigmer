@@ -6,7 +6,7 @@
 @import "tailwindcss/utilities.css" layer(stgm);
 @import "@stigmer/theme/tokens.css" layer(stgm);
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is([data-stgm-color-mode="dark"] *));
 
 @theme inline {
   --radius-sm: calc(var(--stgm-radius) - 4px);

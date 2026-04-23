@@ -2,6 +2,10 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest;
+import ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse;
+import ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest;
+import ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse;
 import ai.stigmer.agentic.runner.v1.ListRunnersRequest;
 import ai.stigmer.agentic.runner.v1.Runner;
 import ai.stigmer.agentic.runner.v1.RunnerCommandControllerGrpc;
@@ -65,6 +69,18 @@ public final class RunnerClient {
         StreamObserver<RunnerStreamClientMessage> requests = commandAsync.connect(
             StigmerBidiStream.responseObserver(queue));
         return new StigmerBidiStream<>(requests, queue);
+    }
+
+    public CreateLaunchTokenResponse createLaunchToken(CreateLaunchTokenRequest input) {
+        try {
+            return command.createLaunchToken(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ExchangeLaunchTokenResponse exchangeLaunchToken(ExchangeLaunchTokenRequest input) {
+        try {
+            return command.exchangeLaunchToken(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
     public Runner get(String id) {
