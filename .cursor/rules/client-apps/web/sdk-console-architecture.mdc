@@ -1,0 +1,70 @@
+---
+description: SDK-first architecture standards for Stigmer web console and React SDK
+globs: client-apps/web/src/**/*.{tsx,ts}, sdk/react/src/**/*.{tsx,ts}
+alwaysApply: false
+---
+
+# SDK / Console Architecture
+
+Stigmer is a platform for platforms. Every line of UI code must answer one question: **"Would a platform builder embedding Stigmer into their product need this?"** If yes, it belongs in the SDK packages — not `client-apps/web`.
+
+The Console is a reference implementation. The SDK packages are the product.
+
+## The Layered Architecture (Non-Negotiable)
+
+| Package | Role | Allowed Dependencies |
+|---------|------|---------------------|
+| `@stigmer/sdk` | Typed API clients from protobuf | `@stigmer/protos` |
+| `@stigmer/react` | Data hooks, behavior hooks, styled components | `@stigmer/sdk`, `@stigmer/theme`, `react` |
+| `@stigmer/theme` | `--stgm-*` tokens, presets, `cn()` utility | None (CSS-only + `clsx`/`tailwind-merge`) |
+| `client-apps/web` | Console: routing, app shell, page layout | All SDK packages, `next/*` |
+
+Dependencies flow downward only. The SDK never imports from the Console.
+
+## Design Decisions
+
+These are the formal architectural decisions governing this codebase. Each is documented in detail in `_projects/2026-04/20260423.01.web-sdk-architecture-standards/design-decisions/`.
+
+**DD-001 — SDK-first development.** Build every feature in `@stigmer/react` first (data hook → behavior hook → styled component), consume from the Console second. Default to the SDK when placement is uncertain — extraction later is harder than inclusion now.
+
+**DD-002 — Console is a thin shell.** `app/` is routes and page layout only. Zero domain logic in the Console. If a page file exceeds ~50 lines beyond layout and imports, that logic likely belongs in the SDK.
+
+**DD-003 — Headless-first.** Three layers, each independently importable: data hooks (API data via `@stigmer/sdk`), behavior hooks (interaction logic, state machines), styled components (hooks + `@stigmer/theme` tokens). Platform builders adopt at the level that fits their needs.
+
+**DD-004 — Zero framework deps in SDK.** `@stigmer/react` has no `next/*` imports, no Console routing, no app-shell auth, no framework-specific assumptions. It works in any React environment. Navigation and image optimization are the consumer's responsibility — use callback props.
+
+**DD-005 — Theme token compliance.** All visual properties via `--stgm-*` tokens, scoped to `.stgm` container and `@layer stgm`. Use correct token families per context (sidebar-*, popover-*, standard). See `theme-token-guidelines.mdc` for the complete reference.
+
+**DD-006 — Error messages as UX.** Every error states what happened, why, and what to do. Hooks outside their provider throw descriptive messages. Data hooks return typed error states. Styled components render meaningful error UI — never blank screens.
+
+**DD-007 — Generated types are source of truth.** `@stigmer/protos` → `@stigmer/sdk` → `@stigmer/react`. Never hand-write types that duplicate generated types. Never raw fetch. Derived types (Pick, Omit, UI extensions) are fine.
+
+**DD-008 — Single provider model.** `StigmerProvider` + `useStigmer()` is the only IoC point. Five-minute integration: install, create client, wrap in provider, import component. SDK hooks use `useStigmer()` exclusively — no custom providers without justification.
+
+## Dont-Dos
+
+These anti-patterns are documented in detail in `_projects/2026-04/20260423.01.web-sdk-architecture-standards/dont-dos/`.
+
+1. **No Console imports in SDK.** `@stigmer/react` never imports from `client-apps/web` or uses `@/` paths.
+2. **No framework deps in SDK.** No `next/*`, `next-themes`, or framework-specific packages in `@stigmer/react`.
+3. **No hardcoded colors or sizes.** Every visual property flows through `--stgm-*` tokens. No hex values, no `text-[14px]`, no `bg-white`.
+4. **No opacity modifiers on tokens.** Use dedicated token variants (`text-sidebar-muted-foreground`), not `/60` suffixes. If no variant exists, propose a new token.
+5. **No technical-function grouping.** Console code is organized by domain (`src/domain/session/`), not by technical role (`src/hooks/`, `src/services/`).
+
+## Integration Ergonomics
+
+SDK APIs are user interfaces. Method names, hook return types, component props, error messages, and TypeScript intellisense are all UX surfaces.
+
+- Clean props, sensible defaults, minimal required configuration
+- If a developer can't get a component running in under 5 minutes, the DX has failed
+- Export hooks alongside styled components — `useSession()` without `<SessionViewer />` must be a valid import
+- Naming is critical — it becomes part of the platform builder's codebase and is expensive to change
+- Treat every exported hook, component, and type as a public API contract
+
+## Before Writing Any Component
+
+1. Does it belong in the SDK or the Console? (Default to SDK — DD-001)
+2. Can it be themed via `--stgm-*` tokens without leaking styles? (DD-005, Dont-Do 003)
+3. Does it work identically embedded in a third-party dashboard as in the Console? (DD-004)
+4. Are hooks exported independently from styled components? (DD-003)
+5. Does it use generated types from `@stigmer/sdk`, not hand-written types? (DD-007)
