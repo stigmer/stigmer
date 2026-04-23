@@ -1,8 +1,37 @@
 {
+  "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Base capabilities for Stigmer Desktop",
   "windows": ["main"],
   "permissions": [
-    "core:default"
+    "core:default",
+    {
+      "identifier": "shell:allow-spawn",
+      "allow": [
+        {
+          "name": "binaries/stigmer",
+          "sidecar": true,
+          "args": [
+            {
+              "validator": "\\S+"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "binaries/stigmer",
+          "sidecar": true,
+          "args": [
+            {
+              "validator": "\\S+"
+            }
+          ]
+        }
+      ]
+    }
   ]
 }

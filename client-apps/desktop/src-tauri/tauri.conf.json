@@ -28,6 +28,9 @@
     "targets": "all",
     "icon": [
       "icons/icon.png"
+    ],
+    "externalBin": [
+      "binaries/stigmer"
     ]
   }
 }

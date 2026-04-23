@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Base capabilities for Stigmer Desktop","local":true,"windows":["main"],"permissions":["core:default"]}}
+{"default":{"identifier":"default","description":"Base capabilities for Stigmer Desktop","local":true,"windows":["main"],"permissions":["core:default",{"identifier":"shell:allow-spawn","allow":[{"args":[{"validator":"\\S+"}],"name":"binaries/stigmer","sidecar":true}]},{"identifier":"shell:allow-execute","allow":[{"args":[{"validator":"\\S+"}],"name":"binaries/stigmer","sidecar":true}]}]}}
