@@ -70,10 +70,23 @@ When starting a new session:
 **Created**: 2026-04-23 11:14
 **Current Task**: T01 — Workstream A complete, Workstream C next
 **Status**: In Progress
+**Last Session**: 2026-04-23 — Diverged to fix bidi streaming codegen bug across all SDKs
 
-## Session Progress (2026-04-23)
+## Session Progress (2026-04-23, Session 2)
 
-### Workstream A: Complete
+### Codegen Bug Fix (unplanned, now complete)
+Discovered `make codegen` was broken — the `generateStreamingMethod` function in all four SDK generators (Go, TS, Python, Java) did not handle bidirectional streaming. The runner `Connect` RPC was being generated as server-streaming-only.
+
+**Fixed across all generators:**
+- **Go** (`sdk_client.go`): `Send`/`Recv`/`CloseSend` wrapper, `opts ...grpc.CallOption` signature
+- **TypeScript** (`sdk_client_ts.go`): New `BidiStream<Send, Receive>` class with send/close/async iteration
+- **Python** (`sdk_client_python.go`): New `BidiStream[Send, Receive]` class with queue-based send/iteration
+- **Java** (`sdk_client_java.go`): New `StigmerBidiStream` class with async stub + `StreamObserver` bridging
+
+**Commits**: `7ce4c852` (Go fix), `ce26866a` (TS/Python/Java fix)
+**Changelog**: `_changelog/2026-04/2026-04-23-115929-fix-bidi-streaming-codegen-all-sdks.md`
+
+### Session 1: Workstream A (Complete)
 All deliverables shipped:
 - 8 design decision files (DD-001 through DD-008) in `design-decisions/`
 - 5 dont-do files (001 through 005) in `dont-dos/`
