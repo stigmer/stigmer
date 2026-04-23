@@ -127,6 +127,13 @@
       "components": 4
     },
     {
+      "slug": "runner",
+      "title": "runner",
+      "description": "",
+      "hooks": 1,
+      "components": 2
+    },
+    {
       "slug": "session",
       "title": "Session",
       "description": "Hooks for session lifecycle, message history, conversation state, and usage tracking.",
