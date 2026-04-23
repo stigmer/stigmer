@@ -6,6 +6,7 @@ import "ai/stigmer/agentic/runner/v1/api.proto";
 import "ai/stigmer/agentic/runner/v1/enum.proto";
 import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
 
 // RunnerId wraps a runner identifier.
 message RunnerId {
@@ -208,4 +209,63 @@ message RunnerCommandError {
   // Human-readable error description.
   // Example: "permission denied: /root", "directory not found: /nonexistent"
   string message = 1;
+}
+
+// ---------------------------------------------------------------------------
+// Launch token messages (used by RunnerCommandController.createLaunchToken
+// and exchangeLaunchToken)
+// ---------------------------------------------------------------------------
+
+// CreateLaunchTokenRequest initiates a browser-to-CLI credential handshake.
+//
+// Called by the web console when the user clicks "Launch Local Runner." The
+// server generates a one-time, short-lived opaque token that the browser
+// passes to the local CLI via the stigmer:// URL scheme. The CLI then
+// exchanges the token for long-lived credentials via exchangeLaunchToken.
+message CreateLaunchTokenRequest {
+  // Organization slug. The minted credentials will be scoped to this org.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// CreateLaunchTokenResponse contains the opaque launch token for the browser
+// to embed in the stigmer:// URL.
+message CreateLaunchTokenResponse {
+  // Opaque, single-use token. Embed in the URL as:
+  // stigmer://launch-runner?token={token}&endpoint={grpc_endpoint}
+  string token = 1;
+
+  // Absolute expiry time. The token becomes invalid after this timestamp
+  // (typically 60 seconds from creation).
+  google.protobuf.Timestamp expires_at = 2;
+}
+
+// ExchangeLaunchTokenRequest is the CLI's side of the handshake.
+//
+// The CLI extracts the token from the stigmer:// URL and calls this RPC
+// to obtain long-lived credentials. This RPC is public (unauthenticated) —
+// the one-time token IS the proof of authorization.
+message ExchangeLaunchTokenRequest {
+  // The opaque token received from the stigmer:// URL.
+  string token = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// ExchangeLaunchTokenResponse provides the CLI with everything it needs to
+// operate as an authenticated runner: a Stigmer-signed JWT and the org scope.
+//
+// The response shape mirrors MintUserTokenResponse for consistency in how
+// Stigmer returns credentials.
+message ExchangeLaunchTokenResponse {
+  // Stigmer-signed JWT for authenticating subsequent runner operations
+  // (apply, connect, heartbeat). Use as Bearer token.
+  string access_token = 1;
+
+  // Token type. Always "Bearer".
+  string token_type = 2;
+
+  // Token lifetime in seconds from the time of issuance.
+  int32 expires_in = 3;
+
+  // Organization slug the credentials are scoped to. The CLI uses this
+  // when creating the runner resource via apply.
+  string org = 4;
 }

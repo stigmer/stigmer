@@ -5,6 +5,10 @@ export { StigmerContext } from "./context";
 // Hooks
 export { useStigmer } from "./hooks";
 
+// Color mode
+export { ColorModeContext, useColorMode } from "./color-mode";
+export type { ColorMode, ResolvedColorMode } from "./color-mode";
+
 // Deployment mode and resource availability
 export {
   DeploymentModeContext,

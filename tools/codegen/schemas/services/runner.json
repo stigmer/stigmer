@@ -56,6 +56,22 @@
           "serverStreaming": true,
           "clientStreaming": true,
           "description": "Establish a bidirectional command stream between the runner and the server.\n\n This is the runner's primary ongoing communication channel. The runner\n pushes heartbeats (liveness + state); the server pushes commands\n (e.g., ListDirectory for workspace browsing). Both directions use the\n same open connection.\n\n Stream lifecycle:\n   1. Runner calls apply to register/reactivate, then opens this stream.\n   2. First message MUST be a RunnerHeartbeat (authenticates via runner_id).\n   3. Runner sends heartbeats every 30s.\n   4. Server pushes RunnerCommandRequest when the UI triggers an operation.\n   5. Runner handles commands locally and sends RunnerCommandResponse.\n   6. On graceful shutdown: runner sends phase=STOPPED heartbeat, closes stream.\n   7. On disconnect: server starts heartbeat timeout (90s) -\u003e STOPPED.\n\n @internal\n Authorization is handled via the first heartbeat message: the server\n looks up the runner_id and verifies ownership. Skipped at the interceptor\n level because the stream input is not a resource type."
+        },
+        {
+          "name": "CreateLaunchToken",
+          "inputType": "CreateLaunchTokenRequest",
+          "inputFullType": "ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest",
+          "outputType": "CreateLaunchTokenResponse",
+          "outputFullType": "ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse",
+          "description": "Create a one-time launch token for the browser-to-CLI runner handshake.\n\n Called by the web console when the user clicks \"Launch Local Runner.\"\n The server mints a Stigmer JWT for the caller, wraps it in an opaque\n token stored in Redis (60s TTL, single-use), and returns the token for\n the browser to embed in a stigmer:// URL.\n\n The caller must have can_create_runner permission in the organization —\n if you can create a runner, you can create a launch token."
+        },
+        {
+          "name": "ExchangeLaunchToken",
+          "inputType": "ExchangeLaunchTokenRequest",
+          "inputFullType": "ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest",
+          "outputType": "ExchangeLaunchTokenResponse",
+          "outputFullType": "ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse",
+          "description": "Exchange a one-time launch token for long-lived runner credentials.\n\n Called by the CLI (or Desktop app) after receiving a stigmer:// URL from\n the OS. The token is consumed atomically — a second exchange attempt\n returns NOT_FOUND.\n\n @internal\n This RPC is public — no Bearer token is required. The one-time launch\n token IS the proof of authorization: it was created by an authenticated\n user with can_create_runner permission, and can only be used once."
         }
       ]
     },
@@ -215,6 +231,124 @@
           "description": "",
           "required": false,
           "oneofGroup": "message"
+        }
+      ]
+    },
+    {
+      "name": "CreateLaunchTokenRequest",
+      "description": "CreateLaunchTokenRequest initiates a browser-to-CLI credential handshake.\n\n Called by the web console when the user clicks \"Launch Local Runner.\" The\n server generates a one-time, short-lived opaque token that the browser\n passes to the local CLI via the stigmer:// URL scheme. The CLI then\n exchanges the token for long-lived credentials via exchangeLaunchToken.",
+      "protoType": "ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest",
+      "protoFile": "apis/ai/stigmer/agentic/runner/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug. The minted credentials will be scoped to this org.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "CreateLaunchTokenResponse",
+      "description": "CreateLaunchTokenResponse contains the opaque launch token for the browser\n to embed in the stigmer:// URL.",
+      "protoType": "ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse",
+      "protoFile": "apis/ai/stigmer/agentic/runner/v1/io.proto",
+      "fields": [
+        {
+          "name": "Token",
+          "jsonName": "token",
+          "protoField": "token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Opaque, single-use token. Embed in the URL as:\n stigmer://launch-runner?token={token}\u0026endpoint={grpc_endpoint}",
+          "required": false
+        },
+        {
+          "name": "ExpiresAt",
+          "jsonName": "expiresAt",
+          "protoField": "expires_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Absolute expiry time. The token becomes invalid after this timestamp\n (typically 60 seconds from creation).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ExchangeLaunchTokenRequest",
+      "description": "ExchangeLaunchTokenRequest is the CLI's side of the handshake.\n\n The CLI extracts the token from the stigmer:// URL and calls this RPC\n to obtain long-lived credentials. This RPC is public (unauthenticated) —\n the one-time token IS the proof of authorization.",
+      "protoType": "ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest",
+      "protoFile": "apis/ai/stigmer/agentic/runner/v1/io.proto",
+      "fields": [
+        {
+          "name": "Token",
+          "jsonName": "token",
+          "protoField": "token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The opaque token received from the stigmer:// URL.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "ExchangeLaunchTokenResponse",
+      "description": "ExchangeLaunchTokenResponse provides the CLI with everything it needs to\n operate as an authenticated runner: a Stigmer-signed JWT and the org scope.\n\n The response shape mirrors MintUserTokenResponse for consistency in how\n Stigmer returns credentials.",
+      "protoType": "ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse",
+      "protoFile": "apis/ai/stigmer/agentic/runner/v1/io.proto",
+      "fields": [
+        {
+          "name": "AccessToken",
+          "jsonName": "accessToken",
+          "protoField": "access_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Stigmer-signed JWT for authenticating subsequent runner operations\n (apply, connect, heartbeat). Use as Bearer token.",
+          "required": false
+        },
+        {
+          "name": "TokenType",
+          "jsonName": "tokenType",
+          "protoField": "token_type",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token type. Always \"Bearer\".",
+          "required": false
+        },
+        {
+          "name": "ExpiresIn",
+          "jsonName": "expiresIn",
+          "protoField": "expires_in",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Token lifetime in seconds from the time of issuance.",
+          "required": false
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug the credentials are scoped to. The CLI uses this\n when creating the runner resource via apply.",
+          "required": false
         }
       ]
     },

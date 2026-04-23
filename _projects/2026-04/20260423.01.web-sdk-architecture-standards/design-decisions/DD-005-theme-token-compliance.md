@@ -29,7 +29,7 @@ All visual properties in Stigmer components flow through the `--stgm-*` CSS cust
 - **Preset switching is safe.** Because every visual property flows through tokens, switching from the default preset to corporate or fintech changes the entire visual appearance without breaking any component.
 - **Style isolation is guaranteed.** The `.stgm` scope + `@layer stgm` combination ensures Stigmer's styles neither leak into nor are accidentally overridden by the host application.
 - **Missing tokens must be proposed, not worked around.** If a component needs a visual variant that has no corresponding token, the correct action is to add a new token to `sdk/theme/src/tokens.css` with values for all presets — not to use an opacity modifier or hardcoded value as a shortcut.
-- **Dark mode is host-controlled.** Dark mode activates via `.dark` ancestor class using `@custom-variant`, not media queries. The host application decides light vs. dark — Stigmer components react to that decision through token values.
+- **Dark mode is host-controlled.** Dark mode activates via the `colorMode` prop on `StigmerProvider`, which sets `data-stgm-color-mode` on the scoping container. The host application passes its theme state directly — no ancestor CSS classes required. Stigmer components react to that decision through token values.
 
 ## Enforcement
 

@@ -31,6 +31,6 @@ ESLint rule `sdk-import-boundaries` (Workstream C) will automate this check.
 | `next/router` or `next/navigation` | Accept an `onNavigate` callback prop. The consumer handles routing. |
 | `next/image` | Use standard `<img>` elements, or accept an `ImageComponent` prop for consumers who want optimized images. |
 | `next/link` | Use standard `<a>` elements with `onClick` handlers, or accept a `LinkComponent` prop. |
-| `next-themes` | Read dark mode from `.dark` ancestor class via CSS `@custom-variant`. No JS-level theme provider needed. |
+| `next-themes` | Use the `colorMode` prop on `StigmerProvider`. The Console bridges `next-themes` state to `colorMode` in its transport bridge component. |
 | `next/font` | Use `--stgm-font-*` tokens. The consumer configures fonts at the host application level. |
 | `useRouter()` for query params | Accept the values as props. The Console page extracts route params and passes them down. |

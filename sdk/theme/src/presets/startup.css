@@ -56,8 +56,8 @@
   --stgm-sidebar-ring: oklch(0.50 0.18 285);
 }
 
-.dark .stgm-theme-startup,
-.stgm-theme-startup.dark {
+[data-stgm-color-mode="dark"] .stgm-theme-startup,
+.stgm-theme-startup[data-stgm-color-mode="dark"] {
   --stgm-background: oklch(0.09 0 0);
   --stgm-foreground: oklch(0.90 0 0);
   --stgm-card: oklch(0.13 0 0);

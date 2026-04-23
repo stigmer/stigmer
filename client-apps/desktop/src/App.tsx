@@ -58,7 +58,11 @@ function AuthenticatedApp() {
   const deploymentMode = isLocalMode() ? "local" : "cloud";
 
   return (
-    <StigmerProvider client={client} deploymentMode={deploymentMode}>
+    <StigmerProvider
+      client={client}
+      deploymentMode={deploymentMode}
+      colorMode="system"
+    >
       <OrgProvider>
         <RouterProvider router={router} />
         <Toaster position="bottom-right" richColors />

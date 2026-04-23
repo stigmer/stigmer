@@ -11,13 +11,15 @@ import { file_ai_stigmer_agentic_runner_v1_enum } from "./enum_pb";
 import type { PageInfo } from "../../../commons/rpc/pagination_pb";
 import { file_ai_stigmer_commons_rpc_pagination } from "../../../commons/rpc/pagination_pb";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/runner/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_runner_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvcnVubmVyL3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxIiEKCFJ1bm5lcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi3AEKEkxpc3RSdW5uZXJzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESTAoGbGFiZWxzGAIgAygLMjwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5MaXN0UnVubmVyc1JlcXVlc3QuTGFiZWxzRW50cnkSMwoJcGFnZV9pbmZvGAMgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlYKClJ1bm5lckxpc3QSEwoLdG90YWxfY291bnQYASABKAUSMwoFaXRlbXMYAiADKAsyJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciKMAQoWUnVubmVyU2VuZENvbW1hbmRJbnB1dBIZCglydW5uZXJfaWQYASABKAlCBrpIA8gBARJMCg5saXN0X2RpcmVjdG9yeRgCIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuTGlzdERpcmVjdG9yeVJlcXVlc3RIAEIJCgdjb21tYW5kIrsBChlSdW5uZXJTdHJlYW1DbGllbnRNZXNzYWdlEkIKCWhlYXJ0YmVhdBgBIAEoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVySGVhcnRiZWF0SAASTwoQY29tbWFuZF9yZXNwb25zZRgCIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyQ29tbWFuZFJlc3BvbnNlSABCCQoHbWVzc2FnZSJ1ChlSdW5uZXJTdHJlYW1TZXJ2ZXJNZXNzYWdlEk0KD2NvbW1hbmRfcmVxdWVzdBgBIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyQ29tbWFuZFJlcXVlc3RIAEIJCgdtZXNzYWdlIscBCg9SdW5uZXJIZWFydGJlYXQSEQoJcnVubmVyX2lkGAEgASgJEjgKBXBoYXNlGAIgASgOMikuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXJQaGFzZRIaChJjdXJyZW50X2V4ZWN1dGlvbnMYAyABKAUSSwoPY29ubmVjdGlvbl9pbmZvGAQgASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXJDb25uZWN0aW9uSW5mbyKDAQoUUnVubmVyQ29tbWFuZFJlcXVlc3QSEgoKcmVxdWVzdF9pZBgBIAEoCRJMCg5saXN0X2RpcmVjdG9yeRgCIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuTGlzdERpcmVjdG9yeVJlcXVlc3RIAEIJCgdjb21tYW5kIscBChVSdW5uZXJDb21tYW5kUmVzcG9uc2USEgoKcmVxdWVzdF9pZBgBIAEoCRJNCg5saXN0X2RpcmVjdG9yeRgCIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuTGlzdERpcmVjdG9yeVJlc3BvbnNlSAASQQoFZXJyb3IYAyABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lckNvbW1hbmRFcnJvckgAQggKBnJlc3VsdCIkChRMaXN0RGlyZWN0b3J5UmVxdWVzdBIMCgRwYXRoGAEgASgJIqABChVMaXN0RGlyZWN0b3J5UmVzcG9uc2USFQoNcmVzb2x2ZWRfcGF0aBgBIAEoCRI9CgdlbnRyaWVzGAIgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5EaXJlY3RvcnlFbnRyeRIWCg5ob21lX2RpcmVjdG9yeRgDIAEoCRIZChFjdXJyZW50X2RpcmVjdG9yeRgEIAEoCSJHCg5EaXJlY3RvcnlFbnRyeRIMCgRuYW1lGAEgASgJEhQKDGlzX2RpcmVjdG9yeRgCIAEoCBIRCglpc19oaWRkZW4YAyABKAgiJQoSUnVubmVyQ29tbWFuZEVycm9yEg8KB21lc3NhZ2UYASABKAliBnByb3RvMw", [file_ai_stigmer_agentic_runner_v1_api, file_ai_stigmer_agentic_runner_v1_enum, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
+  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvcnVubmVyL3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxIiEKCFJ1bm5lcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi3AEKEkxpc3RSdW5uZXJzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESTAoGbGFiZWxzGAIgAygLMjwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5MaXN0UnVubmVyc1JlcXVlc3QuTGFiZWxzRW50cnkSMwoJcGFnZV9pbmZvGAMgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlYKClJ1bm5lckxpc3QSEwoLdG90YWxfY291bnQYASABKAUSMwoFaXRlbXMYAiADKAsyJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciKMAQoWUnVubmVyU2VuZENvbW1hbmRJbnB1dBIZCglydW5uZXJfaWQYASABKAlCBrpIA8gBARJMCg5saXN0X2RpcmVjdG9yeRgCIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuTGlzdERpcmVjdG9yeVJlcXVlc3RIAEIJCgdjb21tYW5kIrsBChlSdW5uZXJTdHJlYW1DbGllbnRNZXNzYWdlEkIKCWhlYXJ0YmVhdBgBIAEoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVySGVhcnRiZWF0SAASTwoQY29tbWFuZF9yZXNwb25zZRgCIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyQ29tbWFuZFJlc3BvbnNlSABCCQoHbWVzc2FnZSJ1ChlSdW5uZXJTdHJlYW1TZXJ2ZXJNZXNzYWdlEk0KD2NvbW1hbmRfcmVxdWVzdBgBIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyQ29tbWFuZFJlcXVlc3RIAEIJCgdtZXNzYWdlIscBCg9SdW5uZXJIZWFydGJlYXQSEQoJcnVubmVyX2lkGAEgASgJEjgKBXBoYXNlGAIgASgOMikuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXJQaGFzZRIaChJjdXJyZW50X2V4ZWN1dGlvbnMYAyABKAUSSwoPY29ubmVjdGlvbl9pbmZvGAQgASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXJDb25uZWN0aW9uSW5mbyKDAQoUUnVubmVyQ29tbWFuZFJlcXVlc3QSEgoKcmVxdWVzdF9pZBgBIAEoCRJMCg5saXN0X2RpcmVjdG9yeRgCIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuTGlzdERpcmVjdG9yeVJlcXVlc3RIAEIJCgdjb21tYW5kIscBChVSdW5uZXJDb21tYW5kUmVzcG9uc2USEgoKcmVxdWVzdF9pZBgBIAEoCRJNCg5saXN0X2RpcmVjdG9yeRgCIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuTGlzdERpcmVjdG9yeVJlc3BvbnNlSAASQQoFZXJyb3IYAyABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lckNvbW1hbmRFcnJvckgAQggKBnJlc3VsdCIkChRMaXN0RGlyZWN0b3J5UmVxdWVzdBIMCgRwYXRoGAEgASgJIqABChVMaXN0RGlyZWN0b3J5UmVzcG9uc2USFQoNcmVzb2x2ZWRfcGF0aBgBIAEoCRI9CgdlbnRyaWVzGAIgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5EaXJlY3RvcnlFbnRyeRIWCg5ob21lX2RpcmVjdG9yeRgDIAEoCRIZChFjdXJyZW50X2RpcmVjdG9yeRgEIAEoCSJHCg5EaXJlY3RvcnlFbnRyeRIMCgRuYW1lGAEgASgJEhQKDGlzX2RpcmVjdG9yeRgCIAEoCBIRCglpc19oaWRkZW4YAyABKAgiJQoSUnVubmVyQ29tbWFuZEVycm9yEg8KB21lc3NhZ2UYASABKAkiMAoYQ3JlYXRlTGF1bmNoVG9rZW5SZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQASJaChlDcmVhdGVMYXVuY2hUb2tlblJlc3BvbnNlEg0KBXRva2VuGAEgASgJEi4KCmV4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIjQKGkV4Y2hhbmdlTGF1bmNoVG9rZW5SZXF1ZXN0EhYKBXRva2VuGAEgASgJQge6SARyAhABImgKG0V4Y2hhbmdlTGF1bmNoVG9rZW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRISCgpleHBpcmVzX2luGAMgASgFEgsKA29yZxgEIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_runner_v1_api, file_ai_stigmer_agentic_runner_v1_enum, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * RunnerId wraps a runner identifier.
@@ -479,4 +481,134 @@ export type RunnerCommandError = Message<"ai.stigmer.agentic.runner.v1.RunnerCom
  */
 export const RunnerCommandErrorSchema: GenMessage<RunnerCommandError> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_runner_v1_io, 12);
+
+/**
+ * CreateLaunchTokenRequest initiates a browser-to-CLI credential handshake.
+ *
+ * Called by the web console when the user clicks "Launch Local Runner." The
+ * server generates a one-time, short-lived opaque token that the browser
+ * passes to the local CLI via the stigmer:// URL scheme. The CLI then
+ * exchanges the token for long-lived credentials via exchangeLaunchToken.
+ *
+ * @generated from message ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest
+ */
+export type CreateLaunchTokenRequest = Message<"ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest"> & {
+  /**
+   * Organization slug. The minted credentials will be scoped to this org.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest.
+ * Use `create(CreateLaunchTokenRequestSchema)` to create a new message.
+ */
+export const CreateLaunchTokenRequestSchema: GenMessage<CreateLaunchTokenRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 13);
+
+/**
+ * CreateLaunchTokenResponse contains the opaque launch token for the browser
+ * to embed in the stigmer:// URL.
+ *
+ * @generated from message ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse
+ */
+export type CreateLaunchTokenResponse = Message<"ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse"> & {
+  /**
+   * Opaque, single-use token. Embed in the URL as:
+   * stigmer://launch-runner?token={token}&endpoint={grpc_endpoint}
+   *
+   * @generated from field: string token = 1;
+   */
+  token: string;
+
+  /**
+   * Absolute expiry time. The token becomes invalid after this timestamp
+   * (typically 60 seconds from creation).
+   *
+   * @generated from field: google.protobuf.Timestamp expires_at = 2;
+   */
+  expiresAt?: Timestamp;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse.
+ * Use `create(CreateLaunchTokenResponseSchema)` to create a new message.
+ */
+export const CreateLaunchTokenResponseSchema: GenMessage<CreateLaunchTokenResponse> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 14);
+
+/**
+ * ExchangeLaunchTokenRequest is the CLI's side of the handshake.
+ *
+ * The CLI extracts the token from the stigmer:// URL and calls this RPC
+ * to obtain long-lived credentials. This RPC is public (unauthenticated) —
+ * the one-time token IS the proof of authorization.
+ *
+ * @generated from message ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest
+ */
+export type ExchangeLaunchTokenRequest = Message<"ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest"> & {
+  /**
+   * The opaque token received from the stigmer:// URL.
+   *
+   * @generated from field: string token = 1;
+   */
+  token: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest.
+ * Use `create(ExchangeLaunchTokenRequestSchema)` to create a new message.
+ */
+export const ExchangeLaunchTokenRequestSchema: GenMessage<ExchangeLaunchTokenRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 15);
+
+/**
+ * ExchangeLaunchTokenResponse provides the CLI with everything it needs to
+ * operate as an authenticated runner: a Stigmer-signed JWT and the org scope.
+ *
+ * The response shape mirrors MintUserTokenResponse for consistency in how
+ * Stigmer returns credentials.
+ *
+ * @generated from message ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse
+ */
+export type ExchangeLaunchTokenResponse = Message<"ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse"> & {
+  /**
+   * Stigmer-signed JWT for authenticating subsequent runner operations
+   * (apply, connect, heartbeat). Use as Bearer token.
+   *
+   * @generated from field: string access_token = 1;
+   */
+  accessToken: string;
+
+  /**
+   * Token type. Always "Bearer".
+   *
+   * @generated from field: string token_type = 2;
+   */
+  tokenType: string;
+
+  /**
+   * Token lifetime in seconds from the time of issuance.
+   *
+   * @generated from field: int32 expires_in = 3;
+   */
+  expiresIn: number;
+
+  /**
+   * Organization slug the credentials are scoped to. The CLI uses this
+   * when creating the runner resource via apply.
+   *
+   * @generated from field: string org = 4;
+   */
+  org: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse.
+ * Use `create(ExchangeLaunchTokenResponseSchema)` to create a new message.
+ */
+export const ExchangeLaunchTokenResponseSchema: GenMessage<ExchangeLaunchTokenResponse> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 16);
 

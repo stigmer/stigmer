@@ -8,7 +8,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { RunnerSchema, type Runner } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
 import { RunnerCommandController } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/command_pb";
-import { RunnerIdSchema, RunnerSendCommandInputSchema, RunnerCommandResponseSchema, RunnerStreamClientMessageSchema, RunnerStreamServerMessageSchema, ListRunnersRequestSchema, RunnerListSchema, type RunnerSendCommandInput, type RunnerCommandResponse, type RunnerStreamClientMessage, type RunnerStreamServerMessage, type ListRunnersRequest, type RunnerList } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/io_pb";
+import { RunnerIdSchema, RunnerSendCommandInputSchema, RunnerCommandResponseSchema, RunnerStreamClientMessageSchema, RunnerStreamServerMessageSchema, CreateLaunchTokenRequestSchema, CreateLaunchTokenResponseSchema, ExchangeLaunchTokenRequestSchema, ExchangeLaunchTokenResponseSchema, ListRunnersRequestSchema, RunnerListSchema, type RunnerSendCommandInput, type RunnerCommandResponse, type RunnerStreamClientMessage, type RunnerStreamServerMessage, type CreateLaunchTokenRequest, type CreateLaunchTokenResponse, type ExchangeLaunchTokenRequest, type ExchangeLaunchTokenResponse, type ListRunnersRequest, type RunnerList } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/io_pb";
 import { RunnerQueryController } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/query_pb";
 import { RunnerSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -57,6 +57,18 @@ export class RunnerClient {
 
   connect(signal?: AbortSignal): BidiStream<RunnerStreamClientMessage, RunnerStreamServerMessage> {
     return new BidiStream((reqs) => this.command.connect(reqs, { signal }));
+  }
+
+  async createLaunchToken(input: CreateLaunchTokenRequest): Promise<CreateLaunchTokenResponse> {
+    try {
+      return await this.command.createLaunchToken(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async exchangeLaunchToken(input: ExchangeLaunchTokenRequest): Promise<ExchangeLaunchTokenResponse> {
+    try {
+      return await this.command.exchangeLaunchToken(input);
+    } catch (e) { throw wrapError(e); }
   }
 
   async get(id: string): Promise<Runner> {

@@ -77,7 +77,7 @@ This three-layer pattern means platform builders can adopt Stigmer at the level 
 - **Namespaced tokens** — All CSS custom properties use the `--stgm-*` prefix (e.g., `--stgm-primary`, `--stgm-background`, `--stgm-radius`) to avoid collisions with host application styles.
 - **Style isolation** — Stigmer styles are scoped to the `.stgm` container class and placed in `@layer stgm`, a low-priority CSS layer that host styles can override.
 - **Presets** — Pre-built theme variants (`default`, `corporate`, `startup`, `friendly`, `fintech`) that override the full token set. Platform builders select a preset or define custom token overrides to match their brand.
-- **Dark mode** — Via `.dark` ancestor class using `@custom-variant`, not media queries — so host applications control the mode.
+- **Dark mode** — Via `colorMode` prop on `StigmerProvider`, which sets `data-stgm-color-mode` on the scoping container. Supports `"light"`, `"dark"`, and `"system"` (OS preference). No ancestor CSS classes required — host applications pass their theme state directly.
 - **`cn()` utility** — `clsx` + `tailwind-merge` for class composition, shared across all packages.
 
 Components must never use hardcoded colors, sizes, or fonts. Every visual property must flow through `--stgm-*` tokens. A component that "looks right" but bypasses the token system is broken — it will not respect the host application's theme.

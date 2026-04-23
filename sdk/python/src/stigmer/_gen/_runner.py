@@ -63,6 +63,18 @@ class RunnerClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def create_launch_token(self, input: io_pb2.CreateLaunchTokenRequest) -> io_pb2.CreateLaunchTokenResponse:
+        try:
+            return self._command.createLaunchToken(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def exchange_launch_token(self, input: io_pb2.ExchangeLaunchTokenRequest) -> io_pb2.ExchangeLaunchTokenResponse:
+        try:
+            return self._command.exchangeLaunchToken(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get(self, id: str) -> api_pb2.Runner:
         try:
             return self._query.get(io_pb2.RunnerId(value=id))

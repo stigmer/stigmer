@@ -83,6 +83,16 @@ func (r *RunnerClient) Connect(ctx context.Context, opts ...grpc.CallOption) (*R
 	return &RunnerConnectStream{stream: stream}, nil
 }
 
+func (r *RunnerClient) CreateLaunchToken(ctx context.Context, input *runnerv1.CreateLaunchTokenRequest) (*runnerv1.CreateLaunchTokenResponse, error) {
+	resp, err := r.command.CreateLaunchToken(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (r *RunnerClient) ExchangeLaunchToken(ctx context.Context, input *runnerv1.ExchangeLaunchTokenRequest) (*runnerv1.ExchangeLaunchTokenResponse, error) {
+	resp, err := r.command.ExchangeLaunchToken(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (r *RunnerClient) Get(ctx context.Context, id string) (*runnerv1.Runner, error) {
 	resp, err := r.query.Get(ctx, &runnerv1.RunnerId{Value: id})
 	return resp, wrapErr(err)

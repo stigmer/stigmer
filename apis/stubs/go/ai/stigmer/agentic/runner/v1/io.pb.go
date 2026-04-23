@@ -11,6 +11,7 @@ import (
 	rpc "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -942,11 +943,249 @@ func (x *RunnerCommandError) GetMessage() string {
 	return ""
 }
 
+// CreateLaunchTokenRequest initiates a browser-to-CLI credential handshake.
+//
+// Called by the web console when the user clicks "Launch Local Runner." The
+// server generates a one-time, short-lived opaque token that the browser
+// passes to the local CLI via the stigmer:// URL scheme. The CLI then
+// exchanges the token for long-lived credentials via exchangeLaunchToken.
+type CreateLaunchTokenRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization slug. The minted credentials will be scoped to this org.
+	Org           string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateLaunchTokenRequest) Reset() {
+	*x = CreateLaunchTokenRequest{}
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateLaunchTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateLaunchTokenRequest) ProtoMessage() {}
+
+func (x *CreateLaunchTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateLaunchTokenRequest.ProtoReflect.Descriptor instead.
+func (*CreateLaunchTokenRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *CreateLaunchTokenRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+// CreateLaunchTokenResponse contains the opaque launch token for the browser
+// to embed in the stigmer:// URL.
+type CreateLaunchTokenResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Opaque, single-use token. Embed in the URL as:
+	// stigmer://launch-runner?token={token}&endpoint={grpc_endpoint}
+	Token string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	// Absolute expiry time. The token becomes invalid after this timestamp
+	// (typically 60 seconds from creation).
+	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateLaunchTokenResponse) Reset() {
+	*x = CreateLaunchTokenResponse{}
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateLaunchTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateLaunchTokenResponse) ProtoMessage() {}
+
+func (x *CreateLaunchTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateLaunchTokenResponse.ProtoReflect.Descriptor instead.
+func (*CreateLaunchTokenResponse) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *CreateLaunchTokenResponse) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *CreateLaunchTokenResponse) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+// ExchangeLaunchTokenRequest is the CLI's side of the handshake.
+//
+// The CLI extracts the token from the stigmer:// URL and calls this RPC
+// to obtain long-lived credentials. This RPC is public (unauthenticated) —
+// the one-time token IS the proof of authorization.
+type ExchangeLaunchTokenRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The opaque token received from the stigmer:// URL.
+	Token         string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExchangeLaunchTokenRequest) Reset() {
+	*x = ExchangeLaunchTokenRequest{}
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExchangeLaunchTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExchangeLaunchTokenRequest) ProtoMessage() {}
+
+func (x *ExchangeLaunchTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExchangeLaunchTokenRequest.ProtoReflect.Descriptor instead.
+func (*ExchangeLaunchTokenRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ExchangeLaunchTokenRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+// ExchangeLaunchTokenResponse provides the CLI with everything it needs to
+// operate as an authenticated runner: a Stigmer-signed JWT and the org scope.
+//
+// The response shape mirrors MintUserTokenResponse for consistency in how
+// Stigmer returns credentials.
+type ExchangeLaunchTokenResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Stigmer-signed JWT for authenticating subsequent runner operations
+	// (apply, connect, heartbeat). Use as Bearer token.
+	AccessToken string `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	// Token type. Always "Bearer".
+	TokenType string `protobuf:"bytes,2,opt,name=token_type,json=tokenType,proto3" json:"token_type,omitempty"`
+	// Token lifetime in seconds from the time of issuance.
+	ExpiresIn int32 `protobuf:"varint,3,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`
+	// Organization slug the credentials are scoped to. The CLI uses this
+	// when creating the runner resource via apply.
+	Org           string `protobuf:"bytes,4,opt,name=org,proto3" json:"org,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExchangeLaunchTokenResponse) Reset() {
+	*x = ExchangeLaunchTokenResponse{}
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExchangeLaunchTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExchangeLaunchTokenResponse) ProtoMessage() {}
+
+func (x *ExchangeLaunchTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExchangeLaunchTokenResponse.ProtoReflect.Descriptor instead.
+func (*ExchangeLaunchTokenResponse) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ExchangeLaunchTokenResponse) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *ExchangeLaunchTokenResponse) GetTokenType() string {
+	if x != nil {
+		return x.TokenType
+	}
+	return ""
+}
+
+func (x *ExchangeLaunchTokenResponse) GetExpiresIn() int32 {
+	if x != nil {
+		return x.ExpiresIn
+	}
+	return 0
+}
+
+func (x *ExchangeLaunchTokenResponse) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_runner_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_runner_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"%ai/stigmer/agentic/runner/v1/io.proto\x12\x1cai.stigmer.agentic.runner.v1\x1a&ai/stigmer/agentic/runner/v1/api.proto\x1a'ai/stigmer/agentic/runner/v1/enum.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"(\n" +
+	"%ai/stigmer/agentic/runner/v1/io.proto\x12\x1cai.stigmer.agentic.runner.v1\x1a&ai/stigmer/agentic/runner/v1/api.proto\x1a'ai/stigmer/agentic/runner/v1/enum.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"(\n" +
 	"\bRunnerId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xff\x01\n" +
 	"\x12ListRunnersRequest\x12\x19\n" +
@@ -1000,7 +1239,22 @@ const file_ai_stigmer_agentic_runner_v1_io_proto_rawDesc = "" +
 	"\fis_directory\x18\x02 \x01(\bR\visDirectory\x12\x1b\n" +
 	"\tis_hidden\x18\x03 \x01(\bR\bisHidden\".\n" +
 	"\x12RunnerCommandError\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessageB\x90\x02\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"5\n" +
+	"\x18CreateLaunchTokenRequest\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"l\n" +
+	"\x19CreateLaunchTokenResponse\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x129\n" +
+	"\n" +
+	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\";\n" +
+	"\x1aExchangeLaunchTokenRequest\x12\x1d\n" +
+	"\x05token\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05token\"\x90\x01\n" +
+	"\x1bExchangeLaunchTokenResponse\x12!\n" +
+	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12\x1d\n" +
+	"\n" +
+	"token_type\x18\x02 \x01(\tR\ttokenType\x12\x1d\n" +
+	"\n" +
+	"expires_in\x18\x03 \x01(\x05R\texpiresIn\x12\x10\n" +
+	"\x03org\x18\x04 \x01(\tR\x03orgB\x90\x02\n" +
 	" com.ai.stigmer.agentic.runner.v1B\aIoProtoP\x01ZNgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/runner/v1;runnerv1\xa2\x02\x04ASAR\xaa\x02\x1cAi.Stigmer.Agentic.Runner.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Runner\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Runner\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Runner::V1b\x06proto3"
 
 var (
@@ -1015,46 +1269,52 @@ func file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_ai_stigmer_agentic_runner_v1_io_proto_goTypes = []any{
-	(*RunnerId)(nil),                  // 0: ai.stigmer.agentic.runner.v1.RunnerId
-	(*ListRunnersRequest)(nil),        // 1: ai.stigmer.agentic.runner.v1.ListRunnersRequest
-	(*RunnerList)(nil),                // 2: ai.stigmer.agentic.runner.v1.RunnerList
-	(*RunnerSendCommandInput)(nil),    // 3: ai.stigmer.agentic.runner.v1.RunnerSendCommandInput
-	(*RunnerStreamClientMessage)(nil), // 4: ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage
-	(*RunnerStreamServerMessage)(nil), // 5: ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage
-	(*RunnerHeartbeat)(nil),           // 6: ai.stigmer.agentic.runner.v1.RunnerHeartbeat
-	(*RunnerCommandRequest)(nil),      // 7: ai.stigmer.agentic.runner.v1.RunnerCommandRequest
-	(*RunnerCommandResponse)(nil),     // 8: ai.stigmer.agentic.runner.v1.RunnerCommandResponse
-	(*ListDirectoryRequest)(nil),      // 9: ai.stigmer.agentic.runner.v1.ListDirectoryRequest
-	(*ListDirectoryResponse)(nil),     // 10: ai.stigmer.agentic.runner.v1.ListDirectoryResponse
-	(*DirectoryEntry)(nil),            // 11: ai.stigmer.agentic.runner.v1.DirectoryEntry
-	(*RunnerCommandError)(nil),        // 12: ai.stigmer.agentic.runner.v1.RunnerCommandError
-	nil,                               // 13: ai.stigmer.agentic.runner.v1.ListRunnersRequest.LabelsEntry
-	(*rpc.PageInfo)(nil),              // 14: ai.stigmer.commons.rpc.PageInfo
-	(*Runner)(nil),                    // 15: ai.stigmer.agentic.runner.v1.Runner
-	(RunnerPhase)(0),                  // 16: ai.stigmer.agentic.runner.v1.RunnerPhase
-	(*RunnerConnectionInfo)(nil),      // 17: ai.stigmer.agentic.runner.v1.RunnerConnectionInfo
+	(*RunnerId)(nil),                    // 0: ai.stigmer.agentic.runner.v1.RunnerId
+	(*ListRunnersRequest)(nil),          // 1: ai.stigmer.agentic.runner.v1.ListRunnersRequest
+	(*RunnerList)(nil),                  // 2: ai.stigmer.agentic.runner.v1.RunnerList
+	(*RunnerSendCommandInput)(nil),      // 3: ai.stigmer.agentic.runner.v1.RunnerSendCommandInput
+	(*RunnerStreamClientMessage)(nil),   // 4: ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage
+	(*RunnerStreamServerMessage)(nil),   // 5: ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage
+	(*RunnerHeartbeat)(nil),             // 6: ai.stigmer.agentic.runner.v1.RunnerHeartbeat
+	(*RunnerCommandRequest)(nil),        // 7: ai.stigmer.agentic.runner.v1.RunnerCommandRequest
+	(*RunnerCommandResponse)(nil),       // 8: ai.stigmer.agentic.runner.v1.RunnerCommandResponse
+	(*ListDirectoryRequest)(nil),        // 9: ai.stigmer.agentic.runner.v1.ListDirectoryRequest
+	(*ListDirectoryResponse)(nil),       // 10: ai.stigmer.agentic.runner.v1.ListDirectoryResponse
+	(*DirectoryEntry)(nil),              // 11: ai.stigmer.agentic.runner.v1.DirectoryEntry
+	(*RunnerCommandError)(nil),          // 12: ai.stigmer.agentic.runner.v1.RunnerCommandError
+	(*CreateLaunchTokenRequest)(nil),    // 13: ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest
+	(*CreateLaunchTokenResponse)(nil),   // 14: ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse
+	(*ExchangeLaunchTokenRequest)(nil),  // 15: ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest
+	(*ExchangeLaunchTokenResponse)(nil), // 16: ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse
+	nil,                                 // 17: ai.stigmer.agentic.runner.v1.ListRunnersRequest.LabelsEntry
+	(*rpc.PageInfo)(nil),                // 18: ai.stigmer.commons.rpc.PageInfo
+	(*Runner)(nil),                      // 19: ai.stigmer.agentic.runner.v1.Runner
+	(RunnerPhase)(0),                    // 20: ai.stigmer.agentic.runner.v1.RunnerPhase
+	(*RunnerConnectionInfo)(nil),        // 21: ai.stigmer.agentic.runner.v1.RunnerConnectionInfo
+	(*timestamppb.Timestamp)(nil),       // 22: google.protobuf.Timestamp
 }
 var file_ai_stigmer_agentic_runner_v1_io_proto_depIdxs = []int32{
-	13, // 0: ai.stigmer.agentic.runner.v1.ListRunnersRequest.labels:type_name -> ai.stigmer.agentic.runner.v1.ListRunnersRequest.LabelsEntry
-	14, // 1: ai.stigmer.agentic.runner.v1.ListRunnersRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	15, // 2: ai.stigmer.agentic.runner.v1.RunnerList.items:type_name -> ai.stigmer.agentic.runner.v1.Runner
+	17, // 0: ai.stigmer.agentic.runner.v1.ListRunnersRequest.labels:type_name -> ai.stigmer.agentic.runner.v1.ListRunnersRequest.LabelsEntry
+	18, // 1: ai.stigmer.agentic.runner.v1.ListRunnersRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	19, // 2: ai.stigmer.agentic.runner.v1.RunnerList.items:type_name -> ai.stigmer.agentic.runner.v1.Runner
 	9,  // 3: ai.stigmer.agentic.runner.v1.RunnerSendCommandInput.list_directory:type_name -> ai.stigmer.agentic.runner.v1.ListDirectoryRequest
 	6,  // 4: ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage.heartbeat:type_name -> ai.stigmer.agentic.runner.v1.RunnerHeartbeat
 	8,  // 5: ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage.command_response:type_name -> ai.stigmer.agentic.runner.v1.RunnerCommandResponse
 	7,  // 6: ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage.command_request:type_name -> ai.stigmer.agentic.runner.v1.RunnerCommandRequest
-	16, // 7: ai.stigmer.agentic.runner.v1.RunnerHeartbeat.phase:type_name -> ai.stigmer.agentic.runner.v1.RunnerPhase
-	17, // 8: ai.stigmer.agentic.runner.v1.RunnerHeartbeat.connection_info:type_name -> ai.stigmer.agentic.runner.v1.RunnerConnectionInfo
+	20, // 7: ai.stigmer.agentic.runner.v1.RunnerHeartbeat.phase:type_name -> ai.stigmer.agentic.runner.v1.RunnerPhase
+	21, // 8: ai.stigmer.agentic.runner.v1.RunnerHeartbeat.connection_info:type_name -> ai.stigmer.agentic.runner.v1.RunnerConnectionInfo
 	9,  // 9: ai.stigmer.agentic.runner.v1.RunnerCommandRequest.list_directory:type_name -> ai.stigmer.agentic.runner.v1.ListDirectoryRequest
 	10, // 10: ai.stigmer.agentic.runner.v1.RunnerCommandResponse.list_directory:type_name -> ai.stigmer.agentic.runner.v1.ListDirectoryResponse
 	12, // 11: ai.stigmer.agentic.runner.v1.RunnerCommandResponse.error:type_name -> ai.stigmer.agentic.runner.v1.RunnerCommandError
 	11, // 12: ai.stigmer.agentic.runner.v1.ListDirectoryResponse.entries:type_name -> ai.stigmer.agentic.runner.v1.DirectoryEntry
-	13, // [13:13] is the sub-list for method output_type
-	13, // [13:13] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	22, // 13: ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse.expires_at:type_name -> google.protobuf.Timestamp
+	14, // [14:14] is the sub-list for method output_type
+	14, // [14:14] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_runner_v1_io_proto_init() }
@@ -1087,7 +1347,7 @@ func file_ai_stigmer_agentic_runner_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_runner_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_runner_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

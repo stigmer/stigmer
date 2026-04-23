@@ -61,6 +61,16 @@ class RunnerCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerStreamClientMessage.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerStreamServerMessage.FromString,
                 _registered_method=True)
+        self.createLaunchToken = channel.unary_unary(
+                '/ai.stigmer.agentic.runner.v1.RunnerCommandController/createLaunchToken',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.CreateLaunchTokenRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.CreateLaunchTokenResponse.FromString,
+                _registered_method=True)
+        self.exchangeLaunchToken = channel.unary_unary(
+                '/ai.stigmer.agentic.runner.v1.RunnerCommandController/exchangeLaunchToken',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.ExchangeLaunchTokenRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.ExchangeLaunchTokenResponse.FromString,
+                _registered_method=True)
 
 
 class RunnerCommandControllerServicer(object):
@@ -170,6 +180,37 @@ class RunnerCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def createLaunchToken(self, request, context):
+        """Create a one-time launch token for the browser-to-CLI runner handshake.
+
+        Called by the web console when the user clicks "Launch Local Runner."
+        The server mints a Stigmer JWT for the caller, wraps it in an opaque
+        token stored in Redis (60s TTL, single-use), and returns the token for
+        the browser to embed in a stigmer:// URL.
+
+        The caller must have can_create_runner permission in the organization —
+        if you can create a runner, you can create a launch token.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def exchangeLaunchToken(self, request, context):
+        """Exchange a one-time launch token for long-lived runner credentials.
+
+        Called by the CLI (or Desktop app) after receiving a stigmer:// URL from
+        the OS. The token is consumed atomically — a second exchange attempt
+        returns NOT_FOUND.
+
+        @internal
+        This RPC is public — no Bearer token is required. The one-time launch
+        token IS the proof of authorization: it was created by an authenticated
+        user with can_create_runner permission, and can only be used once.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_RunnerCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -202,6 +243,16 @@ def add_RunnerCommandControllerServicer_to_server(servicer, server):
                     servicer.connect,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerStreamClientMessage.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerStreamServerMessage.SerializeToString,
+            ),
+            'createLaunchToken': grpc.unary_unary_rpc_method_handler(
+                    servicer.createLaunchToken,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.CreateLaunchTokenRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.CreateLaunchTokenResponse.SerializeToString,
+            ),
+            'exchangeLaunchToken': grpc.unary_unary_rpc_method_handler(
+                    servicer.exchangeLaunchToken,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.ExchangeLaunchTokenRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.ExchangeLaunchTokenResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -382,6 +433,60 @@ class RunnerCommandController(object):
             '/ai.stigmer.agentic.runner.v1.RunnerCommandController/connect',
             ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerStreamClientMessage.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerStreamServerMessage.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def createLaunchToken(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.runner.v1.RunnerCommandController/createLaunchToken',
+            ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.CreateLaunchTokenRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.CreateLaunchTokenResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def exchangeLaunchToken(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.runner.v1.RunnerCommandController/exchangeLaunchToken',
+            ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.ExchangeLaunchTokenRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.ExchangeLaunchTokenResponse.FromString,
             options,
             channel_credentials,
             insecure,

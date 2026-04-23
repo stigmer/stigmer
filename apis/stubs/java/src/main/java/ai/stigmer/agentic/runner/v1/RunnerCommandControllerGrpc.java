@@ -212,6 +212,68 @@ public final class RunnerCommandControllerGrpc {
     return getConnectMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest,
+      ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse> getCreateLaunchTokenMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "createLaunchToken",
+      requestType = ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest.class,
+      responseType = ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest,
+      ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse> getCreateLaunchTokenMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest, ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse> getCreateLaunchTokenMethod;
+    if ((getCreateLaunchTokenMethod = RunnerCommandControllerGrpc.getCreateLaunchTokenMethod) == null) {
+      synchronized (RunnerCommandControllerGrpc.class) {
+        if ((getCreateLaunchTokenMethod = RunnerCommandControllerGrpc.getCreateLaunchTokenMethod) == null) {
+          RunnerCommandControllerGrpc.getCreateLaunchTokenMethod = getCreateLaunchTokenMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest, ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "createLaunchToken"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new RunnerCommandControllerMethodDescriptorSupplier("createLaunchToken"))
+              .build();
+        }
+      }
+    }
+    return getCreateLaunchTokenMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest,
+      ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse> getExchangeLaunchTokenMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "exchangeLaunchToken",
+      requestType = ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest.class,
+      responseType = ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest,
+      ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse> getExchangeLaunchTokenMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest, ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse> getExchangeLaunchTokenMethod;
+    if ((getExchangeLaunchTokenMethod = RunnerCommandControllerGrpc.getExchangeLaunchTokenMethod) == null) {
+      synchronized (RunnerCommandControllerGrpc.class) {
+        if ((getExchangeLaunchTokenMethod = RunnerCommandControllerGrpc.getExchangeLaunchTokenMethod) == null) {
+          RunnerCommandControllerGrpc.getExchangeLaunchTokenMethod = getExchangeLaunchTokenMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest, ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "exchangeLaunchToken"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new RunnerCommandControllerMethodDescriptorSupplier("exchangeLaunchToken"))
+              .build();
+        }
+      }
+    }
+    return getExchangeLaunchTokenMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -385,6 +447,39 @@ public final class RunnerCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage> responseObserver) {
       return io.grpc.stub.ServerCalls.asyncUnimplementedStreamingCall(getConnectMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Create a one-time launch token for the browser-to-CLI runner handshake.
+     * Called by the web console when the user clicks "Launch Local Runner."
+     * The server mints a Stigmer JWT for the caller, wraps it in an opaque
+     * token stored in Redis (60s TTL, single-use), and returns the token for
+     * the browser to embed in a stigmer:// URL.
+     * The caller must have can_create_runner permission in the organization —
+     * if you can create a runner, you can create a launch token.
+     * </pre>
+     */
+    default void createLaunchToken(ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateLaunchTokenMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Exchange a one-time launch token for long-lived runner credentials.
+     * Called by the CLI (or Desktop app) after receiving a stigmer:// URL from
+     * the OS. The token is consumed atomically — a second exchange attempt
+     * returns NOT_FOUND.
+     * &#64;internal
+     * This RPC is public — no Bearer token is required. The one-time launch
+     * token IS the proof of authorization: it was created by an authenticated
+     * user with can_create_runner permission, and can only be used once.
+     * </pre>
+     */
+    default void exchangeLaunchToken(ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getExchangeLaunchTokenMethod(), responseObserver);
+    }
   }
 
   /**
@@ -544,6 +639,41 @@ public final class RunnerCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.asyncBidiStreamingCall(
           getChannel().newCall(getConnectMethod(), getCallOptions()), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Create a one-time launch token for the browser-to-CLI runner handshake.
+     * Called by the web console when the user clicks "Launch Local Runner."
+     * The server mints a Stigmer JWT for the caller, wraps it in an opaque
+     * token stored in Redis (60s TTL, single-use), and returns the token for
+     * the browser to embed in a stigmer:// URL.
+     * The caller must have can_create_runner permission in the organization —
+     * if you can create a runner, you can create a launch token.
+     * </pre>
+     */
+    public void createLaunchToken(ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCreateLaunchTokenMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Exchange a one-time launch token for long-lived runner credentials.
+     * Called by the CLI (or Desktop app) after receiving a stigmer:// URL from
+     * the OS. The token is consumed atomically — a second exchange attempt
+     * returns NOT_FOUND.
+     * &#64;internal
+     * This RPC is public — no Bearer token is required. The one-time launch
+     * token IS the proof of authorization: it was created by an authenticated
+     * user with can_create_runner permission, and can only be used once.
+     * </pre>
+     */
+    public void exchangeLaunchToken(ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getExchangeLaunchTokenMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -674,6 +804,39 @@ public final class RunnerCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingBidiStreamingCall(
           getChannel(), getConnectMethod(), getCallOptions());
     }
+
+    /**
+     * <pre>
+     * Create a one-time launch token for the browser-to-CLI runner handshake.
+     * Called by the web console when the user clicks "Launch Local Runner."
+     * The server mints a Stigmer JWT for the caller, wraps it in an opaque
+     * token stored in Redis (60s TTL, single-use), and returns the token for
+     * the browser to embed in a stigmer:// URL.
+     * The caller must have can_create_runner permission in the organization —
+     * if you can create a runner, you can create a launch token.
+     * </pre>
+     */
+    public ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse createLaunchToken(ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getCreateLaunchTokenMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Exchange a one-time launch token for long-lived runner credentials.
+     * Called by the CLI (or Desktop app) after receiving a stigmer:// URL from
+     * the OS. The token is consumed atomically — a second exchange attempt
+     * returns NOT_FOUND.
+     * &#64;internal
+     * This RPC is public — no Bearer token is required. The one-time launch
+     * token IS the proof of authorization: it was created by an authenticated
+     * user with can_create_runner permission, and can only be used once.
+     * </pre>
+     */
+    public ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse exchangeLaunchToken(ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getExchangeLaunchTokenMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -775,6 +938,39 @@ public final class RunnerCommandControllerGrpc {
     public ai.stigmer.agentic.runner.v1.RunnerCommandResponse sendCommand(ai.stigmer.agentic.runner.v1.RunnerSendCommandInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getSendCommandMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Create a one-time launch token for the browser-to-CLI runner handshake.
+     * Called by the web console when the user clicks "Launch Local Runner."
+     * The server mints a Stigmer JWT for the caller, wraps it in an opaque
+     * token stored in Redis (60s TTL, single-use), and returns the token for
+     * the browser to embed in a stigmer:// URL.
+     * The caller must have can_create_runner permission in the organization —
+     * if you can create a runner, you can create a launch token.
+     * </pre>
+     */
+    public ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse createLaunchToken(ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCreateLaunchTokenMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Exchange a one-time launch token for long-lived runner credentials.
+     * Called by the CLI (or Desktop app) after receiving a stigmer:// URL from
+     * the OS. The token is consumed atomically — a second exchange attempt
+     * returns NOT_FOUND.
+     * &#64;internal
+     * This RPC is public — no Bearer token is required. The one-time launch
+     * token IS the proof of authorization: it was created by an authenticated
+     * user with can_create_runner permission, and can only be used once.
+     * </pre>
+     */
+    public ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse exchangeLaunchToken(ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getExchangeLaunchTokenMethod(), getCallOptions(), request);
     }
   }
 
@@ -883,6 +1079,41 @@ public final class RunnerCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getSendCommandMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Create a one-time launch token for the browser-to-CLI runner handshake.
+     * Called by the web console when the user clicks "Launch Local Runner."
+     * The server mints a Stigmer JWT for the caller, wraps it in an opaque
+     * token stored in Redis (60s TTL, single-use), and returns the token for
+     * the browser to embed in a stigmer:// URL.
+     * The caller must have can_create_runner permission in the organization —
+     * if you can create a runner, you can create a launch token.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse> createLaunchToken(
+        ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCreateLaunchTokenMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Exchange a one-time launch token for long-lived runner credentials.
+     * Called by the CLI (or Desktop app) after receiving a stigmer:// URL from
+     * the OS. The token is consumed atomically — a second exchange attempt
+     * returns NOT_FOUND.
+     * &#64;internal
+     * This RPC is public — no Bearer token is required. The one-time launch
+     * token IS the proof of authorization: it was created by an authenticated
+     * user with can_create_runner permission, and can only be used once.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse> exchangeLaunchToken(
+        ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getExchangeLaunchTokenMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_APPLY = 0;
@@ -890,7 +1121,9 @@ public final class RunnerCommandControllerGrpc {
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_DELETE = 3;
   private static final int METHODID_SEND_COMMAND = 4;
-  private static final int METHODID_CONNECT = 5;
+  private static final int METHODID_CREATE_LAUNCH_TOKEN = 5;
+  private static final int METHODID_EXCHANGE_LAUNCH_TOKEN = 6;
+  private static final int METHODID_CONNECT = 7;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -928,6 +1161,14 @@ public final class RunnerCommandControllerGrpc {
         case METHODID_SEND_COMMAND:
           serviceImpl.sendCommand((ai.stigmer.agentic.runner.v1.RunnerSendCommandInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.RunnerCommandResponse>) responseObserver);
+          break;
+        case METHODID_CREATE_LAUNCH_TOKEN:
+          serviceImpl.createLaunchToken((ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse>) responseObserver);
+          break;
+        case METHODID_EXCHANGE_LAUNCH_TOKEN:
+          serviceImpl.exchangeLaunchToken((ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -992,6 +1233,20 @@ public final class RunnerCommandControllerGrpc {
               ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage,
               ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage>(
                 service, METHODID_CONNECT)))
+        .addMethod(
+          getCreateLaunchTokenMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest,
+              ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse>(
+                service, METHODID_CREATE_LAUNCH_TOKEN)))
+        .addMethod(
+          getExchangeLaunchTokenMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest,
+              ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse>(
+                service, METHODID_EXCHANGE_LAUNCH_TOKEN)))
         .build();
   }
 
@@ -1046,6 +1301,8 @@ public final class RunnerCommandControllerGrpc {
               .addMethod(getDeleteMethod())
               .addMethod(getSendCommandMethod())
               .addMethod(getConnectMethod())
+              .addMethod(getCreateLaunchTokenMethod())
+              .addMethod(getExchangeLaunchTokenMethod())
               .build();
         }
       }

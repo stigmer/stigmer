@@ -58,8 +58,8 @@
   --stgm-sidebar-ring: oklch(0.48 0.18 280);
 }
 
-.dark .stgm-theme-fintech,
-.stgm-theme-fintech.dark {
+[data-stgm-color-mode="dark"] .stgm-theme-fintech,
+.stgm-theme-fintech[data-stgm-color-mode="dark"] {
   --stgm-background: oklch(0.12 0.05 280);
   --stgm-foreground: oklch(0.92 0.01 280);
   --stgm-card: oklch(0.18 0.06 280);

@@ -2,8 +2,10 @@
 
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
+import { useTheme } from "next-themes";
 import { Stigmer } from "@stigmer/sdk";
 import { StigmerProvider, SsoLoginPrompt } from "@stigmer/react";
+import type { ResolvedColorMode } from "@stigmer/react";
 import type { SsoProviderInfo } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
 import { getApiBaseUrl } from "@/config/env";
 import { resolveAuthConfig } from "@/auth/config";
@@ -31,6 +33,9 @@ const REDIRECT_PATH_KEY = "stigmer:auth:redirect_path";
 export function LoginPageView() {
   const searchParams = useSearchParams();
   const orgParam = searchParams.get("org") ?? undefined;
+  const { resolvedTheme } = useTheme();
+  const colorMode: ResolvedColorMode =
+    resolvedTheme === "dark" ? "dark" : "light";
 
   const client = useMemo(
     () => new Stigmer({ baseUrl: getApiBaseUrl(), getAccessToken: () => null }),
@@ -75,7 +80,7 @@ export function LoginPageView() {
   }, []);
 
   return (
-    <StigmerProvider client={client}>
+    <StigmerProvider client={client} colorMode={colorMode}>
       <div className="flex min-h-screen flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm space-y-8">
           <div className="text-center">
