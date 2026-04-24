@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 import { ArrowUpRight, Monitor } from "lucide-react";
 import { RunnerListPanel, useLaunchLocalRunner } from "@stigmer/react";
 import { EXTERNAL_LINKS } from "@/config/external-links";
@@ -9,11 +9,6 @@ import { useActiveOrgSlug } from "@/domain/_shared/org/org-context";
 export function RunnersSection() {
   const org = useActiveOrgSlug();
   const { launch, isLaunching, error, clearError } = useLaunchLocalRunner();
-  const listRefetchRef = useRef<(() => void) | null>(null);
-
-  const handleRefetchRef = useCallback((refetch: () => void) => {
-    listRefetchRef.current = refetch;
-  }, []);
 
   const handleLaunch = useCallback(async () => {
     if (!org) return;
@@ -62,7 +57,7 @@ export function RunnersSection() {
           Select an organization to view runners.
         </p>
       ) : (
-        <RunnerListPanel org={org} onRefetchRef={handleRefetchRef} />
+        <RunnerListPanel org={org} />
       )}
 
       <DesktopAppPromo />

@@ -15,8 +15,13 @@ import { EXTERNAL_LINKS } from "@/config/external-links";
 const FIRST_SEEN_KEY = "stigmer:desktop-banner-first-seen";
 const DISMISSED_KEY = "stigmer:desktop-banner-dismissed";
 
+// Tracks whether we seeded FIRST_SEEN during this page load. Resets on
+// reload (module re-evaluation), which is exactly when "second visit" begins.
+let seededThisSession = false;
+
 function getBannerSnapshot(): boolean {
   try {
+    if (seededThisSession) return false;
     if (localStorage.getItem(DISMISSED_KEY)) return false;
     return localStorage.getItem(FIRST_SEEN_KEY) !== null;
   } catch {
@@ -50,12 +55,11 @@ export function useDesktopBannerState() {
     getBannerServerSnapshot,
   );
 
-  // Seed "first-seen" on the initial visit. The snapshot returns false
-  // when first-seen is absent, so the banner stays hidden until reload.
   useEffect(() => {
     try {
       if (!localStorage.getItem(FIRST_SEEN_KEY)) {
         localStorage.setItem(FIRST_SEEN_KEY, new Date().toISOString());
+        seededThisSession = true;
       }
     } catch {
       /* SSR or private browsing */

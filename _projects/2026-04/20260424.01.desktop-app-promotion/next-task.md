@@ -13,9 +13,40 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: T10 complete. Ready for T11.
-- **Last Session**: 2026-04-24 (Session 10) — T10 smart nudge banner in Console AppShell shipped.
-- **Active Task**: None — ready to start T11.
+- **Status**: **All tasks complete (T01–T11).** Project finished.
+- **Last Session**: 2026-04-24 (Session 11) — T11 verification & polish. Four fixes across docs and Console. All builds/lint clean.
+- **Active Task**: None — project complete.
+
+## Session wrap-up (2026-04-24, Session 11)
+
+- T11 audited all T01–T10 deliverables across docs, marketing site, and Console.
+  Found and fixed four issues. No architectural changes — all fixes are isolated
+  to single files.
+- **Modified**: `docs/guides/desktop/install.mdx` — replaced stale TODO + GitHub
+  Releases link with `/download` page link (T06 shipped). Fixed Windows installer
+  format from `.msi` to `.exe` (NSIS, matching `DESKTOP_CONFIG` and Tauri config).
+- **Modified**: `client-apps/web/src/domain/settings/RunnersSection.tsx` — removed
+  dead `listRefetchRef` / `handleRefetchRef` / `onRefetchRef`. The ref was wired
+  to `RunnerListPanel` but never read. Dropped `useRef` import.
+- **Modified**: `client-apps/web/src/domain/_shared/layout/AppShell.tsx` —
+  destructured `sidebar.isOpen` and `sidebar.close` into local variables
+  (`sidebarOpen`, `closeSidebar`) so the Escape keydown effect depends on stable
+  primitives instead of the unstable `sidebar` object. Eliminated a pre-existing
+  `react-hooks/exhaustive-deps` lint warning.
+- **Modified**: `client-apps/web/src/domain/_shared/layout/DesktopAppBanner.tsx` —
+  added module-level `seededThisSession` flag to prevent the banner from appearing
+  during the first visit. `getBannerSnapshot()` returns `false` when the flag is
+  set. Flag resets on page reload (module re-evaluation = new visit).
+- **Audit results (no action needed)**: All `meta.json` entries correct;
+  `agent-runner.mdx` orphan confirmed deleted; 20+ doc cross-links verified;
+  SDK boundary compliance confirmed (all promotion UI in `client-apps/web`);
+  theme token compliance confirmed; accessibility semantics present;
+  `EXTERNAL_LINKS` shared correctly; `DESKTOP_CONFIG` well-structured;
+  `NAV_LINKS`/`FOOTER_LINKS` include Download; all changelogs present (T02–T10).
+- Console lint: 0 errors, 0 warnings. Console build: 29 routes, exit 0.
+- Site lint: 0 errors. Site build: exit 0.
+- **Changelog**:
+  `_changelog/2026-04/2026-04-24-213214-t11-verification-polish.md`
 
 ## Session wrap-up (2026-04-24, Session 10)
 
@@ -223,7 +254,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | T08 | Console: "Get Desktop App" in user menu | **Complete** | T06 |
 | T09 | Console: contextual runner promotion | **Complete** | T06 |
 | T10 | Console: smart nudge banner | **Complete** | T06, T09 |
-| T11 | Verification & polish | Pending | All |
+| T11 | Verification & polish | **Complete** | All |
 
 ## Design Decisions (approved)
 
