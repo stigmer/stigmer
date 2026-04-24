@@ -8,6 +8,7 @@ import { Button } from "@/domain/_shared/ui/button";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 import { SessionLauncher } from "@/domain/session/SessionLauncher";
 import { SessionPageInner } from "@/domain/session/SessionPage";
+import { DesktopAppBanner, useDesktopBannerState } from "./DesktopAppBanner";
 import { ManagementSidebar } from "./ManagementSidebar";
 import { Sidebar } from "./Sidebar";
 import { LG_BREAKPOINT, useSidebarOpen } from "./use-layout-state";
@@ -16,6 +17,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const sidebar = useSidebarOpen();
   const pathname = usePathname();
   const { activeSessionId, isSessionZone } = useSessionNavigation();
+  const desktopBanner = useDesktopBannerState();
 
   const isManagementZone = pathname.startsWith("/settings");
   const isPublicZone =
@@ -96,14 +98,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Main content */}
-      <main className="min-w-0 flex-1 overflow-y-auto">
-        {isManagementZone ? (
-          children
-        ) : isSessionZone ? (
-          <SessionZoneContent activeSessionId={activeSessionId} />
-        ) : (
-          children
+      <main className="min-w-0 flex-1 flex flex-col overflow-hidden">
+        {desktopBanner.visible && (
+          <DesktopAppBanner onDismiss={desktopBanner.dismiss} />
         )}
+        <div className="min-w-0 flex-1 overflow-y-auto">
+          {isManagementZone ? (
+            children
+          ) : isSessionZone ? (
+            <SessionZoneContent activeSessionId={activeSessionId} />
+          ) : (
+            children
+          )}
+        </div>
       </main>
     </div>
   );
