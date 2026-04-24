@@ -24,6 +24,7 @@ const (
 	RunnerCommandController_Update_FullMethodName              = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/update"
 	RunnerCommandController_Delete_FullMethodName              = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/delete"
 	RunnerCommandController_SendCommand_FullMethodName         = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/sendCommand"
+	RunnerCommandController_Stop_FullMethodName                = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/stop"
 	RunnerCommandController_Connect_FullMethodName             = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/connect"
 	RunnerCommandController_CreateLaunchToken_FullMethodName   = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/createLaunchToken"
 	RunnerCommandController_ExchangeLaunchToken_FullMethodName = "/ai.stigmer.agentic.runner.v1.RunnerCommandController/exchangeLaunchToken"
@@ -87,6 +88,19 @@ type RunnerCommandControllerClient interface {
 	// is not connected. Returns FAILED_PRECONDITION if the runner's phase
 	// prevents command delivery (STOPPED, PENDING, FAILED).
 	SendCommand(ctx context.Context, in *RunnerSendCommandInput, opts ...grpc.CallOption) (*RunnerCommandResponse, error)
+	// Stop a running runner gracefully.
+	//
+	// If the runner is connected: sends a StopRunnerRequest via the bidi
+	// stream, waits for acknowledgment, then returns the updated Runner.
+	// The runner will send a STOPPED heartbeat and close its stream after
+	// acknowledging — the phase transition completes asynchronously.
+	//
+	// If the runner is not connected (offline, already stopped): directly
+	// transitions the runner to STOPPED and returns the updated resource.
+	//
+	// Idempotent: stopping an already-STOPPED or FAILED runner returns the
+	// resource as-is without error.
+	Stop(ctx context.Context, in *RunnerStopInput, opts ...grpc.CallOption) (*Runner, error)
 	// Establish a bidirectional command stream between the runner and the server.
 	//
 	// This is the runner's primary ongoing communication channel. The runner
@@ -189,6 +203,16 @@ func (c *runnerCommandControllerClient) SendCommand(ctx context.Context, in *Run
 	return out, nil
 }
 
+func (c *runnerCommandControllerClient) Stop(ctx context.Context, in *RunnerStopInput, opts ...grpc.CallOption) (*Runner, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Runner)
+	err := c.cc.Invoke(ctx, RunnerCommandController_Stop_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runnerCommandControllerClient) Connect(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[RunnerStreamClientMessage, RunnerStreamServerMessage], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &RunnerCommandController_ServiceDesc.Streams[0], RunnerCommandController_Connect_FullMethodName, cOpts...)
@@ -280,6 +304,19 @@ type RunnerCommandControllerServer interface {
 	// is not connected. Returns FAILED_PRECONDITION if the runner's phase
 	// prevents command delivery (STOPPED, PENDING, FAILED).
 	SendCommand(context.Context, *RunnerSendCommandInput) (*RunnerCommandResponse, error)
+	// Stop a running runner gracefully.
+	//
+	// If the runner is connected: sends a StopRunnerRequest via the bidi
+	// stream, waits for acknowledgment, then returns the updated Runner.
+	// The runner will send a STOPPED heartbeat and close its stream after
+	// acknowledging — the phase transition completes asynchronously.
+	//
+	// If the runner is not connected (offline, already stopped): directly
+	// transitions the runner to STOPPED and returns the updated resource.
+	//
+	// Idempotent: stopping an already-STOPPED or FAILED runner returns the
+	// resource as-is without error.
+	Stop(context.Context, *RunnerStopInput) (*Runner, error)
 	// Establish a bidirectional command stream between the runner and the server.
 	//
 	// This is the runner's primary ongoing communication channel. The runner
@@ -345,6 +382,9 @@ func (UnimplementedRunnerCommandControllerServer) Delete(context.Context, *Runne
 }
 func (UnimplementedRunnerCommandControllerServer) SendCommand(context.Context, *RunnerSendCommandInput) (*RunnerCommandResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendCommand not implemented")
+}
+func (UnimplementedRunnerCommandControllerServer) Stop(context.Context, *RunnerStopInput) (*Runner, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Stop not implemented")
 }
 func (UnimplementedRunnerCommandControllerServer) Connect(grpc.BidiStreamingServer[RunnerStreamClientMessage, RunnerStreamServerMessage]) error {
 	return status.Errorf(codes.Unimplemented, "method Connect not implemented")
@@ -465,6 +505,24 @@ func _RunnerCommandController_SendCommand_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RunnerCommandController_Stop_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RunnerStopInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunnerCommandControllerServer).Stop(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RunnerCommandController_Stop_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunnerCommandControllerServer).Stop(ctx, req.(*RunnerStopInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RunnerCommandController_Connect_Handler(srv interface{}, stream grpc.ServerStream) error {
 	return srv.(RunnerCommandControllerServer).Connect(&grpc.GenericServerStream[RunnerStreamClientMessage, RunnerStreamServerMessage]{ServerStream: stream})
 }
@@ -534,6 +592,10 @@ var RunnerCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "sendCommand",
 			Handler:    _RunnerCommandController_SendCommand_Handler,
+		},
+		{
+			MethodName: "stop",
+			Handler:    _RunnerCommandController_Stop_Handler,
 		},
 		{
 			MethodName: "createLaunchToken",

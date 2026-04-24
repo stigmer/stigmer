@@ -542,6 +542,7 @@ type RunnerCommandRequest struct {
 	// Types that are valid to be assigned to Command:
 	//
 	//	*RunnerCommandRequest_ListDirectory
+	//	*RunnerCommandRequest_Stop
 	Command       isRunnerCommandRequest_Command `protobuf_oneof:"command"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -600,6 +601,15 @@ func (x *RunnerCommandRequest) GetListDirectory() *ListDirectoryRequest {
 	return nil
 }
 
+func (x *RunnerCommandRequest) GetStop() *StopRunnerRequest {
+	if x != nil {
+		if x, ok := x.Command.(*RunnerCommandRequest_Stop); ok {
+			return x.Stop
+		}
+	}
+	return nil
+}
+
 type isRunnerCommandRequest_Command interface {
 	isRunnerCommandRequest_Command()
 }
@@ -608,7 +618,13 @@ type RunnerCommandRequest_ListDirectory struct {
 	ListDirectory *ListDirectoryRequest `protobuf:"bytes,2,opt,name=list_directory,json=listDirectory,proto3,oneof"`
 }
 
+type RunnerCommandRequest_Stop struct {
+	Stop *StopRunnerRequest `protobuf:"bytes,3,opt,name=stop,proto3,oneof"`
+}
+
 func (*RunnerCommandRequest_ListDirectory) isRunnerCommandRequest_Command() {}
+
+func (*RunnerCommandRequest_Stop) isRunnerCommandRequest_Command() {}
 
 // RunnerCommandResponse is the runner's reply to a RunnerCommandRequest.
 //
@@ -622,6 +638,7 @@ type RunnerCommandResponse struct {
 	//
 	//	*RunnerCommandResponse_ListDirectory
 	//	*RunnerCommandResponse_Error
+	//	*RunnerCommandResponse_Stop
 	Result        isRunnerCommandResponse_Result `protobuf_oneof:"result"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -689,6 +706,15 @@ func (x *RunnerCommandResponse) GetError() *RunnerCommandError {
 	return nil
 }
 
+func (x *RunnerCommandResponse) GetStop() *StopRunnerResponse {
+	if x != nil {
+		if x, ok := x.Result.(*RunnerCommandResponse_Stop); ok {
+			return x.Stop
+		}
+	}
+	return nil
+}
+
 type isRunnerCommandResponse_Result interface {
 	isRunnerCommandResponse_Result()
 }
@@ -701,9 +727,15 @@ type RunnerCommandResponse_Error struct {
 	Error *RunnerCommandError `protobuf:"bytes,3,opt,name=error,proto3,oneof"`
 }
 
+type RunnerCommandResponse_Stop struct {
+	Stop *StopRunnerResponse `protobuf:"bytes,4,opt,name=stop,proto3,oneof"`
+}
+
 func (*RunnerCommandResponse_ListDirectory) isRunnerCommandResponse_Result() {}
 
 func (*RunnerCommandResponse_Error) isRunnerCommandResponse_Result() {}
+
+func (*RunnerCommandResponse_Stop) isRunnerCommandResponse_Result() {}
 
 // ListDirectoryRequest asks the runner to list the contents of a directory
 // on its host machine.
@@ -943,6 +975,156 @@ func (x *RunnerCommandError) GetMessage() string {
 	return ""
 }
 
+// StopRunnerRequest is a server-initiated command telling the runner to
+// shut down gracefully. The runner should acknowledge, then begin its
+// shutdown sequence: cancel running work, send a STOPPED heartbeat,
+// close the stream, and exit.
+type StopRunnerRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Human-readable reason for the stop request.
+	// Example: "user requested via web console", "admin maintenance"
+	Reason        string `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StopRunnerRequest) Reset() {
+	*x = StopRunnerRequest{}
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StopRunnerRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StopRunnerRequest) ProtoMessage() {}
+
+func (x *StopRunnerRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StopRunnerRequest.ProtoReflect.Descriptor instead.
+func (*StopRunnerRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *StopRunnerRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+// StopRunnerResponse acknowledges that the runner received the stop
+// command and will begin its shutdown sequence. The actual STOPPED
+// transition happens when the runner sends its final heartbeat and
+// closes the stream — not at ack time.
+type StopRunnerResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StopRunnerResponse) Reset() {
+	*x = StopRunnerResponse{}
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StopRunnerResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StopRunnerResponse) ProtoMessage() {}
+
+func (x *StopRunnerResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StopRunnerResponse.ProtoReflect.Descriptor instead.
+func (*StopRunnerResponse) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{14}
+}
+
+// RunnerStopInput is the request for the stop RPC.
+//
+// Separate from StopRunnerRequest because the RPC input carries the
+// runner_id (identifying which runner to stop), while the stream command
+// does not (the stream is already bound to a specific runner).
+type RunnerStopInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ID of the runner to stop.
+	RunnerId string `protobuf:"bytes,1,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
+	// Optional reason for the stop. Logged on the runner and in audit.
+	// Example: "user requested via web console"
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunnerStopInput) Reset() {
+	*x = RunnerStopInput{}
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunnerStopInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunnerStopInput) ProtoMessage() {}
+
+func (x *RunnerStopInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunnerStopInput.ProtoReflect.Descriptor instead.
+func (*RunnerStopInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *RunnerStopInput) GetRunnerId() string {
+	if x != nil {
+		return x.RunnerId
+	}
+	return ""
+}
+
+func (x *RunnerStopInput) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
 // CreateLaunchTokenRequest initiates a browser-to-CLI credential handshake.
 //
 // Called by the web console when the user clicks "Launch Local Runner." The
@@ -959,7 +1141,7 @@ type CreateLaunchTokenRequest struct {
 
 func (x *CreateLaunchTokenRequest) Reset() {
 	*x = CreateLaunchTokenRequest{}
-	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[13]
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -971,7 +1153,7 @@ func (x *CreateLaunchTokenRequest) String() string {
 func (*CreateLaunchTokenRequest) ProtoMessage() {}
 
 func (x *CreateLaunchTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[13]
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -984,7 +1166,7 @@ func (x *CreateLaunchTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateLaunchTokenRequest.ProtoReflect.Descriptor instead.
 func (*CreateLaunchTokenRequest) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{13}
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CreateLaunchTokenRequest) GetOrg() string {
@@ -1010,7 +1192,7 @@ type CreateLaunchTokenResponse struct {
 
 func (x *CreateLaunchTokenResponse) Reset() {
 	*x = CreateLaunchTokenResponse{}
-	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[14]
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1022,7 +1204,7 @@ func (x *CreateLaunchTokenResponse) String() string {
 func (*CreateLaunchTokenResponse) ProtoMessage() {}
 
 func (x *CreateLaunchTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[14]
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1035,7 +1217,7 @@ func (x *CreateLaunchTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateLaunchTokenResponse.ProtoReflect.Descriptor instead.
 func (*CreateLaunchTokenResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{14}
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CreateLaunchTokenResponse) GetToken() string {
@@ -1067,7 +1249,7 @@ type ExchangeLaunchTokenRequest struct {
 
 func (x *ExchangeLaunchTokenRequest) Reset() {
 	*x = ExchangeLaunchTokenRequest{}
-	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[15]
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1079,7 +1261,7 @@ func (x *ExchangeLaunchTokenRequest) String() string {
 func (*ExchangeLaunchTokenRequest) ProtoMessage() {}
 
 func (x *ExchangeLaunchTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[15]
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1092,7 +1274,7 @@ func (x *ExchangeLaunchTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExchangeLaunchTokenRequest.ProtoReflect.Descriptor instead.
 func (*ExchangeLaunchTokenRequest) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{15}
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ExchangeLaunchTokenRequest) GetToken() string {
@@ -1125,7 +1307,7 @@ type ExchangeLaunchTokenResponse struct {
 
 func (x *ExchangeLaunchTokenResponse) Reset() {
 	*x = ExchangeLaunchTokenResponse{}
-	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[16]
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1137,7 +1319,7 @@ func (x *ExchangeLaunchTokenResponse) String() string {
 func (*ExchangeLaunchTokenResponse) ProtoMessage() {}
 
 func (x *ExchangeLaunchTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[16]
+	mi := &file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1150,7 +1332,7 @@ func (x *ExchangeLaunchTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExchangeLaunchTokenResponse.ProtoReflect.Descriptor instead.
 func (*ExchangeLaunchTokenResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{16}
+	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ExchangeLaunchTokenResponse) GetAccessToken() string {
@@ -1215,17 +1397,19 @@ const file_ai_stigmer_agentic_runner_v1_io_proto_rawDesc = "" +
 	"\trunner_id\x18\x01 \x01(\tR\brunnerId\x12?\n" +
 	"\x05phase\x18\x02 \x01(\x0e2).ai.stigmer.agentic.runner.v1.RunnerPhaseR\x05phase\x12-\n" +
 	"\x12current_executions\x18\x03 \x01(\x05R\x11currentExecutions\x12[\n" +
-	"\x0fconnection_info\x18\x04 \x01(\v22.ai.stigmer.agentic.runner.v1.RunnerConnectionInfoR\x0econnectionInfo\"\x9d\x01\n" +
+	"\x0fconnection_info\x18\x04 \x01(\v22.ai.stigmer.agentic.runner.v1.RunnerConnectionInfoR\x0econnectionInfo\"\xe4\x01\n" +
 	"\x14RunnerCommandRequest\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\x12[\n" +
-	"\x0elist_directory\x18\x02 \x01(\v22.ai.stigmer.agentic.runner.v1.ListDirectoryRequestH\x00R\rlistDirectoryB\t\n" +
-	"\acommand\"\xe8\x01\n" +
+	"\x0elist_directory\x18\x02 \x01(\v22.ai.stigmer.agentic.runner.v1.ListDirectoryRequestH\x00R\rlistDirectory\x12E\n" +
+	"\x04stop\x18\x03 \x01(\v2/.ai.stigmer.agentic.runner.v1.StopRunnerRequestH\x00R\x04stopB\t\n" +
+	"\acommand\"\xb0\x02\n" +
 	"\x15RunnerCommandResponse\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\x12\\\n" +
 	"\x0elist_directory\x18\x02 \x01(\v23.ai.stigmer.agentic.runner.v1.ListDirectoryResponseH\x00R\rlistDirectory\x12H\n" +
-	"\x05error\x18\x03 \x01(\v20.ai.stigmer.agentic.runner.v1.RunnerCommandErrorH\x00R\x05errorB\b\n" +
+	"\x05error\x18\x03 \x01(\v20.ai.stigmer.agentic.runner.v1.RunnerCommandErrorH\x00R\x05error\x12F\n" +
+	"\x04stop\x18\x04 \x01(\v20.ai.stigmer.agentic.runner.v1.StopRunnerResponseH\x00R\x04stopB\b\n" +
 	"\x06result\"*\n" +
 	"\x14ListDirectoryRequest\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\"\xd8\x01\n" +
@@ -1239,7 +1423,13 @@ const file_ai_stigmer_agentic_runner_v1_io_proto_rawDesc = "" +
 	"\fis_directory\x18\x02 \x01(\bR\visDirectory\x12\x1b\n" +
 	"\tis_hidden\x18\x03 \x01(\bR\bisHidden\".\n" +
 	"\x12RunnerCommandError\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage\"5\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"+\n" +
+	"\x11StopRunnerRequest\x12\x16\n" +
+	"\x06reason\x18\x01 \x01(\tR\x06reason\"\x14\n" +
+	"\x12StopRunnerResponse\"N\n" +
+	"\x0fRunnerStopInput\x12#\n" +
+	"\trunner_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\brunnerId\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"5\n" +
 	"\x18CreateLaunchTokenRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"l\n" +
 	"\x19CreateLaunchTokenResponse\x12\x14\n" +
@@ -1269,7 +1459,7 @@ func file_ai_stigmer_agentic_runner_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_runner_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_ai_stigmer_agentic_runner_v1_io_proto_goTypes = []any{
 	(*RunnerId)(nil),                    // 0: ai.stigmer.agentic.runner.v1.RunnerId
 	(*ListRunnersRequest)(nil),          // 1: ai.stigmer.agentic.runner.v1.ListRunnersRequest
@@ -1284,37 +1474,42 @@ var file_ai_stigmer_agentic_runner_v1_io_proto_goTypes = []any{
 	(*ListDirectoryResponse)(nil),       // 10: ai.stigmer.agentic.runner.v1.ListDirectoryResponse
 	(*DirectoryEntry)(nil),              // 11: ai.stigmer.agentic.runner.v1.DirectoryEntry
 	(*RunnerCommandError)(nil),          // 12: ai.stigmer.agentic.runner.v1.RunnerCommandError
-	(*CreateLaunchTokenRequest)(nil),    // 13: ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest
-	(*CreateLaunchTokenResponse)(nil),   // 14: ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse
-	(*ExchangeLaunchTokenRequest)(nil),  // 15: ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest
-	(*ExchangeLaunchTokenResponse)(nil), // 16: ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse
-	nil,                                 // 17: ai.stigmer.agentic.runner.v1.ListRunnersRequest.LabelsEntry
-	(*rpc.PageInfo)(nil),                // 18: ai.stigmer.commons.rpc.PageInfo
-	(*Runner)(nil),                      // 19: ai.stigmer.agentic.runner.v1.Runner
-	(RunnerPhase)(0),                    // 20: ai.stigmer.agentic.runner.v1.RunnerPhase
-	(*RunnerConnectionInfo)(nil),        // 21: ai.stigmer.agentic.runner.v1.RunnerConnectionInfo
-	(*timestamppb.Timestamp)(nil),       // 22: google.protobuf.Timestamp
+	(*StopRunnerRequest)(nil),           // 13: ai.stigmer.agentic.runner.v1.StopRunnerRequest
+	(*StopRunnerResponse)(nil),          // 14: ai.stigmer.agentic.runner.v1.StopRunnerResponse
+	(*RunnerStopInput)(nil),             // 15: ai.stigmer.agentic.runner.v1.RunnerStopInput
+	(*CreateLaunchTokenRequest)(nil),    // 16: ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest
+	(*CreateLaunchTokenResponse)(nil),   // 17: ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse
+	(*ExchangeLaunchTokenRequest)(nil),  // 18: ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenRequest
+	(*ExchangeLaunchTokenResponse)(nil), // 19: ai.stigmer.agentic.runner.v1.ExchangeLaunchTokenResponse
+	nil,                                 // 20: ai.stigmer.agentic.runner.v1.ListRunnersRequest.LabelsEntry
+	(*rpc.PageInfo)(nil),                // 21: ai.stigmer.commons.rpc.PageInfo
+	(*Runner)(nil),                      // 22: ai.stigmer.agentic.runner.v1.Runner
+	(RunnerPhase)(0),                    // 23: ai.stigmer.agentic.runner.v1.RunnerPhase
+	(*RunnerConnectionInfo)(nil),        // 24: ai.stigmer.agentic.runner.v1.RunnerConnectionInfo
+	(*timestamppb.Timestamp)(nil),       // 25: google.protobuf.Timestamp
 }
 var file_ai_stigmer_agentic_runner_v1_io_proto_depIdxs = []int32{
-	17, // 0: ai.stigmer.agentic.runner.v1.ListRunnersRequest.labels:type_name -> ai.stigmer.agentic.runner.v1.ListRunnersRequest.LabelsEntry
-	18, // 1: ai.stigmer.agentic.runner.v1.ListRunnersRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	19, // 2: ai.stigmer.agentic.runner.v1.RunnerList.items:type_name -> ai.stigmer.agentic.runner.v1.Runner
+	20, // 0: ai.stigmer.agentic.runner.v1.ListRunnersRequest.labels:type_name -> ai.stigmer.agentic.runner.v1.ListRunnersRequest.LabelsEntry
+	21, // 1: ai.stigmer.agentic.runner.v1.ListRunnersRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	22, // 2: ai.stigmer.agentic.runner.v1.RunnerList.items:type_name -> ai.stigmer.agentic.runner.v1.Runner
 	9,  // 3: ai.stigmer.agentic.runner.v1.RunnerSendCommandInput.list_directory:type_name -> ai.stigmer.agentic.runner.v1.ListDirectoryRequest
 	6,  // 4: ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage.heartbeat:type_name -> ai.stigmer.agentic.runner.v1.RunnerHeartbeat
 	8,  // 5: ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage.command_response:type_name -> ai.stigmer.agentic.runner.v1.RunnerCommandResponse
 	7,  // 6: ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage.command_request:type_name -> ai.stigmer.agentic.runner.v1.RunnerCommandRequest
-	20, // 7: ai.stigmer.agentic.runner.v1.RunnerHeartbeat.phase:type_name -> ai.stigmer.agentic.runner.v1.RunnerPhase
-	21, // 8: ai.stigmer.agentic.runner.v1.RunnerHeartbeat.connection_info:type_name -> ai.stigmer.agentic.runner.v1.RunnerConnectionInfo
+	23, // 7: ai.stigmer.agentic.runner.v1.RunnerHeartbeat.phase:type_name -> ai.stigmer.agentic.runner.v1.RunnerPhase
+	24, // 8: ai.stigmer.agentic.runner.v1.RunnerHeartbeat.connection_info:type_name -> ai.stigmer.agentic.runner.v1.RunnerConnectionInfo
 	9,  // 9: ai.stigmer.agentic.runner.v1.RunnerCommandRequest.list_directory:type_name -> ai.stigmer.agentic.runner.v1.ListDirectoryRequest
-	10, // 10: ai.stigmer.agentic.runner.v1.RunnerCommandResponse.list_directory:type_name -> ai.stigmer.agentic.runner.v1.ListDirectoryResponse
-	12, // 11: ai.stigmer.agentic.runner.v1.RunnerCommandResponse.error:type_name -> ai.stigmer.agentic.runner.v1.RunnerCommandError
-	11, // 12: ai.stigmer.agentic.runner.v1.ListDirectoryResponse.entries:type_name -> ai.stigmer.agentic.runner.v1.DirectoryEntry
-	22, // 13: ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse.expires_at:type_name -> google.protobuf.Timestamp
-	14, // [14:14] is the sub-list for method output_type
-	14, // [14:14] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	13, // 10: ai.stigmer.agentic.runner.v1.RunnerCommandRequest.stop:type_name -> ai.stigmer.agentic.runner.v1.StopRunnerRequest
+	10, // 11: ai.stigmer.agentic.runner.v1.RunnerCommandResponse.list_directory:type_name -> ai.stigmer.agentic.runner.v1.ListDirectoryResponse
+	12, // 12: ai.stigmer.agentic.runner.v1.RunnerCommandResponse.error:type_name -> ai.stigmer.agentic.runner.v1.RunnerCommandError
+	14, // 13: ai.stigmer.agentic.runner.v1.RunnerCommandResponse.stop:type_name -> ai.stigmer.agentic.runner.v1.StopRunnerResponse
+	11, // 14: ai.stigmer.agentic.runner.v1.ListDirectoryResponse.entries:type_name -> ai.stigmer.agentic.runner.v1.DirectoryEntry
+	25, // 15: ai.stigmer.agentic.runner.v1.CreateLaunchTokenResponse.expires_at:type_name -> google.protobuf.Timestamp
+	16, // [16:16] is the sub-list for method output_type
+	16, // [16:16] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_runner_v1_io_proto_init() }
@@ -1336,10 +1531,12 @@ func file_ai_stigmer_agentic_runner_v1_io_proto_init() {
 	}
 	file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[7].OneofWrappers = []any{
 		(*RunnerCommandRequest_ListDirectory)(nil),
+		(*RunnerCommandRequest_Stop)(nil),
 	}
 	file_ai_stigmer_agentic_runner_v1_io_proto_msgTypes[8].OneofWrappers = []any{
 		(*RunnerCommandResponse_ListDirectory)(nil),
 		(*RunnerCommandResponse_Error)(nil),
+		(*RunnerCommandResponse_Stop)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -1347,7 +1544,7 @@ func file_ai_stigmer_agentic_runner_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_runner_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_runner_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

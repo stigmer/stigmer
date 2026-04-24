@@ -13,8 +13,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: T02 complete, T05 complete, Desktop T05 complete. Ready for T06/T07 (parallelizable).
-- **Last Session**: 2026-04-23 (Session 3) — T05 complete (Docker placement in Go CLI)
+- **Status**: T02 complete, T05 complete, T06 complete, Desktop T05 complete. Ready for T07.
+- **Last Session**: 2026-04-24 (Session 4) — T06 complete (Runner stop via command stream)
 - **Active Task**: None
 
 ## Scope Change: Desktop App is Primary `stigmer://` Handler
@@ -34,10 +34,51 @@ The Stigmer Desktop app (project 20260423.03, T05) now handles `stigmer://` URLs
 | T03 | CLI `stigmer://` URL scheme registration (Go) | Deferred (CLI-only fallback) | None |
 | T04 | CLI URL handler — receive and launch (Go) | Deferred (CLI-only fallback) | T02, T03 |
 | T05 | Docker placement (Go CLI) | **Complete** | None |
-| T06 | Runner stop via command stream (Proto + all languages) | Pending | None |
+| T06 | Runner stop via command stream (Proto + all languages) | **Complete** | None |
 | T07 | SDK runner action hooks (React) | Pending | T06, T02 |
 | T08 | Web UI — Settings > Runners full CRUD | Pending | T07 |
 | T09 | Integration testing | Pending | All |
+
+## Session Progress (2026-04-24, Session 4)
+
+### T06: Runner Stop via Command Stream (completed)
+
+Implemented server-initiated graceful runner stop as a dedicated `stop` RPC on `RunnerCommandController` with `can_edit` authorization. The stop command routes through the existing bidi command stream to connected runners, with a direct STOPPED transition fallback for offline runners. Fully idempotent. Implementations in Go (OSS), Java (Cloud), Go CLI daemon, and all SDKs (TypeScript, Go, Python, Java, Dart) via codegen.
+
+#### Architectural Decisions (confirmed before implementation)
+
+- **DD-T06-01: Dedicated `stop` RPC, not `sendCommand`** — Stop is a lifecycle mutation requiring `can_edit` authorization, not an operational query using `can_view`. A dedicated RPC gives proper `Runner` return type, cleaner API, and correct permission semantics. `RunnerSendCommandInput.command` stays unchanged.
+- **DD-T06-02: Python agent-runner out of scope** — The Go CLI daemon owns the bidi stream and supervises the Python subprocess. When it receives a stop command, it SIGTERMs the Python child. Python's existing shutdown handler drains Temporal and exits. No Python changes needed.
+
+#### Proto Changes
+
+- **`io.proto`** — Added 3 new messages: `StopRunnerRequest` (reason), `StopRunnerResponse` (empty ack), `RunnerStopInput` (runner_id + reason). Extended `RunnerCommandRequest.command` oneof with `stop = 3` and `RunnerCommandResponse.result` with `stop = 4`.
+- **`command.proto`** — Added `rpc stop(RunnerStopInput) returns (Runner)` with `can_edit` permission, `runner_id` field path.
+- `buf lint` clean, `buf breaking` clean (purely additive).
+
+#### Go Server (OSS)
+
+- **`stop.go`** — `Stop()` handler: validates input, loads runner, idempotent for STOPPED/FAILED, routes via `StreamRegistry.SendCommand` if connected, else direct STOPPED transition with `stopped_at` timestamp.
+- **`stop_test.go`** — 6 test cases: missing-id, not-found, already-stopped, failed, disconnected-transitions-to-stopped, connected-sends-command-and-returns. All pass.
+
+#### Go CLI Daemon
+
+- **`runner_stream_commands.go`** — Added `StopRunnerRequest` dispatch case returning `StopRunnerResponse` ack. Introduced `commandResult` struct pairing response with `stopRequested` flag. Added `handleStop()` function.
+- **`runner_stream.go`** — Added `ErrServerRequestedStop` sentinel. `recvLoop` sends ack then returns the error. `streamLoop` sends graceful STOPPED heartbeat + CloseSend on stop error. `Run` exits without reconnecting.
+- **`runner_stream_commands_test.go`** — 5 test cases: dispatch ack+signal, ListDirectory no-signal, unknown no-signal, recvLoop sends-ack-then-returns-stop-error, streamLoop full graceful shutdown sequence (READY heartbeat → stop ack → STOPPED heartbeat → CloseSend). All pass.
+
+#### Java Server (Cloud)
+
+- **`RunnerStopHandler.java`** — `OperationHandlerV2<RunnerStopInput, Runner>`. FGA `can_edit` authorization. Three routing paths: local stream, Redis cross-pod, direct STOPPED fallback. Follows `RunnerSendCommandHandler` pattern.
+- **`RunnerStopHandlerTest.java`** — 7 test cases: not-found, already-stopped, failed, connected-locally, offline, FGA-denied, empty-runner-id. Build blocked by pre-existing `SessionUpdateSandboxIdHandler` compilation error (not T06-related).
+- **`BUILD.bazel`** — Added `runner_stop_handler_test` target.
+
+#### Codegen & SDK
+
+- `make codegen` (stigmer) + `make protos` (stigmer-cloud) — All language stubs regenerated.
+- TypeScript SDK: `RunnerClient.stop(input)` auto-generated.
+- Go SDK: `RunnerClient.Stop(ctx, input)` auto-generated.
+- Java/Python/Dart SDKs: stubs regenerated with stop support.
 
 ## Session Progress (2026-04-23, Session 3)
 
@@ -191,6 +232,12 @@ Fallback path (CLI only, no desktop — deferred T03/T04): same flow but the OS 
 - T05 uses `exec.Command("docker", ...)` — no Docker SDK dependency. Compatible with Podman/nerdctl.
 - T05 container naming: `stigmer-runner-<slug>`. Default image: `ghcr.io/stigmer/agent-runner:<cli-version>`.
 - Pre-existing: `SessionUpdateSandboxIdHandler.java` blocks Java compilation in stigmer-cloud (not T02-related)
+- T06 stop RPC: `rpc stop(RunnerStopInput) returns (Runner)` with `can_edit` on `RunnerCommandController`. Separate from `sendCommand` — different permission, different return type, different intent.
+- T06 stream protocol: `RunnerCommandRequest.command.stop` (field 3) and `RunnerCommandResponse.result.stop` (field 4). Reuses `StreamRegistry.SendCommand` for correlation.
+- T06 Go server: `stop.go` — connected path (stream), offline path (direct STOPPED), idempotent for STOPPED/FAILED
+- T06 Go CLI: `ErrServerRequestedStop` sentinel triggers graceful shutdown (STOPPED heartbeat + CloseSend) and prevents reconnection
+- T06 Java: `RunnerStopHandler.java` — FGA `can_edit`, local stream / Redis cross-pod / direct fallback
+- T06 SDK: `stigmer.runner.stop(input)` is the foundation for T07's `useStopRunner()` React hook
 
 ## Blockers
 
@@ -198,8 +245,8 @@ Fallback path (CLI only, no desktop — deferred T03/T04): same flow but the OS 
 
 ## Quick Commands
 
-- "Start T06" — Begin runner stop via command stream (Proto + all languages)
-- "Start T07" — Begin SDK runner action hooks (highest priority — builds triggering side for browser launch)
+- "Start T07" — Begin SDK runner action hooks (highest priority — builds triggering side for browser launch, uses T06 stop + T02 launch token)
+- "Start T08" — Begin Settings > Runners full CRUD web UI (depends on T07)
 - "Show project status" — Get overview of progress
 
 ---

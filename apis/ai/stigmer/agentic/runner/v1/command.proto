@@ -88,6 +88,25 @@ service RunnerCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to send commands to this runner";
   }
 
+  // Stop a running runner gracefully.
+  //
+  // If the runner is connected: sends a StopRunnerRequest via the bidi
+  // stream, waits for acknowledgment, then returns the updated Runner.
+  // The runner will send a STOPPED heartbeat and close its stream after
+  // acknowledging — the phase transition completes asynchronously.
+  //
+  // If the runner is not connected (offline, already stopped): directly
+  // transitions the runner to STOPPED and returns the updated resource.
+  //
+  // Idempotent: stopping an already-STOPPED or FAILED runner returns the
+  // resource as-is without error.
+  rpc stop(RunnerStopInput) returns (Runner) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = runner;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "runner_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to stop this runner";
+  }
+
   // Establish a bidirectional command stream between the runner and the server.
   //
   // This is the runner's primary ongoing communication channel. The runner

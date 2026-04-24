@@ -56,6 +56,11 @@ class RunnerCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerSendCommandInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerCommandResponse.FromString,
                 _registered_method=True)
+        self.stop = channel.unary_unary(
+                '/ai.stigmer.agentic.runner.v1.RunnerCommandController/stop',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerStopInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_api__pb2.Runner.FromString,
+                _registered_method=True)
         self.connect = channel.stream_stream(
                 '/ai.stigmer.agentic.runner.v1.RunnerCommandController/connect',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerStreamClientMessage.SerializeToString,
@@ -154,6 +159,24 @@ class RunnerCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def stop(self, request, context):
+        """Stop a running runner gracefully.
+
+        If the runner is connected: sends a StopRunnerRequest via the bidi
+        stream, waits for acknowledgment, then returns the updated Runner.
+        The runner will send a STOPPED heartbeat and close its stream after
+        acknowledging — the phase transition completes asynchronously.
+
+        If the runner is not connected (offline, already stopped): directly
+        transitions the runner to STOPPED and returns the updated resource.
+
+        Idempotent: stopping an already-STOPPED or FAILED runner returns the
+        resource as-is without error.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def connect(self, request_iterator, context):
         """Establish a bidirectional command stream between the runner and the server.
 
@@ -238,6 +261,11 @@ def add_RunnerCommandControllerServicer_to_server(servicer, server):
                     servicer.sendCommand,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerSendCommandInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerCommandResponse.SerializeToString,
+            ),
+            'stop': grpc.unary_unary_rpc_method_handler(
+                    servicer.stop,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerStopInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_api__pb2.Runner.SerializeToString,
             ),
             'connect': grpc.stream_stream_rpc_method_handler(
                     servicer.connect,
@@ -406,6 +434,33 @@ class RunnerCommandController(object):
             '/ai.stigmer.agentic.runner.v1.RunnerCommandController/sendCommand',
             ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerSendCommandInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerCommandResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def stop(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.runner.v1.RunnerCommandController/stop',
+            ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_io__pb2.RunnerStopInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_runner_dot_v1_dot_api__pb2.Runner.FromString,
             options,
             channel_credentials,
             insecure,

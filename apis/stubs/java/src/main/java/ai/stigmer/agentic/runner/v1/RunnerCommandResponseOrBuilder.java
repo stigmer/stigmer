@@ -60,5 +60,20 @@ public interface RunnerCommandResponseOrBuilder extends
    */
   ai.stigmer.agentic.runner.v1.RunnerCommandErrorOrBuilder getErrorOrBuilder();
 
+  /**
+   * <code>.ai.stigmer.agentic.runner.v1.StopRunnerResponse stop = 4 [json_name = "stop"];</code>
+   * @return Whether the stop field is set.
+   */
+  boolean hasStop();
+  /**
+   * <code>.ai.stigmer.agentic.runner.v1.StopRunnerResponse stop = 4 [json_name = "stop"];</code>
+   * @return The stop.
+   */
+  ai.stigmer.agentic.runner.v1.StopRunnerResponse getStop();
+  /**
+   * <code>.ai.stigmer.agentic.runner.v1.StopRunnerResponse stop = 4 [json_name = "stop"];</code>
+   */
+  ai.stigmer.agentic.runner.v1.StopRunnerResponseOrBuilder getStopOrBuilder();
+
   ai.stigmer.agentic.runner.v1.RunnerCommandResponse.ResultCase getResultCase();
 }

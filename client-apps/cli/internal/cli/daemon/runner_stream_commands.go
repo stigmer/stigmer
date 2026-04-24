@@ -10,13 +10,23 @@ import (
 	runnerv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/runner/v1"
 )
 
+// commandResult pairs a command response with a flag indicating whether the
+// runner should stop after sending the response.
+type commandResult struct {
+	response      *runnerv1.RunnerCommandResponse
+	stopRequested bool
+}
+
 // dispatchCommand routes a server-initiated command to the appropriate handler
 // and returns the response. Every received command is logged to stdout per the
 // security model: the user running the CLI must see what the server requests.
+//
+// The returned commandResult.stopRequested is true for the stop command,
+// signaling the caller to initiate graceful shutdown after sending the ack.
 func dispatchCommand(
 	runnerID string,
 	req *runnerv1.RunnerCommandRequest,
-) *runnerv1.RunnerCommandResponse {
+) commandResult {
 	switch cmd := req.GetCommand().(type) {
 	case *runnerv1.RunnerCommandRequest_ListDirectory:
 		log.Info().
@@ -25,7 +35,21 @@ func dispatchCommand(
 			Str("path", cmd.ListDirectory.GetPath()).
 			Msg("Server requested directory listing")
 
-		return handleListDirectory(req.GetRequestId(), cmd.ListDirectory)
+		return commandResult{
+			response: handleListDirectory(req.GetRequestId(), cmd.ListDirectory),
+		}
+
+	case *runnerv1.RunnerCommandRequest_Stop:
+		log.Info().
+			Str("runner_id", runnerID).
+			Str("request_id", req.GetRequestId()).
+			Str("reason", cmd.Stop.GetReason()).
+			Msg("Server requested runner stop")
+
+		return commandResult{
+			response:      handleStop(req.GetRequestId()),
+			stopRequested: true,
+		}
 
 	default:
 		log.Warn().
@@ -33,14 +57,28 @@ func dispatchCommand(
 			Str("request_id", req.GetRequestId()).
 			Msg("Received unknown command type, returning error")
 
-		return &runnerv1.RunnerCommandResponse{
-			RequestId: req.GetRequestId(),
-			Result: &runnerv1.RunnerCommandResponse_Error{
-				Error: &runnerv1.RunnerCommandError{
-					Message: "unknown command type",
+		return commandResult{
+			response: &runnerv1.RunnerCommandResponse{
+				RequestId: req.GetRequestId(),
+				Result: &runnerv1.RunnerCommandResponse_Error{
+					Error: &runnerv1.RunnerCommandError{
+						Message: "unknown command type",
+					},
 				},
 			},
 		}
+	}
+}
+
+// handleStop acknowledges the server's stop request. The actual shutdown
+// sequence (STOPPED heartbeat, stream close, process exit) is driven by the
+// caller after the ack is sent.
+func handleStop(requestID string) *runnerv1.RunnerCommandResponse {
+	return &runnerv1.RunnerCommandResponse{
+		RequestId: requestID,
+		Result: &runnerv1.RunnerCommandResponse_Stop{
+			Stop: &runnerv1.StopRunnerResponse{},
+		},
 	}
 }
 
