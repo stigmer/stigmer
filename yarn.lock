@@ -1002,6 +1002,13 @@
     "@tauri-apps/cli-win32-ia32-msvc" "2.10.1"
     "@tauri-apps/cli-win32-x64-msvc" "2.10.1"
 
+"@tauri-apps/plugin-deep-link@^2.4.8":
+  version "2.4.8"
+  resolved "https://registry.npmjs.org/@tauri-apps/plugin-deep-link/-/plugin-deep-link-2.4.8.tgz"
+  integrity sha512-Cd2Cs960MGuGONeIwxOPx9wqwedetAHOGlwK5boJ/SMTfAtAyfErpfVPEn+EJzgXsJun8EKzsEumHjr+64V4fw==
+  dependencies:
+    "@tauri-apps/api" "^2.10.1"
+
 "@tauri-apps/plugin-dialog@^2.7.0":
   version "2.7.0"
   resolved "https://registry.npmjs.org/@tauri-apps/plugin-dialog/-/plugin-dialog-2.7.0.tgz"
@@ -2239,7 +2246,9 @@ dequal@^2.0.0, dequal@^2.0.3:
     "@tauri-apps/api" "^2"
     "@tauri-apps/plugin-dialog" "^2.7.0"
     "@tauri-apps/plugin-notification" "^2.3.3"
+    "@tauri-apps/plugin-process" "^2"
     "@tauri-apps/plugin-shell" "^2.3.5"
+    "@tauri-apps/plugin-updater" "^2"
     lucide-react "^0.577.0"
     react "19.2.3"
     react-dom "19.2.3"
