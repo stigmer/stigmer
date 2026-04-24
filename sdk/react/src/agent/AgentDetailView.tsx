@@ -261,7 +261,7 @@ function InstructionsSection({ text }: { readonly text: string }) {
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="mt-2 text-xs font-medium text-primary transition-colors hover:text-primary/80"
+            className="mt-2 text-xs font-medium text-primary transition-colors hover:text-primary-muted"
           >
             {expanded ? "Show less" : "Show more"}
           </button>
@@ -325,7 +325,7 @@ function McpUsagesSection({
               }
               className={cn(
                 "w-full rounded-md px-3 py-2 text-left transition-colors",
-                "hover:bg-accent/50",
+                "hover:bg-accent-hover",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
               )}
             >
@@ -377,7 +377,7 @@ function SkillsSection({
               onClick={() => onSkillClick({ org: refOrg, slug: ref.slug })}
               className={cn(
                 "w-full rounded-md px-3 py-2 text-left transition-colors",
-                "hover:bg-accent/50",
+                "hover:bg-accent-hover",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
               )}
             >
@@ -424,7 +424,7 @@ function SubAgentsSection({
                 aria-expanded={isOpen}
                 className={cn(
                   "flex w-full items-start gap-3 rounded-md px-3 py-2 text-left transition-colors",
-                  "hover:bg-accent/50",
+                  "hover:bg-accent-hover",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                 )}
               >
@@ -469,7 +469,7 @@ function SubAgentDetails({
           <h4 className="mb-1 text-xs font-medium text-muted-foreground">
             Instructions
           </h4>
-          <pre className="whitespace-pre-wrap break-words rounded-md bg-muted/50 p-2 font-mono text-xs text-foreground">
+          <pre className="whitespace-pre-wrap break-words rounded-md bg-muted-subtle p-2 font-mono text-xs text-foreground">
             {sa.instructions}
           </pre>
         </div>
@@ -620,7 +620,7 @@ function LoadingSkeleton({ className }: { readonly className?: string }) {
         <div key={h} className="space-y-2">
           <div className="h-3 w-24 animate-pulse rounded bg-muted" />
           <div
-            className="animate-pulse rounded-lg border border-border bg-muted/30"
+            className="animate-pulse rounded-lg border border-border bg-muted-faint"
             style={{ height: `${h * 4}px` }}
           />
         </div>
@@ -638,11 +638,11 @@ function NotFoundState({ className }: { readonly className?: string }) {
         className,
       )}
     >
-      <AgentIcon className="size-10 text-muted-foreground/40" />
+      <AgentIcon className="size-10 text-muted-foreground-faint" />
       <p className="text-sm font-medium text-muted-foreground">
         Agent not found
       </p>
-      <p className="text-xs text-muted-foreground/60">
+      <p className="text-xs text-muted-foreground-subtle">
         This agent doesn&apos;t exist or you don&apos;t have access to it.
       </p>
     </div>

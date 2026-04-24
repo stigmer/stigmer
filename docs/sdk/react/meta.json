@@ -20,6 +20,7 @@
     "oauth-app",
     "organization",
     "platform-client",
+    "runner",
     "session",
     "skill",
     "usage",

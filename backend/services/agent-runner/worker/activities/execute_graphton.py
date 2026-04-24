@@ -22,6 +22,7 @@ from temporalio import activity
 
 from grpc_client.agent_execution_client import AgentExecutionClient
 from grpc_client.channel import ChannelProvider
+from worker import execution_tracker
 
 # ─── Re-exports for backward compatibility with test imports ─────────────
 from worker.activities.graphton.attachments import (
@@ -68,6 +69,7 @@ from worker.activities.graphton.temporal_helpers import (
 from worker.activities.graphton.temporal_helpers import (
     slim_status_for_temporal as _slim_status_for_temporal,
 )
+from worker.auth import get_token
 from worker.resilience import (
     GrpcNonRetryableError,
     GrpcRetryExecutor,
@@ -82,7 +84,6 @@ from worker.streaming import (  # noqa: F401 — StreamingUpdateScheduler re-exp
     StreamingConfig,
     StreamingUpdateScheduler,
 )
-from worker.token_manager import get_api_key
 from worker.workspace import (
     WorkspaceBackend,  # noqa: F401 — re-exported for tests
 )
@@ -189,6 +190,7 @@ async def execute_graphton(
     else:
         approval_decisions = []
 
+    execution_tracker.increment()
     try:
         return await _execute_graphton_impl(
             execution_id, thread_id, approval_decisions, activity_logger,
@@ -221,9 +223,9 @@ async def execute_graphton(
 
         best_effort_client: AgentExecutionClient | None = None
         with contextlib.suppress(Exception):
-            api_key = get_api_key()
-            if api_key:
-                best_effort_client = AgentExecutionClient(api_key)
+            token = get_token()
+            if token:
+                best_effort_client = AgentExecutionClient(token)
 
         return await _persist_and_return_failed_status(
             failed_status=failed_status,
@@ -232,6 +234,8 @@ async def execute_graphton(
             retry_executor=None,
             logger=activity_logger,
         )
+    finally:
+        execution_tracker.decrement()
 
 
 async def _execute_graphton_impl(
@@ -309,16 +313,13 @@ async def _execute_graphton_impl(
     # Pre-setup: resources that must be accessible in the error handler
     # and finally block regardless of whether setup completes.
     # ─────────────────────────────────────────────────────────────────────
-    api_key = get_api_key()
-    if not api_key:
-        raise RuntimeError("API key not initialized")
+    token = get_token()
+    if not token:
+        raise RuntimeError("Auth token not initialized")
 
-    grpc_provider = ChannelProvider(
-        api_key,
-        invoker_identity_account_id=invoker_identity_account_id,
-    )
+    grpc_provider = ChannelProvider(token)
     execution_client = AgentExecutionClient(
-        api_key, channel=grpc_provider.channel,
+        token, channel=grpc_provider.channel,
     )
     retry_executor = GrpcRetryExecutor(RetryConfig.load_from_env())
     exit_stack = contextlib.AsyncExitStack()
@@ -333,13 +334,12 @@ async def _execute_graphton_impl(
             execution_id=execution_id,
             thread_id=thread_id,
             is_resume=is_resume,
-            api_key=api_key,
+            token=token,
             grpc_provider=grpc_provider,
             execution_client=execution_client,
             retry_executor=retry_executor,
             exit_stack=exit_stack,
             logger=activity_logger,
-            invoker_identity_account_id=invoker_identity_account_id,
         )
 
         # ─────────────────────────────────────────────────────────────────

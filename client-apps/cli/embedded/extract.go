@@ -44,8 +44,8 @@ func EnsureBinariesExtracted(dataDir string) error {
 		return errors.Wrap(err, "failed to create bin directory")
 	}
 
-	if err := extractAgentRunner(binDir); err != nil {
-		return errors.Wrap(err, "failed to extract agent-runner")
+	if err := extractRunner(binDir); err != nil {
+		return errors.Wrap(err, "failed to extract runner")
 	}
 
 	if err := writeVersionFile(binDir, currentVersion); err != nil {
@@ -55,11 +55,11 @@ func EnsureBinariesExtracted(dataDir string) error {
 	return nil
 }
 
-// extractAgentRunner handles legacy embedded agent-runner binaries.
+// extractRunner handles legacy embedded runner binaries.
 // The native architecture uses pythonrt instead; this is retained for
 // backward compatibility with older binary formats.
-func extractAgentRunner(binDir string) error {
-	data, err := GetAgentRunnerBinary()
+func extractRunner(binDir string) error {
+	data, err := GetRunnerBinary()
 	if err != nil {
 		return err
 	}

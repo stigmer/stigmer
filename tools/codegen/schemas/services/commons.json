@@ -363,6 +363,11 @@
           "description": "Configured deployment of an agent with environment-specific overrides."
         },
         {
+          "name": "runner",
+          "number": 46,
+          "description": "Process that executes work, either user-created or system-managed."
+        },
+        {
           "name": "workflow",
           "number": 50,
           "description": "Multi-step orchestration defining how agents collaborate on a task."

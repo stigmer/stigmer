@@ -19,6 +19,7 @@ from ._oauthapp import OAuthAppClient
 from ._organization import OrganizationClient
 from ._platformclient import PlatformClientClient
 from ._project import ProjectClient
+from ._runner import RunnerClient
 from ._session import SessionClient
 from ._skill import SkillClient
 from ._workflow import WorkflowClient
@@ -45,6 +46,7 @@ class GeneratedClient:
         self.organizations = OrganizationClient(channel)
         self.platformclients = PlatformClientClient(channel)
         self.projects = ProjectClient(channel)
+        self.runners = RunnerClient(channel)
         self.sessions = SessionClient(channel)
         self.skills = SkillClient(channel)
         self.workflows = WorkflowClient(channel)

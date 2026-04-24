@@ -31,14 +31,20 @@ func NewInvokeAgentExecutionWorkflowCreator(workflowClient client.Client, config
 	}
 }
 
-// Create creates and starts a workflow for the given execution input.
+// Create creates and starts a workflow for the given execution input, routing
+// Python activities to the queue resolved by dispatch.
 //
 // The input is a slim struct containing only the orchestration coordinates the
 // workflow needs (execution ID, session ID, agent ID, callback token). Secrets
 // and large payloads (runtime_env, message, attachments) are excluded from the
 // Temporal workflow history.
-func (c *InvokeAgentExecutionWorkflowCreator) Create(input *workflows.InvokeAgentExecutionWorkflowInput) error {
+//
+// The dispatch result always contains a per-runner task queue — the caller
+// (ResolveActivityTaskQueue) resolves this before invoking Create.
+func (c *InvokeAgentExecutionWorkflowCreator) Create(input *workflows.InvokeAgentExecutionWorkflowInput, dispatch *DispatchResult) error {
 	executionID := input.ExecutionID
+
+	activityQueue := dispatch.TaskQueue
 
 	// Workflow ID format: stigmer/agent-execution/invoke/{execution-id}
 	workflowID := fmt.Sprintf("%s/%s", workflows.InvokeAgentExecutionWorkflowName, executionID)
@@ -53,7 +59,7 @@ func (c *InvokeAgentExecutionWorkflowCreator) Create(input *workflows.InvokeAgen
 		ID:        workflowID,
 		TaskQueue: c.config.StigmerQueue,
 		Memo: map[string]interface{}{
-			"activityTaskQueue": c.config.RunnerQueue,
+			"activityTaskQueue": activityQueue,
 		},
 	}
 
@@ -77,8 +83,9 @@ func (c *InvokeAgentExecutionWorkflowCreator) Create(input *workflows.InvokeAgen
 		Str("workflow_id", workflowID).
 		Str("execution_id", executionID).
 		Str("stigmer_queue", c.config.StigmerQueue).
-		Str("runner_queue", c.config.RunnerQueue).
-		Msg("Started InvokeAgentExecutionWorkflow (runner activities on runner queue)")
+		Str("activity_queue", activityQueue).
+		Str("runner_id", dispatch.RunnerID).
+		Msg("Started InvokeAgentExecutionWorkflow")
 
 	return nil
 }

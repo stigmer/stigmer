@@ -192,7 +192,7 @@ export function ArtifactCard({
         />
       )}
       {detectionLabel && (
-        <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+        <span className="mt-1.5 inline-flex items-center rounded-full bg-primary-subtle px-2 py-0.5 text-xs font-medium text-primary">
           {detectionLabel}
         </span>
       )}
@@ -204,7 +204,7 @@ export function ArtifactCard({
             type="button"
             onClick={() => onPreview!(artifact)}
             className={cn(
-              "text-xs font-medium text-primary transition-colors hover:text-primary/80",
+              "text-xs font-medium text-primary transition-colors hover:text-primary-muted",
               FOCUS_RING_CLASSES,
             )}
           >

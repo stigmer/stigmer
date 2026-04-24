@@ -147,6 +147,11 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Hooks and components for organization-level usage reporting and cost breakdown.",
   },
+  runner: {
+    title: "Runner",
+    description:
+      "Hooks and components for runner lifecycle, fleet management, local launch, and picker.",
+  },
 };
 
 // Proto qualified-name → docs/sdk/resources/ slug

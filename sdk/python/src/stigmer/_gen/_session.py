@@ -49,12 +49,6 @@ class SessionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def update_sandbox_id(self, input: io_pb2.UpdateSessionSandboxIdRequest) -> api_pb2.Session:
-        try:
-            return self._command.updateSandboxId(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
     def delete(self, id: str) -> api_pb2.Session:
         try:
             return self._command.delete(io_pb2.SessionId(value=id))
@@ -95,6 +89,7 @@ class SessionInput:
     metadata: dict[str, str] = field(default_factory=dict)
     workspace_entries: list[WorkspaceEntryInput] = field(default_factory=list)
     mcp_server_usages: list[McpServerUsageInput] = field(default_factory=list)
+    runner_id: str = ""
     skill_refs: list[ResourceRef] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.Session:
@@ -103,6 +98,7 @@ class SessionInput:
             subject=self.subject,
             thread_id=self.thread_id,
             sandbox_id=self.sandbox_id,
+            runner_id=self.runner_id,
         )
         if self.metadata:
             spec.metadata.update(self.metadata)

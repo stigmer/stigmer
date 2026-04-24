@@ -12,8 +12,7 @@ package ai.stigmer.agentic.session.v1;
  * &#64;internal
  * Field-level update that atomically modifies only the subject field,
  * avoiding the lost-update race condition that occurs when multiple
- * activities (e.g., GenerateSessionSubject and sandbox_manager) concurrently
- * perform full-resource updates on the same session.
+ * activities concurrently perform full-resource updates on the same session.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest}
@@ -327,8 +326,7 @@ private static final long serialVersionUID = 0L;
    * &#64;internal
    * Field-level update that atomically modifies only the subject field,
    * avoiding the lost-update race condition that occurs when multiple
-   * activities (e.g., GenerateSessionSubject and sandbox_manager) concurrently
-   * perform full-resource updates on the same session.
+   * activities concurrently perform full-resource updates on the same session.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest}

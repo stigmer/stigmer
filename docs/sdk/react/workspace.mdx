@@ -7,68 +7,6 @@ description: Hooks and components for file entries, folder browsing, and code ed
 
 ## Hooks
 
-### useFolderListing
-
-Data hook that fetches directory listings from the local CLI's
-filesystem API (`GET /api/fs/list`).
-
-This hook fetches from a same-origin HTTP endpoint — not gRPC — because
-the filesystem listing is a local-only utility outside the domain API
-surface. The endpoint only exists on the Go CLI's web console server.
-
-Provides in-memory caching of recent listings for fast back-navigation,
-and an `isAvailable` flag that detects whether the endpoint exists
-(graceful degradation when running against a backend without the endpoint).
-
-**Signature**
-
-```tsx
-function useFolderListing(initialPath?: string): UseFolderListingReturn
-```
-
-<TypeTable
-  type={{
-    initialPath: { type: "string", description: "" },
-  }}
-/>
-
-**Returns** — `UseFolderListingReturn`
-
-<TypeTable
-  type={{
-    browse: { type: "(path: string) => void", description: "Navigate to a different directory by absolute path." },
-    clearError: { type: "() => void", description: "Reset `error` to `null` without navigating." },
-    error: { type: "string | null", description: "Error message from the last failed request, or `null` when healthy." },
-    isAvailable: { type: "boolean | null", description: "Whether the `/api/fs/list` endpoint is available. `null` until the first fetch completes." },
-    isLoading: { type: "boolean", description: "`true` while a directory listing is being fetched." },
-    listing: { type: "FolderListing | null", description: "Current directory listing, or `null` while loading or on error." },
-  }}
-/>
-
-```tsx
-function DirectoryPicker() {
-  const { listing, isLoading, isAvailable, browse } = useFolderListing();
-
-  if (isAvailable === false) return <p>Folder browser not available</p>;
-  if (isLoading) return <Skeleton />;
-
-  return (
-    <ul>
-      {listing?.entries
-        .filter((e) => e.isDir)
-        .map((entry) => (
-          <li key={entry.name}>
-            <button onClick={() => browse(`${listing.path}/${entry.name}`)}>
-              {entry.name}
-            </button>
-          </li>
-        ))}
-    </ul>
-  );
-}
-```
-
-
 ### useWorkspaceEntries
 
 Behavior hook that manages a workspace entry array with add, remove,
@@ -124,42 +62,6 @@ workspace.addLocalPath("/Users/dev/projects/frontend");
 
 ## Components
 
-### FolderBrowser
-
-Styled component that renders a navigable filesystem browser for
-selecting a local directory as a workspace entry.
-
-Features:
-- Breadcrumb path bar (clickable segments, editable as text input)
-- Directory listing with folder-first sorting
-- Quick navigation: Home and CWD buttons
-- Hidden files toggle
-- Keyboard navigation (Arrow keys, Enter, Escape)
-- Graceful degradation when the /api/fs/list endpoint is unavailable
-
-All visual properties flow through `--stgm-*` tokens.
-No Console-specific dependencies.
-
-**Props** — `FolderBrowserProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names for the root container." },
-    initialPath: { type: "string", description: "Starting directory path. Defaults to CWD from the API." },
-    onCancel: { type: "() => void", description: "Called when the user dismisses the browser.", required: true },
-    onSelect: { type: "(path: string) => void", description: "Called when the user confirms the selected directory.", required: true },
-  }}
-/>
-
-```tsx
-<FolderBrowser
-  onSelect={(path) => workspace.addLocalPath(path)}
-  onCancel={() => setShowBrowser(false)}
-  initialPath="/Users/dev/projects"
-/>
-```
-
-
 ### WorkspaceEditor
 
 Styled component that renders add/remove UI for workspace entries.
@@ -180,10 +82,10 @@ All visual properties flow through `--stgm-*` tokens.
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     disabled: { type: "boolean", description: "Disables all add/remove interactions." },
-    enableFolderBrowser: { type: "boolean", description: "Use the visual folder browser instead of a text input for local paths. Requires the /api/fs/list endpoint. Default: false." },
     enableGitHub: { type: "boolean", description: "Show the GitHub Repo source button. Default: true." },
     enableLocal: { type: "boolean", description: "Show the Local Folder source button. Default: false (set by Console based on deployment mode)." },
     gitHubConnection: { type: "UseGitHubConnectionReturn", description: "GitHub connection state. When provided, enables the GitHub repo picker.", typeDescriptionLink: "/docs/sdk/react/github#usegithubconnectionreturn" },
+    onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback for desktop environments.  When provided and `enableLocal` is `true`, clicking the \"Local Folder\" button invokes this callback instead of showing the manual path input. Should resolve to an absolute folder path, or `null` if the user cancelled the dialog.  When not provided, falls back to the inline text input for manual path entry (backward compatible with web environments)." },
     workspace: { type: "UseWorkspaceEntriesReturn", description: "Workspace state from useWorkspaceEntries.", required: true, typeDescriptionLink: "#useworkspaceentriesreturn" },
   }}
 />
@@ -238,33 +140,6 @@ const { session } = useSession(sessionId);
 
 
 ## Types
-
-### FolderEntry
-
-A single filesystem entry (file or directory) within a [`FolderListing`](#folderlisting).
-
-<TypeTable
-  type={{
-    hidden: { type: "boolean", description: "`true` when the entry name starts with `.` (hidden file/directory)." },
-    isDir: { type: "boolean", description: "`true` when the entry is a directory that can be browsed further.", required: true },
-    name: { type: "string", description: "Filename or directory name (not a full path).", required: true },
-  }}
-/>
-
-
-### FolderListing
-
-Directory listing returned by the local CLI filesystem API.
-
-<TypeTable
-  type={{
-    cwd: { type: "string", description: "Current working directory of the CLI process.", required: true },
-    entries: { type: "readonly FolderEntry[]", description: "Files and subdirectories within the listed directory.", required: true },
-    home: { type: "string", description: "User home directory, for quick-navigation buttons.", required: true },
-    path: { type: "string", description: "Absolute path of the listed directory.", required: true },
-  }}
-/>
-
 
 ### WorkspaceEntry
 

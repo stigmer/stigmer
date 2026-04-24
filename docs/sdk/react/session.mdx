@@ -100,6 +100,140 @@ await create({
 ```
 
 
+### useEditSessionPrep
+
+Prepares initial attachment files for an edit-mode draft session.
+
+Given a resource type and an org/slug reference, this hook fetches the
+existing resource and serializes it into a `File` object suitable for
+the `initialAttachments` prop of `SessionComposer`:
+
+- **agent** / **mcp-server**: serialized to YAML
+- **skill**: downloaded as a ZIP package
+
+Pass `null` for `draftType` or `editRef` to skip preparation (used
+when the session is in create-mode rather than edit-mode).
+
+**Signature**
+
+```tsx
+function useEditSessionPrep(draftType: DraftResourceType | null, editRef: { org: string; slug: string } | null): UseEditSessionPrepReturn
+```
+
+<TypeTable
+  type={{
+    draftType: { type: "DraftResourceType | null", description: "", required: true },
+    editRef: { type: "{ org: string; slug: string } | null", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseEditSessionPrepReturn`
+
+<TypeTable
+  type={{
+    error: { type: "string | null", description: "Non-null when resource fetch or serialization failed." },
+    files: { type: "File[] | undefined", description: "Files ready to be passed as `initialAttachments` to SessionComposer." },
+  }}
+/>
+
+
+### useNewSessionFlow
+
+Orchestrates the "create a new session" flow.
+
+Manages all the state required to configure and submit a new session:
+model selection (with localStorage persistence), agent resolution,
+MCP server/skill/runner selection, workspace entries, and session
+variables. On submission, creates the session and its first execution
+in sequence, then notifies the consumer via `onSessionCreated`.
+
+This hook is framework-agnostic — it works identically in Next.js,
+Vite, Tauri, or any React environment. Navigation, toast notifications,
+and draft-mode logic are the consumer's responsibility.
+
+**Signature**
+
+```tsx
+function useNewSessionFlow(options: UseNewSessionFlowOptions): UseNewSessionFlowReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseNewSessionFlowOptions", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseNewSessionFlowReturn`
+
+<TypeTable
+  type={{
+    agentRef: { type: "ResourceRef | null", description: "Currently selected agent reference, or `null` for the default agent." },
+    isSubmitting: { type: "boolean", description: "`true` while the create session + execution flow is in flight." },
+    mcpServerUsages: { type: "McpServerUsageInput[]", description: "Active MCP server configurations." },
+    modelId: { type: "string | undefined", description: "Currently selected model ID (persisted to localStorage)." },
+    resolution: { type: "AgentResolution | null", description: "Current agent resolution state (saved instance vs direct reference)." },
+    runnerId: { type: "string | null", description: "Selected runner ID, or `null` for auto-selection." },
+    sessionVariables: { type: "UseSessionVariablesReturn", description: "Session variables (per-execution secrets) manager.", typeDescriptionLink: "/docs/sdk/react/execution#usesessionvariablesreturn" },
+    setAgentRef: { type: "(ref: ResourceRef | null) => void", description: "Update the selected agent reference." },
+    setMcpServerUsages: { type: "(usages: McpServerUsageInput[]) => void", description: "Update MCP server configurations." },
+    setModelId: { type: "(id: string) => void", description: "Update the selected model. Automatically persists to localStorage." },
+    setResolution: { type: "(r: AgentResolution | null) => void", description: "Update the agent resolution." },
+    setRunnerId: { type: "(id: string | null) => void", description: "Update the selected runner." },
+    setSkillRefs: { type: "(refs: ResourceRef[]) => void", description: "Update skill references." },
+    skillRefs: { type: "ResourceRef[]", description: "Active skill references." },
+    submit: { type: "(message: string, model?: string, context?: SessionComposerSubmitContext) => Promise<void>", description: "Create a session with the first execution.  Composes all managed state (agent, workspace, MCP servers, skills, runner, model, session variables) into the session and execution creation RPCs, then calls `onSessionCreated` on success.  The `model` parameter overrides `modelId` for this submission only (used when SessionComposer passes a per-message model selection)." },
+    submitError: { type: "string | null", description: "Human-readable error from the last failed submission, or `null`." },
+    workspace: { type: "UseWorkspaceEntriesReturn", description: "Workspace entries manager (git repos and local paths).", typeDescriptionLink: "/docs/sdk/react/workspace#useworkspaceentriesreturn" },
+  }}
+/>
+
+```tsx
+const flow = useNewSessionFlow({
+  org: "acme",
+  onSessionCreated: (id) => navigate(`/sessions/${id}`),
+  onError: (msg) => toast.error(msg),
+});
+
+<SessionComposer
+  onSubmit={flow.submit}
+  isSubmitting={flow.isSubmitting}
+  org="acme"
+  workspace={flow.workspace}
+  agentRef={flow.agentRef}
+  onAgentRefChange={flow.setAgentRef}
+  onAgentResolutionChange={flow.setResolution}
+  mcpServerUsages={flow.mcpServerUsages}
+  onMcpServerUsagesChange={flow.setMcpServerUsages}
+  skillRefs={flow.skillRefs}
+  onSkillRefsChange={flow.setSkillRefs}
+  runnerId={flow.runnerId}
+  onRunnerIdChange={flow.setRunnerId}
+  sessionVariables={flow.sessionVariables}
+  defaultModelId={flow.modelId}
+  onModelChange={flow.setModelId}
+/>
+```
+
+
+### usePersistedModel
+
+Model selection with localStorage persistence.
+
+Restores the last selected model on mount and validates it against the
+model registry. Invalid or removed models are silently ignored (returns
+`undefined`). On change, persists the new selection to localStorage so
+it survives page reloads and navigation.
+
+Used by both the session launcher (new session) and session page
+(follow-up messages) to maintain a consistent model preference.
+
+**Signature**
+
+```tsx
+function usePersistedModel(): UsePersistedModelReturn
+```
+
+
 ### useSession
 
 Data hook that fetches a single Session by ID.
@@ -409,6 +543,83 @@ function SessionSidebar() {
 ```
 
 
+### useSessionPageFlow
+
+Orchestrates the session page experience.
+
+Composes `useSessionConversation` with agent resolution, workspace
+synchronization, model persistence, and follow-up submission logic.
+Returns everything a session page needs to render its UI without
+duplicating domain orchestration.
+
+Framework-agnostic — works identically in Next.js, Vite, Tauri, or
+any React environment. The consumer provides layout, error states,
+and loading skeletons.
+
+**Signature**
+
+```tsx
+function useSessionPageFlow(options: UseSessionPageFlowOptions): UseSessionPageFlowReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseSessionPageFlowOptions", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseSessionPageFlowReturn`
+
+<TypeTable
+  type={{
+    agentRef: { type: "ResourceRef | null", description: "Currently selected agent reference (derived from session, or overridden by user)." },
+    allExecutions: { type: "readonly AgentExecution[]", description: "All executions for widget display (completed + active stream)." },
+    conv: { type: "UseSessionConversationReturn", description: "Full conversation state from `useSessionConversation`.", typeDescriptionLink: "#usesessionconversationreturn" },
+    displayExecution: { type: "AgentExecution | null", description: "The most relevant execution for sidebar display — the active streaming execution, or the last completed one." },
+    handleSubmit: { type: "(message: string, model?: string, context?: SessionComposerSubmitContext) => Promise<void>", description: "Submit a follow-up message. Handles agent override resolution (if the user changed the agent mid-session) and delegates to `conv.sendFollowUp` with all managed state." },
+    mcpServerUsages: { type: "McpServerUsageInput[]", description: "Active MCP server configurations for follow-ups." },
+    model: { type: "UsePersistedModelReturn", description: "Persisted model selection: `[modelId, setModelId]`.", typeDescriptionLink: "#usepersistedmodelreturn" },
+    resolution: { type: "AgentResolution | null", description: "Current agent resolution state." },
+    sandboxWorkspaceRoot: { type: "string | undefined", description: "Sandbox workspace root for file path normalization, or `undefined` when the session has no git-repo workspace entries." },
+    sessionVariables: { type: "UseSessionVariablesReturn", description: "Session variables (per-execution secrets) manager.", typeDescriptionLink: "/docs/sdk/react/execution#usesessionvariablesreturn" },
+    setAgentRef: { type: "(ref: ResourceRef | null) => void", description: "Update the agent reference for future follow-ups." },
+    setMcpServerUsages: { type: "(usages: McpServerUsageInput[]) => void", description: "Update MCP server configurations." },
+    setResolution: { type: "(r: AgentResolution | null) => void", description: "Update the agent resolution." },
+    setSkillRefs: { type: "(refs: ResourceRef[]) => void", description: "Update skill references." },
+    skillRefs: { type: "ResourceRef[]", description: "Active skill references for follow-ups." },
+    workspace: { type: "UseWorkspaceEntriesReturn", description: "Workspace entries manager (synced from session on load).", typeDescriptionLink: "/docs/sdk/react/workspace#useworkspaceentriesreturn" },
+  }}
+/>
+
+```tsx
+const flow = useSessionPageFlow({ sessionId: "ses_abc", org: "acme" });
+
+if (flow.conv.isLoading) return <Spinner />;
+if (flow.conv.loadError) return <ErrorView error={flow.conv.loadError} />;
+
+return (
+  <>
+    <MessageThread
+      executions={flow.conv.completedExecutions}
+      activeStreamExecution={flow.conv.activeStreamExecution}
+      sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
+    />
+    <SessionComposer
+      onSubmit={flow.handleSubmit}
+      isSubmitting={flow.conv.isSending}
+      disabled={!flow.conv.canSendFollowUp}
+      workspace={flow.workspace}
+      agentRef={flow.agentRef}
+      onAgentRefChange={flow.setAgentRef}
+      onAgentResolutionChange={flow.setResolution}
+      defaultModelId={flow.model[0]}
+      onModelChange={flow.model[1]}
+    />
+  </>
+);
+```
+
+
 ### useSessionUsage
 
 Pure derivation hook that aggregates usage data across all executions
@@ -590,6 +801,37 @@ Resolved output of `UseCreateSessionReturn.create`.
 />
 
 
+### CREATOR_AGENTS
+
+System agents responsible for creating each resource type.
+
+Keys match [`DraftResourceType`](#draftresourcetype); values are `ResourceRef`
+objects pointing to Stigmer's built-in creator agents.
+
+
+### DraftParams
+
+Parsed draft session parameters.
+
+When `editRef` is present, the session is an edit session (modify an
+existing resource). When absent, it's a create session (new resource).
+
+<TypeTable
+  type={{
+    draftType: { type: "DraftResourceType", description: "The kind of resource this draft session will create or edit.", required: true, typeDescriptionLink: "#draftresourcetype" },
+    editRef: { type: "{ org: string; slug: string }", description: "When present, identifies the existing resource to edit. Absent for create-mode sessions." },
+  }}
+/>
+
+
+### DraftResourceType
+
+Resource types that can be created or edited via a draft session.
+
+Each type maps to a Stigmer system agent that guides the user
+through the creation/editing flow in a conversational session.
+
+
 ### groupSessionsByTime
 
 Groups sessions by their creation timestamp into time-based buckets:
@@ -641,6 +883,33 @@ Per-model cost breakdown computed from per-message `LlmCallMetrics`.
     provider: { type: "string", description: "Provider that served the model (e.g., `\"anthropic\"`).", required: true },
   }}
 />
+
+
+### parseDraftParams
+
+Parse draft session parameters from standard `URLSearchParams`.
+
+Returns `null` when no valid `draft` param is present. When `editOrg`
+and `editSlug` are both present, the returned object includes an
+`editRef` indicating this is an edit session rather than a create session.
+
+Works identically with Next.js `useSearchParams()` or react-router's
+`useSearchParams()` — both return standard `URLSearchParams`.
+
+```tsx
+function parseDraftParams(searchParams: URLSearchParams): DraftParams | null
+```
+
+
+### parseDraftType
+
+Validate a string as a recognized [`DraftResourceType`](#draftresourcetype).
+
+Returns the validated type or `null` if unrecognized.
+
+```tsx
+function parseDraftType(value: string | null): DraftResourceType | null
+```
 
 
 ### SendFollowUpOptions
@@ -724,11 +993,30 @@ Shared fields present in both variants of [`CreateSessionInput`](#createsessioni
   type={{
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
     org: { type: "string", description: "Organization slug for the new session.", required: true },
+    runnerId: { type: "string", description: "Runner to bind this session to.  When set, all executions in the session are routed to this runner's task queue. When omitted, the backend auto-selects a runner (session auto-bind in OSS, cloud auto-provisioning in Cloud)." },
     skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for executions in this session." },
     subject: { type: "string", description: "Initial conversation subject (defaults to `PENDING_SUBJECT`)." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace source entries to attach to the session." },
   }}
 />
+
+
+### UseNewSessionFlowOptions
+
+Options for [`useNewSessionFlow`](#usenewsessionflow).
+
+<TypeTable
+  type={{
+    onError: { type: "(message: string) => void", description: "Called when an error occurs during session creation. The consumer can use this for toast notifications or other UI feedback. If not provided, errors are still available via UseNewSessionFlowReturn.submitError." },
+    onSessionCreated: { type: "(sessionId: string) => void", description: "Called after a session and its first execution are created successfully. The consumer is responsible for navigation (e.g. `router.push`).", required: true },
+    org: { type: "string", description: "Organization slug. Required for session and execution creation.", required: true },
+  }}
+/>
+
+
+### UsePersistedModelReturn
+
+Return value of [`usePersistedModel`](#usepersistedmodel).
 
 
 ### UseSessionListOptions
@@ -739,6 +1027,18 @@ Options for [`useSessionList`](#usesessionlist).
   type={{
     pageSize: { type: "number", description: "Maximum sessions to return. Defaults to 50." },
     tags: { type: "string[]", description: "Optional tag filter." },
+  }}
+/>
+
+
+### UseSessionPageFlowOptions
+
+Options for [`useSessionPageFlow`](#usesessionpageflow).
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization slug.", required: true },
+    sessionId: { type: "string", description: "Session ID to load and manage.", required: true },
   }}
 />
 

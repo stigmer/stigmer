@@ -24,13 +24,14 @@ import (
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
 //  1. ResolveDefaultAgentInstance - If agent_instance_id is empty, resolve platform default agent + instance
-//  2. ValidateFieldConstraints - Validate proto field constraints using buf validate
-//  3. ResolveSlug - Generate slug from metadata.name
-//  4. CheckDuplicate - Verify no duplicate exists
-//  5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
-//  6. NormalizeReferences - Resolve cross-references (slugs to IDs)
-//  7. Persist - Save session to repository
-//  8. IndexSearch - Update search index
+//  2. ResolveDefaultRunner - If runner_id is empty, auto-bind to the sole READY runner
+//  3. ValidateFieldConstraints - Validate proto field constraints using buf validate
+//  4. ResolveSlug - Generate slug from metadata.name
+//  5. CheckDuplicate - Verify no duplicate exists
+//  6. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
+//  7. NormalizeReferences - Resolve cross-references (slugs to IDs)
+//  8. Persist - Save session to repository
+//  9. IndexSearch - Update search index
 func (c *SessionController) Create(ctx context.Context, session *sessionv1.Session) (*sessionv1.Session, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, session)
 
@@ -47,13 +48,14 @@ func (c *SessionController) Create(ctx context.Context, session *sessionv1.Sessi
 func (c *SessionController) buildCreatePipeline() *pipeline.Pipeline[*sessionv1.Session] {
 	return pipeline.NewPipeline[*sessionv1.Session]("session-create").
 		AddStep(newResolveDefaultAgentInstanceStep(c.store, c.agentClient, c.agentInstanceClient)).    // 1. Resolve default agent instance if needed
-		AddStep(steps.NewValidateProtoStep[*sessionv1.Session]()).                                     // 2. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*sessionv1.Session]()).                                       // 3. Resolve slug
-		AddStep(steps.NewCheckDuplicateStep[*sessionv1.Session](c.store)).                             // 4. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*sessionv1.Session]()).                                     // 5. Build new state
-		AddStep(steps.NewNormalizeReferencesStep[*sessionv1.Session]()).                               // 6. Normalize cross-references
-		AddStep(steps.NewPersistStep[*sessionv1.Session](c.store)).                                    // 7. Persist session
-		AddStep(steps.NewIndexSearchStep[*sessionv1.Session](c.store, &extractor.SessionExtractor{})). // 8. Update search index
+		AddStep(newResolveDefaultRunnerStep(c.store)).                                                 // 2. Auto-bind runner if sole READY runner exists
+		AddStep(steps.NewValidateProtoStep[*sessionv1.Session]()).                                     // 3. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*sessionv1.Session]()).                                       // 4. Resolve slug
+		AddStep(steps.NewCheckDuplicateStep[*sessionv1.Session](c.store)).                             // 5. Check duplicate
+		AddStep(steps.NewBuildNewStateStep[*sessionv1.Session]()).                                     // 6. Build new state
+		AddStep(steps.NewNormalizeReferencesStep[*sessionv1.Session]()).                               // 7. Normalize cross-references
+		AddStep(steps.NewPersistStep[*sessionv1.Session](c.store)).                                    // 8. Persist session
+		AddStep(steps.NewIndexSearchStep[*sessionv1.Session](c.store, &extractor.SessionExtractor{})). // 9. Update search index
 		Build()
 }
 

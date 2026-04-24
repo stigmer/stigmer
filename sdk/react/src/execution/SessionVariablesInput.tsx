@@ -123,7 +123,7 @@ export function SessionVariablesInput({
           {entries.canScrollDown && <ScrollFade position="bottom" />}
         </div>
       ) : (
-        <p className="py-2 text-center text-[0.65rem] text-muted-foreground/70">
+        <p className="py-2 text-center text-[0.65rem] text-muted-foreground-subtle">
           No variables added.
         </p>
       )}
@@ -136,7 +136,7 @@ export function SessionVariablesInput({
         className={cn(
           "inline-flex w-full items-center justify-center gap-1 rounded-md py-1.5 text-xs",
           "border border-dashed border-border text-muted-foreground",
-          "hover:border-border hover:bg-accent/50 hover:text-foreground",
+          "hover:border-border hover:bg-accent-hover hover:text-foreground",
           "disabled:pointer-events-none disabled:opacity-50",
         )}
       >
@@ -194,7 +194,7 @@ function VariableEntryRow({
           aria-label="Variable name"
           className={cn(
             "min-w-0 flex-1 rounded-md border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground",
-            "placeholder:text-muted-foreground/50",
+            "placeholder:text-muted-foreground-faint",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             "disabled:pointer-events-none disabled:opacity-50",
             isDuplicate && "border-warning",
@@ -231,7 +231,7 @@ function VariableEntryRow({
           aria-label={`Variable value${entryKey.trim() ? ` for ${entryKey.trim()}` : ""}`}
           className={cn(
             "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-            "placeholder:text-muted-foreground/50",
+            "placeholder:text-muted-foreground-faint",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
@@ -268,7 +268,7 @@ function VariableEntryRow({
 
       {/* Required-by indicator */}
       {requiredBy && requiredBy.length > 0 && (
-        <p className="text-[0.55rem] text-primary/70">
+        <p className="text-[0.55rem] text-primary-muted">
           Used by: {requiredBy.join(", ")}
         </p>
       )}
@@ -308,8 +308,8 @@ function SecretToggle({
         "inline-flex shrink-0 items-center gap-0.5 rounded-md px-1.5 py-1 text-[0.55rem] font-medium uppercase tracking-wider transition-colors",
         "disabled:pointer-events-none disabled:opacity-50",
         checked
-          ? "bg-primary/10 text-primary"
-          : "bg-muted/50 text-muted-foreground hover:bg-muted",
+          ? "bg-primary-subtle text-primary"
+          : "bg-muted-subtle text-muted-foreground hover:bg-muted",
       )}
     >
       <LockIcon />

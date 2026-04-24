@@ -5,6 +5,10 @@ export { StigmerContext } from "./context";
 // Hooks
 export { useStigmer } from "./hooks";
 
+// Color mode
+export { ColorModeContext, useColorMode } from "./color-mode";
+export type { ColorMode, ResolvedColorMode } from "./color-mode";
+
 // Deployment mode and resource availability
 export {
   DeploymentModeContext,
@@ -29,22 +33,16 @@ export type {
   ModelSelectorProps,
 } from "./models";
 
-// Workspace — behavior hooks, data hook, and styled components
+// Workspace — behavior hooks and styled components
 export {
   useWorkspaceEntries,
   WorkspaceEditor,
-  useFolderListing,
-  FolderBrowser,
   WorkspaceSummary,
 } from "./workspace";
 export type {
   WorkspaceEntry,
   UseWorkspaceEntriesReturn,
   WorkspaceEditorProps,
-  FolderEntry,
-  FolderListing,
-  UseFolderListingReturn,
-  FolderBrowserProps,
   WorkspaceSummaryProps,
 } from "./workspace";
 
@@ -60,6 +58,13 @@ export {
   useSessionWriteBacks,
   useSessionUsage,
   useAgentRefFromSession,
+  useNewSessionFlow,
+  useSessionPageFlow,
+  usePersistedModel,
+  useEditSessionPrep,
+  CREATOR_AGENTS,
+  parseDraftType,
+  parseDraftParams,
   groupSessionsByTime,
   PENDING_SUBJECT,
   resolvedSubject,
@@ -83,6 +88,14 @@ export type {
   ModelCostEntry,
   UseSessionUsageReturn,
   UseAgentRefFromSessionReturn,
+  UseNewSessionFlowOptions,
+  UseNewSessionFlowReturn,
+  UseSessionPageFlowOptions,
+  UseSessionPageFlowReturn,
+  UsePersistedModelReturn,
+  UseEditSessionPrepReturn,
+  DraftResourceType,
+  DraftParams,
   SessionGroup,
 } from "./session";
 
@@ -633,3 +646,29 @@ export type {
   UsePersonalAgentInstanceReturn,
   UseCreateAgentInstanceReturn,
 } from "./agent-instance";
+
+// Runner — data hooks, action hooks, styled picker, admin list panel, and phase utilities
+export {
+  useRunnerList,
+  useLaunchLocalRunner,
+  useStopRunner,
+  useDeleteRunner,
+  RunnerPicker,
+  RunnerListPanel,
+  phaseLabel,
+  phaseDotColor,
+  isActivePhase,
+  PHASE_SORT_ORDER,
+} from "./runner";
+export type {
+  UseRunnerListOptions,
+  UseRunnerListReturn,
+  UseLaunchLocalRunnerOptions,
+  UseLaunchLocalRunnerReturn,
+  LaunchLocalRunnerResult,
+  StopRunnerInput,
+  UseStopRunnerReturn,
+  UseDeleteRunnerReturn,
+  RunnerPickerProps,
+  RunnerListPanelProps,
+} from "./runner";

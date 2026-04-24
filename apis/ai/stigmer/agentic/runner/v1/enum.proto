@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.runner.v1;
+
+// RunnerPhase tracks the operational state of a runner process.
+//
+// Phase transitions are driven by two sources:
+// - The runner process itself (via connect stream heartbeat): PENDING -> READY, READY <-> BUSY
+// - The server (via heartbeat timeout or explicit stop): any -> STOPPED, any -> FAILED
+//
+// Transition diagram:
+//   PENDING  -> READY   (first heartbeat received)
+//   READY    -> BUSY    (runner reports max capacity reached)
+//   BUSY     -> READY   (runner reports capacity freed)
+//   READY    -> STOPPED (heartbeat timeout or explicit stop)
+//   BUSY     -> STOPPED (heartbeat timeout or explicit stop)
+//   STOPPED  -> READY   (runner restarts and heartbeats again)
+//   any      -> FAILED  (unrecoverable error reported by runner or server)
+enum RunnerPhase {
+  RUNNER_PHASE_UNSPECIFIED = 0;
+
+  // Resource created but no heartbeat received yet.
+  // This is the initial phase after create/apply, before the runner
+  // process has started polling its task queue and heartbeating.
+  RUNNER_PHASE_PENDING = 1;
+
+  // Runner is heartbeating and accepting new executions.
+  RUNNER_PHASE_READY = 2;
+
+  // Runner is heartbeating but at maximum concurrent execution capacity.
+  // New executions should not be dispatched to this runner.
+  RUNNER_PHASE_BUSY = 3;
+
+  // Runner has stopped heartbeating (timeout) or was explicitly stopped.
+  // The resource is retained for identity persistence — a runner that
+  // restarts and resumes heartbeating transitions back to READY.
+  RUNNER_PHASE_STOPPED = 4;
+
+  // Unrecoverable error. Runner or server reported a fatal condition.
+  // Requires investigation; does not auto-recover on heartbeat.
+  RUNNER_PHASE_FAILED = 5;
+}

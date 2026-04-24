@@ -18,6 +18,7 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	runnerv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/runner/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
@@ -43,6 +44,7 @@ import (
 	organizationcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/organization/controller"
 	projectcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/controller"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/reconcile"
+	runnercontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/runner/controller"
 	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller"
 	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller"
 	skillstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
@@ -337,6 +339,13 @@ func Run() error {
 	organizationv1.RegisterOrganizationQueryControllerServer(grpcServer, organizationController)
 
 	log.Info().Msg("Registered Organization controllers")
+
+	// Create and register Runner controller
+	runnerController := runnercontroller.NewRunnerController(store)
+	runnerv1.RegisterRunnerCommandControllerServer(grpcServer, runnerController)
+	runnerv1.RegisterRunnerQueryControllerServer(grpcServer, runnerController)
+
+	log.Info().Msg("Registered Runner controllers")
 
 	// Create and register SearchService controller (CQRS Query Service)
 	// The search service provides unified search across all searchable resources

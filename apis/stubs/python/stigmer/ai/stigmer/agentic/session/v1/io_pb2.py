@@ -26,7 +26,7 @@ from ai.stigmer.agentic.session.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/session/v1/io.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a\'ai/stigmer/agentic/session/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\")\n\tSessionId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\'\n\x07\x41gentId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"p\n\x0bSessionList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12@\n\x07\x65ntries\x18\x02 \x03(\x0b\x32&.ai.stigmer.agentic.session.v1.SessionR\x07\x65ntries\"e\n\x13ListSessionsRequest\x12\x1b\n\tpage_size\x18\x01 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x02 \x01(\tR\tpageToken\x12\x12\n\x04tags\x18\x03 \x03(\tR\x04tags\"{\n\x1aListSessionsByAgentRequest\x12!\n\x08\x61gent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x61gentId\x12\x1b\n\tpage_size\x18\x02 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\"O\n\x1bUpdateSessionSubjectRequest\x12\x16\n\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x18\n\x07subject\x18\x02 \x01(\tR\x07subject\"V\n\x1dUpdateSessionSandboxIdRequest\x12\x16\n\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x1d\n\nsandbox_id\x18\x02 \x01(\tR\tsandboxIdB\xc5\x01\n!com.ai.stigmer.agentic.session.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/session/v1/io.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a\'ai/stigmer/agentic/session/v1/api.proto\x1a\x1b\x62uf/validate/validate.proto\")\n\tSessionId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\'\n\x07\x41gentId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"p\n\x0bSessionList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12@\n\x07\x65ntries\x18\x02 \x03(\x0b\x32&.ai.stigmer.agentic.session.v1.SessionR\x07\x65ntries\"e\n\x13ListSessionsRequest\x12\x1b\n\tpage_size\x18\x01 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x02 \x01(\tR\tpageToken\x12\x12\n\x04tags\x18\x03 \x03(\tR\x04tags\"{\n\x1aListSessionsByAgentRequest\x12!\n\x08\x61gent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x61gentId\x12\x1b\n\tpage_size\x18\x02 \x01(\x05R\x08pageSize\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\"O\n\x1bUpdateSessionSubjectRequest\x12\x16\n\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x18\n\x07subject\x18\x02 \x01(\tR\x07subjectB\xc5\x01\n!com.ai.stigmer.agentic.session.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -42,8 +42,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTSESSIONSBYAGENTREQUEST'].fields_by_name['agent_id']._serialized_options = b'\272H\003\310\001\001'
   _globals['_UPDATESESSIONSUBJECTREQUEST'].fields_by_name['id']._loaded_options = None
   _globals['_UPDATESESSIONSUBJECTREQUEST'].fields_by_name['id']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_UPDATESESSIONSANDBOXIDREQUEST'].fields_by_name['id']._loaded_options = None
-  _globals['_UPDATESESSIONSANDBOXIDREQUEST'].fields_by_name['id']._serialized_options = b'\272H\003\310\001\001'
   _globals['_SESSIONID']._serialized_start=143
   _globals['_SESSIONID']._serialized_end=184
   _globals['_AGENTID']._serialized_start=186
@@ -56,6 +54,4 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTSESSIONSBYAGENTREQUEST']._serialized_end=567
   _globals['_UPDATESESSIONSUBJECTREQUEST']._serialized_start=569
   _globals['_UPDATESESSIONSUBJECTREQUEST']._serialized_end=648
-  _globals['_UPDATESESSIONSANDBOXIDREQUEST']._serialized_start=650
-  _globals['_UPDATESESSIONSANDBOXIDREQUEST']._serialized_end=736
 # @@protoc_insertion_point(module_scope)

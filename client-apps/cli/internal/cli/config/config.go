@@ -102,6 +102,12 @@ type ContextConfig struct {
 	Organization string `yaml:"organization,omitempty"` // Active organization slug
 }
 
+// IsCloudMode returns true when the user has explicitly configured the CLI
+// to use the cloud backend.
+func (cfg *Config) IsCloudMode() bool {
+	return cfg.Backend.Type == BackendTypeCloud
+}
+
 // ResolveContextOrganization returns the active organization from the CLI
 // context. Falls back to Backend.Cloud.OrgID for backward compatibility with
 // existing cloud configurations that predate the unified context model.

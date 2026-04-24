@@ -17,6 +17,7 @@
     "organization",
     "platform-client",
     "project",
+    "runner",
     "session",
     "skill",
     "workflow",

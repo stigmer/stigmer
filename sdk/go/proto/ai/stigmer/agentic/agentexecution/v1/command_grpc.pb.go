@@ -57,9 +57,11 @@ type AgentExecutionCommandControllerClient interface {
 	// Update an agent execution's status.
 	//
 	// @internal
-	// System-level RPC used by agent-runner to send progressive status updates
-	// (messages, tool_calls, phase, etc.). Optimized for frequent status updates
-	// and merges status fields with existing state.
+	// Used by agent-runner to send progressive status updates (messages,
+	// tool_calls, phase, etc.). The runner authenticates as the triggering user,
+	// who owns the execution through the session ownership chain.
+	// Optimized for frequent status updates and merges status fields with
+	// existing state.
 	UpdateStatus(ctx context.Context, in *AgentExecutionUpdateStatusInput, opts ...grpc.CallOption) (*AgentExecution, error)
 	// Delete an agent execution by ID.
 	Delete(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*AgentExecution, error)
@@ -505,9 +507,11 @@ type AgentExecutionCommandControllerServer interface {
 	// Update an agent execution's status.
 	//
 	// @internal
-	// System-level RPC used by agent-runner to send progressive status updates
-	// (messages, tool_calls, phase, etc.). Optimized for frequent status updates
-	// and merges status fields with existing state.
+	// Used by agent-runner to send progressive status updates (messages,
+	// tool_calls, phase, etc.). The runner authenticates as the triggering user,
+	// who owns the execution through the session ownership chain.
+	// Optimized for frequent status updates and merges status fields with
+	// existing state.
 	UpdateStatus(context.Context, *AgentExecutionUpdateStatusInput) (*AgentExecution, error)
 	// Delete an agent execution by ID.
 	Delete(context.Context, *apiresource.ApiResourceId) (*AgentExecution, error)

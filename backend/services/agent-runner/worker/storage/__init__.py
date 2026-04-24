@@ -63,7 +63,7 @@ class ArtifactStorageConfig:
     """Configuration for artifact storage.
     
     Attributes:
-        storage_type: Storage backend type ("local" or "r2")
+        storage_type: Storage backend type ("local", "r2", or "proxy")
         local_path: Base path for local storage
         local_serve_url: Base URL for serving local artifacts
         r2_endpoint: R2 endpoint URL
@@ -71,6 +71,8 @@ class ArtifactStorageConfig:
         r2_secret_key: R2 secret access key
         r2_bucket: R2 bucket name
         r2_region: R2 region (default: "auto")
+        proxy_endpoint: Stigmer proxy endpoint (for proxy storage type)
+        proxy_auth_token: Auth token for proxy (for proxy storage type)
     """
     storage_type: str = "local"
     
@@ -78,32 +80,28 @@ class ArtifactStorageConfig:
     local_path: str = "/var/stigmer/artifacts"
     local_serve_url: str = "http://localhost:7235"
     
-    # R2 storage configuration
+    # R2 storage configuration (legacy direct access)
     r2_endpoint: str | None = None
     r2_access_key: str | None = None
     r2_secret_key: str | None = None
     r2_bucket: str | None = None
     r2_region: str = "auto"
     
+    # Proxy storage configuration (Side-Channel Proxy)
+    proxy_endpoint: str | None = None
+    proxy_auth_token: str | None = None
+    
     @classmethod
-    def load_from_env(cls, mode: str = "cloud") -> "ArtifactStorageConfig":
+    def load_from_env(
+        cls, mode: str = "cloud", *, auth_token: str | None = None,
+    ) -> "ArtifactStorageConfig":
         """Load storage configuration from environment variables.
         
         Args:
-            mode: Execution mode ("local" or "cloud") for default selection
-            
-        Returns:
-            ArtifactStorageConfig instance
-            
-        Environment Variables:
-            ARTIFACT_STORAGE_TYPE: Storage type ("local" or "r2")
-            LOCAL_ARTIFACT_PATH: Path for local artifact storage
-            LOCAL_ARTIFACT_SERVE_URL: Base URL for serving local artifacts
-            AGENT_EXECUTION_ARTIFACT_R2_ENDPOINT: R2 endpoint URL
-            AGENT_EXECUTION_ARTIFACT_R2_ACCESS_KEY_ID: R2 access key
-            AGENT_EXECUTION_ARTIFACT_R2_SECRET_ACCESS_KEY: R2 secret key
-            AGENT_EXECUTION_ARTIFACT_R2_BUCKET: R2 bucket name
-            AGENT_EXECUTION_ARTIFACT_R2_REGION: R2 region (default: "auto")
+            mode: Execution mode ("local" or "cloud") for default selection.
+            auth_token: The runner's auth token, passed from the parent
+                ``Config`` so storage does not read env vars independently.
+                Used as the proxy auth token when storage type is ``proxy``.
         """
         # Default storage type based on mode
         default_type = "local" if mode == "local" else "r2"
@@ -120,6 +118,12 @@ class ArtifactStorageConfig:
         r2_bucket = os.getenv("AGENT_EXECUTION_ARTIFACT_R2_BUCKET")
         r2_region = os.getenv("AGENT_EXECUTION_ARTIFACT_R2_REGION", "auto")
         
+        proxy_endpoint = (
+            os.getenv("STIGMER_PROXY_ENDPOINT")
+            if storage_type == "proxy" else None
+        )
+        proxy_auth_token = auth_token if storage_type == "proxy" else None
+
         config = cls(
             storage_type=storage_type,
             local_path=local_path,
@@ -129,6 +133,8 @@ class ArtifactStorageConfig:
             r2_secret_key=r2_secret_key,
             r2_bucket=r2_bucket,
             r2_region=r2_region,
+            proxy_endpoint=proxy_endpoint,
+            proxy_auth_token=proxy_auth_token,
         )
         
         # Validate configuration
@@ -142,7 +148,7 @@ class ArtifactStorageConfig:
         Raises:
             ValueError: If configuration is invalid
         """
-        valid_types = {"local", "r2"}
+        valid_types = {"local", "r2", "proxy"}
         if self.storage_type not in valid_types:
             raise ValueError(
                 f"Invalid ARTIFACT_STORAGE_TYPE: {self.storage_type}. "
@@ -165,6 +171,16 @@ class ArtifactStorageConfig:
                     f"R2 storage requires: {', '.join(missing)}. "
                     "Set these environment variables or use ARTIFACT_STORAGE_TYPE=local"
                 )
+        
+        if self.storage_type == "proxy":
+            if not self.proxy_endpoint:
+                raise ValueError(
+                    "STIGMER_PROXY_ENDPOINT is required for proxy artifact storage."
+                )
+            if not self.proxy_auth_token:
+                raise ValueError(
+                    "STIGMER_TOKEN is required for proxy artifact storage."
+                )
 
 
 def create_artifact_storage(config: ArtifactStorageConfig) -> ArtifactStorage:
@@ -179,10 +195,18 @@ def create_artifact_storage(config: ArtifactStorageConfig) -> ArtifactStorage:
     Raises:
         ValueError: If storage type is invalid
     """
-    if config.storage_type == "r2":
+    if config.storage_type == "proxy":
+        logger.info("Creating proxy artifact storage")
+        from worker.storage.proxy import ProxyArtifactStorage
+        assert config.proxy_endpoint is not None
+        assert config.proxy_auth_token is not None
+        return ProxyArtifactStorage(
+            proxy_endpoint=config.proxy_endpoint,
+            auth_token=config.proxy_auth_token,
+        )
+    elif config.storage_type == "r2":
         logger.info("Creating R2 artifact storage")
         from worker.storage.r2 import R2ArtifactStorage
-        # Narrow Optional types -- validate() guarantees non-None for r2 mode
         assert config.r2_endpoint is not None
         assert config.r2_access_key is not None
         assert config.r2_secret_key is not None

@@ -110,8 +110,12 @@ export interface SessionComposerProps {
   readonly enableGitHub?: boolean;
   /** Show the Local Folder source button. @default false */
   readonly enableLocal?: boolean;
-  /** Use the visual folder browser instead of a text input. @default false */
-  readonly enableFolderBrowser?: boolean;
+  /**
+   * Native folder picker callback passed through to {@link WorkspaceEditor}.
+   * When provided, clicking "Local Folder" opens a native dialog instead
+   * of the inline text input. See {@link WorkspaceEditorProps.onBrowseLocalFolder}.
+   */
+  readonly onBrowseLocalFolder?: () => Promise<string | null>;
 
   /**
    * Organization slug for agent, MCP server, and skill searches.
@@ -187,6 +191,24 @@ export interface SessionComposerProps {
   readonly skillRefs?: ResourceRef[];
   /** Called when the skill selection changes. Providing this enables the skill trigger. */
   readonly onSkillRefsChange?: (refs: ResourceRef[]) => void;
+
+  /**
+   * Currently selected runner ID, or `null` for "Auto" (backend decides).
+   *
+   * When `onRunnerIdChange` is provided and `org` is set, renders a
+   * runner picker in the toolbar's Tier 1 (alongside Model Selector).
+   *
+   * The selected runner ID flows through to `session.create({ runnerId })`
+   * so the session is bound to that runner's task queue.
+   */
+  readonly runnerId?: string | null;
+  /**
+   * Called when the user selects a different runner. `null` = "Auto".
+   *
+   * Providing this callback enables the runner picker in the toolbar.
+   * Requires `org` to be set (same prerequisite as agent/MCP pickers).
+   */
+  readonly onRunnerIdChange?: (runnerId: string | null) => void;
 
   /**
    * Session variables state managed by {@link useSessionVariables}.
@@ -332,7 +354,7 @@ export function SessionComposer({
   gitHubConnection,
   enableGitHub = true,
   enableLocal = false,
-  enableFolderBrowser = false,
+  onBrowseLocalFolder,
   org,
   agentRef,
   onAgentRefChange,
@@ -342,6 +364,8 @@ export function SessionComposer({
   onMcpServerUsagesChange,
   skillRefs,
   onSkillRefsChange,
+  runnerId,
+  onRunnerIdChange,
   sessionVariables,
   enableAttachments = true,
   onAttachmentValidationError,
@@ -364,6 +388,7 @@ export function SessionComposer({
   const showMcp = onMcpServerUsagesChange != null && org != null;
   const showWorkspace = workspace != null;
   const showSkills = onSkillRefsChange != null && org != null;
+  const showRunner = onRunnerIdChange != null && org != null;
   const showSessionVars = sessionVariables != null;
   const showAttach = enableAttachments;
 
@@ -1143,7 +1168,7 @@ export function SessionComposer({
             className="block w-full resize-none bg-transparent px-4 pt-3 pb-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
           />
           {isDragOver && (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-t-xl bg-primary/5">
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-t-xl bg-primary-subtle">
               <span className="text-xs font-medium text-primary">
                 Drop files to attach
               </span>
@@ -1270,7 +1295,7 @@ export function SessionComposer({
                   gitHubConnection={gitHubConnection}
                   enableGitHub={enableGitHub}
                   enableLocal={enableLocal}
-                  enableFolderBrowser={enableFolderBrowser}
+                  onBrowseLocalFolder={onBrowseLocalFolder}
                 />
               : null
           }
@@ -1280,6 +1305,10 @@ export function SessionComposer({
           configActivePanel={configActivePanel}
           onConfigActivePanelChange={handleConfigActivePanelChange}
           renderConfigPanel={renderConfigPanel}
+          showRunner={showRunner}
+          runnerOrg={org ?? ""}
+          runnerId={runnerId ?? null}
+          onRunnerIdChange={onRunnerIdChange ?? (() => {})}
           showModelSelector={showModelSelector}
           modelId={modelId}
           onModelChange={handleModelChange}

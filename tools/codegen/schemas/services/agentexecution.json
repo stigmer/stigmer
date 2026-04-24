@@ -29,7 +29,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput",
           "outputType": "AgentExecution",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
-          "description": "Update an agent execution's status.\n\n @internal\n System-level RPC used by agent-runner to send progressive status updates\n (messages, tool_calls, phase, etc.). Optimized for frequent status updates\n and merges status fields with existing state."
+          "description": "Update an agent execution's status.\n\n @internal\n Used by agent-runner to send progressive status updates (messages,\n tool_calls, phase, etc.). The runner authenticates as the triggering user,\n who owns the execution through the session ownership chain.\n Optimized for frequent status updates and merges status fields with\n existing state."
         },
         {
           "name": "Delete",
@@ -1689,6 +1689,16 @@
           "messageType": "SetupProgress"
         },
         "description": "Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.\n Populated progressively as the worker completes setup steps (sandbox init,\n workspace provisioning, skill loading, MCP server connection, etc.).\n Only meaningful while phase == EXECUTION_PENDING. Cleared by the server\n when phase transitions away from PENDING.",
+        "required": false
+      },
+      {
+        "name": "RunnerId",
+        "jsonName": "runnerId",
+        "protoField": "runner_id",
+        "type": {
+          "kind": "string"
+        },
+        "description": "ID of the Runner that executed this execution.\n\n Set once when the execution is dispatched to a runner; immutable after.\n For cloud executions, this references the system-managed ephemeral runner\n that was auto-created for this execution. For local executions, this\n references the user-created persistent runner selected via the session.\n\n Used for observability: \"which runner handled this work?\"",
         "required": false
       }
     ]

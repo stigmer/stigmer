@@ -26,7 +26,7 @@ class SkillClient:
     
     def __init__(
         self,
-        api_key: str,
+        token: str,
         *,
         timeout: float = _DEFAULT_GRPC_TIMEOUT_SECONDS,
         channel: grpc.aio.Channel | None = None,
@@ -35,7 +35,7 @@ class SkillClient:
         Initialize SkillClient with authentication.
         
         Args:
-            api_key: Stigmer API key for authentication.
+            token: Stigmer auth token (JWT or API key).
             timeout: Per-call gRPC deadline in seconds (must stay well under
                      Temporal's 30s heartbeat timeout to allow graceful recovery).
             channel: Optional shared gRPC channel (from ChannelProvider). When
@@ -46,7 +46,7 @@ class SkillClient:
             self._owns_channel = False
         else:
             config = Config.load_from_env()
-            interceptor = AuthClientInterceptor(api_key)
+            interceptor = AuthClientInterceptor(token)
             self.channel = create_channel(
                 config.stigmer_backend_endpoint, interceptors=[interceptor],
             )

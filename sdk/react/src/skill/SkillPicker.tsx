@@ -173,7 +173,7 @@ export function SkillPicker({
                 return (
                   <div
                     key={key}
-                    className="flex items-center gap-2 rounded-md bg-muted/30 px-2 py-1 text-xs"
+                    className="flex items-center gap-2 rounded-md bg-muted-faint px-2 py-1 text-xs"
                   >
                     <SkillIcon />
                     <span className="min-w-0 flex-1 truncate text-foreground">
@@ -254,7 +254,7 @@ export function SkillPicker({
                   "disabled:pointer-events-none disabled:opacity-50",
                   idx === focusIndex
                     ? "bg-accent text-foreground"
-                    : "text-foreground hover:bg-accent/50",
+                    : "text-foreground hover:bg-accent-hover",
                 )}
                 role="option"
                 aria-selected={idx === focusIndex}
@@ -313,7 +313,7 @@ function LoadingSkeleton() {
             style={{ width: `${w}%` }}
           />
           <div
-            className="h-2 rounded bg-muted/60 animate-pulse"
+            className="h-2 rounded bg-muted-subtle animate-pulse"
             style={{ width: `${Math.min(w + 15, 90)}%` }}
           />
         </div>

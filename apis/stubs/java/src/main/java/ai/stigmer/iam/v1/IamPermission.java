@@ -141,10 +141,6 @@ public enum IamPermission
    */
   can_manage_identity_accounts(18),
   /**
-   * <code>can_update_execution_status = 19;</code>
-   */
-  can_update_execution_status(19),
-  /**
    * <pre>
    * Back-office access permission.
    * </pre>
@@ -160,6 +156,14 @@ public enum IamPermission
    * <code>can_connect = 22;</code>
    */
   can_connect(22),
+  /**
+   * <pre>
+   * Organization-level runner create permission.
+   * </pre>
+   *
+   * <code>can_create_runner = 25;</code>
+   */
+  can_create_runner(25),
   UNRECOGNIZED(-1),
   ;
 
@@ -289,10 +293,6 @@ public enum IamPermission
    */
   public static final int can_manage_identity_accounts_VALUE = 18;
   /**
-   * <code>can_update_execution_status = 19;</code>
-   */
-  public static final int can_update_execution_status_VALUE = 19;
-  /**
    * <pre>
    * Back-office access permission.
    * </pre>
@@ -308,6 +308,14 @@ public enum IamPermission
    * <code>can_connect = 22;</code>
    */
   public static final int can_connect_VALUE = 22;
+  /**
+   * <pre>
+   * Organization-level runner create permission.
+   * </pre>
+   *
+   * <code>can_create_runner = 25;</code>
+   */
+  public static final int can_create_runner_VALUE = 25;
 
 
   public final int getNumber() {
@@ -356,9 +364,9 @@ public enum IamPermission
       case 16: return can_read_secrets;
       case 17: return can_bootstrap_iam;
       case 18: return can_manage_identity_accounts;
-      case 19: return can_update_execution_status;
       case 20: return login_to_back_office;
       case 22: return can_connect;
+      case 25: return can_create_runner;
       default: return null;
     }
   }

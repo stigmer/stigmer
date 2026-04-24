@@ -834,4 +834,38 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
    */
   ai.stigmer.agentic.agentexecution.v1.SetupProgressOrBuilder getSetupProgressOrBuilder();
+
+  /**
+   * <pre>
+   * ID of the Runner that executed this execution.
+   *
+   * Set once when the execution is dispatched to a runner; immutable after.
+   * For cloud executions, this references the system-managed ephemeral runner
+   * that was auto-created for this execution. For local executions, this
+   * references the user-created persistent runner selected via the session.
+   *
+   * Used for observability: "which runner handled this work?"
+   * </pre>
+   *
+   * <code>string runner_id = 19 [json_name = "runnerId"];</code>
+   * @return The runnerId.
+   */
+  java.lang.String getRunnerId();
+  /**
+   * <pre>
+   * ID of the Runner that executed this execution.
+   *
+   * Set once when the execution is dispatched to a runner; immutable after.
+   * For cloud executions, this references the system-managed ephemeral runner
+   * that was auto-created for this execution. For local executions, this
+   * references the user-created persistent runner selected via the session.
+   *
+   * Used for observability: "which runner handled this work?"
+   * </pre>
+   *
+   * <code>string runner_id = 19 [json_name = "runnerId"];</code>
+   * @return The bytes for runnerId.
+   */
+  com.google.protobuf.ByteString
+      getRunnerIdBytes();
 }

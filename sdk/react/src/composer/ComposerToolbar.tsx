@@ -4,6 +4,7 @@ import { cn } from "@stigmer/theme";
 import { ContextPopover } from "./ContextPopover";
 import { ConfigureMenu, type ConfigureMenuItem } from "./ConfigureMenu";
 import { ModelSelector } from "../models/ModelSelector";
+import { RunnerPicker } from "../runner/RunnerPicker";
 import {
   PaperclipIcon,
   WorkspaceIcon,
@@ -40,6 +41,13 @@ export interface ComposerToolbarProps {
   /** Render the picker content for a given configure panel id. */
   readonly renderConfigPanel: (itemId: string) => React.ReactNode;
 
+  // -- Runner picker --------------------------------------------------------
+
+  readonly showRunner: boolean;
+  readonly runnerOrg: string;
+  readonly runnerId: string | null;
+  readonly onRunnerIdChange: (runnerId: string | null) => void;
+
   // -- Model selector -------------------------------------------------------
 
   readonly showModelSelector: boolean;
@@ -54,7 +62,7 @@ export interface ComposerToolbarProps {
  *
  * **Tier 1 (always visible):** Attach, Workspace
  * **Tier 2 (behind Configure menu):** Agent, MCP, Skills, Secrets
- * **Right edge:** Model Selector, Send
+ * **Right edge:** Runner Picker, Model Selector, Send
  *
  * Separators are placed between conceptual groups using Gestalt proximity.
  */
@@ -75,15 +83,20 @@ export function ComposerToolbar({
   configActivePanel,
   onConfigActivePanelChange,
   renderConfigPanel,
+  showRunner,
+  runnerOrg,
+  runnerId,
+  onRunnerIdChange,
   showModelSelector,
   modelId,
   onModelChange,
 }: ComposerToolbarProps) {
   const hasTier1 = showAttach || showWorkspace;
   const hasTier2 = configureItems.length > 0;
+  const hasExecParams = showRunner || showModelSelector;
 
   return (
-    <div className="flex items-center justify-between gap-2 border-t border-border/50 px-3 py-2">
+    <div className="flex items-center justify-between gap-2 border-t border-border-muted px-3 py-2">
       <div className="flex items-center gap-1.5">
         {/* ---- Tier 1: Input augmentation ---- */}
 
@@ -94,7 +107,7 @@ export function ComposerToolbar({
             onClick={onAttachClick}
             className={cn(
               "inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
             aria-label="Attach files"
@@ -102,7 +115,7 @@ export function ComposerToolbar({
             <PaperclipIcon />
             <span>Attach</span>
             {attachmentCount > 0 && (
-              <span className="rounded-full bg-primary/15 px-1.5 text-[0.6rem] font-medium text-primary">
+              <span className="rounded-full bg-primary-subtle px-1.5 text-[0.6rem] font-medium text-primary">
                 {attachmentCount}
               </span>
             )}
@@ -138,10 +151,19 @@ export function ComposerToolbar({
           disabled={disabled}
         />
 
-        {/* ---- Separator before model selector ---- */}
+        {/* ---- Separator before execution parameters ---- */}
 
-        {(hasTier1 || hasTier2) && showModelSelector && (
+        {(hasTier1 || hasTier2) && hasExecParams && (
           <div className="mx-0.5 h-4 w-px bg-border/50" aria-hidden="true" />
+        )}
+
+        {showRunner && (
+          <RunnerPicker
+            org={runnerOrg}
+            value={runnerId}
+            onChange={onRunnerIdChange}
+            disabled={disabled}
+          />
         )}
 
         {showModelSelector && (
@@ -159,7 +181,7 @@ export function ComposerToolbar({
         type="button"
         disabled={!canSend}
         onClick={onSend}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-40"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary-hover disabled:pointer-events-none disabled:opacity-40"
         aria-label="Send message"
       >
         {isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}

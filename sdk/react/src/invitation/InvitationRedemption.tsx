@@ -218,7 +218,7 @@ export function InvitationRedemption({
                   disabled={isRedeeming}
                   className={cn(
                     "w-full inline-flex items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium",
-                    "bg-primary text-primary-foreground hover:bg-primary/90",
+                    "bg-primary text-primary-foreground hover:bg-primary-hover",
                     "disabled:pointer-events-none disabled:opacity-50",
                     "transition-colors",
                   )}
@@ -238,7 +238,7 @@ export function InvitationRedemption({
                 onClick={onAuthRequired}
                 className={cn(
                   "w-full inline-flex items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium",
-                  "bg-primary text-primary-foreground hover:bg-primary/90",
+                  "bg-primary text-primary-foreground hover:bg-primary-hover",
                   "transition-colors",
                 )}
               >
@@ -258,7 +258,7 @@ export function InvitationRedemption({
 
 function InvalidNotice({ reason }: { reason: string }) {
   return (
-    <div className="mt-4 rounded-md bg-muted/50 px-3 py-2.5 text-center">
+    <div className="mt-4 rounded-md bg-muted-subtle px-3 py-2.5 text-center">
       <WarningIcon />
       <p className="mt-1 text-xs text-muted-foreground">
         {reason || "This invitation is no longer valid."}
@@ -279,7 +279,7 @@ function ErrorCard({
   onRetry?: () => void;
 }) {
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
+    <div className="rounded-lg border border-destructive/30 bg-destructive-subtle p-6 text-center">
       <p className="text-sm text-destructive">{message}</p>
       {onRetry && (
         <button
@@ -287,7 +287,7 @@ function ErrorCard({
           onClick={onRetry}
           className={cn(
             "mt-3 inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium",
-            "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
             "transition-colors",
           )}
         >
@@ -306,15 +306,15 @@ function LoadingSkeleton() {
   return (
     <div className="rounded-lg border border-border bg-card p-6 space-y-4">
       <div className="flex flex-col items-center gap-3">
-        <div className="size-12 rounded-full bg-muted/40 animate-pulse" />
-        <div className="h-5 w-40 rounded bg-muted/40 animate-pulse" />
-        <div className="h-4 w-56 rounded bg-muted/40 animate-pulse" />
+        <div className="size-12 rounded-full bg-muted-subtle animate-pulse" />
+        <div className="h-5 w-40 rounded bg-muted-subtle animate-pulse" />
+        <div className="h-4 w-56 rounded bg-muted-subtle animate-pulse" />
       </div>
       <div className="flex justify-center gap-3">
-        <div className="h-4 w-24 rounded bg-muted/40 animate-pulse" />
-        <div className="h-4 w-24 rounded bg-muted/40 animate-pulse" />
+        <div className="h-4 w-24 rounded bg-muted-subtle animate-pulse" />
+        <div className="h-4 w-24 rounded bg-muted-subtle animate-pulse" />
       </div>
-      <div className="h-10 w-full rounded-md bg-muted/40 animate-pulse" />
+      <div className="h-10 w-full rounded-md bg-muted-subtle animate-pulse" />
     </div>
   );
 }

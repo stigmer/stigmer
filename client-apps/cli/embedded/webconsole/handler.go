@@ -29,7 +29,6 @@ func NewSPAHandler() http.Handler {
 	spa := &spaHandler{fs: assets}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/fs/list", handleFSList)
 	mux.Handle("/", spa)
 
 	return mux

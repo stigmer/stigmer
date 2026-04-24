@@ -39,13 +39,15 @@ service AgentExecutionCommandController {
   // Update an agent execution's status.
   //
   // @internal
-  // System-level RPC used by agent-runner to send progressive status updates
-  // (messages, tool_calls, phase, etc.). Optimized for frequent status updates
-  // and merges status fields with existing state.
+  // Used by agent-runner to send progressive status updates (messages,
+  // tool_calls, phase, etc.). The runner authenticates as the triggering user,
+  // who owns the execution through the session ownership chain.
+  // Optimized for frequent status updates and merges status fields with
+  // existing state.
   rpc updateStatus(AgentExecutionUpdateStatusInput) returns (AgentExecution) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
-    option (ai.stigmer.commons.rpc.config).permission = can_update_execution_status;
-    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "execution_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update agent execution status";
   }
 

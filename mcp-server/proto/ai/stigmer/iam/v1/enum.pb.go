@@ -63,11 +63,12 @@ const (
 	// Platform-level permissions.
 	IamPermission_can_bootstrap_iam            IamPermission = 17
 	IamPermission_can_manage_identity_accounts IamPermission = 18
-	IamPermission_can_update_execution_status  IamPermission = 19
 	// Back-office access permission.
 	IamPermission_login_to_back_office IamPermission = 20
 	// MCP server connect permission.
 	IamPermission_can_connect IamPermission = 22
+	// Organization-level runner create permission.
+	IamPermission_can_create_runner IamPermission = 25
 )
 
 // Enum value maps for IamPermission.
@@ -95,9 +96,9 @@ var (
 		16: "can_read_secrets",
 		17: "can_bootstrap_iam",
 		18: "can_manage_identity_accounts",
-		19: "can_update_execution_status",
 		20: "login_to_back_office",
 		22: "can_connect",
+		25: "can_create_runner",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -122,9 +123,9 @@ var (
 		"can_read_secrets":             16,
 		"can_bootstrap_iam":            17,
 		"can_manage_identity_accounts": 18,
-		"can_update_execution_status":  19,
 		"login_to_back_office":         20,
 		"can_connect":                  22,
+		"can_create_runner":            25,
 	}
 )
 
@@ -228,7 +229,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xd9\x04\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xcf\x04\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -253,10 +254,10 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\vcan_execute\x10\x0f\x12\x14\n" +
 	"\x10can_read_secrets\x10\x10\x12\x15\n" +
 	"\x11can_bootstrap_iam\x10\x11\x12 \n" +
-	"\x1ccan_manage_identity_accounts\x10\x12\x12\x1f\n" +
-	"\x1bcan_update_execution_status\x10\x13\x12\x18\n" +
+	"\x1ccan_manage_identity_accounts\x10\x12\x12\x18\n" +
 	"\x14login_to_back_office\x10\x14\x12\x0f\n" +
-	"\vcan_connect\x10\x16*Q\n" +
+	"\vcan_connect\x10\x16\x12\x15\n" +
+	"\x11can_create_runner\x10\x19*Q\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

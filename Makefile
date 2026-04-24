@@ -211,11 +211,12 @@ tidy: ## Run go mod tidy on all Go modules
 
 # ─── Lint & Check ────────────────────────────
 
-.PHONY: fix lint lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos check check-all
+.PHONY: fix lint verify-web verify-desktop lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos check check-all
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
 	@cd backend/libs/python/graphton && poetry run ruff check --fix .
 	@cd $(AGENT_RUNNER_DIR) && poetry run ruff check --fix .
+	-npm run lint:fix -w @stigmer/react
 	-npm run lint -w client-apps/web -- --fix
 
 lint: ## Run all linters and type checks
@@ -229,8 +230,16 @@ lint: ## Run all linters and type checks
 	@cd $(AGENT_RUNNER_DIR) && poetry install --no-interaction --quiet && \
 		poetry run mypy grpc_client/ worker/ --show-error-codes
 	npm run typecheck -w @stigmer/sdk
+	npm run lint -w @stigmer/react
+	npm run typecheck -w @stigmer/react
 	npm run lint -w client-apps/web
 	$(MAKE) -C site lint
+
+verify-web: ## Lint and typecheck SDK react + web console (~30s)
+	npm run lint -w @stigmer/react
+	npm run typecheck -w @stigmer/react
+	npm run typecheck -w @stigmer/sdk
+	npm run lint -w client-apps/web
 
 libs-build:
 	npm run build:libs
@@ -238,6 +247,22 @@ libs-build:
 
 web-build:
 	npm run build -w client-apps/web
+
+desktop-dev: ## Start Stigmer Desktop in dev mode (Tauri + Vite hot-reload)
+	npm run tauri dev -w desktop
+
+desktop-build: ## Build Stigmer Desktop native binary (requires TAURI_SIGNING_PRIVATE_KEY)
+	@if [ -z "$$TAURI_SIGNING_PRIVATE_KEY" ] && [ -z "$$TAURI_SIGNING_PRIVATE_KEY_PATH" ]; then \
+		echo "warning: TAURI_SIGNING_PRIVATE_KEY not set — updater artifacts will not be signed"; \
+		echo "  Set TAURI_SIGNING_PRIVATE_KEY or TAURI_SIGNING_PRIVATE_KEY_PATH to sign builds"; \
+		echo "  Key location: ~/.tauri/stigmer.key"; \
+		echo ""; \
+	fi
+	npm run tauri build -w desktop
+
+verify-desktop: ## Lint and typecheck desktop app
+	npm run lint -w desktop
+	npm run typecheck -w desktop
 
 validate-demos: ## Run static demo scenario validation (token compliance, manifest alignment)
 	$(MAKE) -C site validate-demos
@@ -249,7 +274,7 @@ tsdoc-check: ## Validate TSDoc quality for all TypeScript SDKs
 test-demos: docs-build ## Run Playwright demo e2e tests — slow (~20 min), run explicitly or in CI
 	$(MAKE) -C site test-demos
 
-check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs-check check-links libs-build web-build docs-build build test validate-demos ## Run full CI gate locally
+check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs-check check-links libs-build web-build verify-desktop docs-build build test validate-demos ## Run full CI gate locally
 
 check-all: check test-demos ## Full CI gate including Playwright demo e2e (slow)
 
@@ -418,6 +443,7 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 	@echo "Tags pushed. CI will handle:"
 	@echo "  - Protos to BSR                  (release.buf.yaml)"
 	@echo "  - CLI binaries + GitHub release  (release.cli.yaml)"
+	@echo "  - Desktop app installers (draft) (release.desktop.yaml)"
 	@echo "  - @stigmer/* npm packages        (release.npm-libs.yaml)"
 	@echo "  - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)"
 	@echo "  - stigmer + stigmer-protos PyPI  (release.python-sdk.yaml)"

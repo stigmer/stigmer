@@ -1,0 +1,214 @@
+name: release.desktop
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a draft GitHub release'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  determine-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      should_release: ${{ steps.version.outputs.should_release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION="${{ github.ref_name }}"
+            SHOULD_RELEASE="true"
+            echo "Triggered by tag: $VERSION"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="test-$(git rev-parse --short HEAD)"
+            SHOULD_RELEASE="${{ github.event.inputs.create_release }}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
+          echo "Desktop build: $VERSION (release: $SHOULD_RELEASE)"
+
+  generate-protos:
+    needs: determine-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache buf modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/buf
+          key: buf-${{ hashFiles('apis/buf.lock') }}
+          restore-keys: buf-
+
+      - name: Generate proto stubs
+        env:
+          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
+        run: make protos
+
+      - name: Package generated stubs
+        run: |
+          tar -czf proto-stubs.tar.gz \
+            apis/stubs/ \
+            sdk/go/proto/ \
+            sdk/go/internal/gen/ \
+            sdk/typescript/src/gen/
+
+      - name: Upload proto stubs
+        uses: actions/upload-artifact@v4
+        with:
+          name: proto-stubs
+          path: proto-stubs.tar.gz
+          retention-days: 1
+
+  build:
+    needs: [determine-version, generate-protos]
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            rust_target: aarch64-apple-darwin
+            sidecar_name: stigmer-aarch64-apple-darwin
+            go_os: darwin
+            go_arch: arm64
+            tauri_args: '--target aarch64-apple-darwin'
+          - platform: macos-latest
+            rust_target: x86_64-apple-darwin
+            sidecar_name: stigmer-x86_64-apple-darwin
+            go_os: darwin
+            go_arch: amd64
+            tauri_args: '--target x86_64-apple-darwin'
+          - platform: ubuntu-22.04
+            rust_target: x86_64-unknown-linux-gnu
+            sidecar_name: stigmer-x86_64-unknown-linux-gnu
+            go_os: linux
+            go_arch: amd64
+            tauri_args: ''
+          - platform: windows-latest
+            rust_target: x86_64-pc-windows-msvc
+            sidecar_name: stigmer-x86_64-pc-windows-msvc.exe
+            go_os: windows
+            go_arch: amd64
+            tauri_args: ''
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download proto stubs
+        uses: actions/download-artifact@v4
+        with:
+          name: proto-stubs
+
+      - name: Extract proto stubs
+        run: tar -xzf proto-stubs.tar.gz
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Build CLI sidecar
+        env:
+          GOOS: ${{ matrix.go_os }}
+          GOARCH: ${{ matrix.go_arch }}
+          CGO_ENABLED: '0'
+        run: |
+          go build -ldflags="-s -w" \
+            -o client-apps/desktop/src-tauri/binaries/${{ matrix.sidecar_name }} \
+            ./client-apps/cli
+
+      - name: Verify sidecar binary
+        run: |
+          ls -lh client-apps/desktop/src-tauri/binaries/${{ matrix.sidecar_name }}
+          file client-apps/desktop/src-tauri/binaries/${{ matrix.sidecar_name }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: 'client-apps/desktop/src-tauri -> target'
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build SDK libraries
+        run: npm run build:libs
+
+      - name: Build and release (tag push)
+        if: needs.determine-version.outputs.should_release == 'true'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # macOS code signing (no-op until secrets are configured)
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+        with:
+          projectPath: client-apps/desktop
+          tagName: ${{ needs.determine-version.outputs.version }}
+          releaseName: 'Stigmer Desktop ${{ needs.determine-version.outputs.version }}'
+          releaseBody: 'Download the desktop installer for your platform below.'
+          releaseDraft: true
+          prerelease: false
+          includeUpdaterJson: true
+          args: ${{ matrix.tauri_args }}
+
+      - name: Build only (workflow dispatch)
+        if: needs.determine-version.outputs.should_release != 'true'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: client-apps/desktop
+          args: ${{ matrix.tauri_args }}

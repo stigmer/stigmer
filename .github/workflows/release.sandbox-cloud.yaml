@@ -1,13 +1,21 @@
 name: release.sandbox-cloud
 
 # Builds the full (cloud) sandbox image used by Daytona in cloud mode.
-# Triggers on main when Dockerfile.sandbox.full changes — no semver tags needed.
+# Triggers on main when the sandbox Dockerfile, runner code, or runner
+# dependencies change. No semver tags — latest + commit SHA.
 on:
   push:
     branches:
       - main
     paths:
       - 'backend/services/agent-runner/sandbox/Dockerfile.sandbox.full'
+      - 'backend/services/agent-runner/pyproject.toml'
+      - 'backend/services/agent-runner/poetry.lock'
+      - 'backend/services/agent-runner/main.py'
+      - 'backend/services/agent-runner/worker/**'
+      - 'backend/services/agent-runner/grpc_client/**'
+      - 'backend/libs/python/graphton/**'
+      - 'apis/stubs/python/**'
   workflow_dispatch:
 
 jobs:
@@ -40,10 +48,9 @@ jobs:
 
       - name: Build and push full sandbox image
         run: |
-          cd backend/services/agent-runner/sandbox
           docker buildx build \
             --platform linux/amd64 \
-            --file Dockerfile.sandbox.full \
+            --file backend/services/agent-runner/sandbox/Dockerfile.sandbox.full \
             --tag ghcr.io/${{ github.repository_owner }}/agent-sandbox-full:latest \
             --tag ghcr.io/${{ github.repository_owner }}/agent-sandbox-full:main-${{ steps.tags.outputs.short_sha }} \
             --push \
@@ -58,6 +65,30 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Warm Daytona image cache
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}
+          IMAGE: ghcr.io/${{ github.repository_owner }}/agent-sandbox-full:latest
+        run: |
+          pip install daytona-sdk
+          python - <<'PYEOF'
+          import os, time
+          from daytona_sdk import Daytona, DaytonaConfig, CreateSandboxFromImageParams
+
+          d = Daytona(DaytonaConfig(api_key=os.environ["DAYTONA_API_KEY"]))
+
+          print(f"Creating sandbox from {os.environ['IMAGE']} to warm cache …")
+          t0 = time.monotonic()
+          sandbox = d.create(CreateSandboxFromImageParams(image=os.environ["IMAGE"]))
+          elapsed = time.monotonic() - t0
+          print(f"Sandbox {sandbox.id} ready in {elapsed:.1f}s — image layers cached")
+
+          d.delete(sandbox)
+          print("Sandbox deleted — cache-warming complete")
+          PYEOF
+
       - name: Summary
         run: |
           echo "## Cloud Sandbox Image Published" >> $GITHUB_STEP_SUMMARY
@@ -65,3 +96,4 @@ jobs:
           echo "**Image:** \`ghcr.io/${{ github.repository_owner }}/agent-sandbox-full\`" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** \`latest\`, \`main-${{ steps.tags.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Architecture:** linux/amd64" >> $GITHUB_STEP_SUMMARY
+          echo "**Daytona cache warm:** attempted (continue-on-error)" >> $GITHUB_STEP_SUMMARY

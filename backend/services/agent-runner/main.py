@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 from worker.config import Config
 from worker.logging_config import setup_logging
-from worker.worker import AgentRunner
+from worker.worker import Runner
 
 
 # Load .env file for local development (optional - fails silently in production)
@@ -74,7 +74,7 @@ def _make_shutdown_exception_handler(
     return handler
 
 
-async def shutdown_handler(worker: AgentRunner):
+async def shutdown_handler(worker: Runner):
     """Gracefully shutdown worker on SIGTERM/SIGINT."""
     global shutdown_requested
     
@@ -135,7 +135,7 @@ async def main():
     
     # Initialize worker
     try:
-        worker = AgentRunner(config)
+        worker = Runner(config)
     except Exception as e:
         logger.error(f"❌ Failed to initialize worker: {e}", exc_info=True)
         logger.error("=" * 80)

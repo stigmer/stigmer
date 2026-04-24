@@ -456,9 +456,11 @@ public final class AgentExecutionCommandControllerGrpc {
      * <pre>
      * Update an agent execution's status.
      * &#64;internal
-     * System-level RPC used by agent-runner to send progressive status updates
-     * (messages, tool_calls, phase, etc.). Optimized for frequent status updates
-     * and merges status fields with existing state.
+     * Used by agent-runner to send progressive status updates (messages,
+     * tool_calls, phase, etc.). The runner authenticates as the triggering user,
+     * who owns the execution through the session ownership chain.
+     * Optimized for frequent status updates and merges status fields with
+     * existing state.
      * </pre>
      */
     default void updateStatus(ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput request,
@@ -809,9 +811,11 @@ public final class AgentExecutionCommandControllerGrpc {
      * <pre>
      * Update an agent execution's status.
      * &#64;internal
-     * System-level RPC used by agent-runner to send progressive status updates
-     * (messages, tool_calls, phase, etc.). Optimized for frequent status updates
-     * and merges status fields with existing state.
+     * Used by agent-runner to send progressive status updates (messages,
+     * tool_calls, phase, etc.). The runner authenticates as the triggering user,
+     * who owns the execution through the session ownership chain.
+     * Optimized for frequent status updates and merges status fields with
+     * existing state.
      * </pre>
      */
     public void updateStatus(ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput request,
@@ -1154,9 +1158,11 @@ public final class AgentExecutionCommandControllerGrpc {
      * <pre>
      * Update an agent execution's status.
      * &#64;internal
-     * System-level RPC used by agent-runner to send progressive status updates
-     * (messages, tool_calls, phase, etc.). Optimized for frequent status updates
-     * and merges status fields with existing state.
+     * Used by agent-runner to send progressive status updates (messages,
+     * tool_calls, phase, etc.). The runner authenticates as the triggering user,
+     * who owns the execution through the session ownership chain.
+     * Optimized for frequent status updates and merges status fields with
+     * existing state.
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.AgentExecution updateStatus(ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput request) throws io.grpc.StatusException {
@@ -1490,9 +1496,11 @@ public final class AgentExecutionCommandControllerGrpc {
      * <pre>
      * Update an agent execution's status.
      * &#64;internal
-     * System-level RPC used by agent-runner to send progressive status updates
-     * (messages, tool_calls, phase, etc.). Optimized for frequent status updates
-     * and merges status fields with existing state.
+     * Used by agent-runner to send progressive status updates (messages,
+     * tool_calls, phase, etc.). The runner authenticates as the triggering user,
+     * who owns the execution through the session ownership chain.
+     * Optimized for frequent status updates and merges status fields with
+     * existing state.
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.AgentExecution updateStatus(ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput request) {
@@ -1828,9 +1836,11 @@ public final class AgentExecutionCommandControllerGrpc {
      * <pre>
      * Update an agent execution's status.
      * &#64;internal
-     * System-level RPC used by agent-runner to send progressive status updates
-     * (messages, tool_calls, phase, etc.). Optimized for frequent status updates
-     * and merges status fields with existing state.
+     * Used by agent-runner to send progressive status updates (messages,
+     * tool_calls, phase, etc.). The runner authenticates as the triggering user,
+     * who owns the execution through the session ownership chain.
+     * Optimized for frequent status updates and merges status fields with
+     * existing state.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.AgentExecution> updateStatus(

@@ -135,7 +135,7 @@ export function EnvironmentListPanel({
         {Array.from({ length: 2 }, (_, i) => (
           <div
             key={i}
-            className="bg-muted/40 h-14 animate-pulse rounded-lg"
+            className="bg-muted-subtle h-14 animate-pulse rounded-lg"
           />
         ))}
       </div>
@@ -210,7 +210,7 @@ function EnvironmentCard({
         "rounded-lg border transition-colors",
         isExpanded
           ? "border-border bg-card"
-          : "border-border/60 hover:border-border",
+          : "border-border-muted hover:border-border",
       )}
     >
       {/* Header — always visible */}
@@ -240,7 +240,7 @@ function EnvironmentCard({
 
       {/* Expanded content — variable editor */}
       {isExpanded && environmentId && (
-        <div className="border-border/60 border-t px-3 pb-3 pt-2">
+        <div className="border-border-muted border-t px-3 pb-3 pt-2">
           <EnvironmentVariableEditor
             environmentId={environmentId}
             readOnly={readOnly}

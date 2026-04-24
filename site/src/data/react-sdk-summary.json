@@ -127,10 +127,17 @@
       "components": 4
     },
     {
+      "slug": "runner",
+      "title": "Runner",
+      "description": "Hooks and components for runner lifecycle, fleet management, local launch, and picker.",
+      "hooks": 4,
+      "components": 2
+    },
+    {
       "slug": "session",
       "title": "Session",
       "description": "Hooks for session lifecycle, message history, conversation state, and usage tracking.",
-      "hooks": 10,
+      "hooks": 14,
       "components": 0
     },
     {
@@ -151,8 +158,8 @@
       "slug": "workspace",
       "title": "Workspace",
       "description": "Hooks and components for file entries, folder browsing, and code editing.",
-      "hooks": 2,
-      "components": 3
+      "hooks": 1,
+      "components": 2
     }
   ]
 }

@@ -95,12 +95,9 @@ func TestFlagRegistration_AllCommandsHaveJsonAndQuietFlags(t *testing.T) {
 		{"config list", newConfigListCommand()},
 		{"backend status", newBackendStatusCommand()},
 		{"backend set", newBackendSetCommand()},
-		{"server", NewServerCommand()},
-		{"server stop", newServerStopCommand()},
-		{"server status", newServerStatusCommand()},
-		{"server llm pull", newServerLLMPullCommand()},
-		{"server llm list", newServerLLMListCommand()},
-		{"server llm status", newServerLLMStatusCommand()},
+		{"up", NewUpCommand()},
+		{"down", NewDownCommand()},
+		{"status", NewStatusCommand()},
 	}
 
 	for _, tt := range tests {
@@ -182,14 +179,6 @@ func TestJSONOutput_SuccessPaths(t *testing.T) {
 			wantMsgContain: "Backend set to local",
 			wantSections:   false,
 		},
-		{
-			name:           "llm status",
-			config:         localAnthropicConfig(),
-			handler:        func() { handleLLMStatus(clioutput.FormatJSON) },
-			wantStatus:     "success",
-			wantMsgContain: "LLM",
-			wantSections:   true,
-		},
 	}
 
 	for _, tt := range tests {
@@ -222,34 +211,20 @@ func TestJSONOutput_WarningPaths(t *testing.T) {
 		needsNoDaemon  bool
 	}{
 		{
-			name:           "server stop not running",
+			name:           "down not running",
 			config:         localAnthropicConfig(),
-			handler:        func() { handleServerStop(clioutput.FormatJSON) },
+			handler:        func() { handleStop(clioutput.FormatJSON) },
 			wantStatus:     "warning",
 			wantMsgContain: "not running",
 			needsNoDaemon:  true,
 		},
 		{
-			name:           "server status not running",
+			name:           "status not running",
 			config:         localAnthropicConfig(),
-			handler:        func() { handleServerStatus(clioutput.FormatJSON) },
+			handler:        func() { handleStatus(clioutput.FormatJSON) },
 			wantStatus:     "warning",
 			wantMsgContain: "not running",
 			needsNoDaemon:  true,
-		},
-		{
-			name:           "llm list non-ollama provider",
-			config:         localAnthropicConfig(),
-			handler:        func() { handleLLMList(clioutput.FormatJSON) },
-			wantStatus:     "warning",
-			wantMsgContain: "local LLM provider",
-		},
-		{
-			name:           "llm pull non-ollama provider",
-			config:         localAnthropicConfig(),
-			handler:        func() { handleLLMPull("test-model", clioutput.FormatJSON) },
-			wantStatus:     "warning",
-			wantMsgContain: "local LLM provider",
 		},
 	}
 
@@ -289,11 +264,8 @@ func TestQuietOutput_StdoutIsEmpty(t *testing.T) {
 		{"config set", localAnthropicConfig(), func() { handleConfigSet("llm.model", "claude-sonnet-4.5", clioutput.FormatQuiet) }, false},
 		{"backend status", localAnthropicConfig(), func() { handleBackendStatus(clioutput.FormatQuiet) }, false},
 		{"backend set local", localAnthropicConfig(), func() { handleBackendSet("local", clioutput.FormatQuiet) }, false},
-		{"llm status", localAnthropicConfig(), func() { handleLLMStatus(clioutput.FormatQuiet) }, false},
-		{"server stop not running", localAnthropicConfig(), func() { handleServerStop(clioutput.FormatQuiet) }, true},
-		{"server status not running", localAnthropicConfig(), func() { handleServerStatus(clioutput.FormatQuiet) }, true},
-		{"llm list non-ollama", localAnthropicConfig(), func() { handleLLMList(clioutput.FormatQuiet) }, false},
-		{"llm pull non-ollama", localAnthropicConfig(), func() { handleLLMPull("test-model", clioutput.FormatQuiet) }, false},
+		{"down not running", localAnthropicConfig(), func() { handleStop(clioutput.FormatQuiet) }, true},
+		{"status not running", localAnthropicConfig(), func() { handleStatus(clioutput.FormatQuiet) }, true},
 	}
 
 	for _, tt := range tests {
