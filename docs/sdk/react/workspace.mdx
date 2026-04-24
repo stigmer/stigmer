@@ -85,6 +85,7 @@ All visual properties flow through `--stgm-*` tokens.
     enableGitHub: { type: "boolean", description: "Show the GitHub Repo source button. Default: true." },
     enableLocal: { type: "boolean", description: "Show the Local Folder source button. Default: false (set by Console based on deployment mode)." },
     gitHubConnection: { type: "UseGitHubConnectionReturn", description: "GitHub connection state. When provided, enables the GitHub repo picker.", typeDescriptionLink: "/docs/sdk/react/github#usegithubconnectionreturn" },
+    onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback for desktop environments.  When provided and `enableLocal` is `true`, clicking the \"Local Folder\" button invokes this callback instead of showing the manual path input. Should resolve to an absolute folder path, or `null` if the user cancelled the dialog.  When not provided, falls back to the inline text input for manual path entry (backward compatible with web environments)." },
     workspace: { type: "UseWorkspaceEntriesReturn", description: "Workspace state from useWorkspaceEntries.", required: true, typeDescriptionLink: "#useworkspaceentriesreturn" },
   }}
 />
