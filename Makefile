@@ -211,7 +211,7 @@ tidy: ## Run go mod tidy on all Go modules
 
 # ─── Lint & Check ────────────────────────────
 
-.PHONY: fix lint verify-web lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos check check-all
+.PHONY: fix lint verify-web verify-desktop lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos check check-all
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
 	@cd backend/libs/python/graphton && poetry run ruff check --fix .
@@ -260,45 +260,8 @@ desktop-build: ## Build Stigmer Desktop native binary (requires TAURI_SIGNING_PR
 	fi
 	npm run tauri build -w desktop
 
-desktop-release: ## Tag and push a desktop release (usage: make desktop-release bump=patch|minor|major)
-	@LATEST_TAG=$$(git tag -l 'desktop-v*' --sort=-v:refname | head -n1); \
-	if [ -z "$$LATEST_TAG" ]; then LATEST_TAG="desktop-v0.0.0"; fi; \
-	MAJOR=$$(echo "$$LATEST_TAG" | sed 's/desktop-v//' | cut -d. -f1); \
-	MINOR=$$(echo "$$LATEST_TAG" | sed 's/desktop-v//' | cut -d. -f2); \
-	PATCH=$$(echo "$$LATEST_TAG" | sed 's/desktop-v//' | cut -d. -f3); \
-	case "$(bump)" in \
-		major) MAJOR=$$((MAJOR + 1)); MINOR=0; PATCH=0 ;; \
-		minor) MINOR=$$((MINOR + 1)); PATCH=0 ;; \
-		patch) PATCH=$$((PATCH + 1)) ;; \
-		*) echo "error: invalid bump '$(bump)' (use patch|minor|major)" && exit 1 ;; \
-	esac; \
-	NEW_VERSION="$$MAJOR.$$MINOR.$$PATCH"; \
-	NEW_TAG="desktop-v$$NEW_VERSION"; \
-	if git rev-parse "$$NEW_TAG" >/dev/null 2>&1; then \
-		echo "error: tag $$NEW_TAG already exists" && exit 1; \
-	fi; \
-	CONF=client-apps/desktop/src-tauri/tauri.conf.json; \
-	CURRENT=$$(python3 -c "import json; print(json.load(open('$$CONF'))['version'])"); \
-	if [ "$$CURRENT" != "$$NEW_VERSION" ]; then \
-		echo "Updating $$CONF version: $$CURRENT -> $$NEW_VERSION"; \
-		python3 -c "import json; \
-c=json.load(open('$$CONF')); c['version']='$$NEW_VERSION'; \
-json.dump(c, open('$$CONF','w'), indent=2); print('')"; \
-		git add "$$CONF"; \
-		git commit -m "chore(desktop): bump version to $$NEW_VERSION"; \
-	fi; \
-	echo "$$LATEST_TAG -> $$NEW_TAG"; \
-	git tag -a "$$NEW_TAG" -m "Release Stigmer Desktop $$NEW_VERSION"; \
-	git push origin HEAD "$$NEW_TAG"
-	@echo ""
-	@echo "Tag pushed. CI will handle:"
-	@echo "  - Cross-platform builds (macOS, Linux, Windows)"
-	@echo "  - Draft GitHub release with installers"
-	@echo "  - Auto-updater manifest (latest.json)"
-	@echo ""
-	@echo "After verifying the draft release, publish it to enable auto-updates."
-
-verify-desktop: ## Typecheck desktop app
+verify-desktop: ## Lint and typecheck desktop app
+	npm run lint -w desktop
 	npm run typecheck -w desktop
 
 validate-demos: ## Run static demo scenario validation (token compliance, manifest alignment)
@@ -311,7 +274,7 @@ tsdoc-check: ## Validate TSDoc quality for all TypeScript SDKs
 test-demos: docs-build ## Run Playwright demo e2e tests — slow (~20 min), run explicitly or in CI
 	$(MAKE) -C site test-demos
 
-check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs-check check-links libs-build web-build docs-build build test validate-demos ## Run full CI gate locally
+check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs-check check-links libs-build web-build verify-desktop docs-build build test validate-demos ## Run full CI gate locally
 
 check-all: check test-demos ## Full CI gate including Playwright demo e2e (slow)
 
@@ -480,12 +443,11 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 	@echo "Tags pushed. CI will handle:"
 	@echo "  - Protos to BSR                  (release.buf.yaml)"
 	@echo "  - CLI binaries + GitHub release  (release.cli.yaml)"
+	@echo "  - Desktop app installers (draft) (release.desktop.yaml)"
 	@echo "  - @stigmer/* npm packages        (release.npm-libs.yaml)"
 	@echo "  - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)"
 	@echo "  - stigmer + stigmer-protos PyPI  (release.python-sdk.yaml)"
 	@echo "  - MCP server binaries + Docker   (release.mcp-server.yaml)"
-	@echo ""
-	@echo "Desktop app is released separately: make desktop-release bump=patch"
 
 # ─── Clean ────────────────────────────────────
 

@@ -3,7 +3,7 @@ name: release.desktop
 on:
   push:
     tags:
-      - 'desktop-v*'
+      - 'v*'
   workflow_dispatch:
     inputs:
       create_release:
@@ -31,8 +31,9 @@ jobs:
           if [ "${{ github.ref_type }}" = "tag" ]; then
             VERSION="${{ github.ref_name }}"
             SHOULD_RELEASE="true"
+            echo "Triggered by tag: $VERSION"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="desktop-test-$(git rev-parse --short HEAD)"
+            VERSION="test-$(git rev-parse --short HEAD)"
             SHOULD_RELEASE="${{ github.event.inputs.create_release }}"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -193,9 +194,9 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
         with:
           projectPath: client-apps/desktop
-          tagName: desktop-v__VERSION__
-          releaseName: 'Stigmer Desktop v__VERSION__'
-          releaseBody: 'Download the installer for your platform below.'
+          tagName: ${{ needs.determine-version.outputs.version }}
+          releaseName: 'Stigmer Desktop ${{ needs.determine-version.outputs.version }}'
+          releaseBody: 'Download the desktop installer for your platform below.'
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
