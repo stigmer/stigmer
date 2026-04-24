@@ -13,9 +13,38 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: T08 complete. Ready for T09.
-- **Last Session**: 2026-04-24 (Session 8) — T08 "Get Desktop App" in Console user menu shipped.
-- **Active Task**: None — ready to start T09.
+- **Status**: T09 complete. Ready for T10.
+- **Last Session**: 2026-04-24 (Session 9) — T09 contextual runner promotion in Console Settings > Runners shipped.
+- **Active Task**: None — ready to start T10.
+
+## Session wrap-up (2026-04-24, Session 9)
+
+- T09 added a contextual Desktop App promotion card to the Console's
+  Settings > Runners page (`RunnersSection.tsx`).
+- **Modified**: `client-apps/web/src/domain/settings/RunnersSection.tsx` — added
+  private `DesktopAppPromo` component. Semantic `<aside>` with `Monitor` icon,
+  "Stigmer Desktop" title, value prop copy, and external "Download" link using
+  `EXTERNAL_LINKS.download` from `external-links.ts` (T08). `ArrowUpRight`
+  indicator follows the external link convention established in T08.
+- **Design decisions**:
+  - **Always-visible, not dismissible**: T09 is permanent contextual information
+    on a page users navigate to intentionally. T10 handles the one-time
+    dismissible global nudge. Adding localStorage dismissal logic for a subtle
+    footer card is disproportionate complexity.
+  - **Not conditional on runner count**: Conditioning would require either a
+    duplicate `useRunnerList` call (wasteful) or SDK API changes (render prop
+    for empty state). The Desktop App is useful regardless of runner count
+    (tray, notifications, deep links).
+  - **Placed after the runner list**: Respects content hierarchy — the runner
+    list is primary content, the promotion is supplementary. Shows in all
+    states (no-org, empty list, populated list).
+  - **No new files**: Single file change. `DesktopAppPromo` is a private
+    component within `RunnersSection.tsx` — only used on this page.
+  - **No SDK changes**: Promotion is Console-specific (DD-004 compliance).
+    Platform builders don't get desktop app CTAs in embedded components.
+- ESLint clean, build clean (29 routes, exit 0).
+- **No surprises**: Implementation matched the plan exactly. No architectural
+  decisions needed beyond what was pre-approved.
 
 ## Session wrap-up (2026-04-24, Session 8)
 
@@ -147,7 +176,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | T06 | Marketing site download page | **Complete** | T03 |
 | T07 | Marketing site nav/footer wiring | **Complete** | T06 |
 | T08 | Console: "Get Desktop App" in user menu | **Complete** | T06 |
-| T09 | Console: contextual runner promotion | Pending | T06 |
+| T09 | Console: contextual runner promotion | **Complete** | T06 |
 | T10 | Console: smart nudge banner | Pending | T06, T09 |
 | T11 | Verification & polish | Pending | All |
 
@@ -212,7 +241,7 @@ All promotion surfaces link to the download page. The download page links to the
 - `client-apps/web/src/config/external-links.ts` — **(T08)**: Shared `EXTERNAL_LINKS` constant (download, website, github, docs)
 - `client-apps/web/src/domain/_shared/layout/UserMenu.tsx` — **(T08)**: User menu dropdown with `DesktopAppItem`
 - `client-apps/web/src/domain/_shared/layout/AppShell.tsx` — Main layout shell
-- `client-apps/web/src/domain/settings/RunnersSection.tsx` — Settings > Runners page wrapper
+- `client-apps/web/src/domain/settings/RunnersSection.tsx` — **(T09)**: Settings > Runners page wrapper with `DesktopAppPromo` contextual promotion
 
 ### SDK (NOT modified — reference only)
 - `sdk/react/src/runner/RunnerListPanel.tsx` — Runner list with empty state
@@ -250,17 +279,19 @@ All promotion surfaces link to the download page. The download page links to the
 - Desktop release tag pattern: `desktop-v*` (e.g., `desktop-v0.1.0`)
 - Auto-updater endpoint: `https://github.com/stigmer/stigmer/releases/latest/download/latest.json`
 
-### Console context (updated T08)
+### Console context (updated T09)
 - `client-apps/web/src/config/external-links.ts` — **(T08)**: `EXTERNAL_LINKS` constant with `website`, `download`, `github`, `docs` URLs. Static, not in `RuntimeConfig`. T09/T10 import from here.
 - `UserMenu` now has 4 items (local-mode: 3): Settings, Appearance, Get Desktop App, Sign out.
 - External link pattern established: `DropdownMenuItem` + `render={<a href target="_blank" rel="noopener noreferrer" />}` + muted `ArrowUpRight` indicator.
 - `Monitor` icon used for desktop app. `AppWindow` is taken (OAuth Apps).
+- `RunnersSection` **(T09)**: now includes `DesktopAppPromo` — always-visible `<aside>` after the runner list with `Monitor` icon, value prop, and external download link. Uses `EXTERNAL_LINKS.download`.
 
 ### What exists for distribution today
 - `site/src/app/download/page.tsx` + `site/src/components/pages/DownloadPage.tsx` — **(T06)**: `/download` route with platform-detected download buttons. Links to GitHub Release artifacts via `DESKTOP_CONFIG`.
 - `site/src/lib/constants.ts` — **(T06+T07)**: `DESKTOP_CONFIG` with version, release tag, 5 platform artifacts, `getDownloadUrl()`. `NAV_LINKS` includes Download link between Pricing and GitHub. `FOOTER_LINKS.product` includes Download after Documentation.
 - `client-apps/web/src/config/external-links.ts` — **(T08)**: `EXTERNAL_LINKS` with download page URL. Shared config for Console external links.
 - `client-apps/web/src/domain/_shared/layout/UserMenu.tsx` — **(T08)**: `DesktopAppItem` in both menu variants. `Monitor` icon + `ArrowUpRight` external link indicator.
+- `client-apps/web/src/domain/settings/RunnersSection.tsx` — **(T09)**: `DesktopAppPromo` component. Always-visible `<aside>` after runner list with `Monitor` icon, value prop copy, and "Download" external link. Shows in all page states (no-org, empty list, populated list).
 
 ### What exists for runners in docs today
 - `docs/concepts/runners.mdx` — **(T02)**: Explanation page with lifecycle, local vs cloud, dispatch, live RunnerListPanel demo.
@@ -303,8 +334,8 @@ All promotion surfaces link to the download page. The download page links to the
 
 ## Quick Commands
 
-- "Start T09" — Begin Console contextual runner promotion
 - "Start T10" — Begin Console smart nudge banner
+- "Start T11" — Begin verification & polish
 - "Show project status" — Get overview of progress
 
 ---
