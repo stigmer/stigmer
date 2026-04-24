@@ -1,10 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { LogOut, Settings, User, ChevronsUpDown, SunMoon } from "lucide-react";
+import {
+  ArrowUpRight,
+  ChevronsUpDown,
+  LogOut,
+  Monitor,
+  Settings,
+  SunMoon,
+  User,
+} from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/auth";
+import { EXTERNAL_LINKS } from "@/config/external-links";
 import { cn, THEME_PRESETS, resolvePresetClass } from "@stigmer/theme";
 import type { ThemePresetId } from "@stigmer/theme";
 import {
@@ -150,6 +159,25 @@ function SettingsItem() {
   );
 }
 
+function DesktopAppItem() {
+  return (
+    <DropdownMenuItem
+      render={
+        <a
+          href={EXTERNAL_LINKS.download}
+          target="_blank"
+          rel="noopener noreferrer"
+        />
+      }
+    >
+      <Monitor className="size-4" />
+      Get Desktop App
+      {/* eslint-disable-next-line stigmer/no-main-tokens-in-sidebar -- renders in portaled DropdownMenuContent */}
+      <ArrowUpRight className="text-muted-foreground ml-auto size-3" />
+    </DropdownMenuItem>
+  );
+}
+
 export function UserMenu() {
   const { user, logout } = useAuth();
 
@@ -172,6 +200,7 @@ export function UserMenu() {
         <DropdownMenuContent align="start" side="top" sideOffset={8}>
           <SettingsItem />
           <AppearanceSubmenu />
+          <DesktopAppItem />
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -200,6 +229,7 @@ export function UserMenu() {
       <DropdownMenuContent align="start" side="top" sideOffset={8}>
         <SettingsItem />
         <AppearanceSubmenu />
+        <DesktopAppItem />
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={logout}>
           <LogOut className="size-4" />

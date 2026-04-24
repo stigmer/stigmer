@@ -13,9 +13,32 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: T07 complete. Ready for T08.
-- **Last Session**: 2026-04-24 (Session 7) — T07 nav/footer wiring shipped.
-- **Active Task**: None — ready to start T08.
+- **Status**: T08 complete. Ready for T09.
+- **Last Session**: 2026-04-24 (Session 8) — T08 "Get Desktop App" in Console user menu shipped.
+- **Active Task**: None — ready to start T09.
+
+## Session wrap-up (2026-04-24, Session 8)
+
+- T08 added "Get Desktop App" to the Console's `UserMenu` dropdown — the first
+  external link in Console menus.
+- **New file**: `client-apps/web/src/config/external-links.ts` — shared
+  `EXTERNAL_LINKS` constant with `website`, `download`, `github`, `docs` URLs.
+  Static across all deployments (not in `RuntimeConfig`). T09/T10 import from here.
+- **Modified**: `client-apps/web/src/domain/_shared/layout/UserMenu.tsx` — added
+  `DesktopAppItem` component using `DropdownMenuItem` + `render` prop with `<a>`
+  for external link composition. `Monitor` icon + muted `ArrowUpRight` indicator.
+  Appears in both local-mode and authenticated menu variants, positioned after
+  Appearance and before Sign out.
+- **Design decisions**:
+  - `Monitor` icon chosen over `Download` (implies file transfer) and `AppWindow`
+    (already used for OAuth Apps in settings-nav).
+  - `ArrowUpRight` (size-3, muted) establishes the Console's external link visual
+    convention for T09/T10.
+  - URL source: shared `external-links.ts` config, not `RuntimeConfig` (zero
+    deployment variance) and not inline (T09/T10 reuse).
+- ESLint clean, build clean (29 pages, exit 0).
+- **Changelog**:
+  `_changelog/2026-04/2026-04-24-205144-console-get-desktop-app-user-menu-t08.md`
 
 ## Session wrap-up (2026-04-24, Session 7)
 
@@ -123,7 +146,7 @@ Drop this file into your conversation to quickly resume work on this project.
 |------|-------|--------|--------------|
 | T06 | Marketing site download page | **Complete** | T03 |
 | T07 | Marketing site nav/footer wiring | **Complete** | T06 |
-| T08 | Console: "Get Desktop App" in user menu | Pending | T06 |
+| T08 | Console: "Get Desktop App" in user menu | **Complete** | T06 |
 | T09 | Console: contextual runner promotion | Pending | T06 |
 | T10 | Console: smart nudge banner | Pending | T06, T09 |
 | T11 | Verification & polish | Pending | All |
@@ -186,7 +209,8 @@ All promotion surfaces link to the download page. The download page links to the
 - `site/src/components/layout/Footer.tsx` — Footer auto-reads from `FOOTER_LINKS`
 
 ### Console
-- `client-apps/web/src/domain/_shared/layout/UserMenu.tsx` — User menu dropdown
+- `client-apps/web/src/config/external-links.ts` — **(T08)**: Shared `EXTERNAL_LINKS` constant (download, website, github, docs)
+- `client-apps/web/src/domain/_shared/layout/UserMenu.tsx` — **(T08)**: User menu dropdown with `DesktopAppItem`
 - `client-apps/web/src/domain/_shared/layout/AppShell.tsx` — Main layout shell
 - `client-apps/web/src/domain/settings/RunnersSection.tsx` — Settings > Runners page wrapper
 
@@ -226,9 +250,17 @@ All promotion surfaces link to the download page. The download page links to the
 - Desktop release tag pattern: `desktop-v*` (e.g., `desktop-v0.1.0`)
 - Auto-updater endpoint: `https://github.com/stigmer/stigmer/releases/latest/download/latest.json`
 
+### Console context (updated T08)
+- `client-apps/web/src/config/external-links.ts` — **(T08)**: `EXTERNAL_LINKS` constant with `website`, `download`, `github`, `docs` URLs. Static, not in `RuntimeConfig`. T09/T10 import from here.
+- `UserMenu` now has 4 items (local-mode: 3): Settings, Appearance, Get Desktop App, Sign out.
+- External link pattern established: `DropdownMenuItem` + `render={<a href target="_blank" rel="noopener noreferrer" />}` + muted `ArrowUpRight` indicator.
+- `Monitor` icon used for desktop app. `AppWindow` is taken (OAuth Apps).
+
 ### What exists for distribution today
 - `site/src/app/download/page.tsx` + `site/src/components/pages/DownloadPage.tsx` — **(T06)**: `/download` route with platform-detected download buttons. Links to GitHub Release artifacts via `DESKTOP_CONFIG`.
 - `site/src/lib/constants.ts` — **(T06+T07)**: `DESKTOP_CONFIG` with version, release tag, 5 platform artifacts, `getDownloadUrl()`. `NAV_LINKS` includes Download link between Pricing and GitHub. `FOOTER_LINKS.product` includes Download after Documentation.
+- `client-apps/web/src/config/external-links.ts` — **(T08)**: `EXTERNAL_LINKS` with download page URL. Shared config for Console external links.
+- `client-apps/web/src/domain/_shared/layout/UserMenu.tsx` — **(T08)**: `DesktopAppItem` in both menu variants. `Monitor` icon + `ArrowUpRight` external link indicator.
 
 ### What exists for runners in docs today
 - `docs/concepts/runners.mdx` — **(T02)**: Explanation page with lifecycle, local vs cloud, dispatch, live RunnerListPanel demo.
@@ -271,7 +303,6 @@ All promotion surfaces link to the download page. The download page links to the
 
 ## Quick Commands
 
-- "Start T08" — Begin Console "Get Desktop App" in user menu
 - "Start T09" — Begin Console contextual runner promotion
 - "Start T10" — Begin Console smart nudge banner
 - "Show project status" — Get overview of progress
