@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 import { Header } from "@/components/layout/Header";
@@ -10,7 +11,19 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/ui/motion";
 
-const TIERS = [
+interface Tier {
+  name: string;
+  price: string;
+  period: string;
+  description: string;
+  features: string[];
+  cta: string;
+  href: string;
+  featured: boolean;
+  waitlist?: boolean;
+}
+
+const TIERS: Tier[] = [
   {
     name: "Free",
     price: "$0",
@@ -39,8 +52,9 @@ const TIERS = [
       "Advanced analytics",
     ],
     cta: "Join Waitlist",
-    href: SITE_CONFIG.cloudSignupUrl,
+    href: SITE_CONFIG.waitlistUrl,
     featured: true,
+    waitlist: true,
   },
   {
     name: "Enterprise",
@@ -56,10 +70,142 @@ const TIERS = [
       "Custom contracts",
     ],
     cta: "Contact Sales",
-    href: SITE_CONFIG.cloudSignupUrl,
+    href: SITE_CONFIG.contactSalesUrl,
     featured: false,
   },
 ];
+
+type WaitlistStatus = "idle" | "submitting" | "success" | "error";
+
+function WaitlistForm() {
+  const [status, setStatus] = React.useState<WaitlistStatus>("idle");
+  const [email, setEmail] = React.useState("");
+  const loadedAt = React.useRef(Date.now());
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setStatus("submitting");
+
+    try {
+      const res = await fetch(
+        `${SITE_CONFIG.leadsFormUrl}/submit/waitlist`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "waitlist",
+            email,
+            _t: Date.now() - loadedAt.current,
+          }),
+        },
+      );
+
+      if (!res.ok) throw new Error(`${res.status}`);
+      setStatus("success");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  if (status === "success") {
+    return (
+      <div className="flex items-center gap-2 text-sm text-foreground">
+        <Icon name="check" size="sm" />
+        <span>You are on the list. We will be in touch.</span>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-2" id="waitlist">
+      <div className="flex gap-2">
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@company.com"
+          className={cn(
+            "flex-1 min-w-0 rounded border border-border bg-background px-3 py-2",
+            "text-sm text-foreground placeholder:text-subtle",
+            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
+          )}
+        />
+        <Button
+          type="submit"
+          size="default"
+          disabled={status === "submitting"}
+          className="shrink-0"
+        >
+          {status === "submitting" ? "..." : "Join"}
+        </Button>
+      </div>
+      {status === "error" && (
+        <p className="text-xs text-destructive">
+          Something went wrong. Please try again.
+        </p>
+      )}
+    </form>
+  );
+}
+
+function TierCard({ tier }: { tier: Tier }) {
+  return (
+    <div
+      className={cn(
+        "bg-background p-6 sm:p-8 h-full flex flex-col",
+        tier.featured && "bg-card",
+      )}
+    >
+      <div className="mb-6">
+        <h2 className="text-xs font-mono uppercase tracking-wider text-subtle mb-3">
+          {tier.name}
+        </h2>
+        <div className="flex items-baseline gap-1.5 mb-2">
+          <span className="text-3xl font-bold text-foreground">
+            {tier.price}
+          </span>
+          {tier.period && (
+            <span className="text-sm text-subtle">/ {tier.period}</span>
+          )}
+        </div>
+        <p className="text-sm text-muted-foreground">{tier.description}</p>
+      </div>
+
+      <ul className="space-y-3 mb-8 flex-1">
+        {tier.features.map((feature) => (
+          <li
+            key={feature}
+            className="flex items-start gap-2 text-sm text-muted-foreground"
+          >
+            <Icon
+              name="check"
+              size="sm"
+              className="text-foreground shrink-0 mt-0.5"
+            />
+            {feature}
+          </li>
+        ))}
+      </ul>
+
+      {tier.waitlist ? (
+        <WaitlistForm />
+      ) : (
+        <Button
+          asChild
+          variant={tier.featured ? "default" : "outline"}
+          className="w-full"
+        >
+          {tier.href.startsWith("/") ? (
+            <Link href={tier.href}>{tier.cta}</Link>
+          ) : (
+            <a href={tier.href}>{tier.cta}</a>
+          )}
+        </Button>
+      )}
+    </div>
+  );
+}
 
 function PricingPage() {
   return (
@@ -79,8 +225,8 @@ function PricingPage() {
                   Start free. Scale when ready.
                 </h1>
                 <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-                  Every plan includes the full open-source platform. Cloud pricing
-                  covers hosting, execution, and support.
+                  Every plan includes the full open-source platform. Cloud
+                  pricing covers hosting, execution, and support.
                 </p>
               </div>
             </FadeInUp>
@@ -92,57 +238,7 @@ function PricingPage() {
             >
               {TIERS.map((tier) => (
                 <StaggerItem key={tier.name}>
-                  <div
-                    className={cn(
-                      "bg-background p-6 sm:p-8 h-full flex flex-col",
-                      tier.featured && "bg-card"
-                    )}
-                  >
-                    <div className="mb-6">
-                      <h2 className="text-xs font-mono uppercase tracking-wider text-subtle mb-3">
-                        {tier.name}
-                      </h2>
-                      <div className="flex items-baseline gap-1.5 mb-2">
-                        <span className="text-3xl font-bold text-foreground">
-                          {tier.price}
-                        </span>
-                        {tier.period && (
-                          <span className="text-sm text-subtle">
-                            / {tier.period}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {tier.description}
-                      </p>
-                    </div>
-
-                    <ul className="space-y-3 mb-8 flex-1">
-                      {tier.features.map((feature) => (
-                        <li
-                          key={feature}
-                          className="flex items-start gap-2 text-sm text-muted-foreground"
-                        >
-                          <Icon
-                            name="check"
-                            size="sm"
-                            className="text-foreground shrink-0 mt-0.5"
-                          />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-
-                    <Button
-                      asChild
-                      variant={tier.featured ? "default" : "outline"}
-                      className="w-full"
-                    >
-                      <a href={tier.href}>
-                        {tier.cta}
-                      </a>
-                    </Button>
-                  </div>
+                  <TierCard tier={tier} />
                 </StaggerItem>
               ))}
             </StaggerContainer>
