@@ -28,6 +28,7 @@ export { SkillCreationTour as DemoSkillCreationTour } from "./demos/scenarios/sk
 export { PlatformClientSetupTour as DemoPlatformClientSetupTour } from "./demos/scenarios/platform-client-setup-tour";
 export { PlatformClientTokenFlow as DemoPlatformClientTokenFlow } from "./demos/scenarios/platform-client-token-flow";
 export { RunnerListDetail as DemoRunnerListDetail } from "./demos/scenarios/runner-list-detail";
+export { DesktopRunnerManagement as DemoDesktopRunnerManagement } from "./demos/scenarios/desktop-runner-management";
 export { glossary } from "./glossary";
 export { Mermaid } from "./mermaid";
 export { PageFeedback } from "./page-feedback";

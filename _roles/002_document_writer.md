@@ -25,7 +25,7 @@ This is a core principle of Stigmer documentation. Every page that describes a f
 
 The documentation site embeds the same React components that the production web console renders. These components come from `@stigmer/react` — the SDK's React package. Examples include `SessionComposer`, `MessageThread`, `SkillDetailView`, `AgentDetailView`, `McpServerDetailView`, `ResourceListView`, `ApiKeyListPanel`, and many others.
 
-Each demo wraps SDK components in a `StigmerProvider` with a demo client (`createDemoClient` from `@stigmer/react/demo`). The demo client uses fixture data instead of a live API, so the components render realistic content without a backend.
+Each demo wraps SDK components in a `PreviewProvider` from [Scenar](https://github.com/stigmer/scenar) (`@scenar/preview/runtime`). The `PreviewProvider` manages an [MSW](https://mswjs.io/) (Mock Service Worker) lifecycle that intercepts HTTP requests in the browser. Fixture data is served through `connectFixture` handlers (`@scenar/preview/connect`) that mock Connect-RPC endpoints. The app-level providers (`StigmerProvider`, SDK client, connect transport) are configured in `site/.scenar/providers.tsx`. The result: real SDK components render with realistic content and no live backend.
 
 **Rule**: if you are documenting something the user would see in the web console, build a demo scenario that renders the real SDK component with fixture data. Do not describe the UI in words when you can show it.
 
@@ -61,7 +61,13 @@ Run `site/scripts/validate-demos.ts` after creating or revising a demo to catch 
 
 The demo framework has two layers with different abstraction rules:
 
-**Shell layer** — `BrowserView`, `TerminalView`, `CodeEditorView`, `APIExchangeView`, `ManagementShell`. These are genuinely reusable components. They render chrome (address bars, title bars, file trees, line numbers) and accept arbitrary children. Their sizing is controlled by centralized tokens (`DEMO_BROWSER_ZOOM`, `DEMO_BROWSER_SHELL_HEIGHT`, `DEMO_SHELL_HEIGHT`). Shell components belong in `shared/` or `views/`.
+**Shell layer** — Two sources of shell components:
+
+1. **Scenar shells** (`@scenar/react`) — Generic, reusable across any project: `BrowserView`, `TerminalView`, `CodeEditorView`, `MobileView`, `ChatView`, `SlideView`, `DashboardView`, `APIClientView`, `DesktopView`. These render application chrome (address bars, title bars, traffic lights, file trees, line numbers) and accept arbitrary children. When a new shell type is needed (e.g., a native app window frame), create it in the [Scenar repo](https://github.com/stigmer/scenar) under `packages/react/src/shells/`, publish a new Scenar tag, and update the `@scenar/*` versions in `site/package.json`.
+
+2. **Stigmer-specific views** (`site/src/components/docs/demos/views/`) — Shells that mirror the Stigmer web console layout: `ManagementShell`, `AppShell`, `ComposerView`, `ResourceListPage`, `WidgetsSidebar`, `APIExchangeView`. These are custom to Stigmer's documentation and not part of Scenar. They are also registered in `site/.scenar/views.custom.tsx` so they override the scanner-generated views of the same name.
+
+Shell sizing is controlled by centralized tokens (`DEMO_BROWSER_ZOOM`, `DEMO_BROWSER_SHELL_HEIGHT`, `DEMO_SHELL_HEIGHT`). Choose the shell that matches what the user would actually see: `BrowserView` for web pages, `TerminalView` for CLI commands, `DesktopView` for native desktop app windows, `ManagementShell` for the Stigmer settings console.
 
 **Content layer** — the JSX rendered *inside* a shell. Login forms, admin panels, dashboard cards, pricing tables, 404 pages. These are scenario-specific illustrations. Each scenario owns its content markup inline. Do not extract content into shared components just because two scenarios look visually similar. Visual similarity between a login page and a signup page is an industry pattern, not a shared abstraction. If a future scenario needs a different layout (a settings page, a Stripe checkout, a 404 error), it should be free to define its own content without fighting a shared component designed around a different use case.
 
@@ -76,6 +82,30 @@ When you create a demo scenario, use the view that matches what the user would a
 The management console sidebar (`ManagementShell`) mirrors the real web app's navigation exactly — same groups, same items, same ordering. It uses CSS zoom to scale real-app dimensions into the demo container, so proportions stay correct and new navigation items automatically fit without layout adjustments.
 
 **Rule**: every visual in a demo should feel like a screenshot of the real thing. If a view looks schematic or placeholder-like, improve it until a reader cannot immediately tell it is a demo.
+
+### The `.scenar/` directory
+
+The `site/.scenar/` directory is generated and maintained by the Scenar CLI. It bridges the Scenar preview infrastructure with the Stigmer site.
+
+| File | Ownership | Purpose |
+|------|-----------|---------|
+| `scenar.config.ts` | User | Scanner config — points at `client-apps/web` as the source to scan |
+| `providers.tsx` | User | App-level providers (`StigmerProvider`, connect transport) for demos |
+| `views.custom.tsx` | User | Stigmer-specific demo views that override scanner-generated views |
+| `views.generated.ts` | Scanner | Auto-generated component registry from scanning `client-apps/web` |
+| `views.ts` | Scanner | Merges generated + custom views into one object |
+| `preview.tsx` | Scanner | Barrel export: `previewViews` + `PreviewProviders` |
+| `report.md` | Scanner | Human-readable scan report |
+
+**Regeneration**: run `scenar preview sync` from the `site/` directory. This updates scanner-owned files (`views.generated.ts`, `views.ts`, `preview.tsx`, `report.md`) while preserving user-owned files (`providers.tsx`, `views.custom.tsx`, `scenar.config.ts`). Run this after significant changes to `client-apps/web` components. To reset everything including providers: `scenar preview init --reset-providers`.
+
+### Demo component registration
+
+When you create a new demo scenario, three files must be updated:
+
+1. **Create the scenario** in `site/src/components/docs/demos/scenarios/<name>/index.tsx`. Export a named React component (e.g., `DesktopRunnerManagement`).
+2. **Add the export** to `site/src/components/docs/index.ts` with a `Demo` prefix (e.g., `export { DesktopRunnerManagement as DemoDesktopRunnerManagement }`).
+3. **Register in MDX** in `site/src/components/mdx.tsx` — import the component and add it to the `getMDXComponents` return object. This makes it available as `<DemoDesktopRunnerManagement />` in any MDX file without an explicit import.
 
 ### When to create a demo scenario
 
