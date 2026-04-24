@@ -69,6 +69,7 @@ from worker.activities.graphton.temporal_helpers import (
 from worker.activities.graphton.temporal_helpers import (
     slim_status_for_temporal as _slim_status_for_temporal,
 )
+from worker.auth import get_token
 from worker.resilience import (
     GrpcNonRetryableError,
     GrpcRetryExecutor,
@@ -83,7 +84,6 @@ from worker.streaming import (  # noqa: F401 — StreamingUpdateScheduler re-exp
     StreamingConfig,
     StreamingUpdateScheduler,
 )
-from worker.auth import get_token
 from worker.workspace import (
     WorkspaceBackend,  # noqa: F401 — re-exported for tests
 )

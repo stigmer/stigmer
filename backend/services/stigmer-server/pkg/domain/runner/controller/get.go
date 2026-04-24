@@ -31,7 +31,7 @@ func (c *RunnerController) Get(ctx context.Context, runnerId *runnerv1.RunnerId)
 
 func (c *RunnerController) buildGetPipeline() *pipeline.Pipeline[*runnerv1.RunnerId] {
 	return pipeline.NewPipeline[*runnerv1.RunnerId]("runner-get").
-		AddStep(steps.NewValidateProtoStep[*runnerv1.RunnerId]()).                               // 1. Validate input
-		AddStep(steps.NewLoadTargetStep[*runnerv1.RunnerId, *runnerv1.Runner](c.store)).         // 2. Load by ID
+		AddStep(steps.NewValidateProtoStep[*runnerv1.RunnerId]()).                       // 1. Validate input
+		AddStep(steps.NewLoadTargetStep[*runnerv1.RunnerId, *runnerv1.Runner](c.store)). // 2. Load by ID
 		Build()
 }

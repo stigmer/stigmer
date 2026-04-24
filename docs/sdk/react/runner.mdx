@@ -6,6 +6,98 @@ title: runner
 
 ## Hooks
 
+### useDeleteRunner
+
+Mutation hook that wraps `runner.delete()` with loading and error
+state.
+
+Deletes a runner by its resource ID. Returns the deleted
+`Runner` on success so callers can confirm which runner was
+removed (e.g., in a toast or undo prompt).
+
+**Signature**
+
+```tsx
+function useDeleteRunner(): UseDeleteRunnerReturn
+```
+
+**Returns** — `UseDeleteRunnerReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    deleteRunner: { type: "(id: string) => Promise<Runner>", description: "Delete a runner by its resource ID. Resolves with the deleted Runner for confirmation display.  The deletion is permanent — any sessions bound to this runner will fall back to auto-provisioning on their next execution." },
+    error: { type: "Error | null", description: "Error from the last failed delete, or `null` when healthy." },
+    isDeleting: { type: "boolean", description: "`true` while the delete request is in flight." },
+  }}
+/>
+
+```tsx
+const { deleteRunner, isDeleting, error } = useDeleteRunner();
+
+await deleteRunner("rnr_abc123");
+refetch(); // refresh the runner list
+```
+
+
+### useLaunchLocalRunner
+
+Behavior hook that initiates a browser-to-desktop runner launch.
+
+Orchestrates two steps:
+1. Calls `stigmer.runner.createLaunchToken({ org })` to mint a
+   one-time, 60-second token backed by the caller's credentials.
+2. Opens `stigmer://launch-runner?token={token}` so the OS dispatches
+   to the Stigmer Desktop app (which exchanges the token for a JWT
+   and starts a local runner via its CLI sidecar).
+
+The hook reports success when the URL is opened. It does **not**
+detect whether the desktop app is installed or whether the runner
+actually started — those are observable via `useRunnerList`.
+
+**Signature**
+
+```tsx
+function useLaunchLocalRunner(options?: UseLaunchLocalRunnerOptions): UseLaunchLocalRunnerReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseLaunchLocalRunnerOptions", description: "" },
+  }}
+/>
+
+**Returns** — `UseLaunchLocalRunnerReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed launch attempt, or `null` when healthy." },
+    isLaunching: { type: "boolean", description: "`true` while the token creation and URL dispatch are in flight." },
+    launch: { type: "(input: { org: string }) => Promise<LaunchLocalRunnerResult>", description: "Create a one-time launch token and open the `stigmer://` URL to trigger the desktop app (or CLI fallback) to start a local runner.  Resolves with the constructed URL and token expiry on success. The caller cannot detect whether the desktop app received the URL — use useRunnerList with `refetch()` to poll for the runner appearing in the list." },
+  }}
+/>
+
+```tsx
+function LaunchButton({ org }: { org: string }) {
+  const { launch, isLaunching, error } = useLaunchLocalRunner();
+
+  return (
+    <button onClick={() => launch({ org })} disabled={isLaunching}>
+      {isLaunching ? "Launching…" : "Launch Local Runner"}
+    </button>
+  );
+}
+```
+
+```tsx
+// Custom URL handler for non-browser environments
+const { launch } = useLaunchLocalRunner({
+  openUrl: (url) => nativeBridge.openExternal(url),
+});
+```
+
+
 ### useRunnerList
 
 Data hook that fetches runners for an organization.
@@ -52,19 +144,63 @@ const { runners } = useRunnerList("acme", { includeSystemManaged: true });
 ```
 
 
+### useStopRunner
+
+Mutation hook that wraps `runner.stop()` with loading and error state.
+
+Stops a runner gracefully. Connected runners receive a stop command
+via the bidi stream; offline runners transition directly to STOPPED.
+The operation is idempotent — stopping an already-stopped or failed
+runner succeeds without error.
+
+Returns the updated `Runner` resource on success so callers
+can reflect the new phase in the UI without a separate refetch.
+
+**Signature**
+
+```tsx
+function useStopRunner(): UseStopRunnerReturn
+```
+
+**Returns** — `UseStopRunnerReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed stop attempt, or `null` when healthy." },
+    isStopping: { type: "boolean", description: "`true` while the stop RPC is in flight." },
+    stop: { type: "(input: StopRunnerInput) => Promise<Runner>", description: "Stop a runner gracefully.  If the runner is connected, sends a stop command via the bidi stream and waits for acknowledgment. If offline, directly transitions to STOPPED. Idempotent — stopping an already-stopped or failed runner returns the resource as-is.  Resolves with the updated Runner resource." },
+  }}
+/>
+
+```tsx
+const { stop, isStopping, error } = useStopRunner();
+
+await stop({ runnerId: "rnr_abc123", reason: "user requested" });
+refetch(); // refresh the runner list
+```
+
+
 ## Components
 
 ### RunnerListPanel
 
-Read-only admin panel that displays all runners in an organization.
+Admin panel that displays all runners in an organization with
+lifecycle management actions.
 
 Each runner is rendered as a card row showing name, phase indicator,
-machine information, and operational metadata. Rows are sorted by
-phase (active runners first) then alphabetically by name.
+machine information, and operational metadata. Non-system-managed
+runners include an action menu for stop and delete operations with
+inline confirmation — no modals or portals.
+
+Rows are sorted by phase (active runners first) then alphabetically
+by name. System-managed runners display a "System" badge and have
+no action affordances.
 
 Designed for the Settings > Runners page but embeddable in any
-context that needs runner fleet visibility. Fetches data via
-[`useRunnerList`](#userunnerlist) — no Console-specific dependencies.
+context that needs runner fleet management. Fetches data via
+[`useRunnerList`](#userunnerlist) and performs mutations via [`useStopRunner`](#usestoprunner)
+and [`useDeleteRunner`](#usedeleterunner) — no Console-specific dependencies.
 
 All visual properties flow through `--stgm-*` design tokens.
 
@@ -74,7 +210,9 @@ All visual properties flow through `--stgm-*` design tokens.
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     includeSystemManaged: { type: "boolean", description: "Include system-managed (ephemeral cloud) runners in the list.  System-managed runners are auto-provisioned for cloud executions and labeled `stigmer.ai/system-managed: \"true\"`. Including them gives admins full visibility into all compute resources." },
+    onDeleted: { type: "(runner: Runner) => void", description: "Notification callback fired after a runner is successfully deleted. Receives the deleted runner resource for confirmation display." },
     onRefetchRef: { type: "(refetch: () => void) => void", description: "Expose refetch so parent components can trigger a list refresh." },
+    onStopped: { type: "(runner: Runner) => void", description: "Notification callback fired after a runner is successfully stopped. Receives the updated runner resource with its new phase." },
     org: { type: "string", description: "Organization slug to scope the runner list.", required: true },
   }}
 />
@@ -85,6 +223,8 @@ All visual properties flow through `--stgm-*` design tokens.
 <RunnerListPanel
   org="acme"
   includeSystemManaged={false}
+  onStopped={(runner) => toast(`${runner.metadata?.name} stopped`)}
+  onDeleted={(runner) => toast(`${runner.metadata?.name} deleted`)}
   onRefetchRef={(refetch) => { refetchRef.current = refetch; }}
 />
 ```
@@ -146,6 +286,18 @@ function isActivePhase(phase: RunnerPhase): boolean
 ```
 
 
+### LaunchLocalRunnerResult
+
+Result returned by a successful `UseLaunchLocalRunnerReturn.launch` call.
+
+<TypeTable
+  type={{
+    expiresAt: { type: "Date | undefined", description: "Absolute expiry time of the launch token. The desktop app must exchange the token before this time (typically 60 seconds).", required: true },
+    url: { type: "string", description: "The `stigmer://launch-runner?token=...` URL that was opened.", required: true },
+  }}
+/>
+
+
 ### PHASE_SORT_ORDER
 
 Sort order for runner phases — active phases first, then by severity.
@@ -177,6 +329,29 @@ Returns title-case labels suitable for both compact indicators
 ```tsx
 function phaseLabel(phase: RunnerPhase): string
 ```
+
+
+### StopRunnerInput
+
+Input for `UseStopRunnerReturn.stop`.
+
+<TypeTable
+  type={{
+    reason: { type: "string", description: "Optional reason for the stop, logged on the runner and in audit." },
+    runnerId: { type: "string", description: "ID of the runner to stop.", required: true },
+  }}
+/>
+
+
+### UseLaunchLocalRunnerOptions
+
+Options for [`useLaunchLocalRunner`](#uselaunchlocalrunner).
+
+<TypeTable
+  type={{
+    openUrl: { type: "(url: string) => void", description: "Custom handler for opening the `stigmer://` URL.  Defaults to `window.location.href` assignment, which is the standard browser pattern for dispatching custom URL schemes to the OS. The browser does not navigate away — it hands the scheme to the OS and the page stays on screen.  Override this when embedding in non-standard environments (Electron, iframe, React Native WebView) where the default browser mechanism does not apply." },
+  }}
+/>
 
 
 ### UseRunnerListOptions

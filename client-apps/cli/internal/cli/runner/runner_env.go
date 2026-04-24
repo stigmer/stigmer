@@ -21,11 +21,11 @@ type EnvParams struct {
 	LLMBaseURL  string
 	LLMAPIKey   string
 
-	ExecMode         string
-	SandboxImage     string
-	SandboxAutoPull  bool
-	SandboxCleanup   bool
-	SandboxTTL       int
+	ExecMode        string
+	SandboxImage    string
+	SandboxAutoPull bool
+	SandboxCleanup  bool
+	SandboxTTL      int
 }
 
 // BuildRunnerEnv constructs the environment variable slice for the Python

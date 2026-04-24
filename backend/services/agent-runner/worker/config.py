@@ -519,8 +519,8 @@ class Config:
         llm_config = LLMConfig.load_from_env(mode, proxy_active=proxy_active)
         
         # Resolve auth token early so sub-configs can reference it.
-        stigmer_token = (
-            os.getenv("STIGMER_TOKEN") or os.getenv("STIGMER_API_KEY", "")
+        stigmer_token: str = (
+            os.getenv("STIGMER_TOKEN", "") or os.getenv("STIGMER_API_KEY", "")
         )
 
         if not stigmer_token and not is_local:

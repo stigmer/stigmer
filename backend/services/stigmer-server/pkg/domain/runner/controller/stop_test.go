@@ -194,8 +194,8 @@ func (m *mockBidiStream) Recv() (*runnerv1.RunnerStreamClientMessage, error) {
 }
 
 func (m *mockBidiStream) SetHeader(_ metadata.MD) error  { return nil }
-func (m *mockBidiStream) SendHeader(_ metadata.MD) error  { return nil }
-func (m *mockBidiStream) SetTrailer(_ metadata.MD)        {}
-func (m *mockBidiStream) Context() context.Context        { return context.Background() }
-func (m *mockBidiStream) SendMsg(_ any) error             { return nil }
-func (m *mockBidiStream) RecvMsg(_ any) error             { return nil }
+func (m *mockBidiStream) SendHeader(_ metadata.MD) error { return nil }
+func (m *mockBidiStream) SetTrailer(_ metadata.MD)       {}
+func (m *mockBidiStream) Context() context.Context       { return context.Background() }
+func (m *mockBidiStream) SendMsg(_ any) error            { return nil }
+func (m *mockBidiStream) RecvMsg(_ any) error            { return nil }

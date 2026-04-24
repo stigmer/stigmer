@@ -41,11 +41,11 @@ func (c *RunnerController) Update(ctx context.Context, runner *runnerv1.Runner) 
 
 func (c *RunnerController) buildUpdatePipeline() *pipeline.Pipeline[*runnerv1.Runner] {
 	return pipeline.NewPipeline[*runnerv1.Runner]("runner-update").
-		AddStep(steps.NewValidateProtoStep[*runnerv1.Runner]()).        // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*runnerv1.Runner]()).          // 2. Resolve slug
+		AddStep(steps.NewValidateProtoStep[*runnerv1.Runner]()).       // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*runnerv1.Runner]()).         // 2. Resolve slug
 		AddStep(steps.NewLoadExistingStep[*runnerv1.Runner](c.store)). // 3. Load existing runner
-		AddStep(steps.NewBuildUpdateStateStep[*runnerv1.Runner]()).     // 4. Build updated state (clears status)
-		AddStep(&preserveRunnerStatusStep{}).                           // 5. Restore status from existing
+		AddStep(steps.NewBuildUpdateStateStep[*runnerv1.Runner]()).    // 4. Build updated state (clears status)
+		AddStep(&preserveRunnerStatusStep{}).                          // 5. Restore status from existing
 		AddStep(steps.NewPersistStep[*runnerv1.Runner](c.store)).      // 6. Persist
 		Build()
 }

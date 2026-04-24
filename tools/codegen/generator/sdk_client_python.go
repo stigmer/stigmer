@@ -264,11 +264,11 @@ func pyProtoImportLine(protoPkg string) string {
 type pyImports struct {
 	resourcePkg string
 
-	needsDataclass bool
-	needsField     bool
-	needsIterator    bool
-	needsBidiStream  bool
-	needsAny         bool
+	needsDataclass  bool
+	needsField      bool
+	needsIterator   bool
+	needsBidiStream bool
+	needsAny        bool
 
 	services   map[string]bool
 	needsIoPb2 bool
