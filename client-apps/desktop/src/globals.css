@@ -1,0 +1,75 @@
+@import "tailwindcss";
+@import "@stigmer/theme/tokens.css";
+@import "@stigmer/theme/presets/corporate.css";
+@import "@stigmer/theme/presets/startup.css";
+@import "@stigmer/theme/presets/friendly.css";
+@import "@stigmer/theme/presets/fintech.css";
+@import "@stigmer/react/styles.css";
+
+@custom-variant dark (&:is([data-stgm-color-mode="dark"] *));
+
+@theme inline {
+  --radius-sm: calc(var(--stgm-radius) - 4px);
+  --radius-md: calc(var(--stgm-radius) - 2px);
+  --radius-lg: var(--stgm-radius);
+  --radius-xl: calc(var(--stgm-radius) + 4px);
+  --color-background: var(--stgm-background);
+  --color-foreground: var(--stgm-foreground);
+  --color-card: var(--stgm-card);
+  --color-card-foreground: var(--stgm-card-foreground);
+  --color-popover: var(--stgm-popover);
+  --color-popover-foreground: var(--stgm-popover-foreground);
+  --color-primary: var(--stgm-primary);
+  --color-primary-foreground: var(--stgm-primary-foreground);
+  --color-secondary: var(--stgm-secondary);
+  --color-secondary-foreground: var(--stgm-secondary-foreground);
+  --color-muted: var(--stgm-muted);
+  --color-muted-foreground: var(--stgm-muted-foreground);
+  --color-accent: var(--stgm-accent);
+  --color-accent-foreground: var(--stgm-accent-foreground);
+  --color-destructive: var(--stgm-destructive);
+  --color-destructive-foreground: var(--stgm-destructive-foreground);
+  --color-success: var(--stgm-success);
+  --color-success-foreground: var(--stgm-success-foreground);
+  --color-warning: var(--stgm-warning);
+  --color-warning-foreground: var(--stgm-warning-foreground);
+  --color-info: var(--stgm-info);
+  --color-info-foreground: var(--stgm-info-foreground);
+  --color-border: var(--stgm-border);
+  --color-input: var(--stgm-input);
+  --color-ring: var(--stgm-ring);
+  --color-chart-1: var(--stgm-chart-1);
+  --color-chart-2: var(--stgm-chart-2);
+  --color-chart-3: var(--stgm-chart-3);
+  --color-chart-4: var(--stgm-chart-4);
+  --color-chart-5: var(--stgm-chart-5);
+  --color-primary-hover: var(--stgm-primary-hover);
+  --color-primary-subtle: var(--stgm-primary-subtle);
+  --color-destructive-subtle: var(--stgm-destructive-subtle);
+  --color-muted-subtle: var(--stgm-muted-subtle);
+  --color-muted-foreground-subtle: var(--stgm-muted-foreground-subtle);
+  --color-backdrop: var(--stgm-backdrop);
+  --color-sidebar: var(--stgm-sidebar);
+  --color-sidebar-foreground: var(--stgm-sidebar-foreground);
+  --color-sidebar-primary: var(--stgm-sidebar-primary);
+  --color-sidebar-primary-foreground: var(--stgm-sidebar-primary-foreground);
+  --color-sidebar-muted: var(--stgm-sidebar-muted);
+  --color-sidebar-muted-foreground: var(--stgm-sidebar-muted-foreground);
+  --color-sidebar-accent: var(--stgm-sidebar-accent);
+  --color-sidebar-accent-foreground: var(--stgm-sidebar-accent-foreground);
+  --color-sidebar-border: var(--stgm-sidebar-border);
+  --color-sidebar-ring: var(--stgm-sidebar-ring);
+  --font-sans: var(--stgm-font-sans);
+  --font-mono: var(--stgm-font-mono);
+  --shadow-sm: var(--stgm-shadow-sm);
+  --shadow-md: var(--stgm-shadow-md);
+  --shadow-lg: var(--stgm-shadow-lg);
+  --default-transition-duration: var(--stgm-transition-duration);
+  --default-transition-timing-function: var(--stgm-transition-timing);
+}
+
+body {
+  font-feature-settings:
+    "rlig" 1,
+    "calt" 1;
+}

@@ -56,6 +56,8 @@ Three things are required:
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
 | `client` | `Stigmer` | Yes | A configured `@stigmer/sdk` client instance. |
+| `colorMode` | `"light" \| "dark" \| "system"` | No | Controls light/dark appearance. Defaults to `"light"`. |
+| `deploymentMode` | `"local" \| "cloud"` | No | Backend deployment mode. Defaults to `"cloud"`. |
 | `preset` | `ThemePresetId` | No | Built-in theme preset to apply. Omit for the default Stigmer palette. |
 | `className` | `string` | No | Additional CSS classes on the scoping container. |
 
@@ -109,8 +111,8 @@ Override any `--stgm-*` CSS custom property to match your product's design langu
   --stgm-transition-duration: 120ms;
 }
 
-.my-brand.dark,
-.dark .my-brand {
+.my-brand[data-stgm-color-mode="dark"],
+[data-stgm-color-mode="dark"] .my-brand {
   --stgm-primary: oklch(0.75 0.18 220);
   --stgm-primary-foreground: oklch(0.145 0 0);
   --stgm-shadow-md: 0 4px 12px rgb(0 0 0 / 0.3);
@@ -129,18 +131,60 @@ You can combine `preset` and `className`. The `className` overrides cascade on t
 
 ### Dark Mode
 
-Stigmer components respond to the `.dark` class on `<html>` (or any ancestor). The provider uses a descendant selector (`&:is(.dark *)`) so dark mode works regardless of where the provider is mounted in the DOM.
+Pass `colorMode` to control the appearance of all descendant Stigmer components. No ancestor CSS classes, no Tailwind conventions, no host DOM requirements.
 
-```html
-<!-- Host application controls dark mode -->
-<html class="dark">
-  <body>
-    <!-- StigmerProvider inherits dark mode automatically -->
-  </body>
-</html>
+```tsx
+// Explicit dark mode
+<StigmerProvider client={client} colorMode="dark">
+  {children}
+</StigmerProvider>
+
+// Follow the user's OS preference
+<StigmerProvider client={client} colorMode="system">
+  {children}
+</StigmerProvider>
 ```
 
-No additional configuration is needed. If your host application toggles `.dark` on `document.documentElement`, Stigmer components follow automatically.
+| Value | Behavior |
+|-------|----------|
+| `"light"` | Light design tokens (default). |
+| `"dark"` | Dark design tokens. |
+| `"system"` | Tracks `prefers-color-scheme` and updates automatically when the OS preference changes. |
+
+The resolved mode is set as a `data-stgm-color-mode` attribute on the scoping container. All `--stgm-*` token overrides and Tailwind `dark:` utilities activate from this attribute — the provider is fully self-contained.
+
+#### Bridging from a host theme system
+
+If your host application already manages dark mode (MUI, Chakra, `next-themes`, etc.), pass the resolved value directly:
+
+```tsx
+// MUI
+const muiMode = useTheme().palette.mode; // "light" | "dark"
+<StigmerProvider client={client} colorMode={muiMode}>
+
+// Chakra
+const { colorMode } = useColorMode(); // "light" | "dark"
+<StigmerProvider client={client} colorMode={colorMode}>
+
+// next-themes
+const { resolvedTheme } = useTheme();
+const colorMode = resolvedTheme === "dark" ? "dark" : "light";
+<StigmerProvider client={client} colorMode={colorMode}>
+```
+
+#### `useColorMode()` hook
+
+Read the resolved color mode from any descendant component:
+
+```tsx
+import { useColorMode } from "@stigmer/react";
+
+function MyComponent() {
+  const mode = useColorMode(); // "light" | "dark"
+}
+```
+
+Returns `"light"` or `"dark"` — never `"system"`. The provider resolves `"system"` before setting context.
 
 ## Style Isolation
 
@@ -156,7 +200,8 @@ This means you can mount `<StigmerProvider>` inside a sidebar, modal, or any sec
 
 | Import path | Content |
 |-------------|---------|
-| `@stigmer/react` | `StigmerProvider`, `StigmerContext`, `useStigmer` |
+| `@stigmer/react` | `StigmerProvider`, `StigmerContext`, `useStigmer`, `useColorMode`, `ColorModeContext` |
+| `@stigmer/react` (types) | `StigmerProviderProps`, `ColorMode`, `ResolvedColorMode` |
 | `@stigmer/react/styles.css` | Compiled stylesheet (import once at app root) |
 
 ## License

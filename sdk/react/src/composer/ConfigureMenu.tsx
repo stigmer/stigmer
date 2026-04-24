@@ -72,7 +72,7 @@ export function ConfigureMenu({
         disabled={disabled}
         className={cn(
           "inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors",
-          "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+          "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
           "disabled:pointer-events-none disabled:opacity-50",
         )}
         aria-label="Configure agent, tools, and skills"
@@ -80,7 +80,7 @@ export function ConfigureMenu({
         <ConfigureIcon />
         <span>Configure</span>
         {totalCount > 0 && (
-          <span className="rounded-full bg-primary/15 px-1.5 text-[0.6rem] font-medium text-primary">
+          <span className="rounded-full bg-primary-subtle px-1.5 text-[0.6rem] font-medium text-primary">
             {totalCount}
           </span>
         )}
@@ -138,7 +138,7 @@ function MenuList({
           onClick={() => onSelect(item.id)}
           className={cn(
             "flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors",
-            "text-foreground hover:bg-accent/50",
+            "text-foreground hover:bg-accent-hover",
           )}
         >
           <span className="shrink-0 text-muted-foreground">{item.icon}</span>
@@ -150,7 +150,7 @@ function MenuList({
             />
           )}
           {item.count > 0 && (
-            <span className="rounded-full bg-primary/15 px-1.5 text-[0.6rem] font-medium text-primary">
+            <span className="rounded-full bg-primary-subtle px-1.5 text-[0.6rem] font-medium text-primary">
               {item.count}
             </span>
           )}
@@ -176,11 +176,11 @@ function PanelView({
 }) {
   return (
     <div>
-      <div className="flex items-center gap-2 border-b border-border/50 px-3 py-2">
+      <div className="flex items-center gap-2 border-b border-border-muted px-3 py-2">
         <button
           type="button"
           onClick={onBack}
-          className="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+          className="shrink-0 rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent-hover hover:text-foreground"
           aria-label="Back to configuration menu"
         >
           <ChevronLeftIcon />

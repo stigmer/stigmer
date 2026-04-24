@@ -26,11 +26,11 @@ var File_ai_stigmer_agentic_agentexecution_v1_command_proto protoreflect.FileDes
 
 const file_ai_stigmer_agentic_agentexecution_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"2ai/stigmer/agentic/agentexecution/v1/command.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a-ai/stigmer/agentic/agentexecution/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xe4\x0f\n" +
+	"2ai/stigmer/agentic/agentexecution/v1/command.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a-ai/stigmer/agentic/agentexecution/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xe9\x0f\n" +
 	"\x1fAgentExecutionCommandController\x12z\n" +
 	"\x06create\x124.ai.stigmer.agentic.agentexecution.v1.AgentExecution\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"\x04и\x18\x01\x12\xb3\x01\n" +
-	"\x06update\x124.ai.stigmer.agentic.agentexecution.v1.AgentExecution\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"=¸\x189\b\x02\x10)\"\vmetadata.id*&unauthorized to update agent execution\x12\xcd\x01\n" +
-	"\fupdateStatus\x12E.ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"@¸\x18<\b\x13\x10\x1f*-unauthorized to update agent execution status2\astigmer\x12\xa6\x01\n" +
+	"\x06update\x124.ai.stigmer.agentic.agentexecution.v1.AgentExecution\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"=¸\x189\b\x02\x10)\"\vmetadata.id*&unauthorized to update agent execution\x12\xd2\x01\n" +
+	"\fupdateStatus\x12E.ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"E¸\x18A\b\x02\x10)\"\fexecution_id*-unauthorized to update agent execution status\x12\xa6\x01\n" +
 	"\x06delete\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"7¸\x183\b\x02\x10)\"\x05value*&unauthorized to delete agent execution\x12\xd4\x01\n" +
 	"\x0esubmitApproval\x129.ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"Q¸\x18M\b\x02\x10)\"\x12agent_execution_id*3unauthorized to submit approval for agent execution\x12\xb5\x01\n" +
 	"\x06cancel\x12?.ai.stigmer.agentic.agentexecution.v1.CancelAgentExecutionInput\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"4¸\x180\b\x02\x10)\"\x02id*&unauthorized to cancel agent execution\x12\xbe\x01\n" +

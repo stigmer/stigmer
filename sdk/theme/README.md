@@ -18,7 +18,7 @@ Import the base token stylesheet to get all Stigmer design variables (light and 
 @import "@stigmer/theme/tokens.css";
 ```
 
-This defines CSS custom properties on `:root` (light) and `.dark` (dark mode). All properties use the `--stgm-*` namespace to avoid collisions with host application styles.
+This defines CSS custom properties on `:root` (light) and `[data-stgm-color-mode="dark"]` (dark mode). All properties use the `--stgm-*` namespace to avoid collisions with host application styles.
 
 ### Token Reference
 
@@ -121,11 +121,7 @@ Each preset overrides the full token surface — radius, all surface colors, bor
 <html class="stgm-theme-corporate">
 ```
 
-For dark mode, both classes coexist:
-
-```html
-<html class="stgm-theme-corporate dark">
-```
+Dark mode is controlled by the `data-stgm-color-mode` attribute, which `StigmerProvider` sets automatically from its `colorMode` prop. Preset dark tokens activate when `data-stgm-color-mode="dark"` is present on the same element or an ancestor.
 
 3. All components consuming `--stgm-*` variables automatically pick up the new colors.
 
@@ -156,7 +152,8 @@ You can create your own theme by overriding `--stgm-*` variables. Only override 
   --stgm-sidebar-ring: oklch(0.55 0.15 220);
 }
 
-.my-custom-theme.dark {
+.my-custom-theme[data-stgm-color-mode="dark"],
+[data-stgm-color-mode="dark"] .my-custom-theme {
   --stgm-primary: oklch(0.75 0.18 220);
   --stgm-primary-foreground: oklch(0.145 0 0);
   --stgm-sidebar-primary: oklch(0.75 0.18 220);
@@ -165,10 +162,12 @@ You can create your own theme by overriding `--stgm-*` variables. Only override 
 }
 ```
 
-Apply it the same way:
+Apply via `className` on `StigmerProvider`:
 
-```html
-<html class="my-custom-theme dark">
+```tsx
+<StigmerProvider client={client} className="my-custom-theme" colorMode="dark">
+  {children}
+</StigmerProvider>
 ```
 
 ### What a Full Preset Overrides

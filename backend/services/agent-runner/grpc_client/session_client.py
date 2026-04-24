@@ -7,7 +7,6 @@ from ai.stigmer.agentic.session.v1 import command_pb2_grpc, query_pb2_grpc
 from ai.stigmer.agentic.session.v1.api_pb2 import Session
 from ai.stigmer.agentic.session.v1.io_pb2 import (
     SessionId,
-    UpdateSessionSandboxIdRequest,
     UpdateSessionSubjectRequest,
 )
 
@@ -23,7 +22,7 @@ class SessionClient:
     
     def __init__(
         self,
-        api_key: str,
+        token: str,
         *,
         timeout: float = _DEFAULT_GRPC_TIMEOUT_SECONDS,
         channel: grpc.aio.Channel | None = None,
@@ -32,7 +31,7 @@ class SessionClient:
         Initialize Session client with authentication.
         
         Args:
-            api_key: Stigmer API key for authentication.
+            token: Stigmer auth token (JWT or API key).
             timeout: Per-call gRPC deadline in seconds (must stay well under
                      Temporal's 30s heartbeat timeout to allow graceful recovery).
             channel: Optional shared gRPC channel (from ChannelProvider). When
@@ -43,7 +42,7 @@ class SessionClient:
             self._owns_channel = False
         else:
             config = Config.load_from_env()
-            interceptor = AuthClientInterceptor(api_key)
+            interceptor = AuthClientInterceptor(token)
             self.channel = create_channel(
                 config.stigmer_backend_endpoint, interceptors=[interceptor],
             )
@@ -98,20 +97,3 @@ class SessionClient:
         request = UpdateSessionSubjectRequest(id=session_id, subject=subject)
         return await self.command_stub.updateSubject(request, timeout=self._timeout)
 
-    async def update_sandbox_id(self, session_id: str, sandbox_id: str) -> Session:
-        """Set the session sandbox ID via a field-level update (race-safe).
-
-        The server atomically loads the session, sets only spec.sandbox_id,
-        and persists -- no other fields are touched.
-
-        Args:
-            session_id: The session ID to update.
-            sandbox_id: New Daytona sandbox ID.
-
-        Returns:
-            Updated Session protobuf object.
-        """
-        if not session_id:
-            raise ValueError("session_id cannot be empty")
-        request = UpdateSessionSandboxIdRequest(id=session_id, sandbox_id=sandbox_id)
-        return await self.command_stub.updateSandboxId(request, timeout=self._timeout)

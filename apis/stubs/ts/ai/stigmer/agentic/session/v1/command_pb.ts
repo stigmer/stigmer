@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { SessionSchema } from "./api_pb";
 import { file_ai_stigmer_agentic_session_v1_api } from "./api_pb";
-import type { SessionIdSchema, UpdateSessionSandboxIdRequestSchema, UpdateSessionSubjectRequestSchema } from "./io_pb";
+import type { SessionIdSchema, UpdateSessionSubjectRequestSchema } from "./io_pb";
 import { file_ai_stigmer_agentic_session_v1_io } from "./io_pb";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/session/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9jb21tYW5kLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MTKdBwoYU2Vzc2lvbkNvbW1hbmRDb250cm9sbGVyElcKBWFwcGx5EiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbhomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24SpQEKBmNyZWF0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24aJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIkvCuBhHCAgQHiIMbWV0YWRhdGEub3JnKjN1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIHNlc3Npb24gaW4gdGhpcyBvcmdhbml6YXRpb24SjwEKBnVwZGF0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24aJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIjXCuBgxCAIQKiILbWV0YWRhdGEuaWQqHnVuYXV0aG9yaXplZCB0byB1cGRhdGUgc2Vzc2lvbhKpAQoNdXBkYXRlU3ViamVjdBI6LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlVwZGF0ZVNlc3Npb25TdWJqZWN0UmVxdWVzdBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iNMK4GDAIAhAqIgJpZComdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBzZXNzaW9uIHN1YmplY3QSrQEKD3VwZGF0ZVNhbmRib3hJZBI8LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlVwZGF0ZVNlc3Npb25TYW5kYm94SWRSZXF1ZXN0GiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbiI0wrgYMAgCECoiAmlkKiZ1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHNlc3Npb24gc2FuZGJveBKLAQoGZGVsZXRlEiguYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbklkGiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbiIvwrgYKwgDECoiBXZhbHVlKh51bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHNlc3Npb24aBKD/KypiBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9jb21tYW5kLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MTLtBQoYU2Vzc2lvbkNvbW1hbmRDb250cm9sbGVyElcKBWFwcGx5EiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbhomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24SpQEKBmNyZWF0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24aJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIkvCuBhHCAgQHiIMbWV0YWRhdGEub3JnKjN1bmF1dGhvcml6ZWQgdG8gY3JlYXRlIHNlc3Npb24gaW4gdGhpcyBvcmdhbml6YXRpb24SjwEKBnVwZGF0ZRImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24aJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIjXCuBgxCAIQKiILbWV0YWRhdGEuaWQqHnVuYXV0aG9yaXplZCB0byB1cGRhdGUgc2Vzc2lvbhKpAQoNdXBkYXRlU3ViamVjdBI6LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlVwZGF0ZVNlc3Npb25TdWJqZWN0UmVxdWVzdBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iNMK4GDAIAhAqIgJpZComdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBzZXNzaW9uIHN1YmplY3QSiwEKBmRlbGV0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25JZBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iL8K4GCsIAxAqIgV2YWx1ZSoedW5hdXRob3JpemVkIHRvIGRlbGV0ZSBzZXNzaW9uGgSg/ysqYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * SessionCommandController handles write operations for agent sessions.
@@ -51,7 +51,7 @@ export const SessionCommandController: GenService<{
     output: typeof SessionSchema;
   },
   /**
-   * Update an existing session (e.g., subject, thread_id, sandbox_id).
+   * Update an existing session (e.g., subject, thread_id).
    *
    * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.update
    */
@@ -69,9 +69,7 @@ export const SessionCommandController: GenService<{
    *
    * @internal
    * Server-side field-level update, race-safe. Atomically modifies only
-   * spec.subject without touching other fields. Eliminates the lost-update
-   * race between GenerateSessionSubject and sandbox_manager, which both run
-   * in parallel during agent execution.
+   * spec.subject without touching other fields.
    *
    * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.updateSubject
    */
@@ -81,27 +79,7 @@ export const SessionCommandController: GenService<{
     output: typeof SessionSchema;
   },
   /**
-   * Set the session sandbox ID.
-   *
-   * This is a targeted update that modifies only the sandbox ID field,
-   * leaving other session fields untouched. Use this instead of the full
-   * update RPC when you only need to change the sandbox assignment.
-   *
-   * @internal
-   * Server-side field-level update, race-safe. Atomically modifies only
-   * spec.sandbox_id without touching other fields. Eliminates the lost-update
-   * race between sandbox_manager and GenerateSessionSubject, which both run
-   * in parallel during agent execution.
-   *
-   * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.updateSandboxId
-   */
-  updateSandboxId: {
-    methodKind: "unary";
-    input: typeof UpdateSessionSandboxIdRequestSchema;
-    output: typeof SessionSchema;
-  },
-  /**
-   * Delete a session (also cleans up thread and sandbox).
+   * Delete a session (also cleans up thread).
    *
    * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.delete
    */

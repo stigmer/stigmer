@@ -490,7 +490,7 @@ function healthPillProps(
       };
     case OAuthConnectionHealth.OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED:
       return {
-        pillClass: "bg-destructive/10 text-destructive",
+        pillClass: "bg-destructive-subtle text-destructive",
         dotClass: "bg-destructive",
         label: "Re-auth needed",
       };
@@ -681,7 +681,7 @@ function ConnectBar({
               }}
               className={cn(
                 "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-                "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
                 "disabled:pointer-events-none disabled:opacity-50",
               )}
             >
@@ -706,7 +706,7 @@ function ConnectBar({
           </div>
         </div>
         {disconnectError && (
-          <div className="flex items-start gap-2 border-t border-destructive/20 bg-destructive/5 px-3 py-2">
+          <div className="flex items-start gap-2 border-t border-destructive/20 bg-destructive-subtle px-3 py-2">
             <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
             <p className="flex-1 text-xs text-destructive">
               {getUserMessage(disconnectError)}
@@ -714,7 +714,7 @@ function ConnectBar({
             <button
               type="button"
               onClick={onClearDisconnectError}
-              className="shrink-0 text-xs text-destructive/70 hover:text-destructive"
+              className="shrink-0 text-xs text-destructive-muted hover:text-destructive"
               aria-label="Dismiss error"
             >
               Dismiss
@@ -751,7 +751,7 @@ function ConnectBar({
               }}
               className={cn(
                 "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-                "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
                 "disabled:pointer-events-none disabled:opacity-50",
               )}
             >
@@ -776,7 +776,7 @@ function ConnectBar({
           </div>
         </div>
         {removeOrgAppError && (
-          <div className="flex items-start gap-2 border-t border-destructive/20 bg-destructive/5 px-3 py-2">
+          <div className="flex items-start gap-2 border-t border-destructive/20 bg-destructive-subtle px-3 py-2">
             <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
             <p className="flex-1 text-xs text-destructive">
               {getUserMessage(removeOrgAppError)}
@@ -784,7 +784,7 @@ function ConnectBar({
             <button
               type="button"
               onClick={onClearRemoveOrgAppError}
-              className="shrink-0 text-xs text-destructive/70 hover:text-destructive"
+              className="shrink-0 text-xs text-destructive-muted hover:text-destructive"
               aria-label="Dismiss error"
             >
               Dismiss
@@ -925,7 +925,7 @@ function ConnectBar({
 
       {connectionError && (
         <div
-          className="flex items-start gap-2 border-t border-destructive/20 bg-destructive/5 px-3 py-2"
+          className="flex items-start gap-2 border-t border-destructive/20 bg-destructive-subtle px-3 py-2"
           role="alert"
         >
           <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
@@ -948,7 +948,7 @@ function ConnectBar({
             <button
               type="button"
               onClick={onClearConnectionError}
-              className="text-xs text-destructive/70 hover:text-destructive"
+              className="text-xs text-destructive-muted hover:text-destructive"
               aria-label="Dismiss error"
             >
               Dismiss
@@ -1004,14 +1004,14 @@ function ValidationBanner({ message }: { readonly message: string }) {
   return (
     <div
       role="alert"
-      className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3"
+      className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive-subtle px-4 py-3"
     >
       <WarningIcon className="mt-0.5 size-4 shrink-0 text-destructive" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-destructive">
           Invalid Configuration
         </p>
-        <p className="mt-0.5 text-xs text-destructive/80">{message}</p>
+        <p className="mt-0.5 text-xs text-destructive-muted">{message}</p>
       </div>
     </div>
   );
@@ -1301,12 +1301,12 @@ function EnvSection({
                 {env.isSecret ? "secret" : "config"}
               </span>
               {isOAuthManaged && (
-                <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                <span className="shrink-0 rounded bg-primary-subtle px-1.5 py-0.5 text-[10px] font-medium text-primary">
                   oauth
                 </span>
               )}
               {env.optional && (
-                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/70">
+                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground-subtle">
                   optional
                 </span>
               )}
@@ -1352,7 +1352,7 @@ function ToolsTabContent({
   if (tools.length === 0) {
     return (
       <div className="px-3 py-8 text-center">
-        <ConnectIcon className="mx-auto mb-2 size-6 text-muted-foreground/40" />
+        <ConnectIcon className="mx-auto mb-2 size-6 text-muted-foreground-faint" />
         <p className="text-xs text-muted-foreground">
           Connect to this MCP server to discover its available tools.
         </p>
@@ -1394,7 +1394,7 @@ function PoliciesTabContent({
   if (!hasAnyPolicies) {
     return (
       <div className="px-3 py-8 text-center">
-        <ShieldIcon className="mx-auto mb-2 size-6 text-muted-foreground/40" />
+        <ShieldIcon className="mx-auto mb-2 size-6 text-muted-foreground-faint" />
         <p className="text-xs text-muted-foreground">
           {hasDiscoveredTools
             ? "No approval policies yet. Reconnect to reclassify tools."
@@ -1435,7 +1435,7 @@ function PolicyGroup({
 }) {
   return (
     <div className="flex flex-col">
-      <div className="flex items-center gap-1.5 border-b border-border bg-muted/30 px-3 py-1.5">
+      <div className="flex items-center gap-1.5 border-b border-border bg-muted-faint px-3 py-1.5">
         <span className="text-muted-foreground">{icon}</span>
         <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           {label}
@@ -1519,7 +1519,7 @@ function LoadingSkeleton({ className }: { readonly className?: string }) {
         <div key={i} className="space-y-2">
           <div className="h-3 w-28 animate-pulse rounded bg-muted" />
           <div
-            className="animate-pulse rounded-lg border border-border bg-muted/30"
+            className="animate-pulse rounded-lg border border-border bg-muted-faint"
             style={{ height: `${h * 4}px` }}
           />
         </div>
@@ -1537,11 +1537,11 @@ function NotFoundState({ className }: { readonly className?: string }) {
         className,
       )}
     >
-      <McpServerIcon className="size-10 text-muted-foreground/40" />
+      <McpServerIcon className="size-10 text-muted-foreground-faint" />
       <p className="text-sm font-medium text-muted-foreground">
         MCP Server not found
       </p>
-      <p className="text-xs text-muted-foreground/60">
+      <p className="text-xs text-muted-foreground-subtle">
         This MCP server doesn&apos;t exist or you don&apos;t have access to it.
       </p>
     </div>

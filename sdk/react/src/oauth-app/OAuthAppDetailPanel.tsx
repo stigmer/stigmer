@@ -212,7 +212,7 @@ export function OAuthAppDetailPanel({
               onClick={enterEdit}
               className={cn(
                 "shrink-0 rounded-md px-2.5 py-1.5 text-xs font-medium",
-                "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
                 "transition-colors",
               )}
             >
@@ -226,7 +226,7 @@ export function OAuthAppDetailPanel({
               }}
               className={cn(
                 "shrink-0 rounded-md px-2.5 py-1.5 text-xs font-medium",
-                "text-destructive/70 hover:text-destructive hover:bg-destructive/10",
+                "text-destructive-muted hover:text-destructive hover:bg-destructive-subtle",
                 "transition-colors",
               )}
             >
@@ -239,7 +239,7 @@ export function OAuthAppDetailPanel({
       {/* Inline delete confirmation */}
       {confirmingDelete && (
         <div
-          className="rounded-md border border-destructive/30 bg-destructive/5 p-3"
+          className="rounded-md border border-destructive/30 bg-destructive-subtle p-3"
           role="alert"
         >
           <p className="text-foreground mb-2 text-xs font-medium">
@@ -261,7 +261,7 @@ export function OAuthAppDetailPanel({
               disabled={isDeleting}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-                "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
                 "disabled:pointer-events-none disabled:opacity-40",
               )}
             >
@@ -277,7 +277,7 @@ export function OAuthAppDetailPanel({
               disabled={isDeleting}
               className={cn(
                 "rounded-md px-2.5 py-1.5 text-xs",
-                "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
                 "disabled:pointer-events-none disabled:opacity-50",
               )}
             >
@@ -421,7 +421,7 @@ export function OAuthAppDetailPanel({
               disabled={!canSave}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-                "bg-primary text-primary-foreground hover:bg-primary/90",
+                "bg-primary text-primary-foreground hover:bg-primary-hover",
                 "disabled:pointer-events-none disabled:opacity-40",
               )}
             >
@@ -434,7 +434,7 @@ export function OAuthAppDetailPanel({
               disabled={isUpdating}
               className={cn(
                 "rounded-md px-2.5 py-1.5 text-xs",
-                "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
                 "disabled:pointer-events-none disabled:opacity-50",
               )}
             >

@@ -71,7 +71,7 @@ export function PlatformClientListPanel({
         {Array.from({ length: 2 }, (_, i) => (
           <div
             key={i}
-            className="bg-muted/40 h-14 animate-pulse rounded-lg"
+            className="bg-muted-subtle h-14 animate-pulse rounded-lg"
           />
         ))}
       </div>
@@ -169,7 +169,7 @@ function PlatformClientRow({
     return (
       <div
         role="listitem"
-        className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5"
+        className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive-subtle px-3 py-2.5"
       >
         <div className="min-w-0 flex-1">
           <p className="text-xs text-foreground">
@@ -195,7 +195,7 @@ function PlatformClientRow({
             disabled={isDeleting}
             className={cn(
               "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-              "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+              "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >
@@ -208,7 +208,7 @@ function PlatformClientRow({
             disabled={isDeleting}
             className={cn(
               "rounded-md px-2.5 py-1 text-xs",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >
@@ -222,7 +222,7 @@ function PlatformClientRow({
   return (
     <div
       role="listitem"
-      className="flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2.5 hover:border-border transition-colors"
+      className="flex items-center gap-3 rounded-lg border border-border-muted px-3 py-2.5 hover:border-border transition-colors"
     >
       <KeyIcon />
 
@@ -267,7 +267,7 @@ function PlatformClientRow({
             aria-label={`Edit ${name}`}
             className={cn(
               "shrink-0 rounded p-1",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
               "transition-colors",
             )}
           >
@@ -280,7 +280,7 @@ function PlatformClientRow({
           aria-label={`Delete ${name}`}
           className={cn(
             "shrink-0 rounded p-1",
-            "text-muted-foreground hover:text-destructive hover:bg-destructive/10",
+            "text-muted-foreground hover:text-destructive hover:bg-destructive-subtle",
             "transition-colors",
           )}
         >

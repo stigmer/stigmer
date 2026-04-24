@@ -27,6 +27,7 @@ public final class SessionInput {
     private final java.util.Map<String, String> metadata;
     private final java.util.List<WorkspaceEntryInput> workspaceEntries;
     private final java.util.List<McpServerUsageInput> mcpServerUsages;
+    private final String runnerId;
     private final java.util.List<ResourceRef> skillRefs;
 
     private SessionInput(Builder builder) {
@@ -41,6 +42,7 @@ public final class SessionInput {
         this.metadata = builder.metadata;
         this.workspaceEntries = builder.workspaceEntries;
         this.mcpServerUsages = builder.mcpServerUsages;
+        this.runnerId = builder.runnerId;
         this.skillRefs = builder.skillRefs;
     }
 
@@ -70,6 +72,9 @@ public final class SessionInput {
             for (McpServerUsageInput item : this.mcpServerUsages) {
                 spec.addMcpServerUsages(item.toProto());
             }
+        }
+        if (this.runnerId != null) {
+            spec.setRunnerId(this.runnerId);
         }
         if (this.skillRefs != null) {
             for (ResourceRef item : this.skillRefs) {
@@ -108,6 +113,7 @@ public final class SessionInput {
         private java.util.Map<String, String> metadata;
         private java.util.List<WorkspaceEntryInput> workspaceEntries;
         private java.util.List<McpServerUsageInput> mcpServerUsages;
+        private String runnerId;
         private java.util.List<ResourceRef> skillRefs;
 
         private Builder() {}
@@ -123,6 +129,7 @@ public final class SessionInput {
         public Builder metadata(java.util.Map<String, String> metadata) { this.metadata = metadata; return this; }
         public Builder workspaceEntries(java.util.List<WorkspaceEntryInput> workspaceEntries) { this.workspaceEntries = workspaceEntries; return this; }
         public Builder mcpServerUsages(java.util.List<McpServerUsageInput> mcpServerUsages) { this.mcpServerUsages = mcpServerUsages; return this; }
+        public Builder runnerId(String runnerId) { this.runnerId = runnerId; return this; }
         public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
 
         public SessionInput build() { return new SessionInput(this); }

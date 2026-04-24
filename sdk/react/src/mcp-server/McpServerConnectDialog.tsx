@@ -252,7 +252,7 @@ function ConnectDialogContent({
             className={cn(
               "mt-2 inline-flex items-center rounded-md px-4 py-2 text-sm font-medium",
               "bg-primary text-primary-foreground",
-              "hover:bg-primary/90",
+              "hover:bg-primary-hover",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             )}
           >
@@ -331,7 +331,7 @@ function ConnectDialogContent({
           className={cn(
             "mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium",
             "bg-primary text-primary-foreground",
-            "hover:bg-primary/90",
+            "hover:bg-primary-hover",
             "disabled:pointer-events-none disabled:opacity-50",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           )}
@@ -349,7 +349,7 @@ function ConnectDialogContent({
           className={cn(
             "mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium",
             "bg-primary text-primary-foreground",
-            "hover:bg-primary/90",
+            "hover:bg-primary-hover",
             "disabled:pointer-events-none disabled:opacity-50",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           )}
@@ -413,7 +413,7 @@ function OAuthSection({
 }) {
   if (isConnected) {
     return (
-      <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
+      <div className="flex items-center gap-2 rounded-md border border-border bg-muted-faint px-3 py-2">
         <span className="size-2 shrink-0 rounded-full bg-green-500" />
         <span className="text-sm text-foreground">OAuth connected</span>
       </div>
@@ -437,7 +437,7 @@ function OAuthSection({
         className={cn(
           "inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium",
           "bg-primary text-primary-foreground",
-          "hover:bg-primary/90",
+          "hover:bg-primary-hover",
           "disabled:pointer-events-none disabled:opacity-50",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         )}

@@ -134,7 +134,7 @@ export function Tabs({
                   className={cn(
                     "inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1 py-px text-[10px] font-medium leading-none",
                     isActive
-                      ? "bg-primary/10 text-primary"
+                      ? "bg-primary-subtle text-primary"
                       : "bg-muted text-muted-foreground",
                   )}
                 >

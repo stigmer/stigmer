@@ -4,11 +4,10 @@ Public API — backend layer:
     WorkspaceBackend        Protocol for workspace file + process operations.
     ExecuteResult           Return type for ``WorkspaceBackend.execute()``.
     LocalWorkspaceBackend   Adapter backed by the local filesystem.
-    DaytonaWorkspaceBackend Adapter backed by a Daytona sandbox.
-    initialize_workspace    Factory that creates the right backend.
+    initialize_workspace    Factory that creates the backend.
     WorkspaceInitResult     Structured result from ``initialize_workspace()``.
 
-Public API — provisioning layer (Phase 2):
+Public API — provisioning layer:
     WorkspaceProvisioner    Dispatches on ``WorkspaceSource`` to populate a
                             workspace (git clone, local path, or empty).
     ProvisionResult         Immutable result of provisioning.
@@ -20,13 +19,11 @@ Public API — provisioning layer (Phase 2):
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from worker.workspace.backend import ExecuteResult, WorkspaceBackend
-from worker.workspace.daytona import DaytonaWorkspaceBackend
 from worker.workspace.local import LocalWorkspaceBackend
 from worker.workspace.provisioner import (
     GitMetadata,
@@ -43,7 +40,6 @@ _SESSIONS_SUBDIR = "sessions"
 _PLATFORM_SUBDIR = "platform"
 
 __all__ = [
-    "DaytonaWorkspaceBackend",
     "ExecuteResult",
     "GitMetadata",
     "LocalWorkspaceBackend",
@@ -61,27 +57,19 @@ __all__ = [
 class WorkspaceInitResult:
     """Structured result from :func:`initialize_workspace`.
 
-    Replaces the previous positional tuple return to provide named,
-    self-documenting fields that are safe to extend in future phases.
-
     Attributes:
         backend:        The constructed ``WorkspaceBackend``.
-        sandbox:        Raw Daytona ``Sandbox`` object in cloud mode,
-                        ``None`` in local mode.
-        is_new_sandbox: Whether the sandbox was freshly created.
         platform_dir:   Absolute path to the platform directory where
                         ``.stigmer/`` files physically live, or ``None``
                         when the virtual mount is not active.
     """
 
     backend: WorkspaceBackend
-    sandbox: Any | None
-    is_new_sandbox: bool
     platform_dir: str | None = None
 
 
-def _compute_local_platform_dir(session_id: str | None) -> Path | None:
-    """Compute the local platform directory for a session.
+def _compute_platform_dir(session_id: str | None) -> Path | None:
+    """Compute the platform directory for a session.
 
     Returns ``None`` when there is no session_id (backward compat with
     ephemeral usage), otherwise ``~/.stigmer/sessions/{session_id}/platform/``.
@@ -95,118 +83,40 @@ def _compute_local_platform_dir(session_id: str | None) -> Path | None:
 async def initialize_workspace(
     *,
     worker_config: Any,
-    sandbox_config: dict[str, Any],
-    sandbox_manager: Any | None,
+    workspace_config: dict[str, Any],
     session_id: str | None,
-    session_client: Any,
     activity_logger: logging.Logger | None = None,
-    heartbeat_fn: Callable[[str], None] | None = None,
 ) -> WorkspaceInitResult:
-    """Create the appropriate ``WorkspaceBackend`` for the current mode.
+    """Create a ``LocalWorkspaceBackend`` for the current workspace config.
 
-    This is the **single point** where the local-vs-cloud decision is
-    made.  All downstream code receives a ``WorkspaceBackend`` and never
-    branches on deployment mode.
-
-    Args:
-        heartbeat_fn: Optional callback forwarded to SandboxManager so the
-            Temporal activity stays alive during long sandbox creation waits.
+    The runner always uses a local filesystem backend — whether it is
+    running on a developer laptop or inside a Daytona sandbox provisioned
+    by stigmer-service, the workspace is a local directory.
 
     Returns:
-        A :class:`WorkspaceInitResult` with the backend, optional sandbox,
-        and the platform directory path (when the virtual mount is active).
+        A :class:`WorkspaceInitResult` with the backend and optional
+        platform directory path.
     """
-    from worker.sandbox_manager import DAYTONA_WORKSPACE_MOUNT_PATH
-
     log = activity_logger or logger
 
-    if worker_config.is_local_mode():
-        root_dir = sandbox_config.get("root_dir")
-        if not root_dir:
-            raise ValueError(
-                "sandbox_config['root_dir'] is required in local mode"
-            )
+    root_dir = workspace_config.get("root_dir")
+    if not root_dir:
+        raise ValueError("workspace_config['root_dir'] is required")
 
-        platform_dir = _compute_local_platform_dir(session_id)
-        if platform_dir is not None:
-            log.info(
-                "Local mode — workspace root: %s, platform_dir: %s",
-                root_dir, platform_dir,
-            )
-        else:
-            log.info("Local mode — workspace root: %s", root_dir)
-
-        backend: WorkspaceBackend = LocalWorkspaceBackend(
-            root_dir=root_dir,
-            platform_dir=platform_dir,
-        )
-        return WorkspaceInitResult(
-            backend=backend,
-            sandbox=None,
-            is_new_sandbox=False,
-            platform_dir=str(platform_dir) if platform_dir else None,
-        )
-
-    # -- Cloud mode -----------------------------------------------------------
-
-    if sandbox_manager is None:
-        raise RuntimeError("Sandbox manager not initialized for cloud mode")
-
-    log.info(
-        "%s",
-        (
-            "Checking for existing sandbox in session"
-            if session_id
-            else "Creating ephemeral sandbox"
-        ),
-    )
-
-    sandbox, is_new_sandbox = await sandbox_manager.get_or_create_daytona_sandbox(
-        sandbox_config=sandbox_config,
-        session_id=session_id,
-        session_client=session_client,
-        heartbeat_fn=heartbeat_fn,
-    )
-
-    log.info(
-        "Sandbox %s: %s",
-        "created" if is_new_sandbox else "reused",
-        sandbox.id,
-    )
-
-    # Workspace root lives on the sandbox's local overlay filesystem.
-    # No volume mount — local overlay is ~2,360x faster than FUSE+S3
-    # for file-creation-heavy workloads like git checkout.
-    workspace_root = DAYTONA_WORKSPACE_MOUNT_PATH
-
-    # Resolve sandbox root so the backend can compute the rebase prefix
-    # needed for artifact publishing (sandbox.fs resolves paths relative
-    # to the sandbox root, not the workspace root).
-    try:
-        sandbox_root = sandbox.get_work_dir().rstrip("/")
+    platform_dir = _compute_platform_dir(session_id)
+    if platform_dir is not None:
         log.info(
-            "Local-overlay workspace: workspace_root=%s, sandbox_root=%s",
-            workspace_root,
-            sandbox_root,
+            "Workspace root: %s, platform_dir: %s",
+            root_dir, platform_dir,
         )
-    except Exception as exc:
-        sandbox_root = "/home/daytona"
-        log.warning(
-            "sandbox.get_work_dir() failed (%s); defaulting sandbox_root "
-            "to '%s'",
-            exc,
-            sandbox_root,
-        )
+    else:
+        log.info("Workspace root: %s", root_dir)
 
-    backend = DaytonaWorkspaceBackend(
-        sandbox=sandbox,
-        workspace_root=workspace_root,
-        sandbox_root=sandbox_root,
+    backend: WorkspaceBackend = LocalWorkspaceBackend(
+        root_dir=root_dir,
+        platform_dir=platform_dir,
     )
-    # Cloud-mode platform_dir deferred to Phase B.
     return WorkspaceInitResult(
         backend=backend,
-        sandbox=sandbox,
-        is_new_sandbox=is_new_sandbox,
-        platform_dir=None,
+        platform_dir=str(platform_dir) if platform_dir else None,
     )

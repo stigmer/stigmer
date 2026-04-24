@@ -97,7 +97,7 @@ export function McpToolSelector({
           <p className="text-xs text-muted-foreground">
             Tools have not been discovered yet.
           </p>
-          <p className="mt-1 text-[0.65rem] text-muted-foreground/70">
+          <p className="mt-1 text-[0.65rem] text-muted-foreground-subtle">
             All tools will be enabled by default.
           </p>
         </div>
@@ -119,7 +119,7 @@ export function McpToolSelector({
             disabled={disabled}
             className={cn(
               "rounded px-1.5 py-0.5 text-[0.6rem] font-medium",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >
@@ -131,7 +131,7 @@ export function McpToolSelector({
             disabled={disabled}
             className={cn(
               "rounded px-1.5 py-0.5 text-[0.6rem] font-medium",
-              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >
@@ -163,7 +163,7 @@ export function McpToolSelector({
                 key={tool.name}
                 className={cn(
                   "group rounded-md px-2 py-1.5 transition-colors",
-                  isEnabled ? "bg-accent/30" : "hover:bg-accent/20",
+                  isEnabled ? "bg-accent-hover" : "hover:bg-accent-hover",
                 )}
               >
                 <label

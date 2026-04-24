@@ -55,11 +55,3 @@ class UpdateSessionSubjectRequest(_message.Message):
     id: str
     subject: str
     def __init__(self, id: _Optional[str] = ..., subject: _Optional[str] = ...) -> None: ...
-
-class UpdateSessionSandboxIdRequest(_message.Message):
-    __slots__ = ("id", "sandbox_id")
-    ID_FIELD_NUMBER: _ClassVar[int]
-    SANDBOX_ID_FIELD_NUMBER: _ClassVar[int]
-    id: str
-    sandbox_id: str
-    def __init__(self, id: _Optional[str] = ..., sandbox_id: _Optional[str] = ...) -> None: ...

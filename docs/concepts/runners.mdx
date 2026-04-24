@@ -1,0 +1,166 @@
+---
+title: Runners
+description:
+  A Runner is a process that connects to Stigmer and executes your Agents. Learn
+  about local and cloud runners, their lifecycle phases, and how sessions
+  connect to runners.
+---
+
+Every [Agent](/docs/concepts/agents) needs somewhere to run. An Agent definition
+describes _what_ the Agent does — its instructions, Skills, and tools. A Runner
+is _where_ it runs. It is the process that picks up work, calls the LLM,
+executes tool calls, and reports results back to the server.
+
+Without a runner, an Agent is a blueprint sitting idle. With one, it can handle
+requests.
+
+## Runners in the platform
+
+Runners sit at the execution layer of the resource model. When you send a
+message to a [Session](/docs/concepts/sessions), Stigmer creates an
+[Agent Execution](/docs/concepts/agents#blueprint-vs-runtime) and dispatches it
+to a runner. The runner processes the execution — calling the LLM, running
+tools, pausing for [approval](/docs/concepts/approval-flows) — and streams the
+result back.
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={`
+graph LR
+  A["Agent<br/>(blueprint)"] --> AI["Agent Instance<br/>(deployment)"]
+  AI --> S["Session<br/>(conversation)"]
+  S --> AE["Execution<br/>(single run)"]
+  AE --> R["Runner<br/>(compute)"]
+`}
+/>
+
+| Resource            | What it represents             | Analogy                          |
+| ------------------- | ------------------------------ | -------------------------------- |
+| **Agent**           | Instructions, Skills, tools    | A recipe                         |
+| **Agent Instance**  | Agent bound to Environments    | A kitchen set up for that recipe |
+| **Session**         | Conversation with memory       | An ongoing order at that kitchen |
+| **Agent Execution** | One request-response cycle     | Preparing one dish               |
+| **Runner**          | The process that does the work | The cook                         |
+
+Unlike Agents and Skills, you don't write a Runner definition in YAML. Runners
+register themselves. You start a runner process, it connects to the server,
+heartbeats to stay alive, and picks up executions. The server tracks each runner
+as a resource with a thin spec and rich status — similar to how Kubernetes
+tracks Nodes.
+
+## Local and cloud runners
+
+Runners come in two flavors. The distinction determines who controls the
+machine, how the runner starts, and when it goes away.
+
+|                   | Local runner                                                | Cloud runner                                       |
+| ----------------- | ----------------------------------------------------------- | -------------------------------------------------- |
+| **Who starts it** | You — via the CLI or the desktop app                        | The platform — automatically                       |
+| **Where it runs** | Your machine (laptop, server, CI)                           | Stigmer-managed infrastructure                     |
+| **Lifecycle**     | Persistent — stays until you stop it                        | Ephemeral — created per execution, torn down after |
+| **Visibility**    | Appears in Settings > Runners and the Session composer      | Hidden from the Session composer by default        |
+| **Good for**      | Development, testing, on-premises, data-sensitive workloads | Zero-setup production, burst capacity              |
+
+**Local runners** give you control. Your Agent executes on your machine, with
+access to your local file system. Start one with `stigmer up` from the CLI or
+launch one from the [Stigmer Desktop](/docs/guides/desktop/overview) app. Local
+runners can use the native Python runtime or run inside a Docker container — the
+[CLI runner guides](/docs/guides/runners/local-runner) cover both options.
+
+**Cloud runners** remove setup entirely. When a Session needs compute and no
+runner is specified, the platform provisions one on demand. Cloud runners are
+labeled `stigmer.ai/system-managed` and cleaned up automatically. You see them
+in the admin runner list but not in the Session composer.
+
+## Runner lifecycle
+
+Every runner moves through a set of phases. These phases appear as status badges
+in the web console and reflect what the runner is doing right now.
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={[
+    "stateDiagram-v2",
+    "  [*] --> Pending",
+    "  Pending --> Ready: first heartbeat",
+    "  Ready --> Busy: at max capacity",
+    "  Busy --> Ready: capacity freed",
+    "  Ready --> Stopped: timeout or explicit stop",
+    "  Busy --> Stopped: timeout or explicit stop",
+    "  Stopped --> Ready: process restarts",
+    "  Pending --> Failed: unrecoverable error",
+    "  Ready --> Failed: unrecoverable error",
+    "  Busy --> Failed: unrecoverable error",
+    "  Stopped --> Failed: unrecoverable error",
+  ].join("\n")}
+/>
+
+| Phase       | What it means                                        | What triggers it                              |
+| ----------- | ---------------------------------------------------- | --------------------------------------------- |
+| **Pending** | Resource exists, runner process hasn't connected yet | Runner created but not yet sending heartbeats |
+| **Ready**   | Connected and accepting new executions               | First heartbeat received (or restart)         |
+| **Busy**    | Connected but at maximum concurrent capacity         | Runner reports it cannot take more work       |
+| **Stopped** | No longer sending heartbeats, resource retained      | Heartbeat timeout, explicit stop, or shutdown |
+| **Failed**  | Unrecoverable error                                  | Fatal condition reported by runner or server  |
+
+Two things drive phase transitions:
+
+1. **The runner process** sends a heartbeat every 30 seconds. Each heartbeat
+   reports the runner's phase, current execution count, and machine information.
+   The first heartbeat moves a runner from Pending to Ready.
+
+2. **The server** monitors heartbeats. If a runner misses its heartbeat window,
+   the server marks it Stopped. You can also stop a runner explicitly from the
+   web console, the CLI, or the SDK.
+
+A Stopped runner is not gone. If the same runner process restarts and sends
+heartbeats again, it transitions back to Ready. The runner's identity persists
+across restarts — the CLI stores the runner ID locally and reactivates the same
+resource.
+
+## How Sessions find runners
+
+When you start a conversation, Stigmer needs to decide which runner handles the
+executions. There are three modes:
+
+**Auto (default)** — You don't pick a runner. Stigmer chooses for you. In cloud
+mode, it provisions an ephemeral runner on demand. In local/OSS mode, it routes
+to the runner embedded in `stigmer up server`.
+
+**Explicit selection** — You pick a runner from the runner picker in the Session
+composer. Only runners in the Ready or Busy phase appear as selectable options.
+This is how you direct work to a specific machine — your laptop, a GPU server,
+or a build Agent.
+
+**Session binding** — A Session remembers its runner. Once an execution runs on
+a runner, subsequent messages in that Session route to the same runner. If the
+bound runner is unavailable, the Session falls back to automatic provisioning.
+
+## Runners in the web console
+
+In Settings > Runners, you see every runner in your Organization — local runners
+you started, and optionally the system-managed ones the platform created. Each
+row shows the runner's name, phase badge, machine info, and an action menu for
+stop and delete operations.
+
+<DemoRunnerListDetail />
+
+## What's next
+
+You understand what runners are and how they fit the platform. The next step
+depends on what you want to do:
+
+- **Install the desktop app** — The
+  [Desktop app guide](/docs/guides/desktop/overview) walks you through
+  installing Stigmer Desktop and launching local runners from your browser.
+- **Manage runners from the CLI** — The
+  [CLI runner guides](/docs/guides/runners/local-runner) cover `stigmer up`,
+  Docker runners, and stopping runners.
+- **Build with runner hooks** — The
+  [React SDK runner reference](/docs/sdk/react/runner) documents
+  `useRunnerList`, `RunnerListPanel`, `RunnerPicker`, and the launch, stop, and
+  delete hooks.
+
+The next concept page covers [Workflows](/docs/concepts/workflows) — multi-step
+automation sequences that chain Agent calls, HTTP requests, and approval gates
+into structured processes.

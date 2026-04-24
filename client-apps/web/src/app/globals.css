@@ -7,7 +7,7 @@
 @import "@stigmer/theme/presets/fintech.css";
 @import "@stigmer/react/styles.css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark *, [data-stgm-color-mode="dark"] *));
 
 @theme inline {
   --radius-sm: calc(var(--stgm-radius) - 4px);
@@ -46,9 +46,17 @@
   --color-chart-5: var(--stgm-chart-5);
   --color-primary-hover: var(--stgm-primary-hover);
   --color-primary-subtle: var(--stgm-primary-subtle);
+  --color-primary-muted: var(--stgm-primary-muted);
   --color-destructive-subtle: var(--stgm-destructive-subtle);
+  --color-destructive-hover: var(--stgm-destructive-hover);
+  --color-destructive-muted: var(--stgm-destructive-muted);
+  --color-accent-hover: var(--stgm-accent-hover);
+  --color-foreground-hover: var(--stgm-foreground-hover);
   --color-muted-subtle: var(--stgm-muted-subtle);
+  --color-muted-faint: var(--stgm-muted-faint);
   --color-muted-foreground-subtle: var(--stgm-muted-foreground-subtle);
+  --color-muted-foreground-faint: var(--stgm-muted-foreground-faint);
+  --color-border-muted: var(--stgm-border-muted);
   --color-backdrop: var(--stgm-backdrop);
   --color-sidebar: var(--stgm-sidebar);
   --color-sidebar-foreground: var(--stgm-sidebar-foreground);

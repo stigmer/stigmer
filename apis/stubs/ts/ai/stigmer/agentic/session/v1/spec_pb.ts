@@ -18,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSK+BQoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIRCgl0aHJlYWRfaWQYAyABKAkSEgoKc2FuZGJveF9pZBgEIAEoCRJKCghtZXRhZGF0YRgFIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjLk1ldGFkYXRhRW50cnkSSAoRd29ya3NwYWNlX2VudHJpZXMYBiADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRLZAQoRbWNwX3NlcnZlcl91c2FnZXMYByADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuTWNwU2VydmVyVXNhZ2VCkAG6SIwBkgGIASKFAboBgQEKHnNlc3Npb25fbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSuAEKCnNraWxsX3JlZnMYCCADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCbrpIZ5IBZCJiugFfChdzZXNzaW9uX3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrGi8KDU1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AWIGcHJvdG8z", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSLVBQoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIRCgl0aHJlYWRfaWQYAyABKAkSFgoKc2FuZGJveF9pZBgEIAEoCUICGAESSgoIbWV0YWRhdGEYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYy5NZXRhZGF0YUVudHJ5EkgKEXdvcmtzcGFjZV9lbnRyaWVzGAYgAygLMi0uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuV29ya3NwYWNlRW50cnkS2QEKEW1jcF9zZXJ2ZXJfdXNhZ2VzGAcgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLk1jcFNlcnZlclVzYWdlQpABukiMAZIBiAEihQG6AYEBCh5zZXNzaW9uX21jcF9zZXJ2ZXJfdXNhZ2VzLmtpbmQSP21jcF9zZXJ2ZXJfdXNhZ2VzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9bWNwX3NlcnZlchoedGhpcy5tY3Bfc2VydmVyX3JlZi5raW5kID09IDQ0EhEKCXJ1bm5lcl9pZBgJIAEoCRK4AQoKc2tpbGxfcmVmcxgIIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJuukhnkgFkImK6AV8KF3Nlc3Npb25fc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * SessionSpec defines the configurable properties of a session.
@@ -60,12 +60,13 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
   threadId: string;
 
   /**
-   * Sandbox ID for persistent file storage across executions.
+   * Deprecated: sandbox lifecycle is now managed at the Runner level via
+   * the stigmer.ai/sandbox-id metadata label on the Runner resource.
+   * Existing sessions may still have this field populated; new sessions
+   * should not set it.
    *
-   * @internal
-   * Created on first execution (Daytona sandbox), reused for file persistence.
-   *
-   * @generated from field: string sandbox_id = 4;
+   * @generated from field: string sandbox_id = 4 [deprecated = true];
+   * @deprecated
    */
   sandboxId: string;
 
@@ -106,6 +107,26 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * @generated from field: repeated ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7;
    */
   mcpServerUsages: McpServerUsage[];
+
+  /**
+   * Runner that executes work for this session.
+   *
+   * When set, all executions in this session route to this runner's task queue.
+   * When empty, the platform auto-creates an ephemeral cloud runner on first
+   * execution and sets this field.
+   *
+   * For persistent runners (user-created via CLI/desktop), this is set by the
+   * session composer when the user picks their runner. For cloud executions,
+   * this is set automatically by the system.
+   *
+   * @internal
+   * The execution workflow reads this field to resolve the Temporal task queue
+   * for scheduling activities. When empty, the workflow calls the
+   * RunnerLauncher to spawn an ephemeral runner and populates this field.
+   *
+   * @generated from field: string runner_id = 9;
+   */
+  runnerId: string;
 
   /**
    * Skills to inject into this session's context.

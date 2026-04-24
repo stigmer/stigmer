@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	runnerv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/runner/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -545,6 +546,168 @@ func TestSessionController_Delete(t *testing.T) {
 
 		if deleted.Metadata.Name != "Delete Verify Session" {
 			t.Errorf("Expected name 'Delete Verify Session', got '%s'", deleted.Metadata.Name)
+		}
+	})
+}
+
+// saveTestRunner is a helper that persists a Runner resource into the store
+// with the given phase and task queue.
+func saveTestRunner(t *testing.T, s store.Store, id, name string, phase runnerv1.RunnerPhase, taskQueue string) {
+	t.Helper()
+	runner := &runnerv1.Runner{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Runner",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   id,
+			Name: name,
+			Org:  "test-org",
+		},
+		Spec: &runnerv1.RunnerSpec{},
+		Status: &runnerv1.RunnerStatus{
+			Phase:     phase,
+			TaskQueue: taskQueue,
+		},
+	}
+	if err := s.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_runner, id, runner); err != nil {
+		t.Fatalf("failed to save test runner: %v", err)
+	}
+}
+
+func TestResolveDefaultRunner(t *testing.T) {
+	t.Run("sole READY runner is auto-bound", func(t *testing.T) {
+		controller, s := setupTestController(t)
+		defer s.Close()
+
+		saveTestRunner(t, s, "rnr_abc", "embedded", runnerv1.RunnerPhase_RUNNER_PHASE_READY, "runner:rnr_abc")
+
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata:   &apiresource.ApiResourceMetadata{Name: "Runner Bind Test", Org: "test-org"},
+			Spec:       &sessionv1.SessionSpec{AgentInstanceId: "test-instance"},
+		}
+
+		created, err := controller.Create(contextWithSessionKind(), session)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		if created.Spec.RunnerId != "rnr_abc" {
+			t.Errorf("Expected runner_id 'rnr_abc', got '%s'", created.Spec.RunnerId)
+		}
+	})
+
+	t.Run("no runners — runner_id stays empty", func(t *testing.T) {
+		controller, s := setupTestController(t)
+		defer s.Close()
+
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata:   &apiresource.ApiResourceMetadata{Name: "No Runner Test", Org: "test-org"},
+			Spec:       &sessionv1.SessionSpec{AgentInstanceId: "test-instance"},
+		}
+
+		created, err := controller.Create(contextWithSessionKind(), session)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		if created.Spec.RunnerId != "" {
+			t.Errorf("Expected empty runner_id, got '%s'", created.Spec.RunnerId)
+		}
+	})
+
+	t.Run("multiple READY runners — runner_id stays empty", func(t *testing.T) {
+		controller, s := setupTestController(t)
+		defer s.Close()
+
+		saveTestRunner(t, s, "rnr_1", "runner-1", runnerv1.RunnerPhase_RUNNER_PHASE_READY, "runner:rnr_1")
+		saveTestRunner(t, s, "rnr_2", "runner-2", runnerv1.RunnerPhase_RUNNER_PHASE_READY, "runner:rnr_2")
+
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata:   &apiresource.ApiResourceMetadata{Name: "Multi Runner Test", Org: "test-org"},
+			Spec:       &sessionv1.SessionSpec{AgentInstanceId: "test-instance"},
+		}
+
+		created, err := controller.Create(contextWithSessionKind(), session)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		if created.Spec.RunnerId != "" {
+			t.Errorf("Expected empty runner_id with multiple runners, got '%s'", created.Spec.RunnerId)
+		}
+	})
+
+	t.Run("explicit runner_id preserved — no override", func(t *testing.T) {
+		controller, s := setupTestController(t)
+		defer s.Close()
+
+		saveTestRunner(t, s, "rnr_sole", "sole-runner", runnerv1.RunnerPhase_RUNNER_PHASE_READY, "runner:rnr_sole")
+
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata:   &apiresource.ApiResourceMetadata{Name: "Explicit Runner Test", Org: "test-org"},
+			Spec:       &sessionv1.SessionSpec{AgentInstanceId: "test-instance", RunnerId: "rnr_explicit"},
+		}
+
+		created, err := controller.Create(contextWithSessionKind(), session)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		if created.Spec.RunnerId != "rnr_explicit" {
+			t.Errorf("Expected runner_id 'rnr_explicit', got '%s'", created.Spec.RunnerId)
+		}
+	})
+
+	t.Run("only BUSY runner — runner_id stays empty", func(t *testing.T) {
+		controller, s := setupTestController(t)
+		defer s.Close()
+
+		saveTestRunner(t, s, "rnr_busy", "busy-runner", runnerv1.RunnerPhase_RUNNER_PHASE_BUSY, "runner:rnr_busy")
+
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata:   &apiresource.ApiResourceMetadata{Name: "Busy Runner Test", Org: "test-org"},
+			Spec:       &sessionv1.SessionSpec{AgentInstanceId: "test-instance"},
+		}
+
+		created, err := controller.Create(contextWithSessionKind(), session)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		if created.Spec.RunnerId != "" {
+			t.Errorf("Expected empty runner_id with only BUSY runner, got '%s'", created.Spec.RunnerId)
+		}
+	})
+
+	t.Run("only STOPPED runner — runner_id stays empty", func(t *testing.T) {
+		controller, s := setupTestController(t)
+		defer s.Close()
+
+		saveTestRunner(t, s, "rnr_stop", "stopped-runner", runnerv1.RunnerPhase_RUNNER_PHASE_STOPPED, "runner:rnr_stop")
+
+		session := &sessionv1.Session{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Session",
+			Metadata:   &apiresource.ApiResourceMetadata{Name: "Stopped Runner Test", Org: "test-org"},
+			Spec:       &sessionv1.SessionSpec{AgentInstanceId: "test-instance"},
+		}
+
+		created, err := controller.Create(contextWithSessionKind(), session)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		if created.Spec.RunnerId != "" {
+			t.Errorf("Expected empty runner_id with only STOPPED runner, got '%s'", created.Spec.RunnerId)
 		}
 	})
 }

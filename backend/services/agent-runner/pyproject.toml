@@ -35,8 +35,6 @@ langchain-openai = ">=0.3.0"
 # Graphton (local copy)
 graphton = {path = "../../libs/python/graphton", develop = true}
 
-# Daytona sandbox support
-daytona = ">=0.113.0"
 deepagents-cli = ">=0.0.3,<0.1.0"  # pinned: wildcard pulled corrupted transitive deps twice (2026-02-14)
 
 # gRPC
@@ -51,9 +49,6 @@ pyjwt = "^2.8.0"
 
 # Cloudflare R2 artifact storage (S3-compatible API, default for cloud mode)
 boto3 = "^1.35.0"
-
-# Redis
-redis = "^5.0.0"
 
 # Environment variable loading (local development)
 python-dotenv = "^1.0.0"

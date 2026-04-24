@@ -1,0 +1,50 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-config-schema/schema.json",
+  "productName": "Stigmer",
+  "version": "0.1.0",
+  "identifier": "ai.stigmer.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Stigmer",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' https://*.stigmer.ai wss://*.stigmer.ai http://localhost:* ws://localhost:*; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https://fonts.gstatic.com"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/icon.png"
+    ],
+    "externalBin": [
+      "binaries/stigmer"
+    ]
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["stigmer"]
+      }
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMyM0M3QjU0M0Y2N0RBQTgKUldTbzJtYy9WSHM4d2lKc1FzYXhScjg1OW9pTTN2M1dHeHF3YTFwVW93bG1qVTJqK2Z0VysrUVgK",
+      "endpoints": [
+        "https://github.com/stigmer/stigmer/releases/latest/download/latest.json"
+      ]
+    }
+  }
+}

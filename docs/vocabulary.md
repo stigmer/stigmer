@@ -54,17 +54,18 @@ more precise language. Never use a right-column term in a left-column context.
 Scan this table to find the right word for your context. Detailed entries with
 definitions, API names, and examples follow below.
 
-| Term              | Sales site            | Quickstart / tutorial          | Concepts / how-to   | Reference / SDK                        | README         |
-| ----------------- | --------------------- | ------------------------------ | ------------------- | -------------------------------------- | -------------- |
-| **Agent**         | Agent                 | Agent                          | Agent               | Agent, `kind: Agent`                   | Agent          |
-| **Skill**         | domain knowledge      | Skill ("domain knowledge")     | Skill               | Skill, `skill_refs`                    | Skill          |
-| **MCP Server**    | tools                 | MCP server ("tool connection") | MCP Server          | McpServer, `mcp_server_usages`         | MCP server     |
-| **Session**       | conversation          | Session ("conversation")       | Session             | Session, `kind: Session`               | Session        |
-| **Workflow**      | multi-step automation | Workflow                       | Workflow            | Workflow, `kind: Workflow`             | Workflow       |
-| **Approval flow** | approval flow         | approval flow                  | approval flow, HITL | `ToolApprovalPolicy`, `submitApproval` | HITL, approval |
-| **Organization**  | Organization          | Organization                   | Organization        | Organization, `kind: organization`     | Organization   |
-| **Project**       | Project               | Project                        | Project             | Project, `kind: project`               | Project        |
-| **Environment**   | Environment           | Environment                    | Environment         | Environment, `kind: Environment`       | Environment    |
+| Term              | Sales site            | Quickstart / tutorial            | Concepts / how-to   | Reference / SDK                        | README         |
+| ----------------- | --------------------- | -------------------------------- | ------------------- | -------------------------------------- | -------------- |
+| **Agent**         | Agent                 | Agent                            | Agent               | Agent, `kind: Agent`                   | Agent          |
+| **Skill**         | domain knowledge      | Skill ("domain knowledge")       | Skill               | Skill, `skill_refs`                    | Skill          |
+| **MCP Server**    | tools                 | MCP server ("tool connection")   | MCP Server          | McpServer, `mcp_server_usages`         | MCP server     |
+| **Session**       | conversation          | Session ("conversation")         | Session             | Session, `kind: Session`               | Session        |
+| **Runner**        | compute               | runner ("where your Agent runs") | Runner              | Runner, `kind: Runner`                 | runner         |
+| **Workflow**      | multi-step automation | Workflow                         | Workflow            | Workflow, `kind: Workflow`             | Workflow       |
+| **Approval flow** | approval flow         | approval flow                    | approval flow, HITL | `ToolApprovalPolicy`, `submitApproval` | HITL, approval |
+| **Organization**  | Organization          | Organization                     | Organization        | Organization, `kind: organization`     | Organization   |
+| **Project**       | Project               | Project                          | Project             | Project, `kind: project`               | Project        |
+| **Environment**   | Environment           | Environment                      | Environment         | Environment, `kind: Environment`       | Environment    |
 
 <!-- vale Stigmer.terms = NO -->
 
@@ -238,6 +239,47 @@ An ongoing conversation with an Agent across multiple messages.
 | ---------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | Sales site | "Create a Session resource to enable multi-turn interaction." | Resource-model language in a business context.                                |
 | Quickstart | "Configure the `thread_id` for Session persistence."          | Implementation detail. The quickstart should just say "start a conversation." |
+
+---
+
+#### Runner
+
+A process that connects to Stigmer and executes your Agents.
+
+- **User-facing alternative**: "compute" on the sales site. In quickstart
+  guides, use "runner" with a gloss: "a runner (the process that runs your
+  Agent)." In concepts and reference, "Runner" stands alone.
+- **Capitalize**: Yes, when referring to the Stigmer resource. Lowercase
+  "runner" when used generically ("start a runner").
+- **API surface**: `kind: Runner`, prefix `rnr`. proto: `runner/v1/api.proto`,
+  `runner/v1/spec.proto`, `runner/v1/enum.proto`. CLI: `stigmer up` /
+  `stigmer up runner`, `stigmer down runner`.
+- **Key fields**: `status.phase` (Pending, Ready, Busy, Stopped, Failed),
+  `status.task_queue` (immutable routing address), `status.connection_info`
+  (host name, OS, architecture, runner version), `status.current_executions`.
+- **Two types**: Local runners (user-started via CLI or desktop app, persistent)
+  and cloud runners (platform-provisioned, ephemeral, labeled
+  `stigmer.ai/system-managed: "true"`).
+- **Related terms**: Sessions bind to a runner via `SessionSpec.runner_id`.
+  Executions record which runner handled them via
+  `AgentExecutionStatus.runner_id`. Do not confuse with "Agent Runner" (the
+  Python Temporal worker binary---architecture docs only).
+
+**Good examples**:
+
+| Context    | Copy                                                                                                                                      |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Run Agents on your machine or let the platform handle it."                                                                               |
+| Quickstart | "Start a runner---the process that runs your Agent on your machine."                                                                      |
+| Concepts   | "A Runner is the process that picks up executions, calls the LLM, runs tools, and reports results back to the server."                    |
+| Reference  | "`Runner`---a Node-like resource with thin spec and rich status. Phases: PENDING, READY, BUSY, STOPPED, FAILED. Routes via `task_queue`." |
+
+**Bad examples**:
+
+| Context    | Copy                                                                 | Problem                                                                   |
+| ---------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Sales site | "Provision a Runner resource to execute Agent workloads."            | Resource-model language in a business context.                            |
+| Quickstart | "The Agent Runner connects via bidirectional gRPC every 30 seconds." | Internal architecture detail. The quickstart should say "start a runner." |
 
 ---
 

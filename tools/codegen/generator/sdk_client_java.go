@@ -485,6 +485,11 @@ func generateJavaSharedTypes(outputDir string) error {
 	}
 	fmt.Printf("   -> StigmerStream.java\n")
 
+	if err := generateJavaStigmerBidiStream(outputDir); err != nil {
+		return err
+	}
+	fmt.Printf("   -> StigmerBidiStream.java\n")
+
 	if err := generateJavaProtoConvert(outputDir); err != nil {
 		return err
 	}
@@ -798,6 +803,64 @@ func generateJavaStigmerStream(outputDir string) error {
 	return writeJavaFile(outputDir, "StigmerStream.java", javaGenPackage, imports, body.Bytes())
 }
 
+func generateJavaStigmerBidiStream(outputDir string) error {
+	imports := newJavaImportSet()
+	imports.add("io.grpc.StatusRuntimeException")
+	imports.add("io.grpc.stub.StreamObserver")
+	imports.add("java.util.concurrent.LinkedBlockingQueue")
+
+	var body bytes.Buffer
+	body.WriteString(`public final class StigmerBidiStream<Send, Receive> {
+    private final StreamObserver<Send> requests;
+    private final LinkedBlockingQueue<Object> queue;
+    private static final Object COMPLETED = new Object();
+
+    StigmerBidiStream(StreamObserver<Send> requests, LinkedBlockingQueue<Object> queue) {
+        this.requests = requests;
+        this.queue = queue;
+    }
+
+    /** Send a message to the server. */
+    public void send(Send msg) {
+        requests.onNext(msg);
+    }
+
+    /** Signal that no more messages will be sent. */
+    public void closeSend() {
+        requests.onCompleted();
+    }
+
+    /**
+     * Receive the next message from the server.
+     * Returns null when the server has completed the stream.
+     */
+    @SuppressWarnings("unchecked")
+    public Receive receive() {
+        try {
+            Object item = queue.take();
+            if (item == COMPLETED) return null;
+            if (item instanceof StatusRuntimeException) throw StigmerException.wrap((StatusRuntimeException) item);
+            if (item instanceof Throwable) throw new RuntimeException((Throwable) item);
+            return (Receive) item;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    static <T> StreamObserver<T> responseObserver(LinkedBlockingQueue<Object> queue) {
+        return new StreamObserver<T>() {
+            @Override public void onNext(T value) { queue.add(value); }
+            @Override public void onError(Throwable t) { queue.add(t); }
+            @Override public void onCompleted() { queue.add(COMPLETED); }
+        };
+    }
+}
+`)
+	return writeJavaFile(outputDir, "StigmerBidiStream.java", javaGenPackage, imports, body.Bytes())
+}
+
 func generateJavaProtoConvert(outputDir string) error {
 	imports := newJavaImportSet()
 	imports.add("com.google.protobuf.NullValue")
@@ -903,6 +966,18 @@ func generateJavaClientClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, h
 		imports.add("ai.stigmer.commons.rpc.PageInfo")
 	}
 
+	// Track which services need an async stub for bidi streaming.
+	svcNeedsBidi := make(map[string]bool)
+	for _, svc := range schema.Services {
+		for _, m := range svc.Methods {
+			if m.ServerStreaming && m.ClientStreaming {
+				svcNeedsBidi[svc.Role] = true
+				imports.add("io.grpc.stub.StreamObserver")
+				imports.add("java.util.concurrent.LinkedBlockingQueue")
+			}
+		}
+	}
+
 	var body bytes.Buffer
 
 	fmt.Fprintf(&body, "/** Provides operations on %s resources. */\n", schema.Resource)
@@ -911,6 +986,10 @@ func generateJavaClientClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, h
 	for _, svc := range schema.Services {
 		stubType := svc.Name + "Grpc." + svc.Name + "BlockingStub"
 		fmt.Fprintf(&body, "    private final %s %s;\n", stubType, svc.Role)
+		if svcNeedsBidi[svc.Role] {
+			asyncStubType := svc.Name + "Grpc." + svc.Name + "Stub"
+			fmt.Fprintf(&body, "    private final %s %sAsync;\n", asyncStubType, svc.Role)
+		}
 	}
 	if needsSearch {
 		body.WriteString("    private final SearchServiceGrpc.SearchServiceBlockingStub search;\n")
@@ -920,6 +999,9 @@ func generateJavaClientClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, h
 	fmt.Fprintf(&body, "    %s(Channel channel) {\n", cfg.clientName)
 	for _, svc := range schema.Services {
 		fmt.Fprintf(&body, "        this.%s = %sGrpc.newBlockingStub(channel);\n", svc.Role, svc.Name)
+		if svcNeedsBidi[svc.Role] {
+			fmt.Fprintf(&body, "        this.%sAsync = %sGrpc.newStub(channel);\n", svc.Role, svc.Name)
+		}
 	}
 	if needsSearch {
 		body.WriteString("        this.search = SearchServiceGrpc.newBlockingStub(channel);\n")
@@ -1065,7 +1147,17 @@ func generateJavaStreamingMethod(buf *bytes.Buffer, m *MethodSchema, svc *Servic
 	outputType := m.OutputType
 	methodName := javaMethodLower(m.Name)
 
-	if isIDIn {
+	if m.ClientStreaming {
+		// Bidi streaming: use async stub and StigmerBidiStream.
+		imports.add(resolveJavaFQCN(m.InputFullType))
+		imports.add(resolveJavaFQCN(m.OutputFullType))
+		fmt.Fprintf(buf, "    public StigmerBidiStream<%s, %s> %s() {\n", m.InputType, outputType, methodName)
+		fmt.Fprintf(buf, "        LinkedBlockingQueue<Object> queue = new LinkedBlockingQueue<>();\n")
+		fmt.Fprintf(buf, "        StreamObserver<%s> requests = %sAsync.%s(\n", m.InputType, svc.Role, javaMethodLower(m.Name))
+		fmt.Fprintf(buf, "            StigmerBidiStream.responseObserver(queue));\n")
+		fmt.Fprintf(buf, "        return new StigmerBidiStream<>(requests, queue);\n")
+		buf.WriteString("    }\n")
+	} else if isIDIn {
 		imports.add(resolveJavaFQCN(m.InputFullType))
 		fmt.Fprintf(buf, "    public StigmerStream<%s> %s(String id) {\n", outputType, methodName)
 		fmt.Fprintf(buf, "        try {\n")

@@ -29,6 +29,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 from temporalio import activity
 
+from worker import execution_tracker
 from worker.config import Config
 
 logger = logging.getLogger(__name__)
@@ -143,11 +144,10 @@ async def classify_tools(
         worker_config.llm.model_name
     )
 
-    llm_kwargs: dict = {}
-    if worker_config.llm.provider == "ollama":
-        llm_kwargs["base_url"] = worker_config.llm.base_url
-    elif worker_config.llm.provider in ("anthropic", "openai"):
-        llm_kwargs["api_key"] = worker_config.llm.api_key
+    llm_kwargs = worker_config.llm.build_llm_kwargs(
+        proxy_endpoint=worker_config.stigmer_proxy_endpoint,
+        proxy_auth_token=worker_config.stigmer_token,
+    )
 
     model = parse_model_string(
         economy_model,
@@ -243,16 +243,20 @@ async def classify_tool_approvals(
         len(input.tools), input.server_name,
     )
 
-    result = await classify_tools(
-        tools=input.tools,
-        server_name=input.server_name,
-        server_description=input.server_description,
-    )
+    execution_tracker.increment()
+    try:
+        result = await classify_tools(
+            tools=input.tools,
+            server_name=input.server_name,
+            server_description=input.server_description,
+        )
 
-    approved = [a for a in result.approvals if a.requires_approval]
-    logger.info(
-        "Returning %d/%d tools that require approval for '%s'",
-        len(approved), len(result.approvals), input.server_name,
-    )
+        approved = [a for a in result.approvals if a.requires_approval]
+        logger.info(
+            "Returning %d/%d tools that require approval for '%s'",
+            len(approved), len(result.approvals), input.server_name,
+        )
 
-    return [a.model_dump() for a in approved]
+        return [a.model_dump() for a in approved]
+    finally:
+        execution_tracker.decrement()

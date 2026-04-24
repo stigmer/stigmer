@@ -114,7 +114,7 @@ export function InvitationManager({
         {Array.from({ length: 2 }, (_, i) => (
           <div
             key={i}
-            className="bg-muted/40 h-14 animate-pulse rounded-lg"
+            className="bg-muted-subtle h-14 animate-pulse rounded-lg"
           />
         ))}
       </div>
@@ -353,7 +353,7 @@ function CreateInvitationForm({
           disabled={!canSubmit}
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "bg-primary text-primary-foreground hover:bg-primary-hover",
             "disabled:pointer-events-none disabled:opacity-40",
           )}
         >
@@ -367,7 +367,7 @@ function CreateInvitationForm({
           disabled={isCreating}
           className={cn(
             "rounded-md px-3 py-1.5 text-xs",
-            "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
         >
@@ -433,7 +433,7 @@ function InvitationRow({
   return (
     <div
       role="listitem"
-      className="flex items-center gap-3 rounded-lg border border-border/60 px-3 py-2.5 hover:border-border transition-colors"
+      className="flex items-center gap-3 rounded-lg border border-border-muted px-3 py-2.5 hover:border-border transition-colors"
     >
       {/* Icon */}
       <LinkIcon active={isActive} />
@@ -484,7 +484,7 @@ function InvitationRow({
               "shrink-0 rounded p-1 transition-colors",
               copied
                 ? "text-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                : "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
             )}
           >
             {copied ? <CheckIcon /> : <CopyIcon />}
@@ -495,7 +495,7 @@ function InvitationRow({
             type="button"
             onClick={onStartRevoke}
             aria-label={`Revoke ${label}`}
-            className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive-subtle transition-colors"
           >
             <RevokeIcon />
           </button>
@@ -534,7 +534,7 @@ function RevokeConfirmation({
   return (
     <div
       role="listitem"
-      className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5"
+      className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive-subtle px-3 py-2.5"
     >
       <div className="min-w-0 flex-1">
         <p className="text-xs text-foreground">
@@ -555,7 +555,7 @@ function RevokeConfirmation({
           disabled={isRevoking}
           className={cn(
             "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
-            "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+            "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
         >
@@ -568,7 +568,7 @@ function RevokeConfirmation({
           disabled={isRevoking}
           className={cn(
             "rounded-md px-2.5 py-1 text-xs",
-            "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
         >

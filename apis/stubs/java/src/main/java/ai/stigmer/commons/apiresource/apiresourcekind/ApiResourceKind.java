@@ -153,6 +153,14 @@ public enum ApiResourceKind
   agent_instance(45),
   /**
    * <pre>
+   * Process that executes work, either user-created or system-managed.
+   * </pre>
+   *
+   * <code>runner = 46 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  runner(46),
+  /**
+   * <pre>
    * Multi-step orchestration defining how agents collaborate on a task.
    * </pre>
    *
@@ -349,6 +357,14 @@ public enum ApiResourceKind
   public static final int agent_instance_VALUE = 45;
   /**
    * <pre>
+   * Process that executes work, either user-created or system-managed.
+   * </pre>
+   *
+   * <code>runner = 46 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int runner_VALUE = 46;
+  /**
+   * <pre>
    * Multi-step orchestration defining how agents collaborate on a task.
    * </pre>
    *
@@ -438,6 +454,7 @@ public enum ApiResourceKind
       case 43: return skill;
       case 44: return mcp_server;
       case 45: return agent_instance;
+      case 46: return runner;
       case 50: return workflow;
       case 51: return workflow_instance;
       case 52: return workflow_execution;

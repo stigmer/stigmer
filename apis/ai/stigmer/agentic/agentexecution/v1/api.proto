@@ -224,6 +224,22 @@ message AgentExecutionStatus {
   // Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
   // when phase transitions away from PENDING.
   SetupProgress setup_progress = 18;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Runner Binding (Runner Resource)
+  //
+  // Records which runner handled this execution for observability.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // ID of the Runner that executed this execution.
+  //
+  // Set once when the execution is dispatched to a runner; immutable after.
+  // For cloud executions, this references the system-managed ephemeral runner
+  // that was auto-created for this execution. For local executions, this
+  // references the user-created persistent runner selected via the session.
+  //
+  // Used for observability: "which runner handled this work?"
+  string runner_id = 19;
 }
 
 // Setup progress reported during the EXECUTION_PENDING phase.

@@ -24,14 +24,14 @@ export function ContextPopover({
         disabled={disabled}
         className={cn(
           "inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors",
-          "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+          "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
           "disabled:pointer-events-none disabled:opacity-50",
         )}
       >
         {icon}
         <span>{label}</span>
         {count > 0 && (
-          <span className="rounded-full bg-primary/15 px-1.5 text-[0.6rem] font-medium text-primary">
+          <span className="rounded-full bg-primary-subtle px-1.5 text-[0.6rem] font-medium text-primary">
             {count}
           </span>
         )}

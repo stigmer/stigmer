@@ -67,10 +67,9 @@ Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`listByAgent`](#listbyagent) | List all sessions for a specific agent. |
 | [`apply`](#apply) | Create or update a session. |
 | [`create`](#create) | Create a session. |
-| [`update`](#update) | Update an existing session (e.g., subject, thread_id, sandbox_id). |
-| [`updateSandboxId`](#updatesandboxid) | Set the session sandbox ID. |
+| [`update`](#update) | Update an existing session (e.g., subject, thread_id). |
 | [`updateSubject`](#updatesubject) | Set the session subject. |
-| [`delete`](#delete) | Delete a session (also cleans up thread and sandbox). |
+| [`delete`](#delete) | Delete a session (also cleans up thread). |
 
 ### get
 
@@ -220,6 +219,7 @@ const session = await stigmer.session.apply({
   metadata: {},
   workspaceEntries: [],
   mcpServerUsages: [],
+  runnerId: "...",
   skillRefs: [],
 });
 ```
@@ -238,6 +238,7 @@ session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
   Metadata:         map[string]string{},
   WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
   McpServerUsages:  []stigmer.McpServerUsageInput{},
+  RunnerId:         "...",
   SkillRefs:        []stigmer.ResourceRef{},
 })
 ```
@@ -256,6 +257,7 @@ session = client.sessions.apply(SessionInput(
     metadata={},
     workspace_entries=[],
     mcp_server_usages=[],
+    runner_id="...",
     skill_refs=[],
 ))
 ```
@@ -274,6 +276,7 @@ Session session = client.sessions().apply(SessionInput.builder()
     .metadata(Map.of())
     .workspaceEntries(List.of())
     .mcpServerUsages(List.of())
+    .runnerId("...")
     .skillRefs(List.of())
     .build());
 ```
@@ -303,6 +306,7 @@ const session = await stigmer.session.create({
   metadata: {},
   workspaceEntries: [],
   mcpServerUsages: [],
+  runnerId: "...",
   skillRefs: [],
 });
 ```
@@ -321,6 +325,7 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
   Metadata:         map[string]string{},
   WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
   McpServerUsages:  []stigmer.McpServerUsageInput{},
+  RunnerId:         "...",
   SkillRefs:        []stigmer.ResourceRef{},
 })
 ```
@@ -339,6 +344,7 @@ session = client.sessions.create(SessionInput(
     metadata={},
     workspace_entries=[],
     mcp_server_usages=[],
+    runner_id="...",
     skill_refs=[],
 ))
 ```
@@ -357,6 +363,7 @@ Session session = client.sessions().create(SessionInput.builder()
     .metadata(Map.of())
     .workspaceEntries(List.of())
     .mcpServerUsages(List.of())
+    .runnerId("...")
     .skillRefs(List.of())
     .build());
 ```
@@ -369,7 +376,7 @@ Session session = client.sessions().create(SessionInput.builder()
 
 ### update
 
-Update an existing session (e.g., subject, thread_id, sandbox_id).
+Update an existing session (e.g., subject, thread_id).
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -386,6 +393,7 @@ const session = await stigmer.session.update({
   metadata: {},
   workspaceEntries: [],
   mcpServerUsages: [],
+  runnerId: "...",
   skillRefs: [],
 });
 ```
@@ -404,6 +412,7 @@ session, err := client.Session.Update(ctx, &stigmer.SessionInput{
   Metadata:         map[string]string{},
   WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
   McpServerUsages:  []stigmer.McpServerUsageInput{},
+  RunnerId:         "...",
   SkillRefs:        []stigmer.ResourceRef{},
 })
 ```
@@ -422,6 +431,7 @@ session = client.sessions.update(SessionInput(
     metadata={},
     workspace_entries=[],
     mcp_server_usages=[],
+    runner_id="...",
     skill_refs=[],
 ))
 ```
@@ -440,6 +450,7 @@ Session session = client.sessions().update(SessionInput.builder()
     .metadata(Map.of())
     .workspaceEntries(List.of())
     .mcpServerUsages(List.of())
+    .runnerId("...")
     .skillRefs(List.of())
     .build());
 ```
@@ -447,51 +458,6 @@ Session session = client.sessions().update(SessionInput.builder()
 </SDKTabs>
 
 **Parameters**: [`SessionInput`](#sessioninput)
-
-**Returns**: [`Session`](#session)
-
-### updateSandboxId
-
-Set the session sandbox ID.
-
-This is a targeted update that modifies only the sandbox ID field, leaving other session fields untouched. Use this instead of the full update RPC when you only need to change the sandbox assignment.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const session = await stigmer.session.updateSandboxId({
-  id: "...",
-  sandboxId: "...",
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-session, err := client.Session.UpdateSandboxId(ctx, &stigmer.UpdateSessionSandboxIdRequest{
-  Id:        "...",
-  SandboxId: "...",
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-session = client.sessions.update_sandbox_id(UpdateSessionSandboxIdRequest(
-    id="...",
-    sandbox_id="...",
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-Session session = client.sessions().updateSandboxId(UpdateSessionSandboxIdRequest.builder()
-    .id("...")
-    .sandboxId("...")
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`UpdateSessionSandboxIdRequest`](#updatesessionsandboxidrequest)
 
 **Returns**: [`Session`](#session)
 
@@ -542,7 +508,7 @@ Session session = client.sessions().updateSubject(UpdateSessionSubjectRequest.bu
 
 ### delete
 
-Delete a session (also cleans up thread and sandbox).
+Delete a session (also cleans up thread).
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -590,10 +556,11 @@ Input for creating or updating a Session.
     agentInstanceId: { type: "string", description: "Agent instance this session runs against." },
     subject: { type: "string", description: "Conversation title for UI display." },
     threadId: { type: "string", description: "Thread ID that carries the conversation history across executions." },
-    sandboxId: { type: "string", description: "Sandbox ID for persistent file storage across executions." },
+    sandboxId: { type: "string", description: "Deprecated: sandbox lifecycle is now managed at the Runner level via the stigmer.ai/sandbox-id metadata label on the Runner resource." },
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs for client-specific information." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries for this session.", typeDescriptionLink: "#workspaceentryinput" },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers to make available in this session.", typeDescriptionLink: "#mcpserverusageinput" },
+    runnerId: { type: "string", description: "Runner that executes work for this session." },
     skillRefs: { type: "ResourceRef[]", description: "Skills to inject into this session's context.", typeDescriptionLink: "#resourceref" },
   }}
 />
@@ -689,17 +656,6 @@ UpdateSessionSubjectRequest sets the conversation title for a session.
   type={{
     id: { type: "string", description: "Session ID to update.", required: true },
     subject: { type: "string", description: "New subject value." },
-  }}
-/>
-
-### UpdateSessionSandboxIdRequest
-
-UpdateSessionSandboxIdRequest sets the sandbox ID for a session.
-
-<TypeTable
-  type={{
-    id: { type: "string", description: "Session ID to update.", required: true },
-    sandboxId: { type: "string", description: "New sandbox ID." },
   }}
 />
 

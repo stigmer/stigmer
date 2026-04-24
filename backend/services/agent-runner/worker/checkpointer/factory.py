@@ -118,11 +118,17 @@ async def create_checkpointer(
         async with _mongodb_checkpointer(config) as saver:
             yield saver
     
+    elif config.type == "http":
+        saver = _create_http_checkpointer(config)
+        try:
+            yield saver
+        finally:
+            saver.close()
+    
     else:
-        # This should be caught by config validation, but handle defensively
         raise ValueError(
             f"Unknown checkpointer type: {config.type}. "
-            f"Valid types are: memory, sqlite, mongodb"
+            f"Valid types are: memory, sqlite, mongodb, http"
         )
 
 
@@ -284,6 +290,38 @@ async def _mongodb_checkpointer(
             message=f"Failed to connect to MongoDB at {_mask_mongodb_uri(config.mongodb_uri)}",
             cause=e,
         ) from e
+
+
+def _create_http_checkpointer(config: CheckpointerConfig) -> Any:
+    """Create HTTP-backed checkpointer that routes through the proxy.
+
+    Requires ``proxy_endpoint`` and ``auth_token`` on the config.
+
+    Returns:
+        HttpCheckpointSaver instance
+    """
+    from worker.checkpointer.http_saver import HttpCheckpointSaver
+
+    if not config.proxy_endpoint:
+        raise CheckpointerCreationError(
+            checkpointer_type="http",
+            message="proxy_endpoint is required for HTTP checkpointer",
+        )
+    if not config.auth_token:
+        raise CheckpointerCreationError(
+            checkpointer_type="http",
+            message="auth_token is required for HTTP checkpointer",
+        )
+
+    saver = HttpCheckpointSaver(
+        proxy_endpoint=config.proxy_endpoint,
+        auth_token=config.auth_token,
+    )
+    logger.info(
+        "Created HttpCheckpointSaver checkpointer "
+        f"(proxy={config.proxy_endpoint})"
+    )
+    return saver
 
 
 def _mask_mongodb_uri(uri: str) -> str:

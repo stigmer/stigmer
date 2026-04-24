@@ -44,6 +44,7 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     skill: _ClassVar[ApiResourceKind]
     mcp_server: _ClassVar[ApiResourceKind]
     agent_instance: _ClassVar[ApiResourceKind]
+    runner: _ClassVar[ApiResourceKind]
     workflow: _ClassVar[ApiResourceKind]
     workflow_instance: _ClassVar[ApiResourceKind]
     workflow_execution: _ClassVar[ApiResourceKind]
@@ -74,6 +75,7 @@ session: ApiResourceKind
 skill: ApiResourceKind
 mcp_server: ApiResourceKind
 agent_instance: ApiResourceKind
+runner: ApiResourceKind
 workflow: ApiResourceKind
 workflow_instance: ApiResourceKind
 workflow_execution: ApiResourceKind

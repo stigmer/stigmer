@@ -128,12 +128,8 @@ conversation.
 
 ## What's next
 
-Sessions capture conversations. But what about multi-step automated processes
-that go beyond a single conversation — processes that chain Agent calls, HTTP
-requests, and approval gates together? That's what
-[Workflows](/docs/concepts/workflows) are for. Workflow documentation is coming
-soon.
-
-If you want to continue learning about platform structure now, the next
-substantive page is [Environments](/docs/concepts/environments) — how Stigmer
-manages the secrets and configuration that Agents and tools need at runtime.
+Sessions capture conversations. But every conversation needs somewhere to run —
+a process that picks up the work, calls the LLM, and executes tools. That's what
+[Runners](/docs/concepts/runners) are. The next page explains how runners work,
+the difference between local and cloud runners, and how Sessions find the right
+runner for each execution.

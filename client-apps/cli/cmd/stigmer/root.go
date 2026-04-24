@@ -46,6 +46,7 @@ func init() {
 
 	rootCmd.AddGroup(
 		&cobra.Group{ID: "core", Title: "Core Commands:"},
+		&cobra.Group{ID: "lifecycle", Title: "Lifecycle:"},
 		&cobra.Group{ID: "resource", Title: "Resource Management:"},
 		&cobra.Group{ID: "artifact", Title: "Artifact Commands:"},
 		&cobra.Group{ID: "server", Title: "Server Commands:"},
@@ -56,6 +57,14 @@ func init() {
 	rootCmd.AddCommand(withGroup(root.NewRunCommand(), "core"))
 	rootCmd.AddCommand(withGroup(root.NewResumeCommand(), "core"))
 	rootCmd.AddCommand(withGroup(root.NewUsageCommand(), "core"))
+
+	// Lifecycle
+	rootCmd.AddCommand(withGroup(root.NewUpCommand(), "lifecycle"))
+	rootCmd.AddCommand(withGroup(root.NewDownCommand(), "lifecycle"))
+	rootCmd.AddCommand(withGroup(root.NewStatusCommand(), "lifecycle"))
+	rootCmd.AddCommand(withGroup(root.NewLogsCommand(), "lifecycle"))
+	rootCmd.AddCommand(withGroup(root.NewSetupCommand(), "lifecycle"))
+	rootCmd.AddCommand(withGroup(root.NewResetCommand(), "lifecycle"))
 
 	// Resource Management
 	rootCmd.AddCommand(withGroup(root.NewApplyCommand(), "resource"))
@@ -72,7 +81,6 @@ func init() {
 	rootCmd.AddCommand(withGroup(root.NewDownloadCommand(), "artifact"))
 
 	// Server Commands
-	rootCmd.AddCommand(withGroup(root.NewServerCommand(), "server"))
 	rootCmd.AddCommand(withGroup(root.NewMCPServerCommand(), "server"))
 	rootCmd.AddCommand(withGroup(root.NewSeedpackCommand(), "server"))
 

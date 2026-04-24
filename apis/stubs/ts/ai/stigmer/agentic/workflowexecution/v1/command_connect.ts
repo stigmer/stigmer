@@ -239,7 +239,7 @@ export const WorkflowExecutionCommandController = {
      * Error Cases:
      *
      * - PERMISSION_DENIED:
-     *   - Caller is not the workflow runner service (users cannot update status)
+     *   - Caller lacks can_edit permission on the workflow execution
      *
      * - INVALID_ARGUMENT:
      *   - Trying to modify spec or metadata (only status can be updated)

@@ -294,7 +294,7 @@ function StepIndicator({ current }: { current: WizardStep }) {
               <span
                 className={cn(
                   "h-px w-4",
-                  state === "upcoming" ? "bg-border" : "bg-primary/40",
+                  state === "upcoming" ? "bg-border" : "bg-primary-subtle",
                 )}
               />
             )}
@@ -305,7 +305,7 @@ function StepIndicator({ current }: { current: WizardStep }) {
                   ? "text-primary"
                   : state === "done"
                     ? "text-muted-foreground"
-                    : "text-muted-foreground/50",
+                    : "text-muted-foreground-faint",
               )}
             >
               {s.label}
@@ -381,7 +381,7 @@ function ConfigureStep({
         />
       ))}
 
-      <hr className="border-border/40" />
+      <hr className="border-border-muted" />
 
       {/* Common fields */}
       <FieldInput
@@ -417,7 +417,7 @@ function ConfigureStep({
           disabled={!canContinue}
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "bg-primary text-primary-foreground hover:bg-primary-hover",
             "disabled:pointer-events-none disabled:opacity-40",
           )}
         >
@@ -590,7 +590,7 @@ function ReviewStep({
           disabled={!canSubmit}
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "bg-primary text-primary-foreground hover:bg-primary-hover",
             "disabled:pointer-events-none disabled:opacity-40",
           )}
         >
@@ -718,7 +718,7 @@ function JitProvisioningSection({
 }) {
   if (isSso) {
     return (
-      <div className="rounded-md border border-border/60 bg-muted/30 px-3 py-2">
+      <div className="rounded-md border border-border-muted bg-muted-faint px-3 py-2">
         <p className="text-[0.65rem] text-muted-foreground">
           SSO providers automatically provision accounts and grant the{" "}
           <span className="font-medium text-foreground">viewer</span> role on
@@ -730,7 +730,7 @@ function JitProvisioningSection({
 
   return (
     <fieldset className="space-y-2.5" disabled={disabled}>
-      <hr className="border-border/40" />
+      <hr className="border-border-muted" />
       <legend className="text-xs font-medium text-foreground">
         JIT provisioning
       </legend>
@@ -848,7 +848,7 @@ function TextButton({
       disabled={disabled}
       className={cn(
         "rounded-md px-2.5 py-1.5 text-xs",
-        "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+        "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
         "disabled:pointer-events-none disabled:opacity-50",
       )}
     >

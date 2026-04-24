@@ -88,28 +88,32 @@ public interface SessionSpecOrBuilder extends
 
   /**
    * <pre>
-   * Sandbox ID for persistent file storage across executions.
-   *
-   * &#64;internal
-   * Created on first execution (Daytona sandbox), reused for file persistence.
+   * Deprecated: sandbox lifecycle is now managed at the Runner level via
+   * the stigmer.ai/sandbox-id metadata label on the Runner resource.
+   * Existing sessions may still have this field populated; new sessions
+   * should not set it.
    * </pre>
    *
-   * <code>string sandbox_id = 4 [json_name = "sandboxId"];</code>
+   * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
+   * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
+   *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
    * @return The sandboxId.
    */
-  java.lang.String getSandboxId();
+  @java.lang.Deprecated java.lang.String getSandboxId();
   /**
    * <pre>
-   * Sandbox ID for persistent file storage across executions.
-   *
-   * &#64;internal
-   * Created on first execution (Daytona sandbox), reused for file persistence.
+   * Deprecated: sandbox lifecycle is now managed at the Runner level via
+   * the stigmer.ai/sandbox-id metadata label on the Runner resource.
+   * Existing sessions may still have this field populated; new sessions
+   * should not set it.
    * </pre>
    *
-   * <code>string sandbox_id = 4 [json_name = "sandboxId"];</code>
+   * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
+   * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
+   *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
    * @return The bytes for sandboxId.
    */
-  com.google.protobuf.ByteString
+  @java.lang.Deprecated com.google.protobuf.ByteString
       getSandboxIdBytes();
 
   /**
@@ -338,6 +342,52 @@ java.lang.String defaultValue);
    */
   ai.stigmer.agentic.agent.v1.McpServerUsageOrBuilder getMcpServerUsagesOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Runner that executes work for this session.
+   *
+   * When set, all executions in this session route to this runner's task queue.
+   * When empty, the platform auto-creates an ephemeral cloud runner on first
+   * execution and sets this field.
+   *
+   * For persistent runners (user-created via CLI/desktop), this is set by the
+   * session composer when the user picks their runner. For cloud executions,
+   * this is set automatically by the system.
+   *
+   * &#64;internal
+   * The execution workflow reads this field to resolve the Temporal task queue
+   * for scheduling activities. When empty, the workflow calls the
+   * RunnerLauncher to spawn an ephemeral runner and populates this field.
+   * </pre>
+   *
+   * <code>string runner_id = 9 [json_name = "runnerId"];</code>
+   * @return The runnerId.
+   */
+  java.lang.String getRunnerId();
+  /**
+   * <pre>
+   * Runner that executes work for this session.
+   *
+   * When set, all executions in this session route to this runner's task queue.
+   * When empty, the platform auto-creates an ephemeral cloud runner on first
+   * execution and sets this field.
+   *
+   * For persistent runners (user-created via CLI/desktop), this is set by the
+   * session composer when the user picks their runner. For cloud executions,
+   * this is set automatically by the system.
+   *
+   * &#64;internal
+   * The execution workflow reads this field to resolve the Temporal task queue
+   * for scheduling activities. When empty, the workflow calls the
+   * RunnerLauncher to spawn an ephemeral runner and populates this field.
+   * </pre>
+   *
+   * <code>string runner_id = 9 [json_name = "runnerId"];</code>
+   * @return The bytes for runnerId.
+   */
+  com.google.protobuf.ByteString
+      getRunnerIdBytes();
 
   /**
    * <pre>

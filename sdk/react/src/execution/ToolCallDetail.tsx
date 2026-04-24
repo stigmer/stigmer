@@ -58,7 +58,7 @@ export function ToolCallDetail({ toolCall, className }: ToolCallDetailProps) {
       {isFailed && toolCall.error && (
         <div className="space-y-1">
           <span className="font-medium text-destructive">Error</span>
-          <pre className="whitespace-pre-wrap break-words rounded-md border border-destructive/20 bg-destructive/5 p-2 font-mono text-destructive">
+          <pre className="whitespace-pre-wrap break-words rounded-md border border-destructive/20 bg-destructive-subtle p-2 font-mono text-destructive">
             {toolCall.error}
           </pre>
         </div>
@@ -199,7 +199,7 @@ function ThinkToolDetail({ toolCall }: { toolCall: ToolCall }) {
   if (!thought) return null;
 
   return (
-    <div className="rounded-md border border-border/50 bg-muted/20 p-3">
+    <div className="rounded-md border border-border-muted bg-muted-faint p-3">
       <CollapsiblePre
         content={thought}
         className="italic text-muted-foreground whitespace-pre-wrap"

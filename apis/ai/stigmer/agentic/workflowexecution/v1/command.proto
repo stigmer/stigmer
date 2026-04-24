@@ -225,7 +225,7 @@ service WorkflowExecutionCommandController {
   // Error Cases:
   //
   // - PERMISSION_DENIED:
-  //   - Caller is not the workflow runner service (users cannot update status)
+  //   - Caller lacks can_edit permission on the workflow execution
   //
   // - INVALID_ARGUMENT:
   //   - Trying to modify spec or metadata (only status can be updated)
@@ -260,9 +260,9 @@ service WorkflowExecutionCommandController {
   //   }
   // }
   rpc updateStatus(WorkflowExecutionUpdateStatusInput) returns (WorkflowExecution) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
-    option (ai.stigmer.commons.rpc.config).permission = can_update_execution_status;
-    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).resource_kind = workflow_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "execution_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update workflow execution status";
   }
 

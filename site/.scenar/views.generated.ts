@@ -2,242 +2,160 @@
 // Re-run `scenar preview sync` to update.
 // To add components manually, use views.custom.tsx instead.
 
-import RootError from "../../client-apps/web/src/app/error";
-import GlobalError from "../../client-apps/web/src/app/global-error";
-import RootLayout from "../../client-apps/web/src/app/layout";
-import NotFound from "../../client-apps/web/src/app/not-found";
-import { AuthGuard } from "../../client-apps/web/src/auth/AuthGuard";
-import { AuthProvider } from "../../client-apps/web/src/auth/AuthProvider";
-import { LibraryNavigationProvider } from "../../client-apps/web/src/contexts/library-navigation";
-import { OrgProvider } from "../../client-apps/web/src/contexts/org-context";
-import { SessionNavigationProvider } from "../../client-apps/web/src/contexts/session-navigation";
-import { OrgGate } from "../../client-apps/web/src/components/auth/OrgGate";
-import { Providers } from "../../client-apps/web/src/components/auth/Providers";
-import { AppShell } from "../../client-apps/web/src/components/layout/AppShell";
-import { ManagementSidebar } from "../../client-apps/web/src/components/layout/ManagementSidebar";
-import { OrgSwitcher } from "../../client-apps/web/src/components/layout/OrgSwitcher";
-import { Sidebar } from "../../client-apps/web/src/components/layout/Sidebar";
-import { UserMenu } from "../../client-apps/web/src/components/layout/UserMenu";
-import { StigmerTransportBridge } from "../../client-apps/web/src/components/providers/StigmerTransportBridge";
-import { SessionLauncher } from "../../client-apps/web/src/components/session/SessionLauncher";
-import { ApiKeysSection } from "../../client-apps/web/src/components/settings/ApiKeysSection";
-import { ComingSoon } from "../../client-apps/web/src/components/settings/ComingSoon";
-import { EnvironmentsSection } from "../../client-apps/web/src/components/settings/EnvironmentsSection";
-import { IdentityProvidersSection } from "../../client-apps/web/src/components/settings/IdentityProvidersSection";
-import { InvitationsSection } from "../../client-apps/web/src/components/settings/InvitationsSection";
-import { MembersSection } from "../../client-apps/web/src/components/settings/MembersSection";
-import { OAuthAppsSection } from "../../client-apps/web/src/components/settings/OAuthAppsSection";
-import { OrgProfileSection } from "../../client-apps/web/src/components/settings/OrgProfileSection";
-import { PlatformClientsSection } from "../../client-apps/web/src/components/settings/PlatformClientsSection";
-import { UsageSection } from "../../client-apps/web/src/components/settings/UsageSection";
-import { Badge } from "../../client-apps/web/src/components/ui/badge";
-import { Button } from "../../client-apps/web/src/components/ui/button";
-import { Card } from "../../client-apps/web/src/components/ui/card";
-import { CardHeader } from "../../client-apps/web/src/components/ui/card";
-import { CardTitle } from "../../client-apps/web/src/components/ui/card";
-import { CardDescription } from "../../client-apps/web/src/components/ui/card";
-import { CardAction } from "../../client-apps/web/src/components/ui/card";
-import { CardContent } from "../../client-apps/web/src/components/ui/card";
-import { CardFooter } from "../../client-apps/web/src/components/ui/card";
-import { Collapsible } from "../../client-apps/web/src/components/ui/collapsible";
-import { CollapsibleTrigger } from "../../client-apps/web/src/components/ui/collapsible";
-import { CollapsibleContent } from "../../client-apps/web/src/components/ui/collapsible";
-import { Dialog } from "../../client-apps/web/src/components/ui/dialog";
-import { DialogTrigger } from "../../client-apps/web/src/components/ui/dialog";
-import { DialogClose } from "../../client-apps/web/src/components/ui/dialog";
-import { DialogContent } from "../../client-apps/web/src/components/ui/dialog";
-import { DialogTitle } from "../../client-apps/web/src/components/ui/dialog";
-import { DialogDescription } from "../../client-apps/web/src/components/ui/dialog";
-import { DropdownMenu } from "../../client-apps/web/src/components/ui/dropdown-menu";
-import { DropdownMenuPortal } from "../../client-apps/web/src/components/ui/dropdown-menu";
-import { DropdownMenuTrigger } from "../../client-apps/web/src/components/ui/dropdown-menu";
-import { DropdownMenuContent } from "../../client-apps/web/src/components/ui/dropdown-menu";
-import { DropdownMenuGroup } from "../../client-apps/web/src/components/ui/dropdown-menu";
-import { DropdownMenuLabel } from "../../client-apps/web/src/components/ui/dropdown-menu";
-import { DropdownMenuItem } from "../../client-apps/web/src/components/ui/dropdown-menu";
-import { DropdownMenuSub } from "../../client-apps/web/src/components/ui/dropdown-menu";
-import { DropdownMenuSubTrigger } from "../../client-apps/web/src/components/ui/dropdown-menu";
-import { DropdownMenuSubContent } from "../../client-apps/web/src/components/ui/dropdown-menu";
-import { DropdownMenuCheckboxItem } from "../../client-apps/web/src/components/ui/dropdown-menu";
-import { DropdownMenuRadioGroup } from "../../client-apps/web/src/components/ui/dropdown-menu";
-import { DropdownMenuRadioItem } from "../../client-apps/web/src/components/ui/dropdown-menu";
-import { DropdownMenuSeparator } from "../../client-apps/web/src/components/ui/dropdown-menu";
-import { DropdownMenuShortcut } from "../../client-apps/web/src/components/ui/dropdown-menu";
-import { ScrollArea } from "../../client-apps/web/src/components/ui/scroll-area";
-import { Separator } from "../../client-apps/web/src/components/ui/separator";
-import { Toaster } from "../../client-apps/web/src/components/ui/sonner";
-import { Table } from "../../client-apps/web/src/components/ui/table";
-import { TableHeader } from "../../client-apps/web/src/components/ui/table";
-import { TableBody } from "../../client-apps/web/src/components/ui/table";
-import { TableRow } from "../../client-apps/web/src/components/ui/table";
-import { TableHead } from "../../client-apps/web/src/components/ui/table";
-import { TableCell } from "../../client-apps/web/src/components/ui/table";
-import { TableCaption } from "../../client-apps/web/src/components/ui/table";
-import { TooltipProvider } from "../../client-apps/web/src/components/ui/tooltip";
-import { Tooltip } from "../../client-apps/web/src/components/ui/tooltip";
-import { TooltipTrigger } from "../../client-apps/web/src/components/ui/tooltip";
-import { TooltipContent } from "../../client-apps/web/src/components/ui/tooltip";
-import LibraryLayout from "../../client-apps/web/src/app/library/layout";
-import { LibraryBreadcrumb } from "../../client-apps/web/src/app/library/LibraryBreadcrumb";
-import { LibraryBreadcrumbProvider } from "../../client-apps/web/src/app/library/LibraryBreadcrumbContext";
-import { LibraryLanding } from "../../client-apps/web/src/app/library/LibraryLanding";
-import LibraryPage from "../../client-apps/web/src/app/library/page";
-import LoginPage from "../../client-apps/web/src/app/login/page";
-import SettingsError from "../../client-apps/web/src/app/settings/error";
-import SettingsLayout from "../../client-apps/web/src/app/settings/layout";
-import SettingsLoading from "../../client-apps/web/src/app/settings/loading";
-import SettingsPage from "../../client-apps/web/src/app/settings/page";
-import { DisabledAuthProvider } from "../../client-apps/web/src/auth/disabled/DisabledAuthProvider";
-import OidcAuthProvider from "../../client-apps/web/src/auth/oidc/OidcAuthProvider";
-import OidcCallbackPage from "../../client-apps/web/src/app/auth/callback/page";
-import InvitePageClient from "../../client-apps/web/src/app/invite/[token]/InvitePageClient";
-import InvitePage from "../../client-apps/web/src/app/invite/[token]/page";
-import { AgentListPage } from "../../client-apps/web/src/app/library/agents/AgentListPage";
-import AgentsPage from "../../client-apps/web/src/app/library/agents/page";
-import { McpServerListPage } from "../../client-apps/web/src/app/library/mcp-servers/McpServerListPage";
-import McpServersPage from "../../client-apps/web/src/app/library/mcp-servers/page";
-import SkillsPage from "../../client-apps/web/src/app/library/skills/page";
-import { SkillListPage } from "../../client-apps/web/src/app/library/skills/SkillListPage";
-import SessionPage from "../../client-apps/web/src/app/sessions/[id]/SessionPage";
-import { SessionPageInner } from "../../client-apps/web/src/app/sessions/[id]/SessionPage";
-import { SessionSkeleton } from "../../client-apps/web/src/app/sessions/[id]/SessionPage";
-import ApiKeysPage from "../../client-apps/web/src/app/settings/api-keys/page";
-import BillingPage from "../../client-apps/web/src/app/settings/billing/page";
-import EnvironmentsPage from "../../client-apps/web/src/app/settings/environments/page";
-import IdentityProvidersPage from "../../client-apps/web/src/app/settings/identity-providers/page";
-import InvitationsPage from "../../client-apps/web/src/app/settings/invitations/page";
-import MembersPage from "../../client-apps/web/src/app/settings/members/page";
-import OAuthAppsPage from "../../client-apps/web/src/app/settings/oauth-apps/page";
-import OrgProfilePage from "../../client-apps/web/src/app/settings/org-profile/page";
-import PlatformClientsPage from "../../client-apps/web/src/app/settings/platform-clients/page";
-import UsagePage from "../../client-apps/web/src/app/settings/usage/page";
-import GitHubCallbackPage from "../../client-apps/web/src/app/auth/github/callback/page";
-import McpOAuthCallbackPage from "../../client-apps/web/src/app/auth/oauth/callback/page";
-import { AgentDetailPageInner } from "../../client-apps/web/src/app/library/agents/[org]/[slug]/AgentDetailPage";
-import { AgentDetailPage } from "../../client-apps/web/src/app/library/agents/[org]/[slug]/AgentDetailPage";
-import Page from "../../client-apps/web/src/app/library/agents/[org]/[slug]/page";
-import { McpServerDetailPageInner } from "../../client-apps/web/src/app/library/mcp-servers/[org]/[slug]/McpServerDetailPage";
-import { McpServerDetailPage } from "../../client-apps/web/src/app/library/mcp-servers/[org]/[slug]/McpServerDetailPage";
-import { SkillDetailPageInner } from "../../client-apps/web/src/app/library/skills/[org]/[slug]/SkillDetailPage";
-import { SkillDetailPage } from "../../client-apps/web/src/app/library/skills/[org]/[slug]/SkillDetailPage";
+import RootLayout from "../src/app/layout";
+import Page from "../src/app/page";
+import BlogLayout from "../src/app/blog/layout";
+import BlogIndex from "../src/app/blog/page";
+import Layout from "../src/app/docs/layout";
+import { CopyMarkdownButton } from "../src/components/docs/copy-markdown-button";
+import { Mermaid } from "../src/components/docs/mermaid";
+import { PageFeedback } from "../src/components/docs/page-feedback";
+import { ReactSdkDomains } from "../src/components/docs/ReactSdkDomains";
+import { SDKTabs } from "../src/components/docs/sdk-tabs";
+import { Term } from "../src/components/docs/term";
+import { Footer } from "../src/components/layout/Footer";
+import { Header } from "../src/components/layout/Header";
+import { MobileMenu } from "../src/components/layout/MobileMenu";
+import { HomePage } from "../src/components/pages/HomePage";
+import { PricingPage } from "../src/components/pages/PricingPage";
+import { UseCasesPage } from "../src/components/pages/UseCasesPage";
+import { Capabilities } from "../src/components/sections/Capabilities";
+import { DemoStory } from "../src/components/sections/DemoStory";
+import { FinalCTA } from "../src/components/sections/FinalCTA";
+import { Hero } from "../src/components/sections/Hero";
+import { HowItWorks } from "../src/components/sections/HowItWorks";
+import { OpenSource } from "../src/components/sections/OpenSource";
+import { UseCases } from "../src/components/sections/UseCases";
+import { WhyItWorks } from "../src/components/sections/WhyItWorks";
+import { Badge } from "../src/components/ui/badge";
+import { CodeBlock } from "../src/components/ui/code-block";
+import { CodeSnippet } from "../src/components/ui/code-block";
+import { DiscordIcon } from "../src/components/ui/discord-icon";
+import { Icon } from "../src/components/ui/icon";
+import { FadeInUp } from "../src/components/ui/motion";
+import { FadeIn } from "../src/components/ui/motion";
+import { ScaleIn } from "../src/components/ui/motion";
+import { StaggerContainer } from "../src/components/ui/motion";
+import { StaggerItem } from "../src/components/ui/motion";
+import { MotionDiv } from "../src/components/ui/motion";
+import { SkipLink } from "../src/components/ui/skip-link";
+import { StigmerIcon } from "../src/components/ui/stigmer-icon";
+import BlogPost from "../src/app/blog/[slug]/page";
+import { StigmerDemoViewport } from "../src/components/docs/demos/shared/StigmerDemoViewport";
+import { APIExchangeView } from "../src/components/docs/demos/views/APIExchangeView";
+import { AppShell } from "../src/components/docs/demos/views/AppShell";
+import { ComposerView } from "../src/components/docs/demos/views/ComposerView";
+import { ManagementShell } from "../src/components/docs/demos/views/ManagementShell";
+import { ResourceListPage } from "../src/components/docs/demos/views/ResourceListPage";
+import { WidgetsSidebar } from "../src/components/docs/demos/views/WidgetsSidebar";
+import { AgentCreationTour } from "../src/components/docs/demos/scenarios/agent-creation-tour/index";
+import { AgentDetail } from "../src/components/docs/demos/scenarios/agent-detail/index";
+import { ApiKeySetup } from "../src/components/docs/demos/scenarios/api-key-setup/index";
+import { ApprovalFlowPlayback } from "../src/components/docs/demos/scenarios/approval-flow-playback/index";
+import { AuthenticationFlowPlayback } from "../src/components/docs/demos/scenarios/authentication-flow-playback/index";
+import { ByoaSetup } from "../src/components/docs/demos/scenarios/byoa-setup/index";
+import { ConnectPlayback } from "../src/components/docs/demos/scenarios/connect-playback/index";
+import { ConnectToolsTour } from "../src/components/docs/demos/scenarios/connect-tools-tour/index";
+import { CreateAgentTour } from "../src/components/docs/demos/scenarios/create-agent-tour/index";
+import { DragReorderValidation } from "../src/components/docs/demos/scenarios/drag-reorder-validation/index";
+import { FederationOverviewTour } from "../src/components/docs/demos/scenarios/federation-overview-tour/index";
+import { FirstSkillTour } from "../src/components/docs/demos/scenarios/first-skill-tour/index";
+import { MarketplaceConnectTour } from "../src/components/docs/demos/scenarios/marketplace-connect-tour/index";
+import { McpServerCreationTour } from "../src/components/docs/demos/scenarios/mcp-server-creation-tour/index";
+import { McpServerDetail } from "../src/components/docs/demos/scenarios/mcp-server-detail/index";
+import { MultiTenantJitPlayback } from "../src/components/docs/demos/scenarios/multi-tenant-jit-playback/index";
+import { MultiTenantSetupPlayback } from "../src/components/docs/demos/scenarios/multi-tenant-setup-playback/index";
+import { OAuthConnectFlow } from "../src/components/docs/demos/scenarios/oauth-connect-flow/index";
+import { PlatformClientSetupTour } from "../src/components/docs/demos/scenarios/platform-client-setup-tour/index";
+import { PlatformClientTokenFlow } from "../src/components/docs/demos/scenarios/platform-client-token-flow/index";
+import { ProvisionGrantPlayback } from "../src/components/docs/demos/scenarios/provision-grant-playback/index";
+import { QuickstartPlayback } from "../src/components/docs/demos/scenarios/quickstart-playback/index";
+import { QuickstartTour } from "../src/components/docs/demos/scenarios/quickstart-tour/index";
+import { RegisterIdpPlayback } from "../src/components/docs/demos/scenarios/register-idp-playback/index";
+import { RunnerListDetail } from "../src/components/docs/demos/scenarios/runner-list-detail/index";
+import { SessionMemoryPlayback } from "../src/components/docs/demos/scenarios/session-memory-playback/index";
+import { SkillCreationTour } from "../src/components/docs/demos/scenarios/skill-creation-tour/index";
+import { SkillDetail } from "../src/components/docs/demos/scenarios/skill-detail/index";
+import { SsoLoginPlayback } from "../src/components/docs/demos/scenarios/sso-login-playback/index";
+import { ToolCallsPlayback } from "../src/components/docs/demos/scenarios/tool-calls-playback/index";
+import { ViewportZoomValidation } from "../src/components/docs/demos/scenarios/viewport-zoom-validation/index";
 
 export const generatedViews = {
-  RootError,
-  GlobalError,
   RootLayout,
-  NotFound,
-  AuthGuard,
-  AuthProvider,
-  LibraryNavigationProvider,
-  OrgProvider,
-  SessionNavigationProvider,
-  OrgGate,
-  Providers,
-  AppShell,
-  ManagementSidebar,
-  OrgSwitcher,
-  Sidebar,
-  UserMenu,
-  StigmerTransportBridge,
-  SessionLauncher,
-  ApiKeysSection,
-  ComingSoon,
-  EnvironmentsSection,
-  IdentityProvidersSection,
-  InvitationsSection,
-  MembersSection,
-  OAuthAppsSection,
-  OrgProfileSection,
-  PlatformClientsSection,
-  UsageSection,
-  Badge,
-  Button,
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardAction,
-  CardContent,
-  CardFooter,
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
-  Dialog,
-  DialogTrigger,
-  DialogClose,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-  DropdownMenu,
-  DropdownMenuPortal,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-  DropdownMenuItem,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  ScrollArea,
-  Separator,
-  Toaster,
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-  TableCaption,
-  TooltipProvider,
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-  LibraryLayout,
-  LibraryBreadcrumb,
-  LibraryBreadcrumbProvider,
-  LibraryLanding,
-  LibraryPage,
-  LoginPage,
-  SettingsError,
-  SettingsLayout,
-  SettingsLoading,
-  SettingsPage,
-  DisabledAuthProvider,
-  OidcAuthProvider,
-  OidcCallbackPage,
-  InvitePageClient,
-  InvitePage,
-  AgentListPage,
-  AgentsPage,
-  McpServerListPage,
-  McpServersPage,
-  SkillsPage,
-  SkillListPage,
-  SessionPage,
-  SessionPageInner,
-  SessionSkeleton,
-  ApiKeysPage,
-  BillingPage,
-  EnvironmentsPage,
-  IdentityProvidersPage,
-  InvitationsPage,
-  MembersPage,
-  OAuthAppsPage,
-  OrgProfilePage,
-  PlatformClientsPage,
-  UsagePage,
-  GitHubCallbackPage,
-  McpOAuthCallbackPage,
-  AgentDetailPageInner,
-  AgentDetailPage,
   Page,
-  McpServerDetailPageInner,
-  McpServerDetailPage,
-  SkillDetailPageInner,
-  SkillDetailPage,
+  BlogLayout,
+  BlogIndex,
+  Layout,
+  CopyMarkdownButton,
+  Mermaid,
+  PageFeedback,
+  ReactSdkDomains,
+  SDKTabs,
+  Term,
+  Footer,
+  Header,
+  MobileMenu,
+  HomePage,
+  PricingPage,
+  UseCasesPage,
+  Capabilities,
+  DemoStory,
+  FinalCTA,
+  Hero,
+  HowItWorks,
+  OpenSource,
+  UseCases,
+  WhyItWorks,
+  Badge,
+  CodeBlock,
+  CodeSnippet,
+  DiscordIcon,
+  Icon,
+  FadeInUp,
+  FadeIn,
+  ScaleIn,
+  StaggerContainer,
+  StaggerItem,
+  MotionDiv,
+  SkipLink,
+  StigmerIcon,
+  BlogPost,
+  StigmerDemoViewport,
+  APIExchangeView,
+  AppShell,
+  ComposerView,
+  ManagementShell,
+  ResourceListPage,
+  WidgetsSidebar,
+  AgentCreationTour,
+  AgentDetail,
+  ApiKeySetup,
+  ApprovalFlowPlayback,
+  AuthenticationFlowPlayback,
+  ByoaSetup,
+  ConnectPlayback,
+  ConnectToolsTour,
+  CreateAgentTour,
+  DragReorderValidation,
+  FederationOverviewTour,
+  FirstSkillTour,
+  MarketplaceConnectTour,
+  McpServerCreationTour,
+  McpServerDetail,
+  MultiTenantJitPlayback,
+  MultiTenantSetupPlayback,
+  OAuthConnectFlow,
+  PlatformClientSetupTour,
+  PlatformClientTokenFlow,
+  ProvisionGrantPlayback,
+  QuickstartPlayback,
+  QuickstartTour,
+  RegisterIdpPlayback,
+  RunnerListDetail,
+  SessionMemoryPlayback,
+  SkillCreationTour,
+  SkillDetail,
+  SsoLoginPlayback,
+  ToolCallsPlayback,
+  ViewportZoomValidation,
 } as const;

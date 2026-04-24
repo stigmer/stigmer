@@ -42,8 +42,8 @@ const (
 	// WorkflowRunnerPIDFileName stores the workflow-runner PID.
 	WorkflowRunnerPIDFileName = "workflow-runner.pid"
 
-	// AgentRunnerPIDFileName stores the agent-runner PID.
-	AgentRunnerPIDFileName = "agent-runner.pid"
+	// RunnerPIDFileName stores the agent-runner PID.
+	RunnerPIDFileName = "agent-runner.pid"
 )
 
 // StartOptions provides options for starting the daemon.
@@ -57,6 +57,12 @@ type StartOptions struct {
 	NoWeb            bool
 	Secrets          map[string]string
 	OnLLMSetupFailed func(err error)
+
+	// ServerOnly starts only the control plane (Temporal + stigmer-server +
+	// web console) without workflow-runner or agent-runner. This is the
+	// foundation for `stigmer up server` which starts the control plane
+	// independently of any runners.
+	ServerOnly bool
 }
 
 // Start starts the stigmer daemon in the background.
@@ -182,17 +188,22 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 	// Bootstrap the native Python runtime for agent-runner.
 	// This runs in the foreground so the user sees progress.
 	// Independent of Temporal — only needs configDir and embedded source.
-	if opts.Progress != nil {
-		opts.Progress.SetPhase(cliprint.PhaseInstalling, "Bootstrapping Python runtime")
-	}
+	// Skipped in server-only mode where no runners are started.
+	var pythonBin, appDir string
 
-	if !agentrunner.IsAvailable() {
-		return errors.New("agent-runner Python source is not available")
-	}
+	if !opts.ServerOnly {
+		if opts.Progress != nil {
+			opts.Progress.SetPhase(cliprint.PhaseInstalling, "Bootstrapping Python runtime")
+		}
 
-	pythonBin, appDir, err := bootstrapAgentRunnerRuntime()
-	if err != nil {
-		return errors.Wrap(err, "failed to bootstrap agent-runner runtime")
+		if !agentrunner.IsAvailable() {
+			return errors.New("agent-runner Python source is not available")
+		}
+
+		pythonBin, appDir, err = bootstrapRunnerRuntime()
+		if err != nil {
+			return errors.Wrap(err, "failed to bootstrap agent-runner runtime")
+		}
 	}
 
 	// --- Phase 3: Starting ---
@@ -234,14 +245,23 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		fmt.Sprintf("STIGMER_LLM_PROVIDER=%s", llmProvider),
 		fmt.Sprintf("STIGMER_LLM_MODEL=%s", llmModel),
 		fmt.Sprintf("STIGMER_LLM_BASE_URL=%s", llmBaseURL),
-		fmt.Sprintf("STIGMER_AGENT_RUNNER_PYTHON_BIN=%s", pythonBin),
-		fmt.Sprintf("STIGMER_AGENT_RUNNER_APP_DIR=%s", appDir),
 		fmt.Sprintf("STIGMER_EXECUTION_MODE=%s", execMode),
 		fmt.Sprintf("STIGMER_SANDBOX_IMAGE=%s", sbImage),
 		fmt.Sprintf("STIGMER_SANDBOX_AUTO_PULL=%t", opts.SandboxAutoPull),
 		fmt.Sprintf("STIGMER_SANDBOX_CLEANUP=%t", opts.SandboxCleanup),
 		fmt.Sprintf("STIGMER_SANDBOX_TTL=%d", opts.SandboxTTL),
 	)
+
+	if !opts.ServerOnly {
+		env = append(env,
+			fmt.Sprintf("STIGMER_AGENT_RUNNER_PYTHON_BIN=%s", pythonBin),
+			fmt.Sprintf("STIGMER_AGENT_RUNNER_APP_DIR=%s", appDir),
+		)
+	}
+
+	if opts.ServerOnly {
+		env = append(env, "STIGMER_SERVER_ONLY=true")
+	}
 
 	if opts.NoWeb {
 		env = append(env, "STIGMER_NO_WEB=1")
@@ -295,6 +315,7 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		SandboxCleanup:   opts.SandboxCleanup,
 		SandboxTTL:       opts.SandboxTTL,
 		StigmerServerPID: cmd.Process.Pid,
+		ServerOnly:       opts.ServerOnly,
 	}
 	if err := saveStartupConfig(startupCfg); err != nil {
 		log.Warn().Err(err).Msg("Failed to save startup config")
@@ -321,7 +342,7 @@ func cleanupOrphanedProcesses(dataDir string) {
 		"daemon":          filepath.Join(dataDir, PIDFileName),
 		"stigmer-server":  filepath.Join(dataDir, StigmerServerPIDFileName),
 		"workflow-runner": filepath.Join(dataDir, WorkflowRunnerPIDFileName),
-		"agent-runner":    filepath.Join(dataDir, AgentRunnerPIDFileName),
+		"agent-runner":    filepath.Join(dataDir, RunnerPIDFileName),
 	}
 
 	orphansFound := false

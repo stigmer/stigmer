@@ -22,6 +22,8 @@ import {
   Package,
   ArrowRight,
   Shield,
+  Download,
+  Monitor,
   type LucideIcon,
 } from "lucide-react";
 
@@ -50,6 +52,8 @@ const iconMap = {
   package: Package,
   "arrow-right": ArrowRight,
   shield: Shield,
+  download: Download,
+  monitor: Monitor,
 } as const;
 
 /**

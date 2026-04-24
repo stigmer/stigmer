@@ -36,7 +36,7 @@ class TestSkillClientGetArtifact:
             mock_pb2_grpc.SkillQueryControllerStub.return_value = mock_skill_stub
             
             from grpc_client.skill_client import SkillClient
-            client = SkillClient(api_key="test-api-key")
+            client = SkillClient(token="test-api-key")
             
             return client
 
@@ -168,7 +168,7 @@ class TestSkillClientListByRefs:
             mock_pb2_grpc.SkillQueryControllerStub.return_value = mock_skill_stub
             
             from grpc_client.skill_client import SkillClient
-            return SkillClient(api_key="test-api-key")
+            return SkillClient(token="test-api-key")
 
     @pytest.mark.asyncio
     async def test_list_by_refs_empty_list(self, skill_client_with_mock_stub):

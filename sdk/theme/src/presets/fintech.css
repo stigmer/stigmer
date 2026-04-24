@@ -37,6 +37,14 @@
   --stgm-destructive-subtle: oklch(0.96 0.03 27);
   --stgm-muted-subtle: oklch(0.97 0.005 280);
   --stgm-muted-foreground-subtle: oklch(0.60 0.03 280);
+  --stgm-accent-hover: oklch(0.955 0.01 280);
+  --stgm-destructive-hover: oklch(0.52 0.22 27);
+  --stgm-foreground-hover: oklch(0.22 0.04 280);
+  --stgm-border-muted: oklch(0.93 0.008 280);
+  --stgm-muted-faint: oklch(0.975 0.003 280);
+  --stgm-primary-muted: oklch(0.58 0.14 280);
+  --stgm-destructive-muted: oklch(0.65 0.12 27);
+  --stgm-muted-foreground-faint: oklch(0.70 0.02 280);
   --stgm-backdrop: oklch(0.98 0.005 280 / 80%);
   --stgm-sidebar: oklch(0.12 0.06 280);
   --stgm-sidebar-foreground: oklch(0.90 0.01 280);
@@ -50,8 +58,8 @@
   --stgm-sidebar-ring: oklch(0.48 0.18 280);
 }
 
-.dark .stgm-theme-fintech,
-.stgm-theme-fintech.dark {
+[data-stgm-color-mode="dark"] .stgm-theme-fintech,
+.stgm-theme-fintech[data-stgm-color-mode="dark"] {
   --stgm-background: oklch(0.12 0.05 280);
   --stgm-foreground: oklch(0.92 0.01 280);
   --stgm-card: oklch(0.18 0.06 280);
@@ -82,6 +90,14 @@
   --stgm-destructive-subtle: oklch(0.18 0.04 22);
   --stgm-muted-subtle: oklch(0.17 0.04 280);
   --stgm-muted-foreground-subtle: oklch(0.48 0.04 280);
+  --stgm-accent-hover: oklch(0.20 0.04 280);
+  --stgm-destructive-hover: oklch(0.64 0.17 22);
+  --stgm-foreground-hover: oklch(0.84 0.01 280);
+  --stgm-border-muted: oklch(0.28 0.04 280);
+  --stgm-muted-faint: oklch(0.15 0.04 280);
+  --stgm-primary-muted: oklch(0.60 0.14 280);
+  --stgm-destructive-muted: oklch(0.60 0.10 22);
+  --stgm-muted-foreground-faint: oklch(0.42 0.03 280);
   --stgm-backdrop: oklch(0.12 0.05 280 / 80%);
   --stgm-sidebar: oklch(0.08 0.06 280);
   --stgm-sidebar-foreground: oklch(0.88 0.01 280);

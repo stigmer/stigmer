@@ -68,7 +68,7 @@ export function WriteBackCard({ writeBack, className }: WriteBackCardProps) {
             <div className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
               {writeBack.branchName}
               {writeBack.baseBranch && (
-                <span className="text-muted-foreground/60">
+                <span className="text-muted-foreground-subtle">
                   {" \u2190 "}
                   {writeBack.baseBranch}
                 </span>
@@ -87,7 +87,7 @@ export function WriteBackCard({ writeBack, className }: WriteBackCardProps) {
 
       {/* Error message */}
       {isFailed && writeBack.error && (
-        <div className="mt-1.5 rounded bg-destructive/10 px-2 py-1 text-xs text-destructive">
+        <div className="mt-1.5 rounded bg-destructive-subtle px-2 py-1 text-xs text-destructive">
           {writeBack.error}
         </div>
       )}
@@ -100,7 +100,7 @@ export function WriteBackCard({ writeBack, className }: WriteBackCardProps) {
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              "inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80",
+              "inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary-muted",
               FOCUS_RING_CLASSES,
             )}
           >
@@ -131,11 +131,11 @@ const PHASE_CONFIG: Record<
   },
   [WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_PR_CREATED]: {
     label: "PR Created",
-    className: "bg-primary/10 text-primary",
+    className: "bg-primary-subtle text-primary",
   },
   [WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_FAILED]: {
     label: "Failed",
-    className: "bg-destructive/10 text-destructive",
+    className: "bg-destructive-subtle text-destructive",
   },
 };
 

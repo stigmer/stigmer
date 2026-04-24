@@ -158,7 +158,7 @@ function CollapsibleCard({
       role="group"
       aria-label={ariaLabel}
       className={cn(
-        "rounded-md border border-border border-l-2 border-l-primary/30 bg-muted/30",
+        "rounded-md border border-border border-l-2 border-l-primary/30 bg-muted-faint",
         className,
       )}
     >
@@ -169,11 +169,11 @@ function CollapsibleCard({
         onClick={handleToggle}
         className={cn(
           "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors",
-          "hover:bg-muted/50",
+          "hover:bg-muted-subtle",
           "cursor-pointer",
         )}
       >
-        <span className="shrink-0 text-primary/70" aria-hidden="true">
+        <span className="shrink-0 text-primary-muted" aria-hidden="true">
           <BotIcon />
         </span>
         <span className="min-w-0 flex-1 truncate">{displayLabel}</span>
@@ -216,7 +216,7 @@ function CollapsibleCard({
       >
         <div className="overflow-hidden">
           {expanded && (
-            <div className="border-t border-border/50 px-2.5 pb-2 pt-1.5">
+            <div className="border-t border-border-muted px-2.5 pb-2 pt-1.5">
               <SubAgentThreadContent
                 threadItems={threadItems}
                 todos={sub.todos}
@@ -350,7 +350,7 @@ function SubAgentThreadContent({
       )}
 
       {isFailed && error && (
-        <div className="rounded-md border border-destructive/20 bg-destructive/5 px-2 py-1.5 text-xs text-destructive">
+        <div className="rounded-md border border-destructive/20 bg-destructive-subtle px-2 py-1.5 text-xs text-destructive">
           {error}
         </div>
       )}

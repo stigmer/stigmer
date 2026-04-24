@@ -1,4 +1,4 @@
-import { OAuthAppsSection } from "@/components/settings/OAuthAppsSection";
+import { OAuthAppsSection } from "@/domain/settings/OAuthAppsSection";
 
 export default function OAuthAppsPage() {
   return <OAuthAppsSection />;
