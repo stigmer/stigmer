@@ -1,12 +1,20 @@
 "use client";
 
-import { useMemo } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { RunnerPhase } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/enum_pb";
 import type { Runner } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
 import { useRunnerList } from "./useRunnerList";
+import { useStopRunner } from "./useStopRunner";
+import { useDeleteRunner } from "./useDeleteRunner";
 import {
   isActivePhase,
   phaseLabel,
@@ -15,6 +23,11 @@ import {
 } from "./phase";
 
 const SYSTEM_MANAGED_LABEL = "stigmer.ai/system-managed";
+
+type ConfirmingState = {
+  readonly runnerId: string;
+  readonly action: "stop" | "delete";
+} | null;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -36,20 +49,37 @@ export interface RunnerListPanelProps {
   readonly includeSystemManaged?: boolean;
   /** Expose refetch so parent components can trigger a list refresh. */
   readonly onRefetchRef?: (refetch: () => void) => void;
+  /**
+   * Notification callback fired after a runner is successfully stopped.
+   * Receives the updated runner resource with its new phase.
+   */
+  readonly onStopped?: (runner: Runner) => void;
+  /**
+   * Notification callback fired after a runner is successfully deleted.
+   * Receives the deleted runner resource for confirmation display.
+   */
+  readonly onDeleted?: (runner: Runner) => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 
 /**
- * Read-only admin panel that displays all runners in an organization.
+ * Admin panel that displays all runners in an organization with
+ * lifecycle management actions.
  *
  * Each runner is rendered as a card row showing name, phase indicator,
- * machine information, and operational metadata. Rows are sorted by
- * phase (active runners first) then alphabetically by name.
+ * machine information, and operational metadata. Non-system-managed
+ * runners include an action menu for stop and delete operations with
+ * inline confirmation — no modals or portals.
+ *
+ * Rows are sorted by phase (active runners first) then alphabetically
+ * by name. System-managed runners display a "System" badge and have
+ * no action affordances.
  *
  * Designed for the Settings > Runners page but embeddable in any
- * context that needs runner fleet visibility. Fetches data via
- * {@link useRunnerList} — no Console-specific dependencies.
+ * context that needs runner fleet management. Fetches data via
+ * {@link useRunnerList} and performs mutations via {@link useStopRunner}
+ * and {@link useDeleteRunner} — no Console-specific dependencies.
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *
@@ -60,6 +90,8 @@ export interface RunnerListPanelProps {
  * <RunnerListPanel
  *   org="acme"
  *   includeSystemManaged={false}
+ *   onStopped={(runner) => toast(`${runner.metadata?.name} stopped`)}
+ *   onDeleted={(runner) => toast(`${runner.metadata?.name} deleted`)}
  *   onRefetchRef={(refetch) => { refetchRef.current = refetch; }}
  * />
  * ```
@@ -68,11 +100,14 @@ export function RunnerListPanel({
   org,
   includeSystemManaged = true,
   onRefetchRef,
+  onStopped,
+  onDeleted,
   className,
 }: RunnerListPanelProps) {
   const { runners, isLoading, error, refetch } = useRunnerList(org, {
     includeSystemManaged,
   });
+  const [confirming, setConfirming] = useState<ConfirmingState>(null);
 
   if (onRefetchRef) {
     onRefetchRef(refetch);
@@ -81,6 +116,27 @@ export function RunnerListPanel({
   const sorted = useMemo(
     () => [...runners].sort(phaseThenName),
     [runners],
+  );
+
+  const handleRequestConfirm = useCallback(
+    (runnerId: string, action: "stop" | "delete") => {
+      setConfirming({ runnerId, action });
+    },
+    [],
+  );
+
+  const handleCancelConfirm = useCallback(() => {
+    setConfirming(null);
+  }, []);
+
+  const handleActionComplete = useCallback(
+    (runner: Runner, action: "stop" | "delete") => {
+      setConfirming(null);
+      refetch();
+      if (action === "stop") onStopped?.(runner);
+      else onDeleted?.(runner);
+    },
+    [refetch, onStopped, onDeleted],
   );
 
   if (isLoading) {
@@ -125,11 +181,7 @@ export function RunnerListPanel({
           <code className="bg-muted rounded px-1 py-0.5 font-mono text-[0.6rem]">
             stigmer up
           </code>{" "}
-          or{" "}
-          <code className="bg-muted rounded px-1 py-0.5 font-mono text-[0.6rem]">
-            stigmer up runner
-          </code>{" "}
-          to register one.
+          or launch one from your browser with the button above.
         </p>
       </div>
     );
@@ -141,12 +193,21 @@ export function RunnerListPanel({
       role="list"
       aria-label="Runners"
     >
-      {sorted.map((runner) => (
-        <RunnerRow
-          key={runner.metadata!.id}
-          runner={runner}
-        />
-      ))}
+      {sorted.map((runner) => {
+        const id = runner.metadata!.id;
+        return (
+          <RunnerRow
+            key={id}
+            runner={runner}
+            confirmingAction={
+              confirming?.runnerId === id ? confirming.action : null
+            }
+            onRequestConfirm={(action) => handleRequestConfirm(id, action)}
+            onCancelConfirm={handleCancelConfirm}
+            onActionComplete={handleActionComplete}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -155,12 +216,40 @@ export function RunnerListPanel({
 // RunnerRow (internal)
 // ---------------------------------------------------------------------------
 
-function RunnerRow({ runner }: { runner: Runner }) {
+function RunnerRow({
+  runner,
+  confirmingAction,
+  onRequestConfirm,
+  onCancelConfirm,
+  onActionComplete,
+}: {
+  runner: Runner;
+  confirmingAction: "stop" | "delete" | null;
+  onRequestConfirm: (action: "stop" | "delete") => void;
+  onCancelConfirm: () => void;
+  onActionComplete: (runner: Runner, action: "stop" | "delete") => void;
+}) {
+  const {
+    stop,
+    isStopping,
+    error: stopError,
+    clearError: clearStopError,
+  } = useStopRunner();
+  const {
+    deleteRunner,
+    isDeleting,
+    error: deleteError,
+    clearError: clearDeleteError,
+  } = useDeleteRunner();
+
   const name = runner.metadata?.name ?? "Unnamed";
+  const id = runner.metadata?.id ?? "";
   const phase = runner.status?.phase ?? RunnerPhase.UNSPECIFIED;
   const active = isActivePhase(phase);
   const systemManaged =
     runner.metadata?.labels[SYSTEM_MANAGED_LABEL] === "true";
+  const hasActions = !systemManaged;
+  const canStop = active;
 
   const info = runner.status?.connectionInfo;
   const hostname = info?.hostname;
@@ -169,6 +258,70 @@ function RunnerRow({ runner }: { runner: Runner }) {
   const version = info?.runnerVersion;
   const executions = runner.status?.currentExecutions ?? 0;
   const lastHeartbeat = runner.status?.lastHeartbeatAt;
+
+  useEffect(() => {
+    if (confirmingAction) {
+      clearStopError();
+      clearDeleteError();
+    }
+  }, [confirmingAction, clearStopError, clearDeleteError]);
+
+  const handleStop = useCallback(async () => {
+    try {
+      const updated = await stop({
+        runnerId: id,
+        reason: "stopped via web console",
+      });
+      onActionComplete(updated, "stop");
+    } catch {
+      // error state surfaced via useStopRunner hook
+    }
+  }, [id, stop, onActionComplete]);
+
+  const handleDelete = useCallback(async () => {
+    try {
+      const deleted = await deleteRunner(id);
+      onActionComplete(deleted, "delete");
+    } catch {
+      // error state surfaced via useDeleteRunner hook
+    }
+  }, [id, deleteRunner, onActionComplete]);
+
+  if (confirmingAction === "stop") {
+    return (
+      <ConfirmationRow
+        message={
+          <>
+            Stop <span className="font-medium">{name}</span>?
+          </>
+        }
+        description="Active executions on this runner will be interrupted."
+        confirmLabel="Stop runner"
+        isMutating={isStopping}
+        error={stopError}
+        onConfirm={handleStop}
+        onCancel={onCancelConfirm}
+      />
+    );
+  }
+
+  if (confirmingAction === "delete") {
+    return (
+      <ConfirmationRow
+        message={
+          <>
+            Delete <span className="font-medium">{name}</span>?
+          </>
+        }
+        description="This action is permanent. Sessions bound to this runner will fall back to auto-provisioning."
+        confirmLabel="Delete permanently"
+        isMutating={isDeleting}
+        error={deleteError}
+        onConfirm={handleDelete}
+        onCancel={onCancelConfirm}
+      />
+    );
+  }
 
   return (
     <div
@@ -213,11 +366,200 @@ function RunnerRow({ runner }: { runner: Runner }) {
           </span>
         )}
         {lastHeartbeat && (
-          <span title={`Last heartbeat: ${timestampDate(lastHeartbeat).toISOString()}`}>
+          <span
+            title={`Last heartbeat: ${timestampDate(lastHeartbeat).toISOString()}`}
+          >
             {formatRelativeTime(timestampDate(lastHeartbeat))}
           </span>
         )}
       </div>
+
+      {hasActions && (
+        <ActionMenu
+          canStop={canStop}
+          onStop={() => onRequestConfirm("stop")}
+          onDelete={() => onRequestConfirm("delete")}
+          runnerName={name}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ConfirmationRow (internal)
+// ---------------------------------------------------------------------------
+
+function ConfirmationRow({
+  message,
+  description,
+  confirmLabel,
+  isMutating,
+  error,
+  onConfirm,
+  onCancel,
+}: {
+  message: React.ReactNode;
+  description: string;
+  confirmLabel: string;
+  isMutating: boolean;
+  error: Error | null;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      role="listitem"
+      className="rounded-lg border border-destructive/30 bg-destructive-subtle px-3 py-2.5"
+    >
+      <p className="text-xs text-foreground">{message}</p>
+      <p className="mt-0.5 text-[0.65rem] text-muted-foreground">
+        {description}
+      </p>
+      {error && (
+        <p className="mt-1 text-[0.65rem] text-destructive" role="alert">
+          {getUserMessage(error)}
+        </p>
+      )}
+      <div className="mt-2 flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={isMutating}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
+            "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
+            "disabled:pointer-events-none disabled:opacity-50",
+          )}
+        >
+          {isMutating && <SpinnerIcon />}
+          {confirmLabel}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={isMutating}
+          className={cn(
+            "rounded-md px-2.5 py-1 text-xs",
+            "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
+            "disabled:pointer-events-none disabled:opacity-50",
+          )}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ActionMenu (internal)
+// ---------------------------------------------------------------------------
+
+function ActionMenu({
+  canStop,
+  onStop,
+  onDelete,
+  runnerName,
+}: {
+  canStop: boolean;
+  onStop: () => void;
+  onDelete: () => void;
+  runnerName: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(e: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-label={`Actions for ${runnerName}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className={cn(
+          "shrink-0 rounded p-1",
+          "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
+          "transition-colors",
+        )}
+      >
+        <MoreVerticalIcon />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          aria-label={`Actions for ${runnerName}`}
+          className={cn(
+            "absolute right-0 top-full z-10 mt-1",
+            "min-w-[10rem] rounded-md border border-border bg-popover py-1 shadow-md",
+          )}
+        >
+          {canStop && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onStop();
+              }}
+              className={cn(
+                "flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs",
+                "text-foreground hover:bg-accent-hover transition-colors",
+              )}
+            >
+              <StopIcon />
+              Stop runner
+            </button>
+          )}
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onDelete();
+            }}
+            className={cn(
+              "flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs",
+              "text-destructive-muted hover:text-destructive hover:bg-destructive-subtle",
+              "transition-colors",
+            )}
+          >
+            <TrashIcon />
+            Delete runner
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -304,6 +646,80 @@ function RunnerIcon({ size = 14 }: { size?: number }) {
       <path d="M20 9h2" />
       <path d="M9 2v2" />
       <path d="M9 20v2" />
+    </svg>
+  );
+}
+
+function MoreVerticalIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <circle cx="8" cy="3" r="1.5" />
+      <circle cx="8" cy="8" r="1.5" />
+      <circle cx="8" cy="13" r="1.5" />
+    </svg>
+  );
+}
+
+function StopIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="8" cy="8" r="6" />
+      <rect x="5.5" y="5.5" width="5" height="5" rx="0.5" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2.5 4h11M5.5 4V2.5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1V4" />
+      <path d="M12.5 4v9a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1V4" />
+      <line x1="6.5" y1="7" x2="6.5" y2="11" />
+      <line x1="9.5" y1="7" x2="9.5" y2="11" />
+    </svg>
+  );
+}
+
+function SpinnerIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      className="animate-spin"
+      aria-hidden="true"
+    >
+      <path d="M8 2a6 6 0 1 0 6 6" />
     </svg>
   );
 }
