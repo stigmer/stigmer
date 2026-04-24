@@ -43,7 +43,10 @@ go_library(
 
 go_test(
     name = "daemon_test",
-    srcs = ["reset_test.go"],
+    srcs = [
+        "reset_test.go",
+        "runner_stream_commands_test.go",
+    ],
     embed = [":daemon"],
     deps = [
         "@com_github_stretchr_testify//assert",
