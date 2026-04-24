@@ -31,6 +31,11 @@ export const SITE_CONFIG = {
 
   cloudSignupUrl: "https://app.stigmer.ai",
   cloudSigninUrl: "https://app.stigmer.ai",
+
+  contactSalesUrl: "/contact-sales",
+  waitlistUrl: "/pricing#waitlist",
+
+  leadsFormUrl: "https://stigmer-prod-leads-form-receiver.planton.live",
 } as const;
 
 /**
@@ -95,13 +100,14 @@ export function getDownloadUrl(platform: DesktopPlatform): string {
 
 /**
  * Navigation links for the site header.
- * Per IA Section 2: Logo | Use Cases | Docs | Pricing | GitHub | Sign In | [Start Free]
+ * Layout: Logo | Use Cases | Docs | Blog | Pricing | Download | GitHub | Discord | Sign In | [Start Free]
  */
 export const NAV_LINKS = [
   { label: "Use Cases", href: "/use-cases" },
   { label: "Docs", href: "/docs" },
   { label: "Blog", href: "/blog" },
   { label: "Pricing", href: "/pricing" },
+  { label: "Download", href: "/download" },
   { label: "GitHub", href: SITE_CONFIG.githubUrl, external: true },
 ] as const;
 
@@ -114,6 +120,7 @@ export const FOOTER_LINKS = {
     { label: "Use Cases", href: "/use-cases" },
     { label: "Pricing", href: "/pricing" },
     { label: "Documentation", href: "/docs" },
+    { label: "Download", href: "/download" },
   ],
   developers: [
     { label: "Getting Started", href: "/docs/getting-started/quickstart" },
