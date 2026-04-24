@@ -136,6 +136,7 @@ jobs:
           go-version: '1.25'
 
       - name: Build CLI sidecar
+        shell: bash
         env:
           GOOS: ${{ matrix.go_os }}
           GOARCH: ${{ matrix.go_arch }}
@@ -146,6 +147,7 @@ jobs:
             ./client-apps/cli
 
       - name: Verify sidecar binary
+        shell: bash
         run: |
           ls -lh client-apps/desktop/src-tauri/binaries/${{ matrix.sidecar_name }}
           file client-apps/desktop/src-tauri/binaries/${{ matrix.sidecar_name }}
