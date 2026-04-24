@@ -13,9 +13,52 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: Phase A complete (all 5 documentation tasks done). Ready for T06 (Phase B).
-- **Last Session**: 2026-04-24 (Session 5) — T05 SDK runner docs quality gaps closed. Phase A complete.
-- **Active Task**: None — ready to start T06.
+- **Status**: T07 complete. Ready for T08.
+- **Last Session**: 2026-04-24 (Session 7) — T07 nav/footer wiring shipped.
+- **Active Task**: None — ready to start T08.
+
+## Session wrap-up (2026-04-24, Session 7)
+
+- T07 wired the `/download` page into the marketing site header nav and footer.
+  Single file change: `site/src/lib/constants.ts`.
+- **`NAV_LINKS`**: Added `{ label: "Download", href: "/download" }` between
+  Pricing and GitHub. Nav order: Use Cases | Docs | Blog | Pricing | Download |
+  GitHub | Discord | Sign In | Start Free.
+- **`FOOTER_LINKS.product`**: Appended `{ label: "Download", href: "/download" }`
+  after Documentation. Product footer now has 4 links.
+- Updated the stale IA comment above `NAV_LINKS` to reflect the actual current
+  layout (Blog, Download, Discord were all added after the original IA spec).
+- No component files touched — Header, MobileMenu, and Footer all iterate
+  `NAV_LINKS` / `FOOTER_LINKS` arrays automatically.
+- Site build passes cleanly (`npm run build` exit 0).
+- **Changelog**:
+  `_changelog/2026-04/2026-04-24-202005-marketing-site-nav-footer-wiring-t07.md`
+
+## Session wrap-up (2026-04-24, Session 6)
+
+- T06 delivered `/download` route on the marketing site with platform-detected
+  download buttons for Stigmer Desktop.
+- Created `DESKTOP_CONFIG` in `constants.ts` — single source of truth for version
+  (`0.1.0`), release tag (`desktop-v0.1.0`), and all 5 platform artifact filenames.
+  `getDownloadUrl()` helper constructs GitHub Release download URLs.
+- Page structure: hero (heading + value prop + version badge), 5 platform cards
+  in responsive grid (macOS Apple Silicon/Intel, Windows, Linux .deb/.AppImage),
+  "After you install" guide links, Apache 2.0 note.
+- Platform detection: client-side `navigator.userAgent` for OS,
+  `navigator.userAgentData.getHighEntropyValues(['architecture'])` for macOS
+  Apple Silicon vs Intel. Falls back to arm64. Highlighted card gets `bg-card`
+  treatment and "Recommended" label.
+- Platform brand icons (Apple, Windows, Linux) are inline SVGs in `DownloadPage.tsx`.
+  Follows existing pattern (`discord-icon.tsx`, `stigmer-icon.tsx`).
+- Added `Download` and `Monitor` icons from Lucide to `icon.tsx`.
+- All guide links verified as 200: `/docs/guides/desktop/install`,
+  `/docs/guides/desktop/manage-runners`, `/docs/guides/runners/local-runner`.
+- **Artifact filename risk**: filenames follow Tauri 2 convention but have not been
+  verified against a real build. After first published `desktop-v*` release, compare
+  actual GitHub Release assets against `DESKTOP_CONFIG.platforms[*].filename`.
+- **Changelog**:
+  `_changelog/2026-04/2026-04-24-200337-marketing-site-download-page-t06.md`
+- **Commit**: `6e879ead7` — `feat(site): add /download page for Stigmer Desktop (T06)`
 
 ## Session wrap-up (2026-04-24, Session 5)
 
@@ -78,8 +121,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 | Task | Title | Status | Dependencies |
 |------|-------|--------|--------------|
-| T06 | Marketing site download page | Pending | T03 |
-| T07 | Marketing site nav/footer wiring | Pending | T06 |
+| T06 | Marketing site download page | **Complete** | T03 |
+| T07 | Marketing site nav/footer wiring | **Complete** | T06 |
 | T08 | Console: "Get Desktop App" in user menu | Pending | T06 |
 | T09 | Console: contextual runner promotion | Pending | T06 |
 | T10 | Console: smart nudge banner | Pending | T06, T09 |
@@ -134,7 +177,9 @@ All promotion surfaces link to the download page. The download page links to the
 - `_roles/002_document_writer.md` — Document writer role (Diataxis, plain language, demo standards)
 
 ### Marketing Site
-- `site/src/lib/constants.ts` — `NAV_LINKS`, `FOOTER_LINKS`, `SITE_CONFIG`
+- `site/src/lib/constants.ts` — `NAV_LINKS`, `FOOTER_LINKS`, `SITE_CONFIG`, `DESKTOP_CONFIG`, `getDownloadUrl()`
+- `site/src/app/download/page.tsx` — **(T06)**: Download route entry (metadata + DownloadPage)
+- `site/src/components/pages/DownloadPage.tsx` — **(T06)**: Download page with platform detection and guide links
 - `site/src/components/pages/PricingPage.tsx` — Reference pattern for new marketing pages
 - `site/src/app/pricing/page.tsx` — Reference route pattern (metadata + page component)
 - `site/src/components/layout/Header.tsx` — Nav auto-reads from `NAV_LINKS`
@@ -181,6 +226,10 @@ All promotion surfaces link to the download page. The download page links to the
 - Desktop release tag pattern: `desktop-v*` (e.g., `desktop-v0.1.0`)
 - Auto-updater endpoint: `https://github.com/stigmer/stigmer/releases/latest/download/latest.json`
 
+### What exists for distribution today
+- `site/src/app/download/page.tsx` + `site/src/components/pages/DownloadPage.tsx` — **(T06)**: `/download` route with platform-detected download buttons. Links to GitHub Release artifacts via `DESKTOP_CONFIG`.
+- `site/src/lib/constants.ts` — **(T06+T07)**: `DESKTOP_CONFIG` with version, release tag, 5 platform artifacts, `getDownloadUrl()`. `NAV_LINKS` includes Download link between Pricing and GitHub. `FOOTER_LINKS.product` includes Download after Documentation.
+
 ### What exists for runners in docs today
 - `docs/concepts/runners.mdx` — **(T02)**: Explanation page with lifecycle, local vs cloud, dispatch, live RunnerListPanel demo.
 - `docs/guides/desktop/` — **(T03)**: 3 pages: overview, install, manage-runners. Desktop app guide with DesktopView demos.
@@ -195,6 +244,13 @@ All promotion surfaces link to the download page. The download page links to the
 - **`manage-runners.mdx` renamed from `launch-runner.mdx`**: Original name was too narrow — the page covers starting, stopping, tray, deep links, and notifications.
 - **Scenar packages updated to 0.1.18**: `@scenar/core`, `@scenar/preview`, `@scenar/react`, `@scenar/cli` in `site/package.json`. `.scenar/` regenerated via `scenar preview sync`.
 - **Desktop guides placed first in sidebar**: `docs/guides/meta.json` has `"desktop"` before `"integrations"` and `"authentication"` — runner management is a primary use case.
+
+### T06 discoveries
+- **Artifact filenames are convention-based**: Tauri 2 bundler output filenames are not hardcoded anywhere in the repo. `DESKTOP_CONFIG` in `constants.ts` uses standard Tauri 2 naming (`Stigmer_0.1.0_aarch64.dmg`, etc.). Must verify after first published release.
+- **No Lucide brand icons**: Lucide does not carry Apple/Windows/Linux brand marks. Platform logos are inline SVGs in `DownloadPage.tsx`, following the `discord-icon.tsx` pattern.
+- **Safari lacks `userAgentData`**: `navigator.userAgentData.getHighEntropyValues()` is Chromium-only. Safari macOS users default to Apple Silicon (majority of active Macs post-2020). This is a known trade-off.
+- **`max-w-4xl` vs `max-w-5xl`**: Download page uses `max-w-4xl` (narrower than PricingPage's `max-w-5xl`) because cards are individually narrower. Header/footer still use `max-w-7xl` consistently.
+- **Linux dual format**: Both `.deb` and `.AppImage` are listed as separate cards. On Linux detection, the `.deb` card is recommended (first match). Users who prefer AppImage can see and click the adjacent card.
 
 ### T05 discoveries
 - **Original scope already done**: The three "missing" hooks (`useLaunchLocalRunner`, `useStopRunner`, `useDeleteRunner`) were already in the generated `runner.mdx`. The `next-task.md` description was written before the last React SDK codegen run. T05 pivoted to quality gap closure instead.
@@ -215,11 +271,9 @@ All promotion surfaces link to the download page. The download page links to the
 
 ## Quick Commands
 
-- "Start T02" — Begin runner concepts page
-- "Start T03" — Begin desktop app guide
-- "Start T04" — Begin CLI runner guides
-- "Start T05" — Begin SDK React runner docs update
-- "Start T06" — Begin marketing site download page
+- "Start T08" — Begin Console "Get Desktop App" in user menu
+- "Start T09" — Begin Console contextual runner promotion
+- "Start T10" — Begin Console smart nudge banner
 - "Show project status" — Get overview of progress
 
 ---
