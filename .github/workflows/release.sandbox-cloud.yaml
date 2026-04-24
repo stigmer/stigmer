@@ -57,6 +57,7 @@ jobs:
             .
 
       - name: Ensure GHCR package is public
+        continue-on-error: true
         run: |
           gh api \
             -X PUT \
