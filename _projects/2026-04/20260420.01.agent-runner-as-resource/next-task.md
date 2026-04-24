@@ -12,9 +12,9 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: apis/ai/stigmer/agentic/agentrunner/v1 (new proto resource); backend/services/stigmer-service (proxy endpoints, AgentRunner aggregate, dispatch logic, RunnerLauncher abstraction); backend/services/agent-runner (remove machine account, point clients at proxy, run inside Daytona); client-apps/cli and Stigmer Desktop (stigmer:// URL handler, register-as-AgentRunner flow); cloud frontend (AgentRunner UI for Persistent runners)
 
 ## Current State
-- **Status**: Phase 0 code complete; Phase 1 complete; Phase 2 prep complete; Daytona removal complete; Proxy consolidated; Sandbox image slimmed; Bazel build fixed and validated
+- **Status**: PROJECT COMPLETE. All phases done — Phase 0 deploy, Phase 1, Phase 2 prep, Daytona removal, proxy consolidation, sandbox slimming, Bazel build fix. Successor project: `20260423.02.phase3-persistent-runners-browser-launch`.
 - **Last Session**: 2026-04-21 — Fix Bazel Build (Session 18)
-- **Active Task**: All code changes committed. Next: Phase 0 deploy ops tasks (items 2, 4, 6, 7)
+- **Active Task**: None — all 21 implementation items and 7 deploy items are complete
 
 ## Session Progress (2026-04-21, Session 18 — Fix Bazel Build)
 
@@ -700,14 +700,14 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-### Phase 0 Deploy (remaining ops tasks)
+### Phase 0 Deploy (all complete)
 1. ~~**Validate Bazel build**~~ — DONE (Session 18, commit 878db46a): fixed Daytona SDK coordinates + strict deps, 25/25 tests pass
-2. **Deploy proxy to staging** — verify `/health` on port 8081
+2. ~~**Deploy proxy to staging**~~ — DONE: proxy deployed, `/health` verified on port 8081
 3. ~~**DNS setup**~~ — ELIMINATED: proxy consolidated under `api.stigmer.ai` via path-based routing (Session 16)
-4. **Apply supplementary HTTPRoute** — `kubectl apply -f stigmer-proxy-path-route.yaml` (routes `api.stigmer.ai/v1/proxy` to port 8081)
+4. ~~**Apply supplementary HTTPRoute**~~ — DONE (commit 76d92d59): `stigmer-proxy-path-route.yaml` committed and applied (routes `api.stigmer.ai/v1/proxy` to port 8081)
 5. ~~**Create Planton secrets group**~~ — ELIMINATED: LLM provider API keys already on stigmer-service pod via base kustomize
-6. **End-to-end test** — trigger execution, verify all calls route through proxy
-7. **Commit stigmer-cloud HttpSecurityConfig.java change** — BearerTokenResolver still uncommitted
+6. ~~**End-to-end test**~~ — DONE: execution routing through proxy validated
+7. ~~**Commit stigmer-cloud HttpSecurityConfig.java change**~~ — DONE (commit 76d92d59): BearerTokenResolver for x-api-key header committed
 
 ### Phase 1 Implementation (next coding work)
 8. ~~**stigmer-cloud: AgentRunner aggregate + handlers**~~ — DONE (Session 6, commit fbafc288)
@@ -748,15 +748,11 @@ Drop this file into your conversation to quickly resume work on this project.
 - All previous session context preserved in earlier sections of this file
 
 ## Blockers
-- None blocking. Phase 1, Phase 2 prep, and Daytona removal are all complete. Next: Phase 0 deploy (ops tasks).
+- None. Project complete. Successor: `20260423.02.phase3-persistent-runners-browser-launch`.
 
 ## Quick Resume
-To continue this project, drag this file into chat:
-`@_projects/2026-04/20260420.01.agent-runner-as-resource/next-task.md`
-
-## Quick Commands
-- "Continue with Phase 0 deploy" - ops tasks (Bazel build, staging deploy, DNS, e2e test)
-- "Show project status" - Get overview of progress
+This project is complete. For the successor project:
+`@_projects/2026-04/20260423.02.phase3-persistent-runners-browser-launch/next-task.md`
 
 ---
 
