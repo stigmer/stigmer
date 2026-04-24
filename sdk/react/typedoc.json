@@ -57,7 +57,8 @@
       "TodoItem": "/docs/sdk/resources/agent-execution",
       "OAuthApp": "/docs/sdk/resources/oauth-app",
       "PlatformClient": "/docs/sdk/resources/platform-client",
-      "PlatformClientCreateResponse": "/docs/sdk/resources/platform-client"
+      "PlatformClientCreateResponse": "/docs/sdk/resources/platform-client",
+      "Runner": "/docs/sdk/resources/runner"
     },
     "@stigmer/react": {
       "DISABLED_PROVIDERS": "#",

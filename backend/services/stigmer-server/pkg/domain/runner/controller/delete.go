@@ -41,9 +41,9 @@ func (c *RunnerController) Delete(ctx context.Context, runnerId *runnerv1.Runner
 
 func (c *RunnerController) buildDeletePipeline() *pipeline.Pipeline[*runnerv1.RunnerId] {
 	return pipeline.NewPipeline[*runnerv1.RunnerId]("runner-delete").
-		AddStep(steps.NewValidateProtoStep[*runnerv1.RunnerId]()).                                     // 1. Validate field constraints
-		AddStep(steps.NewExtractResourceIdStep[*runnerv1.RunnerId]()).                                 // 2. Extract ID from wrapper
-		AddStep(steps.NewLoadExistingForDeleteStep[*runnerv1.RunnerId, *runnerv1.Runner](c.store)).    // 3. Load runner
-		AddStep(steps.NewDeleteResourceStep[*runnerv1.RunnerId](c.store)).                             // 4. Delete from database
+		AddStep(steps.NewValidateProtoStep[*runnerv1.RunnerId]()).                                  // 1. Validate field constraints
+		AddStep(steps.NewExtractResourceIdStep[*runnerv1.RunnerId]()).                              // 2. Extract ID from wrapper
+		AddStep(steps.NewLoadExistingForDeleteStep[*runnerv1.RunnerId, *runnerv1.Runner](c.store)). // 3. Load runner
+		AddStep(steps.NewDeleteResourceStep[*runnerv1.RunnerId](c.store)).                          // 4. Delete from database
 		Build()
 }

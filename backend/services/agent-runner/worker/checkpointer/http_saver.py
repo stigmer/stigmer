@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterator, Sequence
-from typing import Any, Optional
+from typing import Any, cast
 
 import httpx
+from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import (
     BaseCheckpointSaver,
     ChannelVersions,
@@ -49,11 +50,11 @@ class HttpCheckpointSaver(BaseCheckpointSaver):
 
     def put(
         self,
-        config: dict[str, Any],
+        config: RunnableConfig,
         checkpoint: Checkpoint,
         metadata: CheckpointMetadata,
         new_versions: ChannelVersions,
-    ) -> dict[str, Any]:
+    ) -> RunnableConfig:
         thread_id = config["configurable"]["thread_id"]
         checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
         checkpoint_id = checkpoint["id"]
@@ -74,19 +75,20 @@ class HttpCheckpointSaver(BaseCheckpointSaver):
         resp = self._client.put("/checkpoint", json=doc)
         resp.raise_for_status()
 
-        return {
+        return cast(RunnableConfig, {
             "configurable": {
                 "thread_id": thread_id,
                 "checkpoint_ns": checkpoint_ns,
                 "checkpoint_id": checkpoint_id,
             }
-        }
+        })
 
     def put_writes(
         self,
-        config: dict[str, Any],
+        config: RunnableConfig,
         writes: Sequence[tuple[str, Any]],
         task_id: str,
+        task_path: str = "",
     ) -> None:
         thread_id = config["configurable"]["thread_id"]
         checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
@@ -112,7 +114,7 @@ class HttpCheckpointSaver(BaseCheckpointSaver):
         resp = self._client.put("/writes", json={"writes": docs})
         resp.raise_for_status()
 
-    def get_tuple(self, config: dict[str, Any]) -> Optional[CheckpointTuple]:
+    def get_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
         thread_id = config["configurable"]["thread_id"]
         checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
         checkpoint_id = config["configurable"].get("checkpoint_id")
@@ -167,20 +169,20 @@ class HttpCheckpointSaver(BaseCheckpointSaver):
                 ))
 
         return CheckpointTuple(
-            config=config_out,
-            checkpoint=checkpoint,
-            metadata=metadata,
-            parent_config=parent_config,
+            config=cast(RunnableConfig, config_out),
+            checkpoint=cast(Checkpoint, checkpoint),
+            metadata=cast(CheckpointMetadata, metadata),
+            parent_config=cast(RunnableConfig | None, parent_config),
             pending_writes=pending_writes,
         )
 
     def list(
         self,
-        config: Optional[dict[str, Any]],
+        config: RunnableConfig | None,
         *,
-        filter: Optional[dict[str, Any]] = None,
-        before: Optional[dict[str, Any]] = None,
-        limit: int = 10,
+        filter: dict[str, Any] | None = None,
+        before: RunnableConfig | None = None,
+        limit: int | None = None,
     ) -> Iterator[CheckpointTuple]:
         if config is None:
             return
@@ -188,10 +190,11 @@ class HttpCheckpointSaver(BaseCheckpointSaver):
         thread_id = config["configurable"]["thread_id"]
         checkpoint_ns = config["configurable"].get("checkpoint_ns", "")
 
+        eff_limit = 10 if limit is None else limit
         params: dict[str, Any] = {
             "thread_id": thread_id,
             "checkpoint_ns": checkpoint_ns,
-            "limit": str(limit),
+            "limit": str(eff_limit),
         }
         if before and before.get("configurable", {}).get("checkpoint_id"):
             params["before"] = before["configurable"]["checkpoint_id"]
@@ -222,10 +225,10 @@ class HttpCheckpointSaver(BaseCheckpointSaver):
                 }
 
             yield CheckpointTuple(
-                config=cfg,
-                checkpoint=checkpoint,
-                metadata=metadata,
-                parent_config=parent_config,
+                config=cast(RunnableConfig, cfg),
+                checkpoint=cast(Checkpoint, checkpoint),
+                metadata=cast(CheckpointMetadata, metadata),
+                parent_config=cast(RunnableConfig | None, parent_config),
             )
 
     def close(self) -> None:

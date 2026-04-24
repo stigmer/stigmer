@@ -37,10 +37,10 @@ func (m *connectMockStream) Send(msg *runnerv1.RunnerStreamServerMessage) error 
 }
 
 func (m *connectMockStream) SetHeader(_ metadata.MD) error  { return nil }
-func (m *connectMockStream) SendHeader(_ metadata.MD) error  { return nil }
-func (m *connectMockStream) SetTrailer(_ metadata.MD)        {}
-func (m *connectMockStream) SendMsg(_ any) error             { return nil }
-func (m *connectMockStream) RecvMsg(_ any) error             { return nil }
+func (m *connectMockStream) SendHeader(_ metadata.MD) error { return nil }
+func (m *connectMockStream) SetTrailer(_ metadata.MD)       {}
+func (m *connectMockStream) SendMsg(_ any) error            { return nil }
+func (m *connectMockStream) RecvMsg(_ any) error            { return nil }
 
 func (m *connectMockStream) Context() context.Context {
 	if m.ctx != nil {

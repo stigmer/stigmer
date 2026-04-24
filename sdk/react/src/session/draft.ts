@@ -15,12 +15,18 @@ export type DraftResourceType = "agent" | "skill" | "mcp-server";
  * existing resource). When absent, it's a create session (new resource).
  */
 export interface DraftParams {
+  /** The kind of resource this draft session will create or edit. */
   readonly draftType: DraftResourceType;
   /**
    * When present, identifies the existing resource to edit.
    * Absent for create-mode sessions.
    */
-  readonly editRef?: { readonly org: string; readonly slug: string };
+  readonly editRef?: {
+    /** Organization that owns the resource. */
+    readonly org: string;
+    /** URL-friendly identifier of the resource. */
+    readonly slug: string;
+  };
 }
 
 /**

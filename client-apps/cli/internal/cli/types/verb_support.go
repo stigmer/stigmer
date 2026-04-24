@@ -122,9 +122,10 @@ var verbSupport = map[apiresourcekind.ApiResourceKind]map[Verb]bool{
 		VerbDelete: true,
 	},
 	apiresourcekind.ApiResourceKind_runner: {
-		VerbApply: true,
-		VerbGet:   true,
-		VerbList:  true,
+		VerbApply:  true,
+		VerbGet:    true,
+		VerbList:   true,
+		VerbDelete: true,
 	},
 }
 

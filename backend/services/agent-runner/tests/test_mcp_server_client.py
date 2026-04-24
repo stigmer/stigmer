@@ -42,7 +42,7 @@ class TestMcpServerClientGet:
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
             from grpc_client.mcp_server_client import McpServerClient
-            client = McpServerClient(api_key="test-api-key")
+            client = McpServerClient(token="test-api-key")
             
             return client
 
@@ -139,7 +139,7 @@ class TestMcpServerClientGetByReference:
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
             from grpc_client.mcp_server_client import McpServerClient
-            return McpServerClient(api_key="test-api-key")
+            return McpServerClient(token="test-api-key")
 
     @pytest.mark.asyncio
     async def test_get_by_reference_success(
@@ -225,7 +225,7 @@ class TestMcpServerClientListByIds:
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
             from grpc_client.mcp_server_client import McpServerClient
-            return McpServerClient(api_key="test-api-key")
+            return McpServerClient(token="test-api-key")
 
     @pytest.mark.asyncio
     async def test_list_by_ids_empty_list(self, mcp_client_with_mock_stub):
@@ -297,7 +297,7 @@ class TestMcpServerClientListByRefs:
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
             from grpc_client.mcp_server_client import McpServerClient
-            return McpServerClient(api_key="test-api-key")
+            return McpServerClient(token="test-api-key")
 
     @pytest.mark.asyncio
     async def test_list_by_refs_empty_list(self, mcp_client_with_mock_stub):
@@ -389,7 +389,7 @@ class TestMcpServerClientChannel:
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
             from grpc_client.mcp_server_client import McpServerClient
-            McpServerClient(api_key="test-api-key")
+            McpServerClient(token="test-api-key")
             
             # Assert secure_channel was called
             mock_grpc_aio.secure_channel.assert_called_once()
@@ -408,7 +408,7 @@ class TestMcpServerClientChannel:
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
             from grpc_client.mcp_server_client import McpServerClient
-            McpServerClient(api_key="test-api-key")
+            McpServerClient(token="test-api-key")
             
             # Assert insecure_channel was called
             mock_grpc_aio.insecure_channel.assert_called_once()
@@ -431,7 +431,7 @@ class TestMcpServerClientChannel:
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
             from grpc_client.mcp_server_client import McpServerClient
-            client = McpServerClient(api_key="test-api-key")
+            client = McpServerClient(token="test-api-key")
             
             # Act
             await client.close()

@@ -627,4 +627,3 @@ func terminateChild(cmd *exec.Cmd, exitCh <-chan error) error {
 		return nil
 	}
 }
-

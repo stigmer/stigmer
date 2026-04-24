@@ -179,7 +179,6 @@ func TestJSONOutput_SuccessPaths(t *testing.T) {
 			wantMsgContain: "Backend set to local",
 			wantSections:   false,
 		},
-	
 	}
 
 	for _, tt := range tests {

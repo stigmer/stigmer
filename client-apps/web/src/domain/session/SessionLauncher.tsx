@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -67,15 +67,11 @@ export function SessionLauncher() {
     () => liveDraftType,
   );
   const [capturedEditRef, setCapturedEditRef] = useState(liveEditRef);
-  const draftCaptured = useRef(liveDraftType !== null);
 
-  useEffect(() => {
-    if (!draftCaptured.current && liveDraftType) {
-      draftCaptured.current = true;
-      setCapturedDraftType(liveDraftType);
-      setCapturedEditRef(liveEditRef);
-    }
-  }, [liveDraftType, liveEditRef]);
+  if (capturedDraftType === null && liveDraftType) {
+    setCapturedDraftType(liveDraftType);
+    setCapturedEditRef(liveEditRef);
+  }
 
   const draftType = capturedDraftType;
   const editRef = capturedEditRef ?? null;
@@ -84,14 +80,10 @@ export function SessionLauncher() {
   const [initialAgentRef, setInitialAgentRef] = useState<ResourceRef | undefined>(
     () => (draftType ? CREATOR_AGENTS[draftType] : undefined),
   );
-  const initialAgentCaptured = useRef(draftType !== null);
 
-  useEffect(() => {
-    if (!initialAgentCaptured.current && draftType) {
-      initialAgentCaptured.current = true;
-      setInitialAgentRef(CREATOR_AGENTS[draftType]);
-    }
-  }, [draftType]);
+  if (initialAgentRef === undefined && draftType) {
+    setInitialAgentRef(CREATOR_AGENTS[draftType]);
+  }
 
   useEffect(() => {
     if (liveDraftType) {

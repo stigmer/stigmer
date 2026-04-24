@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { McpServerDetailView, useUpdateVisibility } from "@stigmer/react";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
-import { useBreadcrumbOverride } from "../../../LibraryBreadcrumbContext";
+import { useBreadcrumbOverride } from "@/domain/library/LibraryBreadcrumbContext";
 import { useActiveOrgSlug } from "@/domain/_shared/org/org-context";
 
 interface McpServerDetailPageInnerProps {

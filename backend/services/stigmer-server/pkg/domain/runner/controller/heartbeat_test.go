@@ -11,11 +11,11 @@ import (
 
 func TestApplyHeartbeat_PhaseTransitions(t *testing.T) {
 	tests := []struct {
-		name          string
-		existingPhase runnerv1.RunnerPhase
-		reportedPhase runnerv1.RunnerPhase
-		wantPhase     runnerv1.RunnerPhase
-		wantErr       codes.Code
+		name             string
+		existingPhase    runnerv1.RunnerPhase
+		reportedPhase    runnerv1.RunnerPhase
+		wantPhase        runnerv1.RunnerPhase
+		wantErr          codes.Code
 		wantReactivation bool
 	}{
 		{

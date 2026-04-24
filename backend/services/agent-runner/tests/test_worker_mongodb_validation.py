@@ -40,7 +40,6 @@ def _make_runner(checkpointer_type="mongodb", mongodb_uri="mongodb://localhost:2
 
     with (
         patch("worker.worker.configure_auth"),
-        patch("worker.worker.Runner._initialize_redis"),
         patch("worker.worker.Runner._validate_mongodb_connectivity"),
     ):
         from worker.worker import Runner

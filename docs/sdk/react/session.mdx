@@ -818,7 +818,7 @@ existing resource). When absent, it's a create session (new resource).
 
 <TypeTable
   type={{
-    draftType: { type: "DraftResourceType", description: "", required: true, typeDescriptionLink: "#draftresourcetype" },
+    draftType: { type: "DraftResourceType", description: "The kind of resource this draft session will create or edit.", required: true, typeDescriptionLink: "#draftresourcetype" },
     editRef: { type: "{ org: string; slug: string }", description: "When present, identifies the existing resource to edit. Absent for create-mode sessions." },
   }}
 />

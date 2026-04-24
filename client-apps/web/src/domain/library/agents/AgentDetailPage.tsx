@@ -7,7 +7,7 @@ import { AgentDetailView, useUpdateVisibility } from "@stigmer/react";
 import { getEditSessionUrl } from "@/domain/session/draft-session";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
-import { useBreadcrumbOverride } from "../../../LibraryBreadcrumbContext";
+import { useBreadcrumbOverride } from "@/domain/library/LibraryBreadcrumbContext";
 
 interface AgentDetailPageInnerProps {
   readonly org: string;

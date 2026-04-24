@@ -92,6 +92,7 @@ class SetupResult:
     execution_client: AgentExecutionClient
     retry_executor: GrpcRetryExecutor
     workspace_backend: WorkspaceBackend
+    sandbox: Any | None
     artifact_storage: Any
     inline_publisher: InlinePublisher
     writeback_coordinator: WriteBackCoordinator | None
@@ -481,7 +482,7 @@ async def _perform_setup_core(
         )
         setup_timer.start("mcp_package_install")
         install_result = await install_mcp_packages(mcp_servers, logger)
-        setup_timer.stop("mcp_package_install")
+        setup_timer.stop()
         heartbeat_during_setup("mcp_packages_installed", {
             "installed": install_result.installed,
             "failed": install_result.failed,
@@ -906,6 +907,7 @@ async def _perform_setup_core(
             execution_id=execution_id,
             provision_results=provision_results,
             workspace_entries=list(session.spec.workspace_entries),
+            sandbox=None,
             workspace_backend=workspace_backend,
             logger=logger,
         )
@@ -1194,6 +1196,7 @@ async def _perform_setup_core(
 
     inline_publisher = InlinePublisher(
         workspace_backend=workspace_backend,
+        sandbox=None,
         artifact_storage=artifact_storage,
         status_builder=status_builder,
         execution_id=execution_id,
@@ -1280,6 +1283,7 @@ async def _perform_setup_core(
         execution_client=execution_client,
         retry_executor=retry_executor,
         workspace_backend=workspace_backend,
+        sandbox=None,
         artifact_storage=artifact_storage,
         inline_publisher=inline_publisher,
         writeback_coordinator=writeback_coordinator,

@@ -38,12 +38,12 @@ func (c *RunnerController) Create(ctx context.Context, runner *runnerv1.Runner) 
 
 func (c *RunnerController) buildCreatePipeline() *pipeline.Pipeline[*runnerv1.Runner] {
 	return pipeline.NewPipeline[*runnerv1.Runner]("runner-create").
-		AddStep(steps.NewValidateProtoStep[*runnerv1.Runner]()).      // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*runnerv1.Runner]()).        // 2. Resolve slug
+		AddStep(steps.NewValidateProtoStep[*runnerv1.Runner]()).         // 1. Validate field constraints
+		AddStep(steps.NewResolveSlugStep[*runnerv1.Runner]()).           // 2. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*runnerv1.Runner](c.store)). // 3. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*runnerv1.Runner]()).      // 4. Build new state (ID, audit)
-		AddStep(&initializeRunnerStatusStep{}).                       // 5. Set task_queue + PENDING
-		AddStep(steps.NewPersistStep[*runnerv1.Runner](c.store)).    // 6. Persist
+		AddStep(steps.NewBuildNewStateStep[*runnerv1.Runner]()).         // 4. Build new state (ID, audit)
+		AddStep(&initializeRunnerStatusStep{}).                          // 5. Set task_queue + PENDING
+		AddStep(steps.NewPersistStep[*runnerv1.Runner](c.store)).        // 6. Persist
 		Build()
 }
 
