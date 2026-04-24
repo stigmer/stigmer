@@ -277,6 +277,7 @@ go_library(
         "mcp-servers/mcp-server-netlify.yaml",
         "mcp-servers/mcp-server-prisma.yaml",
         "mcp-servers/mcp-server-wix.yaml",
+        "mcp-servers/mcp-server-context7.yaml",
     ],
     importpath = "github.com/stigmer/stigmer/seedpack",
     visibility = ["//visibility:public"],
