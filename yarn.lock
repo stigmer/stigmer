@@ -1250,7 +1250,7 @@
     natural-compare "^1.4.0"
     ts-api-utils "^2.4.0"
 
-"@typescript-eslint/parser@^8.57.0", "@typescript-eslint/parser@8.57.0":
+"@typescript-eslint/parser@^8", "@typescript-eslint/parser@^8.57.0", "@typescript-eslint/parser@8.57.0":
   version "8.57.0"
   resolved "https://registry.npmjs.org/@typescript-eslint/parser/-/parser-8.57.0.tgz"
   integrity sha512-XZzOmihLIr8AD1b9hL9ccNMzEMWt/dE2u7NyTY9jJG6YNiNthaD5XtUHVF2uCXZ15ng+z2hT3MVuxnUYhq6k1g==
@@ -2244,6 +2244,7 @@ dequal@^2.0.0, dequal@^2.0.3:
     "@stigmer/sdk" "*"
     "@stigmer/theme" "*"
     "@tauri-apps/api" "^2"
+    "@tauri-apps/plugin-deep-link" "^2.4.8"
     "@tauri-apps/plugin-dialog" "^2.7.0"
     "@tauri-apps/plugin-notification" "^2.3.3"
     "@tauri-apps/plugin-process" "^2"
@@ -2728,7 +2729,7 @@ eslint-plugin-react@^7.37.0:
     string.prototype.matchall "^4.0.12"
     string.prototype.repeat "^1.0.0"
 
-"eslint-plugin-stigmer@file:/Users/suresh/scm/github.com/stigmer/stigmer/tools/eslint-plugin-stigmer":
+eslint-plugin-stigmer@*, "eslint-plugin-stigmer@file:/Users/suresh/scm/github.com/stigmer/stigmer/tools/eslint-plugin-stigmer":
   version "0.0.0"
   resolved "file:tools/eslint-plugin-stigmer"
 
