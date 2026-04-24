@@ -7,6 +7,24 @@ description: Provider setup, SDK client access, and deployment mode utilities.
 
 ## Hooks
 
+### useColorMode
+
+Read the resolved color mode from the nearest `StigmerProvider`.
+
+Returns `"light"` or `"dark"` — never `"system"`. The provider
+resolves `"system"` to a concrete value before setting context.
+
+Useful for components that need mode-aware logic in JavaScript
+(e.g., choosing between icon variants, canvas rendering, or
+third-party library theming).
+
+**Signature**
+
+```tsx
+function useColorMode(): ResolvedColorMode
+```
+
+
 ### useDeploymentMode
 
 Read the deployment mode from the nearest `StigmerProvider`.
@@ -115,6 +133,11 @@ CSS reset and design tokens. External consumers importing
 `@stigmer/react/styles.css` get isolated styles that do not
 leak into the host application.
 
+The `colorMode` prop controls dark/light appearance via a
+`data-stgm-color-mode` attribute on the scoping container.
+Host applications pass their theme state directly — no ancestor
+`.dark` class or Tailwind convention is required.
+
 Pass `preset` to apply a
 built-in theme, or use `className`
 for custom styling.
@@ -126,6 +149,7 @@ for custom styling.
     children: { type: "ReactNode", description: "React children rendered inside the provider scope.", required: true },
     className: { type: "string", description: "Additional CSS class names applied to the scoping container element. The container always includes the `stgm` class for style isolation." },
     client: { type: "Stigmer", description: "A configured Stigmer client instance.", required: true },
+    colorMode: { type: "ColorMode", description: "Controls the color mode for all descendant Stigmer components.  - `\"light\"` — light design tokens (default). - `\"dark\"`  — dark design tokens. - `\"system\"` — follows the user's OS preference via   `prefers-color-scheme`. Resolved to `\"light\"` or `\"dark\"`   before reaching CSS or React context.  The resolved value is set as `data-stgm-color-mode` on the scoping container and exposed via useColorMode. Host applications pass their own theme state directly — no ancestor CSS class conventions are required.", typeDescriptionLink: "#colormode" },
     deploymentMode: { type: "DeploymentMode", description: "Deployment mode of the connected Stigmer backend.  - `\"local\"` — local Go CLI server (OSS). Cloud-only resources   (API keys, IAM, identity management) are unavailable. - `\"cloud\"` — Stigmer Cloud. All resources are available.  Defaults to `\"cloud\"` so existing consumers see no change. The Stigmer Console derives this from the API URL hostname. Platform builders pass it based on their deployment context.", typeDescriptionLink: "#deploymentmode" },
     preset: { type: "\"default\" | \"corporate\" | \"startup\" | \"friendly\" | \"fintech\"", description: "Built-in theme preset to apply.  Maps to a CSS class on the scoping container so the preset's design tokens take effect for all descendant Stigmer components. Omit (or pass `\"default\"`) to use the base Stigmer palette." },
   }}
@@ -137,13 +161,32 @@ const client = useMemo(
   [getAccessToken],
 );
 
-<StigmerProvider client={client} preset="fintech">
+<StigmerProvider client={client} preset="fintech" colorMode="dark">
   <App />
 </StigmerProvider>
 ```
 
 
 ## Types
+
+### ColorMode
+
+Color mode requested by the host application.
+
+- `"light"` — light design tokens.
+- `"dark"`  — dark design tokens.
+- `"system"` — follows the user's OS preference via `prefers-color-scheme`.
+
+
+### ColorModeContext
+
+React context for the resolved color mode.
+
+Separated from the provider to mirror the `StigmerContext` / `context.ts`
+pattern and avoid circular imports.
+
+Defaults to `"light"` so components outside a provider render safely.
+
 
 ### DeploymentMode
 
@@ -188,6 +231,14 @@ LLM-generated title asynchronously.
 SDK consumers should never need to reference this directly — the
 `resolvedSubject` helper and the default in `buildSessionProto` handle it
 automatically.
+
+
+### ResolvedColorMode
+
+The concrete color mode applied to the Stigmer component tree.
+
+Always `"light"` or `"dark"` — the `"system"` input is resolved
+to one of these before it reaches components or CSS.
 
 
 ### resolvedSubject
