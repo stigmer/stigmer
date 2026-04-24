@@ -234,6 +234,7 @@ lint: ## Run all linters and type checks
 	npm run typecheck -w @stigmer/react
 	npm run lint -w client-apps/web
 	$(MAKE) -C site lint
+	$(MAKE) -C site typecheck
 
 verify-web: ## Lint and typecheck SDK react + web console (~30s)
 	npm run lint -w @stigmer/react
