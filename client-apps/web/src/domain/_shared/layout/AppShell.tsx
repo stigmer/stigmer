@@ -32,15 +32,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed on pathname only; including sidebar would re-fire on every open/close
   }, [pathname]);
 
+  const sidebarOpen = sidebar.isOpen;
+  const closeSidebar = sidebar.close;
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape" && sidebar.isOpen && window.innerWidth < LG_BREAKPOINT) {
-        sidebar.close();
+      if (e.key === "Escape" && sidebarOpen && window.innerWidth < LG_BREAKPOINT) {
+        closeSidebar();
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [sidebar]);
+  }, [sidebarOpen, closeSidebar]);
 
   if (isPublicZone) {
     return (
