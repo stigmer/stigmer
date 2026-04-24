@@ -41,7 +41,7 @@
       }
     },
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMyM0M3QjU0M0Y2N0RBQTgKUldTbzJtYy9WSHM4d2lKc1FzYXhScjg1OW9pTTN2M1dHeHF3YTFwVW93bG1qVTJqK2Z0VysrUVgK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZDNTRCNUE4NTg2RTZGQzMKUldURGIyNVlxTFZVYk9SbFU4anBpbU5QY1pRVkZWWmlGbnhnMVJhNkdGYXpIOGpxMDN6WEpRK1UK",
       "endpoints": [
         "https://github.com/stigmer/stigmer/releases/latest/download/latest.json"
       ]

@@ -180,6 +180,10 @@ jobs:
       - name: Build SDK libraries
         run: npm run build:libs
 
+      # TODO: Re-enable macOS code signing once APPLE_CERTIFICATE and related
+      # secrets are properly configured. Setting APPLE_CERTIFICATE to any
+      # non-empty value causes tauri-action to attempt keychain import, which
+      # fails if the certificate is invalid.
       - name: Build and release (tag push)
         if: needs.determine-version.outputs.should_release == 'true'
         uses: tauri-apps/tauri-action@v0
@@ -187,13 +191,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # macOS code signing (no-op until secrets are configured)
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
         with:
           projectPath: client-apps/desktop
           tagName: ${{ needs.determine-version.outputs.version }}
