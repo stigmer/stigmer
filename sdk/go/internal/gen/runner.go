@@ -50,6 +50,11 @@ func (r *RunnerClient) SendCommand(ctx context.Context, input *runnerv1.RunnerSe
 	return resp, wrapErr(err)
 }
 
+func (r *RunnerClient) Stop(ctx context.Context, input *runnerv1.RunnerStopInput) (*runnerv1.Runner, error) {
+	resp, err := r.command.Stop(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // RunnerConnectStream wraps the bidi stream for Connect, providing
 // Send, Recv, and CloseSend for the runner command channel.
 type RunnerConnectStream struct {

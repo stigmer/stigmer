@@ -23,13 +23,15 @@ stigmer up [flags]
 
 ## Options
 
-| Flag            | Type     | Default | Description                                     |
-| --------------- | -------- | ------- | ----------------------------------------------- |
-| `--endpoint`    | `string` |         | Backend gRPC endpoint (overrides config)        |
-| `--json`        | `bool`   |         | output result as JSON                           |
-| `--name`        | `string` |         | Runner name (default: hostname)                 |
-| `--quiet`, `-q` | `bool`   |         | suppress output, print status line only         |
-| `--token`       | `string` |         | API key / auth token (overrides config and env) |
+| Flag            | Type     | Default  | Description                                                         |
+| --------------- | -------- | -------- | ------------------------------------------------------------------- |
+| `--endpoint`    | `string` |          | Backend gRPC endpoint (overrides config)                            |
+| `--image`       | `string` |          | Docker image for the agent runner (only used with --runtime docker) |
+| `--json`        | `bool`   |          | output result as JSON                                               |
+| `--name`        | `string` |          | Runner name (default: hostname)                                     |
+| `--quiet`, `-q` | `bool`   |          | suppress output, print status line only                             |
+| `--runtime`     | `string` | `native` | Runner runtime: native (default) or docker                          |
+| `--token`       | `string` |          | API key / auth token (overrides config and env)                     |
 
 ## Global Flags
 
@@ -51,6 +53,9 @@ stigmer up --endpoint api.stigmer.ai:443 --token sk-...
 # Start a runner with a custom name
 stigmer up --name my-macbook
 
+# Start a runner inside a Docker container
+stigmer up --runtime docker
+
 # Start the full local development stack
 stigmer up server
 ```
@@ -68,13 +73,15 @@ server'.
 stigmer up runner [flags]
 ```
 
-| Flag            | Type     | Default | Description                                     |
-| --------------- | -------- | ------- | ----------------------------------------------- |
-| `--endpoint`    | `string` |         | Backend gRPC endpoint (overrides config)        |
-| `--json`        | `bool`   |         | output result as JSON                           |
-| `--name`        | `string` |         | Runner name (default: hostname)                 |
-| `--quiet`, `-q` | `bool`   |         | suppress output, print status line only         |
-| `--token`       | `string` |         | API key / auth token (overrides config and env) |
+| Flag            | Type     | Default  | Description                                                         |
+| --------------- | -------- | -------- | ------------------------------------------------------------------- |
+| `--endpoint`    | `string` |          | Backend gRPC endpoint (overrides config)                            |
+| `--image`       | `string` |          | Docker image for the agent runner (only used with --runtime docker) |
+| `--json`        | `bool`   |          | output result as JSON                                               |
+| `--name`        | `string` |          | Runner name (default: hostname)                                     |
+| `--quiet`, `-q` | `bool`   |          | suppress output, print status line only                             |
+| `--runtime`     | `string` | `native` | Runner runtime: native (default) or docker                          |
+| `--token`       | `string` |          | API key / auth token (overrides config and env)                     |
 
 ```bash
 # Start a runner against the configured backend
@@ -85,6 +92,12 @@ stigmer up runner --endpoint my-server:7234 --token sk-...
 
 # Start a runner with a custom name
 stigmer up runner --name build-machine
+
+# Start a runner inside a Docker container
+stigmer up runner --runtime docker
+
+# Use a specific Docker image
+stigmer up runner --runtime docker --image ghcr.io/stigmer/agent-runner:latest
 ```
 
 ### stigmer up server

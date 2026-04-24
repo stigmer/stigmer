@@ -19,7 +19,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/runner/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_runner_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvcnVubmVyL3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxIiEKCFJ1bm5lcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi3AEKEkxpc3RSdW5uZXJzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESTAoGbGFiZWxzGAIgAygLMjwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5MaXN0UnVubmVyc1JlcXVlc3QuTGFiZWxzRW50cnkSMwoJcGFnZV9pbmZvGAMgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlYKClJ1bm5lckxpc3QSEwoLdG90YWxfY291bnQYASABKAUSMwoFaXRlbXMYAiADKAsyJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciKMAQoWUnVubmVyU2VuZENvbW1hbmRJbnB1dBIZCglydW5uZXJfaWQYASABKAlCBrpIA8gBARJMCg5saXN0X2RpcmVjdG9yeRgCIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuTGlzdERpcmVjdG9yeVJlcXVlc3RIAEIJCgdjb21tYW5kIrsBChlSdW5uZXJTdHJlYW1DbGllbnRNZXNzYWdlEkIKCWhlYXJ0YmVhdBgBIAEoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVySGVhcnRiZWF0SAASTwoQY29tbWFuZF9yZXNwb25zZRgCIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyQ29tbWFuZFJlc3BvbnNlSABCCQoHbWVzc2FnZSJ1ChlSdW5uZXJTdHJlYW1TZXJ2ZXJNZXNzYWdlEk0KD2NvbW1hbmRfcmVxdWVzdBgBIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyQ29tbWFuZFJlcXVlc3RIAEIJCgdtZXNzYWdlIscBCg9SdW5uZXJIZWFydGJlYXQSEQoJcnVubmVyX2lkGAEgASgJEjgKBXBoYXNlGAIgASgOMikuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXJQaGFzZRIaChJjdXJyZW50X2V4ZWN1dGlvbnMYAyABKAUSSwoPY29ubmVjdGlvbl9pbmZvGAQgASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXJDb25uZWN0aW9uSW5mbyKDAQoUUnVubmVyQ29tbWFuZFJlcXVlc3QSEgoKcmVxdWVzdF9pZBgBIAEoCRJMCg5saXN0X2RpcmVjdG9yeRgCIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuTGlzdERpcmVjdG9yeVJlcXVlc3RIAEIJCgdjb21tYW5kIscBChVSdW5uZXJDb21tYW5kUmVzcG9uc2USEgoKcmVxdWVzdF9pZBgBIAEoCRJNCg5saXN0X2RpcmVjdG9yeRgCIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuTGlzdERpcmVjdG9yeVJlc3BvbnNlSAASQQoFZXJyb3IYAyABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lckNvbW1hbmRFcnJvckgAQggKBnJlc3VsdCIkChRMaXN0RGlyZWN0b3J5UmVxdWVzdBIMCgRwYXRoGAEgASgJIqABChVMaXN0RGlyZWN0b3J5UmVzcG9uc2USFQoNcmVzb2x2ZWRfcGF0aBgBIAEoCRI9CgdlbnRyaWVzGAIgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5EaXJlY3RvcnlFbnRyeRIWCg5ob21lX2RpcmVjdG9yeRgDIAEoCRIZChFjdXJyZW50X2RpcmVjdG9yeRgEIAEoCSJHCg5EaXJlY3RvcnlFbnRyeRIMCgRuYW1lGAEgASgJEhQKDGlzX2RpcmVjdG9yeRgCIAEoCBIRCglpc19oaWRkZW4YAyABKAgiJQoSUnVubmVyQ29tbWFuZEVycm9yEg8KB21lc3NhZ2UYASABKAkiMAoYQ3JlYXRlTGF1bmNoVG9rZW5SZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQASJaChlDcmVhdGVMYXVuY2hUb2tlblJlc3BvbnNlEg0KBXRva2VuGAEgASgJEi4KCmV4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIjQKGkV4Y2hhbmdlTGF1bmNoVG9rZW5SZXF1ZXN0EhYKBXRva2VuGAEgASgJQge6SARyAhABImgKG0V4Y2hhbmdlTGF1bmNoVG9rZW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRISCgpleHBpcmVzX2luGAMgASgFEgsKA29yZxgEIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_runner_v1_api, file_ai_stigmer_agentic_runner_v1_enum, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvcnVubmVyL3YxL2lvLnByb3RvEhxhaS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxIiEKCFJ1bm5lcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi3AEKEkxpc3RSdW5uZXJzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESTAoGbGFiZWxzGAIgAygLMjwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5MaXN0UnVubmVyc1JlcXVlc3QuTGFiZWxzRW50cnkSMwoJcGFnZV9pbmZvGAMgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlYKClJ1bm5lckxpc3QSEwoLdG90YWxfY291bnQYASABKAUSMwoFaXRlbXMYAiADKAsyJC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lciKMAQoWUnVubmVyU2VuZENvbW1hbmRJbnB1dBIZCglydW5uZXJfaWQYASABKAlCBrpIA8gBARJMCg5saXN0X2RpcmVjdG9yeRgCIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuTGlzdERpcmVjdG9yeVJlcXVlc3RIAEIJCgdjb21tYW5kIrsBChlSdW5uZXJTdHJlYW1DbGllbnRNZXNzYWdlEkIKCWhlYXJ0YmVhdBgBIAEoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVySGVhcnRiZWF0SAASTwoQY29tbWFuZF9yZXNwb25zZRgCIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyQ29tbWFuZFJlc3BvbnNlSABCCQoHbWVzc2FnZSJ1ChlSdW5uZXJTdHJlYW1TZXJ2ZXJNZXNzYWdlEk0KD2NvbW1hbmRfcmVxdWVzdBgBIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyQ29tbWFuZFJlcXVlc3RIAEIJCgdtZXNzYWdlIscBCg9SdW5uZXJIZWFydGJlYXQSEQoJcnVubmVyX2lkGAEgASgJEjgKBXBoYXNlGAIgASgOMikuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXJQaGFzZRIaChJjdXJyZW50X2V4ZWN1dGlvbnMYAyABKAUSSwoPY29ubmVjdGlvbl9pbmZvGAQgASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXJDb25uZWN0aW9uSW5mbyLEAQoUUnVubmVyQ29tbWFuZFJlcXVlc3QSEgoKcmVxdWVzdF9pZBgBIAEoCRJMCg5saXN0X2RpcmVjdG9yeRgCIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuTGlzdERpcmVjdG9yeVJlcXVlc3RIABI/CgRzdG9wGAMgASgLMi8uYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5TdG9wUnVubmVyUmVxdWVzdEgAQgkKB2NvbW1hbmQiiQIKFVJ1bm5lckNvbW1hbmRSZXNwb25zZRISCgpyZXF1ZXN0X2lkGAEgASgJEk0KDmxpc3RfZGlyZWN0b3J5GAIgASgLMjMuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5MaXN0RGlyZWN0b3J5UmVzcG9uc2VIABJBCgVlcnJvchgDIAEoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuUnVubmVyQ29tbWFuZEVycm9ySAASQAoEc3RvcBgEIAEoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEuU3RvcFJ1bm5lclJlc3BvbnNlSABCCAoGcmVzdWx0IiQKFExpc3REaXJlY3RvcnlSZXF1ZXN0EgwKBHBhdGgYASABKAkioAEKFUxpc3REaXJlY3RvcnlSZXNwb25zZRIVCg1yZXNvbHZlZF9wYXRoGAEgASgJEj0KB2VudHJpZXMYAiADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLkRpcmVjdG9yeUVudHJ5EhYKDmhvbWVfZGlyZWN0b3J5GAMgASgJEhkKEWN1cnJlbnRfZGlyZWN0b3J5GAQgASgJIkcKDkRpcmVjdG9yeUVudHJ5EgwKBG5hbWUYASABKAkSFAoMaXNfZGlyZWN0b3J5GAIgASgIEhEKCWlzX2hpZGRlbhgDIAEoCCIlChJSdW5uZXJDb21tYW5kRXJyb3ISDwoHbWVzc2FnZRgBIAEoCSIjChFTdG9wUnVubmVyUmVxdWVzdBIOCgZyZWFzb24YASABKAkiFAoSU3RvcFJ1bm5lclJlc3BvbnNlIjwKD1J1bm5lclN0b3BJbnB1dBIZCglydW5uZXJfaWQYASABKAlCBrpIA8gBARIOCgZyZWFzb24YAiABKAkiMAoYQ3JlYXRlTGF1bmNoVG9rZW5SZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQASJaChlDcmVhdGVMYXVuY2hUb2tlblJlc3BvbnNlEg0KBXRva2VuGAEgASgJEi4KCmV4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIjQKGkV4Y2hhbmdlTGF1bmNoVG9rZW5SZXF1ZXN0EhYKBXRva2VuGAEgASgJQge6SARyAhABImgKG0V4Y2hhbmdlTGF1bmNoVG9rZW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRISCgpleHBpcmVzX2luGAMgASgFEgsKA29yZxgEIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_runner_v1_api, file_ai_stigmer_agentic_runner_v1_enum, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * RunnerId wraps a runner identifier.
@@ -303,6 +303,12 @@ export type RunnerCommandRequest = Message<"ai.stigmer.agentic.runner.v1.RunnerC
      */
     value: ListDirectoryRequest;
     case: "listDirectory";
+  } | {
+    /**
+     * @generated from field: ai.stigmer.agentic.runner.v1.StopRunnerRequest stop = 3;
+     */
+    value: StopRunnerRequest;
+    case: "stop";
   } | { case: undefined; value?: undefined };
 };
 
@@ -344,6 +350,12 @@ export type RunnerCommandResponse = Message<"ai.stigmer.agentic.runner.v1.Runner
      */
     value: RunnerCommandError;
     case: "error";
+  } | {
+    /**
+     * @generated from field: ai.stigmer.agentic.runner.v1.StopRunnerResponse stop = 4;
+     */
+    value: StopRunnerResponse;
+    case: "stop";
   } | { case: undefined; value?: undefined };
 };
 
@@ -483,6 +495,82 @@ export const RunnerCommandErrorSchema: GenMessage<RunnerCommandError> = /*@__PUR
   messageDesc(file_ai_stigmer_agentic_runner_v1_io, 12);
 
 /**
+ * StopRunnerRequest is a server-initiated command telling the runner to
+ * shut down gracefully. The runner should acknowledge, then begin its
+ * shutdown sequence: cancel running work, send a STOPPED heartbeat,
+ * close the stream, and exit.
+ *
+ * @generated from message ai.stigmer.agentic.runner.v1.StopRunnerRequest
+ */
+export type StopRunnerRequest = Message<"ai.stigmer.agentic.runner.v1.StopRunnerRequest"> & {
+  /**
+   * Human-readable reason for the stop request.
+   * Example: "user requested via web console", "admin maintenance"
+   *
+   * @generated from field: string reason = 1;
+   */
+  reason: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.runner.v1.StopRunnerRequest.
+ * Use `create(StopRunnerRequestSchema)` to create a new message.
+ */
+export const StopRunnerRequestSchema: GenMessage<StopRunnerRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 13);
+
+/**
+ * StopRunnerResponse acknowledges that the runner received the stop
+ * command and will begin its shutdown sequence. The actual STOPPED
+ * transition happens when the runner sends its final heartbeat and
+ * closes the stream — not at ack time.
+ *
+ * @generated from message ai.stigmer.agentic.runner.v1.StopRunnerResponse
+ */
+export type StopRunnerResponse = Message<"ai.stigmer.agentic.runner.v1.StopRunnerResponse"> & {
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.runner.v1.StopRunnerResponse.
+ * Use `create(StopRunnerResponseSchema)` to create a new message.
+ */
+export const StopRunnerResponseSchema: GenMessage<StopRunnerResponse> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 14);
+
+/**
+ * RunnerStopInput is the request for the stop RPC.
+ *
+ * Separate from StopRunnerRequest because the RPC input carries the
+ * runner_id (identifying which runner to stop), while the stream command
+ * does not (the stream is already bound to a specific runner).
+ *
+ * @generated from message ai.stigmer.agentic.runner.v1.RunnerStopInput
+ */
+export type RunnerStopInput = Message<"ai.stigmer.agentic.runner.v1.RunnerStopInput"> & {
+  /**
+   * ID of the runner to stop.
+   *
+   * @generated from field: string runner_id = 1;
+   */
+  runnerId: string;
+
+  /**
+   * Optional reason for the stop. Logged on the runner and in audit.
+   * Example: "user requested via web console"
+   *
+   * @generated from field: string reason = 2;
+   */
+  reason: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.runner.v1.RunnerStopInput.
+ * Use `create(RunnerStopInputSchema)` to create a new message.
+ */
+export const RunnerStopInputSchema: GenMessage<RunnerStopInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 15);
+
+/**
  * CreateLaunchTokenRequest initiates a browser-to-CLI credential handshake.
  *
  * Called by the web console when the user clicks "Launch Local Runner." The
@@ -506,7 +594,7 @@ export type CreateLaunchTokenRequest = Message<"ai.stigmer.agentic.runner.v1.Cre
  * Use `create(CreateLaunchTokenRequestSchema)` to create a new message.
  */
 export const CreateLaunchTokenRequestSchema: GenMessage<CreateLaunchTokenRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 13);
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 16);
 
 /**
  * CreateLaunchTokenResponse contains the opaque launch token for the browser
@@ -537,7 +625,7 @@ export type CreateLaunchTokenResponse = Message<"ai.stigmer.agentic.runner.v1.Cr
  * Use `create(CreateLaunchTokenResponseSchema)` to create a new message.
  */
 export const CreateLaunchTokenResponseSchema: GenMessage<CreateLaunchTokenResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 14);
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 17);
 
 /**
  * ExchangeLaunchTokenRequest is the CLI's side of the handshake.
@@ -562,7 +650,7 @@ export type ExchangeLaunchTokenRequest = Message<"ai.stigmer.agentic.runner.v1.E
  * Use `create(ExchangeLaunchTokenRequestSchema)` to create a new message.
  */
 export const ExchangeLaunchTokenRequestSchema: GenMessage<ExchangeLaunchTokenRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 15);
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 18);
 
 /**
  * ExchangeLaunchTokenResponse provides the CLI with everything it needs to
@@ -610,5 +698,5 @@ export type ExchangeLaunchTokenResponse = Message<"ai.stigmer.agentic.runner.v1.
  * Use `create(ExchangeLaunchTokenResponseSchema)` to create a new message.
  */
 export const ExchangeLaunchTokenResponseSchema: GenMessage<ExchangeLaunchTokenResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 16);
+  messageDesc(file_ai_stigmer_agentic_runner_v1_io, 19);
 

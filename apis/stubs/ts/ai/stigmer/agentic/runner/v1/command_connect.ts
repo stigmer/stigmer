@@ -5,7 +5,7 @@
 
 import { Runner } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
-import { CreateLaunchTokenRequest, CreateLaunchTokenResponse, ExchangeLaunchTokenRequest, ExchangeLaunchTokenResponse, RunnerCommandResponse, RunnerId, RunnerSendCommandInput, RunnerStreamClientMessage, RunnerStreamServerMessage } from "./io_pb.js";
+import { CreateLaunchTokenRequest, CreateLaunchTokenResponse, ExchangeLaunchTokenRequest, ExchangeLaunchTokenResponse, RunnerCommandResponse, RunnerId, RunnerSendCommandInput, RunnerStopInput, RunnerStreamClientMessage, RunnerStreamServerMessage } from "./io_pb.js";
 
 /**
  * RunnerCommandController handles write operations and the bidirectional
@@ -110,6 +110,28 @@ export const RunnerCommandController = {
       name: "sendCommand",
       I: RunnerSendCommandInput,
       O: RunnerCommandResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Stop a running runner gracefully.
+     *
+     * If the runner is connected: sends a StopRunnerRequest via the bidi
+     * stream, waits for acknowledgment, then returns the updated Runner.
+     * The runner will send a STOPPED heartbeat and close its stream after
+     * acknowledging — the phase transition completes asynchronously.
+     *
+     * If the runner is not connected (offline, already stopped): directly
+     * transitions the runner to STOPPED and returns the updated resource.
+     *
+     * Idempotent: stopping an already-STOPPED or FAILED runner returns the
+     * resource as-is without error.
+     *
+     * @generated from rpc ai.stigmer.agentic.runner.v1.RunnerCommandController.stop
+     */
+    stop: {
+      name: "stop",
+      I: RunnerStopInput,
+      O: Runner,
       kind: MethodKind.Unary,
     },
     /**

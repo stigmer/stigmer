@@ -64,6 +64,7 @@ private static final long serialVersionUID = 0L;
           com.google.protobuf.AbstractMessage.InternalOneOfEnum {
     LIST_DIRECTORY(2),
     ERROR(3),
+    STOP(4),
     RESULT_NOT_SET(0);
     private final int value;
     private ResultCase(int value) {
@@ -83,6 +84,7 @@ private static final long serialVersionUID = 0L;
       switch (value) {
         case 2: return LIST_DIRECTORY;
         case 3: return ERROR;
+        case 4: return STOP;
         case 0: return RESULT_NOT_SET;
         default: return null;
       }
@@ -207,6 +209,37 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.runner.v1.RunnerCommandError.getDefaultInstance();
   }
 
+  public static final int STOP_FIELD_NUMBER = 4;
+  /**
+   * <code>.ai.stigmer.agentic.runner.v1.StopRunnerResponse stop = 4 [json_name = "stop"];</code>
+   * @return Whether the stop field is set.
+   */
+  @java.lang.Override
+  public boolean hasStop() {
+    return resultCase_ == 4;
+  }
+  /**
+   * <code>.ai.stigmer.agentic.runner.v1.StopRunnerResponse stop = 4 [json_name = "stop"];</code>
+   * @return The stop.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.runner.v1.StopRunnerResponse getStop() {
+    if (resultCase_ == 4) {
+       return (ai.stigmer.agentic.runner.v1.StopRunnerResponse) result_;
+    }
+    return ai.stigmer.agentic.runner.v1.StopRunnerResponse.getDefaultInstance();
+  }
+  /**
+   * <code>.ai.stigmer.agentic.runner.v1.StopRunnerResponse stop = 4 [json_name = "stop"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.runner.v1.StopRunnerResponseOrBuilder getStopOrBuilder() {
+    if (resultCase_ == 4) {
+       return (ai.stigmer.agentic.runner.v1.StopRunnerResponse) result_;
+    }
+    return ai.stigmer.agentic.runner.v1.StopRunnerResponse.getDefaultInstance();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -230,6 +263,9 @@ private static final long serialVersionUID = 0L;
     if (resultCase_ == 3) {
       output.writeMessage(3, (ai.stigmer.agentic.runner.v1.RunnerCommandError) result_);
     }
+    if (resultCase_ == 4) {
+      output.writeMessage(4, (ai.stigmer.agentic.runner.v1.StopRunnerResponse) result_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -249,6 +285,10 @@ private static final long serialVersionUID = 0L;
     if (resultCase_ == 3) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(3, (ai.stigmer.agentic.runner.v1.RunnerCommandError) result_);
+    }
+    if (resultCase_ == 4) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(4, (ai.stigmer.agentic.runner.v1.StopRunnerResponse) result_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -277,6 +317,10 @@ private static final long serialVersionUID = 0L;
         if (!getError()
             .equals(other.getError())) return false;
         break;
+      case 4:
+        if (!getStop()
+            .equals(other.getStop())) return false;
+        break;
       case 0:
       default:
     }
@@ -301,6 +345,10 @@ private static final long serialVersionUID = 0L;
       case 3:
         hash = (37 * hash) + ERROR_FIELD_NUMBER;
         hash = (53 * hash) + getError().hashCode();
+        break;
+      case 4:
+        hash = (37 * hash) + STOP_FIELD_NUMBER;
+        hash = (53 * hash) + getStop().hashCode();
         break;
       case 0:
       default:
@@ -450,6 +498,9 @@ private static final long serialVersionUID = 0L;
       if (errorBuilder_ != null) {
         errorBuilder_.clear();
       }
+      if (stopBuilder_ != null) {
+        stopBuilder_.clear();
+      }
       resultCase_ = 0;
       result_ = null;
       return this;
@@ -502,6 +553,10 @@ private static final long serialVersionUID = 0L;
           errorBuilder_ != null) {
         result.result_ = errorBuilder_.build();
       }
+      if (resultCase_ == 4 &&
+          stopBuilder_ != null) {
+        result.result_ = stopBuilder_.build();
+      }
     }
 
     @java.lang.Override
@@ -528,6 +583,10 @@ private static final long serialVersionUID = 0L;
         }
         case ERROR: {
           mergeError(other.getError());
+          break;
+        }
+        case STOP: {
+          mergeStop(other.getStop());
           break;
         }
         case RESULT_NOT_SET: {
@@ -579,6 +638,13 @@ private static final long serialVersionUID = 0L;
               resultCase_ = 3;
               break;
             } // case 26
+            case 34: {
+              input.readMessage(
+                  internalGetStopFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              resultCase_ = 4;
+              break;
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -985,6 +1051,148 @@ private static final long serialVersionUID = 0L;
       resultCase_ = 3;
       onChanged();
       return errorBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.runner.v1.StopRunnerResponse, ai.stigmer.agentic.runner.v1.StopRunnerResponse.Builder, ai.stigmer.agentic.runner.v1.StopRunnerResponseOrBuilder> stopBuilder_;
+    /**
+     * <code>.ai.stigmer.agentic.runner.v1.StopRunnerResponse stop = 4 [json_name = "stop"];</code>
+     * @return Whether the stop field is set.
+     */
+    @java.lang.Override
+    public boolean hasStop() {
+      return resultCase_ == 4;
+    }
+    /**
+     * <code>.ai.stigmer.agentic.runner.v1.StopRunnerResponse stop = 4 [json_name = "stop"];</code>
+     * @return The stop.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.runner.v1.StopRunnerResponse getStop() {
+      if (stopBuilder_ == null) {
+        if (resultCase_ == 4) {
+          return (ai.stigmer.agentic.runner.v1.StopRunnerResponse) result_;
+        }
+        return ai.stigmer.agentic.runner.v1.StopRunnerResponse.getDefaultInstance();
+      } else {
+        if (resultCase_ == 4) {
+          return stopBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.runner.v1.StopRunnerResponse.getDefaultInstance();
+      }
+    }
+    /**
+     * <code>.ai.stigmer.agentic.runner.v1.StopRunnerResponse stop = 4 [json_name = "stop"];</code>
+     */
+    public Builder setStop(ai.stigmer.agentic.runner.v1.StopRunnerResponse value) {
+      if (stopBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        result_ = value;
+        onChanged();
+      } else {
+        stopBuilder_.setMessage(value);
+      }
+      resultCase_ = 4;
+      return this;
+    }
+    /**
+     * <code>.ai.stigmer.agentic.runner.v1.StopRunnerResponse stop = 4 [json_name = "stop"];</code>
+     */
+    public Builder setStop(
+        ai.stigmer.agentic.runner.v1.StopRunnerResponse.Builder builderForValue) {
+      if (stopBuilder_ == null) {
+        result_ = builderForValue.build();
+        onChanged();
+      } else {
+        stopBuilder_.setMessage(builderForValue.build());
+      }
+      resultCase_ = 4;
+      return this;
+    }
+    /**
+     * <code>.ai.stigmer.agentic.runner.v1.StopRunnerResponse stop = 4 [json_name = "stop"];</code>
+     */
+    public Builder mergeStop(ai.stigmer.agentic.runner.v1.StopRunnerResponse value) {
+      if (stopBuilder_ == null) {
+        if (resultCase_ == 4 &&
+            result_ != ai.stigmer.agentic.runner.v1.StopRunnerResponse.getDefaultInstance()) {
+          result_ = ai.stigmer.agentic.runner.v1.StopRunnerResponse.newBuilder((ai.stigmer.agentic.runner.v1.StopRunnerResponse) result_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          result_ = value;
+        }
+        onChanged();
+      } else {
+        if (resultCase_ == 4) {
+          stopBuilder_.mergeFrom(value);
+        } else {
+          stopBuilder_.setMessage(value);
+        }
+      }
+      resultCase_ = 4;
+      return this;
+    }
+    /**
+     * <code>.ai.stigmer.agentic.runner.v1.StopRunnerResponse stop = 4 [json_name = "stop"];</code>
+     */
+    public Builder clearStop() {
+      if (stopBuilder_ == null) {
+        if (resultCase_ == 4) {
+          resultCase_ = 0;
+          result_ = null;
+          onChanged();
+        }
+      } else {
+        if (resultCase_ == 4) {
+          resultCase_ = 0;
+          result_ = null;
+        }
+        stopBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <code>.ai.stigmer.agentic.runner.v1.StopRunnerResponse stop = 4 [json_name = "stop"];</code>
+     */
+    public ai.stigmer.agentic.runner.v1.StopRunnerResponse.Builder getStopBuilder() {
+      return internalGetStopFieldBuilder().getBuilder();
+    }
+    /**
+     * <code>.ai.stigmer.agentic.runner.v1.StopRunnerResponse stop = 4 [json_name = "stop"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.runner.v1.StopRunnerResponseOrBuilder getStopOrBuilder() {
+      if ((resultCase_ == 4) && (stopBuilder_ != null)) {
+        return stopBuilder_.getMessageOrBuilder();
+      } else {
+        if (resultCase_ == 4) {
+          return (ai.stigmer.agentic.runner.v1.StopRunnerResponse) result_;
+        }
+        return ai.stigmer.agentic.runner.v1.StopRunnerResponse.getDefaultInstance();
+      }
+    }
+    /**
+     * <code>.ai.stigmer.agentic.runner.v1.StopRunnerResponse stop = 4 [json_name = "stop"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.runner.v1.StopRunnerResponse, ai.stigmer.agentic.runner.v1.StopRunnerResponse.Builder, ai.stigmer.agentic.runner.v1.StopRunnerResponseOrBuilder> 
+        internalGetStopFieldBuilder() {
+      if (stopBuilder_ == null) {
+        if (!(resultCase_ == 4)) {
+          result_ = ai.stigmer.agentic.runner.v1.StopRunnerResponse.getDefaultInstance();
+        }
+        stopBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.runner.v1.StopRunnerResponse, ai.stigmer.agentic.runner.v1.StopRunnerResponse.Builder, ai.stigmer.agentic.runner.v1.StopRunnerResponseOrBuilder>(
+                (ai.stigmer.agentic.runner.v1.StopRunnerResponse) result_,
+                getParentForChildren(),
+                isClean());
+        result_ = null;
+      }
+      resultCase_ = 4;
+      onChanged();
+      return stopBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.runner.v1.RunnerCommandResponse)

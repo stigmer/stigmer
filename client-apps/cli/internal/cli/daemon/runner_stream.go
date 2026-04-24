@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"errors"
 	"math/rand"
 	"os"
 	"runtime"
@@ -12,6 +13,11 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	runnerv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/runner/v1"
 )
+
+// ErrServerRequestedStop is returned by Run when the server sends a stop
+// command via the bidi stream. The caller should treat this as a clean
+// shutdown signal (not a reconnectable error).
+var ErrServerRequestedStop = errors.New("server requested runner stop")
 
 const (
 	defaultHeartbeatInterval = 30 * time.Second
@@ -115,6 +121,10 @@ func (c *RunnerStreamClient) Run(ctx context.Context) error {
 			return ctx.Err()
 		}
 
+		if errors.Is(loopErr, ErrServerRequestedStop) {
+			return ErrServerRequestedStop
+		}
+
 		log.Warn().
 			Err(loopErr).
 			Str("runner_id", c.runnerID).
@@ -159,6 +169,9 @@ func (c *RunnerStreamClient) streamLoop(
 			return parentCtx.Err()
 
 		case err := <-recvErrCh:
+			if errors.Is(err, ErrServerRequestedStop) {
+				c.sendGracefulStop(&sendMu, stream)
+			}
 			return err
 
 		case <-ticker.C:
@@ -193,11 +206,11 @@ func (c *RunnerStreamClient) recvLoop(
 			continue
 		}
 
-		resp := dispatchCommand(c.runnerID, cmdReq)
+		result := dispatchCommand(c.runnerID, cmdReq)
 
 		clientMsg := &runnerv1.RunnerStreamClientMessage{
 			Message: &runnerv1.RunnerStreamClientMessage_CommandResponse{
-				CommandResponse: resp,
+				CommandResponse: result.response,
 			},
 		}
 
@@ -207,6 +220,10 @@ func (c *RunnerStreamClient) recvLoop(
 
 		if err != nil {
 			return err
+		}
+
+		if result.stopRequested {
+			return ErrServerRequestedStop
 		}
 	}
 }

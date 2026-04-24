@@ -8,7 +8,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { RunnerSchema, type Runner } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
 import { RunnerCommandController } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/command_pb";
-import { RunnerIdSchema, RunnerSendCommandInputSchema, RunnerCommandResponseSchema, RunnerStreamClientMessageSchema, RunnerStreamServerMessageSchema, CreateLaunchTokenRequestSchema, CreateLaunchTokenResponseSchema, ExchangeLaunchTokenRequestSchema, ExchangeLaunchTokenResponseSchema, ListRunnersRequestSchema, RunnerListSchema, type RunnerSendCommandInput, type RunnerCommandResponse, type RunnerStreamClientMessage, type RunnerStreamServerMessage, type CreateLaunchTokenRequest, type CreateLaunchTokenResponse, type ExchangeLaunchTokenRequest, type ExchangeLaunchTokenResponse, type ListRunnersRequest, type RunnerList } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/io_pb";
+import { RunnerIdSchema, RunnerSendCommandInputSchema, RunnerCommandResponseSchema, RunnerStopInputSchema, RunnerStreamClientMessageSchema, RunnerStreamServerMessageSchema, CreateLaunchTokenRequestSchema, CreateLaunchTokenResponseSchema, ExchangeLaunchTokenRequestSchema, ExchangeLaunchTokenResponseSchema, ListRunnersRequestSchema, RunnerListSchema, type RunnerSendCommandInput, type RunnerCommandResponse, type RunnerStopInput, type RunnerStreamClientMessage, type RunnerStreamServerMessage, type CreateLaunchTokenRequest, type CreateLaunchTokenResponse, type ExchangeLaunchTokenRequest, type ExchangeLaunchTokenResponse, type ListRunnersRequest, type RunnerList } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/io_pb";
 import { RunnerQueryController } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/query_pb";
 import { RunnerSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -52,6 +52,12 @@ export class RunnerClient {
   async sendCommand(input: RunnerSendCommandInput): Promise<RunnerCommandResponse> {
     try {
       return await this.command.sendCommand(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async stop(input: RunnerStopInput): Promise<Runner> {
+    try {
+      return await this.command.stop(input);
     } catch (e) { throw wrapError(e); }
   }
 

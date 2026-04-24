@@ -57,6 +57,12 @@ class RunnerClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def stop(self, input: io_pb2.RunnerStopInput) -> api_pb2.Runner:
+        try:
+            return self._command.stop(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def connect(self) -> BidiStream[io_pb2.RunnerStreamClientMessage, io_pb2.RunnerStreamServerMessage]:
         try:
             return BidiStream(lambda reqs: self._command.connect(reqs))

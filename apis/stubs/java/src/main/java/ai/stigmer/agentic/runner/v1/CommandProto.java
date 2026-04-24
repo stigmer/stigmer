@@ -41,7 +41,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "tigmer/agentic/runner/v1/io.proto\0328ai/st" +
       "igmer/commons/apiresource/rpc_service_op" +
       "tions.proto\032+ai/stigmer/commons/rpc/meth" +
-      "od_options.proto2\336\t\n\027RunnerCommandContro" +
+      "od_options.proto2\363\n\n\027RunnerCommandContro" +
       "ller\022S\n\005apply\022$.ai.stigmer.agentic.runne" +
       "r.v1.Runner\032$.ai.stigmer.agentic.runner." +
       "v1.Runner\022\240\001\n\006create\022$.ai.stigmer.agenti" +
@@ -60,23 +60,27 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\0323.ai.stigmer.agentic.runner.v1.RunnerCo" +
       "mmandResponse\"A\302\270\030=\010\001\020.\"\trunner_id*,unau" +
       "thorized to send commands to this runner" +
-      "\022\205\001\n\007connect\0227.ai.stigmer.agentic.runner" +
-      ".v1.RunnerStreamClientMessage\0327.ai.stigm" +
-      "er.agentic.runner.v1.RunnerStreamServerM" +
-      "essage\"\004\320\270\030\001(\0010\001\022\325\001\n\021createLaunchToken\0226" +
-      ".ai.stigmer.agentic.runner.v1.CreateLaun" +
-      "chTokenRequest\0327.ai.stigmer.agentic.runn" +
-      "er.v1.CreateLaunchTokenResponse\"O\302\270\030K\010\031\020" +
-      "\036\"\003org*@unauthorized to create runner la" +
-      "unch tokens in this organization\022\220\001\n\023exc" +
-      "hangeLaunchToken\0228.ai.stigmer.agentic.ru" +
-      "nner.v1.ExchangeLaunchTokenRequest\0329.ai." +
-      "stigmer.agentic.runner.v1.ExchangeLaunch" +
-      "TokenResponse\"\004\310\270\030\001\032\004\240\377+.B\243\001B\014CommandPro" +
-      "toP\001\242\002\004ASAR\252\002\034Ai.Stigmer.Agentic.Runner." +
-      "V1\312\002\034Ai\\Stigmer\\Agentic\\Runner\\V1\342\002(Ai\\S" +
-      "tigmer\\Agentic\\Runner\\V1\\GPBMetadata\352\002 A" +
-      "i::Stigmer::Agentic::Runner::V1b\006proto3"
+      "\022\222\001\n\004stop\022-.ai.stigmer.agentic.runner.v1" +
+      ".RunnerStopInput\032$.ai.stigmer.agentic.ru" +
+      "nner.v1.Runner\"5\302\270\0301\010\002\020.\"\trunner_id* una" +
+      "uthorized to stop this runner\022\205\001\n\007connec" +
+      "t\0227.ai.stigmer.agentic.runner.v1.RunnerS" +
+      "treamClientMessage\0327.ai.stigmer.agentic." +
+      "runner.v1.RunnerStreamServerMessage\"\004\320\270\030" +
+      "\001(\0010\001\022\325\001\n\021createLaunchToken\0226.ai.stigmer" +
+      ".agentic.runner.v1.CreateLaunchTokenRequ" +
+      "est\0327.ai.stigmer.agentic.runner.v1.Creat" +
+      "eLaunchTokenResponse\"O\302\270\030K\010\031\020\036\"\003org*@una" +
+      "uthorized to create runner launch tokens" +
+      " in this organization\022\220\001\n\023exchangeLaunch" +
+      "Token\0228.ai.stigmer.agentic.runner.v1.Exc" +
+      "hangeLaunchTokenRequest\0329.ai.stigmer.age" +
+      "ntic.runner.v1.ExchangeLaunchTokenRespon" +
+      "se\"\004\310\270\030\001\032\004\240\377+.B\243\001B\014CommandProtoP\001\242\002\004ASAR" +
+      "\252\002\034Ai.Stigmer.Agentic.Runner.V1\312\002\034Ai\\Sti" +
+      "gmer\\Agentic\\Runner\\V1\342\002(Ai\\Stigmer\\Agen" +
+      "tic\\Runner\\V1\\GPBMetadata\352\002 Ai::Stigmer:" +
+      ":Agentic::Runner::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

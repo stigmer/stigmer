@@ -47,5 +47,20 @@ public interface RunnerCommandRequestOrBuilder extends
    */
   ai.stigmer.agentic.runner.v1.ListDirectoryRequestOrBuilder getListDirectoryOrBuilder();
 
+  /**
+   * <code>.ai.stigmer.agentic.runner.v1.StopRunnerRequest stop = 3 [json_name = "stop"];</code>
+   * @return Whether the stop field is set.
+   */
+  boolean hasStop();
+  /**
+   * <code>.ai.stigmer.agentic.runner.v1.StopRunnerRequest stop = 3 [json_name = "stop"];</code>
+   * @return The stop.
+   */
+  ai.stigmer.agentic.runner.v1.StopRunnerRequest getStop();
+  /**
+   * <code>.ai.stigmer.agentic.runner.v1.StopRunnerRequest stop = 3 [json_name = "stop"];</code>
+   */
+  ai.stigmer.agentic.runner.v1.StopRunnerRequestOrBuilder getStopOrBuilder();
+
   ai.stigmer.agentic.runner.v1.RunnerCommandRequest.CommandCase getCommandCase();
 }

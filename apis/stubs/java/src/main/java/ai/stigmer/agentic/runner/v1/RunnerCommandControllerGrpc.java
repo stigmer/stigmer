@@ -181,6 +181,37 @@ public final class RunnerCommandControllerGrpc {
     return getSendCommandMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.RunnerStopInput,
+      ai.stigmer.agentic.runner.v1.Runner> getStopMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "stop",
+      requestType = ai.stigmer.agentic.runner.v1.RunnerStopInput.class,
+      responseType = ai.stigmer.agentic.runner.v1.Runner.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.RunnerStopInput,
+      ai.stigmer.agentic.runner.v1.Runner> getStopMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.RunnerStopInput, ai.stigmer.agentic.runner.v1.Runner> getStopMethod;
+    if ((getStopMethod = RunnerCommandControllerGrpc.getStopMethod) == null) {
+      synchronized (RunnerCommandControllerGrpc.class) {
+        if ((getStopMethod = RunnerCommandControllerGrpc.getStopMethod) == null) {
+          RunnerCommandControllerGrpc.getStopMethod = getStopMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.runner.v1.RunnerStopInput, ai.stigmer.agentic.runner.v1.Runner>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "stop"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.runner.v1.RunnerStopInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.runner.v1.Runner.getDefaultInstance()))
+              .setSchemaDescriptor(new RunnerCommandControllerMethodDescriptorSupplier("stop"))
+              .build();
+        }
+      }
+    }
+    return getStopMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage,
       ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage> getConnectMethod;
 
@@ -424,6 +455,24 @@ public final class RunnerCommandControllerGrpc {
 
     /**
      * <pre>
+     * Stop a running runner gracefully.
+     * If the runner is connected: sends a StopRunnerRequest via the bidi
+     * stream, waits for acknowledgment, then returns the updated Runner.
+     * The runner will send a STOPPED heartbeat and close its stream after
+     * acknowledging — the phase transition completes asynchronously.
+     * If the runner is not connected (offline, already stopped): directly
+     * transitions the runner to STOPPED and returns the updated resource.
+     * Idempotent: stopping an already-STOPPED or FAILED runner returns the
+     * resource as-is without error.
+     * </pre>
+     */
+    default void stop(ai.stigmer.agentic.runner.v1.RunnerStopInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.Runner> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getStopMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Establish a bidirectional command stream between the runner and the server.
      * This is the runner's primary ongoing communication channel. The runner
      * pushes heartbeats (liveness + state); the server pushes commands
@@ -615,6 +664,25 @@ public final class RunnerCommandControllerGrpc {
 
     /**
      * <pre>
+     * Stop a running runner gracefully.
+     * If the runner is connected: sends a StopRunnerRequest via the bidi
+     * stream, waits for acknowledgment, then returns the updated Runner.
+     * The runner will send a STOPPED heartbeat and close its stream after
+     * acknowledging — the phase transition completes asynchronously.
+     * If the runner is not connected (offline, already stopped): directly
+     * transitions the runner to STOPPED and returns the updated resource.
+     * Idempotent: stopping an already-STOPPED or FAILED runner returns the
+     * resource as-is without error.
+     * </pre>
+     */
+    public void stop(ai.stigmer.agentic.runner.v1.RunnerStopInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.Runner> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getStopMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Establish a bidirectional command stream between the runner and the server.
      * This is the runner's primary ongoing communication channel. The runner
      * pushes heartbeats (liveness + state); the server pushes commands
@@ -775,6 +843,24 @@ public final class RunnerCommandControllerGrpc {
     public ai.stigmer.agentic.runner.v1.RunnerCommandResponse sendCommand(ai.stigmer.agentic.runner.v1.RunnerSendCommandInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getSendCommandMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Stop a running runner gracefully.
+     * If the runner is connected: sends a StopRunnerRequest via the bidi
+     * stream, waits for acknowledgment, then returns the updated Runner.
+     * The runner will send a STOPPED heartbeat and close its stream after
+     * acknowledging — the phase transition completes asynchronously.
+     * If the runner is not connected (offline, already stopped): directly
+     * transitions the runner to STOPPED and returns the updated resource.
+     * Idempotent: stopping an already-STOPPED or FAILED runner returns the
+     * resource as-is without error.
+     * </pre>
+     */
+    public ai.stigmer.agentic.runner.v1.Runner stop(ai.stigmer.agentic.runner.v1.RunnerStopInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getStopMethod(), getCallOptions(), request);
     }
 
     /**
@@ -942,6 +1028,24 @@ public final class RunnerCommandControllerGrpc {
 
     /**
      * <pre>
+     * Stop a running runner gracefully.
+     * If the runner is connected: sends a StopRunnerRequest via the bidi
+     * stream, waits for acknowledgment, then returns the updated Runner.
+     * The runner will send a STOPPED heartbeat and close its stream after
+     * acknowledging — the phase transition completes asynchronously.
+     * If the runner is not connected (offline, already stopped): directly
+     * transitions the runner to STOPPED and returns the updated resource.
+     * Idempotent: stopping an already-STOPPED or FAILED runner returns the
+     * resource as-is without error.
+     * </pre>
+     */
+    public ai.stigmer.agentic.runner.v1.Runner stop(ai.stigmer.agentic.runner.v1.RunnerStopInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getStopMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Create a one-time launch token for the browser-to-CLI runner handshake.
      * Called by the web console when the user clicks "Launch Local Runner."
      * The server mints a Stigmer JWT for the caller, wraps it in an opaque
@@ -1082,6 +1186,25 @@ public final class RunnerCommandControllerGrpc {
 
     /**
      * <pre>
+     * Stop a running runner gracefully.
+     * If the runner is connected: sends a StopRunnerRequest via the bidi
+     * stream, waits for acknowledgment, then returns the updated Runner.
+     * The runner will send a STOPPED heartbeat and close its stream after
+     * acknowledging — the phase transition completes asynchronously.
+     * If the runner is not connected (offline, already stopped): directly
+     * transitions the runner to STOPPED and returns the updated resource.
+     * Idempotent: stopping an already-STOPPED or FAILED runner returns the
+     * resource as-is without error.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.runner.v1.Runner> stop(
+        ai.stigmer.agentic.runner.v1.RunnerStopInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getStopMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Create a one-time launch token for the browser-to-CLI runner handshake.
      * Called by the web console when the user clicks "Launch Local Runner."
      * The server mints a Stigmer JWT for the caller, wraps it in an opaque
@@ -1121,9 +1244,10 @@ public final class RunnerCommandControllerGrpc {
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_DELETE = 3;
   private static final int METHODID_SEND_COMMAND = 4;
-  private static final int METHODID_CREATE_LAUNCH_TOKEN = 5;
-  private static final int METHODID_EXCHANGE_LAUNCH_TOKEN = 6;
-  private static final int METHODID_CONNECT = 7;
+  private static final int METHODID_STOP = 5;
+  private static final int METHODID_CREATE_LAUNCH_TOKEN = 6;
+  private static final int METHODID_EXCHANGE_LAUNCH_TOKEN = 7;
+  private static final int METHODID_CONNECT = 8;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1161,6 +1285,10 @@ public final class RunnerCommandControllerGrpc {
         case METHODID_SEND_COMMAND:
           serviceImpl.sendCommand((ai.stigmer.agentic.runner.v1.RunnerSendCommandInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.RunnerCommandResponse>) responseObserver);
+          break;
+        case METHODID_STOP:
+          serviceImpl.stop((ai.stigmer.agentic.runner.v1.RunnerStopInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.runner.v1.Runner>) responseObserver);
           break;
         case METHODID_CREATE_LAUNCH_TOKEN:
           serviceImpl.createLaunchToken((ai.stigmer.agentic.runner.v1.CreateLaunchTokenRequest) request,
@@ -1226,6 +1354,13 @@ public final class RunnerCommandControllerGrpc {
               ai.stigmer.agentic.runner.v1.RunnerSendCommandInput,
               ai.stigmer.agentic.runner.v1.RunnerCommandResponse>(
                 service, METHODID_SEND_COMMAND)))
+        .addMethod(
+          getStopMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.runner.v1.RunnerStopInput,
+              ai.stigmer.agentic.runner.v1.Runner>(
+                service, METHODID_STOP)))
         .addMethod(
           getConnectMethod(),
           io.grpc.stub.ServerCalls.asyncBidiStreamingCall(
@@ -1300,6 +1435,7 @@ public final class RunnerCommandControllerGrpc {
               .addMethod(getUpdateMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getSendCommandMethod())
+              .addMethod(getStopMethod())
               .addMethod(getConnectMethod())
               .addMethod(getCreateLaunchTokenMethod())
               .addMethod(getExchangeLaunchTokenMethod())

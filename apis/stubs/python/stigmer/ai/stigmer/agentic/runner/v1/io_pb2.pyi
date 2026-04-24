@@ -79,22 +79,26 @@ class RunnerHeartbeat(_message.Message):
     def __init__(self, runner_id: _Optional[str] = ..., phase: _Optional[_Union[_enum_pb2.RunnerPhase, str]] = ..., current_executions: _Optional[int] = ..., connection_info: _Optional[_Union[_api_pb2.RunnerConnectionInfo, _Mapping]] = ...) -> None: ...
 
 class RunnerCommandRequest(_message.Message):
-    __slots__ = ("request_id", "list_directory")
+    __slots__ = ("request_id", "list_directory", "stop")
     REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
     LIST_DIRECTORY_FIELD_NUMBER: _ClassVar[int]
+    STOP_FIELD_NUMBER: _ClassVar[int]
     request_id: str
     list_directory: ListDirectoryRequest
-    def __init__(self, request_id: _Optional[str] = ..., list_directory: _Optional[_Union[ListDirectoryRequest, _Mapping]] = ...) -> None: ...
+    stop: StopRunnerRequest
+    def __init__(self, request_id: _Optional[str] = ..., list_directory: _Optional[_Union[ListDirectoryRequest, _Mapping]] = ..., stop: _Optional[_Union[StopRunnerRequest, _Mapping]] = ...) -> None: ...
 
 class RunnerCommandResponse(_message.Message):
-    __slots__ = ("request_id", "list_directory", "error")
+    __slots__ = ("request_id", "list_directory", "error", "stop")
     REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
     LIST_DIRECTORY_FIELD_NUMBER: _ClassVar[int]
     ERROR_FIELD_NUMBER: _ClassVar[int]
+    STOP_FIELD_NUMBER: _ClassVar[int]
     request_id: str
     list_directory: ListDirectoryResponse
     error: RunnerCommandError
-    def __init__(self, request_id: _Optional[str] = ..., list_directory: _Optional[_Union[ListDirectoryResponse, _Mapping]] = ..., error: _Optional[_Union[RunnerCommandError, _Mapping]] = ...) -> None: ...
+    stop: StopRunnerResponse
+    def __init__(self, request_id: _Optional[str] = ..., list_directory: _Optional[_Union[ListDirectoryResponse, _Mapping]] = ..., error: _Optional[_Union[RunnerCommandError, _Mapping]] = ..., stop: _Optional[_Union[StopRunnerResponse, _Mapping]] = ...) -> None: ...
 
 class ListDirectoryRequest(_message.Message):
     __slots__ = ("path",)
@@ -129,6 +133,24 @@ class RunnerCommandError(_message.Message):
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     message: str
     def __init__(self, message: _Optional[str] = ...) -> None: ...
+
+class StopRunnerRequest(_message.Message):
+    __slots__ = ("reason",)
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    reason: str
+    def __init__(self, reason: _Optional[str] = ...) -> None: ...
+
+class StopRunnerResponse(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class RunnerStopInput(_message.Message):
+    __slots__ = ("runner_id", "reason")
+    RUNNER_ID_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    runner_id: str
+    reason: str
+    def __init__(self, runner_id: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
 
 class CreateLaunchTokenRequest(_message.Message):
     __slots__ = ("org",)

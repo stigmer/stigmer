@@ -14,6 +14,7 @@ import ai.stigmer.agentic.runner.v1.RunnerId;
 import ai.stigmer.agentic.runner.v1.RunnerList;
 import ai.stigmer.agentic.runner.v1.RunnerQueryControllerGrpc;
 import ai.stigmer.agentic.runner.v1.RunnerSendCommandInput;
+import ai.stigmer.agentic.runner.v1.RunnerStopInput;
 import ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage;
 import ai.stigmer.agentic.runner.v1.RunnerStreamServerMessage;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
@@ -61,6 +62,12 @@ public final class RunnerClient {
     public RunnerCommandResponse sendCommand(RunnerSendCommandInput input) {
         try {
             return command.sendCommand(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public Runner stop(RunnerStopInput input) {
+        try {
+            return command.stop(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

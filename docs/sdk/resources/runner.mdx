@@ -46,7 +46,10 @@ Runner runner = client.runners().get("rnr_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`update`](#update) | Update an existing runner. | |
 | [`delete`](#delete) | Delete a runner. | |
 | [`connect`](#connect) | Establish a bidirectional command stream between the runner and the server. | Server |
+| [`createLaunchToken`](#createlaunchtoken) | Create a one-time launch token for the browser-to-CLI runner handshake. | |
+| [`exchangeLaunchToken`](#exchangelaunchtoken) | Exchange a one-time launch token for long-lived runner credentials. | |
 | [`sendCommand`](#sendcommand) | Send a command to a connected runner and return the response synchronously. | |
+| [`stop`](#stop) | Stop a running runner gracefully. | |
 
 ### get
 
@@ -435,6 +438,90 @@ client.runners().connect(input, runnerStreamServerMessage -> {
 
 **Returns**: Stream&lt;[`RunnerStreamServerMessage`](#runnerstreamservermessage)&gt;
 
+### createLaunchToken
+
+Create a one-time launch token for the browser-to-CLI runner handshake.
+
+Called by the web console when the user clicks "Launch Local Runner." The server mints a Stigmer JWT for the caller, wraps it in an opaque token stored in Redis (60s TTL, single-use), and returns the token for the browser to embed in a stigmer:// URL.
+
+The caller must have can_create_runner permission in the organization — if you can create a runner, you can create a launch token.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const createLaunchTokenResponse = await stigmer.runner.createLaunchToken({
+  org: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+createLaunchTokenResponse, err := client.Runner.CreateLaunchToken(ctx, &stigmer.CreateLaunchTokenRequest{
+  Org: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+create_launch_token_response = client.runners.create_launch_token(CreateLaunchTokenRequest(
+    org="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+CreateLaunchTokenResponse createLaunchTokenResponse = client.runners().createLaunchToken(CreateLaunchTokenRequest.builder()
+    .org("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`CreateLaunchTokenRequest`](#createlaunchtokenrequest)
+
+**Returns**: [`CreateLaunchTokenResponse`](#createlaunchtokenresponse)
+
+### exchangeLaunchToken
+
+Exchange a one-time launch token for long-lived runner credentials.
+
+Called by the CLI (or Desktop app) after receiving a stigmer:// URL from the OS. The token is consumed atomically — a second exchange attempt returns NOT_FOUND.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const exchangeLaunchTokenResponse = await stigmer.runner.exchangeLaunchToken({
+  token: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+exchangeLaunchTokenResponse, err := client.Runner.ExchangeLaunchToken(ctx, &stigmer.ExchangeLaunchTokenRequest{
+  Token: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+exchange_launch_token_response = client.runners.exchange_launch_token(ExchangeLaunchTokenRequest(
+    token="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ExchangeLaunchTokenResponse exchangeLaunchTokenResponse = client.runners().exchangeLaunchToken(ExchangeLaunchTokenRequest.builder()
+    .token("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ExchangeLaunchTokenRequest`](#exchangelaunchtokenrequest)
+
+**Returns**: [`ExchangeLaunchTokenResponse`](#exchangelaunchtokenresponse)
+
 ### sendCommand
 
 Send a command to a connected runner and return the response synchronously.
@@ -482,6 +569,55 @@ RunnerCommandResponse runnerCommandResponse = client.runners().sendCommand(Runne
 
 **Returns**: [`RunnerCommandResponse`](#runnercommandresponse)
 
+### stop
+
+Stop a running runner gracefully.
+
+If the runner is connected: sends a StopRunnerRequest via the bidi stream, waits for acknowledgment, then returns the updated Runner. The runner will send a STOPPED heartbeat and close its stream after acknowledging — the phase transition completes asynchronously.
+
+If the runner is not connected (offline, already stopped): directly transitions the runner to STOPPED and returns the updated resource.
+
+Idempotent: stopping an already-STOPPED or FAILED runner returns the resource as-is without error.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const runner = await stigmer.runner.stop({
+  runnerId: "...",
+  reason: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+runner, err := client.Runner.Stop(ctx, &stigmer.RunnerStopInput{
+  RunnerId: "...",
+  Reason:   "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+runner = client.runners.stop(RunnerStopInput(
+    runner_id="...",
+    reason="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Runner runner = client.runners().stop(RunnerStopInput.builder()
+    .runnerId("...")
+    .reason("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`RunnerStopInput`](#runnerstopinput)
+
+**Returns**: [`Runner`](#runner)
+
 ## Types
 
 ### RunnerInput
@@ -518,6 +654,18 @@ RunnerCommandResponse is the runner's reply to a RunnerCommandRequest.
     requestId: { type: "string", description: "Echoed from RunnerCommandRequest.request_id." },
     listDirectory: { type: "ListDirectoryResponseInput", description: "" },
     error: { type: "RunnerCommandErrorInput", description: "" },
+    stop: { type: "StopRunnerResponseInput", description: "" },
+  }}
+/>
+
+### RunnerStopInput
+
+RunnerStopInput is the request for the stop RPC.
+
+<TypeTable
+  type={{
+    runnerId: { type: "string", description: "ID of the runner to stop.", required: true },
+    reason: { type: "string", description: "Optional reason for the stop." },
   }}
 />
 
@@ -539,6 +687,50 @@ RunnerStreamServerMessage is the envelope for all server-to-runner messages on t
 <TypeTable
   type={{
     commandRequest: { type: "RunnerCommandRequestInput", description: "" },
+  }}
+/>
+
+### CreateLaunchTokenRequest
+
+CreateLaunchTokenRequest initiates a browser-to-CLI credential handshake.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization slug." },
+  }}
+/>
+
+### CreateLaunchTokenResponse
+
+CreateLaunchTokenResponse contains the opaque launch token for the browser to embed in the stigmer:// URL.
+
+<TypeTable
+  type={{
+    token: { type: "string", description: "Opaque, single-use token." },
+    expiresAt: { type: "string", description: "Absolute expiry time." },
+  }}
+/>
+
+### ExchangeLaunchTokenRequest
+
+ExchangeLaunchTokenRequest is the CLI's side of the handshake.
+
+<TypeTable
+  type={{
+    token: { type: "string", description: "The opaque token received from the stigmer:// URL." },
+  }}
+/>
+
+### ExchangeLaunchTokenResponse
+
+ExchangeLaunchTokenResponse provides the CLI with everything it needs to operate as an authenticated runner: a Stigmer-signed JWT and the org scope.
+
+<TypeTable
+  type={{
+    accessToken: { type: "string", description: "Stigmer-signed JWT for authenticating subsequent runner operations (apply, connect, heartbeat)." },
+    tokenType: { type: "string", description: "Token type." },
+    expiresIn: { type: "number", description: "Token lifetime in seconds from the time of issuance." },
+    org: { type: "string", description: "Organization slug the credentials are scoped to." },
   }}
 />
 

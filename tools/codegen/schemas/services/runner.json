@@ -48,6 +48,14 @@
           "description": "Send a command to a connected runner and return the response synchronously.\n\n This is the API entry point for UI-triggered runner commands. The server\n looks up the runner's active bidi stream, pushes the command, and blocks\n until the runner responds or the timeout (10s) expires.\n\n Requires an active connect stream — returns UNAVAILABLE if the runner\n is not connected. Returns FAILED_PRECONDITION if the runner's phase\n prevents command delivery (STOPPED, PENDING, FAILED)."
         },
         {
+          "name": "Stop",
+          "inputType": "RunnerStopInput",
+          "inputFullType": "ai.stigmer.agentic.runner.v1.RunnerStopInput",
+          "outputType": "Runner",
+          "outputFullType": "ai.stigmer.agentic.runner.v1.Runner",
+          "description": "Stop a running runner gracefully.\n\n If the runner is connected: sends a StopRunnerRequest via the bidi\n stream, waits for acknowledgment, then returns the updated Runner.\n The runner will send a STOPPED heartbeat and close its stream after\n acknowledging — the phase transition completes asynchronously.\n\n If the runner is not connected (offline, already stopped): directly\n transitions the runner to STOPPED and returns the updated resource.\n\n Idempotent: stopping an already-STOPPED or FAILED runner returns the\n resource as-is without error."
+        },
+        {
           "name": "Connect",
           "inputType": "RunnerStreamClientMessage",
           "inputFullType": "ai.stigmer.agentic.runner.v1.RunnerStreamClientMessage",
@@ -179,6 +187,49 @@
           "description": "",
           "required": false,
           "oneofGroup": "result"
+        },
+        {
+          "name": "Stop",
+          "jsonName": "stop",
+          "protoField": "stop",
+          "type": {
+            "kind": "message",
+            "messageType": "StopRunnerResponse"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "result"
+        }
+      ]
+    },
+    {
+      "name": "RunnerStopInput",
+      "description": "RunnerStopInput is the request for the stop RPC.\n\n Separate from StopRunnerRequest because the RPC input carries the\n runner_id (identifying which runner to stop), while the stream command\n does not (the stream is already bound to a specific runner).",
+      "protoType": "ai.stigmer.agentic.runner.v1.RunnerStopInput",
+      "protoFile": "apis/ai/stigmer/agentic/runner/v1/io.proto",
+      "fields": [
+        {
+          "name": "RunnerId",
+          "jsonName": "runnerId",
+          "protoField": "runner_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the runner to stop.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional reason for the stop. Logged on the runner and in audit.\n Example: \"user requested via web console\"",
+          "required": false
         }
       ]
     },

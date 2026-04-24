@@ -29,7 +29,7 @@ from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%ai/stigmer/agentic/runner/v1/io.proto\x12\x1c\x61i.stigmer.agentic.runner.v1\x1a&ai/stigmer/agentic/runner/v1/api.proto\x1a\'ai/stigmer/agentic/runner/v1/enum.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"(\n\x08RunnerId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xff\x01\n\x12ListRunnersRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12T\n\x06labels\x18\x02 \x03(\x0b\x32<.ai.stigmer.agentic.runner.v1.ListRunnersRequest.LabelsEntryR\x06labels\x12=\n\tpage_info\x18\x03 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"i\n\nRunnerList\x12\x1f\n\x0btotal_count\x18\x01 \x01(\x05R\ntotalCount\x12:\n\x05items\x18\x02 \x03(\x0b\x32$.ai.stigmer.agentic.runner.v1.RunnerR\x05items\"\xa5\x01\n\x16RunnerSendCommandInput\x12#\n\trunner_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x08runnerId\x12[\n\x0elist_directory\x18\x02 \x01(\x0b\x32\x32.ai.stigmer.agentic.runner.v1.ListDirectoryRequestH\x00R\rlistDirectoryB\t\n\x07\x63ommand\"\xd7\x01\n\x19RunnerStreamClientMessage\x12M\n\theartbeat\x18\x01 \x01(\x0b\x32-.ai.stigmer.agentic.runner.v1.RunnerHeartbeatH\x00R\theartbeat\x12`\n\x10\x63ommand_response\x18\x02 \x01(\x0b\x32\x33.ai.stigmer.agentic.runner.v1.RunnerCommandResponseH\x00R\x0f\x63ommandResponseB\t\n\x07message\"\x85\x01\n\x19RunnerStreamServerMessage\x12]\n\x0f\x63ommand_request\x18\x01 \x01(\x0b\x32\x32.ai.stigmer.agentic.runner.v1.RunnerCommandRequestH\x00R\x0e\x63ommandRequestB\t\n\x07message\"\xfb\x01\n\x0fRunnerHeartbeat\x12\x1b\n\trunner_id\x18\x01 \x01(\tR\x08runnerId\x12?\n\x05phase\x18\x02 \x01(\x0e\x32).ai.stigmer.agentic.runner.v1.RunnerPhaseR\x05phase\x12-\n\x12\x63urrent_executions\x18\x03 \x01(\x05R\x11\x63urrentExecutions\x12[\n\x0f\x63onnection_info\x18\x04 \x01(\x0b\x32\x32.ai.stigmer.agentic.runner.v1.RunnerConnectionInfoR\x0e\x63onnectionInfo\"\x9d\x01\n\x14RunnerCommandRequest\x12\x1d\n\nrequest_id\x18\x01 \x01(\tR\trequestId\x12[\n\x0elist_directory\x18\x02 \x01(\x0b\x32\x32.ai.stigmer.agentic.runner.v1.ListDirectoryRequestH\x00R\rlistDirectoryB\t\n\x07\x63ommand\"\xe8\x01\n\x15RunnerCommandResponse\x12\x1d\n\nrequest_id\x18\x01 \x01(\tR\trequestId\x12\\\n\x0elist_directory\x18\x02 \x01(\x0b\x32\x33.ai.stigmer.agentic.runner.v1.ListDirectoryResponseH\x00R\rlistDirectory\x12H\n\x05\x65rror\x18\x03 \x01(\x0b\x32\x30.ai.stigmer.agentic.runner.v1.RunnerCommandErrorH\x00R\x05\x65rrorB\x08\n\x06result\"*\n\x14ListDirectoryRequest\x12\x12\n\x04path\x18\x01 \x01(\tR\x04path\"\xd8\x01\n\x15ListDirectoryResponse\x12#\n\rresolved_path\x18\x01 \x01(\tR\x0cresolvedPath\x12\x46\n\x07\x65ntries\x18\x02 \x03(\x0b\x32,.ai.stigmer.agentic.runner.v1.DirectoryEntryR\x07\x65ntries\x12%\n\x0ehome_directory\x18\x03 \x01(\tR\rhomeDirectory\x12+\n\x11\x63urrent_directory\x18\x04 \x01(\tR\x10\x63urrentDirectory\"d\n\x0e\x44irectoryEntry\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12!\n\x0cis_directory\x18\x02 \x01(\x08R\x0bisDirectory\x12\x1b\n\tis_hidden\x18\x03 \x01(\x08R\x08isHidden\".\n\x12RunnerCommandError\x12\x18\n\x07message\x18\x01 \x01(\tR\x07message\"5\n\x18\x43reateLaunchTokenRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"l\n\x19\x43reateLaunchTokenResponse\x12\x14\n\x05token\x18\x01 \x01(\tR\x05token\x12\x39\n\nexpires_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\texpiresAt\";\n\x1a\x45xchangeLaunchTokenRequest\x12\x1d\n\x05token\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05token\"\x90\x01\n\x1b\x45xchangeLaunchTokenResponse\x12!\n\x0c\x61\x63\x63\x65ss_token\x18\x01 \x01(\tR\x0b\x61\x63\x63\x65ssToken\x12\x1d\n\ntoken_type\x18\x02 \x01(\tR\ttokenType\x12\x1d\n\nexpires_in\x18\x03 \x01(\x05R\texpiresIn\x12\x10\n\x03org\x18\x04 \x01(\tR\x03orgB\xc0\x01\n com.ai.stigmer.agentic.runner.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAR\xaa\x02\x1c\x41i.Stigmer.Agentic.Runner.V1\xca\x02\x1c\x41i\\Stigmer\\Agentic\\Runner\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Runner\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Runner::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%ai/stigmer/agentic/runner/v1/io.proto\x12\x1c\x61i.stigmer.agentic.runner.v1\x1a&ai/stigmer/agentic/runner/v1/api.proto\x1a\'ai/stigmer/agentic/runner/v1/enum.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"(\n\x08RunnerId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xff\x01\n\x12ListRunnersRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12T\n\x06labels\x18\x02 \x03(\x0b\x32<.ai.stigmer.agentic.runner.v1.ListRunnersRequest.LabelsEntryR\x06labels\x12=\n\tpage_info\x18\x03 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"i\n\nRunnerList\x12\x1f\n\x0btotal_count\x18\x01 \x01(\x05R\ntotalCount\x12:\n\x05items\x18\x02 \x03(\x0b\x32$.ai.stigmer.agentic.runner.v1.RunnerR\x05items\"\xa5\x01\n\x16RunnerSendCommandInput\x12#\n\trunner_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x08runnerId\x12[\n\x0elist_directory\x18\x02 \x01(\x0b\x32\x32.ai.stigmer.agentic.runner.v1.ListDirectoryRequestH\x00R\rlistDirectoryB\t\n\x07\x63ommand\"\xd7\x01\n\x19RunnerStreamClientMessage\x12M\n\theartbeat\x18\x01 \x01(\x0b\x32-.ai.stigmer.agentic.runner.v1.RunnerHeartbeatH\x00R\theartbeat\x12`\n\x10\x63ommand_response\x18\x02 \x01(\x0b\x32\x33.ai.stigmer.agentic.runner.v1.RunnerCommandResponseH\x00R\x0f\x63ommandResponseB\t\n\x07message\"\x85\x01\n\x19RunnerStreamServerMessage\x12]\n\x0f\x63ommand_request\x18\x01 \x01(\x0b\x32\x32.ai.stigmer.agentic.runner.v1.RunnerCommandRequestH\x00R\x0e\x63ommandRequestB\t\n\x07message\"\xfb\x01\n\x0fRunnerHeartbeat\x12\x1b\n\trunner_id\x18\x01 \x01(\tR\x08runnerId\x12?\n\x05phase\x18\x02 \x01(\x0e\x32).ai.stigmer.agentic.runner.v1.RunnerPhaseR\x05phase\x12-\n\x12\x63urrent_executions\x18\x03 \x01(\x05R\x11\x63urrentExecutions\x12[\n\x0f\x63onnection_info\x18\x04 \x01(\x0b\x32\x32.ai.stigmer.agentic.runner.v1.RunnerConnectionInfoR\x0e\x63onnectionInfo\"\xe4\x01\n\x14RunnerCommandRequest\x12\x1d\n\nrequest_id\x18\x01 \x01(\tR\trequestId\x12[\n\x0elist_directory\x18\x02 \x01(\x0b\x32\x32.ai.stigmer.agentic.runner.v1.ListDirectoryRequestH\x00R\rlistDirectory\x12\x45\n\x04stop\x18\x03 \x01(\x0b\x32/.ai.stigmer.agentic.runner.v1.StopRunnerRequestH\x00R\x04stopB\t\n\x07\x63ommand\"\xb0\x02\n\x15RunnerCommandResponse\x12\x1d\n\nrequest_id\x18\x01 \x01(\tR\trequestId\x12\\\n\x0elist_directory\x18\x02 \x01(\x0b\x32\x33.ai.stigmer.agentic.runner.v1.ListDirectoryResponseH\x00R\rlistDirectory\x12H\n\x05\x65rror\x18\x03 \x01(\x0b\x32\x30.ai.stigmer.agentic.runner.v1.RunnerCommandErrorH\x00R\x05\x65rror\x12\x46\n\x04stop\x18\x04 \x01(\x0b\x32\x30.ai.stigmer.agentic.runner.v1.StopRunnerResponseH\x00R\x04stopB\x08\n\x06result\"*\n\x14ListDirectoryRequest\x12\x12\n\x04path\x18\x01 \x01(\tR\x04path\"\xd8\x01\n\x15ListDirectoryResponse\x12#\n\rresolved_path\x18\x01 \x01(\tR\x0cresolvedPath\x12\x46\n\x07\x65ntries\x18\x02 \x03(\x0b\x32,.ai.stigmer.agentic.runner.v1.DirectoryEntryR\x07\x65ntries\x12%\n\x0ehome_directory\x18\x03 \x01(\tR\rhomeDirectory\x12+\n\x11\x63urrent_directory\x18\x04 \x01(\tR\x10\x63urrentDirectory\"d\n\x0e\x44irectoryEntry\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12!\n\x0cis_directory\x18\x02 \x01(\x08R\x0bisDirectory\x12\x1b\n\tis_hidden\x18\x03 \x01(\x08R\x08isHidden\".\n\x12RunnerCommandError\x12\x18\n\x07message\x18\x01 \x01(\tR\x07message\"+\n\x11StopRunnerRequest\x12\x16\n\x06reason\x18\x01 \x01(\tR\x06reason\"\x14\n\x12StopRunnerResponse\"N\n\x0fRunnerStopInput\x12#\n\trunner_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x08runnerId\x12\x16\n\x06reason\x18\x02 \x01(\tR\x06reason\"5\n\x18\x43reateLaunchTokenRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\"l\n\x19\x43reateLaunchTokenResponse\x12\x14\n\x05token\x18\x01 \x01(\tR\x05token\x12\x39\n\nexpires_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\texpiresAt\";\n\x1a\x45xchangeLaunchTokenRequest\x12\x1d\n\x05token\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05token\"\x90\x01\n\x1b\x45xchangeLaunchTokenResponse\x12!\n\x0c\x61\x63\x63\x65ss_token\x18\x01 \x01(\tR\x0b\x61\x63\x63\x65ssToken\x12\x1d\n\ntoken_type\x18\x02 \x01(\tR\ttokenType\x12\x1d\n\nexpires_in\x18\x03 \x01(\x05R\texpiresIn\x12\x10\n\x03org\x18\x04 \x01(\tR\x03orgB\xc0\x01\n com.ai.stigmer.agentic.runner.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAR\xaa\x02\x1c\x41i.Stigmer.Agentic.Runner.V1\xca\x02\x1c\x41i\\Stigmer\\Agentic\\Runner\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Runner\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Runner::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -45,6 +45,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTRUNNERSREQUEST'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_RUNNERSENDCOMMANDINPUT'].fields_by_name['runner_id']._loaded_options = None
   _globals['_RUNNERSENDCOMMANDINPUT'].fields_by_name['runner_id']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_RUNNERSTOPINPUT'].fields_by_name['runner_id']._loaded_options = None
+  _globals['_RUNNERSTOPINPUT'].fields_by_name['runner_id']._serialized_options = b'\272H\003\310\001\001'
   _globals['_CREATELAUNCHTOKENREQUEST'].fields_by_name['org']._loaded_options = None
   _globals['_CREATELAUNCHTOKENREQUEST'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_EXCHANGELAUNCHTOKENREQUEST'].fields_by_name['token']._loaded_options = None
@@ -66,23 +68,29 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_RUNNERHEARTBEAT']._serialized_start=1185
   _globals['_RUNNERHEARTBEAT']._serialized_end=1436
   _globals['_RUNNERCOMMANDREQUEST']._serialized_start=1439
-  _globals['_RUNNERCOMMANDREQUEST']._serialized_end=1596
-  _globals['_RUNNERCOMMANDRESPONSE']._serialized_start=1599
-  _globals['_RUNNERCOMMANDRESPONSE']._serialized_end=1831
-  _globals['_LISTDIRECTORYREQUEST']._serialized_start=1833
-  _globals['_LISTDIRECTORYREQUEST']._serialized_end=1875
-  _globals['_LISTDIRECTORYRESPONSE']._serialized_start=1878
-  _globals['_LISTDIRECTORYRESPONSE']._serialized_end=2094
-  _globals['_DIRECTORYENTRY']._serialized_start=2096
-  _globals['_DIRECTORYENTRY']._serialized_end=2196
-  _globals['_RUNNERCOMMANDERROR']._serialized_start=2198
-  _globals['_RUNNERCOMMANDERROR']._serialized_end=2244
-  _globals['_CREATELAUNCHTOKENREQUEST']._serialized_start=2246
-  _globals['_CREATELAUNCHTOKENREQUEST']._serialized_end=2299
-  _globals['_CREATELAUNCHTOKENRESPONSE']._serialized_start=2301
-  _globals['_CREATELAUNCHTOKENRESPONSE']._serialized_end=2409
-  _globals['_EXCHANGELAUNCHTOKENREQUEST']._serialized_start=2411
-  _globals['_EXCHANGELAUNCHTOKENREQUEST']._serialized_end=2470
-  _globals['_EXCHANGELAUNCHTOKENRESPONSE']._serialized_start=2473
-  _globals['_EXCHANGELAUNCHTOKENRESPONSE']._serialized_end=2617
+  _globals['_RUNNERCOMMANDREQUEST']._serialized_end=1667
+  _globals['_RUNNERCOMMANDRESPONSE']._serialized_start=1670
+  _globals['_RUNNERCOMMANDRESPONSE']._serialized_end=1974
+  _globals['_LISTDIRECTORYREQUEST']._serialized_start=1976
+  _globals['_LISTDIRECTORYREQUEST']._serialized_end=2018
+  _globals['_LISTDIRECTORYRESPONSE']._serialized_start=2021
+  _globals['_LISTDIRECTORYRESPONSE']._serialized_end=2237
+  _globals['_DIRECTORYENTRY']._serialized_start=2239
+  _globals['_DIRECTORYENTRY']._serialized_end=2339
+  _globals['_RUNNERCOMMANDERROR']._serialized_start=2341
+  _globals['_RUNNERCOMMANDERROR']._serialized_end=2387
+  _globals['_STOPRUNNERREQUEST']._serialized_start=2389
+  _globals['_STOPRUNNERREQUEST']._serialized_end=2432
+  _globals['_STOPRUNNERRESPONSE']._serialized_start=2434
+  _globals['_STOPRUNNERRESPONSE']._serialized_end=2454
+  _globals['_RUNNERSTOPINPUT']._serialized_start=2456
+  _globals['_RUNNERSTOPINPUT']._serialized_end=2534
+  _globals['_CREATELAUNCHTOKENREQUEST']._serialized_start=2536
+  _globals['_CREATELAUNCHTOKENREQUEST']._serialized_end=2589
+  _globals['_CREATELAUNCHTOKENRESPONSE']._serialized_start=2591
+  _globals['_CREATELAUNCHTOKENRESPONSE']._serialized_end=2699
+  _globals['_EXCHANGELAUNCHTOKENREQUEST']._serialized_start=2701
+  _globals['_EXCHANGELAUNCHTOKENREQUEST']._serialized_end=2760
+  _globals['_EXCHANGELAUNCHTOKENRESPONSE']._serialized_start=2763
+  _globals['_EXCHANGELAUNCHTOKENRESPONSE']._serialized_end=2907
 # @@protoc_insertion_point(module_scope)

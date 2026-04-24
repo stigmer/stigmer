@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "runner",
@@ -6,6 +6,7 @@ go_library(
         "backend_info.go",
         "bootstrap.go",
         "copydir.go",
+        "docker.go",
         "runner_env.go",
         "start.go",
         "state.go",
@@ -24,5 +25,18 @@ go_library(
         "@com_github_rs_zerolog//log",
         "@com_github_stigmer_stigmer_sdk_go//:go",
         "@org_golang_google_grpc//keepalive",
+    ],
+)
+
+go_test(
+    name = "runner_test",
+    srcs = [
+        "docker_test.go",
+        "state_test.go",
+    ],
+    embed = [":runner"],
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
     ],
 )
