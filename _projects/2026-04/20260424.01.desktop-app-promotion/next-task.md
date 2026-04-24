@@ -13,11 +13,25 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: T03 complete. Ready for T04.
-- **Last Session**: 2026-04-24 (Session 3) — T03 desktop app guide written (3 pages: overview, install, manage-runners). DesktopView shell created in Scenar (v0.1.18). Demo scenario with DesktopView + RunnerListPanel. Document writer role updated with Scenar demo infrastructure. Guides sidebar wired.
-- **Active Task**: None — ready to start T04.
+- **Status**: T04 complete. Ready for T05.
+- **Last Session**: 2026-04-24 (Session 4) — T04 CLI runner guides written (3 pages: overview, local-runner, stop-and-cleanup). CLI sidebar gap fixed (lifecycle group added to gen-cli-docs). Guides sidebar wired with `runners` section.
+- **Active Task**: None — ready to start T05.
 
-## Session wrap-up (2026-04-24)
+## Session wrap-up (2026-04-24, Session 4)
+
+- T04 delivered 3 pages under `docs/guides/runners/`: overview (section landing),
+  local-runner (start runners, native + Docker), stop-and-cleanup (stop, state files).
+- CLI sidebar fix: added `lifecycle` group to `gen-cli-docs/main.go` groupOrder
+  and groupTitles. Regenerated with `make gen-cli-docs`. `up`, `down`, `status`,
+  `logs`, `setup`, `reset` now appear in the CLI sidebar under "Lifecycle."
+- Structural departure from T01: merged `local-runner.mdx` and `docker-runner.mdx`
+  into a single `local-runner.mdx` page. Docker is a flag (`--runtime docker`),
+  not a separate concept. Added `overview.mdx` (section landing) instead —
+  consistent with desktop, integrations, and authentication guide sections.
+- All cross-links from T02/T03 verified — they target `/docs/guides/runners/local-runner`
+  which matches the new file slug. No existing links broken.
+
+## Session wrap-up (2026-04-24, Session 3)
 
 - **Changelog**:
   `_changelog/2026-04/2026-04-24-181740-desktop-app-guide-t03-scenar-desktopview.md`
@@ -38,7 +52,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | T01 | Design & task plan | **Complete** | None |
 | T02 | Runner concepts page | **Complete** | None |
 | T03 | Desktop app guide (3 pages) | **Complete** | T02 |
-| T04 | CLI runner guides (3 pages) | Pending | T02 |
+| T04 | CLI runner guides (3 pages) | **Complete** | T02 |
 | T05 | SDK React runner docs update | Pending | None |
 
 ### Phase B: Distribution & Promotion
@@ -128,7 +142,7 @@ All promotion surfaces link to the download page. The download page links to the
 - Docs are MDX files consumed by Fumadocs on the Next.js marketing site
 - Navigation is driven by `meta.json` files in each docs directory
 - Live `docs/meta.json` is source of truth for sidebar: Getting Started → Guides → SDK → CLI → Concepts
-- `docs/guides/` currently has `authentication/` and `integrations/` — we add `desktop/` and `runners/`
+- `docs/guides/` has `desktop/` (T03), `runners/` (T04), `integrations/`, and `authentication/`
 - `docs/concepts/` has agents, skills, tools, sessions, workflows, environments, organizations — we add runners
 - Diataxis per page: Tutorial / How-to / Explanation / Reference — never mixed
 - Plain language for intros, precise technical for reference
@@ -149,11 +163,12 @@ All promotion surfaces link to the download page. The download page links to the
 - Auto-updater endpoint: `https://github.com/stigmer/stigmer/releases/latest/download/latest.json`
 
 ### What exists for runners in docs today
-- `docs/concepts/runners.mdx` — **NEW (T02)**: Explanation page with lifecycle, local vs cloud, dispatch, live RunnerListPanel demo.
+- `docs/concepts/runners.mdx` — **(T02)**: Explanation page with lifecycle, local vs cloud, dispatch, live RunnerListPanel demo.
+- `docs/guides/desktop/` — **(T03)**: 3 pages: overview, install, manage-runners. Desktop app guide with DesktopView demos.
+- `docs/guides/runners/` — **(T04)**: 3 pages: overview, local-runner (native + Docker), stop-and-cleanup. CLI runner management guides.
 - `docs/sdk/react/runner.mdx` — auto-generated, has `useRunnerList`, `RunnerListPanel`, `RunnerPicker`, phase helpers. Missing: `useLaunchLocalRunner`, `useStopRunner`, `useDeleteRunner`.
 - `docs/sdk/resources/runner.mdx` — auto-generated resource reference with `createLaunchToken`, `exchangeLaunchToken`, `stop`, etc.
-- `docs/cli/commands/up.mdx`, `down.mdx` — auto-generated CLI command pages (NOT in sidebar — see T02 discovery below).
-- No desktop guide, no CLI runner how-to guides yet.
+- `docs/cli/commands/up.mdx`, `down.mdx` — auto-generated CLI command pages. **Now in sidebar** (T04 fix: lifecycle group added to gen-cli-docs).
 
 ### T03 discoveries (carry forward)
 - **Document writer role was outdated**: Referenced `createDemoClient` from `@stigmer/react/demo` which does not exist. Fixed to describe the actual `PreviewProvider` + `connectFixture` + Scenar shell workflow. Added `.scenar/` directory docs and component registration flow.
@@ -162,8 +177,13 @@ All promotion surfaces link to the download page. The download page links to the
 - **Scenar packages updated to 0.1.18**: `@scenar/core`, `@scenar/preview`, `@scenar/react`, `@scenar/cli` in `site/package.json`. `.scenar/` regenerated via `scenar preview sync`.
 - **Desktop guides placed first in sidebar**: `docs/guides/meta.json` has `"desktop"` before `"integrations"` and `"authentication"` — runner management is a primary use case.
 
+### T04 discoveries
+- **T01 structural departure**: Original T01 plan specified `local-runner.mdx` (native) + `docker-runner.mdx` (Docker) + `stop-and-cleanup.mdx`. Merged native and Docker into one page (`local-runner.mdx`) because Docker is a single flag, not a separate concept. Added `overview.mdx` as a section landing page instead — consistent with all other guide sections. Page count unchanged (3 pages).
+- **CLI sidebar gap root cause corrected**: The T02 discovery blamed `GroupID == ""` on the `up`/`down` commands. This was wrong — `up` and `down` have `GroupID: "lifecycle"` (set via `withGroup` in `root.go`). The actual cause was `gen-cli-docs/main.go` missing `"lifecycle"` in its `groupOrder` and `groupTitles` arrays. Fixed by adding the lifecycle group. All 6 lifecycle commands (`up`, `down`, `status`, `logs`, `setup`, `reset`) now appear in the CLI sidebar.
+- **No demo scenarios for CLI guides**: CLI how-to pages use standard code blocks, not TerminalView demos. Code blocks are searchable, copyable, and the expected format for CLI documentation. A TerminalView demo on the overview page was considered optional polish and deferred.
+
 ### T02 discoveries (carry forward)
-- **CLI sidebar gap**: `up.mdx` and `down.mdx` are generated by `gen-cli-docs` but excluded from `meta.json` because the `up` and `down` Cobra commands have `GroupID == ""`. Fix requires Go code change + re-run `make gen-cli-docs`. Flagged for T04.
+- **CLI sidebar gap**: ~~`up.mdx` and `down.mdx` are generated by `gen-cli-docs` but excluded from `meta.json` because the `up` and `down` Cobra commands have `GroupID == ""`. Fix requires Go code change + re-run `make gen-cli-docs`. Flagged for T04.~~ **RESOLVED in T04** — actual cause was `lifecycle` missing from `groupOrder` in `gen-cli-docs/main.go`. Fixed.
 - **`agent-runner.mdx` vs `runner.mdx` in SDK resources**: Two separate generated docs exist. The concept page clarifies the terminology; SDK docs may need cleanup.
 - **No runner sample factory in `@stigmer/react/test`**: Demo builds fixture data directly from proto schemas. If a runner factory is added to `samples.ts` later, the demo can be simplified.
 - **Document Writer role update needed**: Add explicit mention that demos use real `@stigmer/react` SDK components with fixture data, not custom demo-only components.

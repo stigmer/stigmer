@@ -36,14 +36,15 @@ import (
 
 // groupOrder controls the display order for command groups in the sidebar and
 // index page. This matches the order defined in root.go.
-var groupOrder = []string{"core", "resource", "artifact", "server", "config"}
+var groupOrder = []string{"core", "lifecycle", "resource", "artifact", "server", "config"}
 
 var groupTitles = map[string]string{
-	"core":     "Core Commands",
-	"resource": "Resource Management",
-	"artifact": "Artifact Commands",
-	"server":   "Server Commands",
-	"config":   "Configuration",
+	"core":      "Core Commands",
+	"lifecycle": "Lifecycle",
+	"resource":  "Resource Management",
+	"artifact":  "Artifact Commands",
+	"server":    "Server Commands",
+	"config":    "Configuration",
 }
 
 // sectionHeaderRe matches terminal-style UPPERCASE section headers found in
