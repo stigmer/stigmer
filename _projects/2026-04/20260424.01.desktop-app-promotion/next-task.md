@@ -13,9 +13,54 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: T09 complete. Ready for T10.
-- **Last Session**: 2026-04-24 (Session 9) — T09 contextual runner promotion in Console Settings > Runners shipped.
-- **Active Task**: None — ready to start T10.
+- **Status**: T10 complete. Ready for T11.
+- **Last Session**: 2026-04-24 (Session 10) — T10 smart nudge banner in Console AppShell shipped.
+- **Active Task**: None — ready to start T11.
+
+## Session wrap-up (2026-04-24, Session 10)
+
+- T10 added a one-time dismissible desktop app promotion banner to the
+  Console's AppShell — the global layout component.
+- **New file**: `client-apps/web/src/domain/_shared/layout/DesktopAppBanner.tsx`
+  — `useDesktopBannerState()` hook + `DesktopAppBanner` component.
+- **Modified**: `client-apps/web/src/domain/_shared/layout/AppShell.tsx` —
+  structural change to `<main>` (flex-col with inner scroll div) + banner
+  wiring.
+- **Hook design**: `useSyncExternalStore` over localStorage, matching the
+  sidebar pattern in `use-layout-state.tsx`. Two keys:
+  `stigmer:desktop-banner-first-seen` (seeded on first visit) and
+  `stigmer:desktop-banner-dismissed` (set on dismiss). Cross-tab reactive.
+  Server snapshot returns `false` (no hydration mismatch).
+- **Visit-based trigger**: Banner hidden on first visit (seeds first-seen
+  timestamp). Visible on second+ visit if not dismissed. No API calls.
+  Returning users = post-value proxy (DD-05 compliance).
+- **Structural change to AppShell**: `<main>` converted from scroll container
+  (`overflow-y-auto`) to flex-column parent (`flex flex-col overflow-hidden`).
+  Content wrapped in `<div className="min-w-0 flex-1 overflow-y-auto">`.
+  Banner renders above the scroll area as a "banner slot" — reusable for
+  future global banners (maintenance, announcements).
+- **Design decisions**:
+  - **Visit-based over session-based trigger**: No infrastructure to detect
+    "first session" at the AppShell level without API calls. Visit count is a
+    clean proxy — returning users have gotten value. Works in both local and
+    cloud mode.
+  - **Top-of-main placement**: Fixed bottom bar would overlap session composer.
+    Toast too transient. Flex-column with banner slot is a standard layout
+    pattern. Non-intrusive, always visible until dismissed.
+  - **All authenticated zones**: Session + management. Public zone excluded.
+    Maximum visibility for a one-time nudge.
+  - **No animation on dismiss**: Instant removal avoids layout shift animation
+    complexity. Content fills the space immediately.
+  - **Separate file, not inline**: Hook has its own state management and
+    subscribe/snapshot functions. Warrants its own module unlike T09's
+    `DesktopAppPromo` (pure presentational, no state).
+- **Visual pattern**: Thin horizontal bar. `<aside role="complementary">` with
+  `Monitor` icon + "Stigmer Desktop" title + value prop + "Download" link
+  (ArrowUpRight convention from T08/T09) + dismiss X. Main-area tokens
+  (`bg-card`, `text-foreground`, `text-muted-foreground`, `border-border-muted`).
+- ESLint clean, build clean (29 routes, exit 0).
+- **No surprises**: Implementation matched the plan exactly. No architectural
+  decisions needed beyond what was pre-approved.
 
 ## Session wrap-up (2026-04-24, Session 9)
 
@@ -177,7 +222,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | T07 | Marketing site nav/footer wiring | **Complete** | T06 |
 | T08 | Console: "Get Desktop App" in user menu | **Complete** | T06 |
 | T09 | Console: contextual runner promotion | **Complete** | T06 |
-| T10 | Console: smart nudge banner | Pending | T06, T09 |
+| T10 | Console: smart nudge banner | **Complete** | T06, T09 |
 | T11 | Verification & polish | Pending | All |
 
 ## Design Decisions (approved)
@@ -240,7 +285,8 @@ All promotion surfaces link to the download page. The download page links to the
 ### Console
 - `client-apps/web/src/config/external-links.ts` — **(T08)**: Shared `EXTERNAL_LINKS` constant (download, website, github, docs)
 - `client-apps/web/src/domain/_shared/layout/UserMenu.tsx` — **(T08)**: User menu dropdown with `DesktopAppItem`
-- `client-apps/web/src/domain/_shared/layout/AppShell.tsx` — Main layout shell
+- `client-apps/web/src/domain/_shared/layout/AppShell.tsx` — **(T10)**: Main layout shell with banner slot (flex-col `<main>` + inner scroll div)
+- `client-apps/web/src/domain/_shared/layout/DesktopAppBanner.tsx` — **(T10)**: `useDesktopBannerState()` hook + `DesktopAppBanner` component. Visit-based localStorage trigger, permanent dismissal.
 - `client-apps/web/src/domain/settings/RunnersSection.tsx` — **(T09)**: Settings > Runners page wrapper with `DesktopAppPromo` contextual promotion
 
 ### SDK (NOT modified — reference only)
@@ -286,12 +332,21 @@ All promotion surfaces link to the download page. The download page links to the
 - `Monitor` icon used for desktop app. `AppWindow` is taken (OAuth Apps).
 - `RunnersSection` **(T09)**: now includes `DesktopAppPromo` — always-visible `<aside>` after the runner list with `Monitor` icon, value prop, and external download link. Uses `EXTERNAL_LINKS.download`.
 
+### Console context (updated T10)
+- `AppShell` **(T10)**: `<main>` is now a flex-column parent (`flex flex-col overflow-hidden`) with content wrapped in `<div className="min-w-0 flex-1 overflow-y-auto">`. This creates a "banner slot" above the scroll area.
+- `DesktopAppBanner` **(T10)**: One-time dismissible nudge in the banner slot. `useDesktopBannerState()` hook uses `useSyncExternalStore` over localStorage (same pattern as sidebar in `use-layout-state.tsx`). Two keys: `stigmer:desktop-banner-first-seen` (ISO timestamp, seeded on first visit) and `stigmer:desktop-banner-dismissed` (`"true"`, set on dismiss). Server snapshot returns `false`.
+- Visit-based trigger: first visit seeds first-seen and hides banner. Second+ visit shows banner if not dismissed. No API calls.
+- Banner visual: thin bar with `bg-card` + `border-b border-border-muted`. `Monitor` icon, "Stigmer Desktop" title, value prop copy, "Download" link (`EXTERNAL_LINKS.download` + `ArrowUpRight`), dismiss X button.
+- Shows in all authenticated zones (session + management). Public zone excluded.
+
 ### What exists for distribution today
 - `site/src/app/download/page.tsx` + `site/src/components/pages/DownloadPage.tsx` — **(T06)**: `/download` route with platform-detected download buttons. Links to GitHub Release artifacts via `DESKTOP_CONFIG`.
 - `site/src/lib/constants.ts` — **(T06+T07)**: `DESKTOP_CONFIG` with version, release tag, 5 platform artifacts, `getDownloadUrl()`. `NAV_LINKS` includes Download link between Pricing and GitHub. `FOOTER_LINKS.product` includes Download after Documentation.
 - `client-apps/web/src/config/external-links.ts` — **(T08)**: `EXTERNAL_LINKS` with download page URL. Shared config for Console external links.
 - `client-apps/web/src/domain/_shared/layout/UserMenu.tsx` — **(T08)**: `DesktopAppItem` in both menu variants. `Monitor` icon + `ArrowUpRight` external link indicator.
 - `client-apps/web/src/domain/settings/RunnersSection.tsx` — **(T09)**: `DesktopAppPromo` component. Always-visible `<aside>` after runner list with `Monitor` icon, value prop copy, and "Download" external link. Shows in all page states (no-org, empty list, populated list).
+- `client-apps/web/src/domain/_shared/layout/DesktopAppBanner.tsx` — **(T10)**: One-time dismissible nudge banner. `useDesktopBannerState()` hook with `useSyncExternalStore` over localStorage. Visit-based trigger (hidden on first visit, visible on second+). `DesktopAppBanner` component with `Monitor` icon, value prop, "Download" link, dismiss X.
+- `client-apps/web/src/domain/_shared/layout/AppShell.tsx` — **(T10)**: Structural change: `<main>` is now a flex-column parent with inner scroll div. Banner renders above the scroll area in all authenticated zones. Public zone unchanged.
 
 ### What exists for runners in docs today
 - `docs/concepts/runners.mdx` — **(T02)**: Explanation page with lifecycle, local vs cloud, dispatch, live RunnerListPanel demo.
@@ -334,7 +389,6 @@ All promotion surfaces link to the download page. The download page links to the
 
 ## Quick Commands
 
-- "Start T10" — Begin Console smart nudge banner
 - "Start T11" — Begin verification & polish
 - "Show project status" — Get overview of progress
 
