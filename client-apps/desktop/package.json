@@ -8,6 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
     "tauri": "tauri"
   },
   "dependencies": {
@@ -33,7 +35,10 @@
     "@tauri-apps/cli": "^2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@typescript-eslint/parser": "^8",
     "@vitejs/plugin-react": "^4",
+    "eslint": "^9",
+    "eslint-plugin-stigmer": "*",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vite": "^6"

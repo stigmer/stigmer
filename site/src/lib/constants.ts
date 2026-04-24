@@ -41,13 +41,13 @@ export const SITE_CONFIG = {
 /**
  * Stigmer Desktop app release configuration.
  * Artifact filenames follow Tauri 2 bundler conventions for productName "Stigmer".
- * Verify against actual GitHub Release assets after the first published desktop-v* tag.
+ * Verify against actual GitHub Release assets after the first published v* tag.
  */
 export const DESKTOP_CONFIG = {
   version: "0.1.0",
-  releaseTag: "desktop-v0.1.0",
+  releaseTag: "v0.1.0",
   releasesUrl: `${SITE_CONFIG.githubUrl}/releases`,
-  releaseUrl: `${SITE_CONFIG.githubUrl}/releases/tag/desktop-v0.1.0`,
+  releaseUrl: `${SITE_CONFIG.githubUrl}/releases/tag/v0.1.0`,
   platforms: [
     {
       os: "macos" as const,
