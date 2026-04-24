@@ -42,8 +42,12 @@ go_library(
 go_test(
     name = "controller_test",
     srcs = [
+        "connect_test.go",
+        "heartbeat_test.go",
         "launch_token_test.go",
+        "send_command_test.go",
         "stop_test.go",
+        "stream_registry_test.go",
     ],
     embed = [":controller"],
     deps = [
@@ -54,5 +58,6 @@ go_test(
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//metadata",
         "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//types/known/timestamppb",
     ],
 )
