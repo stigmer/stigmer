@@ -13,9 +13,28 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: T04 complete. Ready for T05.
-- **Last Session**: 2026-04-24 (Session 4) — T04 CLI runner guides written (3 pages: overview, local-runner, stop-and-cleanup). CLI sidebar gap fixed (lifecycle group added to gen-cli-docs). Guides sidebar wired with `runners` section.
-- **Active Task**: None — ready to start T05.
+- **Status**: Phase A complete (all 5 documentation tasks done). Ready for T06 (Phase B).
+- **Last Session**: 2026-04-24 (Session 5) — T05 SDK runner docs quality gaps closed. Phase A complete.
+- **Active Task**: None — ready to start T06.
+
+## Session wrap-up (2026-04-24, Session 5)
+
+- T05 original scope was already done: the React SDK docs generator had picked
+  up `useLaunchLocalRunner`, `useStopRunner`, `useDeleteRunner` automatically.
+  The `next-task.md` description was stale (written before last codegen run).
+- Three quality gaps found and closed instead:
+  1. Added `runner` to `DOMAIN_META` in React SDK docs generator parser —
+     title now `Runner` (was lowercase `runner`), description now populated.
+  2. Created `apis/ai/stigmer/agentic/runner/docs/overview.md` — Runner was
+     the only agentic resource without one. Resources page now uses hand-crafted
+     overview instead of spec-derived fallback.
+  3. Deleted orphaned `docs/sdk/resources/agent-runner.mdx` (564 lines) — not
+     in `meta.json`, not linked, not produced by current generator. Resolves
+     T02 discovery about `agent-runner.mdx` vs `runner.mdx` duplication.
+- All fixes go through codegen inputs, not hand-edits to generated files.
+  Future `make gen-sdk-docs` preserves everything.
+- **Changelog**:
+  `_changelog/2026-04/2026-04-24-192620-sdk-runner-docs-t05-quality-gaps.md`
 
 ## Session wrap-up (2026-04-24, Session 4)
 
@@ -53,7 +72,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | T02 | Runner concepts page | **Complete** | None |
 | T03 | Desktop app guide (3 pages) | **Complete** | T02 |
 | T04 | CLI runner guides (3 pages) | **Complete** | T02 |
-| T05 | SDK React runner docs update | Pending | None |
+| T05 | SDK React runner docs update | **Complete** | None |
 
 ### Phase B: Distribution & Promotion
 
@@ -83,7 +102,7 @@ Two phases, docs first:
 - Runner concepts page (`docs/concepts/runners.mdx`) — what runners are, lifecycle, local vs cloud.
 - Desktop app guide (`docs/guides/desktop/`) — install, setup, browser-to-desktop flow.
 - CLI runner guides (`docs/guides/runners/`) — `stigmer up runner`, Docker, stop/cleanup.
-- SDK React runner docs — add `useLaunchLocalRunner`, `useStopRunner`, `useDeleteRunner`.
+- SDK React runner docs — quality gaps (DOMAIN_META, overview.md, orphan cleanup).
 
 **Phase B** builds distribution and promotion:
 - Download page on marketing site (`/download`) with platform detection.
@@ -109,7 +128,7 @@ All promotion surfaces link to the download page. The download page links to the
 ### Documentation
 - `docs/concepts/meta.json` — Concepts sidebar (add `runners`)
 - `docs/guides/meta.json` — Guides sidebar (add `desktop`, `runners`)
-- `docs/sdk/react/runner.mdx` — Existing auto-generated runner React reference (needs hook additions)
+- `docs/sdk/react/runner.mdx` — Auto-generated runner React reference (all hooks present, DOMAIN_META added in T05)
 - `docs/sdk/react/meta.json` — React SDK sidebar
 - `docs/vocabulary.md` — Terminology source of truth (check runner terms)
 - `_roles/002_document_writer.md` — Document writer role (Diataxis, plain language, demo standards)
@@ -166,8 +185,8 @@ All promotion surfaces link to the download page. The download page links to the
 - `docs/concepts/runners.mdx` — **(T02)**: Explanation page with lifecycle, local vs cloud, dispatch, live RunnerListPanel demo.
 - `docs/guides/desktop/` — **(T03)**: 3 pages: overview, install, manage-runners. Desktop app guide with DesktopView demos.
 - `docs/guides/runners/` — **(T04)**: 3 pages: overview, local-runner (native + Docker), stop-and-cleanup. CLI runner management guides.
-- `docs/sdk/react/runner.mdx` — auto-generated, has `useRunnerList`, `RunnerListPanel`, `RunnerPicker`, phase helpers. Missing: `useLaunchLocalRunner`, `useStopRunner`, `useDeleteRunner`.
-- `docs/sdk/resources/runner.mdx` — auto-generated resource reference with `createLaunchToken`, `exchangeLaunchToken`, `stop`, etc.
+- `docs/sdk/react/runner.mdx` — **(T05)**: auto-generated, all hooks present (`useRunnerList`, `useLaunchLocalRunner`, `useStopRunner`, `useDeleteRunner`), `RunnerListPanel`, `RunnerPicker`, phase helpers. DOMAIN_META added so title/description render correctly.
+- `docs/sdk/resources/runner.mdx` — **(T05)**: auto-generated resource reference with `createLaunchToken`, `exchangeLaunchToken`, `stop`, etc. Now has hand-crafted overview via `apis/ai/stigmer/agentic/runner/docs/overview.md`.
 - `docs/cli/commands/up.mdx`, `down.mdx` — auto-generated CLI command pages. **Now in sidebar** (T04 fix: lifecycle group added to gen-cli-docs).
 
 ### T03 discoveries (carry forward)
@@ -177,6 +196,12 @@ All promotion surfaces link to the download page. The download page links to the
 - **Scenar packages updated to 0.1.18**: `@scenar/core`, `@scenar/preview`, `@scenar/react`, `@scenar/cli` in `site/package.json`. `.scenar/` regenerated via `scenar preview sync`.
 - **Desktop guides placed first in sidebar**: `docs/guides/meta.json` has `"desktop"` before `"integrations"` and `"authentication"` — runner management is a primary use case.
 
+### T05 discoveries
+- **Original scope already done**: The three "missing" hooks (`useLaunchLocalRunner`, `useStopRunner`, `useDeleteRunner`) were already in the generated `runner.mdx`. The `next-task.md` description was written before the last React SDK codegen run. T05 pivoted to quality gap closure instead.
+- **`DOMAIN_META` fallback produces lowercase titles**: When a domain slug is not in the `DOMAIN_META` map, the generator uses `{ title: slug, description: "" }`. Runner was the only domain hitting this fallback. `platform-client` also hits it — noted but out of scope for T05.
+- **`overview.md` was the only missing resource overview**: Runner was the sole agentic resource without `apis/.../docs/overview.md`. All 11 other agentic resources have one.
+- **`agent-runner.mdx` orphan confirmed dead**: The current codegen does not produce `agent-runner.mdx`. The generator writes named output files but does not delete stale ones — this is a known limitation of the write-only output pattern. The file was from a pre-consolidation run.
+
 ### T04 discoveries
 - **T01 structural departure**: Original T01 plan specified `local-runner.mdx` (native) + `docker-runner.mdx` (Docker) + `stop-and-cleanup.mdx`. Merged native and Docker into one page (`local-runner.mdx`) because Docker is a single flag, not a separate concept. Added `overview.mdx` as a section landing page instead — consistent with all other guide sections. Page count unchanged (3 pages).
 - **CLI sidebar gap root cause corrected**: The T02 discovery blamed `GroupID == ""` on the `up`/`down` commands. This was wrong — `up` and `down` have `GroupID: "lifecycle"` (set via `withGroup` in `root.go`). The actual cause was `gen-cli-docs/main.go` missing `"lifecycle"` in its `groupOrder` and `groupTitles` arrays. Fixed by adding the lifecycle group. All 6 lifecycle commands (`up`, `down`, `status`, `logs`, `setup`, `reset`) now appear in the CLI sidebar.
@@ -184,7 +209,7 @@ All promotion surfaces link to the download page. The download page links to the
 
 ### T02 discoveries (carry forward)
 - **CLI sidebar gap**: ~~`up.mdx` and `down.mdx` are generated by `gen-cli-docs` but excluded from `meta.json` because the `up` and `down` Cobra commands have `GroupID == ""`. Fix requires Go code change + re-run `make gen-cli-docs`. Flagged for T04.~~ **RESOLVED in T04** — actual cause was `lifecycle` missing from `groupOrder` in `gen-cli-docs/main.go`. Fixed.
-- **`agent-runner.mdx` vs `runner.mdx` in SDK resources**: Two separate generated docs exist. The concept page clarifies the terminology; SDK docs may need cleanup.
+- **`agent-runner.mdx` vs `runner.mdx` in SDK resources**: ~~Two separate generated docs exist. The concept page clarifies the terminology; SDK docs may need cleanup.~~ **RESOLVED in T05** — `agent-runner.mdx` deleted. Current generator no longer produces it.
 - **No runner sample factory in `@stigmer/react/test`**: Demo builds fixture data directly from proto schemas. If a runner factory is added to `samples.ts` later, the demo can be simplified.
 - **Document Writer role update needed**: Add explicit mention that demos use real `@stigmer/react` SDK components with fixture data, not custom demo-only components.
 
