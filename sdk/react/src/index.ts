@@ -647,9 +647,12 @@ export type {
   UseCreateAgentInstanceReturn,
 } from "./agent-instance";
 
-// Runner — data hook, styled picker, admin list panel, and phase utilities
+// Runner — data hooks, action hooks, styled picker, admin list panel, and phase utilities
 export {
   useRunnerList,
+  useLaunchLocalRunner,
+  useStopRunner,
+  useDeleteRunner,
   RunnerPicker,
   RunnerListPanel,
   phaseLabel,
@@ -660,6 +663,12 @@ export {
 export type {
   UseRunnerListOptions,
   UseRunnerListReturn,
+  UseLaunchLocalRunnerOptions,
+  UseLaunchLocalRunnerReturn,
+  LaunchLocalRunnerResult,
+  StopRunnerInput,
+  UseStopRunnerReturn,
+  UseDeleteRunnerReturn,
   RunnerPickerProps,
   RunnerListPanelProps,
 } from "./runner";

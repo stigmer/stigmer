@@ -13,8 +13,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: T02 complete, T05 complete, T06 complete, Desktop T05 complete. Ready for T07.
-- **Last Session**: 2026-04-24 (Session 4) — T06 complete (Runner stop via command stream)
+- **Status**: T02 complete, T05 complete, T06 complete, T07 complete, Desktop T05 complete. Ready for T08.
+- **Last Session**: 2026-04-24 (Session 5) — T07 complete (SDK runner action hooks)
 - **Active Task**: None
 
 ## Scope Change: Desktop App is Primary `stigmer://` Handler
@@ -35,9 +35,40 @@ The Stigmer Desktop app (project 20260423.03, T05) now handles `stigmer://` URLs
 | T04 | CLI URL handler — receive and launch (Go) | Deferred (CLI-only fallback) | T02, T03 |
 | T05 | Docker placement (Go CLI) | **Complete** | None |
 | T06 | Runner stop via command stream (Proto + all languages) | **Complete** | None |
-| T07 | SDK runner action hooks (React) | Pending | T06, T02 |
+| T07 | SDK runner action hooks (React) | **Complete** | T06, T02 |
 | T08 | Web UI — Settings > Runners full CRUD | Pending | T07 |
 | T09 | Integration testing | Pending | All |
+
+## Session Progress (2026-04-24, Session 5)
+
+### T07: SDK Runner Action Hooks (completed)
+
+Added three React hooks to `@stigmer/react`'s runner module, providing the action layer that T08 (Settings > Runners CRUD) and platform builders need for runner lifecycle management from the browser.
+
+#### Architectural Decisions (confirmed before implementation)
+
+- **DD-T07-01: Three hooks, not one monolith** — `useLaunchLocalRunner`, `useStopRunner`, `useDeleteRunner` as separate single-responsibility hooks. Platform builders may need stop/delete without launch, or launch without CRUD. Composable hooks respect headless-first (DD-003).
+- **DD-T07-02: Configurable URL opening** — `useLaunchLocalRunner` opens `stigmer://launch-runner?token=...` via a configurable `openUrl` callback (default: `window.location.href`). SDK portability (DD-004) — platform builders in Electron, iframe, or React Native can override.
+- **DD-T07-03: No desktop detection / polling** — Hook reports success on token creation + URL open. Does not detect whether the desktop app received the URL or poll for runner appearance. Consumer uses `useRunnerList.refetch()` for observation.
+- **DD-T07-04: Launch returns URL + expiry** — `launch()` resolves with `{ url, expiresAt }` so consumers can display, copy, or use for diagnostics.
+- **DD-T07-05: Error handling follows toError convention** — All hooks use `toError` helper and `Error | null` pattern matching `useCreateSession`, `useDeleteOAuthApp`.
+
+#### New Hooks
+
+- **`useLaunchLocalRunner`** (`useLaunchLocalRunner.ts`) — Behavior hook. Calls `createLaunchToken({ org })`, constructs `stigmer://launch-runner?token={token}` URL, opens via `openUrl` callback. Returns `{ launch, isLaunching, error, clearError }`.
+- **`useStopRunner`** (`useStopRunner.ts`) — Mutation hook. Wraps `runner.stop(input)` with `StopRunnerInput` accepting `{ runnerId, reason? }`. Returns `{ stop, isStopping, error, clearError }`.
+- **`useDeleteRunner`** (`useDeleteRunner.ts`) — Mutation hook. Wraps `runner.delete(id)`. Returns `{ deleteRunner, isDeleting, error, clearError }`.
+
+#### Barrel Exports
+
+- `sdk/react/src/runner/index.ts` — Added exports for all three hooks and their types.
+- `sdk/react/src/index.ts` — Added re-exports so platform builders import from `@stigmer/react`.
+
+#### Verification
+
+- Zero linter errors. `tsc --noEmit` passes cleanly on the full `sdk/react` package.
+- All hooks follow established patterns from `useDeleteOAuthApp`, `useCreateSession`, etc.
+- All types derived from proto-generated schemas (`CreateLaunchTokenRequestSchema`, `RunnerStopInputSchema`), never hand-written duplicates.
 
 ## Session Progress (2026-04-24, Session 4)
 
@@ -238,6 +269,13 @@ Fallback path (CLI only, no desktop — deferred T03/T04): same flow but the OS 
 - T06 Go CLI: `ErrServerRequestedStop` sentinel triggers graceful shutdown (STOPPED heartbeat + CloseSend) and prevents reconnection
 - T06 Java: `RunnerStopHandler.java` — FGA `can_edit`, local stream / Redis cross-pod / direct fallback
 - T06 SDK: `stigmer.runner.stop(input)` is the foundation for T07's `useStopRunner()` React hook
+- T07 hooks: `useLaunchLocalRunner` (behavior, browser launch trigger), `useStopRunner` (mutation), `useDeleteRunner` (mutation) in `sdk/react/src/runner/`
+- T07 `useLaunchLocalRunner` calls `createLaunchToken({ org })`, constructs `stigmer://launch-runner?token={token}`, opens via configurable `openUrl` callback (default `window.location.href`)
+- T07 `useStopRunner` wraps `runner.stop()` with `StopRunnerInput { runnerId, reason? }`, resolves with updated `Runner`
+- T07 `useDeleteRunner` wraps `runner.delete(id)`, resolves with deleted `Runner`
+- T07 all hooks follow established mutation pattern: `useCallback` + `is*` boolean + `error: Error | null` + `clearError` + rethrow
+- T07 barrel exports updated in `sdk/react/src/runner/index.ts` and `sdk/react/src/index.ts`
+- T07 no proto changes, no backend changes, no codegen — purely React SDK layer
 
 ## Blockers
 
@@ -245,8 +283,8 @@ Fallback path (CLI only, no desktop — deferred T03/T04): same flow but the OS 
 
 ## Quick Commands
 
-- "Start T07" — Begin SDK runner action hooks (highest priority — builds triggering side for browser launch, uses T06 stop + T02 launch token)
-- "Start T08" — Begin Settings > Runners full CRUD web UI (depends on T07)
+- "Start T08" — Begin Settings > Runners full CRUD web UI (highest priority — uses T07 hooks for launch/stop/delete actions)
+- "Start T09" — Begin integration testing (depends on all tasks)
 - "Show project status" — Get overview of progress
 
 ---
