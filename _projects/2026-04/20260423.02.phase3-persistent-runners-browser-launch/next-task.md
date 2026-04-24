@@ -13,8 +13,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: T02 complete, T05 complete, T06 complete, T07 complete, Desktop T05 complete. Ready for T08.
-- **Last Session**: 2026-04-24 (Session 5) — T07 complete (SDK runner action hooks)
+- **Status**: T02 complete, T05 complete, T06 complete, T07 complete, T08 complete, Desktop T05 complete. Ready for T09.
+- **Last Session**: 2026-04-24 (Session 6) — T08 complete (Settings > Runners full CRUD)
 - **Active Task**: None
 
 ## Scope Change: Desktop App is Primary `stigmer://` Handler
@@ -23,7 +23,7 @@ The Stigmer Desktop app (project 20260423.03, T05) now handles `stigmer://` URLs
 
 - **T03 and T04 are deferred** — They provide a CLI-only fallback for users who install the CLI but not the desktop app. Still relevant but no longer on the critical path.
 - **T07 (SDK hooks) is the next high-priority task** — It builds the *triggering* side: `useLaunchLocalRunner` constructs the `stigmer://` URL and opens it from the browser. The desktop app already handles the *receiving* side.
-- **Critical path is now**: T02 (done) → Desktop T05 (done) → T07 → T08 → T09.
+- **Critical path is now**: T02 (done) → Desktop T05 (done) → T07 (done) → T08 (done) → T09.
 
 ## Task Overview
 
@@ -36,8 +36,46 @@ The Stigmer Desktop app (project 20260423.03, T05) now handles `stigmer://` URLs
 | T05 | Docker placement (Go CLI) | **Complete** | None |
 | T06 | Runner stop via command stream (Proto + all languages) | **Complete** | None |
 | T07 | SDK runner action hooks (React) | **Complete** | T06, T02 |
-| T08 | Web UI — Settings > Runners full CRUD | Pending | T07 |
+| T08 | Web UI — Settings > Runners full CRUD | **Complete** | T07 |
 | T09 | Integration testing | Pending | All |
+
+## Session Progress (2026-04-24, Session 6)
+
+### T08: Settings > Runners Full CRUD (completed)
+
+Upgraded the read-only Settings > Runners page into a full management surface. `RunnerListPanel` in `@stigmer/react` now includes per-row Stop and Delete actions with inline confirmation, and `RunnersSection` in the Console gained a "Launch Local Runner" button wired to `useLaunchLocalRunner`.
+
+#### Architectural Decisions (confirmed before implementation)
+
+- **DD-T08-01: Per-row inline actions, not a detail panel** — Stop/Delete as per-row actions directly on `RunnerRow`. Runners have no editable fields; a detail panel would add a navigation step with no editing benefit. Follows `ApiKeyListPanel` precedent.
+- **DD-T08-02: Inline confirmation, no modals** — Row transforms to destructive border/bg with confirm/cancel buttons. Only one confirmation active at a time across the list. Avoids portal/z-index issues for SDK embedders.
+- **DD-T08-03: System-managed runners excluded from actions** — Auto-provisioned cloud runners show no action menu. Only the "System" badge. Users should not interfere with the platform's auto-scaling.
+- **DD-T08-04: Launch button in RunnersSection, not RunnerListPanel** — "Launch Local Runner" is a page-level "create" analog in the section header (like "+ New OAuth app"). The SDK hook (`useLaunchLocalRunner`) is the integration point for platform builders.
+- **DD-T08-05: Self-contained mutations inside RunnerListPanel** — `useStopRunner` and `useDeleteRunner` called per-row internally (like `ApiKeyListPanel`'s built-in delete). Optional `onStopped`/`onDeleted` notification callbacks for consumers.
+- **DD-T08-06: Phase-based action visibility** — READY/BUSY: Stop + Delete. STOPPED/FAILED/PENDING: Delete only. System-managed: no actions.
+
+#### SDK Changes (`sdk/react/src/runner/RunnerListPanel.tsx`)
+
+- Added `onStopped?: (runner: Runner) => void` and `onDeleted?: (runner: Runner) => void` optional callback props.
+- Added `confirming` state: `{ runnerId, action: "stop" | "delete" } | null` — single-confirmation-at-a-time across the list.
+- Evolved `RunnerRow` with action menu (`ActionMenu` dropdown: `⋮` button → phase-appropriate items) and inline confirmation (`ConfirmationRow`).
+- Each row calls `useStopRunner()` and `useDeleteRunner()` internally. After success: clear confirmation, auto-refetch, fire notification callback.
+- Errors cleared when confirmation opens via `useEffect` on `confirmingAction` transition.
+- Enhanced empty state copy to reference browser launch.
+- New internal components: `ActionMenu`, `ConfirmationRow`, `MoreVerticalIcon`, `StopIcon`, `TrashIcon`, `SpinnerIcon`.
+
+#### Console Changes (`client-apps/web/src/domain/settings/RunnersSection.tsx`)
+
+- Added `useLaunchLocalRunner` hook from `@stigmer/react`.
+- "Launch Local Runner" button in section header with `isLaunching` loading state and error feedback.
+- Wired `onRefetchRef` on `RunnerListPanel` for post-launch list refresh.
+
+#### Verification
+
+- Zero linter errors. `tsc --noEmit` passes cleanly on the full `sdk/react` package.
+- Zero Console imports in SDK (`@/`, `client-apps/`, `next/` — none found).
+- Barrel exports unchanged — new props are optional additions to existing `RunnerListPanelProps`.
+- Backward compatible — existing consumers unaffected (new props are optional).
 
 ## Session Progress (2026-04-24, Session 5)
 
@@ -197,7 +235,7 @@ All files under `domain/agentic/runner/launch/`:
 - **AgentRunner** proto, Java aggregate, Go controller, heartbeat, dispatch, RunnerLauncher — all exist
 - **`stigmer up runner`** CLI command with multi-runner management, slug naming, state persistence
 - **Runner picker** in session composer (`RunnerPicker.tsx`, `useRunnerList.ts`)
-- **Settings > Runners** page (read-only `RunnerListPanel.tsx`, `RunnersSection.tsx`)
+- **Settings > Runners** page (full CRUD: `RunnerListPanel.tsx` with Stop/Delete actions, `RunnersSection.tsx` with Launch Local Runner button)
 - **Bidi command stream** from runner to server + `sendCommand` API (Go + Java)
 - **Session auto-bind** and dispatch routing to chosen runner
 - **Side-Channel Proxy** code complete (pending deploy — NOT a blocker for this project)
@@ -276,6 +314,15 @@ Fallback path (CLI only, no desktop — deferred T03/T04): same flow but the OS 
 - T07 all hooks follow established mutation pattern: `useCallback` + `is*` boolean + `error: Error | null` + `clearError` + rethrow
 - T07 barrel exports updated in `sdk/react/src/runner/index.ts` and `sdk/react/src/index.ts`
 - T07 no proto changes, no backend changes, no codegen — purely React SDK layer
+- T08 `RunnerListPanel` now has per-row `ActionMenu` (⋮ dropdown → Stop/Delete) + `ConfirmationRow` (inline destructive confirmation)
+- T08 `confirming` state at panel level: `{ runnerId, action: "stop" | "delete" } | null` — only one confirmation at a time
+- T08 each `RunnerRow` calls `useStopRunner()` and `useDeleteRunner()` internally, matching `ApiKeyListPanel` pattern
+- T08 system-managed runners (label `stigmer.ai/system-managed: "true"`) show no action menu
+- T08 phase-based action visibility: READY/BUSY → Stop + Delete; STOPPED/FAILED/PENDING → Delete only
+- T08 `RunnerListPanelProps` gained optional `onStopped` and `onDeleted` notification callbacks — no breaking changes
+- T08 `RunnersSection` uses `useLaunchLocalRunner` with `isLaunching` loading state + `error` feedback
+- T08 "Launch Local Runner" button in section header (Console), matching "+ New OAuth app" CTA pattern
+- T08 no proto changes, no backend changes, no codegen — purely SDK React + Console layer
 
 ## Blockers
 
@@ -283,8 +330,7 @@ Fallback path (CLI only, no desktop — deferred T03/T04): same flow but the OS 
 
 ## Quick Commands
 
-- "Start T08" — Begin Settings > Runners full CRUD web UI (highest priority — uses T07 hooks for launch/stop/delete actions)
-- "Start T09" — Begin integration testing (depends on all tasks)
+- "Start T09" — Begin integration testing (the final task — depends on all other tasks being complete)
 - "Show project status" — Get overview of progress
 
 ---
