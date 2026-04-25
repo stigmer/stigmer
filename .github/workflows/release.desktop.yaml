@@ -98,7 +98,7 @@ jobs:
             go_os: darwin
             go_arch: arm64
             tauri_args: '--target aarch64-apple-darwin'
-          - platform: macos-latest
+          - platform: macos-13
             rust_target: x86_64-apple-darwin
             sidecar_name: stigmer-x86_64-apple-darwin
             go_os: darwin
@@ -161,7 +161,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || matrix.platform == 'macos-13' && 'x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
