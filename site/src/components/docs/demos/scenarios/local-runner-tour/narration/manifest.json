@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {
+      "src": "/demos/local-runner-tour/step-0.mp3",
+      "durationMs": 7000
+    },
+    {
+      "src": "/demos/local-runner-tour/step-1.mp3",
+      "durationMs": 6813
+    },
+    {
+      "src": "/demos/local-runner-tour/step-2.mp3",
+      "durationMs": 6888
+    }
+  ]
+}

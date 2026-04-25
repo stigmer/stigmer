@@ -2014,13 +2014,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@scenar/cli@npm:0.1.18":
-  version: 0.1.18
-  resolution: "@scenar/cli@npm:0.1.18"
+"@scenar/cli@npm:0.1.19":
+  version: 0.1.19
+  resolution: "@scenar/cli@npm:0.1.19"
   dependencies:
-    "@scenar/core": "npm:0.1.18"
-    "@scenar/preview": "npm:0.1.18"
-    "@scenar/sdk": "npm:0.1.18"
+    "@scenar/core": "npm:0.1.19"
+    "@scenar/preview": "npm:0.1.19"
+    "@scenar/sdk": "npm:0.1.19"
     commander: "npm:^13.0.0"
     yaml: "npm:^2.7.0"
   peerDependencies:
@@ -2042,20 +2042,20 @@ __metadata:
       optional: true
   bin:
     scenar: bin/scenar.js
-  checksum: 10c0/5e32a03bbe668ab42e31acacf15c0c9228532894cf0ddedff62a13026f36faa6cb0a25383cd9117520af9dcc81273fd494091556321715647d1b29ef89c6953c
+  checksum: 10c0/a78f686dce8ed5c078deba90b2e83db222e9115cd7d00075967f40d3572d2e8586aa3951feea5c0f7ba1500925251ad65c68a82746a2357c728cd0279d3090a8
   languageName: node
   linkType: hard
 
-"@scenar/core@npm:0.1.18":
-  version: 0.1.18
-  resolution: "@scenar/core@npm:0.1.18"
-  checksum: 10c0/59acd1f090a81243a795b90cad56600efc408a8724a0b6baa2405fa650118eb9e01ca1813c47d1c44ff7906dae1604d1fdb6d44467ec59065c7cbfdc186422a9
+"@scenar/core@npm:0.1.19":
+  version: 0.1.19
+  resolution: "@scenar/core@npm:0.1.19"
+  checksum: 10c0/4e3f4e0fe8dd369f54848b047bba8a0f51344185bec575ea3daa853d9bc9a4306a573ffdb6fc8945399cff257612814802fa7795ae1011d52fbd349644a342cc
   languageName: node
   linkType: hard
 
-"@scenar/preview@npm:0.1.18":
-  version: 0.1.18
-  resolution: "@scenar/preview@npm:0.1.18"
+"@scenar/preview@npm:0.1.19":
+  version: 0.1.19
+  resolution: "@scenar/preview@npm:0.1.19"
   dependencies:
     ts-morph: "npm:^25.0.0"
   peerDependencies:
@@ -2069,15 +2069,15 @@ __metadata:
       optional: true
     react:
       optional: true
-  checksum: 10c0/b6244c575c2d659d2f525aa1e3ecfd7b6a70647ddb12870633dbe91b6e47b23750c9ff6a8cb854b38921430126f444cdd0f18934ab99b649caf39ff7a76bafd4
+  checksum: 10c0/405958ed75340ec12a06cdd57da57563f7308c34844b757357a232588a3ed325d1fb9c83ce41d0c84d6faa1f9de284eaa52291d736d15eb3ff48f7f00c615760
   languageName: node
   linkType: hard
 
-"@scenar/react@npm:0.1.18":
-  version: 0.1.18
-  resolution: "@scenar/react@npm:0.1.18"
+"@scenar/react@npm:0.1.19":
+  version: 0.1.19
+  resolution: "@scenar/react@npm:0.1.19"
   dependencies:
-    "@scenar/core": "npm:0.1.18"
+    "@scenar/core": "npm:0.1.19"
   peerDependencies:
     framer-motion: ">=11.0.0"
     lucide-react: ">=0.400.0"
@@ -2086,16 +2086,16 @@ __metadata:
   peerDependenciesMeta:
     lucide-react:
       optional: true
-  checksum: 10c0/314cde7450fd86d45abd8b515ae37d8d47622d48d90096e1be93fc6e34a7060b1ece97416b9d6af71340a1e56cdc0a4f4cbea4b4677d634843beff027fcc96be
+  checksum: 10c0/bfff340c7cb7ee620f6df778ccad22b76b5ddc4bc7b1e0d11382e0ceefda913bca163203622a997dc58134fc19e8b7207edc0e10707161bf59a0d41e85bcf4bf
   languageName: node
   linkType: hard
 
-"@scenar/sdk@npm:0.1.18":
-  version: 0.1.18
-  resolution: "@scenar/sdk@npm:0.1.18"
+"@scenar/sdk@npm:0.1.19":
+  version: 0.1.19
+  resolution: "@scenar/sdk@npm:0.1.19"
   dependencies:
-    "@scenar/core": "npm:0.1.18"
-  checksum: 10c0/5a79073b07d4df5ec2047a1cb60d887450198f29333ed5aafa4ad0c48432cfea284c853cfecf42895147d25b486458f90cade1b24ff83185f7b42abd77fc5e87
+    "@scenar/core": "npm:0.1.19"
+  checksum: 10c0/3834bc82aacc76c8a99f3c7e0d7f2f92bf7dcfc455ecb8c67243e91da0e6966b7201d46161fc61dbeda38fd51f25fa9d5f3fd2b8101af802b84d517ab0b410d5
   languageName: node
   linkType: hard
 
@@ -9150,10 +9150,10 @@ __metadata:
     "@orama/orama": "npm:^3.1.18"
     "@playwright/test": "npm:^1.59.1"
     "@radix-ui/react-slot": "npm:^1.2.3"
-    "@scenar/cli": "npm:0.1.18"
-    "@scenar/core": "npm:0.1.18"
-    "@scenar/preview": "npm:0.1.18"
-    "@scenar/react": "npm:0.1.18"
+    "@scenar/cli": "npm:0.1.19"
+    "@scenar/core": "npm:0.1.19"
+    "@scenar/preview": "npm:0.1.19"
+    "@scenar/react": "npm:0.1.19"
     "@stigmer/protos": "file:../apis/stubs/ts"
     "@stigmer/react": "file:../sdk/react"
     "@stigmer/sdk": "file:../sdk/typescript"
