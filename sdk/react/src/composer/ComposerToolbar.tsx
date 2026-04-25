@@ -18,18 +18,18 @@ export interface ComposerToolbarProps {
   readonly canSend: boolean;
   readonly onSend: () => void;
 
-  // -- Tier 1: Attach -------------------------------------------------------
-
-  readonly showAttach: boolean;
-  readonly attachmentCount: number;
-  readonly onAttachClick: () => void;
-
   // -- Tier 1: Workspace ----------------------------------------------------
 
   readonly showWorkspace: boolean;
   readonly workspaceCount: number;
   /** Pre-built workspace editor content for the popover. */
   readonly workspaceContent: React.ReactNode;
+
+  // -- Tier 1: Attach -------------------------------------------------------
+
+  readonly showAttach: boolean;
+  readonly attachmentCount: number;
+  readonly onAttachClick: () => void;
 
   // -- Tier 2: Configure menu -----------------------------------------------
 
@@ -60,9 +60,12 @@ export interface ComposerToolbarProps {
  *
  * Renders a two-tier toolbar following the frequency-of-interaction principle:
  *
- * **Tier 1 (always visible):** Attach, Workspace
+ * **Tier 1 (always visible):** Workspace, Attach
  * **Tier 2 (behind Configure menu):** Agent, MCP, Skills, Secrets
  * **Right edge:** Runner Picker, Model Selector, Send
+ *
+ * Workspace precedes Attach because it is the higher-signal context setter
+ * (defines the codebase scope for the session). Attach is supplementary.
  *
  * Separators are placed between conceptual groups using Gestalt proximity.
  */
@@ -98,7 +101,19 @@ export function ComposerToolbar({
   return (
     <div className="flex items-center justify-between gap-2 border-t border-border-muted px-3 py-2">
       <div className="flex items-center gap-1.5">
-        {/* ---- Tier 1: Input augmentation ---- */}
+        {/* ---- Tier 1: Input context (Workspace first, then Attach) ---- */}
+
+        {showWorkspace && (
+          <ContextPopover
+            icon={<WorkspaceIcon />}
+            label="Workspace"
+            count={workspaceCount}
+            disabled={disabled}
+            hideLabel
+          >
+            {workspaceContent}
+          </ContextPopover>
+        )}
 
         {showAttach && (
           <button
@@ -113,24 +128,13 @@ export function ComposerToolbar({
             aria-label="Attach files"
           >
             <PaperclipIcon />
-            <span>Attach</span>
+            <span className="max-sm:hidden">Attach</span>
             {attachmentCount > 0 && (
               <span className="rounded-full bg-primary-subtle px-1.5 text-[0.6rem] font-medium text-primary">
                 {attachmentCount}
               </span>
             )}
           </button>
-        )}
-
-        {showWorkspace && (
-          <ContextPopover
-            icon={<WorkspaceIcon />}
-            label="Workspace"
-            count={workspaceCount}
-            disabled={disabled}
-          >
-            {workspaceContent}
-          </ContextPopover>
         )}
 
         {/* ---- Separator between Tier 1 and Tier 2 ---- */}

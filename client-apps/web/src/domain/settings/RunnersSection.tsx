@@ -1,14 +1,34 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { Download, Monitor } from "lucide-react";
-import { RunnerListPanel, useLaunchLocalRunner } from "@stigmer/react";
+import { RunnerListPanel, useLaunchLocalRunner, useRunnerList } from "@stigmer/react";
 import { triggerDesktopDownload } from "@/lib/desktop-download";
 import { useActiveOrgSlug } from "@/domain/_shared/org/org-context";
+import {
+  markLocalRunnerDetected,
+  useHasDesktopSignal,
+} from "@/domain/_shared/layout/DesktopAppBanner";
+
+const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1"]);
+
+function isLocalHostname(hostname: string | undefined): boolean {
+  if (!hostname) return false;
+  return LOCAL_HOSTNAMES.has(hostname) || hostname.startsWith("192.168.") || hostname.startsWith("10.");
+}
 
 export function RunnersSection() {
   const org = useActiveOrgSlug();
   const { launch, isLaunching, error, clearError } = useLaunchLocalRunner();
+  const { runners } = useRunnerList(org ?? null);
+  const hasDesktop = useHasDesktopSignal();
+
+  useEffect(() => {
+    const hasLocal = runners.some((r) =>
+      isLocalHostname(r.status?.connectionInfo?.hostname),
+    );
+    if (hasLocal) markLocalRunnerDetected();
+  }, [runners]);
 
   const handleLaunch = useCallback(async () => {
     if (!org) return;
@@ -19,6 +39,8 @@ export function RunnersSection() {
       // error state surfaced via useLaunchLocalRunner hook
     }
   }, [org, launch, clearError]);
+
+  const showDesktopPromo = !hasDesktop;
 
   return (
     <section aria-labelledby="runners-heading">
@@ -60,7 +82,7 @@ export function RunnersSection() {
         <RunnerListPanel org={org} />
       )}
 
-      <DesktopAppPromo />
+      {showDesktopPromo && <DesktopAppPromo />}
     </section>
   );
 }

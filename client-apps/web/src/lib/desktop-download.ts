@@ -13,6 +13,7 @@
 
 import { toast } from "sonner";
 import { EXTERNAL_LINKS } from "@/config/external-links";
+import { DOWNLOADED_KEY } from "@/domain/_shared/layout/DesktopAppBanner";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -307,6 +308,8 @@ export async function triggerDesktopDownload(): Promise<void> {
     anchor.click();
     document.body.removeChild(anchor);
 
+    markDesktopDownloaded();
+
     toast.success(`Downloading Stigmer Desktop for ${asset.label}`, {
       description:
         INSTALL_INSTRUCTIONS[asset.os ?? ""] ??
@@ -320,6 +323,21 @@ export async function triggerDesktopDownload(): Promise<void> {
       action: DOWNLOAD_PAGE_ACTION,
       duration: 8000,
     });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Download signal — suppresses the desktop banner after a successful download
+// ---------------------------------------------------------------------------
+
+function markDesktopDownloaded(): void {
+  try {
+    localStorage.setItem(DOWNLOADED_KEY, new Date().toISOString());
+    window.dispatchEvent(
+      new StorageEvent("storage", { key: DOWNLOADED_KEY }),
+    );
+  } catch {
+    /* private browsing */
   }
 }
 

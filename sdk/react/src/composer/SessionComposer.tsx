@@ -20,6 +20,7 @@ import { SessionVariablesInput } from "../execution/SessionVariablesInput";
 import type { UseSessionVariablesReturn } from "../execution/useSessionVariables";
 import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
+import { useRunnerList } from "../runner/useRunnerList";
 import { useAttachments } from "../attachment/useAttachments";
 import { AttachmentChipList } from "../attachment/AttachmentChipList";
 import { useSessionEnvPool } from "../environment/useSessionEnvPool";
@@ -287,7 +288,7 @@ export interface SessionComposerProps {
  * (agent, workspace, MCP servers, skills) into a single input card.
  *
  * The toolbar uses a two-tier layout:
- * - **Tier 1** (always visible): Attach, Workspace, Model Selector
+ * - **Tier 1** (always visible): Workspace, Attach, Model Selector
  * - **Tier 2** (behind Configure menu): Agent, MCP, Skills, Secrets
  *
  * Selected items render as removable chips between the textarea and toolbar.
@@ -391,6 +392,20 @@ export function SessionComposer({
   const showRunner = onRunnerIdChange != null && org != null;
   const showSessionVars = sessionVariables != null;
   const showAttach = enableAttachments;
+
+  // ---------------------------------------------------------------------------
+  // Runner name resolution — for the workspace contextual hint
+  // ---------------------------------------------------------------------------
+
+  const { runners: runnerListForName } = useRunnerList(
+    showRunner && runnerId ? (org ?? null) : null,
+  );
+
+  const selectedRunnerName = useMemo(() => {
+    if (!runnerId) return undefined;
+    const runner = runnerListForName.find((r) => r.metadata?.id === runnerId);
+    return runner?.metadata?.name;
+  }, [runnerId, runnerListForName]);
 
   // ---------------------------------------------------------------------------
   // Configure menu state — drives the Tier 2 drill-down popover
@@ -1296,6 +1311,7 @@ export function SessionComposer({
                   enableGitHub={enableGitHub}
                   enableLocal={enableLocal}
                   onBrowseLocalFolder={onBrowseLocalFolder}
+                  runnerName={selectedRunnerName}
                 />
               : null
           }
