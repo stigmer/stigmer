@@ -24,60 +24,27 @@ import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/ui/motion"
 // ---------------------------------------------------------------------------
 
 type DetectedOS = "macos" | "windows" | "linux" | null;
-type DetectedArch = "arm64" | "x64" | null;
 
-interface DetectedPlatform {
-  os: DetectedOS;
-  arch: DetectedArch;
-}
-
-function useDetectPlatform(): DetectedPlatform {
-  const [platform, setPlatform] = React.useState<DetectedPlatform>({
-    os: null,
-    arch: null,
-  });
+function useDetectOS(): DetectedOS {
+  const [os, setOS] = React.useState<DetectedOS>(null);
 
   React.useEffect(() => {
     const ua = navigator.userAgent.toLowerCase();
-
-    let os: DetectedOS = null;
-    if (ua.includes("mac")) os = "macos";
-    else if (ua.includes("win")) os = "windows";
-    else if (ua.includes("linux")) os = "linux";
-
-    let arch: DetectedArch = null;
-    if (os === "macos") {
-      if (navigator.userAgentData) {
-        navigator.userAgentData
-          .getHighEntropyValues(["architecture"])
-          .then((values) => {
-            const cpuArch = values.architecture === "arm" ? "arm64" : "x64";
-            setPlatform({ os, arch: cpuArch });
-          })
-          .catch(() => {
-            setPlatform({ os, arch: "arm64" });
-          });
-        return;
-      }
-      arch = "arm64";
-    }
-
-    setPlatform({ os, arch });
+    if (ua.includes("mac")) setOS("macos");
+    else if (ua.includes("win")) setOS("windows");
+    else if (ua.includes("linux")) setOS("linux");
   }, []);
 
-  return platform;
+  return os;
 }
 
 function matchesPlatform(
-  entry: DesktopPlatform | ResolvedDesktopPlatform,
-  detected: DetectedPlatform,
+  entry: DesktopPlatform,
+  detectedOS: DetectedOS,
 ): boolean {
-  if (!detected.os) return false;
-  if (entry.os !== detected.os) return false;
-  if (detected.os === "macos" && detected.arch) {
-    return entry.arch === detected.arch;
-  }
-  if (detected.os === "linux") return entry.arch === "x64";
+  if (!detectedOS) return false;
+  if (entry.os !== detectedOS) return false;
+  if (detectedOS === "linux") return entry.arch === "x64";
   return true;
 }
 
@@ -172,7 +139,7 @@ function PlatformIcon({
 // ---------------------------------------------------------------------------
 
 function DownloadPage() {
-  const detected = useDetectPlatform();
+  const detectedOS = useDetectOS();
   const { loading, release } = useDesktopRelease();
 
   return (
@@ -218,12 +185,12 @@ function DownloadPage() {
             {release ? (
               <LivePlatformCards
                 platforms={release.platforms}
-                detected={detected}
+                detectedOS={detectedOS}
               />
             ) : (
               <FallbackPlatformCards
                 loading={loading}
-                detected={detected}
+                detectedOS={detectedOS}
               />
             )}
 
@@ -360,10 +327,10 @@ function DownloadPage() {
 
 function LivePlatformCards({
   platforms,
-  detected,
+  detectedOS,
 }: {
   platforms: ResolvedDesktopPlatform[];
-  detected: DetectedPlatform;
+  detectedOS: DetectedOS;
 }) {
   return (
     <StaggerContainer
@@ -372,7 +339,7 @@ function LivePlatformCards({
       delayChildren={0.1}
     >
       {platforms.map((entry) => {
-        const isRecommended = matchesPlatform(entry, detected);
+        const isRecommended = matchesPlatform(entry, detectedOS);
 
         return (
           <StaggerItem key={`${entry.os}-${entry.arch}`}>
@@ -421,10 +388,10 @@ function LivePlatformCards({
 
 function FallbackPlatformCards({
   loading,
-  detected,
+  detectedOS,
 }: {
   loading: boolean;
-  detected: DetectedPlatform;
+  detectedOS: DetectedOS;
 }) {
   return (
     <StaggerContainer
@@ -433,7 +400,7 @@ function FallbackPlatformCards({
       delayChildren={0.1}
     >
       {DESKTOP_PLATFORMS.map((entry) => {
-        const isRecommended = matchesPlatform(entry, detected);
+        const isRecommended = matchesPlatform(entry, detectedOS);
 
         return (
           <StaggerItem key={`${entry.os}-${entry.arch}`}>
