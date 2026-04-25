@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -146,11 +145,3 @@ func tailLogFile(logFile, component string, linesChan chan<- LogLine) error {
 	}
 }
 
-// getInode extracts the inode number from os.FileInfo.
-// Used to detect when a file has been replaced.
-func getInode(info os.FileInfo) uint64 {
-	if stat, ok := info.Sys().(*syscall.Stat_t); ok {
-		return stat.Ino
-	}
-	return 0
-}
