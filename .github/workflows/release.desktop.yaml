@@ -94,7 +94,6 @@ jobs:
         include:
           - platform: macos-latest
             rust_target: universal-apple-darwin
-            sidecar_name: stigmer-universal-apple-darwin
             go_os: darwin
             go_arch: universal
             tauri_args: '--target universal-apple-darwin'
@@ -136,10 +135,10 @@ jobs:
         run: |
           BINDIR=client-apps/desktop/src-tauri/binaries
           if [ "${{ matrix.go_arch }}" = "universal" ]; then
-            GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o "$BINDIR/sidecar-arm64" ./client-apps/cli
-            GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o "$BINDIR/sidecar-amd64" ./client-apps/cli
-            lipo -create -output "$BINDIR/${{ matrix.sidecar_name }}" "$BINDIR/sidecar-arm64" "$BINDIR/sidecar-amd64"
-            rm "$BINDIR/sidecar-arm64" "$BINDIR/sidecar-amd64"
+            GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" \
+              -o "$BINDIR/stigmer-aarch64-apple-darwin" ./client-apps/cli
+            GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" \
+              -o "$BINDIR/stigmer-x86_64-apple-darwin" ./client-apps/cli
           else
             GOOS=${{ matrix.go_os }} GOARCH=${{ matrix.go_arch }} go build -ldflags="-s -w" \
               -o "$BINDIR/${{ matrix.sidecar_name }}" \
@@ -149,8 +148,14 @@ jobs:
       - name: Verify sidecar binary
         shell: bash
         run: |
-          ls -lh client-apps/desktop/src-tauri/binaries/${{ matrix.sidecar_name }}
-          file client-apps/desktop/src-tauri/binaries/${{ matrix.sidecar_name }}
+          BINDIR=client-apps/desktop/src-tauri/binaries
+          if [ "${{ matrix.go_arch }}" = "universal" ]; then
+            ls -lh "$BINDIR/stigmer-aarch64-apple-darwin" "$BINDIR/stigmer-x86_64-apple-darwin"
+            file "$BINDIR/stigmer-aarch64-apple-darwin" "$BINDIR/stigmer-x86_64-apple-darwin"
+          else
+            ls -lh "$BINDIR/${{ matrix.sidecar_name }}"
+            file "$BINDIR/${{ matrix.sidecar_name }}"
+          fi
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
