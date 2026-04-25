@@ -5,8 +5,9 @@ import { useAuth } from "./AuthProvider";
 /**
  * Login screen shown when the user is not authenticated (cloud mode).
  *
- * Clicking "Sign in" triggers the PKCE flow — opens the system browser
- * to Auth0, waits for the callback, and exchanges for tokens.
+ * Clicking "Sign in" opens Auth0's Universal Login in an embedded
+ * webview window. After successful authentication the window closes
+ * and the app transitions to the authenticated state.
  */
 export function LoginScreen() {
   const { login } = useAuth();
@@ -19,6 +20,7 @@ export function LoginScreen() {
     try {
       await login();
     } catch (err) {
+      if (err instanceof Error && err.name === "LoginCancelledError") return;
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setIsLoggingIn(false);

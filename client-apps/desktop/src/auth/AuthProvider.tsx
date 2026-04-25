@@ -7,16 +7,15 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { onOpenUrl } from "@tauri-apps/plugin-deep-link";
-import { open } from "@tauri-apps/plugin-shell";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import {
-  AUTH0_DOMAIN,
-  AUTH0_CLIENT_ID,
   generateVerifier,
   generateChallenge,
   buildAuthorizeUrl,
   exchangeCode,
   refreshAccessToken,
+  revokeRefreshToken,
   type StoredTokens,
 } from "./pkce";
 import { loadTokens, saveTokens, clearTokens, isExpired } from "./token-store";
@@ -46,15 +45,12 @@ export function useAuth(): AuthState {
 }
 
 /**
- * The redirect URI for the PKCE callback, handled via the `stigmer://`
- * deep link scheme registered in tauri.conf.json.
- *
- * Auth0 redirects the system browser to this URL after login. The OS
- * dispatches it to the running Tauri app via the deep-link plugin.
+ * The redirect URI for the PKCE callback. Auth0 redirects the auth
+ * webview to this URL after login. The Rust `on_navigation` handler
+ * intercepts the redirect, extracts the authorization code, and emits
+ * an `auth-callback` event — the webview never actually navigates here.
  */
 const CALLBACK_URL = "stigmer://auth/callback";
-
-const LOGOUT_RETURN_URL = "stigmer://auth/logout";
 
 const CALLBACK_TIMEOUT_MS = 5 * 60_000;
 
@@ -85,9 +81,10 @@ function isAuthDisabled(): boolean {
  * 1. **Disabled auth** (local/OSS) — always authenticated, no token.
  *    Mirrors the web's `DisabledAuthProvider`.
  *
- * 2. **PKCE auth** (cloud) — opens the system browser for Auth0 login,
- *    receives the authorization code via `stigmer://auth/callback` deep
- *    link, exchanges it for tokens, and manages silent refresh.
+ * 2. **PKCE auth** (cloud) — opens Auth0's Universal Login in an
+ *    embedded webview window, intercepts the callback redirect to
+ *    capture the authorization code, exchanges it for tokens, and
+ *    manages silent refresh.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   if (isAuthDisabled()) {
@@ -189,15 +186,16 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    const refreshToken = tokens?.refreshToken;
+
     clearTokens();
     setTokens(null);
     if (refreshTimer.current) clearTimeout(refreshTimer.current);
 
-    const logoutUrl = new URL(`${AUTH0_DOMAIN}/v2/logout`);
-    logoutUrl.searchParams.set("client_id", AUTH0_CLIENT_ID);
-    logoutUrl.searchParams.set("returnTo", LOGOUT_RETURN_URL);
-    open(logoutUrl.toString()).catch(() => {});
-  }, []);
+    if (refreshToken) {
+      revokeRefreshToken(refreshToken).catch(() => {});
+    }
+  }, [tokens]);
 
   const user: AuthUser | null = tokens
     ? parseIdTokenClaims(tokens.idToken)
@@ -216,90 +214,105 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
 }
 
 // ---------------------------------------------------------------------------
-// Deep-link auth callback
+// Embedded auth webview
 // ---------------------------------------------------------------------------
 
+interface AuthCallbackPayload {
+  code?: string;
+  state?: string;
+  error?: string;
+  error_description?: string;
+}
+
 /**
- * Opens the system browser for Auth0 login, then waits for the
- * `stigmer://auth/callback` deep link to arrive with the authorization
- * code. Ensures the deep link listener is registered before the browser
- * is opened to avoid a race.
+ * Opens Auth0's Universal Login in an embedded Tauri webview window and
+ * waits for the authorization code.
+ *
+ * The Rust `open_auth_window` command creates a secondary window that
+ * navigates to the Auth0 authorize URL. When Auth0 redirects to
+ * `stigmer://auth/callback`, the Rust `on_navigation` handler
+ * intercepts the redirect, emits an `auth-callback` event with the
+ * code/state/error, and closes the window.
+ *
+ * If the user closes the window before completing login, an
+ * `auth-cancelled` event is emitted and the promise rejects silently
+ * (the login screen stays visible with no error toast).
  */
 async function openAuthFlow(
   authUrl: string,
   expectedState: string,
 ): Promise<{ code: string }> {
-  let onUrl: ((urls: string[]) => void) | null = null;
+  const unlisteners: Array<() => void> = [];
 
-  const resultPromise = new Promise<{ code: string }>((resolve, reject) => {
+  const cleanup = () => {
+    for (const fn of unlisteners) fn();
+    unlisteners.length = 0;
+  };
+
+  return new Promise<{ code: string }>((resolve, reject) => {
     const timer = setTimeout(() => {
-      onUrl = null;
+      cleanup();
       reject(new Error("Authentication timed out"));
     }, CALLBACK_TIMEOUT_MS);
 
-    onUrl = (urls: string[]) => {
-      for (const raw of urls) {
-        const parsed = parseCallbackUrl(raw);
-        if (!parsed) continue;
-
-        onUrl = null;
-        clearTimeout(timer);
-
-        if (parsed.error) {
-          reject(
-            new Error(
-              parsed.errorDescription ?? `Auth failed: ${parsed.error}`,
-            ),
-          );
-        } else if (parsed.state !== expectedState) {
-          reject(new Error("OAuth state mismatch"));
-        } else {
-          resolve({ code: parsed.code! });
-        }
-        return;
+    const settle = (
+      result: { ok: true; code: string } | { ok: false; error: Error },
+    ) => {
+      clearTimeout(timer);
+      cleanup();
+      if (result.ok) {
+        resolve({ code: result.code });
+      } else {
+        reject(result.error);
       }
     };
+
+    Promise.all([
+      listen<AuthCallbackPayload>("auth-callback", (event) => {
+        const { code, state, error, error_description } = event.payload;
+        if (error) {
+          settle({
+            ok: false,
+            error: new Error(error_description ?? `Auth failed: ${error}`),
+          });
+        } else if (state !== expectedState) {
+          settle({ ok: false, error: new Error("OAuth state mismatch") });
+        } else if (code) {
+          settle({ ok: true, code });
+        } else {
+          settle({
+            ok: false,
+            error: new Error("No authorization code received"),
+          });
+        }
+      }),
+      listen("auth-cancelled", () => {
+        settle({ ok: false, error: new LoginCancelledError() });
+      }),
+    ])
+      .then(([unlistenCallback, unlistenCancel]) => {
+        unlisteners.push(unlistenCallback, unlistenCancel);
+        return invoke("open_auth_window", { authUrl });
+      })
+      .catch((err) => {
+        settle({
+          ok: false,
+          error: err instanceof Error ? err : new Error(String(err)),
+        });
+      });
   });
-
-  const unlisten = await onOpenUrl((urls) => onUrl?.(urls));
-
-  try {
-    await open(authUrl);
-    return await resultPromise;
-  } finally {
-    unlisten();
-  }
-}
-
-interface CallbackParams {
-  code?: string;
-  state?: string;
-  error?: string;
-  errorDescription?: string;
 }
 
 /**
- * Parse a `stigmer://auth/callback?…` deep link URL. Returns null for
- * URLs that do not match the auth callback pattern.
+ * Sentinel error thrown when the user closes the auth window without
+ * completing login. The login screen catches this and suppresses the
+ * error display — closing is intentional cancellation, not a failure.
  */
-function parseCallbackUrl(raw: string): CallbackParams | null {
-  let url: URL;
-  try {
-    url = new URL(raw);
-  } catch {
-    return null;
+class LoginCancelledError extends Error {
+  constructor() {
+    super("Login cancelled");
+    this.name = "LoginCancelledError";
   }
-
-  if (url.protocol !== "stigmer:") return null;
-  if (url.hostname !== "auth" || url.pathname !== "/callback") return null;
-
-  return {
-    code: url.searchParams.get("code") ?? undefined,
-    state: url.searchParams.get("state") ?? undefined,
-    error: url.searchParams.get("error") ?? undefined,
-    errorDescription:
-      url.searchParams.get("error_description") ?? undefined,
-  };
 }
 
 // ---------------------------------------------------------------------------
