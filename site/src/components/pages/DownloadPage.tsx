@@ -4,10 +4,13 @@ import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
-  DESKTOP_CONFIG,
+  DESKTOP_PLATFORMS,
+  DESKTOP_RELEASES_URL,
   SITE_CONFIG,
-  getDownloadUrl,
+  fetchDesktopRelease,
   type DesktopPlatform,
+  type DesktopRelease,
+  type ResolvedDesktopPlatform,
 } from "@/lib/constants";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -44,9 +47,6 @@ function useDetectPlatform(): DetectedPlatform {
 
     let arch: DetectedArch = null;
     if (os === "macos") {
-      // navigator.userAgentData is Chromium-only; Safari doesn't support it.
-      // Default to arm64 (Apple Silicon) since the majority of active Macs
-      // shipped after 2020 use Apple Silicon.
       if (navigator.userAgentData) {
         navigator.userAgentData
           .getHighEntropyValues(["architecture"])
@@ -69,18 +69,42 @@ function useDetectPlatform(): DetectedPlatform {
 }
 
 function matchesPlatform(
-  entry: DesktopPlatform,
-  detected: DetectedPlatform
+  entry: DesktopPlatform | ResolvedDesktopPlatform,
+  detected: DetectedPlatform,
 ): boolean {
   if (!detected.os) return false;
   if (entry.os !== detected.os) return false;
   if (detected.os === "macos" && detected.arch) {
     return entry.arch === detected.arch;
   }
-  // Windows and Linux: match on OS only (single arch per OS).
-  // For Linux, prefer .deb over .AppImage when both match.
   if (detected.os === "linux") return entry.arch === "x64";
   return true;
+}
+
+// ---------------------------------------------------------------------------
+// GitHub release resolution
+// ---------------------------------------------------------------------------
+
+interface ReleaseState {
+  loading: boolean;
+  release: DesktopRelease | null;
+}
+
+function useDesktopRelease(): ReleaseState {
+  const [state, setState] = React.useState<ReleaseState>({
+    loading: true,
+    release: null,
+  });
+
+  React.useEffect(() => {
+    let cancelled = false;
+    fetchDesktopRelease().then((release) => {
+      if (!cancelled) setState({ loading: false, release });
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  return state;
 }
 
 // ---------------------------------------------------------------------------
@@ -149,6 +173,7 @@ function PlatformIcon({
 
 function DownloadPage() {
   const detected = useDetectPlatform();
+  const { loading, release } = useDesktopRelease();
 
   return (
     <div className="min-h-screen bg-background">
@@ -171,79 +196,41 @@ function DownloadPage() {
                   Run agents locally, manage runners from the system tray, and
                   launch sessions straight from your browser.
                 </p>
-                <a
-                  href={DESKTOP_CONFIG.releaseUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-border text-xs font-mono text-subtle hover:text-foreground transition-colors"
-                >
-                  v{DESKTOP_CONFIG.version}
-                  <Icon
-                    name="external-link"
-                    size="xs"
-                    className="opacity-50"
-                  />
-                </a>
+                {release && (
+                  <a
+                    href={release.releaseUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-border text-xs font-mono text-subtle hover:text-foreground transition-colors"
+                  >
+                    v{release.version}
+                    <Icon
+                      name="external-link"
+                      size="xs"
+                      className="opacity-50"
+                    />
+                  </a>
+                )}
               </div>
             </FadeInUp>
 
             {/* Platform cards */}
-            <StaggerContainer
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-lg overflow-hidden border border-border"
-              staggerDelay={0.08}
-              delayChildren={0.1}
-            >
-              {DESKTOP_CONFIG.platforms.map((entry) => {
-                const isRecommended = matchesPlatform(entry, detected);
-                const url = getDownloadUrl(entry);
-
-                return (
-                  <StaggerItem key={`${entry.os}-${entry.arch}`}>
-                    <div
-                      className={cn(
-                        "bg-background p-6 sm:p-8 h-full flex flex-col items-center text-center",
-                        isRecommended && "bg-card"
-                      )}
-                    >
-                      {isRecommended && (
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-3">
-                          Recommended
-                        </span>
-                      )}
-
-                      <PlatformIcon
-                        os={entry.os}
-                        className="w-8 h-8 text-foreground mb-4"
-                      />
-
-                      <h2 className="text-sm font-medium text-foreground mb-0.5">
-                        {entry.label}
-                      </h2>
-                      <p className="text-xs text-subtle mb-5">
-                        {entry.archLabel}
-                      </p>
-
-                      <Button
-                        asChild
-                        variant={isRecommended ? "default" : "outline"}
-                        size="sm"
-                        className="w-full max-w-[180px]"
-                      >
-                        <a href={url}>
-                          <Icon name="download" size="sm" />
-                          Download {entry.fileExt}
-                        </a>
-                      </Button>
-                    </div>
-                  </StaggerItem>
-                );
-              })}
-            </StaggerContainer>
+            {release ? (
+              <LivePlatformCards
+                platforms={release.platforms}
+                detected={detected}
+              />
+            ) : (
+              <FallbackPlatformCards
+                loading={loading}
+                detected={detected}
+              />
+            )}
 
             <FadeInUp delay={0.3}>
               <div className="text-center mt-8">
                 <a
-                  href={DESKTOP_CONFIG.releasesUrl}
+                  href={DESKTOP_RELEASES_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -364,6 +351,130 @@ function DownloadPage() {
 
       <Footer />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Platform card variants
+// ---------------------------------------------------------------------------
+
+function LivePlatformCards({
+  platforms,
+  detected,
+}: {
+  platforms: ResolvedDesktopPlatform[];
+  detected: DetectedPlatform;
+}) {
+  return (
+    <StaggerContainer
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-lg overflow-hidden border border-border"
+      staggerDelay={0.08}
+      delayChildren={0.1}
+    >
+      {platforms.map((entry) => {
+        const isRecommended = matchesPlatform(entry, detected);
+
+        return (
+          <StaggerItem key={`${entry.os}-${entry.arch}`}>
+            <div
+              className={cn(
+                "bg-background p-6 sm:p-8 h-full flex flex-col items-center text-center",
+                isRecommended && "bg-card",
+              )}
+            >
+              {isRecommended && (
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-3">
+                  Recommended
+                </span>
+              )}
+
+              <PlatformIcon
+                os={entry.os}
+                className="w-8 h-8 text-foreground mb-4"
+              />
+
+              <h2 className="text-sm font-medium text-foreground mb-0.5">
+                {entry.label}
+              </h2>
+              <p className="text-xs text-subtle mb-5">
+                {entry.archLabel}
+              </p>
+
+              <Button
+                asChild
+                variant={isRecommended ? "default" : "outline"}
+                size="sm"
+                className="w-full max-w-[180px]"
+              >
+                <a href={entry.downloadUrl}>
+                  <Icon name="download" size="sm" />
+                  Download {entry.fileExt}
+                </a>
+              </Button>
+            </div>
+          </StaggerItem>
+        );
+      })}
+    </StaggerContainer>
+  );
+}
+
+function FallbackPlatformCards({
+  loading,
+  detected,
+}: {
+  loading: boolean;
+  detected: DetectedPlatform;
+}) {
+  return (
+    <StaggerContainer
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-lg overflow-hidden border border-border"
+      staggerDelay={0.08}
+      delayChildren={0.1}
+    >
+      {DESKTOP_PLATFORMS.map((entry) => {
+        const isRecommended = matchesPlatform(entry, detected);
+
+        return (
+          <StaggerItem key={`${entry.os}-${entry.arch}`}>
+            <div
+              className={cn(
+                "bg-background p-6 sm:p-8 h-full flex flex-col items-center text-center",
+                isRecommended && "bg-card",
+              )}
+            >
+              {isRecommended && (
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-3">
+                  Recommended
+                </span>
+              )}
+
+              <PlatformIcon
+                os={entry.os}
+                className="w-8 h-8 text-foreground mb-4"
+              />
+
+              <h2 className="text-sm font-medium text-foreground mb-0.5">
+                {entry.label}
+              </h2>
+              <p className="text-xs text-subtle mb-5">
+                {entry.archLabel}
+              </p>
+
+              <Button
+                variant={isRecommended ? "default" : "outline"}
+                size="sm"
+                className="w-full max-w-[180px]"
+                disabled
+              >
+                <Icon name="download" size="sm" />
+                {loading ? "Loading\u2026" : "Unavailable"}
+              </Button>
+            </div>
+          </StaggerItem>
+        );
+      })}
+    </StaggerContainer>
   );
 }
 

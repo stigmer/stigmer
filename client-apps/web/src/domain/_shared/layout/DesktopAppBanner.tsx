@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
-import { ArrowUpRight, Monitor, X } from "lucide-react";
-import { EXTERNAL_LINKS } from "@/config/external-links";
+import { Download, Monitor, X } from "lucide-react";
+import { triggerDesktopDownload } from "@/lib/desktop-download";
 
 // ---------------------------------------------------------------------------
 // Desktop banner visibility — visit-based trigger, permanent dismissal
@@ -92,15 +92,14 @@ export function DesktopAppBanner({ onDismiss }: { onDismiss: () => void }) {
         manage runners from your system tray with deep-link launches and native
         notifications.
       </p>
-      <a
-        href={EXTERNAL_LINKS.download}
-        target="_blank"
-        rel="noopener noreferrer"
+      <button
+        type="button"
+        onClick={triggerDesktopDownload}
         className="text-primary hover:text-foreground inline-flex shrink-0 items-center gap-1 text-xs font-medium transition-colors"
       >
         Download
-        <ArrowUpRight className="text-muted-foreground size-3" />
-      </a>
+        <Download className="text-muted-foreground size-3" />
+      </button>
       <button
         type="button"
         onClick={onDismiss}
