@@ -31,7 +31,7 @@ export function App() {
 }
 
 function AuthenticatedApp() {
-  const { getAccessToken, isAuthenticated, isLoading } = useAuth();
+  const { getAccessToken, isAuthenticated, isInitialized } = useAuth();
   useAppUpdater();
   useRunnerNotifications();
 
@@ -46,7 +46,7 @@ function AuthenticatedApp() {
 
   useDeepLinkHandler(client, BASE_URL, isAuthenticated);
 
-  if (isLoading) {
+  if (!isInitialized) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="size-6 animate-spin rounded-full border-2 border-muted border-t-primary" />
