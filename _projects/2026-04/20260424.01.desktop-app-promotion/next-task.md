@@ -13,9 +13,36 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: **All tasks complete (T01–T11).** Project finished.
-- **Last Session**: 2026-04-24 (Session 11) — T11 verification & polish. Four fixes across docs and Console. All builds/lint clean.
+- **Status**: **All tasks complete (T01–T11) + demo gap closure.** Project finished.
+- **Last Session**: 2026-04-25 (Session 12) — Added interactive demos to all 4 documentation pages that were missing them. Upgraded desktop-runner-management demo from static to playback. Updated Scenar to v0.1.19.
 - **Active Task**: None — project complete.
+
+## Session wrap-up (2026-04-25, Session 12)
+
+- Identified 4 documentation pages from T02–T04 missing interactive demos per the
+  Document Writer role standard. The T04 session had explicitly deferred TerminalView
+  demos as "optional polish."
+- **Upgraded**: `desktop-runner-management` scenario — replaced static
+  `RunnerListPanel` render with 5-step `ScenarioPlayer` playback (empty list →
+  start runner → browser deep link with cursor → second runner → stop). Uses
+  dynamic fixture data per step via module-level state + key-based remount.
+- **New scenario**: `desktop-first-launch` — 4-step playback for `install.mdx`
+  (DesktopView login → BrowserView OAuth → callback → sessions view).
+- **New scenario**: `local-runner-tour` — 3-step playback for `local-runner.mdx`
+  (TerminalView: `stigmer up` native → Docker → `stigmer list runners`).
+- **New scenario**: `stop-runner-tour` — 3-step playback for `stop-and-cleanup.mdx`
+  (TerminalView: list active → stop one → stop all).
+- **Registered**: 3 new `Demo*` exports in `docs/index.ts` + `mdx.tsx`. Embedded
+  `<DemoDesktopFirstLaunch />`, `<DemoLocalRunnerTour />`, `<DemoStopRunnerTour />`
+  in their respective MDX pages.
+- **Scenar bump**: `@scenar/*` 0.1.18 → 0.1.19. v0.1.19 includes
+  `fix(cli): use IsomorphicEdgeTTS for Node.js v23 WebSocket compatibility` which
+  unblocked TTS narration generation.
+- **Narration**: 15 TTS clips generated across all 4 scenarios. Copied to
+  `public/demos/` for static serving.
+- **Validation**: `validate-demos.ts` passes (0 errors). Site build passes (exit 0).
+- **Changelog**:
+  `_changelog/2026-04/2026-04-25-113039-runner-desktop-doc-demos.md`
 
 ## Session wrap-up (2026-04-24, Session 11)
 

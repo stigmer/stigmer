@@ -29,6 +29,9 @@ export { PlatformClientSetupTour as DemoPlatformClientSetupTour } from "./demos/
 export { PlatformClientTokenFlow as DemoPlatformClientTokenFlow } from "./demos/scenarios/platform-client-token-flow";
 export { RunnerListDetail as DemoRunnerListDetail } from "./demos/scenarios/runner-list-detail";
 export { DesktopRunnerManagement as DemoDesktopRunnerManagement } from "./demos/scenarios/desktop-runner-management";
+export { DesktopFirstLaunch as DemoDesktopFirstLaunch } from "./demos/scenarios/desktop-first-launch";
+export { LocalRunnerTour as DemoLocalRunnerTour } from "./demos/scenarios/local-runner-tour";
+export { StopRunnerTour as DemoStopRunnerTour } from "./demos/scenarios/stop-runner-tour";
 export { glossary } from "./glossary";
 export { Mermaid } from "./mermaid";
 export { PageFeedback } from "./page-feedback";
