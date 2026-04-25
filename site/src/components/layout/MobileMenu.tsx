@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { NAV_LINKS, SITE_CONFIG } from "@/lib/constants";
+import { NAV_PRIMARY, NAV_RESOURCES, SITE_CONFIG } from "@/lib/constants";
 import {
   backdropFade,
   slideInRightFull,
@@ -76,7 +76,7 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
       if (e.key !== "Tab" || !menuRef.current) return;
 
       const focusableElements = menuRef.current.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
       );
 
       if (focusableElements.length === 0) return;
@@ -121,7 +121,7 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
             transition={fadeTransition}
             className={cn(
               "fixed inset-0 z-40",
-              "bg-foreground/60 backdrop-blur-sm"
+              "bg-foreground/60 backdrop-blur-sm",
             )}
             onClick={onClose}
             aria-hidden="true"
@@ -143,7 +143,7 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
               "fixed top-0 right-0 bottom-0 z-50",
               "w-full max-w-xs",
               "bg-background border-l border-border",
-              "flex flex-col"
+              "flex flex-col",
             )}
           >
             {/* Header */}
@@ -170,27 +170,68 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
                 variants={staggerContainerFast}
                 className="space-y-1"
               >
-                {NAV_LINKS.map((link) => {
-                  const isExternal =
-                    "external" in link && link.external === true;
-                  return (
-                    <motion.li
-                      key={link.href}
-                      variants={fadeInUp}
-                      transition={transitions.smooth}
-                    >
-                      <MobileNavLink
-                        href={link.href}
-                        external={isExternal}
-                        onClick={onClose}
-                      >
-                        {link.label}
-                      </MobileNavLink>
-                    </motion.li>
-                  );
-                })}
+                {/* Primary links */}
+                {NAV_PRIMARY.map((link) => (
+                  <motion.li
+                    key={link.href}
+                    variants={fadeInUp}
+                    transition={transitions.smooth}
+                  >
+                    <MobileNavLink href={link.href} onClick={onClose}>
+                      {link.label}
+                    </MobileNavLink>
+                  </motion.li>
+                ))}
 
-                {/* Discord link */}
+                {/* Resources group */}
+                <motion.li
+                  variants={fadeInUp}
+                  transition={transitions.smooth}
+                >
+                  <div
+                    className="px-4 pt-4 pb-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground"
+                    aria-hidden="true"
+                  >
+                    {NAV_RESOURCES.label}
+                  </div>
+                </motion.li>
+                {NAV_RESOURCES.items.map((link) => (
+                  <motion.li
+                    key={link.href}
+                    variants={fadeInUp}
+                    transition={transitions.smooth}
+                  >
+                    <MobileNavLink href={link.href} onClick={onClose}>
+                      {link.label}
+                    </MobileNavLink>
+                  </motion.li>
+                ))}
+
+                {/* External links */}
+                <motion.li
+                  variants={fadeInUp}
+                  transition={transitions.smooth}
+                >
+                  <div
+                    className="px-4 pt-4 pb-1.5 text-xs font-mono uppercase tracking-wider text-muted-foreground"
+                    aria-hidden="true"
+                  >
+                    Community
+                  </div>
+                </motion.li>
+                <motion.li
+                  variants={fadeInUp}
+                  transition={transitions.smooth}
+                >
+                  <MobileNavLink
+                    href={SITE_CONFIG.githubUrl}
+                    external
+                    onClick={onClose}
+                    icon={<Icon name="github" size="sm" />}
+                  >
+                    GitHub
+                  </MobileNavLink>
+                </motion.li>
                 <motion.li
                   variants={fadeInUp}
                   transition={transitions.smooth}
@@ -204,7 +245,7 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
                       "px-4 py-3 rounded-lg",
                       "text-base font-medium text-foreground",
                       "transition-colors",
-                      "hover:bg-muted"
+                      "hover:bg-muted",
                     )}
                     onClick={onClose}
                   >
@@ -216,10 +257,11 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
                   </a>
                 </motion.li>
 
-                {/* Sign In link */}
+                {/* Sign In */}
                 <motion.li
                   variants={fadeInUp}
                   transition={transitions.smooth}
+                  className="pt-2"
                 >
                   <MobileNavLink
                     href={SITE_CONFIG.cloudSigninUrl}
@@ -257,6 +299,7 @@ interface MobileNavLinkProps {
   external?: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  icon?: React.ReactNode;
 }
 
 function MobileNavLink({
@@ -264,13 +307,14 @@ function MobileNavLink({
   external,
   onClick,
   children,
+  icon,
 }: MobileNavLinkProps) {
   const baseClasses = cn(
     "flex items-center justify-between w-full",
     "px-4 py-3 rounded-lg",
     "text-base font-medium text-foreground",
     "transition-colors",
-    "hover:bg-muted"
+    "hover:bg-muted",
   );
 
   if (external) {
@@ -282,7 +326,10 @@ function MobileNavLink({
         className={baseClasses}
         onClick={onClick}
       >
-        <span>{children}</span>
+        <span className={icon ? "inline-flex items-center gap-2" : undefined}>
+          {icon}
+          {children}
+        </span>
         <Icon name="external-link" size="sm" className="text-muted-foreground" />
       </a>
     );
