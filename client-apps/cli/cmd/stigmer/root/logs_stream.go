@@ -105,7 +105,6 @@ func streamLogs(logFile string, tailLines int) error {
 	}
 }
 
-
 // showLastNLines shows the last N lines of a file (like tail -n N).
 func showLastNLines(logFile string, n int) error {
 	file, err := os.Open(logFile)
