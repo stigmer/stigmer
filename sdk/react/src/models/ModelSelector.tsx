@@ -70,13 +70,13 @@ export function ModelSelector({
           "bg-background px-2.5 py-1.5 text-xs text-foreground",
           "hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           "disabled:pointer-events-none disabled:opacity-50",
-          "transition-colors",
+          "transition-colors max-w-[14rem] max-sm:max-w-[8rem]",
           className,
         ]
           .filter(Boolean)
           .join(" ")}
       >
-        <Select.Value placeholder="Select model" />
+        <Select.Value placeholder="Select model" className="truncate" />
         <Select.Icon className="text-muted-foreground">
           <ChevronIcon />
         </Select.Icon>

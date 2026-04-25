@@ -134,7 +134,7 @@ export function RunnerPicker({
           .join(" ")}
       >
         <RunnerIcon />
-        <span className="max-w-[10rem] truncate">{triggerLabel}</span>
+        <span className="max-w-[10rem] max-sm:max-w-[5rem] truncate">{triggerLabel}</span>
         <ChevronIcon />
       </Select.Trigger>
 

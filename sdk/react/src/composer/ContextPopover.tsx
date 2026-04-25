@@ -9,6 +9,7 @@ export function ContextPopover({
   disabled,
   open,
   onOpenChange,
+  hideLabel,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -17,6 +18,8 @@ export function ContextPopover({
   disabled?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** When true, hides the text label on small viewports (icon-only). */
+  hideLabel?: boolean;
 }) {
   return (
     <Popover.Root open={open} onOpenChange={onOpenChange}>
@@ -29,7 +32,7 @@ export function ContextPopover({
         )}
       >
         {icon}
-        <span>{label}</span>
+        <span className={cn(hideLabel && "max-sm:hidden")}>{label}</span>
         {count > 0 && (
           <span className="rounded-full bg-primary-subtle px-1.5 text-[0.6rem] font-medium text-primary">
             {count}

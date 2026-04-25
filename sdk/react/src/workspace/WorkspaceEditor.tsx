@@ -48,6 +48,14 @@ export interface WorkspaceEditorProps {
    * ```
    */
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
+  /**
+   * Display name of the currently selected runner.
+   *
+   * When provided (i.e. a specific runner is selected instead of "Auto"),
+   * a contextual hint is shown above the local folder input indicating
+   * that local paths are relative to this runner's filesystem.
+   */
+  readonly runnerName?: string;
 }
 
 type ActivePanel = "none" | "github" | "local";
@@ -95,6 +103,7 @@ export function WorkspaceEditor({
   enableGitHub = true,
   enableLocal = false,
   onBrowseLocalFolder,
+  runnerName,
 }: WorkspaceEditorProps) {
   const [activePanel, setActivePanel] = useState<ActivePanel>(
     enableGitHub ? "github" : "none",
@@ -266,6 +275,11 @@ export function WorkspaceEditor({
       {activePanel === "local" && (
         <div className="rounded-md border border-border bg-card p-3">
           <div className="space-y-2">
+            {runnerName && (
+              <p className="text-[0.65rem] text-muted-foreground">
+                Paths relative to <span className="font-medium text-foreground">{runnerName}</span>
+              </p>
+            )}
             <input
               type="text"
               placeholder="/path/to/project"

@@ -78,7 +78,7 @@ export function ConfigureMenu({
         aria-label="Configure agent, tools, and skills"
       >
         <ConfigureIcon />
-        <span>Configure</span>
+        <span className="max-sm:hidden">Configure</span>
         {totalCount > 0 && (
           <span className="rounded-full bg-primary-subtle px-1.5 text-[0.6rem] font-medium text-primary">
             {totalCount}
