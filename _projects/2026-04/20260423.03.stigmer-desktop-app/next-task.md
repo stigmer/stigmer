@@ -13,8 +13,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: T05 complete, ready for T09 (end-to-end testing & polish)
-- **Last Session**: 2026-04-23 — T05 complete (`stigmer://` URL scheme handling)
+- **Status**: Cloud auth fix complete, ready for T09 (end-to-end testing & polish)
+- **Last Session**: 2026-04-25 — Fixed cloud auth (PKCE deep link callback + API URL routing)
 - **Active Task**: None (T09 is the only remaining task)
 
 ## Task Overview
@@ -30,6 +30,34 @@ Drop this file into your conversation to quickly resume work on this project.
 | T07 | Auto-updater & distribution pipeline | **Complete** | T06 |
 | T08 | Desktop-specific features (file picker, notifications) | **Complete** | T03 |
 | T09 | End-to-end testing & polish | Pending | All |
+
+## Session Progress (2026-04-25, Session 8)
+
+### Cloud Auth Fix: PKCE Deep Link Callback + API URL Routing
+
+Fixed the "Failed to load organizations" error in the released desktop app. Two root causes:
+
+1. **Wrong API URL** — `VITE_STIGMER_API_URL` was never set in CI, so production builds used `http://localhost:9090` (wrong port, wrong host). Added `.env.development` (localhost:7234) and `.env.production` (api.stigmer.ai). Fixed fallback port from 9090 to 7234.
+
+2. **Broken PKCE callback** — The auth flow used `localStorage` storage events to receive the Auth0 callback, but in Tauri the system browser and webview are separate origins. Replaced with `stigmer://auth/callback` deep link dispatch (reusing the T05 deep-link infrastructure). `openAuthFlow()` registers a `onOpenUrl` listener, awaits registration, opens the browser, and resolves when the callback deep link arrives.
+
+Additional changes:
+- Created dedicated "Stigmer Desktop" Auth0 application (client ID: `Ix1qNUI0uC82GPmghcrThei8IjtjIEA0`)
+- Added proper Auth0 session logout via `stigmer://auth/logout` return URL
+- Added `https://stigmer-prod.us.auth0.com` to CSP `connect-src` for token exchange
+
+### Auth0 Dashboard Configuration (manual)
+
+- Application: "Stigmer Desktop" (Native)
+- Allowed Callback URLs: `stigmer://auth/callback`
+- Allowed Logout URLs: `stigmer://auth/logout`
+- Grant Types: Authorization Code + Refresh Token
+- Token Endpoint Auth Method: None
+
+### Files Changed
+
+- 2 new files (`.env.development`, `.env.production`)
+- 4 modified files (`App.tsx`, `AuthProvider.tsx`, `pkce.ts`, `tauri.conf.json`)
 
 ## Session Progress (2026-04-23, Session 7)
 

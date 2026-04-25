@@ -11,7 +11,7 @@ import { useAppUpdater } from "./hooks/useAppUpdater";
 import { useDeepLinkHandler } from "./hooks/useDeepLinkHandler";
 import { useRunnerNotifications } from "./hooks/useRunnerNotifications";
 
-const BASE_URL = import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:9090";
+const BASE_URL = import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:7234";
 
 function isLocalMode(): boolean {
   try {
