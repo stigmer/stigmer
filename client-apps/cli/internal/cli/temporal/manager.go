@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/pkg/errors"
@@ -163,7 +162,7 @@ func (m *Manager) Start() error {
 	cmd.Stderr = logFile
 
 	// Set up process group so we can kill all child processes
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	setProcGroup(cmd)
 
 	// Start process
 	if err := cmd.Start(); err != nil {
@@ -213,8 +212,7 @@ func (m *Manager) Stop() error {
 	}
 
 	// Send SIGTERM to entire process group for graceful shutdown
-	// Negative PID sends signal to process group
-	if err := syscall.Kill(-pid, syscall.SIGTERM); err != nil {
+	if err := killGroup(pid, sigTERM); err != nil {
 		m.releaseLock()
 		return errors.Wrap(err, "failed to send SIGTERM to Temporal process group")
 	}
@@ -235,7 +233,7 @@ func (m *Manager) Stop() error {
 
 	// Force kill entire process group if still running
 	log.Warn().Msg("Temporal did not stop gracefully, force killing process group")
-	if err := syscall.Kill(-pid, syscall.SIGKILL); err != nil {
+	if err := killGroup(pid, sigKILL); err != nil {
 		// Check if process is already dead (common on macOS)
 		if !m.IsRunning() {
 			log.Info().Msg("Temporal process already terminated")
@@ -268,15 +266,7 @@ func (m *Manager) IsRunning() bool {
 	}
 
 	// Layer 3: Check if process exists and is alive
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		log.Debug().Int("pid", pid).Msg("Lock file held but process not found")
-		return false
-	}
-
-	// Send signal 0 to check if process is alive
-	err = process.Signal(syscall.Signal(0))
-	if err != nil {
+	if err := processAlive(pid); err != nil {
 		log.Debug().Int("pid", pid).Msg("Lock file held but process not alive")
 		return false
 	}
@@ -347,17 +337,12 @@ func (m *Manager) getPID() (int, error) {
 
 // isActuallyTemporal verifies that the given PID is actually running Temporal
 func (m *Manager) isActuallyTemporal(pid int) bool {
-	// Use ps command to get process command name (works on both macOS and Linux)
-	cmd := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "comm=")
-	output, err := cmd.Output()
+	cmdName, err := processCommandName(pid)
 	if err != nil {
 		log.Debug().Err(err).Int("pid", pid).Msg("Failed to get process command")
 		return false
 	}
 
-	cmdName := strings.TrimSpace(string(output))
-
-	// Check if command contains "temporal"
 	if !strings.Contains(strings.ToLower(cmdName), "temporal") {
 		log.Debug().
 			Int("pid", pid).
@@ -366,12 +351,8 @@ func (m *Manager) isActuallyTemporal(pid int) bool {
 		return false
 	}
 
-	// Additional check: verify executable path if possible
-	cmd = exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "command=")
-	output, err = cmd.Output()
+	fullCmd, err := processFullCommand(pid)
 	if err == nil {
-		fullCmd := strings.TrimSpace(string(output))
-		// Check if it's our specific temporal binary or contains temporal server
 		if strings.Contains(fullCmd, m.binPath) ||
 			(strings.Contains(fullCmd, "temporal") && strings.Contains(fullCmd, "server")) {
 			return true
@@ -384,7 +365,6 @@ func (m *Manager) isActuallyTemporal(pid int) bool {
 		return false
 	}
 
-	// If we got here, basic check passed (command name contains "temporal")
 	return true
 }
 
@@ -434,14 +414,7 @@ func (m *Manager) CleanupStaleProcesses() {
 
 // cleanupByPID handles the case where a PID file exists.
 func (m *Manager) cleanupByPID(pid int) {
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		log.Debug().Int("pid", pid).Msg("Removing stale PID file (process not found)")
-		_ = os.Remove(m.pidFile)
-		return
-	}
-
-	if err := process.Signal(syscall.Signal(0)); err != nil {
+	if err := processAlive(pid); err != nil {
 		log.Debug().Int("pid", pid).Msg("Removing stale PID file (process not alive)")
 		_ = os.Remove(m.pidFile)
 		return
@@ -455,7 +428,7 @@ func (m *Manager) cleanupByPID(pid int) {
 
 	if !m.isPortInUse() {
 		log.Warn().Int("pid", pid).Msg("Temporal process exists but port not listening - killing stale process")
-		_ = syscall.Kill(-pid, syscall.SIGKILL)
+		_ = killGroup(pid, sigKILL)
 		_ = os.Remove(m.pidFile)
 		return
 	}
@@ -485,12 +458,12 @@ func (m *Manager) cleanupByPort() {
 	}
 
 	log.Warn().Int("pid", pid).Int("port", m.port).Msg("Killing orphaned Temporal process found via port")
-	_ = syscall.Kill(-pid, syscall.SIGTERM)
+	_ = killGroup(pid, sigTERM)
 	time.Sleep(500 * time.Millisecond)
 
 	if m.isPortInUse() {
 		log.Warn().Int("pid", pid).Msg("Temporal did not exit after SIGTERM, sending SIGKILL")
-		_ = syscall.Kill(-pid, syscall.SIGKILL)
+		_ = killGroup(pid, sigKILL)
 		time.Sleep(500 * time.Millisecond)
 	}
 }
@@ -498,90 +471,58 @@ func (m *Manager) cleanupByPort() {
 // findPIDOnPort returns the PID of the process listening on the Temporal port,
 // or 0 if it cannot be determined.
 func (m *Manager) findPIDOnPort() int {
-	cmd := exec.Command("lsof", "-ti", fmt.Sprintf("tcp:%d", m.port), "-sTCP:LISTEN")
-	output, err := cmd.Output()
-	if err != nil {
-		return 0
-	}
-
-	pidStr := strings.TrimSpace(string(output))
-	if pidStr == "" {
-		return 0
-	}
-
-	// lsof may return multiple PIDs (one per line); take the first.
-	if idx := strings.IndexByte(pidStr, '\n'); idx > 0 {
-		pidStr = pidStr[:idx]
-	}
-
-	pid, err := strconv.Atoi(pidStr)
-	if err != nil {
-		return 0
-	}
-	return pid
+	return findListeningPID(m.port)
 }
 
-// acquireLock attempts to acquire an exclusive lock on the lock file
-// Returns nil on success, error if lock is already held by another process
+// acquireLock attempts to acquire an exclusive lock on the lock file.
+// Returns nil on success, error if lock is already held by another process.
 func (m *Manager) acquireLock() error {
-	// Open lock file (create if doesn't exist)
 	fd, err := os.OpenFile(m.lockFile, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		return errors.Wrap(err, "failed to open lock file")
 	}
 
-	// Try to acquire exclusive non-blocking lock
-	err = syscall.Flock(int(fd.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+	err = flockAcquire(fd)
 	if err != nil {
 		fd.Close()
-		if err == syscall.EWOULDBLOCK {
+		if isLockBusy(err) {
 			return errors.New("Temporal is already running (lock file held by another process)")
 		}
 		return errors.Wrap(err, "failed to acquire lock")
 	}
 
-	// Lock acquired successfully - store file descriptor
 	m.lockFd = fd
-
 	log.Debug().Str("lock_file", m.lockFile).Msg("Acquired lock file")
 	return nil
 }
 
-// releaseLock releases the lock file
-// The lock is automatically released when the file is closed or process dies
+// releaseLock releases the lock file.
 func (m *Manager) releaseLock() {
 	if m.lockFd == nil {
 		return
 	}
 
-	// Unlock and close (both happen automatically, but being explicit)
-	_ = syscall.Flock(int(m.lockFd.Fd()), syscall.LOCK_UN)
+	_ = flockRelease(m.lockFd)
 	_ = m.lockFd.Close()
 	m.lockFd = nil
 
 	log.Debug().Str("lock_file", m.lockFile).Msg("Released lock file")
 }
 
-// isLocked checks if the lock file is currently held by another process
-// Returns true if locked, false if available
+// isLocked checks if the lock file is currently held by another process.
 func (m *Manager) isLocked() bool {
-	// Try to open lock file
 	fd, err := os.OpenFile(m.lockFile, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
-		// Can't open file - assume not locked
 		return false
 	}
 	defer fd.Close()
 
-	// Try to acquire non-blocking lock
-	err = syscall.Flock(int(fd.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+	err = flockAcquire(fd)
 	if err != nil {
-		// Lock failed - someone else holds it
 		return true
 	}
 
-	// Lock succeeded - release it and return false
-	_ = syscall.Flock(int(fd.Fd()), syscall.LOCK_UN)
+	_ = flockRelease(fd)
 	return false
 }
 

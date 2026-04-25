@@ -829,7 +829,7 @@ func startChildProcess(bin string, args []string, logDir, name string, env []str
 func startChildProcessWithDir(bin string, args []string, dir, logDir, name string, env []string) (*exec.Cmd, error) {
 	cmd := exec.Command(bin, args...)
 	cmd.Env = env
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	setProcGroup(cmd)
 	if dir != "" {
 		cmd.Dir = dir
 	}

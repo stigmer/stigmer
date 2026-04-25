@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"syscall"
 	"time"
 
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
@@ -106,12 +105,6 @@ func streamLogs(logFile string, tailLines int) error {
 	}
 }
 
-func getInode(info os.FileInfo) uint64 {
-	if stat, ok := info.Sys().(*syscall.Stat_t); ok {
-		return stat.Ino
-	}
-	return 0
-}
 
 // showLastNLines shows the last N lines of a file (like tail -n N).
 func showLastNLines(logFile string, n int) error {
