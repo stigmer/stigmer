@@ -6,7 +6,7 @@
  */
 
 export const AUTH0_DOMAIN = "https://stigmer-prod.us.auth0.com";
-export const AUTH0_CLIENT_ID = "kIT6URf4HKn6YzrQVVFTFN63BrSJdTPM";
+export const AUTH0_CLIENT_ID = "Ix1qNUI0uC82GPmghcrThei8IjtjIEA0";
 export const AUTH0_AUDIENCE = "https://api.stigmer.com/";
 export const AUTH0_SCOPES = "openid profile email offline_access";
 

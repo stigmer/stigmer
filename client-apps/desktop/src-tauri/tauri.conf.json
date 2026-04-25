@@ -20,7 +20,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' https://*.stigmer.ai wss://*.stigmer.ai http://localhost:* ws://localhost:*; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https://fonts.gstatic.com"
+      "csp": "default-src 'self'; connect-src 'self' https://*.stigmer.ai wss://*.stigmer.ai https://stigmer-prod.us.auth0.com http://localhost:* ws://localhost:*; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https://fonts.gstatic.com"
     }
   },
   "bundle": {

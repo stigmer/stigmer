@@ -7,7 +7,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { onOpenUrl } from "@tauri-apps/plugin-deep-link";
+import { open } from "@tauri-apps/plugin-shell";
 import {
+  AUTH0_DOMAIN,
+  AUTH0_CLIENT_ID,
   generateVerifier,
   generateChallenge,
   buildAuthorizeUrl,
@@ -42,17 +46,17 @@ export function useAuth(): AuthState {
 }
 
 /**
- * The redirect URI used for the PKCE callback.
+ * The redirect URI for the PKCE callback, handled via the `stigmer://`
+ * deep link scheme registered in tauri.conf.json.
  *
- * In local/dev mode, we use a localhost callback that the CLI also uses.
- * The callback page is served by a minimal local HTTP server (when the
- * Rust backend is ready) or handled via `window.open` + polling.
- *
- * For the MVP, we use a popup window approach: the auth page opens in a
- * new window, and the callback URL is intercepted by polling.
+ * Auth0 redirects the system browser to this URL after login. The OS
+ * dispatches it to the running Tauri app via the deep-link plugin.
  */
-const CALLBACK_PORT = "8088";
-const CALLBACK_URL = `http://localhost:${CALLBACK_PORT}/auth/callback`;
+const CALLBACK_URL = "stigmer://auth/callback";
+
+const LOGOUT_RETURN_URL = "stigmer://auth/logout";
+
+const CALLBACK_TIMEOUT_MS = 5 * 60_000;
 
 /**
  * Whether auth is disabled (local/OSS mode).
@@ -61,7 +65,8 @@ const CALLBACK_URL = `http://localhost:${CALLBACK_PORT}/auth/callback`;
  * bypassed entirely — the app behaves as if always authenticated.
  */
 function isAuthDisabled(): boolean {
-  const apiUrl = import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:9090";
+  const apiUrl =
+    import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:7234";
   const forceAuth = import.meta.env.VITE_STIGMER_FORCE_AUTH === "true";
   if (forceAuth) return false;
   try {
@@ -80,9 +85,9 @@ function isAuthDisabled(): boolean {
  * 1. **Disabled auth** (local/OSS) — always authenticated, no token.
  *    Mirrors the web's `DisabledAuthProvider`.
  *
- * 2. **PKCE auth** (cloud) — opens system browser for Auth0 login,
- *    receives callback with authorization code, exchanges for tokens,
- *    stores securely, and manages refresh.
+ * 2. **PKCE auth** (cloud) — opens the system browser for Auth0 login,
+ *    receives the authorization code via `stigmer://auth/callback` deep
+ *    link, exchanges it for tokens, and manages silent refresh.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   if (isAuthDisabled()) {
@@ -119,7 +124,6 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
     return tokens?.accessToken ?? null;
   }, [tokens]);
 
-  // Schedule token refresh before expiry
   useEffect(() => {
     if (!tokens?.refreshToken || !tokens.expiresAt) return;
 
@@ -158,31 +162,18 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
     try {
       const verifier = generateVerifier();
       const challenge = await generateChallenge(verifier);
-      const state = generateVerifier(32);
+      const stateParam = generateVerifier(32);
 
       const authUrl = buildAuthorizeUrl({
         codeChallenge: challenge,
-        state,
+        state: stateParam,
         redirectUri: CALLBACK_URL,
       });
 
-      // Open system browser for authentication.
-      // In Tauri, we use `window.__TAURI__?.shell?.open(authUrl)` when available,
-      // otherwise fall back to window.open.
-      const tauri = (window as any).__TAURI__;
-      if (tauri?.shell?.open) {
-        await tauri.shell.open(authUrl);
-      } else {
-        window.open(authUrl, "_blank");
-      }
-
-      // Wait for callback. The callback server (Rust) will post a message.
-      // For now, we listen for a `storage` event on a well-known key
-      // (the callback page writes the code to localStorage).
-      const result = await waitForCallback(state);
+      const { code } = await openAuthFlow(authUrl, stateParam);
 
       const newTokens = await exchangeCode({
-        code: result.code,
+        code,
         codeVerifier: verifier,
         redirectUri: CALLBACK_URL,
       });
@@ -201,6 +192,11 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
     clearTokens();
     setTokens(null);
     if (refreshTimer.current) clearTimeout(refreshTimer.current);
+
+    const logoutUrl = new URL(`${AUTH0_DOMAIN}/v2/logout`);
+    logoutUrl.searchParams.set("client_id", AUTH0_CLIENT_ID);
+    logoutUrl.searchParams.set("returnTo", LOGOUT_RETURN_URL);
+    open(logoutUrl.toString()).catch(() => {});
   }, []);
 
   const user: AuthUser | null = tokens
@@ -219,56 +215,96 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;
 }
 
-const CALLBACK_STORAGE_KEY = "stigmer:auth:callback";
-const CALLBACK_TIMEOUT_MS = 5 * 60 * 1000;
+// ---------------------------------------------------------------------------
+// Deep-link auth callback
+// ---------------------------------------------------------------------------
 
 /**
- * Wait for the OAuth callback by polling localStorage.
- *
- * The local callback server (Rust backend or a fallback HTML page) writes
- * `{ code, state }` to `localStorage[CALLBACK_STORAGE_KEY]`. We poll
- * via the `storage` event for cross-tab communication.
+ * Opens the system browser for Auth0 login, then waits for the
+ * `stigmer://auth/callback` deep link to arrive with the authorization
+ * code. Ensures the deep link listener is registered before the browser
+ * is opened to avoid a race.
  */
-function waitForCallback(
+async function openAuthFlow(
+  authUrl: string,
   expectedState: string,
 ): Promise<{ code: string }> {
-  return new Promise((resolve, reject) => {
-    const cleanup = () => {
-      window.removeEventListener("storage", handler);
-      clearTimeout(timer);
-      localStorage.removeItem(CALLBACK_STORAGE_KEY);
-    };
+  let onUrl: ((urls: string[]) => void) | null = null;
 
-    const handler = (e: StorageEvent) => {
-      if (e.key !== CALLBACK_STORAGE_KEY || !e.newValue) return;
-      try {
-        const data = JSON.parse(e.newValue);
-        if (data.state !== expectedState) {
-          cleanup();
-          reject(new Error("OAuth state mismatch"));
-          return;
-        }
-        if (data.error) {
-          cleanup();
-          reject(new Error(`Auth failed: ${data.error}`));
-          return;
-        }
-        cleanup();
-        resolve({ code: data.code });
-      } catch {
-        cleanup();
-        reject(new Error("Invalid callback data"));
-      }
-    };
-
-    window.addEventListener("storage", handler);
-
+  const resultPromise = new Promise<{ code: string }>((resolve, reject) => {
     const timer = setTimeout(() => {
-      cleanup();
+      onUrl = null;
       reject(new Error("Authentication timed out"));
     }, CALLBACK_TIMEOUT_MS);
+
+    onUrl = (urls: string[]) => {
+      for (const raw of urls) {
+        const parsed = parseCallbackUrl(raw);
+        if (!parsed) continue;
+
+        onUrl = null;
+        clearTimeout(timer);
+
+        if (parsed.error) {
+          reject(
+            new Error(
+              parsed.errorDescription ?? `Auth failed: ${parsed.error}`,
+            ),
+          );
+        } else if (parsed.state !== expectedState) {
+          reject(new Error("OAuth state mismatch"));
+        } else {
+          resolve({ code: parsed.code! });
+        }
+        return;
+      }
+    };
   });
+
+  const unlisten = await onOpenUrl((urls) => onUrl?.(urls));
+
+  try {
+    await open(authUrl);
+    return await resultPromise;
+  } finally {
+    unlisten();
+  }
 }
+
+interface CallbackParams {
+  code?: string;
+  state?: string;
+  error?: string;
+  errorDescription?: string;
+}
+
+/**
+ * Parse a `stigmer://auth/callback?…` deep link URL. Returns null for
+ * URLs that do not match the auth callback pattern.
+ */
+function parseCallbackUrl(raw: string): CallbackParams | null {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return null;
+  }
+
+  if (url.protocol !== "stigmer:") return null;
+  if (url.hostname !== "auth" || url.pathname !== "/callback") return null;
+
+  return {
+    code: url.searchParams.get("code") ?? undefined,
+    state: url.searchParams.get("state") ?? undefined,
+    error: url.searchParams.get("error") ?? undefined,
+    errorDescription:
+      url.searchParams.get("error_description") ?? undefined,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// JWT helpers
+// ---------------------------------------------------------------------------
 
 /**
  * Decode basic claims from a JWT ID token (no verification — the token
@@ -279,7 +315,9 @@ function parseIdTokenClaims(idToken?: string): AuthUser | null {
   try {
     const parts = idToken.split(".");
     if (parts.length !== 3) return null;
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    const payload = JSON.parse(
+      atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")),
+    );
     return {
       sub: payload.sub ?? "",
       email: payload.email,
