@@ -133,17 +133,47 @@ export async function fetchDesktopRelease(): Promise<DesktopRelease | null> {
 export const DESKTOP_RELEASES_URL = `${SITE_CONFIG.githubUrl}/releases`;
 
 /**
- * Navigation links for the site header.
- * Layout: Logo | Use Cases | Docs | Blog | Pricing | Download | GitHub | Discord | Sign In | [Start Free]
+ * Navigation link types for the site header.
  */
-export const NAV_LINKS = [
-  { label: "Use Cases", href: "/use-cases" },
+export interface NavLink {
+  label: string;
+  href: string;
+  external?: boolean;
+}
+
+export interface NavGroup {
+  label: string;
+  items: NavLink[];
+}
+
+/**
+ * Header navigation structure.
+ * Layout: Logo | Docs | Pricing | Resources ▾ | [GH] [DC] | Sign In | [Start Free]
+ *
+ * Primary links are rendered as top-level text links.
+ * The resources group renders as a single dropdown trigger.
+ */
+export const NAV_PRIMARY: NavLink[] = [
   { label: "Docs", href: "/docs" },
-  { label: "Blog", href: "/blog" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Download", href: "/download" },
-  { label: "GitHub", href: SITE_CONFIG.githubUrl, external: true },
-] as const;
+];
+
+export const NAV_RESOURCES: NavGroup = {
+  label: "Resources",
+  items: [
+    { label: "Use Cases", href: "/use-cases" },
+    { label: "Blog", href: "/blog" },
+    { label: "Download", href: "/download" },
+  ],
+};
+
+/**
+ * Flat list of all nav links for contexts that need them (mobile menu, SEO).
+ */
+export const NAV_LINKS_ALL: NavLink[] = [
+  ...NAV_PRIMARY,
+  ...NAV_RESOURCES.items,
+];
 
 /**
  * Footer navigation sections.
