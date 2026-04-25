@@ -21,8 +21,9 @@ export const blogPosts = defineCollections({
   type: "doc",
   dir: "../blog",
   schema: frontmatterSchema.extend({
-    author: z.string(),
+    author: z.string().optional(),
     date: z.string().date().or(z.date()),
+    github: z.string().optional(),
   }),
 });
 

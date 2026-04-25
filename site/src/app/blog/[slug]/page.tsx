@@ -4,6 +4,7 @@ import Link from "next/link";
 import { InlineTOC } from "fumadocs-ui/components/inline-toc";
 import { getMDXComponents } from "@/components/mdx";
 import { blog } from "@/lib/source";
+import { getGitHubDisplayName } from "@/lib/github";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -15,6 +16,9 @@ export default async function BlogPost(props: PageProps) {
   if (!page) notFound();
 
   const MDX = page.data.body;
+  const authorName = page.data.github
+    ? await getGitHubDisplayName(page.data.github)
+    : page.data.author;
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
@@ -34,16 +38,38 @@ export default async function BlogPost(props: PageProps) {
             {page.data.description}
           </p>
         )}
-        <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-          <span>{page.data.author}</span>
-          <span>&middot;</span>
-          <time dateTime={new Date(page.data.date).toISOString()}>
-            {new Date(page.data.date).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </time>
+        <div className="mt-4 flex items-center gap-3 text-sm text-muted-foreground">
+          {page.data.github && (
+            <img
+              src={`https://github.com/${page.data.github}.png?size=80`}
+              alt={authorName}
+              width={40}
+              height={40}
+              className="rounded-full"
+            />
+          )}
+          <div className="flex items-center gap-2">
+            {page.data.github ? (
+              <a
+                href={`https://github.com/${page.data.github}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-foreground transition-colors"
+              >
+                {authorName}
+              </a>
+            ) : (
+              <span>{authorName}</span>
+            )}
+            <span>&middot;</span>
+            <time dateTime={new Date(page.data.date).toISOString()}>
+              {new Date(page.data.date).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </time>
+          </div>
         </div>
       </header>
 
