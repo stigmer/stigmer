@@ -100,16 +100,10 @@ const ASSET_PATTERNS: {
   label: string;
 }[] = [
   {
-    test: (n) => n.endsWith(".dmg") && /aarch64|arm64/.test(n),
+    test: (n) => n.endsWith(".dmg"),
     os: "macos",
     arch: "arm64",
-    label: "macOS (Apple Silicon)",
-  },
-  {
-    test: (n) => n.endsWith(".dmg") && /x64|x86_64/.test(n),
-    os: "macos",
-    arch: "x64",
-    label: "macOS (Intel)",
+    label: "macOS",
   },
   {
     test: (n) => n.endsWith("-setup.exe"),

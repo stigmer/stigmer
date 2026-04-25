@@ -44,16 +44,22 @@ export const SITE_CONFIG = {
 
 const GITHUB_RELEASES_API = `https://api.github.com/repos/${SITE_CONFIG.githubOrg}/${SITE_CONFIG.githubRepo}/releases/latest`;
 
-/** Static platform metadata used for display regardless of the release. */
-export const DESKTOP_PLATFORMS = [
-  { os: "macos" as const, arch: "arm64" as const, label: "macOS", archLabel: "Apple Silicon", fileExt: ".dmg" },
-  { os: "macos" as const, arch: "x64" as const, label: "macOS", archLabel: "Intel", fileExt: ".dmg" },
-  { os: "windows" as const, arch: "x64" as const, label: "Windows", archLabel: "64-bit", fileExt: ".exe" },
-  { os: "linux" as const, arch: "x64" as const, label: "Linux", archLabel: ".deb", fileExt: ".deb" },
-  { os: "linux" as const, arch: "x64-appimage" as const, label: "Linux", archLabel: ".AppImage", fileExt: ".AppImage" },
-] as const;
+/** Base platform metadata shape. */
+export interface DesktopPlatform {
+  os: "macos" | "windows" | "linux";
+  arch: string;
+  label: string;
+  archLabel: string;
+  fileExt: string;
+}
 
-export type DesktopPlatform = (typeof DESKTOP_PLATFORMS)[number];
+/** Static platform metadata used for display regardless of the release. */
+export const DESKTOP_PLATFORMS: DesktopPlatform[] = [
+  { os: "macos", arch: "universal", label: "macOS", archLabel: "Universal", fileExt: ".dmg" },
+  { os: "windows", arch: "x64", label: "Windows", archLabel: "64-bit", fileExt: ".exe" },
+  { os: "linux", arch: "x64", label: "Linux", archLabel: ".deb", fileExt: ".deb" },
+  { os: "linux", arch: "x64-appimage", label: "Linux", archLabel: ".AppImage", fileExt: ".AppImage" },
+];
 
 /** A platform entry enriched with a live download URL from the GitHub release. */
 export interface ResolvedDesktopPlatform extends DesktopPlatform {
@@ -69,8 +75,7 @@ export interface DesktopRelease {
 
 // Asset filename → platform matching rules (Tauri 2 naming conventions)
 const ASSET_MATCHERS: { test: (name: string) => boolean; os: DesktopPlatform["os"]; arch: DesktopPlatform["arch"] }[] = [
-  { test: (n) => n.endsWith(".dmg") && /aarch64|arm64/.test(n), os: "macos", arch: "arm64" },
-  { test: (n) => n.endsWith(".dmg") && /x64|x86_64/.test(n), os: "macos", arch: "x64" },
+  { test: (n) => n.endsWith(".dmg"), os: "macos", arch: "universal" },
   { test: (n) => n.endsWith("-setup.exe"), os: "windows", arch: "x64" },
   { test: (n) => n.endsWith(".deb"), os: "linux", arch: "x64" },
   { test: (n) => n.endsWith(".AppImage"), os: "linux", arch: "x64-appimage" },
