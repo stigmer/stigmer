@@ -257,20 +257,6 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
                   </a>
                 </motion.li>
 
-                {/* Sign In */}
-                <motion.li
-                  variants={fadeInUp}
-                  transition={transitions.smooth}
-                  className="pt-2"
-                >
-                  <MobileNavLink
-                    href={SITE_CONFIG.cloudSigninUrl}
-                    external
-                    onClick={onClose}
-                  >
-                    Sign In
-                  </MobileNavLink>
-                </motion.li>
               </motion.ul>
             </nav>
 
