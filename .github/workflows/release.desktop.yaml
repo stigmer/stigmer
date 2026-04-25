@@ -139,6 +139,10 @@ jobs:
               -o "$BINDIR/stigmer-aarch64-apple-darwin" ./client-apps/cli
             GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" \
               -o "$BINDIR/stigmer-x86_64-apple-darwin" ./client-apps/cli
+            lipo -create \
+              -output "$BINDIR/stigmer-universal-apple-darwin" \
+              "$BINDIR/stigmer-aarch64-apple-darwin" \
+              "$BINDIR/stigmer-x86_64-apple-darwin"
           else
             GOOS=${{ matrix.go_os }} GOARCH=${{ matrix.go_arch }} go build -ldflags="-s -w" \
               -o "$BINDIR/${{ matrix.sidecar_name }}" \
@@ -150,8 +154,8 @@ jobs:
         run: |
           BINDIR=client-apps/desktop/src-tauri/binaries
           if [ "${{ matrix.go_arch }}" = "universal" ]; then
-            ls -lh "$BINDIR/stigmer-aarch64-apple-darwin" "$BINDIR/stigmer-x86_64-apple-darwin"
-            file "$BINDIR/stigmer-aarch64-apple-darwin" "$BINDIR/stigmer-x86_64-apple-darwin"
+            ls -lh "$BINDIR"/stigmer-*-apple-darwin
+            file "$BINDIR"/stigmer-*-apple-darwin
           else
             ls -lh "$BINDIR/${{ matrix.sidecar_name }}"
             file "$BINDIR/${{ matrix.sidecar_name }}"
