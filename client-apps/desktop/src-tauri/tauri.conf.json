@@ -28,7 +28,8 @@
     "targets": "all",
     "createUpdaterArtifacts": true,
     "icon": [
-      "icons/icon.png"
+      "icons/icon.png",
+      "icons/icon.ico"
     ],
     "externalBin": [
       "binaries/stigmer"
