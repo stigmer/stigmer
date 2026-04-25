@@ -108,11 +108,6 @@ function Header({ className, ...props }: HeaderProps) {
                   <DiscordIcon size="md" />
                 </a>
 
-                <Button asChild variant="ghost" size="sm">
-                  <a href={SITE_CONFIG.cloudSigninUrl}>
-                    Sign In
-                  </a>
-                </Button>
                 <Button asChild size="sm">
                   <a href={SITE_CONFIG.cloudSignupUrl}>
                     Start Free
