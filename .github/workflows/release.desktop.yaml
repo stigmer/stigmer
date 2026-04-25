@@ -185,6 +185,20 @@ jobs:
           fi
           npm run build:libs
 
+      - name: Set app version from tag
+        shell: bash
+        run: |
+          VERSION="${{ needs.determine-version.outputs.version }}"
+          VERSION="${VERSION#v}"
+          echo "Setting desktop app version to $VERSION"
+          cd client-apps/desktop/src-tauri
+          node -e "
+            const fs = require('fs');
+            const conf = JSON.parse(fs.readFileSync('tauri.conf.json', 'utf8'));
+            conf.version = '$VERSION';
+            fs.writeFileSync('tauri.conf.json', JSON.stringify(conf, null, 2) + '\n');
+          "
+
       # TODO: Re-enable macOS code signing once APPLE_CERTIFICATE and related
       # secrets are properly configured. Setting APPLE_CERTIFICATE to any
       # non-empty value causes tauri-action to attempt keychain import, which
