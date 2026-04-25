@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback } from "react";
-import { ArrowUpRight, Monitor } from "lucide-react";
+import { Download, Monitor } from "lucide-react";
 import { RunnerListPanel, useLaunchLocalRunner } from "@stigmer/react";
-import { EXTERNAL_LINKS } from "@/config/external-links";
+import { triggerDesktopDownload } from "@/lib/desktop-download";
 import { useActiveOrgSlug } from "@/domain/_shared/org/org-context";
 
 export function RunnersSection() {
@@ -79,15 +79,14 @@ function DesktopAppPromo() {
           native notifications.
         </p>
       </div>
-      <a
-        href={EXTERNAL_LINKS.download}
-        target="_blank"
-        rel="noopener noreferrer"
+      <button
+        type="button"
+        onClick={triggerDesktopDownload}
         className="text-primary hover:text-foreground mt-0.5 inline-flex shrink-0 items-center gap-1 text-xs font-medium transition-colors"
       >
         Download
-        <ArrowUpRight className="text-muted-foreground size-3" />
-      </a>
+        <Download className="text-muted-foreground size-3" />
+      </button>
     </aside>
   );
 }

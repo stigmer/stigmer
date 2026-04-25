@@ -38,65 +38,94 @@ export const SITE_CONFIG = {
   leadsFormUrl: "https://stigmer-prod-leads-form-receiver.planton.live",
 } as const;
 
-/**
- * Stigmer Desktop app release configuration.
- * Artifact filenames follow Tauri 2 bundler conventions for productName "Stigmer".
- * Verify against actual GitHub Release assets after the first published v* tag.
- */
-export const DESKTOP_CONFIG = {
-  version: "0.1.0",
-  releaseTag: "v0.1.0",
-  releasesUrl: `${SITE_CONFIG.githubUrl}/releases`,
-  releaseUrl: `${SITE_CONFIG.githubUrl}/releases/tag/v0.1.0`,
-  platforms: [
-    {
-      os: "macos" as const,
-      arch: "arm64" as const,
-      label: "macOS",
-      archLabel: "Apple Silicon",
-      filename: "Stigmer_0.1.0_aarch64.dmg",
-      fileExt: ".dmg",
-    },
-    {
-      os: "macos" as const,
-      arch: "x64" as const,
-      label: "macOS",
-      archLabel: "Intel",
-      filename: "Stigmer_0.1.0_x64.dmg",
-      fileExt: ".dmg",
-    },
-    {
-      os: "windows" as const,
-      arch: "x64" as const,
-      label: "Windows",
-      archLabel: "64-bit",
-      filename: "Stigmer_0.1.0_x64-setup.exe",
-      fileExt: ".exe",
-    },
-    {
-      os: "linux" as const,
-      arch: "x64" as const,
-      label: "Linux",
-      archLabel: ".deb",
-      filename: "stigmer_0.1.0_amd64.deb",
-      fileExt: ".deb",
-    },
-    {
-      os: "linux" as const,
-      arch: "x64-appimage" as const,
-      label: "Linux",
-      archLabel: ".AppImage",
-      filename: "stigmer_0.1.0_amd64.AppImage",
-      fileExt: ".AppImage",
-    },
-  ],
-} as const;
+// ---------------------------------------------------------------------------
+// Desktop download — resolved dynamically from the GitHub Releases API
+// ---------------------------------------------------------------------------
 
-export type DesktopPlatform = (typeof DESKTOP_CONFIG.platforms)[number];
+const GITHUB_RELEASES_API = `https://api.github.com/repos/${SITE_CONFIG.githubOrg}/${SITE_CONFIG.githubRepo}/releases/latest`;
 
-export function getDownloadUrl(platform: DesktopPlatform): string {
-  return `${SITE_CONFIG.githubUrl}/releases/download/${DESKTOP_CONFIG.releaseTag}/${platform.filename}`;
+/** Static platform metadata used for display regardless of the release. */
+export const DESKTOP_PLATFORMS = [
+  { os: "macos" as const, arch: "arm64" as const, label: "macOS", archLabel: "Apple Silicon", fileExt: ".dmg" },
+  { os: "macos" as const, arch: "x64" as const, label: "macOS", archLabel: "Intel", fileExt: ".dmg" },
+  { os: "windows" as const, arch: "x64" as const, label: "Windows", archLabel: "64-bit", fileExt: ".exe" },
+  { os: "linux" as const, arch: "x64" as const, label: "Linux", archLabel: ".deb", fileExt: ".deb" },
+  { os: "linux" as const, arch: "x64-appimage" as const, label: "Linux", archLabel: ".AppImage", fileExt: ".AppImage" },
+] as const;
+
+export type DesktopPlatform = (typeof DESKTOP_PLATFORMS)[number];
+
+/** A platform entry enriched with a live download URL from the GitHub release. */
+export interface ResolvedDesktopPlatform extends DesktopPlatform {
+  downloadUrl: string;
+  filename: string;
 }
+
+export interface DesktopRelease {
+  version: string;
+  releaseUrl: string;
+  platforms: ResolvedDesktopPlatform[];
+}
+
+// Asset filename → platform matching rules (Tauri 2 naming conventions)
+const ASSET_MATCHERS: { test: (name: string) => boolean; os: DesktopPlatform["os"]; arch: DesktopPlatform["arch"] }[] = [
+  { test: (n) => n.endsWith(".dmg") && /aarch64|arm64/.test(n), os: "macos", arch: "arm64" },
+  { test: (n) => n.endsWith(".dmg") && /x64|x86_64/.test(n), os: "macos", arch: "x64" },
+  { test: (n) => n.endsWith("-setup.exe"), os: "windows", arch: "x64" },
+  { test: (n) => n.endsWith(".deb"), os: "linux", arch: "x64" },
+  { test: (n) => n.endsWith(".AppImage"), os: "linux", arch: "x64-appimage" },
+];
+
+let cachedRelease: DesktopRelease | null = null;
+
+/**
+ * Fetches the latest GitHub release and resolves desktop download URLs by
+ * matching asset filenames against known Tauri 2 naming patterns.
+ *
+ * Results are cached for the lifetime of the page so repeat calls are free.
+ * Returns `null` if the API is unreachable or the release has no desktop assets.
+ */
+export async function fetchDesktopRelease(): Promise<DesktopRelease | null> {
+  if (cachedRelease) return cachedRelease;
+
+  try {
+    const res = await fetch(GITHUB_RELEASES_API, {
+      headers: { Accept: "application/vnd.github.v3+json" },
+    });
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const tagName: string = data.tag_name ?? "";
+    const version = tagName.replace(/^v/, "");
+    const releaseUrl: string = data.html_url ?? `${SITE_CONFIG.githubUrl}/releases/tag/${tagName}`;
+
+    const resolved: ResolvedDesktopPlatform[] = [];
+    for (const asset of data.assets ?? []) {
+      const name: string = asset.name;
+      const url: string = asset.browser_download_url;
+      for (const matcher of ASSET_MATCHERS) {
+        if (matcher.test(name)) {
+          const meta = DESKTOP_PLATFORMS.find(
+            (p) => p.os === matcher.os && p.arch === matcher.arch,
+          );
+          if (meta) {
+            resolved.push({ ...meta, downloadUrl: url, filename: name });
+          }
+          break;
+        }
+      }
+    }
+
+    if (resolved.length === 0) return null;
+
+    cachedRelease = { version, releaseUrl, platforms: resolved };
+    return cachedRelease;
+  } catch {
+    return null;
+  }
+}
+
+export const DESKTOP_RELEASES_URL = `${SITE_CONFIG.githubUrl}/releases`;
 
 /**
  * Navigation links for the site header.

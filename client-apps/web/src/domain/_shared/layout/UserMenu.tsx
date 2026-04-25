@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import {
-  ArrowUpRight,
   ChevronsUpDown,
+  Download,
   LogOut,
   Monitor,
   Settings,
@@ -13,7 +13,7 @@ import {
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/auth";
-import { EXTERNAL_LINKS } from "@/config/external-links";
+import { triggerDesktopDownload } from "@/lib/desktop-download";
 import { cn, THEME_PRESETS, resolvePresetClass } from "@stigmer/theme";
 import type { ThemePresetId } from "@stigmer/theme";
 import {
@@ -161,19 +161,11 @@ function SettingsItem() {
 
 function DesktopAppItem() {
   return (
-    <DropdownMenuItem
-      render={
-        <a
-          href={EXTERNAL_LINKS.download}
-          target="_blank"
-          rel="noopener noreferrer"
-        />
-      }
-    >
+    <DropdownMenuItem onClick={triggerDesktopDownload}>
       <Monitor className="size-4" />
       Get Desktop App
       {/* eslint-disable-next-line stigmer/no-main-tokens-in-sidebar -- renders in portaled DropdownMenuContent */}
-      <ArrowUpRight className="text-muted-foreground ml-auto size-3" />
+      <Download className="text-muted-foreground ml-auto size-3" />
     </DropdownMenuItem>
   );
 }
