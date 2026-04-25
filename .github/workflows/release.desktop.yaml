@@ -93,17 +93,11 @@ jobs:
       matrix:
         include:
           - platform: macos-latest
-            rust_target: aarch64-apple-darwin
-            sidecar_name: stigmer-aarch64-apple-darwin
+            rust_target: universal-apple-darwin
+            sidecar_name: stigmer-universal-apple-darwin
             go_os: darwin
-            go_arch: arm64
-            tauri_args: '--target aarch64-apple-darwin'
-          - platform: macos-13
-            rust_target: x86_64-apple-darwin
-            sidecar_name: stigmer-x86_64-apple-darwin
-            go_os: darwin
-            go_arch: amd64
-            tauri_args: '--target x86_64-apple-darwin'
+            go_arch: universal
+            tauri_args: '--target universal-apple-darwin'
           - platform: ubuntu-22.04
             rust_target: x86_64-unknown-linux-gnu
             sidecar_name: stigmer-x86_64-unknown-linux-gnu
@@ -138,13 +132,19 @@ jobs:
       - name: Build CLI sidecar
         shell: bash
         env:
-          GOOS: ${{ matrix.go_os }}
-          GOARCH: ${{ matrix.go_arch }}
           CGO_ENABLED: '0'
         run: |
-          go build -ldflags="-s -w" \
-            -o client-apps/desktop/src-tauri/binaries/${{ matrix.sidecar_name }} \
-            ./client-apps/cli
+          BINDIR=client-apps/desktop/src-tauri/binaries
+          if [ "${{ matrix.go_arch }}" = "universal" ]; then
+            GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o "$BINDIR/sidecar-arm64" ./client-apps/cli
+            GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o "$BINDIR/sidecar-amd64" ./client-apps/cli
+            lipo -create -output "$BINDIR/${{ matrix.sidecar_name }}" "$BINDIR/sidecar-arm64" "$BINDIR/sidecar-amd64"
+            rm "$BINDIR/sidecar-arm64" "$BINDIR/sidecar-amd64"
+          else
+            GOOS=${{ matrix.go_os }} GOARCH=${{ matrix.go_arch }} go build -ldflags="-s -w" \
+              -o "$BINDIR/${{ matrix.sidecar_name }}" \
+              ./client-apps/cli
+          fi
 
       - name: Verify sidecar binary
         shell: bash
@@ -161,7 +161,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || matrix.platform == 'macos-13' && 'x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.rust_target == 'universal-apple-darwin' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -215,7 +215,7 @@ jobs:
           tagName: ${{ needs.determine-version.outputs.version }}
           releaseName: 'Stigmer Desktop ${{ needs.determine-version.outputs.version }}'
           releaseBody: 'Download the desktop installer for your platform below.'
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           includeUpdaterJson: true
           args: ${{ matrix.tauri_args }}
