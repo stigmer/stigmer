@@ -4,6 +4,11 @@
  * Resolves download URLs dynamically from the GitHub Releases API so we never
  * hardcode version strings. Platform detection + cached release resolution +
  * one-click download trigger with Sonner toast instructions.
+ *
+ * When the download cannot be triggered directly (API unreachable, platform
+ * unknown, no matching asset), the user sees a failure-specific toast with an
+ * action button linking to the marketing site download page. No forced
+ * redirects, no popup-blocker risk from async window.open calls.
  */
 
 import { toast } from "sonner";
@@ -30,6 +35,7 @@ export interface DetectedPlatform {
 
 export interface DesktopAsset {
   os: DetectedOS;
+  /** null = universal binary, matches any detected architecture. */
   arch: DetectedArch;
   url: string;
   filename: string;
@@ -40,6 +46,11 @@ interface ReleaseResult {
   version: string;
   assets: DesktopAsset[];
 }
+
+export type ReleaseFetchResult =
+  | { ok: true; release: ReleaseResult }
+  | { ok: false; reason: "fetch-failed"; status?: number }
+  | { ok: false; reason: "no-assets" };
 
 // ---------------------------------------------------------------------------
 // Platform detection
@@ -102,7 +113,7 @@ const ASSET_PATTERNS: {
   {
     test: (n) => n.endsWith(".dmg"),
     os: "macos",
-    arch: "arm64",
+    arch: null,
     label: "macOS",
   },
   {
@@ -146,14 +157,19 @@ const GITHUB_API =
 
 let cachedRelease: ReleaseResult | null = null;
 
-export async function fetchLatestDesktopRelease(): Promise<ReleaseResult | null> {
-  if (cachedRelease) return cachedRelease;
+/**
+ * Fetches the latest GitHub release and classifies desktop assets by file
+ * extension. Returns a discriminated result so the caller can distinguish
+ * between "API unreachable" and "release has no desktop assets."
+ */
+export async function fetchLatestDesktopRelease(): Promise<ReleaseFetchResult> {
+  if (cachedRelease) return { ok: true, release: cachedRelease };
 
   try {
     const res = await fetch(GITHUB_API, {
       headers: { Accept: "application/vnd.github.v3+json" },
     });
-    if (!res.ok) return null;
+    if (!res.ok) return { ok: false, reason: "fetch-failed", status: res.status };
 
     const data = await res.json();
     const tagName: string = data.tag_name ?? "";
@@ -165,18 +181,20 @@ export async function fetchLatestDesktopRelease(): Promise<ReleaseResult | null>
       if (classified) assets.push(classified);
     }
 
-    if (assets.length === 0) return null;
+    if (assets.length === 0) return { ok: false, reason: "no-assets" };
 
     cachedRelease = { version, assets };
-    return cachedRelease;
+    return { ok: true, release: cachedRelease };
   } catch {
-    return null;
+    return { ok: false, reason: "fetch-failed" };
   }
 }
 
 /**
  * Find the best-matching asset for the detected platform.
- * For Linux, prefers `.deb` over `.AppImage`.
+ *
+ * A null arch on the asset (e.g. macOS universal .dmg) matches any detected
+ * architecture. For Linux, prefers `.deb` over `.AppImage`.
  */
 export function findAssetForPlatform(
   assets: DesktopAsset[],
@@ -187,13 +205,12 @@ export function findAssetForPlatform(
   const matches = assets.filter(
     (a) =>
       a.os === platform.os &&
-      (platform.arch ? a.arch === platform.arch : true),
+      (a.arch === null || platform.arch === null || a.arch === platform.arch),
   );
 
   if (matches.length === 0) return null;
   if (matches.length === 1) return matches[0];
 
-  // Prefer .deb over .AppImage for Linux
   return matches.find((a) => a.filename.endsWith(".deb")) ?? matches[0];
 }
 
@@ -207,6 +224,18 @@ const INSTALL_INSTRUCTIONS: Record<string, string> = {
   linux: "Install with sudo dpkg -i <filename>.",
 };
 
+const OS_LABELS: Record<string, string> = {
+  macos: "macOS",
+  windows: "Windows",
+  linux: "Linux",
+};
+
+const DOWNLOAD_PAGE_ACTION = {
+  label: "Download page",
+  onClick: () =>
+    window.open(EXTERNAL_LINKS.download, "_blank", "noopener,noreferrer"),
+};
+
 /**
  * Attempts a direct download of the desktop app for the user's platform.
  *
@@ -215,27 +244,61 @@ const INSTALL_INSTRUCTIONS: Record<string, string> = {
  * 3. Triggers a browser download for the matching asset
  * 4. Shows a Sonner toast with platform-specific install instructions
  *
- * Falls back to opening the marketing site download page if any step fails.
+ * On failure, shows a specific toast with an action button linking to the
+ * marketing site download page. The user stays in the console and chooses
+ * whether to navigate — no forced redirects, no popup-blocker risk.
  */
 export async function triggerDesktopDownload(): Promise<void> {
   try {
-    const [platform, release] = await Promise.all([
+    const [platform, releaseResult] = await Promise.all([
       detectPlatform(),
       fetchLatestDesktopRelease(),
     ]);
 
-    if (!release || !platform.os) {
-      openFallbackDownloadPage();
+    if (!platform.os) {
+      console.warn("[desktop-download] Platform detection returned no OS", {
+        userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "n/a",
+      });
+      toast.warning("Couldn\u2019t detect your platform.", {
+        description: "Visit the download page to pick the right installer.",
+        action: DOWNLOAD_PAGE_ACTION,
+        duration: 8000,
+      });
       return;
     }
 
-    const asset = findAssetForPlatform(release.assets, platform);
+    if (!releaseResult.ok) {
+      console.warn("[desktop-download] Release fetch failed", releaseResult);
+      toast.warning("Couldn\u2019t reach the download server.", {
+        description: "Try again in a moment, or visit the download page.",
+        action: DOWNLOAD_PAGE_ACTION,
+        duration: 8000,
+      });
+      return;
+    }
+
+    const asset = findAssetForPlatform(releaseResult.release.assets, platform);
     if (!asset) {
-      openFallbackDownloadPage();
+      console.warn("[desktop-download] No matching asset for platform", {
+        platform,
+        availableAssets: releaseResult.release.assets.map((a) => ({
+          os: a.os,
+          arch: a.arch,
+          filename: a.filename,
+        })),
+      });
+      toast.warning(
+        `No installer found for ${OS_LABELS[platform.os] ?? platform.os}.`,
+        {
+          description:
+            "This platform may not be supported yet. Check all available downloads.",
+          action: DOWNLOAD_PAGE_ACTION,
+          duration: 8000,
+        },
+      );
       return;
     }
 
-    // Trigger browser download via a temporary anchor element
     const anchor = document.createElement("a");
     anchor.href = asset.url;
     anchor.download = asset.filename;
@@ -250,18 +313,14 @@ export async function triggerDesktopDownload(): Promise<void> {
         "Check your downloads folder for the installer.",
       duration: 8000,
     });
-  } catch {
-    openFallbackDownloadPage();
+  } catch (err) {
+    console.warn("[desktop-download] Unexpected error", err);
+    toast.warning("Something went wrong.", {
+      description: "Visit the download page to download Stigmer Desktop.",
+      action: DOWNLOAD_PAGE_ACTION,
+      duration: 8000,
+    });
   }
-}
-
-function openFallbackDownloadPage(): void {
-  window.open(EXTERNAL_LINKS.download, "_blank", "noopener,noreferrer");
-  toast.info("Opening download page\u2026", {
-    description:
-      "We couldn\u2019t detect your platform automatically. Pick the right installer on the download page.",
-    duration: 5000,
-  });
 }
 
 // ---------------------------------------------------------------------------
