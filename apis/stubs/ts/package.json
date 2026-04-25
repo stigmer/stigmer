@@ -40,6 +40,6 @@
     "directory": "apis/stubs/ts"
   },
   "dependencies": {
-    "@bufbuild/protobuf": "^2.5.1"
+    "@bufbuild/protobuf": "2.12.0"
   }
 }

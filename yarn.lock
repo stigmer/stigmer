@@ -296,10 +296,10 @@
     reselect "^5.1.1"
     use-sync-external-store "^1.6.0"
 
-"@bufbuild/protobuf@^2.0.0", "@bufbuild/protobuf@^2.11.0", "@bufbuild/protobuf@^2.5.1", "@bufbuild/protobuf@^2.7.0":
-  version "2.11.0"
-  resolved "https://registry.npmjs.org/@bufbuild/protobuf/-/protobuf-2.11.0.tgz"
-  integrity sha512-sBXGT13cpmPR5BMgHE6UEEfEaShh5Ror6rfN3yEK5si7QVrtZg8LEPQb0VVhiLRUslD2yLnXtnRzG035J/mZXQ==
+"@bufbuild/protobuf@^2.0.0", "@bufbuild/protobuf@^2.7.0", "@bufbuild/protobuf@2.12.0":
+  version "2.12.0"
+  resolved "https://registry.npmjs.org/@bufbuild/protobuf/-/protobuf-2.12.0.tgz"
+  integrity sha512-B/XlCaFIP8LOwzo+bz5uFzATYokcwCKQcghqnlfwSmM5eX/qTkvDBnDPs+gXtX/RyjxJ4DRikECcPJbyALA8FA==
 
 "@colors/colors@1.5.0":
   version "1.5.0"
