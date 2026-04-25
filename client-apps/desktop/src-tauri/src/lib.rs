@@ -24,6 +24,7 @@ pub fn run() {
         .manage(ProcessManager::new())
         .invoke_handler(tauri::generate_handler![
             auth::open_auth_window,
+            auth::close_auth_overlay,
             sidecar::start_runner,
             sidecar::stop_runner,
             sidecar::stop_all_runners,

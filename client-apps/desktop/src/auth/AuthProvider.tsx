@@ -23,6 +23,7 @@ import { loadTokens, saveTokens, clearTokens, isExpired } from "./token-store";
 export interface AuthState {
   readonly isAuthenticated: boolean;
   readonly isLoading: boolean;
+  readonly isInitialized: boolean;
   readonly user: AuthUser | null;
   readonly getAccessToken: () => string | null;
   readonly login: () => Promise<void>;
@@ -101,6 +102,7 @@ function DisabledAuthProvider({ children }: { children: ReactNode }) {
   const state: AuthState = {
     isAuthenticated: true,
     isLoading: false,
+    isInitialized: true,
     user: null,
     getAccessToken,
     login,
@@ -113,6 +115,13 @@ function DisabledAuthProvider({ children }: { children: ReactNode }) {
 function PkceAuthProvider({ children }: { children: ReactNode }) {
   const [tokens, setTokens] = useState<StoredTokens | null>(() => loadTokens());
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(() => {
+    const t = loadTokens();
+    if (!t) return true;
+    if (!isExpired(t)) return true;
+    if (!t.refreshToken) return true;
+    return false;
+  });
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isAuthenticated = tokens !== null && !isExpired(tokens);
@@ -134,9 +143,14 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
         .catch(() => {
           clearTokens();
           setTokens(null);
+        })
+        .finally(() => {
+          setIsInitialized(true);
         });
       return;
     }
+
+    setIsInitialized(true);
 
     refreshTimer.current = setTimeout(async () => {
       try {
@@ -153,6 +167,12 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
       if (refreshTimer.current) clearTimeout(refreshTimer.current);
     };
   }, [tokens]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      invoke("close_auth_overlay").catch(() => {});
+    }
+  }, [isAuthenticated]);
 
   const login = useCallback(async () => {
     setIsLoading(true);
@@ -204,6 +224,7 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
   const state: AuthState = {
     isAuthenticated,
     isLoading,
+    isInitialized,
     user,
     getAccessToken,
     login,
@@ -225,18 +246,18 @@ interface AuthCallbackPayload {
 }
 
 /**
- * Opens Auth0's Universal Login in an embedded Tauri webview window and
- * waits for the authorization code.
+ * Shows Auth0's Universal Login as a full-window overlay webview inside
+ * the main window and waits for the authorization code.
  *
- * The Rust `open_auth_window` command creates a secondary window that
- * navigates to the Auth0 authorize URL. When Auth0 redirects to
+ * The Rust `open_auth_window` command creates a child webview that
+ * covers the main window content area. When Auth0 redirects to
  * `stigmer://auth/callback`, the Rust `on_navigation` handler
  * intercepts the redirect, emits an `auth-callback` event with the
- * code/state/error, and closes the window.
+ * code/state/error, and removes the overlay.
  *
- * If the user closes the window before completing login, an
- * `auth-cancelled` event is emitted and the promise rejects silently
- * (the login screen stays visible with no error toast).
+ * If the overlay is removed programmatically (e.g. via
+ * `close_auth_overlay`), an `auth-cancelled` event is emitted and
+ * the promise rejects with `LoginCancelledError`.
  */
 async function openAuthFlow(
   authUrl: string,
