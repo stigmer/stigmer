@@ -144,4 +144,3 @@ func tailLogFile(logFile, component string, linesChan chan<- LogLine) error {
 		linesChan <- logLine
 	}
 }
-
