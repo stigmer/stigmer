@@ -103,6 +103,26 @@ export async function exchangeCode(params: {
 }
 
 /**
+ * Revoke a refresh token so it can no longer be used.
+ *
+ * Called during logout as a defense-in-depth measure. The local tokens
+ * are already cleared before this runs, so the user is logged out
+ * regardless of whether the revocation succeeds.
+ */
+export async function revokeRefreshToken(refreshToken: string): Promise<void> {
+  const body = new URLSearchParams({
+    client_id: AUTH0_CLIENT_ID,
+    token: refreshToken,
+  });
+
+  await fetch(`${AUTH0_DOMAIN}/oauth/revoke`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  });
+}
+
+/**
  * Refresh an access token using a refresh token.
  */
 export async function refreshAccessToken(

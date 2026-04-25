@@ -1,3 +1,4 @@
+mod auth;
 mod sidecar;
 mod tray;
 
@@ -22,6 +23,7 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .manage(ProcessManager::new())
         .invoke_handler(tauri::generate_handler![
+            auth::open_auth_window,
             sidecar::start_runner,
             sidecar::stop_runner,
             sidecar::stop_all_runners,
@@ -45,9 +47,10 @@ pub fn run() {
 
     app.run(|app_handle, event| match event {
         RunEvent::WindowEvent {
+            label,
             event: WindowEvent::CloseRequested { api, .. },
             ..
-        } => {
+        } if label == "main" => {
             api.prevent_close();
             if let Some(window) = app_handle.get_webview_window("main") {
                 let _ = window.hide();
