@@ -1,5 +1,5 @@
-import { RunnersSection } from "@/domain/settings/RunnersSection";
+import { redirect } from "next/navigation";
 
-export default function RunnersPage() {
-  return <RunnersSection />;
+export default function SettingsRunnersRedirect() {
+  redirect("/runners");
 }

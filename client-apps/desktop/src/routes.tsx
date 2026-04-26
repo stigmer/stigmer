@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import {
   createHashRouter,
+  Navigate,
   type RouteObject,
 } from "react-router-dom";
 import {
@@ -128,6 +129,14 @@ const routes: RouteObject[] = [
         ],
       },
       {
+        path: "runners",
+        element: (
+          <LazyPage>
+            <SettingsRunners />
+          </LazyPage>
+        ),
+      },
+      {
         path: "settings",
         children: [
           {
@@ -164,15 +173,11 @@ const routes: RouteObject[] = [
                   </div>
                 ),
               },
+              {
+                path: "runners",
+                element: <Navigate to="/runners" replace />,
+              },
             ],
-          },
-          {
-            path: "runners",
-            element: (
-              <LazyPage>
-                <SettingsRunners />
-              </LazyPage>
-            ),
           },
         ],
       },
