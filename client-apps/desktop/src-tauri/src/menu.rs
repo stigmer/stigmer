@@ -1,5 +1,5 @@
 use tauri::image::Image;
-use tauri::menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, SubmenuBuilder};
+use tauri::menu::{AboutMetadata, Menu, MenuItem, SubmenuBuilder};
 use tauri::{AppHandle, Emitter, Wry};
 
 /// Menu item ID for "Check for Updates…" — shared with the tray menu's event.
