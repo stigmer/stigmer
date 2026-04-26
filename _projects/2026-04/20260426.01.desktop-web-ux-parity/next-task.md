@@ -68,10 +68,21 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-26 12:05
-**Current Task**: T01-B (Extract useOrgGate behavior hook to SDK)
+**Current Task**: T01-C (Extract OrgSwitcher component to SDK)
 **Status**: In Progress
 
-## Session Progress (2026-04-26)
+## Session Progress (2026-04-26, Session 2 — T01-B)
+
+- Completed T01-B: Extracted `useOrgGate()` behavior hook to `sdk/react/src/organization/useOrgGate.ts`
+- Created `UseOrgGateOptions`, `OrgGateState` (discriminated union on `status`), and `UseOrgGateReturn` types
+- `OrgGateState` uses variant-specific error data (error is a terminal status, not orthogonal) — deliberate deviation from `AgentSetupState` pattern, documented in plan
+- Refactored desktop `OrgGate.tsx` — removed ~40 lines of state machine logic, now a thin renderer with `switch (state.status)`
+- Refactored web `OrgGate.tsx` — same pattern, removed `useState`, `useEffect`, polling constants
+- Updated barrel exports in `sdk/react/src/organization/index.ts` and `sdk/react/src/index.ts`
+- All verification targets pass: SDK lint + typecheck, web lint, desktop lint + typecheck + cargo check
+- 4 pre-existing warnings in `SettingsRunners.tsx` (opacity modifier tokens, untouched files)
+
+## Session Progress (2026-04-26, Session 1 — T01-A)
 
 - Completed T01-A: Extracted `OrgProvider`, `useOrg`, `useActiveOrgSlug` from both client apps into `sdk/react/src/organization/OrgProvider.tsx`
 - Updated barrel exports in `sdk/react/src/organization/index.ts` and `sdk/react/src/index.ts`
@@ -83,22 +94,24 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T01-B**: Extract `useOrgGate()` behavior hook to `sdk/react/src/organization/useOrgGate.ts`
-2. **T01-C**: Extract `OrgSwitcher` component to SDK
-3. **T01-D**: Move `SETTINGS_NAV_GROUPS` to SDK
-4. **T01-E**: Extract `UserMenu` to SDK
+1. **T01-C**: Extract `OrgSwitcher` component to SDK
+2. **T01-D**: Move `SETTINGS_NAV_GROUPS` to SDK
+3. **T01-E**: Extract `UserMenu` to SDK
 
 ## Context for Resume
 
-- T01-A plan is in `tasks/T01_0_plan.md` — the full task breakdown with all subtask details
-- The two source files for T01-B are `client-apps/desktop/src/org/OrgGate.tsx` (uses `useOrg` from SDK now) and `client-apps/web/src/domain/_shared/org/OrgGate.tsx` (also uses `useOrg` from SDK now)
+- T01 plan is in `tasks/T01_0_plan.md` — the full task breakdown with all subtask details
+- T01-B plan is in `.cursor/plans/t01-b_useorggate_extraction_06b71855.plan.md` — detailed design rationale for the discriminated union API
+- The source file for T01-C is `client-apps/web/src/domain/_shared/layout/OrgSwitcher.tsx` — uses `useOrg()` (now from SDK) and `CreateOrganizationForm` (already in SDK)
 - Key pattern established: SDK org hooks import from `../hooks` (relative), both client apps import from `@stigmer/react` (package)
-- Desktop has no `@base-ui/react` dependency; web does. This matters for T01-C (OrgSwitcher)
+- Desktop has no `@base-ui/react` dependency; web does. T01-C needs `@base-ui/react` Menu primitives — desktop will need it added as a dependency
+- The `useOrgGate()` hook follows DD-003 (headless-first) and DD-004 (zero framework deps in SDK) — consumer computes routing/auth inputs, hook manages pure state machine
+- Established type pattern: `OrgGateState` uses `status` as discriminant field, matching `AgentSetupPhase`/`McpServerSetupPhase` convention
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01-B" - Pick up the next subtask
+- "Continue with T01-C" - Pick up the next subtask
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

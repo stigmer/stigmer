@@ -1,5 +1,11 @@
 export { OrgProvider, useOrg, useActiveOrgSlug } from "./OrgProvider";
 export type { OrgContextValue } from "./OrgProvider";
+export { useOrgGate } from "./useOrgGate";
+export type {
+  UseOrgGateOptions,
+  OrgGateState,
+  UseOrgGateReturn,
+} from "./useOrgGate";
 export { useOrganization } from "./useOrganization";
 export type { UseOrganizationReturn } from "./useOrganization";
 export { useCreateOrganization } from "./useCreateOrganization";
