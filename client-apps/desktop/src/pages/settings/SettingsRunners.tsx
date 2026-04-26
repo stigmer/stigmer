@@ -22,13 +22,16 @@ import { Play, Square, ScrollText, AlertCircle } from "lucide-react";
 import { useLocalRunners } from "../../hooks/useLocalRunners";
 import { useStartRunner } from "../../hooks/useStartRunner";
 import { useStopLocalRunner } from "../../hooks/useStopLocalRunner";
-import { StartRunnerDialog } from "./StartRunnerDialog";
-import { RunnerLogViewer } from "./RunnerLogViewer";
+import { StartRunnerDialog } from "../runners/StartRunnerDialog";
+import { RunnerLogViewer } from "../runners/RunnerLogViewer";
 import { toGrpcTarget } from "../../lib/grpc-target";
 
+const BASE_URL =
+  import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:7234";
 const SYSTEM_MANAGED_LABEL = "stigmer.ai/system-managed";
 
 export default function SettingsRunners() {
+  const stigmer = useStigmer();
   const org = useActiveOrgSlug();
 
   const {
@@ -74,14 +77,36 @@ export default function SettingsRunners() {
       token?: string;
     }) => {
       try {
-        await startRunner(opts);
+        let token = opts.token;
+        let endpoint = opts.endpoint;
+        let runnerOrg: string | undefined;
+
+        if (!token) {
+          const launchResp = await stigmer.runner.createLaunchToken(
+            create(CreateLaunchTokenRequestSchema, { org }),
+          );
+          const exchangeResp = await stigmer.runner.exchangeLaunchToken(
+            create(ExchangeLaunchTokenRequestSchema, {
+              token: launchResp.token,
+            }),
+          );
+          token = exchangeResp.accessToken;
+          runnerOrg = exchangeResp.org;
+        }
+
+        await startRunner({
+          name: opts.name,
+          token,
+          endpoint: endpoint || toGrpcTarget(BASE_URL),
+          org: runnerOrg || org || undefined,
+        });
         setDialogOpen(false);
         setTimeout(refetchServer, 3000);
       } catch {
         // Error is captured in the hook.
       }
     },
-    [startRunner, refetchServer],
+    [stigmer, org, startRunner, refetchServer],
   );
 
   const handleStop = useCallback(

@@ -4,27 +4,34 @@ import { getUserMessage } from "@stigmer/sdk";
 import {
   useRunnerList,
   useActiveOrgSlug,
+  useStigmer,
   phaseLabel,
   phaseDotColor,
   isActivePhase,
   PHASE_SORT_ORDER,
 } from "@stigmer/react";
+import { create } from "@bufbuild/protobuf";
 import type { Runner } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
 import { RunnerPhase } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/enum_pb";
+import {
+  CreateLaunchTokenRequestSchema,
+  ExchangeLaunchTokenRequestSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/runner/v1/io_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Play, Square, ScrollText, AlertCircle } from "lucide-react";
-import { useAuth } from "../../auth/AuthProvider";
 import { useLocalRunners } from "../../hooks/useLocalRunners";
 import { useStartRunner } from "../../hooks/useStartRunner";
 import { useStopLocalRunner } from "../../hooks/useStopLocalRunner";
 import { StartRunnerDialog } from "./StartRunnerDialog";
 import { RunnerLogViewer } from "./RunnerLogViewer";
+import { toGrpcTarget } from "../../lib/grpc-target";
 
-const BASE_URL = import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:7234";
+const BASE_URL =
+  import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:7234";
 const SYSTEM_MANAGED_LABEL = "stigmer.ai/system-managed";
 
 export default function RunnersPage() {
-  const { getAccessToken } = useAuth();
+  const stigmer = useStigmer();
   const org = useActiveOrgSlug();
 
   const {
@@ -69,20 +76,37 @@ export default function RunnersPage() {
       endpoint?: string;
       token?: string;
     }) => {
-      const resolvedOpts = {
-        ...opts,
-        token: opts.token || getAccessToken() || undefined,
-        endpoint: opts.endpoint || BASE_URL,
-      };
       try {
-        await startRunner(resolvedOpts);
+        let token = opts.token;
+        let endpoint = opts.endpoint;
+        let runnerOrg: string | undefined;
+
+        if (!token) {
+          const launchResp = await stigmer.runner.createLaunchToken(
+            create(CreateLaunchTokenRequestSchema, { org }),
+          );
+          const exchangeResp = await stigmer.runner.exchangeLaunchToken(
+            create(ExchangeLaunchTokenRequestSchema, {
+              token: launchResp.token,
+            }),
+          );
+          token = exchangeResp.accessToken;
+          runnerOrg = exchangeResp.org;
+        }
+
+        await startRunner({
+          name: opts.name,
+          token,
+          endpoint: endpoint || toGrpcTarget(BASE_URL),
+          org: runnerOrg || org || undefined,
+        });
         setDialogOpen(false);
         setTimeout(refetchServer, 3000);
       } catch {
         // Error is captured in the hook.
       }
     },
-    [startRunner, refetchServer, getAccessToken],
+    [stigmer, org, startRunner, refetchServer],
   );
 
   const handleStop = useCallback(
