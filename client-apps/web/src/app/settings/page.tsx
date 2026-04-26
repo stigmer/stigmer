@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SETTINGS_NAV_GROUPS } from "@/domain/_shared/layout/settings-nav";
+import { SETTINGS_NAV_GROUPS } from "@stigmer/react";
 
 export default function SettingsPage() {
   return (

@@ -1,4 +1,4 @@
-import { IdentityProvidersSection } from "@/domain/settings/IdentityProvidersSection";
+import { IdentityProvidersSection } from "@stigmer/react";
 
 export default function IdentityProvidersPage() {
   return <IdentityProvidersSection />;

@@ -433,21 +433,49 @@ export type {
   OrgMembersPanelProps,
 } from "./iam-policy";
 
-// Organization — data hook, behavior hooks, styled form for creation, and profile panel
+// Organization — context provider, hooks, data hooks, behavior hooks, styled form, profile panel, and org switcher
 export {
+  OrgProvider,
+  useOrg,
+  useActiveOrgSlug,
+  useOrgGate,
   useOrganization,
   useCreateOrganization,
   useUpdateOrganization,
   CreateOrganizationForm,
   OrgProfilePanel,
+  OrgSwitcher,
 } from "./organization";
 export type {
+  OrgContextValue,
+  UseOrgGateOptions,
+  OrgGateState,
+  UseOrgGateReturn,
   UseOrganizationReturn,
   UseCreateOrganizationReturn,
   UseUpdateOrganizationReturn,
   CreateOrganizationFormProps,
   OrgProfilePanelProps,
+  OrgSwitcherProps,
 } from "./organization";
+
+// Settings — navigation structure + section components shared across app shells
+export { SETTINGS_NAV_GROUPS } from "./settings";
+export type { SettingsNavItem, SettingsNavGroup } from "./settings";
+export { ApiKeysSection } from "./settings";
+export { MembersSection } from "./settings";
+export { OrgProfileSection } from "./settings";
+export { EnvironmentsSection } from "./settings";
+export { InvitationsSection } from "./settings";
+export { IdentityProvidersSection } from "./settings";
+export type { IdentityProvidersSectionProps } from "./settings";
+export { PlatformClientsSection } from "./settings";
+export { OAuthAppsSection } from "./settings";
+export { UsageSection } from "./settings";
+
+// User — app shell user menu
+export { UserMenu } from "./user";
+export type { UserMenuProps } from "./user";
 
 // API Key — data hooks, behavior hooks, and styled components for API key lifecycle
 export {
@@ -576,6 +604,9 @@ export type { ErrorMessageProps, SecretFlowErrorGuideProps } from "./error";
 
 // Library — cross-resource UI components, resource detection, apply flow, browsing, and visibility management
 export {
+  LibraryBreadcrumbProvider,
+  useBreadcrumbLabel,
+  useBreadcrumbOverride,
   ScopeToggle,
   ResourceListView,
   ResourceCountCard,

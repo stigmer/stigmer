@@ -6,10 +6,10 @@ import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { isRetryableError } from "@stigmer/sdk";
+import { OrgProvider } from "@stigmer/react";
 import { AuthProvider, AuthGuard } from "@/auth";
 import { StigmerTransportBridge } from "@/providers/StigmerTransportBridge";
 import { Toaster } from "@/domain/_shared/ui/sonner";
-import { OrgProvider } from "@/domain/_shared/org/org-context";
 import { OrgGate } from "@/domain/_shared/org/OrgGate";
 import { loadRuntimeConfig } from "@/config/runtime-config";
 

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { SkillDetailView, useUpdateVisibility } from "@stigmer/react";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
-import { useBreadcrumbOverride } from "@/domain/library/LibraryBreadcrumbContext";
+import { useBreadcrumbOverride } from "@stigmer/react";
 
 interface SkillDetailPageInnerProps {
   readonly org: string;

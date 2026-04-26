@@ -186,8 +186,8 @@ refetch(); // refresh the runner list
 
 ### RunnerListPanel
 
-Admin panel that displays all runners in an organization with
-lifecycle management actions.
+Panel that displays runners in an organization with lifecycle
+management actions.
 
 Each runner is rendered as a card row showing name, phase indicator,
 machine information, and operational metadata. Non-system-managed
@@ -195,8 +195,12 @@ runners include an action menu for stop and delete operations with
 inline confirmation — no modals or portals.
 
 Rows are sorted by phase (active runners first) then alphabetically
-by name. System-managed runners display a "System" badge and have
-no action affordances.
+by name. System-managed runners (when included) display a "System"
+badge and have no action affordances.
+
+By default only user-created runners are shown. Pass
+`includeSystemManaged={true}` for admin views that need full fleet
+visibility.
 
 Designed for the Settings > Runners page but embeddable in any
 context that needs runner fleet management. Fetches data via
@@ -210,7 +214,7 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    includeSystemManaged: { type: "boolean", description: "Include system-managed (ephemeral cloud) runners in the list.  System-managed runners are auto-provisioned for cloud executions and labeled `stigmer.ai/system-managed: \"true\"`. Including them gives admins full visibility into all compute resources." },
+    includeSystemManaged: { type: "boolean", description: "Include system-managed (ephemeral cloud) runners in the list.  System-managed runners are auto-provisioned for cloud executions and labeled `stigmer.ai/system-managed: \"true\"`. They are excluded by default so user-facing views only show user-created runners. Pass `true` in admin views that need full fleet visibility." },
     onDeleted: { type: "(runner: Runner) => void", description: "Notification callback fired after a runner is successfully deleted. Receives the deleted runner resource for confirmation display." },
     onRefetchRef: { type: "(refetch: () => void) => void", description: "Expose refetch so parent components can trigger a list refresh." },
     onStopped: { type: "(runner: Runner) => void", description: "Notification callback fired after a runner is successfully stopped. Receives the updated runner resource with its new phase." },
@@ -223,7 +227,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <RunnerListPanel
   org="acme"
-  includeSystemManaged={false}
+  includeSystemManaged
   onStopped={(runner) => toast(`${runner.metadata?.name} stopped`)}
   onDeleted={(runner) => toast(`${runner.metadata?.name} deleted`)}
   onRefetchRef={(refetch) => { refetchRef.current = refetch; }}

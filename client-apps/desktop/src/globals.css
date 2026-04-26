@@ -70,6 +70,8 @@
 }
 
 body {
+  background-color: var(--stgm-background);
+  color: var(--stgm-foreground);
   font-feature-settings:
     "rlig" 1,
     "calt" 1;

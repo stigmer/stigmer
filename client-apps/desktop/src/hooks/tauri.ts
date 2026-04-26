@@ -43,6 +43,7 @@ export interface StartRunnerOptions {
   name?: string;
   endpoint?: string;
   token?: string;
+  org?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -56,6 +57,7 @@ export function invokeStartRunner(
     name: opts.name ?? null,
     endpoint: opts.endpoint ?? null,
     token: opts.token ?? null,
+    org: opts.org ?? null,
   });
 }
 

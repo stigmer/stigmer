@@ -567,7 +567,7 @@ class Config:
         
         # Temporal task queue resolution cascade:
         # 1. STIGMER_TASK_QUEUE — set by DaytonaSandboxRunnerLauncher for
-        #    per-runner queues (format: "agent-runner:{runner-id}")
+        #    per-runner queues (format: "runner:{runner-id}")
         # 2. TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE — legacy env var
         # 3. "agent_execution_runner" — global default
         task_queue = (

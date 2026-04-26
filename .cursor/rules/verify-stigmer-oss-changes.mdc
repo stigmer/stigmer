@@ -1,0 +1,57 @@
+---
+description: Action rule to run the relevant subset of `make check` based on which files were changed in the current session
+alwaysApply: false
+---
+
+# Rule: Verify Stigmer OSS Changes
+
+When triggered, analyze the current uncommitted or recently committed changes, map them to the relevant `make check` sub-targets, and run only those targets. This avoids running the full CI gate (~20+ minutes) when only a subset of the codebase was touched.
+
+## Execution
+
+### Step 1: Identify changed files
+
+Run `git diff --name-only HEAD~1` (if last commit is the session's work) or `git diff --name-only` (if uncommitted). Use whichever captures the session's changes. Combine both if needed.
+
+### Step 2: Map changes to check targets
+
+Use this mapping to decide which targets to run. A file matching **any** row triggers that row's target.
+
+| File pattern | Make target | What it checks |
+|---|---|---|
+| `apis/**` | `make -C apis lint` | Proto linting (buf lint) |
+| `backend/**/*.go`, `client-apps/cli/**/*.go`, `mcp-server/**/*.go`, `sdk/go/**/*.go`, `tools/**/*.go` | `make tidy && make lint` (Go portions only: `go vet` + `gofmt`) | Go vet, format, mod tidy |
+| `backend/services/agent-runner/**/*.py`, `backend/libs/python/**/*.py` | Python lint from `make lint` (`ruff check`, `mypy`) | Python lint + type check |
+| `sdk/typescript/src/**` | `npm run typecheck -w @stigmer/sdk` | SDK TypeScript type check |
+| `sdk/react/src/**` | `npm run lint -w @stigmer/react && npm run typecheck -w @stigmer/react` | React SDK lint + type check |
+| `sdk/ink/src/**` | `npm run typecheck -w @stigmer/ink` | Ink SDK type check |
+| `client-apps/web/src/**` | `npm run lint -w client-apps/web` | Web console lint (includes theme token rules) |
+| `client-apps/desktop/src/**`, `client-apps/desktop/src-tauri/**` | `make verify-desktop` | Desktop lint + typecheck + cargo check |
+| `client-apps/cli/**/*.go` | `make build` (CLI binary) | CLI builds cleanly |
+| `backend/services/stigmer-server/**/*.go` | `make build` (server binary) | Server builds cleanly |
+| `docs/**/*.md`, `docs/**/*.mdx` | `make lint-docs && make format-docs-check` | Vale prose lint + Prettier format |
+| `site/**` | `make -C site lint && make -C site typecheck` | Site lint + typecheck |
+
+### Step 3: Run targets and report
+
+Run all matched targets (parallelize independent ones where possible). Report results clearly:
+
+```
+Verify Results:
+  ✅ verify-desktop          — 0 errors, 4 pre-existing warnings
+  ✅ @stigmer/sdk typecheck  — clean
+  ✅ @stigmer/react lint     — clean
+  ❌ web console lint        — 2 errors (details below)
+```
+
+If a target fails, show the error output so the user can fix it.
+
+### Step 4: Handle pre-existing issues
+
+If warnings or errors appear in files **not** touched by the current session, note them as pre-existing and do not treat them as blockers. Only flag new issues introduced by the session's changes.
+
+## Notes
+
+- This rule runs a **subset** of `make check`. It does **not** replace the full CI gate — it catches the most common issues quickly.
+- Targets like `check-links`, `validate-demos`, `test-demos`, `docs-build`, and `gen-sdk-docs-check` are slow and rarely affected by code changes. They are excluded unless the user explicitly asks for the full gate.
+- When in doubt about whether a target is needed, include it — a few extra seconds of checking is better than a broken CI pipeline.

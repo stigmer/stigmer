@@ -1,33 +1,28 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { NavLink, useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   Plus,
   Library,
-  Settings,
+  Server,
   MessageSquare,
-  ArrowUpCircle,
+  PanelLeft,
 } from "lucide-react";
-import { getVersion } from "@tauri-apps/api/app";
 import { cn } from "@stigmer/theme";
 import {
+  OrgSwitcher,
   useSessionList,
   groupSessionsByTime,
   resolvedSubject,
 } from "@stigmer/react";
 import type { SessionGroup } from "@stigmer/react";
-import { useAppUpdaterContext } from "../hooks/AppUpdaterContext";
+import { UserMenu } from "./UserMenu";
+import { useSidebarOpen } from "./use-layout-state";
 
 export function Sidebar() {
+  const sidebar = useSidebarOpen();
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams<{ id: string }>();
-  const { status: updateStatus, availableVersion, checkForUpdate } =
-    useAppUpdaterContext();
-  const [appVersion, setAppVersion] = useState<string | null>(null);
-
-  useEffect(() => {
-    getVersion().then(setAppVersion).catch(() => {});
-  }, []);
 
   const activeSessionId = location.pathname.startsWith("/sessions/")
     ? params.id ?? null
@@ -55,15 +50,36 @@ export function Sidebar() {
     [sessions],
   );
 
+  const handleOrgChanged = useCallback(() => {
+    navigate("/");
+  }, [navigate]);
+
   const isLibraryActive = !isSessionZone && location.pathname.startsWith("/library");
-  const isSettingsActive = location.pathname.startsWith("/settings");
+  const isRunnersActive = !isSessionZone && location.pathname.startsWith("/runners");
 
   return (
-    <aside className="flex w-[220px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
-      <div className="flex h-12 items-center px-3">
-        <span className="text-sm font-semibold tracking-tight">Stigmer</span>
+    <nav
+      id="sidebar"
+      aria-label="Main navigation"
+      className="flex h-full flex-col bg-sidebar text-sidebar-foreground"
+    >
+      {/* Top row: collapse toggle + org context */}
+      <div className="flex flex-none items-center gap-1 px-2 py-2">
+        <button
+          onClick={sidebar.close}
+          aria-expanded={sidebar.isOpen}
+          aria-controls="sidebar"
+          aria-label="Collapse sidebar"
+          className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        >
+          <PanelLeft className="size-4" />
+        </button>
+        <div className="min-w-0 flex-1">
+          <OrgSwitcher onOrgChanged={handleOrgChanged} />
+        </div>
       </div>
 
+      {/* New Session */}
       <div className="flex-none px-3 py-1">
         <button
           onClick={() => navigate("/")}
@@ -79,6 +95,7 @@ export function Sidebar() {
         </button>
       </div>
 
+      {/* Library */}
       <div className="flex-none px-3 py-1">
         <NavLink
           to="/library"
@@ -94,10 +111,27 @@ export function Sidebar() {
         </NavLink>
       </div>
 
+      {/* Runners */}
+      <div className="flex-none px-3 py-1">
+        <NavLink
+          to="/runners"
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
+            isRunnersActive
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          )}
+        >
+          <Server className="size-4 shrink-0" />
+          Runners
+        </NavLink>
+      </div>
+
       <div className="px-3 py-1">
         <div className="h-px bg-sidebar-border" />
       </div>
 
+      {/* Scrollable recents */}
       <div className="flex-1 overflow-y-auto px-3 py-1">
         <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted-foreground">
           Recents
@@ -117,30 +151,17 @@ export function Sidebar() {
         )}
       </div>
 
+      {/* Bottom: user menu */}
       <div className="flex-none border-t border-sidebar-border px-3 py-2">
-        <NavLink
-          to="/settings/runners"
-          className={cn(
-            "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
-            isSettingsActive
-              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-          )}
-        >
-          <Settings className="size-4 shrink-0" />
-          Settings
-        </NavLink>
-
-        <SidebarVersionFooter
-          appVersion={appVersion}
-          updateStatus={updateStatus}
-          availableVersion={availableVersion}
-          onCheckForUpdate={checkForUpdate}
-        />
+        <UserMenu />
       </div>
-    </aside>
+    </nav>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Session recents
+// ---------------------------------------------------------------------------
 
 function SessionGroupList({
   groups,
@@ -224,38 +245,3 @@ function RecentsEmptyState() {
   );
 }
 
-function SidebarVersionFooter({
-  appVersion,
-  updateStatus,
-  availableVersion,
-  onCheckForUpdate,
-}: {
-  appVersion: string | null;
-  updateStatus: string;
-  availableVersion: string | null;
-  onCheckForUpdate: () => void;
-}) {
-  if (!appVersion) return null;
-
-  const hasUpdate = updateStatus === "available" && availableVersion;
-
-  return (
-    <div className="mt-1 px-2">
-      {hasUpdate ? (
-        <button
-          onClick={onCheckForUpdate}
-          className="flex w-full items-center gap-1.5 rounded-md px-0.5 py-1 text-[0.65rem] text-sidebar-primary transition-colors hover:text-sidebar-accent-foreground"
-        >
-          <ArrowUpCircle className="size-3 shrink-0" />
-          <span>
-            Update available: v{availableVersion}
-          </span>
-        </button>
-      ) : (
-        <span className="block py-1 text-[0.65rem] text-sidebar-muted-foreground">
-          v{appVersion}
-        </span>
-      )}
-    </div>
-  );
-}

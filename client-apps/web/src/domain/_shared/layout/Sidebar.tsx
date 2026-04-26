@@ -3,7 +3,7 @@
 import { type MouseEvent, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plus, Library, MessageSquare, PanelLeft } from "lucide-react";
+import { Plus, Library, Server, MessageSquare, PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { useSessionList, groupSessionsByTime, resolvedSubject } from "@stigmer/react";
 import type { SessionGroup } from "@stigmer/react";
@@ -16,8 +16,8 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/domain/_shared/ui/tooltip";
+import { OrgSwitcher } from "@stigmer/react";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
-import { OrgSwitcher } from "./OrgSwitcher";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
 
@@ -34,6 +34,7 @@ export function Sidebar() {
     useSessionNavigation();
 
   const isLibraryActive = !isSessionZone && pathname.startsWith("/library");
+  const isRunnersActive = !isSessionZone && pathname.startsWith("/runners");
 
   useEffect(() => {
     refetch();
@@ -116,6 +117,23 @@ export function Sidebar() {
         >
           <Library className="size-4 shrink-0" />
           Library
+        </Link>
+      </div>
+
+      {/* Runners */}
+      <div className="flex-none px-3 py-1">
+        <Link
+          href="/runners"
+          aria-current={isRunnersActive ? "page" : undefined}
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
+            isRunnersActive
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          )}
+        >
+          <Server className="size-4 shrink-0" />
+          Runners
         </Link>
       </div>
 
