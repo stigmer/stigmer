@@ -255,6 +255,7 @@ pub async fn start_runner(
     name: Option<String>,
     endpoint: Option<String>,
     token: Option<String>,
+    org: Option<String>,
 ) -> Result<String, String> {
     let runner_name = name.clone().unwrap_or_else(|| {
         hostname::get()
@@ -282,6 +283,10 @@ pub async fn start_runner(
     if let Some(ref t) = token {
         args.push("--token".into());
         args.push(t.clone());
+    }
+    if let Some(ref o) = org {
+        args.push("--org".into());
+        args.push(o.clone());
     }
 
     let sidecar = app

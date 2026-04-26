@@ -5,11 +5,9 @@ import { LibraryBreadcrumb } from "./LibraryBreadcrumb";
 export default function LibraryLayout() {
   return (
     <LibraryBreadcrumbProvider>
-      <div className="h-full overflow-y-auto">
-        <div className="mx-auto max-w-4xl px-6 py-8">
-          <LibraryBreadcrumb />
-          <Outlet />
-        </div>
+      <div className="mx-auto max-w-4xl px-6 py-8">
+        <LibraryBreadcrumb />
+        <Outlet />
       </div>
     </LibraryBreadcrumbProvider>
   );

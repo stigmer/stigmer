@@ -71,6 +71,17 @@ When starting a new session:
 **Current Task**: PROJECT COMPLETE
 **Status**: T01 Done, T02 Done, T03 Done — all tasks complete, both apps at full parity
 
+## Session Progress (2026-04-26, Session 14 — Centralize Desktop Content Wrapper)
+
+- Added centralized `div.min-w-0.flex-1.overflow-y-auto` wrapper to desktop AppShell, matching the web AppShell pattern
+- Removed redundant per-page `div.h-full.overflow-y-auto` wrappers from LibraryLayout and SettingsLayout
+- Added `mx-auto max-w-4xl px-6 py-8` wrapper to Runners route for consistent content constraints
+- Updated Runners component: root no longer uses `flex h-full` (was full-width edge-to-edge); switches to `flex max-h-[70vh]` only when log viewer is open
+- Relocated Runners files from `pages/settings/` to `pages/runners/` to match the top-level route structure
+- Updated stale `/settings/runners` references in `useAppShortcuts`, `useDeepLinkHandler`, and web `DesktopAppBanner` comments
+- All verification targets pass: desktop lint + typecheck + cargo check (0 errors, 9 pre-existing warnings), web lint (clean)
+- Files changed: AppShell.tsx, LibraryLayout.tsx, SettingsLayout.tsx, routes.tsx, RunnersPage.tsx (new), useAppShortcuts.ts, useDeepLinkHandler.ts, DesktopAppBanner.tsx (web comments)
+
 ## Session Progress (2026-04-26, Session 13 — Library Card Alignment Fix)
 
 - Fixed Library landing page card alignment in the desktop app — cards were collapsing to intrinsic content width (~300px total) instead of filling the grid columns within the `max-w-4xl` container

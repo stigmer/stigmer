@@ -50,7 +50,9 @@ export function AppShell() {
 
         {/* Main content */}
         <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <Outlet />
+          <div className="min-w-0 flex-1 overflow-y-auto">
+            <Outlet />
+          </div>
         </main>
       </div>
     </OrgGate>

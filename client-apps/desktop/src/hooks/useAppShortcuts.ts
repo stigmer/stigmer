@@ -31,7 +31,7 @@ export function useAppShortcuts(): void {
           break;
         case ",":
           e.preventDefault();
-          navigate("/settings/runners");
+          navigate("/settings");
           break;
       }
     }
