@@ -69,11 +69,13 @@ jobs:
       - name: Install Planton CLI
         env:
           PLANTON_CLI_VERSION: v0.0.25-cli.20260426.1
+          PLANTON_API_KEY: ${{ secrets.PLANTON_API_KEY }}
         run: |
           curl -fsSLo /usr/local/bin/planton \
             "https://downloads.planton.ai/cli/${PLANTON_CLI_VERSION}/planton-${PLANTON_CLI_VERSION}-linux-amd64"
           chmod +x /usr/local/bin/planton
           planton --version
+          planton context set --org stigmer
 
       - name: Update Planton sandbox image variable
         env:
