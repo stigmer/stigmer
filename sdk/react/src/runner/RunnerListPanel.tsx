@@ -41,10 +41,11 @@ export interface RunnerListPanelProps {
    * Include system-managed (ephemeral cloud) runners in the list.
    *
    * System-managed runners are auto-provisioned for cloud executions
-   * and labeled `stigmer.ai/system-managed: "true"`. Including them
-   * gives admins full visibility into all compute resources.
+   * and labeled `stigmer.ai/system-managed: "true"`. They are excluded
+   * by default so user-facing views only show user-created runners.
+   * Pass `true` in admin views that need full fleet visibility.
    *
-   * @default true
+   * @default false
    */
   readonly includeSystemManaged?: boolean;
   /** Expose refetch so parent components can trigger a list refresh. */
@@ -64,8 +65,8 @@ export interface RunnerListPanelProps {
 }
 
 /**
- * Admin panel that displays all runners in an organization with
- * lifecycle management actions.
+ * Panel that displays runners in an organization with lifecycle
+ * management actions.
  *
  * Each runner is rendered as a card row showing name, phase indicator,
  * machine information, and operational metadata. Non-system-managed
@@ -73,8 +74,12 @@ export interface RunnerListPanelProps {
  * inline confirmation — no modals or portals.
  *
  * Rows are sorted by phase (active runners first) then alphabetically
- * by name. System-managed runners display a "System" badge and have
- * no action affordances.
+ * by name. System-managed runners (when included) display a "System"
+ * badge and have no action affordances.
+ *
+ * By default only user-created runners are shown. Pass
+ * `includeSystemManaged={true}` for admin views that need full fleet
+ * visibility.
  *
  * Designed for the Settings > Runners page but embeddable in any
  * context that needs runner fleet management. Fetches data via
@@ -89,7 +94,7 @@ export interface RunnerListPanelProps {
  *
  * <RunnerListPanel
  *   org="acme"
- *   includeSystemManaged={false}
+ *   includeSystemManaged
  *   onStopped={(runner) => toast(`${runner.metadata?.name} stopped`)}
  *   onDeleted={(runner) => toast(`${runner.metadata?.name} deleted`)}
  *   onRefetchRef={(refetch) => { refetchRef.current = refetch; }}
@@ -98,7 +103,7 @@ export interface RunnerListPanelProps {
  */
 export function RunnerListPanel({
   org,
-  includeSystemManaged = true,
+  includeSystemManaged = false,
   onRefetchRef,
   onStopped,
   onDeleted,

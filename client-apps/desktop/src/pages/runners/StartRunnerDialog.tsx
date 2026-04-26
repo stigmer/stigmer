@@ -10,6 +10,8 @@ interface StartRunnerDialogProps {
     token?: string;
   }) => void;
   readonly isStarting: boolean;
+  /** Error message to display inline within the dialog. */
+  readonly error?: string | null;
 }
 
 export function StartRunnerDialog({
@@ -17,6 +19,7 @@ export function StartRunnerDialog({
   onClose,
   onStart,
   isStarting,
+  error,
 }: StartRunnerDialogProps) {
   const [name, setName] = useState("");
   const [endpoint, setEndpoint] = useState("");
@@ -94,6 +97,15 @@ export function StartRunnerDialog({
             onChange={setToken}
             type="password"
           />
+
+          {error && (
+            <p
+              className="whitespace-pre-wrap rounded-md border border-destructive-muted bg-destructive-subtle px-3 py-2 text-xs text-destructive"
+              role="alert"
+            >
+              {error}
+            </p>
+          )}
 
           <div className="flex justify-end gap-2 pt-2">
             <button

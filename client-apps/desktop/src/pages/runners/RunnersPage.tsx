@@ -18,7 +18,7 @@ import {
   ExchangeLaunchTokenRequestSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/io_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { Play, Square, ScrollText, AlertCircle } from "lucide-react";
+import { Play, Square, ScrollText } from "lucide-react";
 import { useLocalRunners } from "../../hooks/useLocalRunners";
 import { useStartRunner } from "../../hooks/useStartRunner";
 import { useStopLocalRunner } from "../../hooks/useStopLocalRunner";
@@ -39,7 +39,7 @@ export default function RunnersPage() {
     isLoading: serverLoading,
     error: serverError,
     refetch: refetchServer,
-  } = useRunnerList(org, { includeSystemManaged: true });
+  } = useRunnerList(org);
 
   const { localRunners, isLoading: localLoading } = useLocalRunners();
   const { startRunner, isStarting, error: startError, clearError } =
@@ -48,6 +48,8 @@ export default function RunnersPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [logRunner, setLogRunner] = useState<string | null>(null);
+  const [launchError, setLaunchError] = useState<string | null>(null);
+  const [isLaunching, setIsLaunching] = useState(false);
 
   const localRunnerIds = useMemo(() => {
     const ids = new Set<string>();
@@ -76,6 +78,9 @@ export default function RunnersPage() {
       endpoint?: string;
       token?: string;
     }) => {
+      setLaunchError(null);
+      setIsLaunching(true);
+
       try {
         let token = opts.token;
         let endpoint = opts.endpoint;
@@ -102,11 +107,16 @@ export default function RunnersPage() {
         });
         setDialogOpen(false);
         setTimeout(refetchServer, 3000);
-      } catch {
-        // Error is captured in the hook.
+      } catch (err) {
+        const message = describeStartFlowError(err);
+        if (!isStarting) {
+          setLaunchError(message);
+        }
+      } finally {
+        setIsLaunching(false);
       }
     },
-    [stigmer, org, startRunner, refetchServer],
+    [stigmer, org, startRunner, isStarting, refetchServer],
   );
 
   const handleStop = useCallback(
@@ -137,6 +147,7 @@ export default function RunnersPage() {
           <button
             onClick={() => {
               clearError();
+              setLaunchError(null);
               setDialogOpen(true);
             }}
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
@@ -145,19 +156,6 @@ export default function RunnersPage() {
             Start Runner
           </button>
         </div>
-
-        {/* Auth / start error banner */}
-        {startError && (
-          <div className="mb-4 flex gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-            <AlertCircle
-              size={14}
-              className="mt-0.5 shrink-0 text-destructive"
-            />
-            <p className="whitespace-pre-wrap text-xs text-destructive">
-              {startError}
-            </p>
-          </div>
-        )}
 
         {/* Loading skeleton */}
         {isLoading && (
@@ -240,7 +238,8 @@ export default function RunnersPage() {
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         onStart={handleStart}
-        isStarting={isStarting}
+        isStarting={isLaunching || isStarting}
+        error={launchError ?? startError}
       />
     </div>
   );
@@ -406,6 +405,32 @@ function RunnerIcon({ size = 14 }: { size?: number }) {
 // ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
+
+function describeStartFlowError(err: unknown): string {
+  const raw = String(err).toLowerCase();
+
+  if (raw.includes("unimplemented")) {
+    return "Launch tokens are not supported in OSS mode. " +
+      "Run \u2018stigmer auth login\u2019 in a terminal, then use " +
+      "\u2018stigmer up\u2019 to start a runner directly.";
+  }
+  if (raw.includes("unauthenticated") || raw.includes("unauthorized")) {
+    return "Authentication failed. Please log in again.";
+  }
+  if (raw.includes("not_found") || raw.includes("not found")) {
+    return "The launch token has expired or was already used. Please try again.";
+  }
+  if (raw.includes("network") || raw.includes("fetch") || raw.includes("connect")) {
+    return "Could not reach the Stigmer server. Check your network connection.";
+  }
+  if (raw.includes("already managed")) {
+    return "A runner with that name is already running on this machine.";
+  }
+  if (raw.includes("sidecar") || raw.includes("spawn")) {
+    return "Failed to start the runner process. The CLI sidecar may be missing \u2014 try reinstalling the desktop app.";
+  }
+  return `Failed to start runner: ${String(err)}`;
+}
 
 function phaseThenName(a: Runner, b: Runner): number {
   const pa = a.status?.phase ?? RunnerPhase.UNSPECIFIED;
