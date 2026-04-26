@@ -71,6 +71,14 @@ When starting a new session:
 **Current Task**: PROJECT COMPLETE
 **Status**: T01 Done, T02 Done, T03 Done — all tasks complete, both apps at full parity
 
+## Session Progress (2026-04-26, Session 12 — Monochrome Theme Alignment)
+
+- Removed `VersionFooter` from desktop sidebar (static version text + update-available prompt) — cleaned up `useState`, `getVersion`, `ArrowUpCircle`, `useAppUpdaterContext` imports
+- Set `preset="monochrome"` on web console's `StigmerProvider` in both `StigmerTransportBridge.tsx` (authenticated app) and `LoginPageView.tsx` (pre-auth login page) — web now matches desktop's monochrome visual identity
+- Removed dead flash-prevention inline script from `layout.tsx` that read `stgm-theme-preset` from localStorage (no UI existed to write it)
+- All verification targets pass: web lint (clean), desktop lint + typecheck + cargo check (0 errors, 9 pre-existing warnings)
+- Commit: `9c51a770d refactor(web,desktop): align web console to monochrome theme and remove version footer`
+
 ## Session Progress (2026-04-26, Session 11 — Promote Runners to Top-Level Navigation)
 
 - Promoted Runners from Settings > Infrastructure to top-level navigation in both web and desktop apps
