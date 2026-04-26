@@ -433,7 +433,7 @@ export type {
   OrgMembersPanelProps,
 } from "./iam-policy";
 
-// Organization — context provider, hooks, data hooks, behavior hooks, styled form, and profile panel
+// Organization — context provider, hooks, data hooks, behavior hooks, styled form, profile panel, and org switcher
 export {
   OrgProvider,
   useOrg,
@@ -444,6 +444,7 @@ export {
   useUpdateOrganization,
   CreateOrganizationForm,
   OrgProfilePanel,
+  OrgSwitcher,
 } from "./organization";
 export type {
   OrgContextValue,
@@ -455,6 +456,7 @@ export type {
   UseUpdateOrganizationReturn,
   CreateOrganizationFormProps,
   OrgProfilePanelProps,
+  OrgSwitcherProps,
 } from "./organization";
 
 // API Key — data hooks, behavior hooks, and styled components for API key lifecycle

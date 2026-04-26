@@ -16,3 +16,5 @@ export { CreateOrganizationForm } from "./CreateOrganizationForm";
 export type { CreateOrganizationFormProps } from "./CreateOrganizationForm";
 export { OrgProfilePanel } from "./OrgProfilePanel";
 export type { OrgProfilePanelProps } from "./OrgProfilePanel";
+export { OrgSwitcher } from "./OrgSwitcher";
+export type { OrgSwitcherProps } from "./OrgSwitcher";
