@@ -10,15 +10,20 @@ import {
 } from "react";
 
 interface BreadcrumbOverrideContextValue {
-  /** Override label for the last breadcrumb segment, or `null` to use the raw URL segment. */
   readonly label: string | null;
-  /** Set (or clear) the override label for the last breadcrumb segment. */
   readonly setLabel: (label: string | null) => void;
 }
 
 const BreadcrumbOverrideContext =
   createContext<BreadcrumbOverrideContextValue | null>(null);
 
+/**
+ * Provides a breadcrumb label override for library detail pages.
+ *
+ * Wrap the library zone in this provider so that detail pages can push
+ * a human-readable resource name into the breadcrumb via
+ * `useBreadcrumbOverride().setLabel(name)`.
+ */
 export function LibraryBreadcrumbProvider({
   children,
 }: {
@@ -40,8 +45,9 @@ export function LibraryBreadcrumbProvider({
 
 /**
  * Read the current breadcrumb override label.
- * Used by `LibraryBreadcrumb` to display a resource display name
- * instead of the raw URL slug.
+ *
+ * Used by breadcrumb UI components to display a resource display name
+ * instead of the raw URL slug for the last segment.
  */
 export function useBreadcrumbLabel(): string | null {
   return useContext(BreadcrumbOverrideContext)?.label ?? null;
@@ -49,11 +55,10 @@ export function useBreadcrumbLabel(): string | null {
 
 /**
  * Set (or clear) the breadcrumb override label.
- * Used by detail pages to push the resource display name up to the
- * breadcrumb after the resource data has loaded.
  *
- * Returns a stable `setLabel` function safe for use as a `useEffect`
- * dependency.
+ * Used by detail pages to push the resource display name up to the
+ * breadcrumb after the resource data has loaded. Returns a stable
+ * `setLabel` function safe for use as a `useEffect` dependency.
  */
 export function useBreadcrumbOverride(): {
   setLabel: (label: string | null) => void;

@@ -459,9 +459,19 @@ export type {
   OrgSwitcherProps,
 } from "./organization";
 
-// Settings — navigation structure shared across app shells
+// Settings — navigation structure + section components shared across app shells
 export { SETTINGS_NAV_GROUPS } from "./settings";
 export type { SettingsNavItem, SettingsNavGroup } from "./settings";
+export { ApiKeysSection } from "./settings";
+export { MembersSection } from "./settings";
+export { OrgProfileSection } from "./settings";
+export { EnvironmentsSection } from "./settings";
+export { InvitationsSection } from "./settings";
+export { IdentityProvidersSection } from "./settings";
+export type { IdentityProvidersSectionProps } from "./settings";
+export { PlatformClientsSection } from "./settings";
+export { OAuthAppsSection } from "./settings";
+export { UsageSection } from "./settings";
 
 // User — app shell user menu
 export { UserMenu } from "./user";
@@ -594,6 +604,9 @@ export type { ErrorMessageProps, SecretFlowErrorGuideProps } from "./error";
 
 // Library — cross-resource UI components, resource detection, apply flow, browsing, and visibility management
 export {
+  LibraryBreadcrumbProvider,
+  useBreadcrumbLabel,
+  useBreadcrumbOverride,
   ScopeToggle,
   ResourceListView,
   ResourceCountCard,

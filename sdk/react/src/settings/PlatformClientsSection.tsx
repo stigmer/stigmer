@@ -3,16 +3,13 @@
 import { useCallback, useRef, useState } from "react";
 import type { PlatformClient } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/api_pb";
 import type { PlatformClientCreateResponse } from "@stigmer/protos/ai/stigmer/iam/platformclient/v1/io_pb";
-import {
-  PlatformClientListPanel,
-  CreatePlatformClientForm,
-  PlatformClientDetailPanel,
-  PlatformClientSecretAlert,
-  useResourceAvailable,
-  CloudFeatureNotice,
-  ApiResourceKind,
-  useActiveOrgSlug,
-} from "@stigmer/react";
+import { PlatformClientListPanel } from "../platform-client/PlatformClientListPanel";
+import { CreatePlatformClientForm } from "../platform-client/CreatePlatformClientForm";
+import { PlatformClientDetailPanel } from "../platform-client/PlatformClientDetailPanel";
+import { PlatformClientSecretAlert } from "../platform-client/PlatformClientSecretAlert";
+import { useResourceAvailable, ApiResourceKind } from "../deployment-mode";
+import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
+import { useActiveOrgSlug } from "../organization/OrgProvider";
 
 type FlowState =
   | { phase: "idle" }
@@ -27,9 +24,7 @@ type FlowState =
 
 export function PlatformClientsSection() {
   const org = useActiveOrgSlug();
-  const pcAvailable = useResourceAvailable(
-    ApiResourceKind.platform_client,
-  );
+  const pcAvailable = useResourceAvailable(ApiResourceKind.platform_client);
 
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
   const listRefetchRef = useRef<(() => void) | null>(null);

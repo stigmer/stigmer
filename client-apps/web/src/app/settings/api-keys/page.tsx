@@ -1,4 +1,4 @@
-import { ApiKeysSection } from "@/domain/settings/ApiKeysSection";
+import { ApiKeysSection } from "@stigmer/react";
 
 export default function ApiKeysPage() {
   return <ApiKeysSection />;

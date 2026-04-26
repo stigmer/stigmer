@@ -1,12 +1,9 @@
 "use client";
 
-import {
-  OrgMembersPanel,
-  useResourceAvailable,
-  CloudFeatureNotice,
-  ApiResourceKind,
-  useOrg,
-} from "@stigmer/react";
+import { OrgMembersPanel } from "../iam-policy/OrgMembersPanel";
+import { useResourceAvailable, ApiResourceKind } from "../deployment-mode";
+import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
+import { useOrg } from "../organization/OrgProvider";
 
 export function MembersSection() {
   const { activeOrg } = useOrg();

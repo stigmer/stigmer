@@ -1,12 +1,9 @@
 "use client";
 
-import {
-  InvitationManager,
-  useResourceAvailable,
-  CloudFeatureNotice,
-  ApiResourceKind,
-  useActiveOrgSlug,
-} from "@stigmer/react";
+import { InvitationManager } from "../invitation/InvitationManager";
+import { useResourceAvailable, ApiResourceKind } from "../deployment-mode";
+import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
+import { useActiveOrgSlug } from "../organization/OrgProvider";
 
 export function InvitationsSection() {
   const org = useActiveOrgSlug();
