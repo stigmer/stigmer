@@ -12,7 +12,7 @@
     "process:default",
     "window-state:default",
     "deep-link:default",
-    "shell:allow-open",
+    "opener:default",
     {
       "identifier": "shell:allow-spawn",
       "allow": [
