@@ -7,7 +7,7 @@ import { router } from "./routes";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { OrgProvider } from "./org/OrgProvider";
 import { LoginScreen } from "./auth/LoginScreen";
-import { useAppUpdater } from "./hooks/useAppUpdater";
+import { AppUpdaterProvider } from "./hooks/AppUpdaterContext";
 import { useDeepLinkHandler } from "./hooks/useDeepLinkHandler";
 import { useRunnerNotifications } from "./hooks/useRunnerNotifications";
 
@@ -32,7 +32,6 @@ export function App() {
 
 function AuthenticatedApp() {
   const { getAccessToken, isAuthenticated, isInitialized } = useAuth();
-  useAppUpdater();
   useRunnerNotifications();
 
   const client = useMemo(
@@ -66,10 +65,12 @@ function AuthenticatedApp() {
       deploymentMode={deploymentMode}
       colorMode="system"
     >
-      <OrgProvider>
-        <RouterProvider router={router} />
-        <Toaster position="bottom-right" richColors />
-      </OrgProvider>
+      <AppUpdaterProvider>
+        <OrgProvider>
+          <RouterProvider router={router} />
+          <Toaster position="bottom-right" richColors />
+        </OrgProvider>
+      </AppUpdaterProvider>
     </StigmerProvider>
   );
 }

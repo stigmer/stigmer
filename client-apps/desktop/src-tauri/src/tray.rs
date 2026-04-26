@@ -1,7 +1,7 @@
 use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Manager, Wry};
+use tauri::{AppHandle, Emitter, Manager, Wry};
 
 use crate::sidecar;
 
@@ -17,6 +17,10 @@ pub fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
         .show_menu_on_left_click(true)
         .on_menu_event(|app, event| match event.id().as_ref() {
             "open" => show_main_window(app),
+            "check_updates" => {
+                show_main_window(app);
+                let _ = app.emit("check-for-update", ());
+            }
             "stop_all" => {
                 let handle = app.clone();
                 tauri::async_runtime::spawn(async move {
@@ -95,6 +99,13 @@ fn build_menu(app: &AppHandle, runner_names: &[String]) -> tauri::Result<Menu<Wr
         app,
         "open",
         "Open Stigmer",
+        true,
+        None::<&str>,
+    )?)?;
+    menu.append(&MenuItem::with_id(
+        app,
+        "check_updates",
+        "Check for Updates\u{2026}",
         true,
         None::<&str>,
     )?)?;

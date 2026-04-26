@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   Plus,
   Library,
   Settings,
   MessageSquare,
+  ArrowUpCircle,
 } from "lucide-react";
+import { getVersion } from "@tauri-apps/api/app";
 import { cn } from "@stigmer/theme";
 import {
   useSessionList,
@@ -13,11 +15,19 @@ import {
   resolvedSubject,
 } from "@stigmer/react";
 import type { SessionGroup } from "@stigmer/react";
+import { useAppUpdaterContext } from "../hooks/AppUpdaterContext";
 
 export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams<{ id: string }>();
+  const { status: updateStatus, availableVersion, checkForUpdate } =
+    useAppUpdaterContext();
+  const [appVersion, setAppVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    getVersion().then(setAppVersion).catch(() => {});
+  }, []);
 
   const activeSessionId = location.pathname.startsWith("/sessions/")
     ? params.id ?? null
@@ -120,6 +130,13 @@ export function Sidebar() {
           <Settings className="size-4 shrink-0" />
           Settings
         </NavLink>
+
+        <SidebarVersionFooter
+          appVersion={appVersion}
+          updateStatus={updateStatus}
+          availableVersion={availableVersion}
+          onCheckForUpdate={checkForUpdate}
+        />
       </div>
     </aside>
   );
@@ -203,6 +220,42 @@ function RecentsEmptyState() {
     <div className="flex flex-col items-center gap-2 py-8 text-center">
       <MessageSquare className="size-8 text-sidebar-muted-foreground" />
       <p className="text-xs text-sidebar-muted-foreground">No recent sessions</p>
+    </div>
+  );
+}
+
+function SidebarVersionFooter({
+  appVersion,
+  updateStatus,
+  availableVersion,
+  onCheckForUpdate,
+}: {
+  appVersion: string | null;
+  updateStatus: string;
+  availableVersion: string | null;
+  onCheckForUpdate: () => void;
+}) {
+  if (!appVersion) return null;
+
+  const hasUpdate = updateStatus === "available" && availableVersion;
+
+  return (
+    <div className="mt-1 px-2">
+      {hasUpdate ? (
+        <button
+          onClick={onCheckForUpdate}
+          className="flex w-full items-center gap-1.5 rounded-md px-0.5 py-1 text-[0.65rem] text-sidebar-primary transition-colors hover:text-sidebar-accent-foreground"
+        >
+          <ArrowUpCircle className="size-3 shrink-0" />
+          <span>
+            Update available: v{availableVersion}
+          </span>
+        </button>
+      ) : (
+        <span className="block py-1 text-[0.65rem] text-sidebar-muted-foreground">
+          v{appVersion}
+        </span>
+      )}
     </div>
   );
 }
