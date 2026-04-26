@@ -71,6 +71,17 @@ When starting a new session:
 **Current Task**: PROJECT COMPLETE
 **Status**: T01 Done, T02 Done, T03 Done — all tasks complete, both apps at full parity
 
+## Session Progress (2026-04-26, Session 11 — Promote Runners to Top-Level Navigation)
+
+- Promoted Runners from Settings > Infrastructure to top-level navigation in both web and desktop apps
+- Runners now appears in the main sidebar alongside Sessions and Library (order: New Session, Library, Runners, [separator], Recents)
+- Removed "Infrastructure" group from `SETTINGS_NAV_GROUPS` in `@stigmer/react` — remaining groups are genuinely settings concerns
+- Moved `RunnersSection` from `domain/settings/` to `domain/runner/` following domain-based organization
+- Created new top-level `/runners` route in web (Next.js page) and desktop (hash route)
+- Added backward-compatible redirects from `/settings/runners` in both apps
+- All verification targets pass: SDK lint + typecheck (clean), web lint (clean), desktop lint + typecheck + cargo check (0 errors, 9 pre-existing warnings)
+- Commit: `076575038 feat(sdk,web,desktop): promote Runners from Settings to top-level navigation`
+
 ## Session Progress (2026-04-26, Session 10 — T03 Web App Migration & Project Close-Out)
 
 - Completed T03: Web App Migration — cleanup, parity verification, and project close-out
