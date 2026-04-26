@@ -438,6 +438,7 @@ export {
   OrgProvider,
   useOrg,
   useActiveOrgSlug,
+  useOrgGate,
   useOrganization,
   useCreateOrganization,
   useUpdateOrganization,
@@ -446,6 +447,9 @@ export {
 } from "./organization";
 export type {
   OrgContextValue,
+  UseOrgGateOptions,
+  OrgGateState,
+  UseOrgGateReturn,
   UseOrganizationReturn,
   UseCreateOrganizationReturn,
   UseUpdateOrganizationReturn,

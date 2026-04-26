@@ -1,16 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { Loader2, AlertCircle, RefreshCw, Building2, LogOut } from "lucide-react";
-import { CreateOrganizationForm } from "@stigmer/react";
+import { CreateOrganizationForm, useOrgGate } from "@stigmer/react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { useOrg } from "@stigmer/react";
 import { useAuth } from "@/auth";
 import { getRuntimeConfig } from "@/config/runtime-config";
-
-const PROVISIONING_POLL_MS = 2_000;
-const PROVISIONING_TIMEOUT_MS = 10_000;
 
 /** Routes that bypass the org gate (user may not have an org yet). */
 const ORG_GATE_BYPASS_PREFIXES = ["/invite/"] as const;
@@ -18,89 +14,38 @@ const ORG_GATE_BYPASS_PREFIXES = ["/invite/"] as const;
 /**
  * Blocks the application shell until the user has at least one organization.
  *
- * Sits between {@link OrgProvider} and the app content in the provider
- * hierarchy. Handles four pre-app states:
+ * Delegates provisioning state machine logic to `useOrgGate()` from the
+ * SDK and renders Console-specific gate screens based on the returned state.
  *
- * - **Loading** — spinner while `findMyOrganizations()` is in flight.
- * - **Provisioning** (OIDC only) — personalized welcome screen while the
- *   server-side personal org creation completes. Auto-retries every 2 s
- *   for up to 10 s before falling back to the manual onboarding form.
- * - **Error** — retry prompt when the org fetch fails.
- * - **No organizations** — onboarding screen with inline
- *   {@link CreateOrganizationForm} from `@stigmer/react`.
- *
- * Once at least one org exists, renders `children` (the normal AppShell).
- *
- * Certain routes (e.g. {@code /invite/[token]}) bypass the gate because the
+ * Certain routes (e.g. `/invite/[token]`) bypass the gate because the
  * user may not have an org yet — they are joining one via an invitation.
  *
  * This is a Console-only concern — platform builders handle org provisioning
  * in their own onboarding flows.
  */
 export function OrgGate({ children }: { children: React.ReactNode }) {
-  const { orgs, isLoading, error, retry, refresh } = useOrg();
   const pathname = usePathname();
-  const [provisioningStarted, setProvisioningStarted] = useState(false);
-  const [provisioningTimedOut, setProvisioningTimedOut] = useState(false);
 
   const isBypassed = ORG_GATE_BYPASS_PREFIXES.some((p) => pathname.startsWith(p));
 
-  // React-sanctioned "adjust state during render" pattern: the guard on
-  // `!provisioningStarted` prevents infinite re-render loops.
-  if (
-    !isBypassed &&
-    !provisioningStarted &&
-    !isLoading &&
-    orgs.length === 0 &&
-    !error &&
-    getRuntimeConfig().authMode === "oidc"
-  ) {
-    setProvisioningStarted(true);
+  const { state, retry, refresh } = useOrgGate({
+    isBypassed,
+    isOidcMode: getRuntimeConfig().authMode === "oidc",
+  });
+
+  switch (state.status) {
+    case "bypassed":
+    case "ready":
+      return <>{children}</>;
+    case "loading":
+      return <LoadingState />;
+    case "provisioning":
+      return <ProvisioningState />;
+    case "error":
+      return <ErrorState message={state.message} onRetry={retry} />;
+    case "no-orgs":
+      return <OnboardingState onRefresh={refresh} />;
   }
-
-  const isProvisioning = provisioningStarted && orgs.length === 0 && !provisioningTimedOut;
-
-  // Poll for the personal org while provisioning is in progress.
-  // Errors from refresh() are absorbed — transient failures (identity not
-  // yet created) are expected during the provisioning window.
-  useEffect(() => {
-    if (!isProvisioning) return;
-
-    const interval = setInterval(() => refresh(), PROVISIONING_POLL_MS);
-    const timeout = setTimeout(
-      () => setProvisioningTimedOut(true),
-      PROVISIONING_TIMEOUT_MS,
-    );
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, [isProvisioning, refresh]);
-
-  if (isBypassed) {
-    return <>{children}</>;
-  }
-
-  // Provisioning takes render priority over isLoading/error so the user
-  // sees a stable welcome screen throughout the retry loop.
-  if (isProvisioning) {
-    return <ProvisioningState />;
-  }
-
-  if (isLoading) {
-    return <LoadingState />;
-  }
-
-  if (error) {
-    return <ErrorState message={error} onRetry={retry} />;
-  }
-
-  if (orgs.length === 0) {
-    return <OnboardingState onRefresh={refresh} />;
-  }
-
-  return <>{children}</>;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import {
   Loader2,
@@ -7,13 +7,9 @@ import {
   Building2,
   LogOut,
 } from "lucide-react";
-import { CreateOrganizationForm } from "@stigmer/react";
+import { CreateOrganizationForm, useOrgGate } from "@stigmer/react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { useOrg } from "@stigmer/react";
 import { useAuth } from "../auth/AuthProvider";
-
-const PROVISIONING_POLL_MS = 2_000;
-const PROVISIONING_TIMEOUT_MS = 10_000;
 
 /** Routes that bypass the org gate (user may not have an org yet). */
 const ORG_GATE_BYPASS_PREFIXES = ["/invite/"] as const;
@@ -21,59 +17,35 @@ const ORG_GATE_BYPASS_PREFIXES = ["/invite/"] as const;
 /**
  * Blocks the app until the user has at least one organization.
  *
- * Desktop port of the web's OrgGate, adapted for react-router.
- * Handles: loading, provisioning poll (OIDC), error+retry, and
- * onboarding with `CreateOrganizationForm` from the SDK.
+ * Delegates provisioning state machine logic to `useOrgGate()` from the
+ * SDK and renders app-specific gate screens based on the returned state.
  */
 export function OrgGate({ children }: { children: ReactNode }) {
-  const { orgs, isLoading, error, retry, refresh } = useOrg();
   const location = useLocation();
   const { user } = useAuth();
-  const [provisioningStarted, setProvisioningStarted] = useState(false);
-  const [provisioningTimedOut, setProvisioningTimedOut] = useState(false);
 
   const isBypassed = ORG_GATE_BYPASS_PREFIXES.some((p) =>
     location.pathname.startsWith(p),
   );
 
-  const isOidcMode = user !== null;
+  const { state, retry, refresh } = useOrgGate({
+    isBypassed,
+    isOidcMode: user !== null,
+  });
 
-  if (
-    !isBypassed &&
-    !provisioningStarted &&
-    !isLoading &&
-    orgs.length === 0 &&
-    !error &&
-    isOidcMode
-  ) {
-    setProvisioningStarted(true);
+  switch (state.status) {
+    case "bypassed":
+    case "ready":
+      return <>{children}</>;
+    case "loading":
+      return <LoadingState />;
+    case "provisioning":
+      return <ProvisioningState />;
+    case "error":
+      return <ErrorState message={state.message} onRetry={retry} />;
+    case "no-orgs":
+      return <OnboardingState onRefresh={refresh} />;
   }
-
-  const isProvisioning =
-    provisioningStarted && orgs.length === 0 && !provisioningTimedOut;
-
-  useEffect(() => {
-    if (!isProvisioning) return;
-
-    const interval = setInterval(() => refresh(), PROVISIONING_POLL_MS);
-    const timeout = setTimeout(
-      () => setProvisioningTimedOut(true),
-      PROVISIONING_TIMEOUT_MS,
-    );
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, [isProvisioning, refresh]);
-
-  if (isBypassed) return <>{children}</>;
-  if (isProvisioning) return <ProvisioningState />;
-  if (isLoading) return <LoadingState />;
-  if (error) return <ErrorState message={error} onRetry={retry} />;
-  if (orgs.length === 0) return <OnboardingState onRefresh={refresh} />;
-
-  return <>{children}</>;
 }
 
 // ---------------------------------------------------------------------------
