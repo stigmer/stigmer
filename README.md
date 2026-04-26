@@ -15,7 +15,7 @@ Run locally with SQLite or connect to Stigmer Cloud for production.
 Bring your own LLM — Anthropic, OpenAI, or Ollama.
 
 [![License](https://img.shields.io/github/license/stigmer/stigmer)](LICENSE)
-[![Discord](https://img.shields.io/badge/Discord-community-5865F2?logo=discord&logoColor=white)](https://discord.gg/stigmer)
+[![Discord](https://img.shields.io/badge/Discord-community-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/EtANnfsJ8B)
 [![GitHub stars](https://img.shields.io/github/stars/stigmer/stigmer?style=flat)](https://github.com/stigmer/stigmer/stargazers)
 
 ## Quick Start
@@ -196,7 +196,7 @@ make test      # Run tests
 We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 - [GitHub Issues](https://github.com/stigmer/stigmer/issues) — Bug reports and feature requests
-- [Discord](https://discord.gg/stigmer) — Community chat
+- [Discord](https://discord.com/invite/EtANnfsJ8B) — Community chat
 
 ## License
 
