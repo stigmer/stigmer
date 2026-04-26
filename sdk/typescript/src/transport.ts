@@ -42,5 +42,6 @@ export function createStigmerTransport(config: StigmerConfig): Transport {
     baseUrl: config.baseUrl,
     useBinaryFormat: true,
     interceptors,
+    fetch: config.fetch,
   });
 }

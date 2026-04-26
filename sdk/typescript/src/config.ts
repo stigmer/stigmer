@@ -46,6 +46,34 @@ export interface StigmerConfig {
   readonly transport?: "grpc-web" | "connect";
 
   /**
+   * Custom `fetch` implementation for the HTTP transport.
+   *
+   * By default the SDK uses the global `fetch` provided by the browser
+   * or Node.js runtime. In environments where the global `fetch` is
+   * restricted (e.g., Tauri/Electron webviews that face CORS limitations),
+   * pass an alternative `fetch` that bypasses those restrictions.
+   *
+   * The Tauri HTTP plugin (`@tauri-apps/plugin-http`) exports a
+   * compatible `fetch` that routes requests through the native Rust
+   * HTTP client, avoiding browser CORS enforcement entirely.
+   *
+   * Ignored when `customTransport` is provided.
+   *
+   * @example
+   * ```typescript
+   * import { fetch } from "@tauri-apps/plugin-http";
+   * import { Stigmer } from "@stigmer/sdk";
+   *
+   * const stigmer = new Stigmer({
+   *   baseUrl: "https://api.stigmer.ai",
+   *   getAccessToken: () => token,
+   *   fetch,
+   * });
+   * ```
+   */
+  readonly fetch?: typeof globalThis.fetch;
+
+  /**
    * Pre-built ConnectRPC transport.
    *
    * When provided, the SDK uses this transport directly instead of
