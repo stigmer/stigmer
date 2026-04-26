@@ -1,4 +1,5 @@
 mod auth;
+mod menu;
 mod sidecar;
 mod tray;
 
@@ -43,6 +44,7 @@ pub fn run() {
             sidecar::list_local_runners,
             sidecar::get_runner_logs,
         ])
+        .on_menu_event(|app, event| menu::handle_menu_event(app, &event))
         .setup(|app| {
             #[cfg(any(windows, target_os = "linux"))]
             {
@@ -74,6 +76,7 @@ pub fn run() {
 
             app.handle()
                 .plugin(tauri_plugin_updater::Builder::new().build())?;
+            menu::setup_app_menu(app)?;
             tray::setup_tray(app)?;
             Ok(())
         })
