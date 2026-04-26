@@ -138,7 +138,11 @@ export function useNewSessionFlow(
   const { getModel } = useModelRegistry();
   const { create: createSession } = useCreateSession();
   const { create: createExecution } = useCreateAgentExecution();
-  const { agent: defaultAgent } = useDefaultAgent(org);
+  const {
+    agent: defaultAgent,
+    isLoading: isDefaultAgentLoading,
+    error: defaultAgentError,
+  } = useDefaultAgent(org);
   const workspace = useWorkspaceEntries();
   const sessionVariables = useSessionVariables();
 
@@ -221,6 +225,16 @@ export function useNewSessionFlow(
         } else {
           const defaultInstanceId = defaultAgent?.status?.defaultInstanceId;
           if (!defaultInstanceId) {
+            if (isDefaultAgentLoading) {
+              throw new Error(
+                "Loading default agent. Please try again in a moment.",
+              );
+            }
+            if (defaultAgentError) {
+              throw new Error(
+                "Failed to load default agent. Please try again.",
+              );
+            }
             throw new Error(
               "No default agent available. Select an agent to start a session.",
             );
@@ -253,6 +267,8 @@ export function useNewSessionFlow(
       agentRef,
       resolution,
       defaultAgent,
+      isDefaultAgentLoading,
+      defaultAgentError,
       createSession,
       createExecution,
       sessionVariables,

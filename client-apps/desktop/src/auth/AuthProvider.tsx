@@ -123,11 +123,19 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
   });
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Ref mirrors `tokens` so that `getAccessToken` and `logout` can read
+  // the latest value without depending on the state variable. This keeps
+  // both callbacks referentially stable across token refreshes, which in
+  // turn prevents the Stigmer client (and every hook that depends on it)
+  // from being recreated on every refresh cycle.
+  const tokensRef = useRef(tokens);
+  tokensRef.current = tokens;
+
   const isAuthenticated = tokens !== null && !isExpired(tokens);
 
   const getAccessToken = useCallback(() => {
-    return tokens?.accessToken ?? null;
-  }, [tokens]);
+    return tokensRef.current?.accessToken ?? null;
+  }, []);
 
   useEffect(() => {
     if (!tokens?.refreshToken || !tokens.expiresAt) return;
@@ -206,7 +214,7 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
-    const refreshToken = tokens?.refreshToken;
+    const refreshToken = tokensRef.current?.refreshToken;
 
     clearTokens();
     setTokens(null);
@@ -215,7 +223,7 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
     if (refreshToken) {
       revokeRefreshToken(refreshToken).catch(() => {});
     }
-  }, [tokens]);
+  }, []);
 
   const user: AuthUser | null = tokens
     ? parseIdTokenClaims(tokens.idToken)
