@@ -123,7 +123,7 @@ async def create_checkpointer(
         try:
             yield saver
         finally:
-            saver.close()
+            await saver.aclose()
     
     else:
         raise ValueError(
