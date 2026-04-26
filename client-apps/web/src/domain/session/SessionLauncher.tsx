@@ -10,10 +10,10 @@ import {
   useGitHubConnection,
   CREATOR_AGENTS,
   parseDraftParams,
+  useActiveOrgSlug,
 } from "@stigmer/react";
 import type { DraftResourceType } from "@stigmer/react";
 import type { ResourceRef } from "@stigmer/sdk";
-import { useActiveOrgSlug } from "@/domain/_shared/org/org-context";
 import { useDeploymentMode } from "@/domain/_shared/hooks/useDeploymentMode";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 

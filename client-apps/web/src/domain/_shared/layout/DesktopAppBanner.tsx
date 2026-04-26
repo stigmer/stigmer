@@ -25,7 +25,7 @@ import { triggerDesktopDownload } from "@/lib/desktop-download";
 //   4. 90 days after banner feature launch → evaluate adoption metrics;
 //      decide whether to continue, redesign, or remove entirely
 //   5. Desktop app reaches >40% adoption among console users → remove the
-//      global banner; keep contextual DesktopAppPromo on Settings > Runners
+//      global banner; keep contextual DesktopAppPromo on Runners page
 // ---------------------------------------------------------------------------
 
 const FIRST_SEEN_KEY = "stigmer:desktop-banner-first-seen";
@@ -152,7 +152,7 @@ export function useDesktopBannerState() {
 /**
  * Returns `true` when any desktop signal is present (Tauri, downloaded, local runner).
  *
- * Useful for hiding the contextual desktop promo on Settings > Runners
+ * Useful for hiding the contextual desktop promo on the Runners page
  * independently from the banner's visit-based and campaign-scoped logic.
  */
 export function useHasDesktopSignal(): boolean {

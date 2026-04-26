@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   useGitHubConnection,
   GITHUB_CALLBACK_MESSAGE_TYPE,
+  useActiveOrgSlug,
 } from "@stigmer/react";
-import { useActiveOrgSlug } from "@/domain/_shared/org/org-context";
 import { Button } from "@/domain/_shared/ui/button";
 
 /**

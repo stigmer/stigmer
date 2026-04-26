@@ -8,9 +8,9 @@ import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import {
   useAgentList,
   ResourceListView,
+  useActiveOrgSlug,
   type ResourceListScope,
 } from "@stigmer/react";
-import { useActiveOrgSlug } from "@/domain/_shared/org/org-context";
 
 const SCOPE_STORAGE_KEY = "stigmer:library:agents:scope";
 

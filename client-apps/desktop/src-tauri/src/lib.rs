@@ -1,4 +1,5 @@
 mod auth;
+mod menu;
 mod sidecar;
 mod tray;
 
@@ -11,9 +12,12 @@ use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 pub fn run() {
     let mut builder = tauri::Builder::default();
 
-    builder = builder.plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {
-        // Deep link URLs are forwarded automatically via the deep-link
-        // feature flag — no manual argv parsing needed here.
+    builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.show();
+            let _ = window.unminimize();
+            let _ = window.set_focus();
+        }
     }));
 
     let app = builder
@@ -24,17 +28,23 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(StateFlags::all() & !StateFlags::VISIBLE)
+                .build(),
+        )
         .manage(ProcessManager::new())
         .invoke_handler(tauri::generate_handler![
             auth::open_auth_in_browser,
             auth::cancel_auth,
+            auth::start_auth_callback_server,
             sidecar::start_runner,
             sidecar::stop_runner,
             sidecar::stop_all_runners,
             sidecar::list_local_runners,
             sidecar::get_runner_logs,
         ])
+        .on_menu_event(|app, event| menu::handle_menu_event(app, &event))
         .setup(|app| {
             #[cfg(any(windows, target_os = "linux"))]
             {
@@ -66,6 +76,7 @@ pub fn run() {
 
             app.handle()
                 .plugin(tauri_plugin_updater::Builder::new().build())?;
+            menu::setup_app_menu(app)?;
             tray::setup_tray(app)?;
             Ok(())
         })

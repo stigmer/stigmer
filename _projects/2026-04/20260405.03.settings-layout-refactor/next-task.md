@@ -12,9 +12,9 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: client-apps/web/src/components/layout/AppShell.tsx (zone detection/switching), client-apps/web/src/components/layout/ManagementSidebar.tsx (management zone sidebar), client-apps/web/src/app/settings/ (layout.tsx + sub-route pages), client-apps/web/src/components/settings/MembersSection.tsx, client-apps/web/src/components/settings/ApiKeysSection.tsx, client-apps/web/src/components/settings/EnvironmentsSection.tsx
 
 ## Current State
-- **Status**: In Progress
-- **Last Session**: 2026-04-06 (Session 10) — Org Profile page: SDK hooks, styled component, Console integration
-- **Completed Task**: Org Profile settings page — `useOrganization`, `useUpdateOrganization`, `OrgProfilePanel` in `@stigmer/react`, `OrgProfileSection` in Console, replaced ComingSoon placeholder
+- **Status**: Ready for Review
+- **Last Session**: 2026-04-26 (Session 11) — React SDK TSDoc hardening for settings/public API + generated docs sync
+- **Completed Task**: Resolved `make check` blocker by documenting missing `@stigmer/react` public APIs and regenerating React SDK docs
 
 ## Session Progress (2026-04-05)
 
@@ -100,16 +100,29 @@ Drop this file into your conversation to quickly resume work on this project.
 - ESLint clean (0 errors, 0 warnings), TypeScript clean for all new files
 - Decision: Slug read-only (cascading refs), Logo URL not upload (no asset storage yet), always-editable form (Jakob's Law)
 
+### Session 11 (2026-04-26)
+- Fixed `make check` failure in `sdk/react` caused by `typedoc --treatValidationWarningsAsErrors`
+- Added missing TSDoc to public settings components: `ApiKeysSection`, `MembersSection`, `OrgProfileSection`, `EnvironmentsSection`, `InvitationsSection`, `IdentityProvidersSection`, `PlatformClientsSection`, `OAuthAppsSection`, `UsageSection`
+- Added/expanded API docs in `settings-nav.ts`, `useOrgGate.ts`, `UserMenu.tsx`, and `LibraryBreadcrumbContext.tsx` to satisfy public API coverage requirements
+- Regenerated React SDK documentation artifacts via `make gen-react-sdk-docs` (updated `docs/sdk/react/*`, `site/src/data/react-sdk-summary.json`, and `site/yarn.lock`)
+- Re-ran full validation: `make check` now passes end-to-end
+
 ## Next Steps
 1. ~~Phase 5: Polish & edge cases~~ **Complete** (all 5 items done, Session 4-7)
 2. ~~Placeholder nav items for future sections~~ **Complete** (Session 8)
 3. ~~Settings IA reorganization~~ **Complete** (Session 9)
 4. ~~Org Profile page~~ **Complete** (Session 10)
-5. Browser-verify the Org Profile page renders and save/update flow works
-6. Visual testing across theme presets (Corporate, Fintech, Startup, Friendly)
-7. Browser-verify the settings landing page and grouped sidebar
+5. Review generated React SDK docs changes (`docs/sdk/react/settings.mdx`, `docs/sdk/react/user.mdx`, updated domains) for wording/section quality
+6. Browser-verify the Org Profile page renders and save/update flow works
+7. Visual testing across theme presets (Corporate, Fintech, Startup, Friendly)
+8. Browser-verify the settings landing page and grouped sidebar
 
 ## Context for Resume
+- This session was primarily quality hardening and documentation alignment, not new feature behavior
+- `make check` was red due to TypeDoc warning escalation (`--treatValidationWarningsAsErrors`); all warnings tied to missing docs for public exports in `@stigmer/react`
+- Fix strategy: add concise TSDoc directly on exported symbols/properties instead of suppressing checks
+- Running `make check` after TSDoc fixes surfaced stale generated docs; `make gen-react-sdk-docs` is now part of the expected follow-up when public API docs shift
+- `docs/sdk/react/settings.mdx` and `docs/sdk/react/user.mdx` are newly generated files introduced by the docs generator
 - Org Profile page is now live — `OrgProfilePanel` in `@stigmer/react` is self-contained and embeddable; Console's `OrgProfileSection` connects it to `OrgProvider`
 - `ComingSoon` component is still used by Billing and Usage pages — parameterized by `title` (string) and optional `icon` (Lucide component)
 - Nav items are now in grouped `SETTINGS_NAV_GROUPS` (from `settings-nav.ts`), not a flat array — both ManagementSidebar and the settings landing page import from this shared config
@@ -133,7 +146,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260405.03.settings-layout-refactor/checkpoints/2026-04-06-session-10.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-04/20260405.03.settings-layout-refactor/checkpoints/2026-04-26-session-11.md
 ```
 
 ### 2. Current Task
@@ -170,14 +183,15 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-04-06-session-10.md`
-2. [ ] Check current task status in `tasks/`
-3. [ ] Review any new design decisions in `design-decisions/`
-4. [ ] Check coding guidelines in `coding-guidelines/`
-5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Browser-verify Org Profile page renders and save flow works
-7. [ ] Browser-verify settings landing page and grouped sidebar
-8. [ ] Continue with visual testing across theme presets
+1. [ ] Read the latest checkpoint from `checkpoints/2026-04-26-session-11.md`
+2. [ ] Review generated docs additions/updates for settings and user domains
+3. [ ] Check current task status in `tasks/`
+4. [ ] Review any new design decisions in `design-decisions/`
+5. [ ] Check coding guidelines in `coding-guidelines/`
+6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
+7. [ ] Browser-verify Org Profile page renders and save flow works
+8. [ ] Browser-verify settings landing page and grouped sidebar
+9. [ ] Continue with visual testing across theme presets
 
 ## Quick Commands
 

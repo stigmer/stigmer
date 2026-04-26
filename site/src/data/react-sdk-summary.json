@@ -88,8 +88,8 @@
       "slug": "library",
       "title": "Library",
       "description": "Hooks and components for resource browsing, YAML detection, apply flow, and visibility.",
-      "hooks": 4,
-      "components": 4
+      "hooks": 6,
+      "components": 5
     },
     {
       "slug": "mcp-server",
@@ -116,8 +116,8 @@
       "slug": "organization",
       "title": "Organization",
       "description": "Hooks and components for organization creation.",
-      "hooks": 3,
-      "components": 2
+      "hooks": 6,
+      "components": 4
     },
     {
       "slug": "platform-client",
@@ -141,6 +141,13 @@
       "components": 0
     },
     {
+      "slug": "settings",
+      "title": "settings",
+      "description": "",
+      "hooks": 0,
+      "components": 9
+    },
+    {
       "slug": "skill",
       "title": "Skill",
       "description": "Hooks and components for knowledge attachments, search, picker, and detail views.",
@@ -152,6 +159,13 @@
       "title": "Usage",
       "description": "Hooks and components for organization-level usage reporting and cost breakdown.",
       "hooks": 1,
+      "components": 1
+    },
+    {
+      "slug": "user",
+      "title": "user",
+      "description": "",
+      "hooks": 0,
       "components": 1
     },
     {

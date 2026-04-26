@@ -11,7 +11,8 @@ pub fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
     let menu = build_menu(app.handle(), &[])?;
 
     TrayIconBuilder::with_id(TRAY_ID)
-        .icon(Image::from_bytes(include_bytes!("../icons/icon.png"))?)
+        .icon(Image::from_bytes(include_bytes!("../icons/tray-icon.png"))?)
+        .icon_as_template(true)
         .tooltip("Stigmer — Idle")
         .menu(&menu)
         .show_menu_on_left_click(true)

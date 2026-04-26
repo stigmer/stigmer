@@ -1,4 +1,4 @@
-import { PlatformClientsSection } from "@/domain/settings/PlatformClientsSection";
+import { PlatformClientsSection } from "@stigmer/react";
 
 export default function PlatformClientsPage() {
   return <PlatformClientsSection />;

@@ -6,11 +6,11 @@ import { ArrowLeft, PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { Button } from "@/domain/_shared/ui/button";
 import { Separator } from "@/domain/_shared/ui/separator";
+import { OrgSwitcher } from "@stigmer/react";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
-import { OrgSwitcher } from "./OrgSwitcher";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
-import { SETTINGS_NAV_GROUPS } from "./settings-nav";
+import { SETTINGS_NAV_GROUPS } from "@stigmer/react";
 
 export function ManagementSidebar() {
   const sidebar = useSidebarOpen();

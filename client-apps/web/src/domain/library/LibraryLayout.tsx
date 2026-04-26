@@ -7,7 +7,7 @@ import {
   type ActiveDetail,
 } from "@/domain/library/library-navigation";
 import { LibraryBreadcrumb } from "@/domain/library/LibraryBreadcrumb";
-import { LibraryBreadcrumbProvider } from "@/domain/library/LibraryBreadcrumbContext";
+import { LibraryBreadcrumbProvider } from "@stigmer/react";
 import { AgentDetailPageInner } from "@/domain/library/agents/AgentDetailPage";
 import { SkillDetailPageInner } from "@/domain/library/skills/SkillDetailPage";
 import { McpServerDetailPageInner } from "@/domain/library/mcp-servers/McpServerDetailPage";

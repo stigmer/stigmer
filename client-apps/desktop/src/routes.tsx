@@ -1,12 +1,26 @@
 import { lazy, Suspense } from "react";
 import {
   createHashRouter,
+  Navigate,
   type RouteObject,
 } from "react-router-dom";
+import {
+  ApiKeysSection,
+  EnvironmentsSection,
+  IdentityProvidersSection,
+  InvitationsSection,
+  MembersSection,
+  OAuthAppsSection,
+  OrgProfileSection,
+  PlatformClientsSection,
+  UsageSection,
+} from "@stigmer/react";
+import { CreditCard } from "lucide-react";
 import { AppShell } from "./shell/AppShell";
 import { SessionLauncher } from "./pages/SessionLauncher";
 
 const SessionPage = lazy(() => import("./pages/SessionPage"));
+const LibraryLayout = lazy(() => import("./pages/library/LibraryLayout"));
 const LibraryLanding = lazy(() => import("./pages/library/LibraryLanding"));
 const AgentListPage = lazy(() => import("./pages/library/AgentListPage"));
 const AgentDetailPage = lazy(() => import("./pages/library/AgentDetailPage"));
@@ -14,11 +28,9 @@ const SkillListPage = lazy(() => import("./pages/library/SkillListPage"));
 const SkillDetailPage = lazy(() => import("./pages/library/SkillDetailPage"));
 const McpServerListPage = lazy(() => import("./pages/library/McpServerListPage"));
 const McpServerDetailPage = lazy(() => import("./pages/library/McpServerDetailPage"));
-const SettingsRunners = lazy(() => import("./pages/settings/SettingsRunners"));
-const SettingsApiKeys = lazy(() => import("./pages/settings/SettingsApiKeys"));
-const SettingsEnvironments = lazy(() => import("./pages/settings/SettingsEnvironments"));
-const SettingsMembers = lazy(() => import("./pages/settings/SettingsMembers"));
-const SettingsOrgProfile = lazy(() => import("./pages/settings/SettingsOrgProfile"));
+const SettingsLayout = lazy(() => import("./pages/settings/SettingsLayout"));
+const SettingsLanding = lazy(() => import("./pages/settings/SettingsLanding"));
+const RunnersPage = lazy(() => import("./pages/runners/RunnersPage"));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -52,6 +64,11 @@ const routes: RouteObject[] = [
       },
       {
         path: "library",
+        element: (
+          <LazyPage>
+            <LibraryLayout />
+          </LazyPage>
+        ),
         children: [
           {
             index: true,
@@ -112,47 +129,57 @@ const routes: RouteObject[] = [
         ],
       },
       {
+        path: "runners",
+        element: (
+          <LazyPage>
+            <div className="mx-auto max-w-4xl px-6 py-8">
+              <RunnersPage />
+            </div>
+          </LazyPage>
+        ),
+      },
+      {
         path: "settings",
         children: [
           {
-            path: "runners",
             element: (
               <LazyPage>
-                <SettingsRunners />
+                <SettingsLayout />
               </LazyPage>
             ),
-          },
-          {
-            path: "api-keys",
-            element: (
-              <LazyPage>
-                <SettingsApiKeys />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "environments",
-            element: (
-              <LazyPage>
-                <SettingsEnvironments />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "members",
-            element: (
-              <LazyPage>
-                <SettingsMembers />
-              </LazyPage>
-            ),
-          },
-          {
-            path: "org-profile",
-            element: (
-              <LazyPage>
-                <SettingsOrgProfile />
-              </LazyPage>
-            ),
+            children: [
+              {
+                index: true,
+                element: (
+                  <LazyPage>
+                    <SettingsLanding />
+                  </LazyPage>
+                ),
+              },
+              { path: "api-keys", element: <ApiKeysSection /> },
+              { path: "environments", element: <EnvironmentsSection /> },
+              { path: "members", element: <MembersSection /> },
+              { path: "org-profile", element: <OrgProfileSection /> },
+              { path: "invitations", element: <InvitationsSection /> },
+              { path: "identity-providers", element: <IdentityProvidersSection /> },
+              { path: "platform-clients", element: <PlatformClientsSection /> },
+              { path: "oauth-apps", element: <OAuthAppsSection /> },
+              { path: "usage", element: <UsageSection /> },
+              {
+                path: "billing",
+                element: (
+                  <div className="flex flex-col items-center justify-center py-24 text-center">
+                    <CreditCard className="mb-4 size-10 text-muted-foreground" />
+                    <h2 className="mb-2 text-lg font-semibold text-foreground">Billing</h2>
+                    <p className="text-sm text-muted-foreground">This feature is coming soon.</p>
+                  </div>
+                ),
+              },
+              {
+                path: "runners",
+                element: <Navigate to="/runners" replace />,
+              },
+            ],
           },
         ],
       },

@@ -62,6 +62,7 @@ type WorkerConfig struct {
 	updateStatusActivityImpl  *activities.UpdateExecutionStatusActivityImpl
 	loadExecutionActivityImpl *activities.LoadAgentExecutionActivityImpl
 	deleteECActivityImpl      *ecactivities.DeleteExecutionContextActivityImpl
+	waitForRunnerReadyImpl    *activities.WaitForRunnerReadyActivityImpl
 }
 
 // NewWorkerConfig creates a new WorkerConfig.
@@ -76,6 +77,7 @@ func NewWorkerConfig(
 		updateStatusActivityImpl:  activities.NewUpdateExecutionStatusActivityImpl(store, streamBroker),
 		loadExecutionActivityImpl: activities.NewLoadAgentExecutionActivityImpl(store),
 		deleteECActivityImpl:      ecactivities.NewDeleteExecutionContextActivityImpl(store),
+		waitForRunnerReadyImpl:    activities.NewWaitForRunnerReadyActivityImpl(store),
 	}
 }
 
@@ -136,10 +138,12 @@ func (wc *WorkerConfig) CreateWorker(temporalClient client.Client) worker.Worker
 	w.RegisterActivity(wc.updateStatusActivityImpl.UpdateExecutionStatus)
 	w.RegisterActivity(wc.loadExecutionActivityImpl.LoadAgentExecution)
 	w.RegisterActivity(wc.deleteECActivityImpl.DeleteExecutionContext)
+	w.RegisterActivity(wc.waitForRunnerReadyImpl.WaitForRunnerReady)
 
 	log.Info().Msg("✅ [POLYGLOT] Registered UpdateExecutionStatusActivity as LOCAL activity (in-process)")
 	log.Info().Msg("✅ [POLYGLOT] Registered LoadAgentExecutionActivity as LOCAL activity (in-process)")
 	log.Info().Msg("✅ [POLYGLOT] Registered DeleteExecutionContextActivity as LOCAL activity (in-process)")
+	log.Info().Msg("✅ [POLYGLOT] Registered WaitForRunnerReadyActivity as LOCAL activity (ephemeral runner gate)")
 	log.Info().Msg("✅ [POLYGLOT] Temporal will route: workflow tasks → Go, Python activity tasks → Python")
 
 	return w
