@@ -174,10 +174,16 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
       const challenge = await generateChallenge(verifier);
       const stateParam = generateVerifier(32);
 
+      let callbackUrl = CALLBACK_URL;
+      if (import.meta.env.DEV) {
+        const port = await invoke<number>("start_auth_callback_server");
+        callbackUrl = `http://127.0.0.1:${port}/auth/callback`;
+      }
+
       const authUrl = buildAuthorizeUrl({
         codeChallenge: challenge,
         state: stateParam,
-        redirectUri: CALLBACK_URL,
+        redirectUri: callbackUrl,
         connection,
       });
 
@@ -186,7 +192,7 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
       const newTokens = await exchangeCode({
         code,
         codeVerifier: verifier,
-        redirectUri: CALLBACK_URL,
+        redirectUri: callbackUrl,
       });
 
       saveTokens(newTokens);

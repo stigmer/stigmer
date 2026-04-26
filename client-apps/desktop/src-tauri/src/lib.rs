@@ -29,6 +29,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             auth::open_auth_in_browser,
             auth::cancel_auth,
+            auth::start_auth_callback_server,
             sidecar::start_runner,
             sidecar::stop_runner,
             sidecar::stop_all_runners,
