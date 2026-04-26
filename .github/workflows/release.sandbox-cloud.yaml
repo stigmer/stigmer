@@ -67,7 +67,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Planton CLI
-        run: brew install plantonhq/tap/planton
+        run: |
+          curl -fsSLo /usr/local/bin/planton \
+            "https://downloads.planton.ai/cli/latest/planton-$(uname -s)-$(uname -m)"
+          chmod +x /usr/local/bin/planton
+          planton --version
 
       - name: Update Planton sandbox image variable
         env:
