@@ -5,6 +5,7 @@ import { ExchangeLaunchTokenRequestSchema } from "@stigmer/protos/ai/stigmer/age
 import { toast } from "sonner";
 import type { Stigmer } from "@stigmer/sdk";
 import { invokeStartRunner } from "./tauri";
+import { toGrpcTarget } from "../lib/grpc-target";
 import { router } from "../routes";
 
 const TOAST_ID = "deep-link-launch";
@@ -136,7 +137,8 @@ export function useDeepLinkHandler(
 
       await invokeStartRunner({
         token: response.accessToken,
-        endpoint: baseUrlRef.current,
+        endpoint: toGrpcTarget(baseUrlRef.current),
+        org: response.org || undefined,
       });
 
       toast.success("Runner launched successfully", {
