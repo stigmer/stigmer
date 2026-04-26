@@ -102,21 +102,27 @@ Include footer for:
 
 ## Execution Steps
 
-1. **Analyze Changes**
+1. **Verify Changes (gate)**
+   - Before committing, run the **@verify-stigmer-oss-changes** rule.
+   - That rule identifies changed files, maps them to the relevant \`make check\` sub-targets, runs those targets, and reports results.
+   - **If any target fails on newly introduced issues, STOP.** Show the errors to the user and do not proceed to commit until they are fixed.
+   - Pre-existing warnings in untouched files are not blockers — note them and continue.
+
+2. **Analyze Changes**
    - Check \`git status\` to see modified files
    - Review the conversation context to understand what was changed
    - Identify the type and scope of changes
 
-2. **Determine Commit Type and Scope**
+3. **Determine Commit Type and Scope**
    - Map file changes to appropriate type
    - Determine most relevant scope from file paths
 
-3. **Craft Commit Message**
+4. **Craft Commit Message**
    - Write concise subject line (< 72 chars)
    - Decide if detailed body is needed
    - Add footer if there are breaking changes or issue references
 
-4. **Create Commit**
+5. **Create Commit**
    - Stage all changes with \`git add -A\`
    - Commit with the crafted message using \`git commit -m "subject" [-m "body"]\`
 
@@ -165,8 +171,9 @@ git add -A && git commit -m "<type>(<scope>): <subject>" -m "<body>"
 
 When this rule is triggered:
 
-1. Run \`git status\` to check current changes
-2. Analyze changes and conversation context
-3. Propose commit message following the format above
-4. Execute the commit command with appropriate permissions (git_write)
-5. Confirm successful commit
+1. Run **@verify-stigmer-oss-changes** — if any newly introduced check fails, stop and report errors; do not commit
+2. Run \`git status\` to check current changes
+3. Analyze changes and conversation context
+4. Propose commit message following the format above
+5. Execute the commit command with appropriate permissions (git_write)
+6. Confirm successful commit

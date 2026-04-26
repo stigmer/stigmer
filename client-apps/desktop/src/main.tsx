@@ -14,18 +14,21 @@ function isTauriRuntime(): boolean {
 }
 
 /**
- * Signal the native window to become visible once the first frame
- * has been committed to the compositor. Uses rAF + setTimeout(0)
- * to ensure the browser has actually painted before the window
- * is shown — the same "ready-to-show" pattern used by Slack,
- * Linear, and VS Code.
+ * Signal the native window to become visible.
+ *
+ * Tauri creates the window with `visible: false` so the user never
+ * sees an empty white frame while JS boots. Once the React tree is
+ * synchronously queued we call `show()` on a short timeout — this
+ * unblocks the event loop so the first paint can be composited.
+ *
+ * Note: `requestAnimationFrame` is unreliable here because WebKit
+ * may skip animation callbacks for windows that are not yet visible,
+ * creating a deadlock (hidden → no rAF → no show → stays hidden).
  */
 function showWindowOnFirstPaint(): void {
-  requestAnimationFrame(() => {
-    setTimeout(() => {
-      getCurrentWindow().show();
-    }, 0);
-  });
+  setTimeout(() => {
+    getCurrentWindow().show();
+  }, 80);
 }
 
 const root = createRoot(document.getElementById("root")!);
