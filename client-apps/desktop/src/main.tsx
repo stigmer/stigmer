@@ -1,6 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./globals.css";
+import { App } from "./App";
 
 /**
  * Tauri v2 injects `__TAURI_INTERNALS__` into the webview at startup.
@@ -11,16 +13,30 @@ function isTauriRuntime(): boolean {
   return "__TAURI_INTERNALS__" in window;
 }
 
+/**
+ * Signal the native window to become visible once the first frame
+ * has been committed to the compositor. Uses rAF + setTimeout(0)
+ * to ensure the browser has actually painted before the window
+ * is shown — the same "ready-to-show" pattern used by Slack,
+ * Linear, and VS Code.
+ */
+function showWindowOnFirstPaint(): void {
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      getCurrentWindow().show();
+    }, 0);
+  });
+}
+
 const root = createRoot(document.getElementById("root")!);
 
 if (isTauriRuntime()) {
-  import("./App").then(({ App }) => {
-    root.render(
-      <StrictMode>
-        <App />
-      </StrictMode>,
-    );
-  });
+  root.render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+  showWindowOnFirstPaint();
 } else {
   root.render(
     <StrictMode>
