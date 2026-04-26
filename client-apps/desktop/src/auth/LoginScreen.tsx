@@ -45,19 +45,19 @@ export function LoginScreen() {
 
   return (
     <div className="flex h-screen flex-col items-center justify-center bg-background p-8">
-      <div className="flex w-full max-w-sm flex-col items-center gap-8">
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-primary">
-            <span className="text-2xl font-bold text-primary-foreground">S</span>
+      <div className="flex w-full max-w-sm flex-col items-center gap-6">
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex size-16 items-center justify-center rounded-2xl bg-primary">
+            <img
+              src="/Icon-bw.svg"
+              alt=""
+              aria-hidden="true"
+              className="size-10"
+            />
           </div>
-          <div className="text-center">
-            <h1 className="text-xl font-semibold tracking-tight text-foreground">
-              Sign in to Stigmer
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Choose how you'd like to sign in
-            </p>
-          </div>
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            Sign in to Stigmer
+          </h1>
         </div>
 
         {state.kind === "idle" && (
@@ -91,7 +91,7 @@ function IdleView({
         className="flex w-full items-center justify-center gap-3 rounded-lg border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <GoogleIcon />
-        Sign in with Google
+        Continue with Google
       </button>
 
       <div className="relative my-1">
@@ -109,7 +109,7 @@ function IdleView({
         className="flex w-full items-center justify-center gap-2 rounded-lg border border-input bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Mail className="size-4" />
-        Sign in with Email
+        Continue with Email
       </button>
     </div>
   );
