@@ -71,6 +71,17 @@ When starting a new session:
 **Current Task**: T01-C (Extract OrgSwitcher component to SDK)
 **Status**: In Progress
 
+## Session Progress (2026-04-26, Session 3 — Desktop launch fix)
+
+- Fixed invisible window on `make desktop-dev` — two root causes:
+  1. `single_instance` callback in `lib.rs` was a no-op; duplicate launches silently exited without showing the hidden window
+  2. `showWindowOnFirstPaint` in `main.tsx` used `requestAnimationFrame` which WebKit skips for hidden windows, creating a deadlock
+- Fix: single_instance now shows/unminimize/focuses main window; replaced rAF with `setTimeout(80)`
+- Verified via macOS CGWindowList: `OnScreen: true` after fix
+- Added `verify-stigmer-oss-changes` cursor rule (pre-commit verification gate)
+- Updated `commit-stigmer-oss-changes` cursor rule to invoke verify before commit
+- Commit: `b7d6030f6 fix(desktop): resolve invisible window on launch`
+
 ## Session Progress (2026-04-26, Session 2 — T01-B)
 
 - Completed T01-B: Extracted `useOrgGate()` behavior hook to `sdk/react/src/organization/useOrgGate.ts`
