@@ -68,8 +68,22 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-26 12:05
-**Current Task**: T01-C (Extract OrgSwitcher component to SDK)
+**Current Task**: T01-D (Move SETTINGS_NAV_GROUPS to SDK)
 **Status**: In Progress
+
+## Session Progress (2026-04-26, Session 4 — T01-C)
+
+- Completed T01-C: Extracted `OrgSwitcher` component to `sdk/react/src/organization/OrgSwitcher.tsx`
+- Created SDK-internal Menu primitives at `sdk/react/src/internal/menu.tsx` (Menu, MenuTrigger, MenuContent, MenuItem, MenuRadioGroup, MenuRadioItem, MenuSeparator) — shared styled wrappers over `@base-ui/react/menu` for visual consistency across SDK components
+- Designed `OrgSwitcherProps` with `onOrgChanged?` callback (fires only on user-initiated org switches, not initial load/refresh) and `className?`
+- Dialog for "Create organization" inlined directly using `@base-ui/react/dialog` primitives (single consumer, no shared wrapper needed yet)
+- Fixed token context correctness: OrgLabel now uses `text-sidebar-muted-foreground` in the trigger (sidebar context) and `text-muted-foreground` in dropdown items (popover context) — the web's original code used sidebar tokens in both, which was incorrect per DD-005
+- Migrated web `Sidebar.tsx` and `ManagementSidebar.tsx` to import `OrgSwitcher` from `@stigmer/react`
+- Deleted `client-apps/web/src/domain/_shared/layout/OrgSwitcher.tsx`
+- Added `@base-ui/react` to desktop `package.json` dependencies (preparation for T02)
+- Updated barrel exports in `sdk/react/src/organization/index.ts` and `sdk/react/src/index.ts`
+- All verification targets pass: SDK lint + typecheck, web lint, desktop lint + typecheck + cargo check
+- 4 pre-existing warnings in `SettingsRunners.tsx` (opacity modifier tokens, untouched files)
 
 ## Session Progress (2026-04-26, Session 3 — Desktop launch fix)
 
@@ -105,24 +119,25 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T01-C**: Extract `OrgSwitcher` component to SDK
-2. **T01-D**: Move `SETTINGS_NAV_GROUPS` to SDK
-3. **T01-E**: Extract `UserMenu` to SDK
+1. **T01-D**: Move `SETTINGS_NAV_GROUPS` to SDK
+2. **T01-E**: Extract `UserMenu` to SDK
 
 ## Context for Resume
 
 - T01 plan is in `tasks/T01_0_plan.md` — the full task breakdown with all subtask details
-- T01-B plan is in `.cursor/plans/t01-b_useorggate_extraction_06b71855.plan.md` — detailed design rationale for the discriminated union API
-- The source file for T01-C is `client-apps/web/src/domain/_shared/layout/OrgSwitcher.tsx` — uses `useOrg()` (now from SDK) and `CreateOrganizationForm` (already in SDK)
+- T01-C plan is in `.cursor/plans/t01-c_orgswitcher_extraction_7376f8e8.plan.md` — architecture decisions for Menu primitives, Dialog inlining, props API, and token context
+- SDK-internal Menu primitives live in `sdk/react/src/internal/menu.tsx` — T01-E (UserMenu) should import from here, not create its own menu wrappers
+- The `onOrgChanged` callback on `OrgSwitcher` fires only on user-initiated org changes — it does NOT fire on initial load or background refresh; this is the right primitive for "navigate on org switch"
+- Desktop now has `@base-ui/react` as a dependency — ready for T02 when the desktop app renders the SDK OrgSwitcher
+- Token context correctness pattern: trigger elements use sidebar-* tokens, portaled dropdown/dialog content uses popover-*/main-area tokens, with eslint-disable blocks + justification for portaled sections
 - Key pattern established: SDK org hooks import from `../hooks` (relative), both client apps import from `@stigmer/react` (package)
-- Desktop has no `@base-ui/react` dependency; web does. T01-C needs `@base-ui/react` Menu primitives — desktop will need it added as a dependency
 - The `useOrgGate()` hook follows DD-003 (headless-first) and DD-004 (zero framework deps in SDK) — consumer computes routing/auth inputs, hook manages pure state machine
-- Established type pattern: `OrgGateState` uses `status` as discriminant field, matching `AgentSetupPhase`/`McpServerSetupPhase` convention
+- T01-D is a pure data extraction (types + constant array) — zero framework deps, should be fast
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01-C" - Pick up the next subtask
+- "Continue with T01-D" - Pick up the next subtask
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

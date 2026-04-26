@@ -16,8 +16,8 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/domain/_shared/ui/tooltip";
+import { OrgSwitcher } from "@stigmer/react";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
-import { OrgSwitcher } from "./OrgSwitcher";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
 
