@@ -45,11 +45,16 @@ export interface StoredTokens {
 
 /**
  * Build the Auth0 authorization URL with PKCE parameters.
+ *
+ * When `connection` is provided, Auth0 skips its Universal Login page and
+ * redirects directly to the specified social or enterprise connection
+ * (e.g. `"google-oauth2"` goes straight to Google's sign-in).
  */
 export function buildAuthorizeUrl(params: {
   codeChallenge: string;
   state: string;
   redirectUri: string;
+  connection?: string;
 }): string {
   const url = new URL(`${AUTH0_DOMAIN}/authorize`);
   url.searchParams.set("response_type", "code");
@@ -61,6 +66,9 @@ export function buildAuthorizeUrl(params: {
   url.searchParams.set("code_challenge", params.codeChallenge);
   url.searchParams.set("code_challenge_method", "S256");
   url.searchParams.set("prompt", "login");
+  if (params.connection) {
+    url.searchParams.set("connection", params.connection);
+  }
   return url.toString();
 }
 
