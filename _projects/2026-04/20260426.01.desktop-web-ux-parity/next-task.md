@@ -68,8 +68,18 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-26 12:05
-**Current Task**: Library feature parity complete — T03 remaining
-**Status**: T01 Done, T02 Done (core shell + settings + breadcrumbs + native menu bar), Library feature parity Done
+**Current Task**: PROJECT COMPLETE
+**Status**: T01 Done, T02 Done, T03 Done — all tasks complete, both apps at full parity
+
+## Session Progress (2026-04-26, Session 10 — T03 Web App Migration & Project Close-Out)
+
+- Completed T03: Web App Migration — cleanup, parity verification, and project close-out
+- T03-A: Deleted 6 dead `_shared/ui/` files (badge, card, dialog, table, collapsible, error-message) — zero consumers confirmed via grep
+- T03-B: Cross-app feature parity verified — all library pages (list + detail for agents, skills, MCP servers) and all settings pages are structurally identical across web and desktop, differing only in framework-specific routing (Next.js vs react-router)
+- T03-C: Import hygiene clean — all 25 `@/domain/_shared/` imports in the web app are correctly local (Console design primitives, shell components, Next.js hooks); zero redundant re-exports of SDK symbols remain after `error-message.tsx` deletion
+- T03-D: All verification targets pass: SDK lint + typecheck (clean), web lint (clean), desktop lint + typecheck + cargo check (0 errors, 9 pre-existing warnings in untouched files)
+
+**Project is complete.** All three tasks (T01: SDK extraction, T02: Desktop shell rebuild, T03: Web app migration) are done. Both apps have full UX parity and consume shared SDK components.
 
 ## Session Progress (2026-04-26, Session 9 — Desktop Library Feature Parity)
 
@@ -207,8 +217,10 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T03**: Web App Migration — sweep remaining web Console components that should consume SDK-extracted components (most already done during T02 Section extraction)
-2. **Visual testing** — end-to-end visual testing of the rebuilt desktop shell
+All planned tasks are complete. Potential follow-up work (not part of this project):
+
+1. **Visual testing** — end-to-end visual testing of the rebuilt desktop shell
+2. **Pre-existing lint warnings** — 9 warnings in `SettingsRunners.tsx` (opacity modifiers) and `AppShell.tsx` (sidebar token context) in the desktop app, all pre-existing in untouched files
 
 ## Context for Resume
 
