@@ -16,7 +16,8 @@
     "./presets/corporate.css": "./src/presets/corporate.css",
     "./presets/startup.css": "./src/presets/startup.css",
     "./presets/friendly.css": "./src/presets/friendly.css",
-    "./presets/fintech.css": "./src/presets/fintech.css"
+    "./presets/fintech.css": "./src/presets/fintech.css",
+    "./presets/monochrome.css": "./src/presets/monochrome.css"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -56,7 +57,8 @@
       "./presets/corporate.css": "./dist/presets/corporate.css",
       "./presets/startup.css": "./dist/presets/startup.css",
       "./presets/friendly.css": "./dist/presets/friendly.css",
-      "./presets/fintech.css": "./dist/presets/fintech.css"
+      "./presets/fintech.css": "./dist/presets/fintech.css",
+      "./presets/monochrome.css": "./dist/presets/monochrome.css"
     }
   },
   "repository": {

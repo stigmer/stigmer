@@ -44,6 +44,13 @@ export const THEME_PRESETS = [
     description: "Premium financial — sharp corners, indigo, crisp, dark sidebar",
     swatch: "oklch(0.50 0.22 280)",
   },
+  {
+    id: "monochrome",
+    name: "Monochrome",
+    className: "stgm-theme-monochrome",
+    description: "Black-and-white editorial — zero chroma, typographic, sharp",
+    swatch: "oklch(0.18 0 0)",
+  },
 ] as const satisfies readonly ThemePreset[];
 
 /** Union of built-in preset identifiers. */

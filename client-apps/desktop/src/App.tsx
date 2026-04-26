@@ -34,6 +34,8 @@ function AuthenticatedApp() {
   const { getAccessToken, isAuthenticated, isInitialized } = useAuth();
   useRunnerNotifications();
 
+  const deploymentMode = isLocalMode() ? "local" : "cloud";
+
   const client = useMemo(
     () =>
       new Stigmer({
@@ -45,6 +47,25 @@ function AuthenticatedApp() {
 
   useDeepLinkHandler(client, BASE_URL, isAuthenticated);
 
+  return (
+    <StigmerProvider
+      client={client}
+      deploymentMode={deploymentMode}
+      colorMode="system"
+      preset="monochrome"
+    >
+      <AppContent isInitialized={isInitialized} isAuthenticated={isAuthenticated} />
+    </StigmerProvider>
+  );
+}
+
+function AppContent({
+  isInitialized,
+  isAuthenticated,
+}: {
+  isInitialized: boolean;
+  isAuthenticated: boolean;
+}) {
   if (!isInitialized) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -57,20 +78,12 @@ function AuthenticatedApp() {
     return <LoginScreen />;
   }
 
-  const deploymentMode = isLocalMode() ? "local" : "cloud";
-
   return (
-    <StigmerProvider
-      client={client}
-      deploymentMode={deploymentMode}
-      colorMode="system"
-    >
-      <AppUpdaterProvider>
-        <OrgProvider>
-          <RouterProvider router={router} />
-          <Toaster position="bottom-right" richColors />
-        </OrgProvider>
-      </AppUpdaterProvider>
-    </StigmerProvider>
+    <AppUpdaterProvider>
+      <OrgProvider>
+        <RouterProvider router={router} />
+        <Toaster position="bottom-right" richColors />
+      </OrgProvider>
+    </AppUpdaterProvider>
   );
 }

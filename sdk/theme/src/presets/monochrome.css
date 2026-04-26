@@ -1,0 +1,113 @@
+/* Monochrome — Editorial black-and-white design language (Linear, Vercel, Notion)
+   Zero chroma, tight radius, typographic primary, minimal shadows, sharp and fast.
+   Derived from the Stigmer marketing site palette (#0a0a0a / #fafafa anchors).
+   Semantic status colors (destructive, success, warning, info) are intentionally
+   NOT overridden — they fall through from tokens.css to preserve meaning. */
+
+.stgm-theme-monochrome {
+  --stgm-radius: 0.375rem;
+  --stgm-background: oklch(0.99 0 0);
+  --stgm-foreground: oklch(0.15 0 0);
+  --stgm-card: oklch(1 0 0);
+  --stgm-card-foreground: oklch(0.15 0 0);
+  --stgm-popover: oklch(1 0 0);
+  --stgm-popover-foreground: oklch(0.15 0 0);
+  --stgm-primary: oklch(0.15 0 0);
+  --stgm-primary-foreground: oklch(0.99 0 0);
+  --stgm-secondary: oklch(0.96 0 0);
+  --stgm-secondary-foreground: oklch(0.25 0 0);
+  --stgm-muted: oklch(0.96 0 0);
+  --stgm-muted-foreground: oklch(0.45 0 0);
+  --stgm-accent: oklch(0.96 0 0);
+  --stgm-accent-foreground: oklch(0.25 0 0);
+  --stgm-border: oklch(0.92 0 0);
+  --stgm-input: oklch(0.92 0 0);
+  --stgm-ring: oklch(0.15 0 0);
+  --stgm-chart-1: oklch(0.25 0 0);
+  --stgm-chart-2: oklch(0.40 0 0);
+  --stgm-chart-3: oklch(0.55 0 0);
+  --stgm-chart-4: oklch(0.70 0 0);
+  --stgm-chart-5: oklch(0.82 0 0);
+  --stgm-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 1px -1px rgb(0 0 0 / 0.03);
+  --stgm-shadow-md: 0 3px 5px -1px rgb(0 0 0 / 0.05), 0 1px 3px -2px rgb(0 0 0 / 0.04);
+  --stgm-shadow-lg: 0 8px 12px -3px rgb(0 0 0 / 0.06), 0 3px 5px -4px rgb(0 0 0 / 0.04);
+  --stgm-transition-duration: 100ms;
+  --stgm-transition-timing: cubic-bezier(0, 0, 0.2, 1);
+  --stgm-primary-hover: oklch(0.25 0 0);
+  --stgm-primary-subtle: oklch(0.96 0 0);
+  --stgm-destructive-subtle: oklch(0.96 0.02 25);
+  --stgm-muted-subtle: oklch(0.97 0 0);
+  --stgm-muted-foreground-subtle: oklch(0.55 0 0);
+  --stgm-accent-hover: oklch(0.97 0 0);
+  --stgm-destructive-hover: oklch(0.52 0.22 27.325);
+  --stgm-foreground-hover: oklch(0.20 0 0);
+  --stgm-border-muted: oklch(0.95 0 0);
+  --stgm-muted-faint: oklch(0.98 0 0);
+  --stgm-primary-muted: oklch(0.40 0 0);
+  --stgm-destructive-muted: oklch(0.65 0.12 27.325);
+  --stgm-muted-foreground-faint: oklch(0.68 0 0);
+  --stgm-backdrop: oklch(0.99 0 0 / 80%);
+  --stgm-sidebar: oklch(0.97 0 0);
+  --stgm-sidebar-foreground: oklch(0.15 0 0);
+  --stgm-sidebar-primary: oklch(0.15 0 0);
+  --stgm-sidebar-primary-foreground: oklch(0.99 0 0);
+  --stgm-sidebar-muted: oklch(0.94 0 0);
+  --stgm-sidebar-muted-foreground: oklch(0.45 0 0);
+  --stgm-sidebar-accent: oklch(0.94 0 0);
+  --stgm-sidebar-accent-foreground: oklch(0.25 0 0);
+  --stgm-sidebar-border: oklch(0.92 0 0);
+  --stgm-sidebar-ring: oklch(0.15 0 0);
+}
+
+[data-stgm-color-mode="dark"] .stgm-theme-monochrome,
+.stgm-theme-monochrome[data-stgm-color-mode="dark"] {
+  --stgm-background: oklch(0.145 0 0);
+  --stgm-foreground: oklch(0.96 0 0);
+  --stgm-card: oklch(0.21 0 0);
+  --stgm-card-foreground: oklch(0.96 0 0);
+  --stgm-popover: oklch(0.24 0 0);
+  --stgm-popover-foreground: oklch(0.96 0 0);
+  --stgm-primary: oklch(0.96 0 0);
+  --stgm-primary-foreground: oklch(0.145 0 0);
+  --stgm-secondary: oklch(0.21 0 0);
+  --stgm-secondary-foreground: oklch(0.96 0 0);
+  --stgm-muted: oklch(0.21 0 0);
+  --stgm-muted-foreground: oklch(0.64 0 0);
+  --stgm-accent: oklch(0.25 0 0);
+  --stgm-accent-foreground: oklch(0.96 0 0);
+  --stgm-border: oklch(0.27 0 0);
+  --stgm-input: oklch(0.27 0 0);
+  --stgm-ring: oklch(0.96 0 0);
+  --stgm-chart-1: oklch(0.85 0 0);
+  --stgm-chart-2: oklch(0.70 0 0);
+  --stgm-chart-3: oklch(0.55 0 0);
+  --stgm-chart-4: oklch(0.40 0 0);
+  --stgm-chart-5: oklch(0.28 0 0);
+  --stgm-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.20), 0 1px 1px -1px rgb(0 0 0 / 0.18);
+  --stgm-shadow-md: 0 3px 5px -1px rgb(0 0 0 / 0.24), 0 1px 3px -2px rgb(0 0 0 / 0.20);
+  --stgm-shadow-lg: 0 8px 12px -3px rgb(0 0 0 / 0.28), 0 3px 5px -4px rgb(0 0 0 / 0.22);
+  --stgm-primary-hover: oklch(0.88 0 0);
+  --stgm-primary-subtle: oklch(0.21 0 0);
+  --stgm-destructive-subtle: oklch(0.21 0.03 25);
+  --stgm-muted-subtle: oklch(0.18 0 0);
+  --stgm-muted-foreground-subtle: oklch(0.55 0 0);
+  --stgm-accent-hover: oklch(0.22 0 0);
+  --stgm-destructive-hover: oklch(0.64 0.17 22);
+  --stgm-foreground-hover: oklch(0.88 0 0);
+  --stgm-border-muted: oklch(0.22 0 0);
+  --stgm-muted-faint: oklch(0.17 0 0);
+  --stgm-primary-muted: oklch(0.80 0 0);
+  --stgm-destructive-muted: oklch(0.60 0.10 22);
+  --stgm-muted-foreground-faint: oklch(0.45 0 0);
+  --stgm-backdrop: oklch(0.145 0 0 / 80%);
+  --stgm-sidebar: oklch(0.11 0 0);
+  --stgm-sidebar-foreground: oklch(0.96 0 0);
+  --stgm-sidebar-primary: oklch(0.96 0 0);
+  --stgm-sidebar-primary-foreground: oklch(0.145 0 0);
+  --stgm-sidebar-muted: oklch(0.18 0 0);
+  --stgm-sidebar-muted-foreground: oklch(0.55 0 0);
+  --stgm-sidebar-accent: oklch(0.20 0 0);
+  --stgm-sidebar-accent-foreground: oklch(0.96 0 0);
+  --stgm-sidebar-border: oklch(0.24 0 0);
+  --stgm-sidebar-ring: oklch(0.96 0 0);
+}
