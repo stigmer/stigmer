@@ -10,8 +10,7 @@ import {
   User,
 } from "lucide-react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { CreateOrganizationForm } from "@stigmer/react";
-import { useOrg } from "@/domain/_shared/org/org-context";
+import { CreateOrganizationForm, useOrg } from "@stigmer/react";
 import {
   DropdownMenu,
   DropdownMenuContent,

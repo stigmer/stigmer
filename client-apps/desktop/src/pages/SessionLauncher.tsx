@@ -6,12 +6,12 @@ import {
   useNewSessionFlow,
   useEditSessionPrep,
   useGitHubConnection,
+  useActiveOrgSlug,
   CREATOR_AGENTS,
   parseDraftParams,
 } from "@stigmer/react";
 import type { DraftResourceType } from "@stigmer/react";
 import type { ResourceRef } from "@stigmer/sdk";
-import { useActiveOrgSlug } from "../org/OrgProvider";
 import { useNativeFolderPicker } from "../hooks/useNativeFolderPicker";
 
 const DRAFT_PLACEHOLDERS: Record<DraftResourceType, string> = {

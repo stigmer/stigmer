@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Loader2, AlertCircle, RefreshCw, Building2, LogOut } from "lucide-react";
 import { CreateOrganizationForm } from "@stigmer/react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { useOrg } from "@/domain/_shared/org/org-context";
+import { useOrg } from "@stigmer/react";
 import { useAuth } from "@/auth";
 import { getRuntimeConfig } from "@/config/runtime-config";
 

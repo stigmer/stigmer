@@ -3,6 +3,7 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import {
   useRunnerList,
+  useActiveOrgSlug,
   phaseLabel,
   phaseDotColor,
   isActivePhase,
@@ -12,7 +13,6 @@ import type { Runner } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb
 import { RunnerPhase } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/enum_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Play, Square, ScrollText, AlertCircle } from "lucide-react";
-import { useActiveOrgSlug } from "../../org/OrgProvider";
 import { useLocalRunners } from "../../hooks/useLocalRunners";
 import { useStartRunner } from "../../hooks/useStartRunner";
 import { useStopLocalRunner } from "../../hooks/useStopLocalRunner";

@@ -9,8 +9,8 @@ import {
   useResourceAvailable,
   CloudFeatureNotice,
   ApiResourceKind,
+  useActiveOrgSlug,
 } from "@stigmer/react";
-import { useActiveOrgSlug } from "@/domain/_shared/org/org-context";
 
 type FlowState =
   | { phase: "idle" }

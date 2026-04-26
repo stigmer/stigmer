@@ -1,3 +1,5 @@
+"use client";
+
 import {
   createContext,
   useCallback,
@@ -8,14 +10,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useStigmer } from "@stigmer/react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { useStigmer } from "../hooks";
 
-// ---------------------------------------------------------------------------
-// Context shape
-// ---------------------------------------------------------------------------
-
-interface OrgContextValue {
+/** Value exposed by {@link OrgProvider} via {@link useOrg}. */
+export interface OrgContextValue {
   /** All organizations the authenticated user belongs to. */
   readonly orgs: Organization[];
   /** The currently selected organization. Null while loading or if the user has no orgs. */
@@ -38,10 +37,6 @@ interface OrgContextValue {
 
 const OrgContext = createContext<OrgContextValue | null>(null);
 
-// ---------------------------------------------------------------------------
-// localStorage persistence
-// ---------------------------------------------------------------------------
-
 const STORAGE_KEY = "stigmer:activeOrgSlug";
 
 function readPersistedSlug(): string | null {
@@ -56,20 +51,28 @@ function persistSlug(slug: string): void {
   try {
     localStorage.setItem(STORAGE_KEY, slug);
   } catch {
-    // Private browsing — silently ignore.
+    // SSR or private browsing — silently ignore.
   }
 }
 
-// ---------------------------------------------------------------------------
-// Provider
-// ---------------------------------------------------------------------------
-
 /**
- * Desktop org provider — fetches the user's organizations and provides
- * org context to the app.
+ * Provides organization context to the component tree.
  *
- * Mirrors the web's `OrgProvider` with the same localStorage persistence
- * and auto-select behavior.
+ * Fetches the authenticated user's organizations via
+ * `stigmer.organization.findMyOrganizations()`, manages the active
+ * organization selection, and persists the choice to `localStorage`
+ * under the key `stigmer:activeOrgSlug`.
+ *
+ * Must be rendered inside a {@link StigmerProvider}.
+ *
+ * @example
+ * ```tsx
+ * <StigmerProvider client={client}>
+ *   <OrgProvider>
+ *     <App />
+ *   </OrgProvider>
+ * </StigmerProvider>
+ * ```
  */
 export function OrgProvider({ children }: { children: ReactNode }) {
   const stigmer = useStigmer();
@@ -153,35 +156,29 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   return <OrgContext.Provider value={value}>{children}</OrgContext.Provider>;
 }
 
-// ---------------------------------------------------------------------------
-// Hooks
-// ---------------------------------------------------------------------------
-
 /**
- * Access the active organization context.
+ * Access the active organization context from the nearest
+ * {@link OrgProvider}.
  *
- * Throws if called outside `<OrgProvider>`.
+ * Throws if called outside an `<OrgProvider>` — this surfaces wiring
+ * mistakes immediately during development.
  */
 export function useOrg(): OrgContextValue {
   const ctx = useContext(OrgContext);
   if (!ctx) {
-    throw new Error("useOrg must be used within <OrgProvider>");
+    throw new Error(
+      "useOrg must be used within <OrgProvider>. " +
+        "Wrap your component tree with <OrgProvider> inside a <StigmerProvider>.",
+    );
   }
   return ctx;
 }
 
 /**
- * Convenience accessor: returns the active org's slug for use in API calls,
- * or an empty string when no org is selected.
+ * Convenience accessor: returns the active org's slug for use in API
+ * calls, or an empty string when no org is selected.
  */
 export function useActiveOrgSlug(): string {
   const { activeOrg } = useOrg();
   return activeOrg?.metadata?.slug ?? "";
-}
-
-/**
- * Full active org object for components that need the metadata.id.
- */
-export function useActiveOrg() {
-  return useOrg();
 }

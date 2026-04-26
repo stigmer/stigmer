@@ -6,9 +6,9 @@ import {
   EnvironmentVariableEditor,
   EnvironmentListPanel,
   CreateEnvironmentForm,
+  useActiveOrgSlug,
 } from "@stigmer/react";
 import { getUserMessage } from "@stigmer/sdk";
-import { useActiveOrgSlug } from "@/domain/_shared/org/org-context";
 
 const ENV_EXCLUDE_LABELS: Record<string, string>[] = [
   { "stigmer.ai/personal": "true" },

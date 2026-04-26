@@ -1,9 +1,8 @@
 "use client";
 
 import { useCallback } from "react";
-import { OrgProfilePanel } from "@stigmer/react";
+import { OrgProfilePanel, useOrg } from "@stigmer/react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { useOrg } from "@/domain/_shared/org/org-context";
 
 export function OrgProfileSection() {
   const { activeOrg, refresh } = useOrg();
