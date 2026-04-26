@@ -71,6 +71,15 @@ When starting a new session:
 **Current Task**: PROJECT COMPLETE
 **Status**: T01 Done, T02 Done, T03 Done — all tasks complete, both apps at full parity
 
+## Session Progress (2026-04-26, Session 15 — Native macOS Tray Icon)
+
+- Fixed macOS tray icon — was using the full app icon (opaque black background) instead of a native template image
+- Created `tray-icon.png` — 44x44px monochrome PNG derived from `Icon-bw.svg`, black logo on transparent background, tightly cropped viewBox for maximum fill at menu bar size
+- Added `.icon_as_template(true)` to `TrayIconBuilder` in `tray.rs` — macOS now auto-tints the icon to match the menu bar theme (white on dark, black on light)
+- All verification targets pass: desktop lint + typecheck + cargo check (0 errors, 9 pre-existing warnings)
+- Commit: `8953d612b fix(desktop): use native template image for macOS tray icon`
+- Files changed: `src-tauri/icons/tray-icon.png` (new), `src-tauri/src/tray.rs`
+
 ## Session Progress (2026-04-26, Session 14 — Centralize Desktop Content Wrapper)
 
 - Added centralized `div.min-w-0.flex-1.overflow-y-auto` wrapper to desktop AppShell, matching the web AppShell pattern
