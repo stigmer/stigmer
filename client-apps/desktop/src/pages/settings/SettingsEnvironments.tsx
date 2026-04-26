@@ -1,5 +1,4 @@
-import { EnvironmentListPanel } from "@stigmer/react";
-import { useActiveOrgSlug } from "../../org/OrgProvider";
+import { EnvironmentListPanel, useActiveOrgSlug } from "@stigmer/react";
 
 export default function SettingsEnvironments() {
   const org = useActiveOrgSlug();

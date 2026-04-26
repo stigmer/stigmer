@@ -1,6 +1,5 @@
 import { useParams } from "react-router-dom";
-import { McpServerDetailView } from "@stigmer/react";
-import { useActiveOrgSlug } from "../../org/OrgProvider";
+import { McpServerDetailView, useActiveOrgSlug } from "@stigmer/react";
 
 export default function McpServerDetailPage() {
   const { org, slug } = useParams<{ org: string; slug: string }>();

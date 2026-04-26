@@ -4,8 +4,8 @@ import {
   OrgUsagePanel,
   useDeploymentMode,
   CloudFeatureNotice,
+  useOrg,
 } from "@stigmer/react";
-import { useOrg } from "@/domain/_shared/org/org-context";
 
 export function UsageSection() {
   const { activeOrg } = useOrg();

@@ -4,9 +4,9 @@ import {
   useAgentCount,
   useSkillCount,
   useMcpServerCount,
+  useActiveOrgSlug,
   ResourceCountCard,
 } from "@stigmer/react";
-import { useActiveOrgSlug } from "../../org/OrgProvider";
 
 export default function LibraryLanding() {
   const org = useActiveOrgSlug();

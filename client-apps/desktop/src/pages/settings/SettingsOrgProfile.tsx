@@ -1,5 +1,4 @@
-import { OrgProfilePanel, useOrganization } from "@stigmer/react";
-import { useActiveOrgSlug } from "../../org/OrgProvider";
+import { OrgProfilePanel, useOrganization, useActiveOrgSlug } from "@stigmer/react";
 
 export default function SettingsOrgProfile() {
   const orgSlug = useActiveOrgSlug();

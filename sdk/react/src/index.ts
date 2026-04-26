@@ -433,8 +433,11 @@ export type {
   OrgMembersPanelProps,
 } from "./iam-policy";
 
-// Organization — data hook, behavior hooks, styled form for creation, and profile panel
+// Organization — context provider, hooks, data hooks, behavior hooks, styled form, and profile panel
 export {
+  OrgProvider,
+  useOrg,
+  useActiveOrgSlug,
   useOrganization,
   useCreateOrganization,
   useUpdateOrganization,
@@ -442,6 +445,7 @@ export {
   OrgProfilePanel,
 } from "./organization";
 export type {
+  OrgContextValue,
   UseOrganizationReturn,
   UseCreateOrganizationReturn,
   UseUpdateOrganizationReturn,

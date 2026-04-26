@@ -13,8 +13,8 @@ import {
   useSkillCount,
   useMcpServerCount,
   ResourceCountCard,
+  useActiveOrgSlug,
 } from "@stigmer/react";
-import { useActiveOrgSlug } from "@/domain/_shared/org/org-context";
 
 function isPlainClick(e: MouseEvent): boolean {
   return !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && e.button === 0;

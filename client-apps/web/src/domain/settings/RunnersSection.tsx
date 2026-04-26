@@ -2,9 +2,8 @@
 
 import { useCallback, useEffect } from "react";
 import { Download, Monitor } from "lucide-react";
-import { RunnerListPanel, useLaunchLocalRunner, useRunnerList } from "@stigmer/react";
+import { RunnerListPanel, useLaunchLocalRunner, useRunnerList, useActiveOrgSlug } from "@stigmer/react";
 import { triggerDesktopDownload } from "@/lib/desktop-download";
-import { useActiveOrgSlug } from "@/domain/_shared/org/org-context";
 import {
   markLocalRunnerDetected,
   useHasDesktopSignal,

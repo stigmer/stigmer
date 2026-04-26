@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Bot } from "lucide-react";
 import {
   useAgentList,
+  useActiveOrgSlug,
   ResourceListView,
 } from "@stigmer/react";
 import type { ResourceListScope } from "@stigmer/react";
-import { useActiveOrgSlug } from "../../org/OrgProvider";
 
 export default function AgentListPage() {
   const org = useActiveOrgSlug();

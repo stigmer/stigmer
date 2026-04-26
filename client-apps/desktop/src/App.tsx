@@ -1,12 +1,11 @@
 import { useMemo } from "react";
 import { RouterProvider } from "react-router-dom";
 import { Stigmer } from "@stigmer/sdk";
-import { StigmerProvider } from "@stigmer/react";
+import { StigmerProvider, OrgProvider } from "@stigmer/react";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { Toaster } from "sonner";
 import { router } from "./routes";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
-import { OrgProvider } from "./org/OrgProvider";
 import { LoginScreen } from "./auth/LoginScreen";
 import { AppUpdaterProvider } from "./hooks/AppUpdaterContext";
 import { useDeepLinkHandler } from "./hooks/useDeepLinkHandler";

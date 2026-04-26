@@ -8,6 +8,7 @@ import {
 import {
   useSessionPageFlow,
   useGitHubConnection,
+  useActiveOrgSlug,
   MessageThread,
   SessionComposer,
   ExecutionProgress,
@@ -18,7 +19,6 @@ import {
   isSecretFlowError,
 } from "@stigmer/react";
 import { getUserMessage } from "@stigmer/sdk";
-import { useActiveOrgSlug } from "../org/OrgProvider";
 
 export default function SessionPage() {
   const { id } = useParams<{ id: string }>();

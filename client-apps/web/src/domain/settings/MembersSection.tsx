@@ -5,8 +5,8 @@ import {
   useResourceAvailable,
   CloudFeatureNotice,
   ApiResourceKind,
+  useOrg,
 } from "@stigmer/react";
-import { useOrg } from "@/domain/_shared/org/org-context";
 
 export function MembersSection() {
   const { activeOrg } = useOrg();

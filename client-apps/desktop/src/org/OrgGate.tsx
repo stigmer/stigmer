@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { CreateOrganizationForm } from "@stigmer/react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
-import { useOrg } from "./OrgProvider";
+import { useOrg } from "@stigmer/react";
 import { useAuth } from "../auth/AuthProvider";
 
 const PROVISIONING_POLL_MS = 2_000;

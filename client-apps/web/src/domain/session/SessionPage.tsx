@@ -18,9 +18,9 @@ import {
   WriteBacksWidget,
   SecretFlowErrorGuide,
   isSecretFlowError,
+  useActiveOrgSlug,
 } from "@stigmer/react";
 import { getUserMessage } from "@stigmer/sdk";
-import { useActiveOrgSlug } from "@/domain/_shared/org/org-context";
 import { useDeploymentMode } from "@/domain/_shared/hooks/useDeploymentMode";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 import { Button } from "@/domain/_shared/ui/button";
