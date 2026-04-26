@@ -68,8 +68,20 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-26 12:05
-**Current Task**: T01-D (Move SETTINGS_NAV_GROUPS to SDK)
+**Current Task**: T01-E (Extract UserMenu to SDK)
 **Status**: In Progress
+
+## Session Progress (2026-04-26, Session 5 — T01-D)
+
+- Completed T01-D: Moved `SETTINGS_NAV_GROUPS`, `SettingsNavItem`, `SettingsNavGroup` to `sdk/react/src/settings/settings-nav.ts`
+- Created `sdk/react/src/settings/index.ts` barrel file following existing SDK directory pattern
+- Added settings section to `sdk/react/src/index.ts` barrel exports
+- Migrated both web consumers (`settings/page.tsx`, `ManagementSidebar.tsx`) to import from `@stigmer/react`
+- Deleted `client-apps/web/src/domain/_shared/layout/settings-nav.ts`
+- Fixed pre-existing dependency hygiene gap: added `lucide-react: ">=0.400.0"` as a non-optional peer dependency in `sdk/react/package.json` — the SDK was already importing Lucide icons in `OrgSwitcher.tsx` and `internal/menu.tsx` without declaring the dependency
+- All verification targets pass: SDK lint + typecheck, web lint, desktop lint + typecheck + cargo check
+- 4 pre-existing warnings in `SettingsRunners.tsx` (opacity modifier tokens, untouched files)
+- Commit: `a7fbb8e70 refactor(sdk,web): extract SETTINGS_NAV_GROUPS to @stigmer/react`
 
 ## Session Progress (2026-04-26, Session 4 — T01-C)
 
@@ -119,25 +131,28 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T01-D**: Move `SETTINGS_NAV_GROUPS` to SDK
-2. **T01-E**: Extract `UserMenu` to SDK
+1. **T01-E**: Extract `UserMenu` to SDK — the final T01 subtask
+2. **T02**: Desktop App Shell Rebuild — wire up all extracted SDK components into the desktop app
 
 ## Context for Resume
 
 - T01 plan is in `tasks/T01_0_plan.md` — the full task breakdown with all subtask details
+- T01-D plan is in `.cursor/plans/t01-d_settings_nav_extraction_c0c2a132.plan.md` — includes the lucide-react peer dependency decision
 - T01-C plan is in `.cursor/plans/t01-c_orgswitcher_extraction_7376f8e8.plan.md` — architecture decisions for Menu primitives, Dialog inlining, props API, and token context
 - SDK-internal Menu primitives live in `sdk/react/src/internal/menu.tsx` — T01-E (UserMenu) should import from here, not create its own menu wrappers
+- Settings nav data now lives in `sdk/react/src/settings/settings-nav.ts` — T02 desktop management sidebar imports from `@stigmer/react`
+- `lucide-react` is now a declared peer dependency of `@stigmer/react` (>=0.400.0, non-optional) — fixed in T01-D
 - The `onOrgChanged` callback on `OrgSwitcher` fires only on user-initiated org changes — it does NOT fire on initial load or background refresh; this is the right primitive for "navigate on org switch"
 - Desktop now has `@base-ui/react` as a dependency — ready for T02 when the desktop app renders the SDK OrgSwitcher
 - Token context correctness pattern: trigger elements use sidebar-* tokens, portaled dropdown/dialog content uses popover-*/main-area tokens, with eslint-disable blocks + justification for portaled sections
 - Key pattern established: SDK org hooks import from `../hooks` (relative), both client apps import from `@stigmer/react` (package)
 - The `useOrgGate()` hook follows DD-003 (headless-first) and DD-004 (zero framework deps in SDK) — consumer computes routing/auth inputs, hook manages pure state machine
-- T01-D is a pure data extraction (types + constant array) — zero framework deps, should be fast
+- T01-E details from T01 plan: UserMenu uses `useColorMode()` from SDK, callback-based props (`onSettingsClick`, `onSignOut`), `extraItems` slot for app-specific items (e.g. "Get Desktop App" in web), replaces `next-themes` with SDK's own color mode context
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01-D" - Pick up the next subtask
+- "Continue with T01-E" - Pick up the final T01 subtask
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
