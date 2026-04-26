@@ -125,11 +125,14 @@ async def main():
     logger.info(f"Backend: {config.stigmer_backend_endpoint}")
     
     if config.is_local_mode():
-        logger.info(f"Sandbox: {config.sandbox_type} (root: {config.sandbox_root_dir})")
-        logger.info("Note: Using gRPC to Stigmer Daemon for state/streaming")
+        logger.info(f"Execution mode: {config.execution_mode.value}")
+        logger.info(f"Workspace root: {config.workspace_root_dir}")
+        logger.info("Note: Using local defaults for development mode")
     else:
-        logger.info(f"Sandbox: {config.sandbox_type}")
-        logger.info(f"Redis: {config.redis_host}:{config.redis_port}")
+        logger.info(f"Execution mode: {config.execution_mode.value}")
+        logger.info(f"Workspace root: {config.workspace_root_dir}")
+        if config.stigmer_proxy_endpoint:
+            logger.info(f"Proxy: {config.stigmer_proxy_endpoint}")
     
     logger.info("=" * 60)
     
