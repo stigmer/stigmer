@@ -13,15 +13,18 @@ import type { Runner } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb
 import { RunnerPhase } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/enum_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Play, Square, ScrollText, AlertCircle } from "lucide-react";
+import { useAuth } from "../../auth/AuthProvider";
 import { useLocalRunners } from "../../hooks/useLocalRunners";
 import { useStartRunner } from "../../hooks/useStartRunner";
 import { useStopLocalRunner } from "../../hooks/useStopLocalRunner";
 import { StartRunnerDialog } from "./StartRunnerDialog";
 import { RunnerLogViewer } from "./RunnerLogViewer";
 
+const BASE_URL = import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:7234";
 const SYSTEM_MANAGED_LABEL = "stigmer.ai/system-managed";
 
 export default function SettingsRunners() {
+  const { getAccessToken } = useAuth();
   const org = useActiveOrgSlug();
 
   const {
@@ -66,15 +69,20 @@ export default function SettingsRunners() {
       endpoint?: string;
       token?: string;
     }) => {
+      const resolvedOpts = {
+        ...opts,
+        token: opts.token || getAccessToken() || undefined,
+        endpoint: opts.endpoint || BASE_URL,
+      };
       try {
-        await startRunner(opts);
+        await startRunner(resolvedOpts);
         setDialogOpen(false);
         setTimeout(refetchServer, 3000);
       } catch {
         // Error is captured in the hook.
       }
     },
-    [startRunner, refetchServer],
+    [startRunner, refetchServer, getAccessToken],
   );
 
   const handleStop = useCallback(
