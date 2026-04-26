@@ -68,8 +68,24 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-26 12:05
-**Current Task**: T02 Complete — Library feature parity remaining
-**Status**: T01 Done, T02 Done (core shell + settings + breadcrumbs + native menu bar), Library feature gaps identified
+**Current Task**: Library feature parity complete — T03 remaining
+**Status**: T01 Done, T02 Done (core shell + settings + breadcrumbs + native menu bar), Library feature parity Done
+
+## Session Progress (2026-04-26, Session 9 — Desktop Library Feature Parity)
+
+- Closed all five library feature gaps between desktop and web console
+- Added page headers (title, description, "Add" action) to AgentListPage, SkillListPage, McpServerListPage
+- Added localStorage scope persistence using same `stigmer:library:{type}:scope` key convention as web
+- Added McpServerConnectDialog with per-card connect button via renderItemAction to McpServerListPage
+- Wired useUpdateVisibility into AgentDetailPage, SkillDetailPage, McpServerDetailPage — detail views now show interactive VisibilityToggle instead of read-only badge
+- Added Edit button to AgentDetailPage navigating to `/?draft=agent&editOrg=...&editSlug=...`
+- All changes are pure wiring — no new SDK components needed, all building blocks already existed in `@stigmer/react`
+- All verification targets pass: desktop lint + typecheck + cargo check (0 errors, 9 pre-existing warnings in untouched files)
+- Commit: `30a3d8ba9 feat(desktop): add library feature parity with web console`
+
+**All library feature gaps from T02 duplication audit are now closed.** Desktop library pages now have full parity with web:
+- List pages: page headers, scope persistence, search, pagination, MCP connect dialog
+- Detail pages: interactive visibility toggle, agent edit button, breadcrumb name override
 
 ## Session Progress (2026-04-26, Session 8 — Native App Menu Bar)
 
@@ -106,11 +122,7 @@ When starting a new session:
 - Library breadcrumbs with resource name override
 - Color mode toggle (light/dark/system) persisted to localStorage
 
-**Remaining feature gaps** (identified in duplication audit, tracked for follow-up):
-- Desktop detail pages missing `useUpdateVisibility` toggle (web has it)
-- Desktop list pages missing page headers with title/description/Add action
-- Desktop list pages missing localStorage scope persistence
-- Desktop MCP list page missing connect dialog
+**All feature gaps from the duplication audit are now closed** (Session 9).
 
 ## Session Progress (2026-04-26, Session 6 — T01-E)
 
@@ -195,8 +207,8 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Library feature parity** — close the feature gaps identified in the duplication audit: visibility toggle on detail pages, page headers on list pages, scope persistence, MCP connect dialog
-2. **T03**: Web App Migration — any remaining web Console components that should consume SDK-extracted components (most was done during the Section extraction)
+1. **T03**: Web App Migration — sweep remaining web Console components that should consume SDK-extracted components (most already done during T02 Section extraction)
+2. **Visual testing** — end-to-end visual testing of the rebuilt desktop shell
 
 ## Context for Resume
 
