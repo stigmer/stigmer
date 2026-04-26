@@ -3,7 +3,14 @@
  *
  * Mirrors the CLI's PKCE flow (config.go / login.go) in TypeScript.
  * These values are public metadata, not secrets.
+ *
+ * All HTTP calls to Auth0 use Tauri's native HTTP plugin instead of the
+ * browser's `fetch` API. Auth0 "Native" app types do not return CORS
+ * headers, so WKWebView (macOS) blocks the response. Tauri's plugin
+ * makes requests from the Rust side, bypassing CORS entirely.
  */
+
+import { fetch } from "@tauri-apps/plugin-http";
 
 export const AUTH0_DOMAIN = "https://stigmer-prod.us.auth0.com";
 export const AUTH0_CLIENT_ID = "Ix1qNUI0uC82GPmghcrThei8IjtjIEA0";
@@ -88,11 +95,16 @@ export async function exchangeCode(params: {
     code_verifier: params.codeVerifier,
   });
 
-  const response = await fetch(`${AUTH0_DOMAIN}/oauth/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${AUTH0_DOMAIN}/oauth/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    });
+  } catch (err) {
+    throw toNetworkError("Token exchange", err);
+  }
 
   if (!response.ok) {
     const text = await response.text();
@@ -123,11 +135,15 @@ export async function revokeRefreshToken(refreshToken: string): Promise<void> {
     token: refreshToken,
   });
 
-  await fetch(`${AUTH0_DOMAIN}/oauth/revoke`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-  });
+  try {
+    await fetch(`${AUTH0_DOMAIN}/oauth/revoke`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    });
+  } catch (err) {
+    throw toNetworkError("Token revocation", err);
+  }
 }
 
 /**
@@ -142,11 +158,16 @@ export async function refreshAccessToken(
     refresh_token: refreshToken,
   });
 
-  const response = await fetch(`${AUTH0_DOMAIN}/oauth/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${AUTH0_DOMAIN}/oauth/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    });
+  } catch (err) {
+    throw toNetworkError("Token refresh", err);
+  }
 
   if (!response.ok) {
     const text = await response.text();
@@ -162,4 +183,17 @@ export async function refreshAccessToken(
       : undefined,
     idToken: data.id_token,
   };
+}
+
+/**
+ * Wrap a low-level network error (e.g. WebKit's `TypeError: Load failed`)
+ * in a descriptive message so users see actionable information instead of
+ * a cryptic browser-internal string.
+ */
+function toNetworkError(operation: string, err: unknown): Error {
+  const detail = err instanceof Error ? err.message : String(err);
+  return new Error(
+    `${operation} failed: unable to reach Auth0 (${detail}). ` +
+      "This may indicate a network issue or missing HTTP permissions.",
+  );
 }

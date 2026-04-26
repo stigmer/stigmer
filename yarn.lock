@@ -829,7 +829,7 @@
   version "0.0.0-dev"
   resolved "file:apis/stubs/ts"
   dependencies:
-    "@bufbuild/protobuf" "^2.5.1"
+    "@bufbuild/protobuf" "2.12.0"
 
 "@stigmer/react@*", "@stigmer/react@file:/Users/suresh/scm/github.com/stigmer/stigmer/sdk/react":
   version "0.0.0-dev"
@@ -1013,6 +1013,13 @@
   version "2.7.0"
   resolved "https://registry.npmjs.org/@tauri-apps/plugin-dialog/-/plugin-dialog-2.7.0.tgz"
   integrity sha512-4nS/hfGMGCXiAS3LtVjH9AgsSAPJeG/7R+q8agTFqytjnMa4Zq95Bq8WzVDkckpanX+yyRHXnRtrKXkANKDHvw==
+  dependencies:
+    "@tauri-apps/api" "^2.10.1"
+
+"@tauri-apps/plugin-http@^2":
+  version "2.5.8"
+  resolved "https://registry.npmjs.org/@tauri-apps/plugin-http/-/plugin-http-2.5.8.tgz"
+  integrity sha512-oxd7oypzQeu8kAfFCrw534Kq7Cw+NzozcnCY21O4rz3A+veJiIiuSCMIprgGcZOcLAXFP9GmDhKUbhuKWcunRw==
   dependencies:
     "@tauri-apps/api" "^2.10.1"
 
@@ -6802,7 +6809,7 @@ web-streams-polyfill@^3.0.3:
   resolved "file:client-apps/web"
   dependencies:
     "@base-ui/react" "^1.3.0"
-    "@bufbuild/protobuf" "^2.11.0"
+    "@bufbuild/protobuf" "2.12.0"
     "@connectrpc/connect" "^2.1.1"
     "@connectrpc/connect-web" "^2.1.1"
     "@stigmer/protos" "*"

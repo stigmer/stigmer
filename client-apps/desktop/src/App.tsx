@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { RouterProvider } from "react-router-dom";
 import { Stigmer } from "@stigmer/sdk";
 import { StigmerProvider } from "@stigmer/react";
+import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { Toaster } from "sonner";
 import { router } from "./routes";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
@@ -41,6 +42,7 @@ function AuthenticatedApp() {
       new Stigmer({
         baseUrl: BASE_URL,
         getAccessToken,
+        fetch: tauriFetch,
       }),
     [getAccessToken],
   );
