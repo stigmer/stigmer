@@ -71,6 +71,15 @@ When starting a new session:
 **Current Task**: PROJECT COMPLETE
 **Status**: T01 Done, T02 Done, T03 Done — all tasks complete, both apps at full parity
 
+## Session Progress (2026-04-26, Session 13 — Library Card Alignment Fix)
+
+- Fixed Library landing page card alignment in the desktop app — cards were collapsing to intrinsic content width (~300px total) instead of filling the grid columns within the `max-w-4xl` container
+- Root cause: `mx-auto` on a flex child in a `flex-direction: column` container overrides `align-items: stretch`, causing the child to shrink to content width — the grid's `1fr` columns then collapsed to minimum content size
+- Fix: Added `div.h-full.overflow-y-auto` wrapper to `LibraryLayout.tsx`, matching the `SettingsLayout` pattern — creates a block formatting context where `mx-auto` works correctly
+- Web app was unaffected (intermediate `overflow-y-auto` wrapper in `AppShell` already provided the block context)
+- All verification targets pass: desktop lint + typecheck + cargo check (0 errors, 9 pre-existing warnings in untouched files)
+- File changed: `client-apps/desktop/src/pages/library/LibraryLayout.tsx`
+
 ## Session Progress (2026-04-26, Session 12 — Monochrome Theme Alignment)
 
 - Removed `VersionFooter` from desktop sidebar (static version text + update-available prompt) — cleaned up `useState`, `getVersion`, `ArrowUpCircle`, `useAppUpdaterContext` imports
