@@ -1,6 +1,8 @@
 use tauri::image::Image;
-use tauri::menu::{AboutMetadata, Menu, MenuItem, SubmenuBuilder};
+use tauri::menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, SubmenuBuilder};
 use tauri::{AppHandle, Emitter, Wry};
+
+const APP_NAME: &str = "Stigmer";
 
 /// Menu item ID for "Check for Updates…" — shared with the tray menu's event.
 const CHECK_UPDATES_ID: &str = "menu_check_updates";
@@ -10,10 +12,12 @@ const CHECK_FOR_UPDATE_EVENT: &str = "check-for-update";
 
 /// Builds and installs the native app menu bar.
 ///
-/// On macOS, the first submenu becomes the bold application menu (the one to
-/// the right of the Apple logo). Naming it "Stigmer" ensures the About dialog
-/// and all menu items display the correct product name regardless of the Cargo
-/// binary name.
+/// On macOS the first submenu becomes the bold application menu (the one to the
+/// right of the Apple logo).  PredefinedMenuItem helpers like `.about()`,
+/// `.hide()`, and `.quit()` default their label to the OS process name, which
+/// in dev mode is the Cargo binary name (`stigmer-desktop`).  We create those
+/// items explicitly with an overridden label so the menu always reads
+/// "About Stigmer", "Hide Stigmer", "Quit Stigmer" regardless of the binary.
 pub fn setup_app_menu(app: &tauri::App) -> tauri::Result<()> {
     let handle = app.handle();
     let menu = build_app_menu(handle)?;
@@ -32,15 +36,19 @@ fn build_app_menu(handle: &AppHandle) -> tauri::Result<Menu<Wry>> {
     let version = handle.config().version.clone();
 
     let about_metadata = AboutMetadata {
-        name: Some("Stigmer".into()),
+        name: Some(APP_NAME.into()),
         version,
         copyright: Some("\u{00a9} 2026 Stigmer. All rights reserved.".into()),
         icon: Some(Image::from_bytes(include_bytes!("../icons/icon.png"))?),
         ..Default::default()
     };
 
-    let app_submenu = SubmenuBuilder::new(handle, "Stigmer")
-        .about(Some(about_metadata))
+    let about = PredefinedMenuItem::about(handle, Some("About Stigmer"), Some(about_metadata))?;
+    let hide = PredefinedMenuItem::hide(handle, Some("Hide Stigmer"))?;
+    let quit = PredefinedMenuItem::quit(handle, Some("Quit Stigmer"))?;
+
+    let app_submenu = SubmenuBuilder::new(handle, APP_NAME)
+        .item(&about)
         .separator()
         .item(&MenuItem::with_id(
             handle,
@@ -52,11 +60,11 @@ fn build_app_menu(handle: &AppHandle) -> tauri::Result<Menu<Wry>> {
         .separator()
         .services()
         .separator()
-        .hide()
+        .item(&hide)
         .hide_others()
         .show_all()
         .separator()
-        .quit()
+        .item(&quit)
         .build()?;
 
     let edit_submenu = SubmenuBuilder::new(handle, "Edit")

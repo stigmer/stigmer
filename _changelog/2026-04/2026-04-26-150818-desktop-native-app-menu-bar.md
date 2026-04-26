@@ -28,9 +28,13 @@ Created a new Rust module (`menu.rs`) that builds and installs a proper native a
 
 Builds three submenus using Tauri 2's `SubmenuBuilder` API:
 
-- **Stigmer** (app submenu): `PredefinedMenuItem::about()` with `AboutMetadata` (name, version from `app.config().version`, copyright, app icon via `include_bytes!`), custom "Check for Updates..." menu item, Services, Hide/Hide Others/Show All, Quit
+- **Stigmer** (app submenu): About Stigmer, Check for Updates..., Services, Hide/Hide Others/Show All, Quit
 - **Edit**: Undo, Redo, Cut, Copy, Paste, Select All
 - **Window**: Minimize, Close Window
+
+The About, Hide, and Quit items are created via `PredefinedMenuItem::about()`, `::hide()`, and `::quit()` with explicit label overrides (e.g. `Some("About Stigmer")`). This is necessary because the default labels derive from the macOS process name, which in dev mode is the Cargo binary name (`stigmer-desktop`). The label override ensures correct branding in both dev and production builds while retaining native OS behavior (About panel, app hide, app quit).
+
+The About metadata includes the app name, version (from `app.config().version`), copyright, and the app icon (via `include_bytes!`).
 
 Exports two public functions: `setup_app_menu()` (called during setup) and `handle_menu_event()` (called from the builder's `on_menu_event` handler).
 
