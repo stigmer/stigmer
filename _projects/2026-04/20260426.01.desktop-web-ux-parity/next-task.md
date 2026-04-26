@@ -68,8 +68,31 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-26 12:05
-**Current Task**: T01-E (Extract UserMenu to SDK)
-**Status**: In Progress
+**Current Task**: T01 Complete — Ready for T02
+**Status**: T01 Done, T02 Pending
+
+## Session Progress (2026-04-26, Session 6 — T01-E)
+
+- Completed T01-E: Extracted `UserMenu` component to `sdk/react/src/user/UserMenu.tsx`
+- Discovered architectural surprise: `useColorMode()` is read-only (returns resolved `"light"` | `"dark"`, no setter) — the T01 plan assumed it could control color mode
+- Resolved with controlled `colorMode` + `onColorModeChange` props on UserMenu, following the callback-based pattern from `OrgSwitcher.onOrgChanged` (DD-004)
+- Added `MenuGroup` and `MenuLabel` primitives to `sdk/react/src/internal/menu.tsx` for section headers
+- Flattened color scheme into main menu body (3 radio items, no submenu) — Hick's Law: 3 items don't justify an extra interaction layer
+- Removed preset picker from UserMenu per T01 plan decision ("No preset picker — color mode switching only")
+- Rewrote web `UserMenu.tsx` as thin Console bridge (~45 lines, down from 234) — maps `next-themes` → `colorMode`/`onColorModeChange`, `useAuth` → `user`/`onSignOut`, `useRouter` → `onSettingsClick`
+- Web's `DesktopAppItem` passed via `extraItems` slot — `DropdownMenuItem` compatible with SDK's `@base-ui/react` Menu context
+- Preserved existing import paths: zero changes to `Sidebar.tsx` and `ManagementSidebar.tsx`
+- Created `sdk/react/src/user/index.ts` barrel, updated `sdk/react/src/index.ts`
+- All verification targets pass: SDK lint + typecheck, web lint, desktop lint + typecheck + cargo check
+- 4 pre-existing warnings in `SettingsRunners.tsx` (opacity modifier tokens, untouched files)
+- Commit: `92a2b85d8 refactor(sdk,web): extract UserMenu to @stigmer/react`
+
+**T01 is now complete.** All 5 subtasks (A through E) are done. The SDK now contains:
+- `sdk/react/src/organization/OrgProvider.tsx` — OrgProvider, useOrg, useActiveOrgSlug
+- `sdk/react/src/organization/useOrgGate.ts` — useOrgGate behavior hook
+- `sdk/react/src/organization/OrgSwitcher.tsx` — OrgSwitcher component
+- `sdk/react/src/settings/settings-nav.ts` — SETTINGS_NAV_GROUPS, SettingsNavItem, SettingsNavGroup
+- `sdk/react/src/user/UserMenu.tsx` — UserMenu component
 
 ## Session Progress (2026-04-26, Session 5 — T01-D)
 
@@ -131,28 +154,30 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T01-E**: Extract `UserMenu` to SDK — the final T01 subtask
-2. **T02**: Desktop App Shell Rebuild — wire up all extracted SDK components into the desktop app
+1. **T02**: Desktop App Shell Rebuild — wire up all extracted SDK components (OrgSwitcher, UserMenu, ManagementSidebar, settings pages) into the desktop app with sidebar collapse, library breadcrumbs, and full settings surface
+2. **T03**: Web App Migration — migrate remaining web Console components to consume SDK-extracted components, eliminating local duplicates
 
 ## Context for Resume
 
-- T01 plan is in `tasks/T01_0_plan.md` — the full task breakdown with all subtask details
-- T01-D plan is in `.cursor/plans/t01-d_settings_nav_extraction_c0c2a132.plan.md` — includes the lucide-react peer dependency decision
-- T01-C plan is in `.cursor/plans/t01-c_orgswitcher_extraction_7376f8e8.plan.md` — architecture decisions for Menu primitives, Dialog inlining, props API, and token context
-- SDK-internal Menu primitives live in `sdk/react/src/internal/menu.tsx` — T01-E (UserMenu) should import from here, not create its own menu wrappers
+- **T01 is complete.** All subtask plans are in `tasks/T01_0_plan.md` and `.cursor/plans/`
+- T01-E plan is in `.cursor/plans/t01-e_usermenu_extraction_0247330e.plan.md` — documents the color mode control gap, flattened menu decision, and Console wrapper pattern
+- SDK-internal Menu primitives live in `sdk/react/src/internal/menu.tsx` — includes Menu, MenuTrigger, MenuContent, MenuItem, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuGroup, MenuLabel
+- UserMenu uses controlled `colorMode` + `onColorModeChange` props — `useColorMode()` is read-only, so color mode mutation is the consumer's responsibility (web bridges via `next-themes`, desktop bridges via its own state)
+- UserMenu `extraItems` slot accepts `React.ReactNode` — items should be `@base-ui/react` Menu.Item elements for keyboard navigation and ARIA compatibility
+- Web `UserMenu.tsx` is now a thin Console bridge (not deleted) — preserves import paths in Sidebar.tsx and ManagementSidebar.tsx
+- Preset picker was removed from UserMenu per plan — can be reintroduced later as `extraItems` or in a dedicated Appearance settings page
 - Settings nav data now lives in `sdk/react/src/settings/settings-nav.ts` — T02 desktop management sidebar imports from `@stigmer/react`
-- `lucide-react` is now a declared peer dependency of `@stigmer/react` (>=0.400.0, non-optional) — fixed in T01-D
+- `lucide-react` is a declared peer dependency of `@stigmer/react` (>=0.400.0, non-optional)
 - The `onOrgChanged` callback on `OrgSwitcher` fires only on user-initiated org changes — it does NOT fire on initial load or background refresh; this is the right primitive for "navigate on org switch"
-- Desktop now has `@base-ui/react` as a dependency — ready for T02 when the desktop app renders the SDK OrgSwitcher
+- Desktop has `@base-ui/react` as a dependency — ready for T02
 - Token context correctness pattern: trigger elements use sidebar-* tokens, portaled dropdown/dialog content uses popover-*/main-area tokens, with eslint-disable blocks + justification for portaled sections
 - Key pattern established: SDK org hooks import from `../hooks` (relative), both client apps import from `@stigmer/react` (package)
 - The `useOrgGate()` hook follows DD-003 (headless-first) and DD-004 (zero framework deps in SDK) — consumer computes routing/auth inputs, hook manages pure state machine
-- T01-E details from T01 plan: UserMenu uses `useColorMode()` from SDK, callback-based props (`onSettingsClick`, `onSignOut`), `extraItems` slot for app-specific items (e.g. "Get Desktop App" in web), replaces `next-themes` with SDK's own color mode context
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01-E" - Pick up the final T01 subtask
+- "Start T02" - Begin the Desktop App Shell Rebuild
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
