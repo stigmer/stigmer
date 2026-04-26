@@ -125,6 +125,28 @@ function MenuSeparator({
   );
 }
 
+function MenuGroup({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<"div"> & { role?: string }) {
+  return <div role="group" className={className} {...props} />;
+}
+
+function MenuLabel({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<"span">) {
+  return (
+    <span
+      className={cn(
+        "text-muted-foreground block px-1.5 py-1 text-[11px] font-medium uppercase tracking-wider select-none",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
 export {
   Menu,
   MenuTrigger,
@@ -133,4 +155,6 @@ export {
   MenuRadioGroup,
   MenuRadioItem,
   MenuSeparator,
+  MenuGroup,
+  MenuLabel,
 };

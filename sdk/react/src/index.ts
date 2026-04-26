@@ -463,6 +463,10 @@ export type {
 export { SETTINGS_NAV_GROUPS } from "./settings";
 export type { SettingsNavItem, SettingsNavGroup } from "./settings";
 
+// User — app shell user menu
+export { UserMenu } from "./user";
+export type { UserMenuProps } from "./user";
+
 // API Key — data hooks, behavior hooks, and styled components for API key lifecycle
 export {
   useApiKeyList,
