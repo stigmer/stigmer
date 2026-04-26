@@ -67,7 +67,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Planton CLI
-        uses: plantonhq/install-planton-cli-action@main
+        run: brew install plantonhq/tap/planton
 
       - name: Update Planton sandbox image variable
         env:
