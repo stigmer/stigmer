@@ -71,6 +71,35 @@ const handleApply = async () => {
 ```
 
 
+### useBreadcrumbLabel
+
+Read the current breadcrumb override label.
+
+Used by breadcrumb UI components to display a resource display name
+instead of the raw URL slug for the last segment.
+
+**Signature**
+
+```tsx
+function useBreadcrumbLabel(): string | null
+```
+
+
+### useBreadcrumbOverride
+
+Set (or clear) the breadcrumb override label.
+
+Used by detail pages to push the resource display name up to the
+breadcrumb after the resource data has loaded. Returns a stable
+`setLabel` function safe for use as a `useEffect` dependency.
+
+**Signature**
+
+```tsx
+function useBreadcrumbOverride(): { setLabel: (label: string | null) => void }
+```
+
+
 ### useDetectSkillPackage
 
 Detects whether an execution artifact is a skill package and extracts
@@ -209,6 +238,15 @@ const { updateVisibility, isPending } = useUpdateVisibility("skill", skill.metad
 
 
 ## Components
+
+### LibraryBreadcrumbProvider
+
+Provides a breadcrumb label override for library detail pages.
+
+Wrap the library zone in this provider so that detail pages can push
+a human-readable resource name into the breadcrumb via
+`useBreadcrumbOverride().setLabel(name)`.
+
 
 ### ResourceCountCard
 

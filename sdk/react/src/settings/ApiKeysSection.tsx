@@ -14,6 +14,7 @@ type FlowState =
   | { phase: "creating" }
   | { phase: "reveal"; rawKey: string; keyName: string };
 
+/** Settings section for listing and creating organization API keys. */
 export function ApiKeysSection() {
   const org = useActiveOrgSlug();
   const apiKeysAvailable = useResourceAvailable(ApiResourceKind.api_key);

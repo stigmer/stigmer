@@ -7,6 +7,18 @@ description: Hooks and components for organization creation.
 
 ## Hooks
 
+### useActiveOrgSlug
+
+Convenience accessor: returns the active org's slug for use in API
+calls, or an empty string when no org is selected.
+
+**Signature**
+
+```tsx
+function useActiveOrgSlug(): string
+```
+
+
 ### useCreateOrganization
 
 Behavior hook that wraps `organization.create()` with loading/error
@@ -49,6 +61,21 @@ const org = await create({
 ```
 
 
+### useOrg
+
+Access the active organization context from the nearest
+[`OrgProvider`](#orgprovider).
+
+Throws if called outside an `<OrgProvider>` — this surfaces wiring
+mistakes immediately during development.
+
+**Signature**
+
+```tsx
+function useOrg(): OrgContextValue
+```
+
+
 ### useOrganization
 
 Data hook that fetches a single Organization by ID.
@@ -87,6 +114,68 @@ function useOrganization(id: string | null): UseOrganizationReturn
 
 ```tsx
 const { organization, isLoading, error } = useOrganization("org-id-123");
+```
+
+
+### useOrgGate
+
+Headless behavior hook that encapsulates the org-gate provisioning
+state machine.
+
+The hook observes the organization context from [`useOrg`](#useorg) and
+drives the following lifecycle:
+
+1. **`bypassed`** — `isBypassed` is true; the gate is inactive.
+2. **`loading`** — the initial org list fetch is in flight.
+3. **`provisioning`** — OIDC mode, zero orgs: the server is creating
+   the personal org. The hook polls every 2 s and times out after 10 s.
+4. **`error`** — the org fetch failed; `message` carries the reason.
+5. **`no-orgs`** — no organizations exist (or provisioning timed out);
+   the consumer should show an onboarding form.
+6. **`ready`** — at least one org exists; render the app.
+
+The consumer computes `isBypassed` and `isOidcMode` using
+framework-specific APIs and passes them in, keeping this hook free of
+routing or auth-framework dependencies (DD-004).
+
+**Signature**
+
+```tsx
+function useOrgGate(options: UseOrgGateOptions): UseOrgGateReturn
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseOrgGateOptions", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseOrgGateReturn`
+
+<TypeTable
+  type={{
+    refresh: { type: "(targetSlug?: string) => void", description: "Refetch orgs (e.g. after creating one). Optionally auto-select by slug." },
+    retry: { type: "() => void", description: "Re-attempt the organization fetch after a failure." },
+    state: { type: "OrgGateState", description: "Current gate state. Discriminated union on `status`.", typeDescriptionLink: "#orggatestate" },
+  }}
+/>
+
+```tsx
+const { state, retry, refresh } = useOrgGate({ isBypassed, isOidcMode });
+
+switch (state.status) {
+  case "bypassed":
+  case "ready":
+    return <>{children}</>;
+  case "loading":
+    return <Spinner />;
+  case "provisioning":
+    return <WelcomeScreen />;
+  case "error":
+    return <ErrorScreen message={state.message} onRetry={retry} />;
+  case "no-orgs":
+    return <OnboardingForm onCreated={(org) => refresh(org.slug)} />;
+}
 ```
 
 
@@ -192,4 +281,100 @@ or layout — platform builders can embed it directly:
   onUpdated={(org) => console.log("Saved:", org.metadata?.name)}
 />
 ```
+
+
+### OrgProvider
+
+Provides organization context to the component tree.
+
+Fetches the authenticated user's organizations via
+`stigmer.organization.findMyOrganizations()`, manages the active
+organization selection, and persists the choice to `localStorage`
+under the key `stigmer:activeOrgSlug`.
+
+Must be rendered inside a [`StigmerProvider`](/docs/sdk/react/core#stigmerprovider).
+
+```tsx
+<StigmerProvider client={client}>
+  <OrgProvider>
+    <App />
+  </OrgProvider>
+</StigmerProvider>
+```
+
+
+### OrgSwitcher
+
+Organization switcher dropdown for sidebar navigation.
+
+Shows the active organization (name + slug), lists personal and team
+organizations grouped with icons, and provides a "Create organization"
+action that opens an inline dialog with [`CreateOrganizationForm`](#createorganizationform).
+
+Designed for sidebar placement — the trigger uses `sidebar-*` design
+tokens. The portaled dropdown and dialog use standard `popover-*` /
+main-area tokens per theme-token-guidelines.
+
+Must be rendered inside an [`OrgProvider`](#orgprovider).
+
+**Props** — `OrgSwitcherProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names merged onto the trigger (or root in error/loading states)." },
+    onOrgChanged: { type: "(org: Organization) => void", description: "Called when the user explicitly switches to a different organization or creates a new one.  This fires only on user-initiated changes — not on initial load, background refresh, or programmatic context updates. Use it to trigger side effects like navigation without fragile `useEffect` guards on the active org." },
+  }}
+/>
+
+```tsx
+<OrgSwitcher onOrgChanged={(org) => navigate("/")} />
+```
+
+
+## Types
+
+### OrgContextValue
+
+Value exposed by [`OrgProvider`](#orgprovider) via [`useOrg`](#useorg).
+
+<TypeTable
+  type={{
+    activeOrg: { type: "Organization | null", description: "The currently selected organization. Null while loading or if the user has no orgs.", required: true },
+    error: { type: "string | null", description: "Non-null when the fetch failed.", required: true },
+    isLoading: { type: "boolean", description: "True during the initial fetch of organizations.", required: true },
+    orgs: { type: "Organization[]", description: "All organizations the authenticated user belongs to.", required: true },
+    refresh: { type: "(targetSlug?: string) => void", description: "Refetch the organization list. If `targetSlug` is provided, the org matching that slug will be auto-selected after the fetch completes (useful after creating a new organization).", required: true },
+    retry: { type: "() => void", description: "Re-attempt the organization fetch after a failure.", required: true },
+    setActiveOrg: { type: "(org: Organization) => void", description: "Switch the active organization. Persisted to localStorage.", required: true },
+  }}
+/>
+
+
+### OrgGateState
+
+Discriminated union representing the current state of the org gate.
+
+Narrow on `status` to access variant-specific data:
+
+```ts
+if (state.status === "error") {
+  console.log(state.message); // string — only available on "error"
+}
+```
+
+
+### UseOrgGateOptions
+
+Options passed to [`useOrgGate`](#useorggate) by the host application.
+
+Both values are computed by the consumer using framework-specific APIs
+(e.g. `usePathname()` in Next.js, `useLocation()` in react-router) so
+that the hook itself has zero framework dependencies.
+
+<TypeTable
+  type={{
+    isBypassed: { type: "boolean", description: "True when the current route should bypass the gate (e.g. `/invite/` links).", required: true },
+    isOidcMode: { type: "boolean", description: "True when the auth mode supports server-side personal org provisioning.", required: true },
+  }}
+/>
 

@@ -32,7 +32,14 @@ export interface UserMenuProps {
    * The authenticated user. Pass `null` for unauthenticated / local mode,
    * which renders a generic icon and "Local mode" label in the trigger.
    */
-  readonly user: { name?: string; email?: string } | null;
+  readonly user:
+    | {
+        /** Display name shown in the trigger and menu header when available. */
+        readonly name?: string;
+        /** Email shown as secondary identity text. */
+        readonly email?: string;
+      }
+    | null;
   /**
    * Current color mode selection. Accepts the unresolved value
    * (`"light"`, `"dark"`, or `"system"`) so the radio group reflects

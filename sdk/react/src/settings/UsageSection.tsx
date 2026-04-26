@@ -5,6 +5,7 @@ import { useDeploymentMode } from "../deployment-mode";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
 import { useOrg } from "../organization/OrgProvider";
 
+/** Settings section for organization usage and cost reporting. */
 export function UsageSection() {
   const { activeOrg } = useOrg();
   const mode = useDeploymentMode();

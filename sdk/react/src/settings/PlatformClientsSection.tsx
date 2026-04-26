@@ -22,6 +22,7 @@ type FlowState =
     }
   | { phase: "editing"; platformClient: PlatformClient };
 
+/** Settings section for creating and maintaining platform clients. */
 export function PlatformClientsSection() {
   const org = useActiveOrgSlug();
   const pcAvailable = useResourceAvailable(ApiResourceKind.platform_client);

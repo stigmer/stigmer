@@ -13,6 +13,7 @@ const ENV_EXCLUDE_LABELS: Record<string, string>[] = [
   { "stigmer.ai/managed": "true" },
 ];
 
+/** Settings section for personal and organization environment variables. */
 export function EnvironmentsSection() {
   const org = useActiveOrgSlug();
 

@@ -5,6 +5,7 @@ import { useResourceAvailable, ApiResourceKind } from "../deployment-mode";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
 import { useOrg } from "../organization/OrgProvider";
 
+/** Settings section for organization membership and role management. */
 export function MembersSection() {
   const { activeOrg } = useOrg();
   const membersAvailable = useResourceAvailable(ApiResourceKind.iam_policy);

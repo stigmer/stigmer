@@ -5,6 +5,7 @@ import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organizati
 import { OrgProfilePanel } from "../organization/OrgProfilePanel";
 import { useOrg } from "../organization/OrgProvider";
 
+/** Settings section for editing the active organization profile. */
 export function OrgProfileSection() {
   const { activeOrg, refresh } = useOrg();
   const orgId = activeOrg?.metadata?.id ?? "";

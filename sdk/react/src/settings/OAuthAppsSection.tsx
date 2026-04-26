@@ -14,6 +14,7 @@ type FlowState =
   | { phase: "creating" }
   | { phase: "editing"; oauthApp: OAuthApp };
 
+/** Settings section for organization OAuth app credentials. */
 export function OAuthAppsSection() {
   const org = useActiveOrgSlug();
   const oauthAppsAvailable = useResourceAvailable(ApiResourceKind.oauth_app);
