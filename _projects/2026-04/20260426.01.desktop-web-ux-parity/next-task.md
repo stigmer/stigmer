@@ -68,8 +68,39 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-26 12:05
-**Current Task**: T01 Complete — Ready for T02
-**Status**: T01 Done, T02 Pending
+**Current Task**: T02 Complete — Library feature parity remaining
+**Status**: T01 Done, T02 Done (core shell + settings + breadcrumbs), Library feature gaps identified
+
+## Session Progress (2026-04-26, Session 7 — T02 Desktop Shell Rebuild)
+
+- Completed T02-A: Sidebar collapse infrastructure — `useSidebarOpen()` hook with localStorage persistence, AppShell width transition + reopen button
+- Completed T02-B: Desktop UserMenu bridge — `useColorModePreference()` hook persisting to localStorage, `UserMenu.tsx` bridge mapping auth/theme/routing to SDK props, `App.tsx` wired to read color mode preference
+- Completed T02-C: Rebuilt Sidebar with OrgSwitcher (top row with collapse toggle), UserMenu (bottom), session recents, version footer preserved as desktop-specific element
+- Completed T02-D: ManagementSidebar with `SETTINGS_NAV_GROUPS` nav items, OrgSwitcher, "Back to Sessions", UserMenu; AppShell zone switching (`/settings` → ManagementSidebar, else → Sidebar)
+- Completed T02-E: Settings landing page at `/settings` with nav group cards, SettingsLayout with `<Outlet />` + centered container
+- **Extracted 9 settings Section components to SDK** (`sdk/react/src/settings/`): ApiKeysSection, MembersSection, OrgProfileSection, EnvironmentsSection, InvitationsSection, IdentityProvidersSection (with `ssoLoginBaseUrl` prop), PlatformClientsSection, OAuthAppsSection, UsageSection
+- Migrated web settings pages to import directly from `@stigmer/react` — deleted 9 `domain/settings/` files
+- Desktop settings routes reference SDK sections directly in `routes.tsx` — eliminated 9 thin wrapper files
+- SettingsRunners and SettingsBilling remain app-specific (Tauri runner management, coming-soon placeholder)
+- Completed T02-G: Library breadcrumbs — `LibraryBreadcrumb.tsx`, `LibraryLayout.tsx` with `<Outlet />`, detail pages call `useBreadcrumbOverride().setLabel()`
+- **Extracted `LibraryBreadcrumbContext`** (provider + hooks) to `sdk/react/src/library/` — both apps import from `@stigmer/react`
+- Ran duplication audit across all desktop `pages/library/` and `pages/settings/` — identified remaining files as either correct thin-wrapper architecture (DD-004) or feature gaps (not duplication)
+- All verification targets pass: SDK lint + typecheck, web lint, desktop typecheck
+- Commit: `bd4c3446f refactor(sdk,desktop,web): rebuild desktop app shell and extract settings sections to SDK`
+
+**T02 core is complete.** Desktop now has:
+- Sidebar with OrgSwitcher, UserMenu, collapse toggle, session recents, version footer
+- ManagementSidebar with SETTINGS_NAV_GROUPS navigation for settings zone
+- 11 settings pages (9 from SDK sections + runners + billing placeholder)
+- Settings landing page at `/settings`
+- Library breadcrumbs with resource name override
+- Color mode toggle (light/dark/system) persisted to localStorage
+
+**Remaining feature gaps** (identified in duplication audit, tracked for follow-up):
+- Desktop detail pages missing `useUpdateVisibility` toggle (web has it)
+- Desktop list pages missing page headers with title/description/Add action
+- Desktop list pages missing localStorage scope persistence
+- Desktop MCP list page missing connect dialog
 
 ## Session Progress (2026-04-26, Session 6 — T01-E)
 
@@ -154,12 +185,12 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T02**: Desktop App Shell Rebuild — wire up all extracted SDK components (OrgSwitcher, UserMenu, ManagementSidebar, settings pages) into the desktop app with sidebar collapse, library breadcrumbs, and full settings surface
-2. **T03**: Web App Migration — migrate remaining web Console components to consume SDK-extracted components, eliminating local duplicates
+1. **Library feature parity** — close the feature gaps identified in the duplication audit: visibility toggle on detail pages, page headers on list pages, scope persistence, MCP connect dialog
+2. **T03**: Web App Migration — any remaining web Console components that should consume SDK-extracted components (most was done during the Section extraction)
 
 ## Context for Resume
 
-- **T01 is complete.** All subtask plans are in `tasks/T01_0_plan.md` and `.cursor/plans/`
+- **T01 and T02 core are complete.** All subtask plans are in `tasks/T01_0_plan.md` and `.cursor/plans/`
 - T01-E plan is in `.cursor/plans/t01-e_usermenu_extraction_0247330e.plan.md` — documents the color mode control gap, flattened menu decision, and Console wrapper pattern
 - SDK-internal Menu primitives live in `sdk/react/src/internal/menu.tsx` — includes Menu, MenuTrigger, MenuContent, MenuItem, MenuRadioGroup, MenuRadioItem, MenuSeparator, MenuGroup, MenuLabel
 - UserMenu uses controlled `colorMode` + `onColorModeChange` props — `useColorMode()` is read-only, so color mode mutation is the consumer's responsibility (web bridges via `next-themes`, desktop bridges via its own state)
