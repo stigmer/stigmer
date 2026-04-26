@@ -2,22 +2,30 @@
 
 import { useCallback, useRef, useState } from "react";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
-import {
-  IdentityProviderListPanel,
-  IdentityProviderWizard,
-  IdentityProviderDetailPanel,
-  useResourceAvailable,
-  CloudFeatureNotice,
-  ApiResourceKind,
-  useOrg,
-} from "@stigmer/react";
+import { IdentityProviderListPanel } from "../identity-provider/IdentityProviderListPanel";
+import { IdentityProviderWizard } from "../identity-provider/IdentityProviderWizard";
+import { IdentityProviderDetailPanel } from "../identity-provider/IdentityProviderDetailPanel";
+import { useResourceAvailable, ApiResourceKind } from "../deployment-mode";
+import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
+import { useOrg } from "../organization/OrgProvider";
+
+export interface IdentityProvidersSectionProps {
+  /**
+   * Base URL used to construct the SSO login link shown in the detail panel.
+   * Defaults to `window.location.origin` when omitted (correct for web apps).
+   * Desktop apps should pass the cloud console origin instead.
+   */
+  readonly ssoLoginBaseUrl?: string;
+}
 
 type FlowState =
   | { phase: "idle" }
   | { phase: "creating" }
   | { phase: "editing"; identityProvider: IdentityProvider };
 
-export function IdentityProvidersSection() {
+export function IdentityProvidersSection({
+  ssoLoginBaseUrl,
+}: IdentityProvidersSectionProps = {}) {
   const { activeOrg } = useOrg();
   const idpAvailable = useResourceAvailable(ApiResourceKind.identity_provider);
   const orgSlug = activeOrg?.metadata?.slug ?? "";
@@ -38,6 +46,10 @@ export function IdentityProvidersSection() {
     listRefetchRef.current?.();
     setFlow({ phase: "idle" });
   }, []);
+
+  const baseUrl =
+    ssoLoginBaseUrl ??
+    (typeof window !== "undefined" ? window.location.origin : "");
 
   return (
     <section aria-labelledby="identity-providers-heading">
@@ -88,7 +100,7 @@ export function IdentityProvidersSection() {
             identityProvider={flow.identityProvider}
             ssoLoginUrl={
               flow.identityProvider.spec?.isSsoProvider
-                ? `${window.location.origin}/login?org=${orgSlug}`
+                ? `${baseUrl}/login?org=${orgSlug}`
                 : undefined
             }
             onUpdated={handleUpdated}

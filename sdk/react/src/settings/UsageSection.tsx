@@ -1,11 +1,9 @@
 "use client";
 
-import {
-  OrgUsagePanel,
-  useDeploymentMode,
-  CloudFeatureNotice,
-  useOrg,
-} from "@stigmer/react";
+import { OrgUsagePanel } from "../usage/OrgUsagePanel";
+import { useDeploymentMode } from "../deployment-mode";
+import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
+import { useOrg } from "../organization/OrgProvider";
 
 export function UsageSection() {
   const { activeOrg } = useOrg();

@@ -1,14 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  usePersonalEnvironment,
-  EnvironmentVariableEditor,
-  EnvironmentListPanel,
-  CreateEnvironmentForm,
-  useActiveOrgSlug,
-} from "@stigmer/react";
 import { getUserMessage } from "@stigmer/sdk";
+import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
+import { EnvironmentVariableEditor } from "../environment/EnvironmentVariableEditor";
+import { EnvironmentListPanel } from "../environment/EnvironmentListPanel";
+import { CreateEnvironmentForm } from "../environment/CreateEnvironmentForm";
+import { useActiveOrgSlug } from "../organization/OrgProvider";
 
 const ENV_EXCLUDE_LABELS: Record<string, string>[] = [
   { "stigmer.ai/personal": "true" },
@@ -26,10 +24,6 @@ export function EnvironmentsSection() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Personal Environment
-// ---------------------------------------------------------------------------
-
 function PersonalEnvironmentCard({ org }: { org: string }) {
   const {
     environment,
@@ -41,9 +35,6 @@ function PersonalEnvironmentCard({ org }: { org: string }) {
 
   const bootstrapAttempted = useRef(false);
 
-  // Reset the bootstrap guard when the org changes so auto-create
-  // can fire for the new organization. Declared before the bootstrap
-  // effect so React executes the reset first (effects run in order).
   useEffect(() => {
     bootstrapAttempted.current = false;
   }, [org]);
@@ -51,9 +42,7 @@ function PersonalEnvironmentCard({ org }: { org: string }) {
   useEffect(() => {
     if (!org || isLoading || environment || bootstrapAttempted.current) return;
     bootstrapAttempted.current = true;
-    getOrCreate().catch(() => {
-      // error state is surfaced via the hook's `error` field
-    });
+    getOrCreate().catch(() => {});
   }, [org, isLoading, environment, getOrCreate]);
 
   const environmentId = environment?.metadata?.id;
@@ -93,10 +82,6 @@ function PersonalEnvironmentCard({ org }: { org: string }) {
     </section>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Environments
-// ---------------------------------------------------------------------------
 
 function EnvironmentsCard({ org }: { org: string }) {
   const [showCreate, setShowCreate] = useState(false);
@@ -160,10 +145,6 @@ function EnvironmentsCard({ org }: { org: string }) {
     </section>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Shared
-// ---------------------------------------------------------------------------
 
 function SkeletonRows({ count }: { count: number }) {
   return (

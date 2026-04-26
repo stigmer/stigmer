@@ -1,7 +1,4 @@
-"use client";
-
-import Link from "next/link";
-import { useLibraryNavigation } from "@/domain/library/library-navigation";
+import { Link, useLocation } from "react-router-dom";
 import { useBreadcrumbLabel } from "@stigmer/react";
 
 const SEGMENT_LABELS: Record<string, string> = {
@@ -11,9 +8,9 @@ const SEGMENT_LABELS: Record<string, string> = {
 };
 
 export function LibraryBreadcrumb() {
-  const { currentLibraryPath } = useLibraryNavigation();
+  const { pathname } = useLocation();
   const overrideLabel = useBreadcrumbLabel();
-  const segments = currentLibraryPath.replace(/^\/library\/?/, "").split("/").filter(Boolean);
+  const segments = pathname.replace(/^\/library\/?/, "").split("/").filter(Boolean);
 
   if (segments.length === 0) return null;
 
@@ -22,7 +19,7 @@ export function LibraryBreadcrumb() {
       <ol className="flex items-center gap-1.5 text-sm">
         <li>
           <Link
-            href="/library"
+            to="/library"
             className="text-muted-foreground transition-colors hover:text-foreground"
           >
             Library
@@ -32,8 +29,6 @@ export function LibraryBreadcrumb() {
           const isLast = i === segments.length - 1;
           const isKnownCategory = segment in SEGMENT_LABELS;
 
-          // Skip intermediate segments (e.g. the [org] in /skills/[org]/[slug])
-          // that are not a known category and not the final segment.
           if (!isLast && !isKnownCategory) return null;
 
           const label =
@@ -50,7 +45,7 @@ export function LibraryBreadcrumb() {
                 </span>
               ) : (
                 <Link
-                  href={`/library/${segments.slice(0, i + 1).join("/")}`}
+                  to={`/library/${segments.slice(0, i + 1).join("/")}`}
                   className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   {label}

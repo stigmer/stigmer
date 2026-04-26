@@ -2,15 +2,12 @@
 
 import { useCallback, useRef, useState } from "react";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
-import {
-  ApiKeyListPanel,
-  CreateApiKeyForm,
-  ApiKeyCreatedAlert,
-  useResourceAvailable,
-  CloudFeatureNotice,
-  ApiResourceKind,
-  useActiveOrgSlug,
-} from "@stigmer/react";
+import { ApiKeyListPanel } from "../api-key/ApiKeyListPanel";
+import { CreateApiKeyForm } from "../api-key/CreateApiKeyForm";
+import { ApiKeyCreatedAlert } from "../api-key/ApiKeyCreatedAlert";
+import { useResourceAvailable, ApiResourceKind } from "../deployment-mode";
+import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
+import { useActiveOrgSlug } from "../organization/OrgProvider";
 
 type FlowState =
   | { phase: "idle" }

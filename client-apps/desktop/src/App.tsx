@@ -8,6 +8,7 @@ import { router } from "./routes";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { LoginScreen } from "./auth/LoginScreen";
 import { AppUpdaterProvider } from "./hooks/AppUpdaterContext";
+import { useColorModePreference } from "./hooks/useColorModePreference";
 import { useDeepLinkHandler } from "./hooks/useDeepLinkHandler";
 import { useRunnerNotifications } from "./hooks/useRunnerNotifications";
 
@@ -33,6 +34,7 @@ export function App() {
 function AuthenticatedApp() {
   const { getAccessToken, isAuthenticated, isInitialized } = useAuth();
   useRunnerNotifications();
+  const { colorMode } = useColorModePreference();
 
   const deploymentMode = isLocalMode() ? "local" : "cloud";
 
@@ -52,7 +54,7 @@ function AuthenticatedApp() {
     <StigmerProvider
       client={client}
       deploymentMode={deploymentMode}
-      colorMode="system"
+      colorMode={colorMode}
       preset="monochrome"
     >
       <AppContent isInitialized={isInitialized} isAuthenticated={isAuthenticated} />

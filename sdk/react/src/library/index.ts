@@ -1,3 +1,9 @@
+export {
+  LibraryBreadcrumbProvider,
+  useBreadcrumbLabel,
+  useBreadcrumbOverride,
+} from "./LibraryBreadcrumbContext";
+
 export { ScopeToggle } from "./ScopeToggle";
 export type { ScopeToggleProps } from "./ScopeToggle";
 
