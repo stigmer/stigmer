@@ -66,12 +66,35 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install Planton CLI
+        uses: plantonhq/install-planton-cli-action@main
+
+      - name: Update Planton sandbox image variable
+        env:
+          PLANTON_API_KEY: ${{ secrets.PLANTON_API_KEY }}
+        run: |
+          IMAGE="ghcr.io/${{ github.repository_owner }}/agent-sandbox-full:main-${{ steps.tags.outputs.short_sha }}"
+          cat > /tmp/daytona-ci-vargroup.yaml <<EOF
+          apiVersion: service-hub.planton.ai/v1
+          kind: VariablesGroup
+          metadata:
+            name: daytona-ci
+            org: stigmer
+          spec:
+            description: CI-managed Daytona sandbox configuration. Updated exclusively by release.sandbox-cloud.
+            entries:
+              - name: prod.sandbox-image
+                value: ${IMAGE}
+                description: Immutable image tag for Daytona sandbox provisioning
+          EOF
+          planton apply -f /tmp/daytona-ci-vargroup.yaml
+
       - name: Warm Daytona image cache
         continue-on-error: true
         timeout-minutes: 5
         env:
           DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}
-          IMAGE: ghcr.io/${{ github.repository_owner }}/agent-sandbox-full:latest
+          IMAGE: ghcr.io/${{ github.repository_owner }}/agent-sandbox-full:main-${{ steps.tags.outputs.short_sha }}
         run: |
           pip install daytona-sdk
           python - <<'PYEOF'
@@ -97,4 +120,5 @@ jobs:
           echo "**Image:** \`ghcr.io/${{ github.repository_owner }}/agent-sandbox-full\`" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** \`latest\`, \`main-${{ steps.tags.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Architecture:** linux/amd64" >> $GITHUB_STEP_SUMMARY
-          echo "**Daytona cache warm:** attempted (continue-on-error)" >> $GITHUB_STEP_SUMMARY
+          echo "**Planton variable:** updated \`daytona-ci/prod.sandbox-image\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Daytona cache warm:** attempted with SHA tag (continue-on-error)" >> $GITHUB_STEP_SUMMARY
