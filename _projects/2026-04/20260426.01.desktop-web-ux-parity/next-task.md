@@ -69,7 +69,17 @@ When starting a new session:
 
 **Created**: 2026-04-26 12:05
 **Current Task**: T02 Complete — Library feature parity remaining
-**Status**: T01 Done, T02 Done (core shell + settings + breadcrumbs), Library feature gaps identified
+**Status**: T01 Done, T02 Done (core shell + settings + breadcrumbs + native menu bar), Library feature gaps identified
+
+## Session Progress (2026-04-26, Session 8 — Native App Menu Bar)
+
+- Added native macOS app menu bar via new `menu.rs` Rust module
+- About Stigmer dialog now shows the Stigmer app icon, version from `tauri.conf.json`, and copyright — replaces the default Tauri about panel that showed "stigmer-desktop" with a generic folder icon
+- Added "Check for Updates..." to the app menu, reusing the existing `check-for-update` Tauri event (zero frontend changes)
+- Added standard Edit submenu (Undo/Redo/Cut/Copy/Paste/Select All) and Window submenu (Minimize/Close Window)
+- Wired into `lib.rs` with `mod menu;`, `.on_menu_event()` handler, and `setup_app_menu(app)?;` in setup
+- Cleaned up unused `PredefinedMenuItem` import after `cargo check --quiet` warning
+- All verification targets pass: `make verify-desktop` clean (0 errors, 0 new warnings)
 
 ## Session Progress (2026-04-26, Session 7 — T02 Desktop Shell Rebuild)
 
