@@ -30,7 +30,7 @@ const McpServerListPage = lazy(() => import("./pages/library/McpServerListPage")
 const McpServerDetailPage = lazy(() => import("./pages/library/McpServerDetailPage"));
 const SettingsLayout = lazy(() => import("./pages/settings/SettingsLayout"));
 const SettingsLanding = lazy(() => import("./pages/settings/SettingsLanding"));
-const SettingsRunners = lazy(() => import("./pages/settings/SettingsRunners"));
+const RunnersPage = lazy(() => import("./pages/runners/RunnersPage"));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -132,7 +132,9 @@ const routes: RouteObject[] = [
         path: "runners",
         element: (
           <LazyPage>
-            <SettingsRunners />
+            <div className="mx-auto max-w-4xl px-6 py-8">
+              <RunnersPage />
+            </div>
           </LazyPage>
         ),
       },

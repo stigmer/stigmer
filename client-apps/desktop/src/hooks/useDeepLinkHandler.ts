@@ -143,7 +143,7 @@ export function useDeepLinkHandler(
         id: TOAST_ID,
         action: {
           label: "View Runners",
-          onClick: () => router.navigate("/settings/runners"),
+          onClick: () => router.navigate("/runners"),
         },
       });
     } catch (err) {
