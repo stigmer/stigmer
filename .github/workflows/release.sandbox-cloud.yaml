@@ -74,20 +74,25 @@ jobs:
           PLANTON_API_KEY: ${{ secrets.PLANTON_API_KEY }}
         run: |
           IMAGE="ghcr.io/${{ github.repository_owner }}/agent-sandbox-full:main-${{ steps.tags.outputs.short_sha }}"
-          cat > /tmp/daytona-ci-vargroup.yaml <<EOF
+          cat > /tmp/sandbox-ci-vargroup.yaml <<EOF
           apiVersion: service-hub.planton.ai/v1
           kind: VariablesGroup
           metadata:
-            name: daytona-ci
+            name: sandbox-ci
             org: stigmer
           spec:
-            description: CI-managed Daytona sandbox configuration. Updated exclusively by release.sandbox-cloud.
+            description: CI-managed sandbox configuration. Updated exclusively by release.sandbox-cloud.
             entries:
               - name: prod.sandbox-image
                 value: ${IMAGE}
                 description: Immutable image tag for Daytona sandbox provisioning
           EOF
-          planton apply -f /tmp/daytona-ci-vargroup.yaml
+          planton apply -f /tmp/sandbox-ci-vargroup.yaml
+
+      - name: Redeploy stigmer-service to pick up new image variable
+        env:
+          PLANTON_API_KEY: ${{ secrets.PLANTON_API_KEY }}
+        run: planton service run-pipeline --service stigmer-service --branch main
 
       - name: Warm Daytona image cache
         continue-on-error: true
@@ -120,5 +125,5 @@ jobs:
           echo "**Image:** \`ghcr.io/${{ github.repository_owner }}/agent-sandbox-full\`" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** \`latest\`, \`main-${{ steps.tags.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Architecture:** linux/amd64" >> $GITHUB_STEP_SUMMARY
-          echo "**Planton variable:** updated \`daytona-ci/prod.sandbox-image\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Planton variable:** updated \`sandbox-ci/prod.sandbox-image\`" >> $GITHUB_STEP_SUMMARY
           echo "**Daytona cache warm:** attempted with SHA tag (continue-on-error)" >> $GITHUB_STEP_SUMMARY
