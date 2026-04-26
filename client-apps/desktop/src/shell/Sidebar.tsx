@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { NavLink, useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   Plus,
@@ -6,9 +6,7 @@ import {
   Server,
   MessageSquare,
   PanelLeft,
-  ArrowUpCircle,
 } from "lucide-react";
-import { getVersion } from "@tauri-apps/api/app";
 import { cn } from "@stigmer/theme";
 import {
   OrgSwitcher,
@@ -17,7 +15,6 @@ import {
   resolvedSubject,
 } from "@stigmer/react";
 import type { SessionGroup } from "@stigmer/react";
-import { useAppUpdaterContext } from "../hooks/AppUpdaterContext";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
 
@@ -154,10 +151,9 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* Bottom: user menu + version footer */}
+      {/* Bottom: user menu */}
       <div className="flex-none border-t border-sidebar-border px-3 py-2">
         <UserMenu />
-        <VersionFooter />
       </div>
     </nav>
   );
@@ -249,38 +245,3 @@ function RecentsEmptyState() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Version footer (desktop-specific)
-// ---------------------------------------------------------------------------
-
-function VersionFooter() {
-  const [appVersion, setAppVersion] = useState<string | null>(null);
-  const { status: updateStatus, availableVersion, checkForUpdate } =
-    useAppUpdaterContext();
-
-  useEffect(() => {
-    getVersion().then(setAppVersion).catch(() => {});
-  }, []);
-
-  if (!appVersion) return null;
-
-  const hasUpdate = updateStatus === "available" && availableVersion;
-
-  return (
-    <div className="mt-1 px-2">
-      {hasUpdate ? (
-        <button
-          onClick={checkForUpdate}
-          className="flex w-full items-center gap-1.5 rounded-md px-0.5 py-1 text-[0.65rem] text-sidebar-primary transition-colors hover:text-sidebar-accent-foreground"
-        >
-          <ArrowUpCircle className="size-3 shrink-0" />
-          <span>Update available: v{availableVersion}</span>
-        </button>
-      ) : (
-        <span className="block py-1 text-[0.65rem] text-sidebar-muted-foreground">
-          v{appVersion}
-        </span>
-      )}
-    </div>
-  );
-}
