@@ -2,8 +2,10 @@ mod auth;
 mod sidecar;
 mod tray;
 
+use auth::{AuthCallbackPayload, param};
 use sidecar::ProcessManager;
-use tauri::{Manager, RunEvent, WindowEvent};
+use tauri::{Emitter, Manager, RunEvent, WindowEvent};
+use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 
 pub fn run() {
@@ -23,8 +25,8 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .manage(ProcessManager::new())
         .invoke_handler(tauri::generate_handler![
-            auth::open_auth_window,
-            auth::close_auth_overlay,
+            auth::open_auth_in_browser,
+            auth::cancel_auth,
             sidecar::start_runner,
             sidecar::stop_runner,
             sidecar::stop_all_runners,
@@ -34,9 +36,31 @@ pub fn run() {
         .setup(|app| {
             #[cfg(any(windows, target_os = "linux"))]
             {
-                use tauri_plugin_deep_link::DeepLinkExt;
                 app.deep_link().register_all()?;
             }
+
+            let handle = app.handle().clone();
+            app.deep_link().on_open_url(move |event| {
+                for raw in event.urls() {
+                    if raw.scheme() == "stigmer"
+                        && raw.host_str() == Some("auth")
+                        && raw.path() == "/callback"
+                    {
+                        let payload = AuthCallbackPayload {
+                            code: param(raw, "code"),
+                            state: param(raw, "state"),
+                            error: param(raw, "error"),
+                            error_description: param(raw, "error_description"),
+                        };
+                        let _ = handle.emit("auth-callback", payload);
+
+                        if let Some(window) = handle.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                }
+            });
 
             app.handle()
                 .plugin(tauri_plugin_updater::Builder::new().build())?;

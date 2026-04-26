@@ -26,7 +26,7 @@ export interface AuthState {
   readonly isInitialized: boolean;
   readonly user: AuthUser | null;
   readonly getAccessToken: () => string | null;
-  readonly login: () => Promise<void>;
+  readonly login: (connection?: string) => Promise<void>;
   readonly logout: () => void;
 }
 
@@ -46,10 +46,10 @@ export function useAuth(): AuthState {
 }
 
 /**
- * The redirect URI for the PKCE callback. Auth0 redirects the auth
- * webview to this URL after login. The Rust `on_navigation` handler
- * intercepts the redirect, extracts the authorization code, and emits
- * an `auth-callback` event — the webview never actually navigates here.
+ * The redirect URI for the PKCE callback. After authentication, Auth0
+ * redirects the browser to this custom-scheme URL. The OS routes it to
+ * the app via the deep-link plugin, which emits the `auth-callback`
+ * event with the authorization code.
  */
 const CALLBACK_URL = "stigmer://auth/callback";
 
@@ -82,10 +82,9 @@ function isAuthDisabled(): boolean {
  * 1. **Disabled auth** (local/OSS) — always authenticated, no token.
  *    Mirrors the web's `DisabledAuthProvider`.
  *
- * 2. **PKCE auth** (cloud) — opens Auth0's Universal Login in an
- *    embedded webview window, intercepts the callback redirect to
- *    capture the authorization code, exchanges it for tokens, and
- *    manages silent refresh.
+ * 2. **PKCE auth** (cloud) — opens the system browser for Auth0
+ *    login, receives the authorization code via deep-link callback,
+ *    exchanges it for tokens, and manages silent refresh.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   if (isAuthDisabled()) {
@@ -168,13 +167,7 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
     };
   }, [tokens]);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      invoke("close_auth_overlay").catch(() => {});
-    }
-  }, [isAuthenticated]);
-
-  const login = useCallback(async () => {
+  const login = useCallback(async (connection?: string) => {
     setIsLoading(true);
     try {
       const verifier = generateVerifier();
@@ -185,6 +178,7 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
         codeChallenge: challenge,
         state: stateParam,
         redirectUri: CALLBACK_URL,
+        connection,
       });
 
       const { code } = await openAuthFlow(authUrl, stateParam);
@@ -235,7 +229,7 @@ function PkceAuthProvider({ children }: { children: ReactNode }) {
 }
 
 // ---------------------------------------------------------------------------
-// Embedded auth webview
+// System browser auth flow
 // ---------------------------------------------------------------------------
 
 interface AuthCallbackPayload {
@@ -246,18 +240,17 @@ interface AuthCallbackPayload {
 }
 
 /**
- * Shows Auth0's Universal Login as a full-window overlay webview inside
- * the main window and waits for the authorization code.
+ * Opens the authorization URL in the system browser and waits for
+ * the deep-link callback.
  *
- * The Rust `open_auth_window` command creates a child webview that
- * covers the main window content area. When Auth0 redirects to
- * `stigmer://auth/callback`, the Rust `on_navigation` handler
- * intercepts the redirect, emits an `auth-callback` event with the
- * code/state/error, and removes the overlay.
+ * The Rust `open_auth_in_browser` command opens the user's default
+ * browser. After authentication, Auth0 redirects to
+ * `stigmer://auth/callback` — the OS routes the custom scheme back
+ * to the app, where the deep-link handler in `lib.rs` emits an
+ * `auth-callback` event with the code/state/error.
  *
- * If the overlay is removed programmatically (e.g. via
- * `close_auth_overlay`), an `auth-cancelled` event is emitted and
- * the promise rejects with `LoginCancelledError`.
+ * If the user cancels (via `cancel_auth`), an `auth-cancelled` event
+ * is emitted and the promise rejects with `LoginCancelledError`.
  */
 async function openAuthFlow(
   authUrl: string,
@@ -313,7 +306,7 @@ async function openAuthFlow(
     ])
       .then(([unlistenCallback, unlistenCancel]) => {
         unlisteners.push(unlistenCallback, unlistenCancel);
-        return invoke("open_auth_window", { authUrl });
+        return invoke("open_auth_in_browser", { authUrl });
       })
       .catch((err) => {
         settle({
@@ -325,9 +318,9 @@ async function openAuthFlow(
 }
 
 /**
- * Sentinel error thrown when the user closes the auth window without
- * completing login. The login screen catches this and suppresses the
- * error display — closing is intentional cancellation, not a failure.
+ * Sentinel error thrown when the user cancels the sign-in flow.
+ * The login screen catches this and returns to the idle state —
+ * cancellation is intentional, not a failure.
  */
 class LoginCancelledError extends Error {
   constructor() {

@@ -17,6 +17,15 @@ interface LaunchRunnerParams {
   token: string;
 }
 
+function isAuthCallback(raw: string): boolean {
+  try {
+    const url = new URL(raw);
+    return url.protocol === "stigmer:" && url.hostname === "auth";
+  } catch {
+    return false;
+  }
+}
+
 function parseLaunchRunnerUrl(raw: string): LaunchRunnerParams | null {
   let url: URL;
   try {
@@ -105,6 +114,8 @@ export function useDeepLinkHandler(
   baseUrlRef.current = baseUrl;
 
   const handleUrl = useCallback(async (raw: string) => {
+    if (isAuthCallback(raw)) return;
+
     const params = parseLaunchRunnerUrl(raw);
     if (!params) return;
 
