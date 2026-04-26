@@ -459,6 +459,10 @@ export type {
   OrgSwitcherProps,
 } from "./organization";
 
+// Settings — navigation structure shared across app shells
+export { SETTINGS_NAV_GROUPS } from "./settings";
+export type { SettingsNavItem, SettingsNavGroup } from "./settings";
+
 // API Key — data hooks, behavior hooks, and styled components for API key lifecycle
 export {
   useApiKeyList,

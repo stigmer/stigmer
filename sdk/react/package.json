@@ -71,6 +71,7 @@
     "@bufbuild/protobuf": "^2.0.0",
     "@stigmer/protos": "*",
     "@stigmer/sdk": "*",
+    "lucide-react": ">=0.400.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
