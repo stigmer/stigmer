@@ -9,6 +9,7 @@ import { useResourceAvailable, ApiResourceKind } from "../deployment-mode";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
 import { useOrg } from "../organization/OrgProvider";
 
+/** Props for {@link IdentityProvidersSection}. */
 export interface IdentityProvidersSectionProps {
   /**
    * Base URL used to construct the SSO login link shown in the detail panel.
@@ -23,6 +24,7 @@ type FlowState =
   | { phase: "creating" }
   | { phase: "editing"; identityProvider: IdentityProvider };
 
+/** Settings section for configuring OIDC identity providers. */
 export function IdentityProvidersSection({
   ssoLoginBaseUrl,
 }: IdentityProvidersSectionProps = {}) {

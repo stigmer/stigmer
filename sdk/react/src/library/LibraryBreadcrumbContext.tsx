@@ -61,6 +61,7 @@ export function useBreadcrumbLabel(): string | null {
  * `setLabel` function safe for use as a `useEffect` dependency.
  */
 export function useBreadcrumbOverride(): {
+  /** Set or clear the breadcrumb label override for the active detail page. */
   setLabel: (label: string | null) => void;
 } {
   const ctx = useContext(BreadcrumbOverrideContext);

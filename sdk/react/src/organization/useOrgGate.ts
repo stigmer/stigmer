@@ -36,12 +36,32 @@ export interface UseOrgGateOptions {
  * ```
  */
 export type OrgGateState =
-  | { readonly status: "bypassed" }
-  | { readonly status: "loading" }
-  | { readonly status: "provisioning" }
-  | { readonly status: "error"; readonly message: string }
-  | { readonly status: "no-orgs" }
-  | { readonly status: "ready" };
+  | {
+      /** Gate is bypassed for the current route. */
+      readonly status: "bypassed";
+    }
+  | {
+      /** Initial organization list fetch is in progress. */
+      readonly status: "loading";
+    }
+  | {
+      /** Personal organization provisioning is in progress. */
+      readonly status: "provisioning";
+    }
+  | {
+      /** Organization fetch failed and user action is required. */
+      readonly status: "error";
+      /** Human-readable failure message suitable for UI display. */
+      readonly message: string;
+    }
+  | {
+      /** No organizations are available for the current user. */
+      readonly status: "no-orgs";
+    }
+  | {
+      /** At least one organization is available and the app can render. */
+      readonly status: "ready";
+    };
 
 /**
  * Return value of {@link useOrgGate}.

@@ -12,18 +12,30 @@ import {
   Users,
 } from "lucide-react";
 
+/** Single navigable entry in the settings sidebar. */
 export interface SettingsNavItem {
+  /** Route for the settings page entry. */
   readonly href: string;
+  /** Short, user-facing label shown in navigation. */
   readonly label: string;
-  readonly icon: ComponentType<{ className?: string }>;
+  /** Lucide icon component rendered next to the label. */
+  readonly icon: ComponentType<{
+    /** Optional CSS class name applied to the icon. */
+    className?: string;
+  }>;
 }
 
+/** Grouping model used to render settings navigation sections. */
 export interface SettingsNavGroup {
+  /** Group heading shown in the settings navigation. */
   readonly label: string;
+  /** Helper text describing the group purpose. */
   readonly description: string;
+  /** Entries that belong to this group. */
   readonly items: readonly SettingsNavItem[];
 }
 
+/** Canonical settings sidebar/grouped navigation model. */
 export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
   {
     label: "Organization",

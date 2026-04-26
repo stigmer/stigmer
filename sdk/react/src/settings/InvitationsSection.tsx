@@ -5,6 +5,7 @@ import { useResourceAvailable, ApiResourceKind } from "../deployment-mode";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
 import { useActiveOrgSlug } from "../organization/OrgProvider";
 
+/** Settings section for creating and managing organization invitations. */
 export function InvitationsSection() {
   const org = useActiveOrgSlug();
   const invitationsAvailable = useResourceAvailable(ApiResourceKind.invitation);

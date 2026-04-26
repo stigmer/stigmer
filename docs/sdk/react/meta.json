@@ -22,8 +22,10 @@
     "platform-client",
     "runner",
     "session",
+    "settings",
     "skill",
     "usage",
+    "user",
     "workspace"
   ]
 }
