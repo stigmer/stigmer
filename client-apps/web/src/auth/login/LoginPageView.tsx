@@ -80,7 +80,7 @@ export function LoginPageView() {
   }, []);
 
   return (
-    <StigmerProvider client={client} colorMode={colorMode}>
+    <StigmerProvider client={client} colorMode={colorMode} preset="monochrome">
       <div className="flex min-h-screen flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm space-y-8">
           <div className="text-center">

@@ -47,6 +47,7 @@ export function StigmerTransportBridge({ children }: { children: ReactNode }) {
       client={client}
       deploymentMode={deploymentMode}
       colorMode={colorMode}
+      preset="monochrome"
     >
       {children}
     </StigmerProvider>
