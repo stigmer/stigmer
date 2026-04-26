@@ -11,9 +11,12 @@ use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 pub fn run() {
     let mut builder = tauri::Builder::default();
 
-    builder = builder.plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {
-        // Deep link URLs are forwarded automatically via the deep-link
-        // feature flag — no manual argv parsing needed here.
+    builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.show();
+            let _ = window.unminimize();
+            let _ = window.set_focus();
+        }
     }));
 
     let app = builder
