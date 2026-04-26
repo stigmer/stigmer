@@ -261,9 +261,10 @@ desktop-build: ## Build Stigmer Desktop native binary (requires TAURI_SIGNING_PR
 	fi
 	npm run tauri build -w desktop
 
-verify-desktop: ## Lint and typecheck desktop app
+verify-desktop: ## Lint and typecheck desktop app (TS + Rust)
 	npm run lint -w desktop
 	npm run typecheck -w desktop
+	cd client-apps/desktop/src-tauri && cargo check --quiet
 
 validate-demos: ## Run static demo scenario validation (token compliance, manifest alignment)
 	$(MAKE) -C site validate-demos

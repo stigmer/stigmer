@@ -18,9 +18,9 @@ pub(crate) struct AuthCallbackPayload {
 /// `lib.rs` emits the `auth-callback` event to complete the flow.
 #[tauri::command]
 pub async fn open_auth_in_browser(app: tauri::AppHandle, auth_url: String) -> Result<(), String> {
-    use tauri_plugin_shell::ShellExt;
-    app.shell()
-        .open(&auth_url, None)
+    use tauri_plugin_opener::OpenerExt;
+    app.opener()
+        .open_url(&auth_url, None::<&str>)
         .map_err(|e| format!("Failed to open browser: {e}"))
 }
 

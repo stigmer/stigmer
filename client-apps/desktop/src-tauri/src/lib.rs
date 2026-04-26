@@ -19,6 +19,7 @@ pub fn run() {
     let app = builder
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
@@ -47,10 +48,10 @@ pub fn run() {
                         && raw.path() == "/callback"
                     {
                         let payload = AuthCallbackPayload {
-                            code: param(raw, "code"),
-                            state: param(raw, "state"),
-                            error: param(raw, "error"),
-                            error_description: param(raw, "error_description"),
+                            code: param(&raw, "code"),
+                            state: param(&raw, "state"),
+                            error: param(&raw, "error"),
+                            error_description: param(&raw, "error_description"),
                         };
                         let _ = handle.emit("auth-callback", payload);
 
