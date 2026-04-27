@@ -502,12 +502,17 @@ func (w *InvokeAgentExecutionWorkflowImpl) getActivityTaskQueue(ctx workflow.Con
 }
 
 // updateStatusOnFailure updates the execution status to FAILED when a system error occurs.
+//
+// Uses a regular activity (not local) on the stigmer workflow queue. Local activities
+// produce RECORD_MARKER events that trigger a Temporal SDK state machine bug when
+// executed in the same workflow task as a remote activity failure (e.g., ScheduleToStart
+// timeout on a dead runner queue). Regular activities produce standard
+// ActivityTaskScheduled/Completed events, sidestepping the issue entirely.
 func (w *InvokeAgentExecutionWorkflowImpl) updateStatusOnFailure(ctx workflow.Context, executionID string, originalErr error) error {
 	logger := workflow.GetLogger(ctx)
 
 	logger.Info("Updating execution status to FAILED", "execution_id", executionID)
 
-	// Create failed status with error details
 	failedStatus := &agentexecutionv1.AgentExecutionStatus{
 		Phase: agentexecutionv1.ExecutionPhase_EXECUTION_FAILED,
 		Error: originalErr.Error(),
@@ -523,18 +528,15 @@ func (w *InvokeAgentExecutionWorkflowImpl) updateStatusOnFailure(ctx workflow.Co
 		},
 	}
 
-	// Create local activity stub for status update (runs in-process)
-	// Local activities don't go through Temporal task queues, avoiding polyglot collision
-	localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
-		ScheduleToCloseTimeout: 30 * time.Second,
+	activityCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+		StartToCloseTimeout: 30 * time.Second,
 		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts: 3,
 			InitialInterval: 2 * time.Second,
 		},
 	})
 
-	// Call the update status activity (this should be registered as a local activity)
-	err := workflow.ExecuteLocalActivity(localCtx, activities.UpdateExecutionStatusActivityName, executionID, failedStatus).Get(localCtx, nil)
+	err := workflow.ExecuteActivity(activityCtx, activities.UpdateExecutionStatusActivityName, executionID, failedStatus).Get(activityCtx, nil)
 	if err != nil {
 		logger.Error("Failed to update execution status", "error", err.Error())
 		return err
@@ -574,6 +576,10 @@ func (w *InvokeAgentExecutionWorkflowImpl) handleCancellation(
 
 // updateStatusOnCancellation updates the execution status to CANCELLED.
 // Best-effort: logs on error but never propagates.
+//
+// Uses a regular activity for the same replay-safety reasons as updateStatusOnFailure.
+// The caller (handleCancellation) provides a disconnected context so this activity
+// completes even when the workflow context is already cancelled.
 func (w *InvokeAgentExecutionWorkflowImpl) updateStatusOnCancellation(ctx workflow.Context, executionID string) {
 	logger := workflow.GetLogger(ctx)
 
@@ -588,15 +594,15 @@ func (w *InvokeAgentExecutionWorkflowImpl) updateStatusOnCancellation(ctx workfl
 		},
 	}
 
-	localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
-		ScheduleToCloseTimeout: 30 * time.Second,
+	activityCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+		StartToCloseTimeout: 30 * time.Second,
 		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts: 3,
 			InitialInterval: 2 * time.Second,
 		},
 	})
 
-	err := workflow.ExecuteLocalActivity(localCtx, activities.UpdateExecutionStatusActivityName, executionID, cancelledStatus).Get(localCtx, nil)
+	err := workflow.ExecuteActivity(activityCtx, activities.UpdateExecutionStatusActivityName, executionID, cancelledStatus).Get(activityCtx, nil)
 	if err != nil {
 		logger.Warn("Failed to update execution status to CANCELLED",
 			"execution_id", executionID, "error", err.Error())
