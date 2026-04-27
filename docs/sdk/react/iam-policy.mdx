@@ -149,6 +149,7 @@ function usePrincipalsCount(orgId: string | null, principalKind: string): UsePri
     count: { type: "number", description: "Number of distinct principals with access. `0` while loading." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the fetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
     refetch: { type: "() => void", description: "Re-fetch the count from the server." },
   }}
 />
@@ -193,6 +194,7 @@ function useResourceAccess(resource: ResourceAccessRef | null, options?: UseReso
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the fetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
     members: { type: "readonly PrincipalAccess[]", description: "Principals with their role grants on the resource." },
     refetch: { type: "() => void", description: "Re-fetch the access list from the server." },
   }}

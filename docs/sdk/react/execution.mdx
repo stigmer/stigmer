@@ -65,8 +65,9 @@ function useArtifactContent(executionId: string | null, storageKey: string | nul
   type={{
     content: { type: "string | null", description: "Decoded text content of the artifact, or `null` when: - Fetching is skipped (`executionId` or `storageKey` is `null`) - The request is in-flight - The request failed" },
     contentType: { type: "string | null", description: "Detected content type (e.g., `\"text/yaml\"`, `\"text/plain\"`). `null` before the first successful fetch." },
-    error: { type: "string | null", description: "Error message from the last failed attempt, or `null` when healthy." },
+    error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the content request is in-flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight." },
     isTruncated: { type: "boolean", description: "Whether the returned content was truncated by the server's `max_bytes` limit. When `true`, the full artifact should be downloaded via `getArtifactDownloadUrl` instead." },
     refetch: { type: "() => void", description: "Re-fetch the artifact content. Uses the `fetchKey` counter pattern consistent with `refetch()` in other SDK hooks." },
   }}

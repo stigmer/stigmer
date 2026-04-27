@@ -114,6 +114,7 @@ function useIdentityProvider(id: string | null): UseIdentityProviderReturn
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     identityProvider: { type: "IdentityProvider | null", description: "The fetched IdentityProvider, or `null` while loading or on error." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
   }}
 />
@@ -161,6 +162,7 @@ function useIdentityProviderList(org: string | null): UseIdentityProviderListRet
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     identityProviders: { type: "readonly IdentityProvider[]", description: "All identity providers for the organization. Empty while loading or on error." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
   }}
 />

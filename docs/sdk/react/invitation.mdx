@@ -96,6 +96,7 @@ function useInvitationPreview(token: string | null): UseInvitationPreviewReturn
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
     preview: { type: "InvitationPreview | null", description: "The invitation preview, or `null` while loading or on error." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the preview from the server." },
   }}
@@ -144,6 +145,7 @@ function useOrgInvitations(org: string | null): UseOrgInvitationsReturn
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     invitations: { type: "readonly Invitation[]", description: "All invitations for the organization. Empty while loading or on error." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the invitation list from the server." },
   }}
 />

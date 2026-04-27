@@ -130,7 +130,7 @@
       "slug": "runner",
       "title": "Runner",
       "description": "Hooks and components for runner lifecycle, fleet management, local launch, and picker.",
-      "hooks": 4,
+      "hooks": 5,
       "components": 2
     },
     {

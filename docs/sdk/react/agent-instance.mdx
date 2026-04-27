@@ -44,6 +44,7 @@ function useAgentInstance(ref: ResourceRef | null): UseAgentInstanceReturn
     agentInstance: { type: "AgentInstance | null", description: "The fetched AgentInstance, or `null` while loading or on error." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the agent instance from the server." },
   }}
 />
@@ -89,6 +90,7 @@ function useAgentInstanceList(org: string | null, labels?: Record<string, string
     agentInstances: { type: "readonly AgentInstance[]", description: "The fetched list of AgentInstance entries. Empty while loading or on error." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the list from the server." },
     totalCount: { type: "number", description: "Total number of agent instances matching the query, including unpaged items." },
   }}

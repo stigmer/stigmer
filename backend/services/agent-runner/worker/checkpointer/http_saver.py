@@ -30,6 +30,7 @@ round-trip without any changes on the server side.
 from __future__ import annotations
 
 import base64
+import builtins
 import logging
 from collections.abc import AsyncIterator, Iterator, Sequence
 from typing import Any, cast
@@ -499,9 +500,9 @@ class HttpCheckpointSaver(BaseCheckpointSaver):
             parent_config=cast(RunnableConfig | None, parent_config),
         )
 
-    def _parse_writes(self, resp: httpx.Response) -> list[tuple[str, str, Any]]:
+    def _parse_writes(self, resp: httpx.Response) -> builtins.list[tuple[str, str, Any]]:
         """Parse checkpoint writes from a proxy response."""
-        pending_writes: list[tuple[str, str, Any]] = []
+        pending_writes: builtins.list[tuple[str, str, Any]] = []
         if resp.status_code == 200:
             writes_data = resp.json()
             for w in writes_data.get("writes", []):

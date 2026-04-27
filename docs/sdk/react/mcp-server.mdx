@@ -80,6 +80,7 @@ function useMcpServer(org: string | null, slug: string | null): UseMcpServerRetu
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight." },
     mcpServer: { type: "McpServer | null", description: "The resolved MCP server, or `null` while loading, on error, or when not found." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the MCP server from the server." },
   }}
@@ -188,7 +189,7 @@ function useMcpServerCount(org: string | null, options?: UseMcpServerCountOption
 <TypeTable
   type={{
     count: { type: "number | undefined", description: "Total number of MCP servers matching the current filters. `undefined` until the first successful fetch completes." },
-    error: { type: "string | null", description: "Error message from the last failed request, or `null` when healthy." },
+    error: { type: "Error | null", description: "Error message from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the count fetch is in flight." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the count from the server." },
   }}
@@ -346,7 +347,7 @@ function useMcpServerList(org: string | null, options?: UseMcpServerListOptions)
 <TypeTable
   type={{
     currentPage: { type: "number", description: "The current page number (mirrors the `page` option)." },
-    error: { type: "string | null", description: "Error message from the last failed request, or `null` when healthy." },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
     mcpServers: { type: "readonly SearchResult[]", description: "Paginated MCP server entries for the current page." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the current page from the server." },
@@ -567,6 +568,7 @@ function useOAuthGrantStatus(resourceId: string | null, org: string | null): Use
     connectionHealth: { type: "OAuthConnectionHealth", description: "Health of the OAuth connection, as evaluated by the backend.  Gives the frontend an actionable signal beyond the binary `connected` boolean: healthy, expired-but-refreshable, expired (re-auth needed), or no grant at all. `UNSPECIFIED` when the status has not been fetched." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the grant status is being fetched." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the grant status." },
     targetEnvVar: { type: "string", description: "The env var name managed by OAuth, or empty string when no grant exists." },
   }}
