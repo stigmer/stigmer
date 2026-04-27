@@ -4,19 +4,14 @@ import { getUserMessage } from "@stigmer/sdk";
 import {
   useRunnerList,
   useActiveOrgSlug,
-  useStigmer,
+  useRunnerCredential,
   phaseLabel,
   phaseDotColor,
   isActivePhase,
   PHASE_SORT_ORDER,
 } from "@stigmer/react";
-import { create } from "@bufbuild/protobuf";
 import type { Runner } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
 import { RunnerPhase } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/enum_pb";
-import {
-  CreateLaunchTokenRequestSchema,
-  ExchangeLaunchTokenRequestSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/runner/v1/io_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Play, Square, ScrollText } from "lucide-react";
 import { useLocalRunners } from "../../hooks/useLocalRunners";
@@ -26,12 +21,10 @@ import { StartRunnerDialog } from "./StartRunnerDialog";
 import { RunnerLogViewer } from "./RunnerLogViewer";
 import { toGrpcTarget } from "../../lib/grpc-target";
 
-const BASE_URL =
-  import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:7234";
 const SYSTEM_MANAGED_LABEL = "stigmer.ai/system-managed";
 
 export default function RunnersPage() {
-  const stigmer = useStigmer();
+  const { getCredential } = useRunnerCredential();
   const org = useActiveOrgSlug();
 
   const {
@@ -82,28 +75,13 @@ export default function RunnersPage() {
       setIsLaunching(true);
 
       try {
-        let token = opts.token;
-        let endpoint = opts.endpoint;
-        let runnerOrg: string | undefined;
-
-        if (!token) {
-          const launchResp = await stigmer.runner.createLaunchToken(
-            create(CreateLaunchTokenRequestSchema, { org }),
-          );
-          const exchangeResp = await stigmer.runner.exchangeLaunchToken(
-            create(ExchangeLaunchTokenRequestSchema, {
-              token: launchResp.token,
-            }),
-          );
-          token = exchangeResp.accessToken;
-          runnerOrg = exchangeResp.org;
-        }
+        const cred = await getCredential(org || undefined);
 
         await startRunner({
           name: opts.name,
-          token,
-          endpoint: endpoint || toGrpcTarget(BASE_URL),
-          org: runnerOrg || org || undefined,
+          token: opts.token || cred.token || undefined,
+          endpoint: opts.endpoint || toGrpcTarget(cred.endpoint),
+          org: org || undefined,
         });
         setDialogOpen(false);
         setTimeout(refetchServer, 3000);
@@ -116,7 +94,7 @@ export default function RunnersPage() {
         setIsLaunching(false);
       }
     },
-    [stigmer, org, startRunner, isStarting, refetchServer],
+    [getCredential, org, startRunner, isStarting, refetchServer],
   );
 
   const handleStop = useCallback(
@@ -409,16 +387,8 @@ function RunnerIcon({ size = 14 }: { size?: number }) {
 function describeStartFlowError(err: unknown): string {
   const raw = String(err).toLowerCase();
 
-  if (raw.includes("unimplemented")) {
-    return "Launch tokens are not supported in OSS mode. " +
-      "Run \u2018stigmer auth login\u2019 in a terminal, then use " +
-      "\u2018stigmer up\u2019 to start a runner directly.";
-  }
   if (raw.includes("unauthenticated") || raw.includes("unauthorized")) {
     return "Authentication failed. Please log in again.";
-  }
-  if (raw.includes("not_found") || raw.includes("not found")) {
-    return "The launch token has expired or was already used. Please try again.";
   }
   if (raw.includes("network") || raw.includes("fetch") || raw.includes("connect")) {
     return "Could not reach the Stigmer server. Check your network connection.";

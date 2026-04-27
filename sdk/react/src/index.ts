@@ -682,6 +682,7 @@ export type {
 export {
   useRunnerList,
   useLaunchLocalRunner,
+  useRunnerCredential,
   useStopRunner,
   useDeleteRunner,
   RunnerPicker,
@@ -697,6 +698,8 @@ export type {
   UseLaunchLocalRunnerOptions,
   UseLaunchLocalRunnerReturn,
   LaunchLocalRunnerResult,
+  RunnerCredential,
+  UseRunnerCredentialReturn,
   StopRunnerInput,
   UseStopRunnerReturn,
   UseDeleteRunnerReturn,
