@@ -14,7 +14,7 @@ import {
 import type { Runner } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
 import { RunnerPhase } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/enum_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { Play, Square, ScrollText } from "lucide-react";
+import { Play, Square, ScrollText, X } from "lucide-react";
 import { useLocalRunners } from "../../hooks/useLocalRunners";
 import { useStartRunner } from "../../hooks/useStartRunner";
 import { useStopLocalRunner } from "../../hooks/useStopLocalRunner";
@@ -162,13 +162,33 @@ export default function RunnersPage() {
     [serverRunners],
   );
 
-  const logRunner = useMemo(
+  // Stabilize the runner object passed to RunnerLogViewer so it only
+  // updates when display-relevant fields actually change, preventing
+  // unnecessary re-renders of the log panel during list polling.
+  const logRunnerRaw = useMemo(
     () =>
       logRunnerName
         ? sorted.find((r) => r.metadata?.name === logRunnerName) ?? null
         : null,
     [logRunnerName, sorted],
   );
+
+  const logRunnerRef = useRef<Runner | null>(null);
+  const logRunner = useMemo(() => {
+    const prev = logRunnerRef.current;
+    const next = logRunnerRaw;
+    if (prev === null && next === null) return null;
+    if (prev === null || next === null) {
+      logRunnerRef.current = next;
+      return next;
+    }
+    const samePhase = prev.status?.phase === next.status?.phase;
+    const sameExecs = prev.status?.currentExecutions === next.status?.currentExecutions;
+    const sameVersion = prev.status?.connectionInfo?.runnerVersion === next.status?.connectionInfo?.runnerVersion;
+    if (samePhase && sameExecs && sameVersion) return prev;
+    logRunnerRef.current = next;
+    return next;
+  }, [logRunnerRaw]);
 
   const handleStart = useCallback(
     async (opts: {
@@ -324,6 +344,23 @@ export default function RunnersPage() {
             </div>
           )}
 
+          {!dialogOpen && launchError && (
+            <div
+              role="alert"
+              className="mb-2 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive-subtle px-3 py-2 text-xs text-destructive"
+            >
+              <span className="min-w-0 flex-1">{launchError}</span>
+              <button
+                type="button"
+                onClick={() => setLaunchError(null)}
+                aria-label="Dismiss error"
+                className="shrink-0 rounded p-0.5 transition-colors hover:bg-destructive/10"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
+
           {!isLoading && !serverError && sorted.length > 0 && (
             <div className="space-y-2" role="list" aria-label="Runners">
               {sorted.map((runner) => {
@@ -340,7 +377,9 @@ export default function RunnersPage() {
                     isLocal={isLocal}
                     isSelected={runnerName === logRunnerName}
                     isStopping={isStopping}
+                    isLaunching={isLaunching || isStarting}
                     onStop={() => handleStop(runnerName)}
+                    onStart={() => handleStart({ name: runnerName })}
                     onShowLogs={() => handleShowLogs(runnerName)}
                   />
                 );
@@ -398,14 +437,18 @@ function RunnerRow({
   isLocal,
   isSelected,
   isStopping,
+  isLaunching,
   onStop,
+  onStart,
   onShowLogs,
 }: {
   runner: Runner;
   isLocal: boolean;
   isSelected: boolean;
   isStopping: boolean;
+  isLaunching: boolean;
   onStop: () => void;
+  onStart: () => void;
   onShowLogs: () => void;
 }) {
   const name = runner.metadata?.name ?? "Unnamed";
@@ -468,7 +511,7 @@ function RunnerRow({
         )}
       </div>
 
-      {/* Actions — visible for local runners */}
+      {/* Actions — visible for active local runners */}
       {isLocal && active && (
         <div className="flex shrink-0 items-center gap-1 pt-0.5">
           <button
@@ -494,6 +537,22 @@ function RunnerRow({
             className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-destructive-subtle hover:text-destructive disabled:opacity-50"
           >
             <Square size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* Start action — visible for stopped runners */}
+      {phase === RunnerPhase.STOPPED && (
+        <div className="flex shrink-0 items-center gap-1 pt-0.5">
+          <button
+            type="button"
+            onClick={onStart}
+            disabled={isLaunching}
+            title="Start runner"
+            aria-label={`Start ${name}`}
+            className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-primary-subtle hover:text-primary disabled:opacity-50"
+          >
+            <Play size={14} />
           </button>
         </div>
       )}

@@ -26,6 +26,8 @@ pub struct RunnerStateFile {
     pub started_at: String,
     #[serde(default)]
     pub managed_by_daemon: bool,
+    #[serde(default)]
+    pub log_file: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -44,6 +46,7 @@ pub struct LocalRunnerInfo {
     pub started_at: String,
     pub managed_by_daemon: bool,
     pub managed_by_desktop: bool,
+    pub log_file: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -203,6 +206,7 @@ fn read_all_runner_states() -> Result<Vec<LocalRunnerInfo>, String> {
                 started_at: state.started_at,
                 managed_by_daemon: state.managed_by_daemon,
                 managed_by_desktop: false,
+                log_file: state.log_file,
             });
         }
     }
@@ -307,10 +311,12 @@ pub async fn start_runner(
     let pid = child.pid();
 
     // Wait for the CLI to either fail fast or survive the grace period.
-    // During this window we collect stderr so that startup errors (auth
-    // failures, connection refused, etc.) are returned synchronously.
+    // During this window we collect both stdout and stderr so that:
+    //   - startup errors (auth failures, connection refused) are returned synchronously
+    //   - early output is not lost and can be replayed into the log buffer
     let grace_deadline = tokio::time::Instant::now()
         + tokio::time::Duration::from_millis(STARTUP_GRACE_MS);
+    let mut early_output: Vec<String> = Vec::new();
     let mut early_stderr: Vec<String> = Vec::new();
     let mut early_exit: Option<Option<i32>> = None;
 
@@ -326,17 +332,20 @@ pub async fn start_runner(
                 match event {
                     Some(CommandEvent::Stderr(bytes)) => {
                         let line = String::from_utf8_lossy(&bytes).to_string();
-                        early_stderr.push(line);
+                        early_stderr.push(line.clone());
+                        early_output.push(line);
                     }
-                    Some(CommandEvent::Stdout(_)) => {
-                        // CLI is producing output — likely past registration.
+                    Some(CommandEvent::Stdout(bytes)) => {
+                        let line = String::from_utf8_lossy(&bytes).to_string();
+                        early_output.push(line);
                     }
                     Some(CommandEvent::Terminated(payload)) => {
                         early_exit = Some(payload.code);
                         break;
                     }
                     Some(CommandEvent::Error(msg)) => {
-                        early_stderr.push(msg);
+                        early_stderr.push(msg.clone());
+                        early_output.push(msg);
                     }
                     None => {
                         early_exit = Some(None);
@@ -386,13 +395,13 @@ pub async fn start_runner(
     let event_app = app.clone();
     let event_name = runner_name.clone();
 
-    // Replay any stderr lines captured during the grace period into the
-    // log buffer so they are not lost.
+    // Replay all output captured during the grace period (stdout + stderr)
+    // into the log buffer so it is available to `get_runner_logs`.
     {
         let mgr = app.state::<ProcessManager>();
         let mut runners = mgr.runners.lock().await;
         if let Some(runner) = runners.get_mut(&runner_name) {
-            for line in &early_stderr {
+            for line in &early_output {
                 if runner.log_buffer.len() >= LOG_BUFFER_CAPACITY {
                     runner.log_buffer.pop_front();
                 }
@@ -572,4 +581,112 @@ pub async fn get_runner_logs(
     let lines: Vec<String> = runner.log_buffer.iter().skip(start).cloned().collect();
 
     Ok(lines)
+}
+
+/// Reads the last `tail` lines from a runner's on-disk log file. This
+/// works for any local runner (CLI-started, daemon-managed, or desktop-
+/// managed) as long as the CLI wrote a log file.
+#[tauri::command]
+pub async fn tail_runner_log_file(
+    runner_name: String,
+    tail: Option<usize>,
+) -> Result<Vec<String>, String> {
+    let dir = runners_dir()?;
+    let log_path = dir.join(format!("{runner_name}.log"));
+
+    if !log_path.exists() {
+        return Err(format!("no log file for runner '{runner_name}'"));
+    }
+
+    let content = fs::read_to_string(&log_path)
+        .map_err(|e| format!("failed to read log file: {e}"))?;
+
+    let limit = tail.unwrap_or(2000);
+    let all_lines: Vec<&str> = content.lines().collect();
+    let start = all_lines.len().saturating_sub(limit);
+    let lines: Vec<String> = all_lines[start..].iter().map(|s| s.to_string()).collect();
+
+    Ok(lines)
+}
+
+/// Starts watching a runner's log file for new content and emits
+/// `runner:log-file` events as new lines are appended. Returns
+/// immediately; the watcher runs in a background task until the
+/// runner stops or the watch is superseded.
+#[tauri::command]
+pub async fn watch_runner_log_file(
+    app: AppHandle,
+    runner_name: String,
+) -> Result<(), String> {
+    let dir = runners_dir()?;
+    let log_path = dir.join(format!("{runner_name}.log"));
+
+    if !log_path.exists() {
+        return Err(format!("no log file for runner '{runner_name}'"));
+    }
+
+    let metadata = fs::metadata(&log_path)
+        .map_err(|e| format!("failed to stat log file: {e}"))?;
+    let initial_len = metadata.len();
+
+    let event_name = runner_name.clone();
+    let path = log_path.clone();
+
+    tauri::async_runtime::spawn(async move {
+        let mut last_offset = initial_len;
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(500));
+
+        loop {
+            interval.tick().await;
+
+            // Check if the runner is still alive by verifying the state file exists.
+            let state_path = path.with_extension("json");
+            if !state_path.exists() {
+                break;
+            }
+
+            let current_len = match fs::metadata(&path) {
+                Ok(m) => m.len(),
+                Err(_) => break,
+            };
+
+            if current_len <= last_offset {
+                if current_len < last_offset {
+                    // File was truncated (new session); reset.
+                    last_offset = 0;
+                }
+                continue;
+            }
+
+            let content = match fs::read_to_string(&path) {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
+
+            // Find lines that start after the last known offset.
+            let new_content = if (last_offset as usize) < content.len() {
+                &content[last_offset as usize..]
+            } else {
+                ""
+            };
+
+            for line in new_content.lines() {
+                if line.is_empty() {
+                    continue;
+                }
+                let _ = app.emit(
+                    "runner:log-file",
+                    RunnerLogEntry {
+                        name: event_name.clone(),
+                        line: line.to_string(),
+                        stream: "file".into(),
+                    },
+                );
+            }
+
+            last_offset = current_len;
+        }
+    });
+
+    Ok(())
 }
