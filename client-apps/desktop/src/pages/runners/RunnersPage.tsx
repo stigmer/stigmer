@@ -246,13 +246,15 @@ export default function RunnersPage() {
           org: org || undefined,
         });
         lastStartedRef.current = runnerName;
+        setHasTransitional(true);
+        refetchServer();
       } catch (err) {
         setLaunchError(describeStartFlowError(err));
       } finally {
         setIsLaunching(false);
       }
     },
-    [getCredential, org, startRunner, stopRunner],
+    [getCredential, org, startRunner, stopRunner, refetchServer],
   );
 
   const handleShowLogs = useCallback((name: string) => {
