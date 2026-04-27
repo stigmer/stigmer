@@ -71,6 +71,19 @@ When starting a new session:
 **Current Task**: PROJECT COMPLETE
 **Status**: T01 Done, T02 Done, T03 Done — all tasks complete, both apps at full parity
 
+## Session Progress (2026-04-27, Session 16 — Runners Page UX Redesign)
+
+- Redesigned desktop Runners page layout: replaced broken 50/50 horizontal log panel with a resizable bottom panel (VS Code-style)
+- Implemented drag-to-resize handle with pointer events, localStorage persistence for panel ratio
+- Added Escape key to close log panel, smart auto-scroll for log output
+- Enhanced RunnerLogViewer header with phase pill, execution count, os/arch, and runner version
+- Refactored RunnerRow to two-line card layout in both desktop app and SDK `RunnerListPanel`
+- Removed `max-w-4xl` wrapper from desktop runners route — page now fills viewport height
+- Fixed 2 opacity modifier lint warnings (`bg-primary/5`, `bg-primary/10` → `bg-primary-subtle`)
+- All verification targets pass: SDK lint + typecheck (clean), desktop lint + typecheck + cargo check (0 errors, 5 pre-existing warnings)
+- Commit: `ca4c5612d feat(desktop,sdk): redesign Runners page with bottom log panel and two-line rows`
+- Files changed: RunnersPage.tsx, RunnerLogViewer.tsx, routes.tsx (desktop), RunnerListPanel.tsx (SDK)
+
 ## Session Progress (2026-04-26, Session 15 — Native macOS Tray Icon)
 
 - Fixed macOS tray icon — was using the full app icon (opaque black background) instead of a native template image
