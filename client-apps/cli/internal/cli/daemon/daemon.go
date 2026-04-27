@@ -197,7 +197,9 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		}
 
 		if !agentrunner.IsAvailable() {
-			return errors.New("agent-runner Python source is not available")
+			return errors.New("agent-runner Python runtime is not bundled in this binary. " +
+				"If you are using the desktop app, update to the latest version. " +
+				"If building from source, run sync.sh and build with -tags embed_agentrunner")
 		}
 
 		pythonBin, appDir, err = bootstrapRunnerRuntime()

@@ -42,7 +42,7 @@ New `.github/workflows/release.desktop.yaml` workflow triggered by `desktop-v*` 
 3. **Each job**: Compiles Go CLI sidecar (lightweight, no embeds) → installs Node deps → builds SDK libs → runs `tauri-action` to produce signed installers
 4. **Release**: Creates a draft GitHub Release with all platform artifacts and `latest.json` for the auto-updater
 
-The Go CLI sidecar is built without `embed_agentrunner`/`embed_webconsole` tags — the desktop app has its own UI and only needs the CLI for runner management commands.
+The Go CLI sidecar is built with `-tags embed_agentrunner` (corrected from the original design which omitted it). The `embed_webconsole` tag is not used — the desktop app has its own UI and does not serve the web console. The agent-runner embed is required because `stigmer up runner` bootstraps a Python venv from the embedded source.
 
 ### Release Automation
 

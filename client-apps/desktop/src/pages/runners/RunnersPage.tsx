@@ -372,20 +372,10 @@ export default function RunnersPage() {
           )}
 
           {!dialogOpen && launchError && (
-            <div
-              role="alert"
-              className="mb-2 flex items-start gap-2 rounded-lg border border-destructive bg-destructive-subtle px-3 py-2 text-xs text-destructive"
-            >
-              <span className="min-w-0 flex-1">{launchError}</span>
-              <button
-                type="button"
-                onClick={() => setLaunchError(null)}
-                aria-label="Dismiss error"
-                className="shrink-0 rounded p-0.5 transition-colors hover:bg-destructive-subtle"
-              >
-                <X size={12} />
-              </button>
-            </div>
+            <ErrorBanner
+              message={launchError}
+              onDismiss={() => setLaunchError(null)}
+            />
           )}
 
           {!isLoading && !serverError && sorted.length > 0 && (
@@ -643,12 +633,66 @@ function RunnerIcon({
 // Utilities
 // ---------------------------------------------------------------------------
 
+function ErrorBanner({
+  message,
+  onDismiss,
+}: {
+  readonly message: string;
+  readonly onDismiss: () => void;
+}) {
+  const { primary, details } = extractErrorParts(message);
+
+  return (
+    <div
+      role="alert"
+      className="mb-2 rounded-lg border border-destructive bg-destructive-subtle px-3 py-2 text-xs text-destructive"
+    >
+      <div className="flex items-start gap-2">
+        <span className="min-w-0 flex-1">{primary}</span>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss error"
+          className="shrink-0 rounded p-0.5 transition-colors hover:bg-destructive-subtle"
+        >
+          <X size={12} />
+        </button>
+      </div>
+      {details && (
+        <details className="mt-1.5">
+          <summary className="cursor-pointer select-none text-[10px] opacity-70 hover:opacity-100">
+            Show details
+          </summary>
+          <pre className="mt-1 whitespace-pre-wrap break-all text-[10px] opacity-70">
+            {details}
+          </pre>
+        </details>
+      )}
+    </div>
+  );
+}
+
+interface ErrorParts {
+  readonly primary: string;
+  readonly details: string | null;
+}
+
 function describeStartFlowError(err: unknown): string {
   const message = String(err).trim();
   if (!message || message === "undefined" || message === "[object Object]") {
     return "Failed to start runner. Check the runner logs for details.";
   }
   return message;
+}
+
+function extractErrorParts(message: string): ErrorParts {
+  const errorIdx = message.lastIndexOf("Error: ");
+  if (errorIdx >= 0) {
+    const primary = message.slice(errorIdx + "Error: ".length).trim();
+    const details = message.slice(0, errorIdx).trim() || null;
+    return { primary, details };
+  }
+  return { primary: message, details: null };
 }
 
 function phaseThenName(a: Runner, b: Runner): number {

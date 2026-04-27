@@ -13,9 +13,19 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: Cloud auth fix complete, ready for T09 (end-to-end testing & polish)
-- **Last Session**: 2026-04-25 — Fixed cloud auth (PKCE deep link callback + API URL routing)
+- **Status**: Desktop sidecar embed fix complete, ready for T09 (end-to-end testing & polish)
+- **Last Session**: 2026-04-27 — Fixed desktop sidecar missing agent-runner Python embed and improved error UX
 - **Active Task**: None (T09 is the only remaining task)
+
+## Session Progress (2026-04-27)
+
+- Fixed root cause of "agent-runner Python source is not available" in deployed desktop builds
+- Added `sync.sh` + `-tags embed_agentrunner` to desktop CI pipeline (`release.desktop.yaml`)
+- Added build-time guard to prevent this regression class from shipping
+- Improved CLI error messages to be actionable (directs desktop users to update, devs to use correct build flags)
+- Extracted `ErrorBanner` component in `RunnersPage.tsx` with progressive disclosure (primary error + expandable details)
+- Corrected DD-T07-05 across all project notes and changelogs
+- Committed: `5d86f3d65` fix(ci,desktop): embed agent-runner Python source in desktop sidecar
 
 ## Task Overview
 
@@ -171,7 +181,7 @@ The workflow includes all macOS signing/notarization environment variables (`APP
 - **DD-T07-02: Independent desktop versioning with `desktop-v*` tags** — Desktop has its own release cadence. Tag format `desktop-v0.1.0` avoids conflicts with CLI's `v*` tags. Version source of truth: `tauri.conf.json`.
 - **DD-T07-03: Updater signing keypair generated** — Public key committed to config; private key at `~/.tauri/stigmer.key`. This key is a permanent commitment: changing it breaks updates for all installed copies. Must be backed up securely and added to GitHub Actions secrets before first release.
 - **DD-T07-04: React-side update check** — Update UX driven from React (`@tauri-apps/plugin-updater` JS API), not Tauri's built-in dialog. Gives full control over the toast-based, non-blocking UX via `sonner`. The hook is desktop-specific (`client-apps/desktop/src/hooks/`), not SDK material.
-- **DD-T07-05: Sidecar built without embed tags** — The Go CLI sidecar is built with `go build -ldflags="-s -w"` (no `-tags embed_agentrunner embed_webconsole`). Produces a smaller binary since the desktop app doesn't need the embedded web console or agent-runner source — it has its own UI and manages runners via CLI commands.
+- **DD-T07-05: Sidecar built with `embed_agentrunner` (CORRECTED)** — The Go CLI sidecar is built with `-tags embed_agentrunner` but without `embed_webconsole`. The `stigmer up runner` command requires the embedded Python source to bootstrap the agent-runner runtime — without it, `agentrunner.SourceFS()` returns nil and runner start fails. The web console embed is not needed because the desktop app has its own UI. Original assumption that the sidecar "manages runners via CLI commands" without needing the embed was incorrect.
 - **DD-T07-06: Draft releases** — `releaseDraft: true` in `tauri-action`. Releases are created as drafts, reviewed, then published manually. Auto-updater only works with published releases — intentional: prevents broken builds from reaching users.
 - **DD-T07-07: Package manager distribution deferred** — Homebrew cask, winget, apt repo deferred. Premature for v0.1.0. Auto-update means users download once and get updates automatically. Package managers add discoverability but not necessity.
 
@@ -219,7 +229,7 @@ The workflow includes all macOS signing/notarization environment variables (`APP
 - Update endpoint: `https://github.com/stigmer/stigmer/releases/latest/download/latest.json`
 - `useAppUpdater` hook: 5s initial delay, 4h interval, `sonner` toast, `busyRef` guard against concurrent checks
 - CI workflow: `desktop-v*` tag → `generate-protos` → 4-platform matrix (macOS arm64/x86_64, Linux x86_64, Windows x86_64) → `tauri-action` with `includeUpdaterJson: true`
-- Go sidecar built without embed tags (no `embed_agentrunner embed_webconsole`) — lightweight CLI binary
+- Go sidecar built with `-tags embed_agentrunner` (no `embed_webconsole`) — Python runtime embedded for runner bootstrap
 - `make desktop-release bump=patch` bumps `tauri.conf.json` version, commits, tags `desktop-v*`, pushes
 - Draft releases: must be published manually after verification for auto-updater to work
 - Windows: builds but `sidecar.rs` process management (SIGTERM/SIGKILL) is Unix-only — known limitation
