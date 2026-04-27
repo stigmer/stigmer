@@ -128,6 +128,12 @@ jobs:
         with:
           go-version: '1.25'
 
+      - name: Sync agent-runner source for embedding
+        run: |
+          cd client-apps/cli/embedded/agentrunner
+          chmod +x sync.sh
+          ./sync.sh
+
       - name: Build CLI sidecar
         shell: bash
         env:
@@ -135,16 +141,16 @@ jobs:
         run: |
           BINDIR=client-apps/desktop/src-tauri/binaries
           if [ "${{ matrix.go_arch }}" = "universal" ]; then
-            GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" \
+            GOOS=darwin GOARCH=arm64 go build -tags embed_agentrunner -ldflags="-s -w" \
               -o "$BINDIR/stigmer-cli-aarch64-apple-darwin" ./client-apps/cli
-            GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" \
+            GOOS=darwin GOARCH=amd64 go build -tags embed_agentrunner -ldflags="-s -w" \
               -o "$BINDIR/stigmer-cli-x86_64-apple-darwin" ./client-apps/cli
             lipo -create \
               -output "$BINDIR/stigmer-cli-universal-apple-darwin" \
               "$BINDIR/stigmer-cli-aarch64-apple-darwin" \
               "$BINDIR/stigmer-cli-x86_64-apple-darwin"
           else
-            GOOS=${{ matrix.go_os }} GOARCH=${{ matrix.go_arch }} go build -ldflags="-s -w" \
+            GOOS=${{ matrix.go_os }} GOARCH=${{ matrix.go_arch }} go build -tags embed_agentrunner -ldflags="-s -w" \
               -o "$BINDIR/${{ matrix.sidecar_name }}" \
               ./client-apps/cli
           fi
@@ -159,6 +165,14 @@ jobs:
           else
             ls -lh "$BINDIR/${{ matrix.sidecar_name }}"
             file "$BINDIR/${{ matrix.sidecar_name }}"
+          fi
+
+      - name: Verify agent-runner source embedded
+        shell: bash
+        run: |
+          if [ ! -f "client-apps/cli/embedded/agentrunner/source/main.py" ]; then
+            echo "ERROR: agent-runner source not synced -- sidecar will fail at runtime"
+            exit 1
           fi
 
       - name: Set up Node.js

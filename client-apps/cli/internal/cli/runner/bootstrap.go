@@ -24,7 +24,9 @@ const bootstrapTimeout = 10 * time.Minute
 func BootstrapPythonRuntime(ctx context.Context) (pythonBin, appDir string, err error) {
 	sourceFS := agentrunner.SourceFS()
 	if sourceFS == nil {
-		return "", "", errors.New("agent-runner Python source is not available (not embedded and not found in repo tree)")
+		return "", "", errors.New("agent-runner Python runtime is not bundled in this binary. " +
+			"If you are using the desktop app, update to the latest version. " +
+			"If building from source, run sync.sh and build with -tags embed_agentrunner")
 	}
 
 	configDir, err := config.GetConfigDir()
