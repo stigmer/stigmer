@@ -60,3 +60,19 @@ export function phaseDotColor(phase: RunnerPhase): string {
 export function isActivePhase(phase: RunnerPhase): boolean {
   return phase === RunnerPhase.READY || phase === RunnerPhase.BUSY;
 }
+
+/**
+ * Whether the runner is in a transitional phase whose status is
+ * expected to change soon without user action.
+ *
+ * Currently only `PENDING` — the runner has registered but hasn't
+ * completed its startup handshake yet. This is distinct from
+ * {@link isActivePhase} (READY | BUSY) where the runner is stable
+ * and accepting work.
+ *
+ * Useful for driving conditional polling: poll while transitional
+ * runners exist, stop when all runners reach a stable state.
+ */
+export function isTransitionalPhase(phase: RunnerPhase): boolean {
+  return phase === RunnerPhase.PENDING;
+}

@@ -4,7 +4,7 @@ import { create } from "@bufbuild/protobuf";
 import type { Runner } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
 import { ListRunnersRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/io_pb";
 import { useStigmer } from "../hooks";
-import { useFetch } from "../internal/useFetch";
+import { useFetch, type UseFetchOptions } from "../internal/useFetch";
 
 const SYSTEM_MANAGED_LABEL = "stigmer.ai/system-managed";
 
@@ -20,6 +20,24 @@ export interface UseRunnerListOptions {
    * @default false
    */
   readonly includeSystemManaged?: boolean;
+  /**
+   * Poll interval in milliseconds for automatic re-fetching.
+   *
+   * When set to a positive number, the hook re-fetches the runner list
+   * on a timer. Useful for monitoring status transitions (e.g. Pending
+   * to Ready) without requiring the user to navigate away and back.
+   *
+   * Set to `false` or `0` to disable polling (the default).
+   *
+   * @example
+   * ```tsx
+   * // Poll every 5 seconds while runners are transitioning
+   * const { runners } = useRunnerList("acme", {
+   *   refetchInterval: hasPendingRunners ? 5000 : false,
+   * });
+   * ```
+   */
+  readonly refetchInterval?: UseFetchOptions["refetchInterval"];
 }
 
 /** Return value of {@link useRunnerList}. */
@@ -64,6 +82,7 @@ export function useRunnerList(
 ): UseRunnerListReturn {
   const stigmer = useStigmer();
   const includeSystemManaged = options?.includeSystemManaged ?? false;
+  const refetchInterval = options?.refetchInterval;
 
   const { data: runners, isLoading, isRefetching, error, refetch } = useFetch(
     org
@@ -80,6 +99,7 @@ export function useRunnerList(
       : null,
     [stigmer, org, includeSystemManaged],
     [] as Runner[],
+    { refetchInterval },
   );
 
   return { runners, isLoading, isRefetching, error, refetch };
