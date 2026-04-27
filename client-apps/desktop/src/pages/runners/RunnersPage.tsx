@@ -230,6 +230,31 @@ export default function RunnersPage() {
     [stopRunner],
   );
 
+  const handleRestart = useCallback(
+    async (name: string) => {
+      setLaunchError(null);
+      setIsLaunching(true);
+
+      try {
+        await stopRunner(name).catch(() => {});
+
+        const cred = await getCredential(org || undefined);
+        const runnerName = await startRunner({
+          name,
+          token: cred.token || undefined,
+          endpoint: toGrpcTarget(cred.endpoint),
+          org: org || undefined,
+        });
+        lastStartedRef.current = runnerName;
+      } catch (err) {
+        setLaunchError(describeStartFlowError(err));
+      } finally {
+        setIsLaunching(false);
+      }
+    },
+    [getCredential, org, startRunner, stopRunner],
+  );
+
   const handleShowLogs = useCallback((name: string) => {
     setLogRunnerName((prev) => (prev === name ? null : name));
   }, []);
@@ -379,7 +404,7 @@ export default function RunnersPage() {
                     isStopping={isStopping}
                     isLaunching={isLaunching || isStarting}
                     onStop={() => handleStop(runnerName)}
-                    onStart={() => handleStart({ name: runnerName })}
+                    onStart={() => handleRestart(runnerName)}
                     onShowLogs={() => handleShowLogs(runnerName)}
                   />
                 );
