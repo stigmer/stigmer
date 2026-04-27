@@ -30,11 +30,19 @@ import {
   SYSTEM_ENV_VAR_KEYS,
   resolveSystemEnvVarValues,
 } from "../environment/systemEnvVars";
+import { RunnerPhase } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/enum_pb";
+import {
+  isActivePhase,
+  phaseLabel,
+  phaseDotColor,
+  PHASE_SORT_ORDER,
+} from "../runner/phase";
 import {
   AgentIcon,
   McpServerIcon,
   SkillIcon,
   SecretsIcon,
+  RunnerIcon,
   AlertTriangleIcon,
   ResolveSpinner,
 } from "./icons";
@@ -927,6 +935,15 @@ export function SessionComposer({
       }
     }
 
+    if (showRunner && runnerId) {
+      items.push({
+        key: `runner:${runnerId}`,
+        label: selectedRunnerName ?? "Runner",
+        type: "runner",
+        onRemove: () => onRunnerIdChange?.(null),
+      });
+    }
+
     if (sessionVariables) {
       for (const entry of sessionVariables.entries) {
         const k = entry.key.trim();
@@ -951,6 +968,10 @@ export function SessionComposer({
     mcpSetup.entries,
     mcpSetup.removeServer,
     skillRefs,
+    showRunner,
+    runnerId,
+    selectedRunnerName,
+    onRunnerIdChange,
     sessionVariables,
     displayNames,
     onSkillRefsChange,
@@ -1025,6 +1046,14 @@ export function SessionComposer({
         count: skillCount,
       });
     }
+    if (showRunner) {
+      items.push({
+        id: "runner",
+        icon: <RunnerIcon />,
+        label: "Runner",
+        count: runnerId ? 1 : 0,
+      });
+    }
     if (showSessionVars) {
       items.push({
         id: "sessionVars",
@@ -1034,7 +1063,7 @@ export function SessionComposer({
       });
     }
     return items;
-  }, [showAgent, agentRef, agentSetup.state, showMcp, mcpCount, mcpSetup.needsSetupCount, showSkills, skillCount, showSessionVars, sessionVarCount]);
+  }, [showAgent, agentRef, agentSetup.state, showMcp, mcpCount, mcpSetup.needsSetupCount, showSkills, skillCount, showRunner, runnerId, showSessionVars, sessionVarCount]);
 
   const renderConfigPanel = useCallback(
     (panelId: string): React.ReactNode => {
@@ -1119,6 +1148,16 @@ export function SessionComposer({
             />
           );
 
+        case "runner":
+          return (
+            <RunnerConfigPanel
+              org={org!}
+              value={runnerId ?? null}
+              onChange={(id) => onRunnerIdChange?.(id)}
+              disabled={isDisabled}
+            />
+          );
+
         case "sessionVars":
           return (
             <SessionVariablesInput
@@ -1145,6 +1184,8 @@ export function SessionComposer({
       mcpSetup,
       skillRefs,
       onSkillRefsChange,
+      runnerId,
+      onRunnerIdChange,
       sessionVariables,
       pool,
       requiredByMap,
@@ -1321,10 +1362,6 @@ export function SessionComposer({
           configActivePanel={configActivePanel}
           onConfigActivePanelChange={handleConfigActivePanelChange}
           renderConfigPanel={renderConfigPanel}
-          showRunner={showRunner}
-          runnerOrg={org ?? ""}
-          runnerId={runnerId ?? null}
-          onRunnerIdChange={onRunnerIdChange ?? (() => {})}
           showModelSelector={showModelSelector}
           modelId={modelId}
           onModelChange={handleModelChange}
@@ -1360,4 +1397,168 @@ function mcpRefFromKey(key: string): ResourceRef {
     slug: key.slice(idx + 1),
     kind: ApiResourceKind.mcp_server,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Runner config panel — inline list for the Configure menu
+// ---------------------------------------------------------------------------
+
+function RunnerConfigPanel({
+  org,
+  value,
+  onChange,
+  disabled,
+}: {
+  org: string;
+  value: string | null;
+  onChange: (runnerId: string | null) => void;
+  disabled?: boolean;
+}) {
+  const { runners, isLoading } = useRunnerList(org);
+
+  const { active, inactive } = useMemo(() => {
+    type R = (typeof runners)[number];
+    const act: R[] = [];
+    const inact: R[] = [];
+    for (const r of runners) {
+      if (isActivePhase(r.status?.phase ?? RunnerPhase.UNSPECIFIED)) {
+        act.push(r);
+      } else {
+        inact.push(r);
+      }
+    }
+    const sorter = (a: R, b: R) => {
+      const pa = a.status?.phase ?? RunnerPhase.UNSPECIFIED;
+      const pb = b.status?.phase ?? RunnerPhase.UNSPECIFIED;
+      const po = PHASE_SORT_ORDER[pa] - PHASE_SORT_ORDER[pb];
+      if (po !== 0) return po;
+      return (a.metadata?.name ?? "").localeCompare(b.metadata?.name ?? "");
+    };
+    act.sort(sorter);
+    inact.sort(sorter);
+    return { active: act, inactive: inact };
+  }, [runners]);
+
+  const isAutoSelected = value === null;
+
+  return (
+    <div className="w-72 space-y-1">
+      {/* Auto option */}
+      <button
+        type="button"
+        onClick={() => onChange(null)}
+        disabled={disabled}
+        className={cn(
+          "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
+          "disabled:pointer-events-none disabled:opacity-50",
+          isAutoSelected
+            ? "bg-accent font-medium text-foreground"
+            : "text-foreground hover:bg-accent-hover",
+        )}
+        role="option"
+        aria-selected={isAutoSelected}
+      >
+        <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+        <span className="flex-1">Default</span>
+        <span className="text-[0.6rem] text-muted-foreground">auto</span>
+      </button>
+
+      {/* Available runners */}
+      {active.length > 0 && (
+        <>
+          <div className="px-2 pt-1 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">
+            Available
+          </div>
+          {active.map((r) => {
+            const id = r.metadata!.id;
+            const name = r.metadata?.name ?? "Unnamed";
+            const phase = r.status?.phase ?? RunnerPhase.UNSPECIFIED;
+            const hostname = r.status?.connectionInfo?.hostname;
+            const isSelected = value === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onChange(id)}
+                disabled={disabled}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
+                  "disabled:pointer-events-none disabled:opacity-50",
+                  isSelected
+                    ? "bg-accent font-medium text-foreground"
+                    : "text-foreground hover:bg-accent-hover",
+                )}
+                role="option"
+                aria-selected={isSelected}
+              >
+                <span
+                  className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${phaseDotColor(phase)}`}
+                  aria-hidden="true"
+                />
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate">{name}</span>
+                  {hostname && (
+                    <span className="truncate text-[0.6rem] leading-tight text-muted-foreground">
+                      {hostname}
+                    </span>
+                  )}
+                </div>
+                <span className="shrink-0 text-[0.6rem] lowercase text-muted-foreground">
+                  {phaseLabel(phase)}
+                </span>
+              </button>
+            );
+          })}
+        </>
+      )}
+
+      {/* Offline runners */}
+      {inactive.length > 0 && (
+        <>
+          <div className="px-2 pt-1 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">
+            Offline
+          </div>
+          {inactive.map((r) => {
+            const id = r.metadata!.id;
+            const name = r.metadata?.name ?? "Unnamed";
+            const phase = r.status?.phase ?? RunnerPhase.UNSPECIFIED;
+            return (
+              <div
+                key={id}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground opacity-50"
+              >
+                <span
+                  className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${phaseDotColor(phase)}`}
+                  aria-hidden="true"
+                />
+                <span className="min-w-0 flex-1 truncate">{name}</span>
+                <span className="shrink-0 text-[0.6rem] lowercase">
+                  {phaseLabel(phase)}
+                </span>
+              </div>
+            );
+          })}
+        </>
+      )}
+
+      {/* Empty state */}
+      {runners.length === 0 && !isLoading && (
+        <p className="py-3 text-center text-xs text-muted-foreground">
+          No runners registered. Use the CLI or desktop app to start one.
+        </p>
+      )}
+
+      {/* Loading state */}
+      {isLoading && (
+        <div className="py-3 text-center text-xs text-muted-foreground">
+          Loading runners...
+        </div>
+      )}
+
+      {/* Hint */}
+      <p className="px-2 pt-1 text-[0.6rem] leading-relaxed text-muted-foreground">
+        Default assigns a cloud runner automatically. Select a specific runner to execute on your own machine.
+      </p>
+    </div>
+  );
 }
