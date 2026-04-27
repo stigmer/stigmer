@@ -12,6 +12,7 @@ import { useCreateSession } from "./useCreateSession";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
 
 const STORAGE_KEY_MODEL = "stigmer:session:model";
+const STORAGE_KEY_RUNNER = "stigmer:session:runner";
 
 /** Options for {@link useNewSessionFlow}. */
 export interface UseNewSessionFlowOptions {
@@ -171,6 +172,23 @@ export function useNewSessionFlow(
       localStorage.setItem(STORAGE_KEY_MODEL, modelId);
     }
   }, [modelId]);
+
+  // Restore persisted runner on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY_RUNNER);
+    if (stored) {
+      setRunnerId(stored);
+    }
+  }, []);
+
+  // Persist runner on change
+  useEffect(() => {
+    if (runnerId) {
+      localStorage.setItem(STORAGE_KEY_RUNNER, runnerId);
+    } else {
+      localStorage.removeItem(STORAGE_KEY_RUNNER);
+    }
+  }, [runnerId]);
 
   const submit = useCallback(
     async (

@@ -4,7 +4,7 @@ import { ChipSpinner, XIcon } from "./icons";
 export interface ChipItem {
   key: string;
   label: string;
-  type: "agent" | "workspace" | "mcp" | "skill" | "secret";
+  type: "agent" | "workspace" | "mcp" | "skill" | "secret" | "runner";
   onRemove: () => void;
   /** Drives visual variant: amber for `needsSetup`, muted+spinner for `loading`/`submitting`. */
   status?: "loading" | "needsSetup" | "submitting" | "ready";
@@ -20,6 +20,7 @@ const CHIP_TYPE_LABELS: Record<ChipItem["type"], string> = {
   mcp: "MCP",
   skill: "Skill",
   secret: "1-time",
+  runner: "Runner",
 };
 
 export function ContextChip({

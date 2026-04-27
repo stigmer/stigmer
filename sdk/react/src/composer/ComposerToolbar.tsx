@@ -4,7 +4,6 @@ import { cn } from "@stigmer/theme";
 import { ContextPopover } from "./ContextPopover";
 import { ConfigureMenu, type ConfigureMenuItem } from "./ConfigureMenu";
 import { ModelSelector } from "../models/ModelSelector";
-import { RunnerPicker } from "../runner/RunnerPicker";
 import {
   PaperclipIcon,
   WorkspaceIcon,
@@ -40,13 +39,6 @@ export interface ComposerToolbarProps {
   readonly onConfigActivePanelChange: (panel: string | null) => void;
   /** Render the picker content for a given configure panel id. */
   readonly renderConfigPanel: (itemId: string) => React.ReactNode;
-
-  // -- Runner picker --------------------------------------------------------
-
-  readonly showRunner: boolean;
-  readonly runnerOrg: string;
-  readonly runnerId: string | null;
-  readonly onRunnerIdChange: (runnerId: string | null) => void;
 
   // -- Model selector -------------------------------------------------------
 
@@ -86,17 +78,13 @@ export function ComposerToolbar({
   configActivePanel,
   onConfigActivePanelChange,
   renderConfigPanel,
-  showRunner,
-  runnerOrg,
-  runnerId,
-  onRunnerIdChange,
   showModelSelector,
   modelId,
   onModelChange,
 }: ComposerToolbarProps) {
   const hasTier1 = showAttach || showWorkspace;
   const hasTier2 = configureItems.length > 0;
-  const hasExecParams = showRunner || showModelSelector;
+  const hasExecParams = showModelSelector;
 
   return (
     <div className="flex items-center justify-between gap-2 border-t border-border-muted px-3 py-2">
@@ -159,15 +147,6 @@ export function ComposerToolbar({
 
         {(hasTier1 || hasTier2) && hasExecParams && (
           <div className="mx-0.5 h-4 w-px bg-border/50" aria-hidden="true" />
-        )}
-
-        {showRunner && (
-          <RunnerPicker
-            org={runnerOrg}
-            value={runnerId}
-            onChange={onRunnerIdChange}
-            disabled={disabled}
-          />
         )}
 
         {showModelSelector && (
