@@ -53,6 +53,7 @@ describe("useLaunchLocalRunner", () => {
 
     expect(result.current.isLaunching).toBe(false);
     expect(result.current.error).toBeNull();
+    expect(result.current.lastLaunchResult).toBeNull();
 
     let launchResult: Awaited<ReturnType<typeof result.current.launch>>;
     await act(async () => {
@@ -72,6 +73,7 @@ describe("useLaunchLocalRunner", () => {
 
     expect(result.current.isLaunching).toBe(false);
     expect(result.current.error).toBeNull();
+    expect(result.current.lastLaunchResult).toEqual(launchResult!);
   });
 
   it("URL-encodes tokens with special characters", async () => {
@@ -194,6 +196,29 @@ describe("useLaunchLocalRunner", () => {
       result.current.clearError();
     });
     expect(result.current.error).toBeNull();
+  });
+
+  it("clearError also resets lastLaunchResult", async () => {
+    const response = create(CreateLaunchTokenResponseSchema, {
+      token: "tok_clear",
+    });
+    createLaunchToken.mockResolvedValueOnce(response);
+
+    const openUrl = vi.fn();
+    const { result } = renderHook(
+      () => useLaunchLocalRunner({ openUrl }),
+      { wrapper: makeWrapper(client) },
+    );
+
+    await act(async () => {
+      await result.current.launch({ org: ORG });
+    });
+    expect(result.current.lastLaunchResult).not.toBeNull();
+
+    act(() => {
+      result.current.clearError();
+    });
+    expect(result.current.lastLaunchResult).toBeNull();
   });
 
   it("resets previous error on a new successful launch", async () => {

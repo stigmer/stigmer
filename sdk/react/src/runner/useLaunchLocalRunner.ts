@@ -55,9 +55,18 @@ export interface UseLaunchLocalRunnerReturn {
   readonly launch: (input: { org: string }) => Promise<LaunchLocalRunnerResult>;
   /** `true` while the token creation and URL dispatch are in flight. */
   readonly isLaunching: boolean;
+  /**
+   * Result from the most recent successful launch dispatch, or `null`
+   * when no launch has been dispatched (or after {@link clearError}).
+   *
+   * Consumers can use `lastLaunchResult.expiresAt` to implement
+   * timeout-based detection: if no runner appears before the token
+   * expires, the desktop app likely did not receive the deep link.
+   */
+  readonly lastLaunchResult: LaunchLocalRunnerResult | null;
   /** Error from the last failed launch attempt, or `null` when healthy. */
   readonly error: Error | null;
-  /** Reset `error` to `null`. */
+  /** Reset `error` and `lastLaunchResult` to `null`. */
   readonly clearError: () => void;
 }
 
@@ -102,15 +111,21 @@ export function useLaunchLocalRunner(
   const stigmer = useStigmer();
   const [isLaunching, setIsLaunching] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [lastLaunchResult, setLastLaunchResult] =
+    useState<LaunchLocalRunnerResult | null>(null);
 
   const openUrl = options?.openUrl ?? defaultOpenUrl;
 
-  const clearError = useCallback(() => setError(null), []);
+  const clearError = useCallback(() => {
+    setError(null);
+    setLastLaunchResult(null);
+  }, []);
 
   const launch = useCallback(
     async (input: { org: string }): Promise<LaunchLocalRunnerResult> => {
       setIsLaunching(true);
       setError(null);
+      setLastLaunchResult(null);
 
       try {
         const response = await stigmer.runner.createLaunchToken(
@@ -124,7 +139,9 @@ export function useLaunchLocalRunner(
 
         openUrl(url);
 
-        return { url, expiresAt };
+        const result: LaunchLocalRunnerResult = { url, expiresAt };
+        setLastLaunchResult(result);
+        return result;
       } catch (err) {
         setError(toError(err));
         throw err;
@@ -135,5 +152,5 @@ export function useLaunchLocalRunner(
     [stigmer, openUrl],
   );
 
-  return { launch, isLaunching, error, clearError };
+  return { launch, isLaunching, lastLaunchResult, error, clearError };
 }
