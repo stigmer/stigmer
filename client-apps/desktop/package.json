@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "generate:icons": "tsx scripts/generate-icons.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.0.0",
@@ -41,7 +42,10 @@
     "@vitejs/plugin-react": "^4",
     "eslint": "^9",
     "eslint-plugin-stigmer": "*",
+    "png-to-ico": "^3.0.1",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vite": "^6"
   }
