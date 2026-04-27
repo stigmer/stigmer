@@ -15,7 +15,7 @@ const CHECK_FOR_UPDATE_EVENT: &str = "check-for-update";
 /// On macOS the first submenu becomes the bold application menu (the one to the
 /// right of the Apple logo).  PredefinedMenuItem helpers like `.about()`,
 /// `.hide()`, and `.quit()` default their label to the OS process name, which
-/// in dev mode is the Cargo binary name (`stigmer-desktop`).  We create those
+/// in dev mode is the Cargo binary name (`stigmer`).  We create those
 /// items explicitly with an overridden label so the menu always reads
 /// "About Stigmer", "Hide Stigmer", "Quit Stigmer" regardless of the binary.
 pub fn setup_app_menu(app: &tauri::App) -> tauri::Result<()> {
