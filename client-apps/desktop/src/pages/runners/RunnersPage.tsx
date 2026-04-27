@@ -422,21 +422,11 @@ function RunnerIcon({ size = 14 }: { size?: number }) {
 // ---------------------------------------------------------------------------
 
 function describeStartFlowError(err: unknown): string {
-  const raw = String(err).toLowerCase();
-
-  if (raw.includes("unauthenticated") || raw.includes("unauthorized")) {
-    return "Authentication failed. Please log in again.";
+  const message = String(err).trim();
+  if (!message || message === "undefined" || message === "[object Object]") {
+    return "Failed to start runner. Check the runner logs for details.";
   }
-  if (raw.includes("network") || raw.includes("fetch") || raw.includes("connect")) {
-    return "Could not reach the Stigmer server. Check your network connection.";
-  }
-  if (raw.includes("already managed")) {
-    return "A runner with that name is already running on this machine.";
-  }
-  if (raw.includes("sidecar") || raw.includes("spawn")) {
-    return "Failed to start the runner process. The CLI sidecar may be missing \u2014 try reinstalling the desktop app.";
-  }
-  return `Failed to start runner: ${String(err)}`;
+  return message;
 }
 
 function phaseThenName(a: Runner, b: Runner): number {
