@@ -110,6 +110,7 @@ function usePlatformClient(id: string | null): UsePlatformClientReturn
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
     platformClient: { type: "PlatformClient | null", description: "The fetched PlatformClient, or `null` while loading or on error." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
   }}
@@ -157,6 +158,7 @@ function usePlatformClientList(org: string | null): UsePlatformClientListReturn
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
     platformClients: { type: "readonly PlatformClient[]", description: "All platform clients for the organization. Empty while loading or on error." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
   }}

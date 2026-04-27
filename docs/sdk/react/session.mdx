@@ -265,7 +265,8 @@ function useSession(id: string | null): UseSessionReturn
 <TypeTable
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
-    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the session from the server." },
     session: { type: "Session | null", description: "The fetched Session, or `null` while loading or on error." },
   }}
@@ -463,7 +464,8 @@ function useSessionExecutions(sessionId: string | null): UseSessionExecutionsRet
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     executions: { type: "readonly AgentExecution[]", description: "All executions for the session, empty while loading or on error." },
-    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the execution list from the server." },
   }}
 />
@@ -517,8 +519,9 @@ function useSessionList(options?: UseSessionListOptions): UseSessionListReturn
 
 <TypeTable
   type={{
-    error: { type: "string | null", description: "Error message from the last failed request, or `null` when healthy." },
-    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the session list from the server." },
     sessions: { type: "readonly Session[]", description: "The fetched list of Sessions, empty while loading or on error." },
   }}

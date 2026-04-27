@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import type { Stigmer } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 
 /**

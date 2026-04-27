@@ -97,6 +97,7 @@ function useEnvironment(ref: ResourceRef | null): UseEnvironmentReturn
     environment: { type: "Environment | null", description: "The fetched Environment, or `null` while loading or on error." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the environment from the server." },
   }}
 />
@@ -144,6 +145,7 @@ function useEnvironmentList(org: string | null, labels?: Record<string, string>)
     environments: { type: "readonly Environment[]", description: "The fetched list of Environment entries. Empty while loading or on error." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the list from the server." },
     totalCount: { type: "number", description: "Total number of environments matching the query, including unpaged items." },
   }}

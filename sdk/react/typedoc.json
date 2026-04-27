@@ -61,6 +61,7 @@
       "Runner": "/docs/sdk/resources/runner"
     },
     "@stigmer/react": {
+      "STALE_THRESHOLD_MS": "#",
       "DISABLED_PROVIDERS": "#",
       "MARKDOWN_COMPONENTS": "#",
       "CollapsibleJsonBlock": "#",

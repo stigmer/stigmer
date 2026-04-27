@@ -46,6 +46,7 @@ function useAgent(org: string | null, slug: string | null): UseAgentReturn
     agent: { type: "Agent | null", description: "The resolved Agent, or `null` while loading, on error, or when not found." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the agent from the server." },
   }}
 />
@@ -98,7 +99,7 @@ function useAgentCount(org: string | null, options?: UseAgentCountOptions): UseA
 <TypeTable
   type={{
     count: { type: "number | undefined", description: "Total number of agents matching the current filters. `undefined` until the first successful fetch completes." },
-    error: { type: "string | null", description: "Error message from the last failed fetch, or `null` when healthy." },
+    error: { type: "Error | null", description: "Error message from the last failed fetch, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the count fetch is in flight." },
     refetch: { type: "() => void", description: "Re-fetch the count with the same parameters." },
   }}
@@ -146,7 +147,7 @@ function useAgentList(org: string | null, options?: UseAgentListOptions): UseAge
   type={{
     agents: { type: "readonly SearchResult[]", description: "Paginated agent entries for the current page." },
     currentPage: { type: "number", description: "The current page number (mirrors the `page` option)." },
-    error: { type: "string | null", description: "Error message from the last failed request, or `null` when healthy." },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the current page from the server." },
     totalCount: { type: "number", description: "Total number of agents matching the current filters." },
@@ -290,8 +291,10 @@ with `visibility_public`. It enables session-first UX where users
 start a conversation without choosing an agent.
 
 Pass `null` for `org` to skip fetching (stable no-op). The hook
-fetches once on mount and caches the result — the default agent
-rarely changes within a session.
+fetches once on mount and caches the result, then automatically
+refetches when the document becomes visible after being hidden for
+longer than `STALE_THRESHOLD_MS`. Transient failures are
+retried once before surfacing an error.
 
 **Signature**
 
@@ -312,6 +315,7 @@ function useDefaultAgent(org: string | null): UseDefaultAgentReturn
     agent: { type: "Agent | null", description: "The platform default Agent, or `null` while loading or on error." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the default agent from the server." },
   }}
 />

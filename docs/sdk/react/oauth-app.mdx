@@ -113,6 +113,7 @@ function useOAuthAppList(org: string | null): UseOAuthAppListReturn
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
     oauthApps: { type: "readonly OAuthApp[]", description: "OAuth apps owned by the organization. Empty while loading or on error." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the list from the server." },
   }}

@@ -47,6 +47,7 @@ function useSkill(org: string | null, slug: string | null, version?: string): Us
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the skill from the server." },
     skill: { type: "Skill | null", description: "The resolved skill, or `null` while loading, on error, or when not found." },
   }}
@@ -100,7 +101,7 @@ function useSkillCount(org: string | null, options?: UseSkillCountOptions): UseS
 <TypeTable
   type={{
     count: { type: "number | undefined", description: "Total number of skills matching the current filters. `undefined` until the first successful fetch completes." },
-    error: { type: "string | null", description: "Error message from the last failed request, or `null` when healthy." },
+    error: { type: "Error | null", description: "Error message from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the count fetch is in flight." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the count from the server." },
   }}
@@ -147,7 +148,7 @@ function useSkillList(org: string | null, options?: UseSkillListOptions): UseSki
 <TypeTable
   type={{
     currentPage: { type: "number", description: "The current page number (mirrors the `page` option)." },
-    error: { type: "string | null", description: "Error message from the last failed request, or `null` when healthy." },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the current page from the server." },
     skills: { type: "readonly SearchResult[]", description: "Paginated skill entries for the current page." },

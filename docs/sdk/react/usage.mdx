@@ -37,6 +37,7 @@ function useOrgUsageReport(orgId: string | null, dateRange: DateRange): UseOrgUs
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while a fetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
     report: { type: "GetOrgUsageReportOutput | null", description: "The raw report from the server, or `null` before the first successful fetch." },
   }}

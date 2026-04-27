@@ -134,7 +134,7 @@ function useDetectSkillPackage(artifact: ExecutionArtifact | null, executionId: 
 <TypeTable
   type={{
     detection: { type: "SkillPackageDetection", description: "The detection result — check `detection.detected` to narrow the type.", typeDescriptionLink: "#skillpackagedetection" },
-    error: { type: "string | null", description: "Error message from the SKILL.md fetch, or `null` when healthy." },
+    error: { type: "Error | null", description: "Error message from the SKILL.md fetch, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the SKILL.md content is being fetched from the archive. Only relevant when the artifact is a skill package — `false` immediately for non-skill artifacts." },
   }}
 />
@@ -347,7 +347,7 @@ stale pagination after filter changes.
     emptyDescription: { type: "string", description: "Description for the empty state." },
     emptyIcon: { type: "ReactNode", description: "Icon element rendered in the empty state." },
     emptyTitle: { type: "string", description: "Title for the empty state." },
-    error: { type: "string | null", description: "Error message from the data hook. Shown as an alert when present and not loading." },
+    error: { type: "Error | null", description: "Error from the data hook. Shown as an alert when present and not loading." },
     initialSearch: { type: "string", description: "Initial value for the search input, read only on mount (e.g. from URL params)." },
     isLoading: { type: "boolean", description: "Whether data is currently being fetched.", required: true },
     items: { type: "readonly SearchResult[]", description: "Resource entries to display.", required: true },
@@ -755,8 +755,9 @@ Shared return value for resource search hooks (`useAgentSearch`, `useMcpServerSe
 
 <TypeTable
   type={{
-    error: { type: "string | null", description: "Error message from the last failed search, or `null` when healthy." },
+    error: { type: "Error | null", description: "Error from the last failed search, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while a search request is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight." },
     query: { type: "string", description: "Current search query text." },
     refetch: { type: "() => void", description: "Re-run the current search with the same parameters." },
     results: { type: "readonly SearchResult[]", description: "Matching resources from the most recent search." },
