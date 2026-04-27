@@ -24,6 +24,33 @@ import { toGrpcTarget } from "../../lib/grpc-target";
 
 const SYSTEM_MANAGED_LABEL = "stigmer.ai/system-managed";
 
+const LOG_PANEL_RATIO_KEY = "stigmer:runner-log-panel-ratio";
+const DEFAULT_LOG_RATIO = 0.4;
+const MIN_LOG_RATIO = 0.15;
+const MAX_LOG_RATIO = 0.75;
+
+function readPersistedRatio(): number {
+  try {
+    const stored = localStorage.getItem(LOG_PANEL_RATIO_KEY);
+    if (stored === null) return DEFAULT_LOG_RATIO;
+    const parsed = parseFloat(stored);
+    if (Number.isFinite(parsed)) {
+      return Math.max(MIN_LOG_RATIO, Math.min(MAX_LOG_RATIO, parsed));
+    }
+  } catch {
+    /* private browsing or SSR */
+  }
+  return DEFAULT_LOG_RATIO;
+}
+
+function persistRatio(ratio: number): void {
+  try {
+    localStorage.setItem(LOG_PANEL_RATIO_KEY, String(ratio));
+  } catch {
+    /* private browsing */
+  }
+}
+
 export default function RunnersPage() {
   const { getCredential } = useRunnerCredential();
   const org = useActiveOrgSlug();
@@ -41,14 +68,13 @@ export default function RunnersPage() {
   const { stopRunner, isStopping } = useStopLocalRunner();
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [logRunner, setLogRunner] = useState<string | null>(null);
+  const [logRunnerName, setLogRunnerName] = useState<string | null>(null);
   const [launchError, setLaunchError] = useState<string | null>(null);
   const [isLaunching, setIsLaunching] = useState(false);
+  const [logPanelRatio, setLogPanelRatio] = useState(readPersistedRatio);
   const lastStartedRef = useRef<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Surface async runner failures that occur after the sidecar grace period.
-  // Most startup errors are caught synchronously (Bug 2 fix), but if the CLI
-  // fails after the grace window, we show the error via toast or dialog state.
   useEffect(() => {
     const unlisteners: Array<Promise<() => void>> = [];
 
@@ -83,6 +109,19 @@ export default function RunnersPage() {
     };
   }, [refetchServer]);
 
+  // Escape key closes the log panel.
+  useEffect(() => {
+    if (!logRunnerName) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setLogRunnerName(null);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [logRunnerName]);
+
   const localRunnerIds = useMemo(() => {
     const ids = new Set<string>();
     for (const [, info] of localRunners) {
@@ -102,6 +141,14 @@ export default function RunnersPage() {
   const sorted = useMemo(
     () => [...serverRunners].sort(phaseThenName),
     [serverRunners],
+  );
+
+  const logRunner = useMemo(
+    () =>
+      logRunnerName
+        ? sorted.find((r) => r.metadata?.name === logRunnerName) ?? null
+        : null,
+    [logRunnerName, sorted],
   );
 
   const handleStart = useCallback(
@@ -146,13 +193,60 @@ export default function RunnersPage() {
     [stopRunner, refetchServer],
   );
 
+  const handleShowLogs = useCallback((name: string) => {
+    setLogRunnerName((prev) => (prev === name ? null : name));
+  }, []);
+
+  const handleCloseLogPanel = useCallback(() => {
+    setLogRunnerName(null);
+  }, []);
+
+  // --- Drag-to-resize for the bottom log panel ---
+  const handleResizeStart = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const handle = e.currentTarget;
+      handle.setPointerCapture(e.pointerId);
+
+      const container = containerRef.current;
+      if (!container) return;
+
+      const onPointerMove = (move: PointerEvent) => {
+        const rect = container.getBoundingClientRect();
+        const offsetFromBottom = rect.bottom - move.clientY;
+        const ratio = offsetFromBottom / rect.height;
+        const clamped = Math.max(MIN_LOG_RATIO, Math.min(MAX_LOG_RATIO, ratio));
+        setLogPanelRatio(clamped);
+      };
+
+      const onPointerUp = () => {
+        handle.releasePointerCapture(e.pointerId);
+        handle.removeEventListener("pointermove", onPointerMove);
+        handle.removeEventListener("pointerup", onPointerUp);
+        setLogPanelRatio((current) => {
+          persistRatio(current);
+          return current;
+        });
+      };
+
+      handle.addEventListener("pointermove", onPointerMove);
+      handle.addEventListener("pointerup", onPointerUp);
+    },
+    [],
+  );
+
   const isLoading = serverLoading || localLoading;
+  const logPanelOpen = logRunnerName !== null;
 
   return (
-    <div className={cn(logRunner && "flex max-h-[70vh]")}>
-      <div className={cn("flex-1", logRunner && "overflow-y-auto")}>
+    <div ref={containerRef} className="flex h-full flex-col overflow-hidden">
+      {/* Top section: header + runner list */}
+      <div
+        className="flex min-h-0 flex-1 flex-col overflow-hidden"
+        style={logPanelOpen ? { flex: `0 0 ${(1 - logPanelRatio) * 100}%` } : undefined}
+      >
         {/* Header */}
-        <div className="mb-4 flex items-center justify-between">
+        <div className="flex flex-none items-center justify-between px-6 pb-4 pt-6">
           <div>
             <h1 className="text-lg font-semibold text-foreground">Runners</h1>
             <p className="text-xs text-muted-foreground">
@@ -160,95 +254,113 @@ export default function RunnersPage() {
             </p>
           </div>
           <button
+            type="button"
             onClick={() => {
               clearError();
               setLaunchError(null);
               setDialogOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
           >
             <Play size={12} />
             Start Runner
           </button>
         </div>
 
-        {/* Loading skeleton */}
-        {isLoading && (
-          <div
-            className="space-y-2"
-            aria-busy="true"
-            aria-label="Loading runners"
-          >
-            {Array.from({ length: 3 }, (_, i) => (
-              <div
-                key={i}
-                className="h-14 animate-pulse rounded-lg bg-muted-subtle"
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Error state */}
-        {!isLoading && serverError && (
-          <p className="text-xs text-destructive" role="alert">
-            {getUserMessage(serverError)}
-          </p>
-        )}
-
-        {/* Empty state */}
-        {!isLoading && !serverError && sorted.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-12 text-center">
-            <RunnerIcon size={28} />
-            <p className="text-sm text-muted-foreground">
-              No runners registered.
-            </p>
-            <p className="max-w-sm text-xs text-muted-foreground">
-              Click <strong>Start Runner</strong> above to launch a local
-              runner, or run{" "}
-              <code className="rounded bg-muted px-1 py-0.5 font-mono text-[0.65rem]">
-                stigmer up
-              </code>{" "}
-              from a terminal.
-            </p>
-          </div>
-        )}
-
-        {/* Runner list */}
-        {!isLoading && !serverError && sorted.length > 0 && (
-          <div className="space-y-2" role="list" aria-label="Runners">
-            {sorted.map((runner) => {
-              const runnerId = runner.metadata?.id ?? "";
-              const runnerName = runner.metadata?.name ?? "";
-              const isLocal =
-                localRunnerIds.has(runnerId) ||
-                localRunnerNames.has(runnerName);
-
-              return (
-                <RunnerRow
-                  key={runnerId}
-                  runner={runner}
-                  isLocal={isLocal}
-                  isStopping={isStopping}
-                  onStop={() => handleStop(runnerName)}
-                  onShowLogs={() => setLogRunner(runnerName)}
+        {/* Scrollable runner list */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-4">
+          {isLoading && (
+            <div
+              className="space-y-2"
+              aria-busy="true"
+              aria-label="Loading runners"
+            >
+              {Array.from({ length: 3 }, (_, i) => (
+                <div
+                  key={i}
+                  className="h-[4.25rem] animate-pulse rounded-lg bg-muted-subtle"
                 />
-              );
-            })}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+
+          {!isLoading && serverError && (
+            <p className="text-xs text-destructive" role="alert">
+              {getUserMessage(serverError)}
+            </p>
+          )}
+
+          {!isLoading && !serverError && sorted.length === 0 && (
+            <div className="flex flex-col items-center gap-2 py-12 text-center">
+              <RunnerIcon size={28} />
+              <p className="text-sm text-muted-foreground">
+                No runners registered.
+              </p>
+              <p className="max-w-sm text-xs text-muted-foreground">
+                Click <strong>Start Runner</strong> above to launch a local
+                runner, or run{" "}
+                <code className="rounded bg-muted px-1 py-0.5 font-mono text-[0.65rem]">
+                  stigmer up
+                </code>{" "}
+                from a terminal.
+              </p>
+            </div>
+          )}
+
+          {!isLoading && !serverError && sorted.length > 0 && (
+            <div className="space-y-2" role="list" aria-label="Runners">
+              {sorted.map((runner) => {
+                const runnerId = runner.metadata?.id ?? "";
+                const runnerName = runner.metadata?.name ?? "";
+                const isLocal =
+                  localRunnerIds.has(runnerId) ||
+                  localRunnerNames.has(runnerName);
+
+                return (
+                  <RunnerRow
+                    key={runnerId}
+                    runner={runner}
+                    isLocal={isLocal}
+                    isSelected={runnerName === logRunnerName}
+                    isStopping={isStopping}
+                    onStop={() => handleStop(runnerName)}
+                    onShowLogs={() => handleShowLogs(runnerName)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Log viewer panel */}
-      {logRunner && (
-        <div className="w-1/2">
+      {/* Resize handle — visible only when log panel is open */}
+      {logPanelOpen && (
+        <div
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize log panel"
+          tabIndex={0}
+          onPointerDown={handleResizeStart}
+          className="group relative flex h-2 flex-none cursor-row-resize items-center justify-center border-y border-border bg-background hover:bg-accent-hover"
+        >
+          <div className="h-0.5 w-8 rounded-full bg-muted-foreground/30 transition-colors group-hover:bg-muted-foreground/60" />
+        </div>
+      )}
+
+      {/* Bottom log panel */}
+      {logPanelOpen && (
+        <div
+          className="flex min-h-0 flex-col overflow-hidden"
+          style={{ flex: `0 0 ${logPanelRatio * 100}%` }}
+        >
           <RunnerLogViewer
-            runnerName={logRunner}
-            onClose={() => setLogRunner(null)}
+            runnerName={logRunnerName}
+            runner={logRunner}
+            onClose={handleCloseLogPanel}
           />
         </div>
       )}
 
-      {/* Start runner dialog */}
       <StartRunnerDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
@@ -261,18 +373,20 @@ export default function RunnersPage() {
 }
 
 // ---------------------------------------------------------------------------
-// RunnerRow
+// RunnerRow — two-line card layout
 // ---------------------------------------------------------------------------
 
 function RunnerRow({
   runner,
   isLocal,
+  isSelected,
   isStopping,
   onStop,
   onShowLogs,
 }: {
   runner: Runner;
   isLocal: boolean;
+  isSelected: boolean;
   isStopping: boolean;
   onStop: () => void;
   onShowLogs: () => void;
@@ -291,77 +405,76 @@ function RunnerRow({
   const executions = runner.status?.currentExecutions ?? 0;
   const lastHeartbeat = runner.status?.lastHeartbeatAt;
 
+  const metaSegments: string[] = [];
+  if (hostname) metaSegments.push(hostname);
+  if (osArch) metaSegments.push(osArch);
+  if (active) metaSegments.push(`${executions} exec${executions !== 1 ? "s" : ""}`);
+  if (lastHeartbeat) metaSegments.push(formatRelativeTime(timestampDate(lastHeartbeat)));
+
   return (
     <div
       role="listitem"
       className={cn(
-        "flex items-center gap-3 rounded-lg border border-border-muted px-3 py-2.5",
-        "hover:border-border transition-colors",
-        !active && "opacity-60",
+        "flex items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors",
+        isSelected
+          ? "border-primary bg-primary-subtle"
+          : "border-border-muted hover:border-border",
+        !active && !isSelected && "opacity-60",
       )}
     >
-      <RunnerIcon size={14} />
+      <RunnerIcon size={16} className="mt-0.5" />
 
-      {/* Name + badges */}
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        <span className="truncate text-sm font-medium text-foreground">
-          {name}
-        </span>
-        {isLocal && (
-          <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[0.6rem] font-medium text-primary">
-            Local
+      <div className="min-w-0 flex-1">
+        {/* Line 1: name + badges + phase */}
+        <div className="flex items-center gap-2">
+          <span className="truncate text-sm font-medium text-foreground">
+            {name}
           </span>
-        )}
-        {systemManaged && (
-          <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.6rem] font-medium text-muted-foreground">
-            System
-          </span>
-        )}
-        <PhaseBadge phase={phase} />
-      </div>
+          {isLocal && (
+            <span className="shrink-0 rounded bg-primary-subtle px-1.5 py-0.5 text-[0.6rem] font-medium text-primary">
+              Local
+            </span>
+          )}
+          {systemManaged && (
+            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.6rem] font-medium text-muted-foreground">
+              System
+            </span>
+          )}
+          <PhaseBadge phase={phase} />
+        </div>
 
-      {/* Metadata */}
-      <div className="hidden items-center gap-4 text-xs text-muted-foreground lg:flex">
-        {hostname && (
-          <span className="max-w-[10rem] truncate" title={hostname}>
-            {hostname}
-          </span>
-        )}
-        {osArch && (
-          <span className="font-mono text-[0.65rem]">{osArch}</span>
-        )}
-        {version && (
-          <span className="font-mono text-[0.65rem]">v{version}</span>
-        )}
-        {active && (
-          <span title="Current executions">
-            {executions} exec{executions !== 1 ? "s" : ""}
-          </span>
-        )}
-        {lastHeartbeat && (
-          <span
-            title={`Last heartbeat: ${timestampDate(lastHeartbeat).toISOString()}`}
-          >
-            {formatRelativeTime(timestampDate(lastHeartbeat))}
-          </span>
+        {/* Line 2: metadata */}
+        {metaSegments.length > 0 && (
+          <p className="mt-0.5 truncate text-[0.65rem] text-muted-foreground">
+            {metaSegments.join(" \u00b7 ")}
+          </p>
         )}
       </div>
 
-      {/* Actions for local runners */}
+      {/* Actions — visible for local runners */}
       {isLocal && active && (
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1 pt-0.5">
           <button
+            type="button"
             onClick={onShowLogs}
             title="View logs"
-            className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label={`View logs for ${name}`}
+            className={cn(
+              "rounded p-1.5 transition-colors",
+              isSelected
+                ? "bg-primary-subtle text-primary"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
           >
             <ScrollText size={14} />
           </button>
           <button
+            type="button"
             onClick={onStop}
             disabled={isStopping}
             title="Stop runner"
-            className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+            aria-label={`Stop ${name}`}
+            className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-destructive-subtle hover:text-destructive disabled:opacity-50"
           >
             <Square size={14} />
           </button>
@@ -389,7 +502,13 @@ function PhaseBadge({ phase }: { phase: RunnerPhase }) {
   );
 }
 
-function RunnerIcon({ size = 14 }: { size?: number }) {
+function RunnerIcon({
+  size = 14,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) {
   return (
     <svg
       width={size}
@@ -401,7 +520,7 @@ function RunnerIcon({ size = 14 }: { size?: number }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className="shrink-0 text-muted-foreground"
+      className={cn("shrink-0 text-muted-foreground", className)}
     >
       <rect x="4" y="4" width="16" height="16" rx="2" />
       <rect x="9" y="9" width="6" height="6" />

@@ -154,7 +154,7 @@ export function RunnerListPanel({
         {Array.from({ length: 3 }, (_, i) => (
           <div
             key={i}
-            className="bg-muted-subtle h-14 animate-pulse rounded-lg"
+            className="bg-muted-subtle h-[4.25rem] animate-pulse rounded-lg"
           />
         ))}
       </div>
@@ -328,54 +328,44 @@ function RunnerRow({
     );
   }
 
+  const metaSegments: string[] = [];
+  if (hostname) metaSegments.push(hostname);
+  if (osArch) metaSegments.push(osArch);
+  if (active) metaSegments.push(`${executions} exec${executions !== 1 ? "s" : ""}`);
+  if (lastHeartbeat) {
+    metaSegments.push(formatRelativeTime(timestampDate(lastHeartbeat)));
+  }
+
   return (
     <div
       role="listitem"
       className={cn(
-        "flex items-center gap-3 rounded-lg border border-border-muted px-3 py-2.5",
+        "flex items-start gap-3 rounded-lg border border-border-muted px-3 py-2.5",
         "hover:border-border transition-colors",
         !active && "opacity-60",
       )}
     >
-      <RunnerIcon size={14} />
+      <RunnerIcon size={16} className="mt-0.5" />
 
-      {/* Name + phase badge */}
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        <span className="truncate text-sm font-medium text-foreground">
-          {name}
-        </span>
-        {systemManaged && (
-          <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.6rem] font-medium text-muted-foreground">
-            System
+      <div className="min-w-0 flex-1">
+        {/* Line 1: name + badges + phase */}
+        <div className="flex items-center gap-2">
+          <span className="truncate text-sm font-medium text-foreground">
+            {name}
           </span>
-        )}
-        <PhaseBadge phase={phase} />
-      </div>
+          {systemManaged && (
+            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.6rem] font-medium text-muted-foreground">
+              System
+            </span>
+          )}
+          <PhaseBadge phase={phase} />
+        </div>
 
-      {/* Metadata columns — responsive */}
-      <div className="hidden items-center gap-4 text-xs text-muted-foreground sm:flex">
-        {hostname && (
-          <span className="max-w-[10rem] truncate" title={hostname}>
-            {hostname}
-          </span>
-        )}
-        {osArch && (
-          <span className="font-mono text-[0.65rem]">{osArch}</span>
-        )}
-        {version && (
-          <span className="font-mono text-[0.65rem]">v{version}</span>
-        )}
-        {active && (
-          <span title="Current executions">
-            {executions} exec{executions !== 1 ? "s" : ""}
-          </span>
-        )}
-        {lastHeartbeat && (
-          <span
-            title={`Last heartbeat: ${timestampDate(lastHeartbeat).toISOString()}`}
-          >
-            {formatRelativeTime(timestampDate(lastHeartbeat))}
-          </span>
+        {/* Line 2: metadata */}
+        {metaSegments.length > 0 && (
+          <p className="mt-0.5 truncate text-[0.65rem] text-muted-foreground">
+            {metaSegments.join(" \u00b7 ")}
+          </p>
         )}
       </div>
 
@@ -627,7 +617,13 @@ function formatRelativeTime(date: Date): string {
 // Icons
 // ---------------------------------------------------------------------------
 
-function RunnerIcon({ size = 14 }: { size?: number }) {
+function RunnerIcon({
+  size = 14,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) {
   return (
     <svg
       width={size}
@@ -639,7 +635,7 @@ function RunnerIcon({ size = 14 }: { size?: number }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className="shrink-0 text-muted-foreground"
+      className={cn("shrink-0 text-muted-foreground", className)}
     >
       <rect x="4" y="4" width="16" height="16" rx="2" />
       <rect x="9" y="9" width="6" height="6" />
