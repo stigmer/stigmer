@@ -203,7 +203,7 @@ export function AgentPicker({
         autoFocus
       />
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p className="text-xs text-destructive">{error.message}</p>}
 
       {/* Scrollable results list */}
       <div className="relative">

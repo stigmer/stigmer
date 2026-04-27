@@ -29,7 +29,7 @@ export interface UseSkillCountReturn {
   /** `true` while the count fetch is in flight. */
   readonly isLoading: boolean;
   /** Error message from the last failed request, or `null` when healthy. */
-  readonly error: string | null;
+  readonly error: Error | null;
   /** Discard cached data and re-fetch the count from the server. */
   readonly refetch: () => void;
 }

@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { ListIdentityProvidersByOrgInputSchema } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/io_pb";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 
 /** Return value of {@link useIdentityProviderList}. */
 export interface UseIdentityProviderListReturn {
@@ -13,6 +12,8 @@ export interface UseIdentityProviderListReturn {
   readonly identityProviders: readonly IdentityProvider[];
   /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight and stale data is shown. */
+  readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
   /** Discard cached data and re-fetch from the server. */
@@ -57,44 +58,17 @@ export function useIdentityProviderList(
   org: string | null,
 ): UseIdentityProviderListReturn {
   const stigmer = useStigmer();
-  const [identityProviders, setIdentityProviders] = useState<
-    IdentityProvider[]
-  >([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
+  const { data: identityProviders, isLoading, isRefetching, error, refetch } = useFetch(
+    org
+      ? () =>
+          stigmer.identityProvider
+            .listByOrg(create(ListIdentityProvidersByOrgInputSchema, { org }))
+            .then((r) => [...r.entries])
+      : null,
+    [org, stigmer],
+    [] as IdentityProvider[],
+  );
 
-  useEffect(() => {
-    if (!org) {
-      setIdentityProviders([]);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
-
-    stigmer.identityProvider.listByOrg(create(ListIdentityProvidersByOrgInputSchema, { org })).then(
-      (result) => {
-        if (cancelled.current) return;
-        setIdentityProviders([...result.entries]);
-        setIsLoading(false);
-      },
-      (err) => {
-        if (cancelled.current) return;
-        setError(toError(err));
-        setIsLoading(false);
-      },
-    );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [org, stigmer, fetchKey]);
-
-  return { identityProviders, isLoading, error, refetch };
+  return { identityProviders, isLoading, isRefetching, error, refetch };
 }

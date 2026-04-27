@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import type { ResourceRef } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 
 /** Return value of {@link useAgentInstance}. */
 export interface UseAgentInstanceReturn {
@@ -12,6 +11,8 @@ export interface UseAgentInstanceReturn {
   readonly agentInstance: AgentInstance | null;
   /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight and stale data is shown. */
+  readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
   /** Discard cached data and re-fetch the agent instance from the server. */
@@ -47,46 +48,21 @@ export function useAgentInstance(
   ref: ResourceRef | null,
 ): UseAgentInstanceReturn {
   const stigmer = useStigmer();
-  const [agentInstance, setAgentInstance] = useState<AgentInstance | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
-
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
 
   const org = ref?.org;
   const slug = ref?.slug;
   const version = ref?.version;
 
-  useEffect(() => {
-    if (!org || !slug) {
-      setAgentInstance(null);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
+  const fetchFn =
+    org && slug
+      ? () => stigmer.agentInstance.getByReference({ org, slug, version })
+      : null;
 
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
+  const { data: agentInstance, isLoading, isRefetching, error, refetch } = useFetch(
+    fetchFn,
+    [org, slug, version, stigmer],
+    null,
+  );
 
-    stigmer.agentInstance.getByReference({ org, slug, version }).then(
-      (result) => {
-        if (cancelled.current) return;
-        setAgentInstance(result);
-        setIsLoading(false);
-      },
-      (err) => {
-        if (cancelled.current) return;
-        setError(toError(err));
-        setIsLoading(false);
-      },
-    );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [org, slug, version, stigmer, fetchKey]);
-
-  return { agentInstance, isLoading, error, refetch };
+  return { agentInstance, isLoading, isRefetching, error, refetch };
 }

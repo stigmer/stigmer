@@ -150,7 +150,7 @@ export function Sidebar() {
           {isLoading ? (
             <RecentsSkeletons />
           ) : error ? (
-            <RecentsError message={error} />
+            <RecentsError message={error.message} />
           ) : groups.length === 0 ? (
             <RecentsEmptyState />
           ) : (

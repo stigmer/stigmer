@@ -1,16 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 
 /** Return value of {@link useSession}. */
 export interface UseSessionReturn {
   /** The fetched Session, or `null` while loading or on error. */
   readonly session: Session | null;
-  /** `true` while the initial fetch or a refetch is in flight. */
+  /** `true` while the initial fetch is in flight. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight. */
+  readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
   /** Discard cached data and re-fetch the session from the server. */
@@ -56,42 +57,12 @@ export interface UseSessionReturn {
  */
 export function useSession(id: string | null): UseSessionReturn {
   const stigmer = useStigmer();
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
+  const { data: session, isLoading, isRefetching, error, refetch } = useFetch(
+    id ? () => stigmer.session.get(id) : null,
+    [id, stigmer],
+    null as Session | null,
+  );
 
-  useEffect(() => {
-    if (!id) {
-      setSession(null);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
-
-    stigmer.session.get(id).then(
-      (result) => {
-        if (cancelled.current) return;
-        setSession(result);
-        setIsLoading(false);
-      },
-      (err) => {
-        if (cancelled.current) return;
-        setError(toError(err));
-        setIsLoading(false);
-      },
-    );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [id, stigmer, fetchKey]);
-
-  return { session, isLoading, error, refetch };
+  return { session, isLoading, isRefetching, error, refetch };
 }

@@ -15,6 +15,13 @@ import {
   resolvedSubject,
 } from "@stigmer/react";
 import type { SessionGroup } from "@stigmer/react";
+import {
+  Tooltip,
+  TooltipProvider,
+  TooltipTrigger,
+  TooltipContent,
+} from "../ui/tooltip";
+import { ScrollArea } from "../ui/scroll-area";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
 
@@ -132,14 +139,14 @@ export function Sidebar() {
       </div>
 
       {/* Scrollable recents */}
-      <div className="flex-1 overflow-y-auto px-3 py-1">
+      <ScrollArea className="flex-1 px-3 py-1">
         <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted-foreground">
           Recents
         </p>
         {isLoading ? (
           <RecentsSkeletons />
         ) : error ? (
-          <RecentsError message={error} />
+          <RecentsError message={error.message} />
         ) : groups.length === 0 ? (
           <RecentsEmptyState />
         ) : (
@@ -149,7 +156,7 @@ export function Sidebar() {
             onNavigate={(id) => navigate(`/sessions/${id}`)}
           />
         )}
-      </div>
+      </ScrollArea>
 
       {/* Bottom: user menu */}
       <div className="flex-none border-t border-sidebar-border px-3 py-2">
@@ -173,41 +180,51 @@ function SessionGroupList({
   onNavigate: (id: string) => void;
 }) {
   return (
-    <div className="space-y-4">
-      {groups.map((group) => (
-        <div key={group.label}>
-          <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-wider text-sidebar-muted-foreground">
-            {group.label}
-          </p>
-          <ul className="space-y-0.5" role="list">
-            {group.sessions.map((session) => {
-              const id = session.metadata?.id;
-              if (!id) return null;
-              const subject =
-                resolvedSubject(session.spec?.subject) ?? "Untitled session";
-              const isActive = id === activeSessionId;
-              return (
-                <li key={id}>
-                  <button
-                    onClick={() => onNavigate(id)}
-                    aria-current={isActive ? "page" : undefined}
-                    title={subject}
-                    className={cn(
-                      "w-full truncate rounded-lg px-2 py-1.5 text-left text-sm transition-colors",
-                      isActive
-                        ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    )}
-                  >
-                    {subject}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ))}
-    </div>
+    <TooltipProvider>
+      <div className="space-y-4">
+        {groups.map((group) => (
+          <div key={group.label}>
+            <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-wider text-sidebar-muted-foreground">
+              {group.label}
+            </p>
+            <ul className="space-y-0.5" role="list">
+              {group.sessions.map((session) => {
+                const id = session.metadata?.id;
+                if (!id) return null;
+                const subject =
+                  resolvedSubject(session.spec?.subject) ?? "Untitled session";
+                const isActive = id === activeSessionId;
+                return (
+                  <li key={id}>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            onClick={() => onNavigate(id)}
+                            aria-current={isActive ? "page" : undefined}
+                            className={cn(
+                              "w-full line-clamp-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors",
+                              isActive
+                                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                            )}
+                          />
+                        }
+                      >
+                        {subject}
+                      </TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={12}>
+                        {subject}
+                      </TooltipContent>
+                    </Tooltip>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </TooltipProvider>
   );
 }
 

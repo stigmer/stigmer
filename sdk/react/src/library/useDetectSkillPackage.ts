@@ -24,7 +24,7 @@ export interface UseDetectSkillPackageReturn {
   readonly isLoading: boolean;
 
   /** Error message from the SKILL.md fetch, or `null` when healthy. */
-  readonly error: string | null;
+  readonly error: Error | null;
 }
 
 /**

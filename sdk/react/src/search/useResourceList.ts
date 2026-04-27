@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import type { ListParams, ListResult } from "@stigmer/sdk";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { useFetch } from "../internal/useFetch";
 
 /**
  * Scope controls resource listing boundaries.
@@ -38,12 +38,25 @@ export interface UseResourceListReturn {
   readonly totalPages: number;
   readonly currentPage: number;
   readonly isLoading: boolean;
-  readonly error: string | null;
+  readonly isRefetching: boolean;
+  readonly error: Error | null;
   readonly refetch: () => void;
 }
 
 const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_PAGE = 1;
+
+interface ResourceListData {
+  entries: readonly SearchResult[];
+  totalCount: number;
+  totalPages: number;
+}
+
+const INITIAL_DATA: ResourceListData = {
+  entries: [],
+  totalCount: 0,
+  totalPages: 0,
+};
 
 /**
  * Internal hook that provides paginated, scope-aware resource listing.
@@ -61,70 +74,40 @@ export function useResourceList(
   org: string | null,
   options?: UseResourceListOptions,
 ): UseResourceListReturn {
-  const [entries, setEntries] = useState<SearchResult[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
-
   const pageSize = options?.pageSize ?? DEFAULT_PAGE_SIZE;
   const page = options?.page ?? DEFAULT_PAGE;
   const query = options?.query;
   const scope = options?.scope ?? "org";
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
-
-  useEffect(() => {
-    if (!org) {
-      setEntries([]);
-      setTotalCount(0);
-      setTotalPages(0);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
-
-    const params: ListParams = {
-      org,
-      query: query || undefined,
-      excludePublic: false,
-      crossOrgPublic: scope === "all",
-      page: { num: page, size: pageSize },
-    };
-
-    listFn(params).then(
-      (result) => {
-        if (cancelled.current) return;
-        setEntries([...result.entries]);
-        setTotalCount(result.totalCount);
-        setTotalPages(result.totalPages);
-        setIsLoading(false);
-      },
-      (err) => {
-        if (cancelled.current) return;
-        setError(
-          err instanceof Error ? err.message : "Failed to load resources",
-        );
-        setIsLoading(false);
-      },
-    );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [listFn, org, query, scope, page, pageSize, fetchKey]);
+  const { data, isLoading, isRefetching, error, refetch } = useFetch<ResourceListData>(
+    org
+      ? async () => {
+          const params: ListParams = {
+            org,
+            query: query || undefined,
+            excludePublic: false,
+            crossOrgPublic: scope === "all",
+            page: { num: page, size: pageSize },
+          };
+          const result = await listFn(params);
+          return {
+            entries: [...result.entries],
+            totalCount: result.totalCount,
+            totalPages: result.totalPages,
+          };
+        }
+      : null,
+    [listFn, org, query, scope, page, pageSize],
+    INITIAL_DATA,
+  );
 
   return {
-    entries,
-    totalCount,
-    totalPages,
+    entries: data.entries,
+    totalCount: data.totalCount,
+    totalPages: data.totalPages,
     currentPage: page,
     isLoading,
+    isRefetching,
     error,
     refetch,
   };

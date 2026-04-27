@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { ListAgentInstancesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 
 /** Return value of {@link useAgentInstanceList}. */
 export interface UseAgentInstanceListReturn {
@@ -15,6 +15,8 @@ export interface UseAgentInstanceListReturn {
   readonly totalCount: number;
   /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight and stale data is shown. */
+  readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
   /** Discard cached data and re-fetch the list from the server. */
@@ -45,11 +47,6 @@ export function useAgentInstanceList(
   labels?: Record<string, string>,
 ): UseAgentInstanceListReturn {
   const stigmer = useStigmer();
-  const [agentInstances, setAgentInstances] = useState<AgentInstance[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
 
   const labelsRef = useRef(labels);
   if (
@@ -60,46 +57,33 @@ export function useAgentInstanceList(
   }
   const stableLabels = labelsRef.current;
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
+  const fetchFn = org
+    ? async () => {
+        const result = await stigmer.agentInstance.list(
+          create(ListAgentInstancesRequestSchema, {
+            org,
+            labels: stableLabels ?? {},
+          }),
+        );
+        return {
+          agentInstances: result.items as AgentInstance[],
+          totalCount: result.totalCount,
+        };
+      }
+    : null;
 
-  useEffect(() => {
-    if (!org) {
-      setAgentInstances([]);
-      setTotalCount(0);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
+  const { data, isLoading, isRefetching, error, refetch } = useFetch(
+    fetchFn,
+    [org, stableLabels, stigmer],
+    { agentInstances: [] as AgentInstance[], totalCount: 0 },
+  );
 
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
-
-    stigmer.agentInstance
-      .list(
-        create(ListAgentInstancesRequestSchema, {
-          org,
-          labels: stableLabels ?? {},
-        }),
-      )
-      .then(
-        (result) => {
-          if (cancelled.current) return;
-          setAgentInstances(result.items);
-          setTotalCount(result.totalCount);
-          setIsLoading(false);
-        },
-        (err) => {
-          if (cancelled.current) return;
-          setError(toError(err));
-          setIsLoading(false);
-        },
-      );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [org, stableLabels, stigmer, fetchKey]);
-
-  return { agentInstances, totalCount, isLoading, error, refetch };
+  return {
+    agentInstances: data.agentInstances,
+    totalCount: data.totalCount,
+    isLoading,
+    isRefetching,
+    error,
+    refetch,
+  };
 }

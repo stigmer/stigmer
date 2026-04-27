@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import {
   GetOrgOAuthAppInputSchema,
@@ -9,6 +9,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 
 /** Return value of {@link useOrgOAuthApp}. */
 export interface UseOrgOAuthAppReturn {
@@ -24,6 +25,8 @@ export interface UseOrgOAuthAppReturn {
   readonly clientId: string | null;
   /** `true` while the override status is being fetched. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight. */
+  readonly isRefetching: boolean;
   /** Error from the last failed fetch, or `null` when healthy. */
   readonly error: Error | null;
   /** Discard cached data and re-fetch the override status. */
@@ -68,11 +71,22 @@ export interface UseOrgOAuthAppReturn {
   readonly clearErrors: () => void;
 }
 
-const IDLE: UseOrgOAuthAppReturn = {
+interface OrgOAuthAppData {
+  hasOverride: boolean;
+  oauthAppId: string | null;
+  clientId: string | null;
+}
+
+const IDLE_DATA: OrgOAuthAppData = {
   hasOverride: false,
   oauthAppId: null,
   clientId: null,
+};
+
+const IDLE: UseOrgOAuthAppReturn = {
+  ...IDLE_DATA,
   isLoading: false,
+  isRefetching: false,
   error: null,
   refetch: () => {},
   setOrgOAuthApp: () => Promise.resolve(""),
@@ -119,62 +133,32 @@ export function useOrgOAuthApp(
 ): UseOrgOAuthAppReturn {
   const stigmer = useStigmer();
 
-  const [hasOverride, setHasOverride] = useState(false);
-  const [oauthAppId, setOauthAppId] = useState<string | null>(null);
-  const [clientId, setClientId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
+  const { data, isLoading, isRefetching, error, refetch } = useFetch<OrgOAuthAppData>(
+    resourceId && org
+      ? async () => {
+          const result = await stigmer.mcpServer.getOrgOAuthApp(
+            create(GetOrgOAuthAppInputSchema, { resourceId, org }),
+          );
+          return {
+            hasOverride: result.hasOverride,
+            oauthAppId: result.oauthAppId || null,
+            clientId: result.clientId || null,
+          };
+        }
+      : null,
+    [resourceId, org, stigmer],
+    IDLE_DATA,
+  );
 
   const [isSetting, setIsSetting] = useState(false);
   const [setError_, setSetError] = useState<Error | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<Error | null>(null);
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
-
   const clearErrors = useCallback(() => {
     setSetError(null);
     setDeleteError(null);
   }, []);
-
-  useEffect(() => {
-    if (!resourceId || !org) {
-      setHasOverride(false);
-      setOauthAppId(null);
-      setClientId(null);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
-
-    stigmer.mcpServer
-      .getOrgOAuthApp(
-        create(GetOrgOAuthAppInputSchema, { resourceId, org }),
-      )
-      .then(
-        (result) => {
-          if (cancelled.current) return;
-          setHasOverride(result.hasOverride);
-          setOauthAppId(result.oauthAppId || null);
-          setClientId(result.clientId || null);
-          setIsLoading(false);
-        },
-        (err) => {
-          if (cancelled.current) return;
-          setError(toError(err));
-          setIsLoading(false);
-        },
-      );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [resourceId, org, stigmer, fetchKey]);
 
   const setOrgOAuthApp = useCallback(
     async (newClientId: string, clientSecret: string): Promise<string> => {
@@ -233,10 +217,9 @@ export function useOrgOAuthApp(
   if (!resourceId || !org) return { ...IDLE, refetch, clearErrors };
 
   return {
-    hasOverride,
-    oauthAppId,
-    clientId,
+    ...data,
     isLoading,
+    isRefetching,
     error,
     refetch,
     setOrgOAuthApp,

@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import type { ResourceRef } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 
 /** Return value of {@link useEnvironment}. */
 export interface UseEnvironmentReturn {
@@ -12,6 +11,8 @@ export interface UseEnvironmentReturn {
   readonly environment: Environment | null;
   /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight and stale data is shown. */
+  readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
   /** Discard cached data and re-fetch the environment from the server. */
@@ -49,46 +50,21 @@ export function useEnvironment(
   ref: ResourceRef | null,
 ): UseEnvironmentReturn {
   const stigmer = useStigmer();
-  const [environment, setEnvironment] = useState<Environment | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
-
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
 
   const org = ref?.org;
   const slug = ref?.slug;
   const version = ref?.version;
 
-  useEffect(() => {
-    if (!org || !slug) {
-      setEnvironment(null);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
+  const fetchFn =
+    org && slug
+      ? () => stigmer.environment.getByReference({ org, slug, version })
+      : null;
 
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
+  const { data: environment, isLoading, isRefetching, error, refetch } = useFetch(
+    fetchFn,
+    [org, slug, version, stigmer],
+    null,
+  );
 
-    stigmer.environment.getByReference({ org, slug, version }).then(
-      (result) => {
-        if (cancelled.current) return;
-        setEnvironment(result);
-        setIsLoading(false);
-      },
-      (err) => {
-        if (cancelled.current) return;
-        setError(toError(err));
-        setIsLoading(false);
-      },
-    );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [org, slug, version, stigmer, fetchKey]);
-
-  return { environment, isLoading, error, refetch };
+  return { environment, isLoading, isRefetching, error, refetch };
 }

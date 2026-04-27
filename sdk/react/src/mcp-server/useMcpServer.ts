@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { isNotFound } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 
 /** Return value of {@link useMcpServer}. */
 export interface UseMcpServerReturn {
@@ -12,6 +11,8 @@ export interface UseMcpServerReturn {
   readonly mcpServer: McpServer | null;
   /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight. */
+  readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
   /** Discard cached data and re-fetch the MCP server from the server. */
@@ -60,47 +61,21 @@ export function useMcpServer(
   slug: string | null,
 ): UseMcpServerReturn {
   const stigmer = useStigmer();
-  const [mcpServer, setMcpServer] = useState<McpServer | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
-
-  useEffect(() => {
-    if (!org || !slug) {
-      setMcpServer(null);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
-
-    stigmer.mcpServer.getByReference({ org, slug }).then(
-      (result) => {
-        if (cancelled.current) return;
-        setMcpServer(result);
-        setIsLoading(false);
-      },
-      (err) => {
-        if (cancelled.current) return;
-        if (isNotFound(err)) {
-          setMcpServer(null);
-          setIsLoading(false);
-          return;
+  const { data: mcpServer, isLoading, isRefetching, error, refetch } = useFetch(
+    org && slug
+      ? async () => {
+          try {
+            return await stigmer.mcpServer.getByReference({ org, slug });
+          } catch (err) {
+            if (isNotFound(err)) return null;
+            throw err;
+          }
         }
-        setError(toError(err));
-        setIsLoading(false);
-      },
-    );
+      : null,
+    [org, slug, stigmer],
+    null,
+  );
 
-    return () => {
-      cancelled.current = true;
-    };
-  }, [org, slug, stigmer, fetchKey]);
-
-  return { mcpServer, isLoading, error, refetch };
+  return { mcpServer, isLoading, isRefetching, error, refetch };
 }

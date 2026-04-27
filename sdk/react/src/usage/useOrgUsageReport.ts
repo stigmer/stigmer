@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import {
   GetOrgUsageReportInputSchema,
@@ -8,7 +7,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import type { ModelUsage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 import type { DateRange } from "./date-range";
 
 /**
@@ -25,6 +24,8 @@ export interface UseOrgUsageReportReturn {
   readonly report: GetOrgUsageReportOutput | null;
   /** `true` while a fetch is in flight. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight and stale data is shown. */
+  readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
   /** Discard cached data and re-fetch from the server. */
@@ -61,50 +62,21 @@ export function useOrgUsageReport(
   dateRange: DateRange,
 ): UseOrgUsageReportReturn {
   const stigmer = useStigmer();
-  const [report, setReport] = useState<GetOrgUsageReportOutput | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
+  const { data: report, isLoading, isRefetching, error, refetch } = useFetch(
+    orgId
+      ? () =>
+          stigmer.agentExecution.getOrgUsageReport(
+            create(GetOrgUsageReportInputSchema, {
+              orgId,
+              fromDate: dateRange.from,
+              toDate: dateRange.to,
+            }),
+          )
+      : null,
+    [orgId, dateRange.from, dateRange.to, stigmer],
+    null as GetOrgUsageReportOutput | null,
+  );
 
-  useEffect(() => {
-    if (!orgId) {
-      setReport(null);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
-
-    stigmer.agentExecution
-      .getOrgUsageReport(
-        create(GetOrgUsageReportInputSchema, {
-          orgId,
-          fromDate: dateRange.from,
-          toDate: dateRange.to,
-        }),
-      )
-      .then(
-        (result) => {
-          if (cancelled.current) return;
-          setReport(result);
-          setIsLoading(false);
-        },
-        (err) => {
-          if (cancelled.current) return;
-          setError(toError(err));
-          setIsLoading(false);
-        },
-      );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [orgId, dateRange.from, dateRange.to, stigmer, fetchKey]);
-
-  return { report, isLoading, error, refetch };
+  return { report, isLoading, isRefetching, error, refetch };
 }
