@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -25,6 +26,10 @@ import (
 )
 
 const gracefulShutdownTimeout = 5 * time.Second
+
+// maxLogFileBytes caps the runner log file at 2 MiB. On each startup the
+// file is truncated, so this limit bounds a single session's on-disk cost.
+const maxLogFileBytes = 2 * 1024 * 1024
 
 // StartOptions holds user-provided inputs for starting a runner.
 type StartOptions struct {
@@ -157,14 +162,22 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner) error {
 	envParams := buildEnvParams(reg.cfg, reg.backendInfo, reg.runnerID, reg.taskQueue, dataDir, appDir)
 	env := BuildRunnerEnv(envParams)
 
+	logFile, logFilePath, err := openRunnerLogFile(reg.name)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to open runner log file; logs will only go to stderr")
+	}
+	if logFile != nil {
+		defer logFile.Close()
+	}
+
 	climsg.Info("Starting agent runner ...")
 
-	proc, err := startPythonProcess(pythonBin, appDir, env)
+	proc, err := startPythonProcess(pythonBin, appDir, env, logFile)
 	if err != nil {
 		return errors.Wrap(err, "failed to start agent-runner process")
 	}
 
-	if err := SaveState(reg.name, &RunnerState{
+	state := &RunnerState{
 		RunnerID:        reg.runnerID,
 		Slug:            reg.name,
 		Org:             reg.org,
@@ -173,7 +186,11 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner) error {
 		TaskQueue:       reg.taskQueue,
 		StartedAt:       time.Now(),
 		Runtime:         RuntimeNative,
-	}); err != nil {
+	}
+	if logFilePath != "" {
+		state.LogFile = logFilePath
+	}
+	if err := SaveState(reg.name, state); err != nil {
 		log.Warn().Err(err).Msg("Failed to save runner state (non-fatal)")
 	}
 
@@ -246,7 +263,13 @@ func startDockerRunner(ctx context.Context, reg *registeredRunner, imageOverride
 		return errors.Wrap(err, "container failed to start")
 	}
 
-	if err := SaveState(reg.name, &RunnerState{
+	logFilePath, err := LogFilePath(reg.name)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to resolve runner log path")
+		logFilePath = ""
+	}
+
+	state := &RunnerState{
 		RunnerID:        reg.runnerID,
 		Slug:            reg.name,
 		Org:             reg.org,
@@ -255,7 +278,11 @@ func startDockerRunner(ctx context.Context, reg *registeredRunner, imageOverride
 		StartedAt:       time.Now(),
 		Runtime:         RuntimeDocker,
 		ContainerID:     containerID,
-	}); err != nil {
+	}
+	if logFilePath != "" {
+		state.LogFile = logFilePath
+	}
+	if err := SaveState(reg.name, state); err != nil {
 		log.Warn().Err(err).Msg("Failed to save runner state (non-fatal)")
 	}
 
@@ -511,6 +538,47 @@ func formatRelativeTime(t time.Time) string {
 	}
 }
 
+// openRunnerLogFile creates (or truncates) the log file for a runner.
+// Returns the file handle, the absolute path, and any error. The caller
+// is responsible for closing the file.
+func openRunnerLogFile(name string) (*os.File, string, error) {
+	logPath, err := LogFilePath(name)
+	if err != nil {
+		return nil, "", err
+	}
+	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	if err != nil {
+		return nil, "", errors.Wrapf(err, "failed to open log file %s", logPath)
+	}
+	return f, logPath, nil
+}
+
+// cappedWriter wraps an io.Writer and stops writing once limit bytes have
+// been written. This prevents unbounded log file growth for long-running
+// runners without requiring a full rotation mechanism.
+type cappedWriter struct {
+	w       io.Writer
+	limit   int64
+	written int64
+}
+
+func (cw *cappedWriter) Write(p []byte) (int, error) {
+	if cw.written >= cw.limit {
+		return len(p), nil
+	}
+	remaining := cw.limit - cw.written
+	toWrite := p
+	if int64(len(p)) > remaining {
+		toWrite = p[:remaining]
+	}
+	n, err := cw.w.Write(toWrite)
+	cw.written += int64(n)
+	if err != nil {
+		return n, err
+	}
+	return len(p), nil
+}
+
 func createClient(info *BackendInfo) (*stigmer.Client, error) {
 	opts := []stigmer.ClientOption{
 		stigmer.WithBaseURL(info.Endpoint),
@@ -572,7 +640,7 @@ func buildEnvParams(
 	return params
 }
 
-func startPythonProcess(pythonBin, appDir string, env []string) (*exec.Cmd, error) {
+func startPythonProcess(pythonBin, appDir string, env []string, logFile *os.File) (*exec.Cmd, error) {
 	mainPy := filepath.Join(appDir, "main.py")
 	if _, err := os.Stat(mainPy); err != nil {
 		return nil, errors.Wrapf(err, "agent-runner entry point not found at %s", mainPy)
@@ -581,8 +649,15 @@ func startPythonProcess(pythonBin, appDir string, env []string) (*exec.Cmd, erro
 	cmd := exec.Command(pythonBin, mainPy)
 	cmd.Dir = appDir
 	cmd.Env = env
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+
+	if logFile != nil {
+		capped := &cappedWriter{w: logFile, limit: maxLogFileBytes}
+		cmd.Stdout = io.MultiWriter(os.Stdout, capped)
+		cmd.Stderr = io.MultiWriter(os.Stderr, capped)
+	} else {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
 
 	if err := cmd.Start(); err != nil {
 		return nil, err

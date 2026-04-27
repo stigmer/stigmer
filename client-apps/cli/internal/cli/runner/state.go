@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 )
 
@@ -41,6 +42,12 @@ type RunnerState struct {
 	// "docker" means a Docker container (ContainerID-tracked).
 	Runtime     string `json:"runtime,omitempty"`
 	ContainerID string `json:"container_id,omitempty"`
+
+	// LogFile is the absolute path to the runner's log file. The CLI
+	// tees stdout+stderr to this file so that external consumers (e.g.
+	// the desktop app) can tail logs for any local runner, not just
+	// runners managed as child processes.
+	LogFile string `json:"log_file,omitempty"`
 }
 
 // IsDocker returns true if this runner is managed as a Docker container.
@@ -59,6 +66,15 @@ func RunnersDir() (string, error) {
 		return "", errors.Wrap(err, "failed to create runners directory")
 	}
 	return dir, nil
+}
+
+// LogFilePath returns the path to ~/.stigmer/runners/<name>.log.
+func LogFilePath(name string) (string, error) {
+	dir, err := RunnersDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, name+".log"), nil
 }
 
 // SaveState writes runner state to ~/.stigmer/runners/<name>.json.
@@ -96,12 +112,20 @@ func LoadState(name string) (*RunnerState, error) {
 	return &state, nil
 }
 
-// RemoveState deletes the state file for a named runner.
+// RemoveState deletes the state file and associated log file for a named runner.
 func RemoveState(name string) error {
 	dir, err := RunnersDir()
 	if err != nil {
 		return err
 	}
+
+	// Remove the log file (best-effort; missing file is fine).
+	logPath := filepath.Join(dir, name+".log")
+	if err := os.Remove(logPath); err != nil && !os.IsNotExist(err) {
+		// Non-fatal — log the failure but continue with state removal.
+		log.Warn().Err(err).Str("path", logPath).Msg("Failed to remove runner log file")
+	}
+
 	path := filepath.Join(dir, name+".json")
 	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 		return errors.Wrapf(err, "failed to remove runner state at %s", path)

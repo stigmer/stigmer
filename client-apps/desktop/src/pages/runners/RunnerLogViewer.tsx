@@ -1,10 +1,10 @@
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { phaseLabel, phaseDotColor, isActivePhase } from "@stigmer/react";
 import type { Runner } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
 import { RunnerPhase } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/enum_pb";
-import { useRunnerLogs } from "../../hooks/useRunnerLogs";
+import { useRunnerLogs, type LogSource } from "../../hooks/useRunnerLogs";
 
 interface RunnerLogViewerProps {
   readonly runnerName: string | null;
@@ -12,12 +12,12 @@ interface RunnerLogViewerProps {
   readonly onClose: () => void;
 }
 
-export function RunnerLogViewer({
+export const RunnerLogViewer = memo(function RunnerLogViewer({
   runnerName,
   runner,
   onClose,
 }: RunnerLogViewerProps) {
-  const { lines, isStreaming } = useRunnerLogs(runnerName);
+  const { lines, source } = useRunnerLogs(runnerName);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
 
@@ -68,12 +68,7 @@ export function RunnerLogViewer({
 
         <div className="flex-1" />
 
-        {isStreaming && (
-          <span className="inline-flex items-center gap-1 text-[0.6rem] text-muted-foreground">
-            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
-            Live
-          </span>
-        )}
+        <SourceIndicator source={source} />
 
         <button
           type="button"
@@ -92,9 +87,7 @@ export function RunnerLogViewer({
         className="min-h-0 flex-1 overflow-y-auto p-3 font-mono text-[0.65rem] leading-relaxed text-foreground"
       >
         {lines.length === 0 ? (
-          <p className="text-muted-foreground">
-            {isStreaming ? "Waiting for output\u2026" : "No logs available."}
-          </p>
+          <EmptyState source={source} />
         ) : (
           lines.map((line, i) => (
             <div key={i} className="whitespace-pre-wrap break-all">
@@ -105,6 +98,75 @@ export function RunnerLogViewer({
       </div>
     </div>
   );
+});
+
+function SourceIndicator({ source }: { source: LogSource }) {
+  if (source === "process") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[0.6rem] text-muted-foreground">
+        <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
+        Live
+      </span>
+    );
+  }
+  if (source === "file") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[0.6rem] text-muted-foreground">
+        <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+        Tailing file
+      </span>
+    );
+  }
+  if (source === "connecting") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[0.6rem] text-muted-foreground">
+        <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground" />
+        Connecting
+      </span>
+    );
+  }
+  return null;
+}
+
+function EmptyState({ source }: { source: LogSource }) {
+  switch (source) {
+    case "connecting":
+      return (
+        <p className="text-muted-foreground">
+          Connecting to log source&hellip;
+        </p>
+      );
+    case "process":
+      return (
+        <p className="text-muted-foreground">
+          Connected. Waiting for runner output&hellip;
+        </p>
+      );
+    case "file":
+      return (
+        <p className="text-muted-foreground">
+          Log file is empty. Output will appear as the runner produces it.
+        </p>
+      );
+    case "unavailable":
+      return (
+        <div className="space-y-1.5 text-muted-foreground">
+          <p>No log source available for this runner.</p>
+          <p className="text-[0.6rem]">
+            Logs are available for runners started from this app or via{" "}
+            <code className="rounded bg-muted px-1 py-0.5 font-mono text-[0.55rem]">
+              stigmer up
+            </code>{" "}
+            (requires CLI v1.5+). If this runner was started with an older
+            CLI version, restart it to enable log capture.
+          </p>
+        </div>
+      );
+    default:
+      return (
+        <p className="text-muted-foreground">No logs available.</p>
+      );
+  }
 }
 
 function PhasePill({ phase }: { phase: RunnerPhase }) {

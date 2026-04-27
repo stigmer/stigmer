@@ -16,6 +16,7 @@ export interface LocalRunnerInfo {
   started_at: string;
   managed_by_daemon: boolean;
   managed_by_desktop: boolean;
+  log_file: string | null;
 }
 
 export interface RunnerStartedPayload {
@@ -83,6 +84,22 @@ export function invokeGetRunnerLogs(
   });
 }
 
+export function invokeTailRunnerLogFile(
+  runnerName: string,
+  tail?: number,
+): Promise<string[]> {
+  return invoke<string[]>("tail_runner_log_file", {
+    runnerName,
+    tail: tail ?? null,
+  });
+}
+
+export function invokeWatchRunnerLogFile(
+  runnerName: string,
+): Promise<void> {
+  return invoke<void>("watch_runner_log_file", { runnerName });
+}
+
 // ---------------------------------------------------------------------------
 // Typed event listeners
 // ---------------------------------------------------------------------------
@@ -107,6 +124,14 @@ export function onRunnerLog(
   handler: (payload: RunnerLogPayload) => void,
 ): Promise<UnlistenFn> {
   return listen<RunnerLogPayload>("runner:log", (e) =>
+    handler(e.payload),
+  );
+}
+
+export function onRunnerLogFile(
+  handler: (payload: RunnerLogPayload) => void,
+): Promise<UnlistenFn> {
+  return listen<RunnerLogPayload>("runner:log-file", (e) =>
     handler(e.payload),
   );
 }

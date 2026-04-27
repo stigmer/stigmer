@@ -43,6 +43,8 @@ pub fn run() {
             sidecar::stop_all_runners,
             sidecar::list_local_runners,
             sidecar::get_runner_logs,
+            sidecar::tail_runner_log_file,
+            sidecar::watch_runner_log_file,
         ])
         .on_menu_event(|app, event| menu::handle_menu_event(app, &event))
         .setup(|app| {
