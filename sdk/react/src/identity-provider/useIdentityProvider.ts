@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import type { IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 
 /** Return value of {@link useIdentityProvider}. */
 export interface UseIdentityProviderReturn {
@@ -11,6 +10,8 @@ export interface UseIdentityProviderReturn {
   readonly identityProvider: IdentityProvider | null;
   /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight and stale data is shown. */
+  readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
   /** Discard cached data and re-fetch from the server. */
@@ -44,43 +45,12 @@ export function useIdentityProvider(
   id: string | null,
 ): UseIdentityProviderReturn {
   const stigmer = useStigmer();
-  const [identityProvider, setIdentityProvider] =
-    useState<IdentityProvider | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
+  const { data: identityProvider, isLoading, isRefetching, error, refetch } = useFetch(
+    id ? () => stigmer.identityProvider.get(id) : null,
+    [id, stigmer],
+    null as IdentityProvider | null,
+  );
 
-  useEffect(() => {
-    if (!id) {
-      setIdentityProvider(null);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
-
-    stigmer.identityProvider.get(id).then(
-      (result) => {
-        if (cancelled.current) return;
-        setIdentityProvider(result);
-        setIsLoading(false);
-      },
-      (err) => {
-        if (cancelled.current) return;
-        setError(toError(err));
-        setIsLoading(false);
-      },
-    );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [id, stigmer, fetchKey]);
-
-  return { identityProvider, isLoading, error, refetch };
+  return { identityProvider, isLoading, isRefetching, error, refetch };
 }

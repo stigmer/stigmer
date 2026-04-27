@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 
 /** Return value of {@link useApiKeyList}. */
 export interface UseApiKeyListReturn {
@@ -11,6 +10,8 @@ export interface UseApiKeyListReturn {
   readonly apiKeys: readonly ApiKey[];
   /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight and stale data is shown. */
+  readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
   /** Discard cached data and re-fetch the key list from the server. */
@@ -38,36 +39,12 @@ export interface UseApiKeyListReturn {
  */
 export function useApiKeyList(): UseApiKeyListReturn {
   const stigmer = useStigmer();
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
+  const { data: apiKeys, isLoading, isRefetching, error, refetch } = useFetch(
+    () => stigmer.apiKey.findAll().then((r) => [...r.entries]),
+    [stigmer],
+    [] as ApiKey[],
+  );
 
-  useEffect(() => {
-    const cancelled = { current: false };
-
-    setIsLoading(true);
-    setError(null);
-
-    stigmer.apiKey.findAll().then(
-      (result) => {
-        if (cancelled.current) return;
-        setApiKeys([...result.entries]);
-        setIsLoading(false);
-      },
-      (err) => {
-        if (cancelled.current) return;
-        setError(toError(err));
-        setIsLoading(false);
-      },
-    );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [stigmer, fetchKey]);
-
-  return { apiKeys, isLoading, error, refetch };
+  return { apiKeys, isLoading, isRefetching, error, refetch };
 }

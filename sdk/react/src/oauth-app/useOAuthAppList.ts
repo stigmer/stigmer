@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { ListOAuthAppsByOrgInputSchema } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/io_pb";
 import type { OAuthApp } from "@stigmer/protos/ai/stigmer/iam/oauthapp/v1/api_pb";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 
 /** Return value of {@link useOAuthAppList}. */
 export interface UseOAuthAppListReturn {
@@ -13,6 +12,8 @@ export interface UseOAuthAppListReturn {
   readonly oauthApps: readonly OAuthApp[];
   /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight and stale data is shown. */
+  readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
   /** Discard cached data and re-fetch the list from the server. */
@@ -41,44 +42,17 @@ export function useOAuthAppList(
   org: string | null,
 ): UseOAuthAppListReturn {
   const stigmer = useStigmer();
-  const [oauthApps, setOauthApps] = useState<OAuthApp[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
+  const { data: oauthApps, isLoading, isRefetching, error, refetch } = useFetch(
+    org
+      ? () =>
+          stigmer.oauthapp
+            .listByOrg(create(ListOAuthAppsByOrgInputSchema, { org }))
+            .then((r) => [...r.entries])
+      : null,
+    [org, stigmer],
+    [] as OAuthApp[],
+  );
 
-  useEffect(() => {
-    if (!org) {
-      setOauthApps([]);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
-
-    stigmer.oauthapp
-      .listByOrg(create(ListOAuthAppsByOrgInputSchema, { org }))
-      .then(
-        (result) => {
-          if (cancelled.current) return;
-          setOauthApps([...result.entries]);
-          setIsLoading(false);
-        },
-        (err) => {
-          if (cancelled.current) return;
-          setError(toError(err));
-          setIsLoading(false);
-        },
-      );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [org, stigmer, fetchKey]);
-
-  return { oauthApps, isLoading, error, refetch };
+  return { oauthApps, isLoading, isRefetching, error, refetch };
 }

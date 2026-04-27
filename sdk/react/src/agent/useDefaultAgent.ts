@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { GetDefaultAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 
 /**
  * Milliseconds the cached result can age before a visibility change
@@ -23,6 +23,8 @@ export interface UseDefaultAgentReturn {
   readonly agent: Agent | null;
   /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight and stale data is shown. */
+  readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
   /** Discard cached data and re-fetch the default agent from the server. */
@@ -52,49 +54,26 @@ export interface UseDefaultAgentReturn {
  */
 export function useDefaultAgent(org: string | null): UseDefaultAgentReturn {
   const stigmer = useStigmer();
-  const [agent, setAgent] = useState<Agent | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
   const lastFetchedAt = useRef(0);
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
-
-  useEffect(() => {
-    if (!org) {
-      setAgent(null);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
-
-    const doFetch = () =>
-      stigmer.agent.getDefault(create(GetDefaultAgentRequestSchema, { org }));
-
-    fetchWithRetry(doFetch, MAX_RETRIES, RETRY_DELAY_MS, cancelled).then(
-      (result) => {
-        if (cancelled.current) return;
+  const fetchFn = org
+    ? async () => {
+        const doFetch = () =>
+          stigmer.agent.getDefault(
+            create(GetDefaultAgentRequestSchema, { org }),
+          );
+        const result = await fetchWithRetry(doFetch, MAX_RETRIES, RETRY_DELAY_MS);
         lastFetchedAt.current = Date.now();
-        setAgent(result);
-        setIsLoading(false);
-      },
-      (err) => {
-        if (cancelled.current) return;
-        setError(toError(err));
-        setIsLoading(false);
-      },
-    );
+        return result;
+      }
+    : null;
 
-    return () => {
-      cancelled.current = true;
-    };
-  }, [org, stigmer, fetchKey]);
+  const { data: agent, isLoading, isRefetching, error, refetch } = useFetch(
+    fetchFn,
+    [org, stigmer],
+    null,
+  );
 
-  // Re-fetch when the document becomes visible after an idle period.
   useEffect(() => {
     if (typeof document === "undefined") return;
 
@@ -109,7 +88,7 @@ export function useDefaultAgent(org: string | null): UseDefaultAgentReturn {
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [refetch]);
 
-  return { agent, isLoading, error, refetch };
+  return { agent, isLoading, isRefetching, error, refetch };
 }
 
 // ---------------------------------------------------------------------------
@@ -118,20 +97,17 @@ export function useDefaultAgent(org: string | null): UseDefaultAgentReturn {
 
 /**
  * Retries `fn` up to `retries` times with a fixed delay between attempts.
- * Bails immediately when the owning effect is cancelled.
  */
 async function fetchWithRetry<T>(
   fn: () => Promise<T>,
   retries: number,
   delayMs: number,
-  cancelled: { current: boolean },
 ): Promise<T> {
   try {
     return await fn();
   } catch (err) {
-    if (cancelled.current || retries <= 0) throw err;
+    if (retries <= 0) throw err;
     await new Promise((r) => setTimeout(r, delayMs));
-    if (cancelled.current) throw err;
-    return fetchWithRetry(fn, retries - 1, delayMs, cancelled);
+    return fetchWithRetry(fn, retries - 1, delayMs);
   }
 }

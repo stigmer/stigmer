@@ -22,8 +22,8 @@ export interface ResourceListViewProps {
   readonly items: readonly SearchResult[];
   /** Whether data is currently being fetched. */
   readonly isLoading: boolean;
-  /** Error message from the data hook. Shown as an alert when present and not loading. */
-  readonly error?: string | null;
+  /** Error from the data hook. Shown as an alert when present and not loading. */
+  readonly error?: Error | null;
   /** Total number of results across all pages. Shown in the pagination bar when provided. */
   readonly totalCount?: number;
   /** Total number of pages available. Enables pagination controls when greater than 1. */
@@ -375,7 +375,7 @@ export function ResourceListView({
 
       {showSkeletons && (isGrid ? <SkeletonCards /> : <SkeletonRows />)}
 
-      {showError && <ErrorState message={error!} onRetry={onRetry} />}
+      {showError && <ErrorState message={error!.message} onRetry={onRetry} />}
 
       {showEmpty && (
         <EmptyState

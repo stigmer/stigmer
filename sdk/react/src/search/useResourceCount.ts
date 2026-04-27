@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import type { ListParams, ListResult } from "@stigmer/sdk";
 import type { ResourceListScope } from "./useResourceList";
+import { useFetch } from "../internal/useFetch";
 
 export interface UseResourceCountOptions {
   /** Text query to filter results before counting. */
@@ -26,7 +26,8 @@ export interface UseResourceCountReturn {
    */
   readonly count: number | undefined;
   readonly isLoading: boolean;
-  readonly error: string | null;
+  readonly isRefetching: boolean;
+  readonly error: Error | null;
   readonly refetch: () => void;
 }
 
@@ -49,54 +50,25 @@ export function useResourceCount(
   org: string | null,
   options?: UseResourceCountOptions,
 ): UseResourceCountReturn {
-  const [count, setCount] = useState<number | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
-
   const query = options?.query;
   const scope = options?.scope ?? "org";
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
+  const { data: count, isLoading, isRefetching, error, refetch } = useFetch<number | undefined>(
+    org
+      ? async () => {
+          const params: ListParams = {
+            org: scope === "all" ? "" : org,
+            query: query || undefined,
+            excludePublic: false,
+            page: { num: 1, size: 1 },
+          };
+          const result = await listFn(params);
+          return result.totalCount;
+        }
+      : null,
+    [listFn, org, query, scope],
+    undefined,
+  );
 
-  useEffect(() => {
-    if (!org) {
-      setCount(undefined);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
-
-    const params: ListParams = {
-      org: scope === "all" ? "" : org,
-      query: query || undefined,
-      excludePublic: false,
-      page: { num: 1, size: 1 },
-    };
-
-    listFn(params).then(
-      (result) => {
-        if (cancelled.current) return;
-        setCount(result.totalCount);
-        setIsLoading(false);
-      },
-      (err) => {
-        if (cancelled.current) return;
-        setError(
-          err instanceof Error ? err.message : "Failed to load resource count",
-        );
-        setIsLoading(false);
-      },
-    );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [listFn, org, query, scope, fetchKey]);
-
-  return { count, isLoading, error, refetch };
+  return { count, isLoading, isRefetching, error, refetch };
 }

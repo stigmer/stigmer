@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { ListEnvironmentsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 
 /** Return value of {@link useEnvironmentList}. */
 export interface UseEnvironmentListReturn {
@@ -15,6 +15,8 @@ export interface UseEnvironmentListReturn {
   readonly totalCount: number;
   /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight and stale data is shown. */
+  readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
   /** Discard cached data and re-fetch the list from the server. */
@@ -47,30 +49,6 @@ export function useEnvironmentList(
   labels?: Record<string, string>,
 ): UseEnvironmentListReturn {
   const stigmer = useStigmer();
-  const [environments, setEnvironments] = useState<Environment[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(!!org);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
-
-  // Synchronously reset loading state when org changes so that
-  // downstream hooks see isLoading=true in the SAME render —
-  // not deferred to the next render via an effect.
-  const [prevOrg, setPrevOrg] = useState(org);
-  if (org !== prevOrg) {
-    setPrevOrg(org);
-    if (org) {
-      setIsLoading(true);
-      setEnvironments([]);
-      setTotalCount(0);
-      setError(null);
-    } else {
-      setIsLoading(false);
-      setEnvironments([]);
-      setTotalCount(0);
-      setError(null);
-    }
-  }
 
   const labelsRef = useRef(labels);
   if (
@@ -81,38 +59,33 @@ export function useEnvironmentList(
   }
   const stableLabels = labelsRef.current;
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
+  const fetchFn = org
+    ? async () => {
+        const result = await stigmer.environment.list(
+          create(ListEnvironmentsRequestSchema, {
+            org,
+            labels: stableLabels ?? {},
+          }),
+        );
+        return {
+          environments: result.items as Environment[],
+          totalCount: result.totalCount,
+        };
+      }
+    : null;
 
-  useEffect(() => {
-    if (!org) return;
+  const { data, isLoading, isRefetching, error, refetch } = useFetch(
+    fetchFn,
+    [org, stableLabels, stigmer],
+    { environments: [] as Environment[], totalCount: 0 },
+  );
 
-    const cancelled = { current: false };
-
-    stigmer.environment
-      .list(
-        create(ListEnvironmentsRequestSchema, {
-          org,
-          labels: stableLabels ?? {},
-        }),
-      )
-      .then(
-        (result) => {
-          if (cancelled.current) return;
-          setEnvironments(result.items);
-          setTotalCount(result.totalCount);
-          setIsLoading(false);
-        },
-        (err) => {
-          if (cancelled.current) return;
-          setError(toError(err));
-          setIsLoading(false);
-        },
-      );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [org, stableLabels, stigmer, fetchKey]);
-
-  return { environments, totalCount, isLoading, error, refetch };
+  return {
+    environments: data.environments,
+    totalCount: data.totalCount,
+    isLoading,
+    isRefetching,
+    error,
+    refetch,
+  };
 }

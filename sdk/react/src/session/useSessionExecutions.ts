@@ -1,18 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ListAgentExecutionsBySessionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 
 /** Return value of {@link useSessionExecutions}. */
 export interface UseSessionExecutionsReturn {
   /** All executions for the session, empty while loading or on error. */
   readonly executions: readonly AgentExecution[];
-  /** `true` while the initial fetch or a refetch is in flight. */
+  /** `true` while the initial fetch is in flight. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight. */
+  readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
   /** Discard cached data and re-fetch the execution list from the server. */
@@ -57,49 +58,22 @@ export function useSessionExecutions(
   sessionId: string | null,
 ): UseSessionExecutionsReturn {
   const stigmer = useStigmer();
-  const [executions, setExecutions] = useState<AgentExecution[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
+  const { data: executions, isLoading, isRefetching, error, refetch } = useFetch(
+    sessionId
+      ? () =>
+          stigmer.agentExecution
+            .listBySession(
+              create(ListAgentExecutionsBySessionRequestSchema, {
+                sessionId,
+                pageSize: 100,
+              }),
+            )
+            .then((result) => result.entries)
+      : null,
+    [sessionId, stigmer],
+    [] as AgentExecution[],
+  );
 
-  useEffect(() => {
-    if (!sessionId) {
-      setExecutions([]);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
-
-    stigmer.agentExecution
-      .listBySession(
-        create(ListAgentExecutionsBySessionRequestSchema, {
-          sessionId,
-          pageSize: 100,
-        }),
-      )
-      .then(
-        (result) => {
-          if (cancelled.current) return;
-          setExecutions(result.entries);
-          setIsLoading(false);
-        },
-        (err) => {
-          if (cancelled.current) return;
-          setError(toError(err));
-          setIsLoading(false);
-        },
-      );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [sessionId, stigmer, fetchKey]);
-
-  return { executions, isLoading, error, refetch };
+  return { executions, isLoading, isRefetching, error, refetch };
 }

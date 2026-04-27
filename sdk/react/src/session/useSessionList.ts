@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ListSessionsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { useStigmer } from "../hooks";
+import { useFetch } from "../internal/useFetch";
 
 /** Options for {@link useSessionList}. */
 export interface UseSessionListOptions {
@@ -18,10 +19,12 @@ export interface UseSessionListOptions {
 export interface UseSessionListReturn {
   /** The fetched list of Sessions, empty while loading or on error. */
   readonly sessions: readonly Session[];
-  /** `true` while the initial fetch or a refetch is in flight. */
+  /** `true` while the initial fetch is in flight. */
   readonly isLoading: boolean;
-  /** Error message from the last failed request, or `null` when healthy. */
-  readonly error: string | null;
+  /** `true` while a background refetch is in flight. */
+  readonly isRefetching: boolean;
+  /** Error from the last failed request, or `null` when healthy. */
+  readonly error: Error | null;
   /** Discard cached data and re-fetch the session list from the server. */
   readonly refetch: () => void;
 }
@@ -61,10 +64,6 @@ export function useSessionList(
   options?: UseSessionListOptions,
 ): UseSessionListReturn {
   const stigmer = useStigmer();
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
 
   const pageSize = options?.pageSize ?? DEFAULT_PAGE_SIZE;
   const tagsRef = useRef(options?.tags);
@@ -77,39 +76,19 @@ export function useSessionList(
   }
   const tags = tagsRef.current;
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
+  const { data: sessions, isLoading, isRefetching, error, refetch } = useFetch(
+    () =>
+      stigmer.session
+        .list(
+          create(ListSessionsRequestSchema, {
+            pageSize,
+            tags: tags ?? [],
+          }),
+        )
+        .then((result) => result.entries),
+    [stigmer, pageSize, tags],
+    [] as Session[],
+  );
 
-  useEffect(() => {
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
-
-    stigmer.session
-      .list(
-        create(ListSessionsRequestSchema, {
-          pageSize,
-          tags: tags ?? [],
-        }),
-      )
-      .then(
-        (result) => {
-          if (cancelled.current) return;
-          setSessions(result.entries);
-          setIsLoading(false);
-        },
-        (err) => {
-          if (cancelled.current) return;
-          setError(
-            err instanceof Error ? err.message : "Failed to load sessions",
-          );
-          setIsLoading(false);
-        },
-      );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [stigmer, fetchKey, pageSize, tags]);
-
-  return { sessions, isLoading, error, refetch };
+  return { sessions, isLoading, isRefetching, error, refetch };
 }

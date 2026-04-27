@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Runner } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
 import { ListRunnersRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/io_pb";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 
 const SYSTEM_MANAGED_LABEL = "stigmer.ai/system-managed";
 
@@ -29,6 +28,8 @@ export interface UseRunnerListReturn {
   readonly runners: readonly Runner[];
   /** `true` while the fetch is in flight. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight and stale data is shown. */
+  readonly isRefetching: boolean;
   /** Error from the last failed fetch, or `null` when healthy. */
   readonly error: Error | null;
   /** Discard cached data and re-fetch the runner list from the server. */
@@ -62,53 +63,24 @@ export function useRunnerList(
   options?: UseRunnerListOptions,
 ): UseRunnerListReturn {
   const stigmer = useStigmer();
-  const [runners, setRunners] = useState<Runner[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
-
   const includeSystemManaged = options?.includeSystemManaged ?? false;
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
-
-  useEffect(() => {
-    if (!org) {
-      setRunners([]);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
-
-    stigmer.runner
-      .list(create(ListRunnersRequestSchema, { org }))
-      .then(
-        (result) => {
-          if (cancelled.current) return;
-
-          const items = includeSystemManaged
+  const { data: runners, isLoading, isRefetching, error, refetch } = useFetch(
+    org
+      ? async () => {
+          const result = await stigmer.runner.list(
+            create(ListRunnersRequestSchema, { org }),
+          );
+          return includeSystemManaged
             ? result.items
             : result.items.filter(
                 (r) => r.metadata?.labels[SYSTEM_MANAGED_LABEL] !== "true",
               );
+        }
+      : null,
+    [stigmer, org, includeSystemManaged],
+    [] as Runner[],
+  );
 
-          setRunners(items);
-          setIsLoading(false);
-        },
-        (err) => {
-          if (cancelled.current) return;
-          setError(toError(err));
-          setIsLoading(false);
-        },
-      );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [stigmer, org, includeSystemManaged, fetchKey]);
-
-  return { runners, isLoading, error, refetch };
+  return { runners, isLoading, isRefetching, error, refetch };
 }

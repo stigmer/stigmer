@@ -487,7 +487,7 @@ function FileContentStateView({
   readonly content: string | null;
   readonly contentType: string | null;
   readonly isLoading: boolean;
-  readonly error: string | null;
+  readonly error: Error | null;
   readonly isTruncated: boolean;
 }) {
   if (isLoading) {
@@ -509,7 +509,7 @@ function FileContentStateView({
     return (
       <div className="flex flex-col items-center justify-center gap-2 p-8 text-center">
         <ErrorAlertIcon />
-        <p className="text-sm text-destructive">{error}</p>
+        <p className="text-sm text-destructive">{error.message}</p>
       </div>
     );
   }

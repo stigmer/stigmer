@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { PrincipalAccess } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import {
@@ -8,7 +7,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/io_pb";
 import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 
 /** Resource reference for the access query. */
 export interface ResourceAccessRef {
@@ -30,6 +29,8 @@ export interface UseResourceAccessReturn {
   readonly members: readonly PrincipalAccess[];
   /** `true` while the fetch is in flight. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight and stale data is shown. */
+  readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
   /** Re-fetch the access list from the server. */
@@ -66,63 +67,25 @@ export function useResourceAccess(
   options?: UseResourceAccessOptions,
 ): UseResourceAccessReturn {
   const stigmer = useStigmer();
-  const [members, setMembers] = useState<PrincipalAccess[]>([]);
-  const [isLoading, setIsLoading] = useState(!!resource);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
-
   const kind = resource?.kind ?? null;
   const id = resource?.id ?? null;
   const includeInherited = options?.includeInherited ?? false;
 
-  const [prevKey, setPrevKey] = useState<string | null>(
-    kind && id ? `${kind}:${id}` : null,
+  const { data: members, isLoading, isRefetching, error, refetch } = useFetch(
+    kind && id
+      ? () => {
+          const input = create(ListResourceAccessInputSchema, {
+            resource: create(ApiResourceRefSchema, { kind, id }),
+            includeInherited,
+          });
+          return stigmer.iamPolicy
+            .listResourceAccessByPrincipal(input)
+            .then((r) => [...r.entries]);
+        }
+      : null,
+    [kind, id, includeInherited, stigmer],
+    [] as PrincipalAccess[],
   );
-  const currentKey = kind && id ? `${kind}:${id}` : null;
-  if (currentKey !== prevKey) {
-    setPrevKey(currentKey);
-    if (currentKey) {
-      setIsLoading(true);
-      setMembers([]);
-      setError(null);
-    } else {
-      setIsLoading(false);
-      setMembers([]);
-      setError(null);
-    }
-  }
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
-
-  useEffect(() => {
-    if (!kind || !id) return;
-
-    const cancelled = { current: false };
-
-    const input = create(ListResourceAccessInputSchema, {
-      resource: create(ApiResourceRefSchema, { kind, id }),
-      includeInherited,
-    });
-
-    stigmer.iamPolicy
-      .listResourceAccessByPrincipal(input)
-      .then(
-        (result) => {
-          if (cancelled.current) return;
-          setMembers([...result.entries]);
-          setIsLoading(false);
-        },
-        (err) => {
-          if (cancelled.current) return;
-          setError(toError(err));
-          setIsLoading(false);
-        },
-      );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [kind, id, includeInherited, stigmer, fetchKey]);
-
-  return { members, isLoading, error, refetch };
+  return { members, isLoading, isRefetching, error, refetch };
 }

@@ -1,9 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { GetArtifactContentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { useStigmer } from "../hooks";
+import { useFetch } from "../internal/useFetch";
+
+interface ArtifactContentData {
+  content: string | null;
+  contentType: string | null;
+  isTruncated: boolean;
+}
+
+const EMPTY_ARTIFACT: ArtifactContentData = {
+  content: null,
+  contentType: null,
+  isTruncated: false,
+};
 
 /** Return value of {@link useArtifactContent}. */
 export interface UseArtifactContentReturn {
@@ -31,8 +43,11 @@ export interface UseArtifactContentReturn {
   /** `true` while the content request is in-flight. */
   readonly isLoading: boolean;
 
-  /** Error message from the last failed attempt, or `null` when healthy. */
-  readonly error: string | null;
+  /** `true` while a background refetch is in flight. */
+  readonly isRefetching: boolean;
+
+  /** Error from the last failed attempt, or `null` when healthy. */
+  readonly error: Error | null;
 
   /**
    * Re-fetch the artifact content. Uses the `fetchKey` counter pattern
@@ -130,66 +145,34 @@ export function useArtifactContent(
 ): UseArtifactContentReturn {
   const stigmer = useStigmer();
 
-  const [content, setContent] = useState<string | null>(null);
-  const [contentType, setContentType] = useState<string | null>(null);
-  const [isTruncated, setIsTruncated] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
+  const { data, isLoading, isRefetching, error, refetch } = useFetch(
+    executionId && storageKey
+      ? () =>
+          stigmer.agentExecution
+            .getArtifactContent(
+              create(GetArtifactContentRequestSchema, {
+                executionId,
+                storageKey,
+                ...(entryPath ? { entryPath } : {}),
+              }),
+            )
+            .then((result): ArtifactContentData => ({
+              content: new TextDecoder().decode(result.content),
+              contentType: result.contentType || null,
+              isTruncated: result.truncated,
+            }))
+      : null,
+    [executionId, storageKey, entryPath, contentHash, stigmer],
+    EMPTY_ARTIFACT,
+  );
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
-
-  useEffect(() => {
-    if (!executionId || !storageKey) {
-      setContent(null);
-      setContentType(null);
-      setIsTruncated(false);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
-
-    stigmer.agentExecution
-      .getArtifactContent(
-        create(GetArtifactContentRequestSchema, {
-          executionId,
-          storageKey,
-          ...(entryPath ? { entryPath } : {}),
-        }),
-      )
-      .then(
-        (result) => {
-          if (cancelled.current) return;
-
-          const decoded = new TextDecoder().decode(result.content);
-          setContent(decoded);
-          setContentType(result.contentType || null);
-          setIsTruncated(result.truncated);
-          setIsLoading(false);
-        },
-        (err) => {
-          if (cancelled.current) return;
-
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Failed to load artifact content",
-          );
-          setContent(null);
-          setContentType(null);
-          setIsTruncated(false);
-          setIsLoading(false);
-        },
-      );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [executionId, storageKey, entryPath, contentHash, stigmer, fetchKey]);
-
-  return { content, contentType, isTruncated, isLoading, error, refetch };
+  return {
+    content: data.content,
+    contentType: data.contentType,
+    isTruncated: data.isTruncated,
+    isLoading,
+    isRefetching,
+    error,
+    refetch,
+  };
 }

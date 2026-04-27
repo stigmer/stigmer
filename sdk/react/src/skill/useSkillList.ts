@@ -36,8 +36,8 @@ export interface UseSkillListReturn {
   readonly currentPage: number;
   /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
-  /** Error message from the last failed request, or `null` when healthy. */
-  readonly error: string | null;
+  /** Error from the last failed request, or `null` when healthy. */
+  readonly error: Error | null;
   /** Discard cached data and re-fetch the current page from the server. */
   readonly refetch: () => void;
 }

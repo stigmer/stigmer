@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Invitation } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/api_pb";
 import { ListInvitationsByOrgInputSchema } from "@stigmer/protos/ai/stigmer/iam/invitation/v1/io_pb";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 
 /** Return value of {@link useOrgInvitations}. */
 export interface UseOrgInvitationsReturn {
@@ -13,6 +12,8 @@ export interface UseOrgInvitationsReturn {
   readonly invitations: readonly Invitation[];
   /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight and stale data is shown. */
+  readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
   /** Discard cached data and re-fetch the invitation list from the server. */
@@ -45,44 +46,17 @@ export function useOrgInvitations(
   org: string | null,
 ): UseOrgInvitationsReturn {
   const stigmer = useStigmer();
-  const [invitations, setInvitations] = useState<Invitation[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
+  const { data: invitations, isLoading, isRefetching, error, refetch } = useFetch(
+    org
+      ? () =>
+          stigmer.invitation
+            .listByOrg(create(ListInvitationsByOrgInputSchema, { org }))
+            .then((r) => [...r.entries])
+      : null,
+    [org, stigmer],
+    [] as Invitation[],
+  );
 
-  useEffect(() => {
-    if (!org) {
-      setInvitations([]);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
-
-    stigmer.invitation
-      .listByOrg(create(ListInvitationsByOrgInputSchema, { org }))
-      .then(
-        (result) => {
-          if (cancelled.current) return;
-          setInvitations([...result.entries]);
-          setIsLoading(false);
-        },
-        (err) => {
-          if (cancelled.current) return;
-          setError(toError(err));
-          setIsLoading(false);
-        },
-      );
-
-    return () => {
-      cancelled.current = true;
-    };
-  }, [org, stigmer, fetchKey]);
-
-  return { invitations, isLoading, error, refetch };
+  return { invitations, isLoading, isRefetching, error, refetch };
 }

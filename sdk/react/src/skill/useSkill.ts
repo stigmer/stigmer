@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { isNotFound } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
-import { toError } from "../internal/toError";
+import { useFetch } from "../internal/useFetch";
 
 /** Return value of {@link useSkill}. */
 export interface UseSkillReturn {
@@ -12,6 +11,8 @@ export interface UseSkillReturn {
   readonly skill: Skill | null;
   /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** `true` while a background refetch is in flight. */
+  readonly isRefetching: boolean;
   /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
   /** Discard cached data and re-fetch the skill from the server. */
@@ -62,47 +63,21 @@ export function useSkill(
   version?: string,
 ): UseSkillReturn {
   const stigmer = useStigmer();
-  const [skill, setSkill] = useState<Skill | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [fetchKey, setFetchKey] = useState(0);
 
-  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
-
-  useEffect(() => {
-    if (!org || !slug) {
-      setSkill(null);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-
-    const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
-
-    stigmer.skill.getByReference({ org, slug, version }).then(
-      (result) => {
-        if (cancelled.current) return;
-        setSkill(result);
-        setIsLoading(false);
-      },
-      (err) => {
-        if (cancelled.current) return;
-        if (isNotFound(err)) {
-          setSkill(null);
-          setIsLoading(false);
-          return;
+  const { data: skill, isLoading, isRefetching, error, refetch } = useFetch(
+    org && slug
+      ? async () => {
+          try {
+            return await stigmer.skill.getByReference({ org, slug, version });
+          } catch (err) {
+            if (isNotFound(err)) return null;
+            throw err;
+          }
         }
-        setError(toError(err));
-        setIsLoading(false);
-      },
-    );
+      : null,
+    [org, slug, version, stigmer],
+    null,
+  );
 
-    return () => {
-      cancelled.current = true;
-    };
-  }, [org, slug, version, stigmer, fetchKey]);
-
-  return { skill, isLoading, error, refetch };
+  return { skill, isLoading, isRefetching, error, refetch };
 }
