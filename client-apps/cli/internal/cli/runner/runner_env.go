@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // EnvParams holds every value needed to construct the agent-runner's
@@ -93,10 +94,41 @@ func appendLocalEnv(env []string, params EnvParams) []string {
 	return env
 }
 
+// defaultCloudTemporalAddress is the external Temporal frontend for
+// Stigmer Cloud.  Hardcoded for now — a future improvement should have
+// the backend return this during runner registration so the CLI stays
+// stateless about infrastructure details.
+const defaultCloudTemporalAddress = "stigmer-prod-temporal-frontend.planton.live:7233"
+
 func appendCloudEnv(env []string, params EnvParams) []string {
 	if params.BackendInfo.Token != "" {
 		env = append(env, fmt.Sprintf("STIGMER_TOKEN=%s", params.BackendInfo.Token))
 	}
-	env = append(env, fmt.Sprintf("STIGMER_PROXY_ENDPOINT=%s", params.BackendInfo.Endpoint))
+
+	env = append(env,
+		fmt.Sprintf("STIGMER_PROXY_ENDPOINT=%s", grpcEndpointToHTTPS(params.BackendInfo.Endpoint)),
+		fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", defaultCloudTemporalAddress),
+		"TEMPORAL_NAMESPACE=default",
+
+		// Route checkpointing and artifact storage through the Side-Channel
+		// Proxy.  A local machine has no direct access to MongoDB or R2.
+		"STIGMER_CHECKPOINTER_TYPE=http",
+		"ARTIFACT_STORAGE_TYPE=proxy",
+
+		fmt.Sprintf("WORKSPACE_ROOT_DIR=%s", filepath.Join(params.DataDir, "workspace")),
+	)
+
 	return env
+}
+
+// grpcEndpointToHTTPS converts a gRPC dial target (e.g. "api.stigmer.ai:443")
+// into an HTTPS URL (e.g. "https://api.stigmer.ai") suitable for the
+// Side-Channel Proxy.  If the input already has a scheme, it is returned
+// as-is.
+func grpcEndpointToHTTPS(endpoint string) string {
+	if strings.HasPrefix(endpoint, "https://") || strings.HasPrefix(endpoint, "http://") {
+		return endpoint
+	}
+	host := strings.TrimSuffix(endpoint, ":443")
+	return "https://" + host
 }
