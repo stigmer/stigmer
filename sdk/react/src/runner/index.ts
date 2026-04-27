@@ -11,6 +11,12 @@ export type {
   LaunchLocalRunnerResult,
 } from "./useLaunchLocalRunner";
 
+export { useRunnerCredential } from "./useRunnerCredential";
+export type {
+  RunnerCredential,
+  UseRunnerCredentialReturn,
+} from "./useRunnerCredential";
+
 export { useStopRunner } from "./useStopRunner";
 export type {
   StopRunnerInput,
