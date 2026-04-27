@@ -87,7 +87,7 @@ func NewWorkerConfig(
 //
 // Registered Components:
 // - Workflows: InvokeAgentExecutionWorkflow (Go)
-// - Activities: UpdateExecutionStatusActivity (Go - for error recovery, LOCAL activity)
+// - Activities: UpdateExecutionStatusActivity (Go - failure/cancellation recovery, regular activity on stigmer queue)
 // - Activities: CompleteExternalActivity (Go - for async activity completion pattern)
 //
 // NOT Registered (handled by agent-runner on "agent_execution_runner" queue):
@@ -133,14 +133,24 @@ func (wc *WorkerConfig) CreateWorker(temporalClient client.Client) worker.Worker
 
 	log.Info().Msg("✅ [ASYNC-PATTERN] Registered CompleteExternalActivity (for token handshake)")
 
-	// Register local activities (run in-process, don't participate in task queue routing)
-	// This avoids need for separate task queue configuration
-	w.RegisterActivity(wc.updateStatusActivityImpl.UpdateExecutionStatus)
+	// UpdateExecutionStatus: registered as a named activity (regular + local).
+	// The failure and cancellation paths invoke it as a regular activity on the
+	// stigmer queue to avoid a Temporal SDK replay bug with local-activity markers
+	// after remote-activity failures. Defense-in-depth paths (persistFinalStatus)
+	// still call it as a local activity -- both modes work with this registration.
+	w.RegisterActivityWithOptions(
+		wc.updateStatusActivityImpl.UpdateExecutionStatus,
+		activity.RegisterOptions{
+			Name: activities.UpdateExecutionStatusActivityName,
+		},
+	)
+
+	// Local-only activities (run in-process, don't participate in task queue routing)
 	w.RegisterActivity(wc.loadExecutionActivityImpl.LoadAgentExecution)
 	w.RegisterActivity(wc.deleteECActivityImpl.DeleteExecutionContext)
 	w.RegisterActivity(wc.waitForRunnerReadyImpl.WaitForRunnerReady)
 
-	log.Info().Msg("✅ [POLYGLOT] Registered UpdateExecutionStatusActivity as LOCAL activity (in-process)")
+	log.Info().Msg("✅ [POLYGLOT] Registered UpdateExecutionStatusActivity (regular + local, named)")
 	log.Info().Msg("✅ [POLYGLOT] Registered LoadAgentExecutionActivity as LOCAL activity (in-process)")
 	log.Info().Msg("✅ [POLYGLOT] Registered DeleteExecutionContextActivity as LOCAL activity (in-process)")
 	log.Info().Msg("✅ [POLYGLOT] Registered WaitForRunnerReadyActivity as LOCAL activity (ephemeral runner gate)")
