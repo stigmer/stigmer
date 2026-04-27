@@ -36,5 +36,6 @@ export {
   phaseLabel,
   phaseDotColor,
   isActivePhase,
+  isTransitionalPhase,
   PHASE_SORT_ORDER,
 } from "./phase";

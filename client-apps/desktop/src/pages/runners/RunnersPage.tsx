@@ -8,6 +8,7 @@ import {
   phaseLabel,
   phaseDotColor,
   isActivePhase,
+  isTransitionalPhase,
   PHASE_SORT_ORDER,
 } from "@stigmer/react";
 import type { Runner } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
@@ -17,12 +18,13 @@ import { Play, Square, ScrollText } from "lucide-react";
 import { useLocalRunners } from "../../hooks/useLocalRunners";
 import { useStartRunner } from "../../hooks/useStartRunner";
 import { useStopLocalRunner } from "../../hooks/useStopLocalRunner";
-import { onRunnerStopped, onRunnerError } from "../../hooks/tauri";
+import { onRunnerStarted, onRunnerStopped, onRunnerError } from "../../hooks/tauri";
 import { StartRunnerDialog } from "./StartRunnerDialog";
 import { RunnerLogViewer } from "./RunnerLogViewer";
 import { toGrpcTarget } from "../../lib/grpc-target";
 
 const SYSTEM_MANAGED_LABEL = "stigmer.ai/system-managed";
+const TRANSITIONAL_POLL_MS = 5_000;
 
 const LOG_PANEL_RATIO_KEY = "stigmer:runner-log-panel-ratio";
 const DEFAULT_LOG_RATIO = 0.4;
@@ -55,12 +57,15 @@ export default function RunnersPage() {
   const { getCredential } = useRunnerCredential();
   const org = useActiveOrgSlug();
 
+  const [hasTransitional, setHasTransitional] = useState(false);
   const {
     runners: serverRunners,
     isLoading: serverLoading,
     error: serverError,
     refetch: refetchServer,
-  } = useRunnerList(org);
+  } = useRunnerList(org, {
+    refetchInterval: hasTransitional ? TRANSITIONAL_POLL_MS : false,
+  });
 
   const { localRunners, isLoading: localLoading } = useLocalRunners();
   const { startRunner, isStarting, error: startError, clearError } =
@@ -76,10 +81,25 @@ export default function RunnersPage() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setHasTransitional(
+      serverRunners.some((r) =>
+        isTransitionalPhase(r.status?.phase ?? RunnerPhase.UNSPECIFIED),
+      ),
+    );
+  }, [serverRunners]);
+
+  useEffect(() => {
     const unlisteners: Array<Promise<() => void>> = [];
 
     unlisteners.push(
+      onRunnerStarted(() => {
+        refetchServer();
+      }),
+    );
+
+    unlisteners.push(
       onRunnerStopped((payload) => {
+        refetchServer();
         if (
           payload.exit_code != null &&
           payload.exit_code !== 0 &&
@@ -89,7 +109,6 @@ export default function RunnersPage() {
             `Runner "${payload.name}" exited unexpectedly (code ${payload.exit_code}). Check the runner logs for details.`,
           );
           lastStartedRef.current = null;
-          setTimeout(refetchServer, 1000);
         }
       }),
     );
@@ -171,26 +190,24 @@ export default function RunnersPage() {
         });
         lastStartedRef.current = runnerName;
         setDialogOpen(false);
-        setTimeout(refetchServer, 3000);
       } catch (err) {
         setLaunchError(describeStartFlowError(err));
       } finally {
         setIsLaunching(false);
       }
     },
-    [getCredential, org, startRunner, refetchServer],
+    [getCredential, org, startRunner],
   );
 
   const handleStop = useCallback(
     async (name: string) => {
       try {
         await stopRunner(name);
-        setTimeout(refetchServer, 1000);
       } catch {
         // Error is captured in the hook.
       }
     },
-    [stopRunner, refetchServer],
+    [stopRunner],
   );
 
   const handleShowLogs = useCallback((name: string) => {

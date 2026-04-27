@@ -17,12 +17,14 @@ import { useStopRunner } from "./useStopRunner";
 import { useDeleteRunner } from "./useDeleteRunner";
 import {
   isActivePhase,
+  isTransitionalPhase,
   phaseLabel,
   phaseDotColor,
   PHASE_SORT_ORDER,
 } from "./phase";
 
 const SYSTEM_MANAGED_LABEL = "stigmer.ai/system-managed";
+const TRANSITIONAL_POLL_MS = 5_000;
 
 type ConfirmingState = {
   readonly runnerId: string;
@@ -109,10 +111,20 @@ export function RunnerListPanel({
   onDeleted,
   className,
 }: RunnerListPanelProps) {
+  const [hasTransitional, setHasTransitional] = useState(false);
   const { runners, isLoading, error, refetch } = useRunnerList(org, {
     includeSystemManaged,
+    refetchInterval: hasTransitional ? TRANSITIONAL_POLL_MS : false,
   });
   const [confirming, setConfirming] = useState<ConfirmingState>(null);
+
+  useEffect(() => {
+    setHasTransitional(
+      runners.some((r) =>
+        isTransitionalPhase(r.status?.phase ?? RunnerPhase.UNSPECIFIED),
+      ),
+    );
+  }, [runners]);
 
   if (onRefetchRef) {
     onRefetchRef(refetch);
