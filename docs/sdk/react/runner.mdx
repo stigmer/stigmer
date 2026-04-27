@@ -341,6 +341,24 @@ function isActivePhase(phase: RunnerPhase): boolean
 ```
 
 
+### isTransitionalPhase
+
+Whether the runner is in a transitional phase whose status is
+expected to change soon without user action.
+
+Currently only `PENDING` — the runner has registered but hasn't
+completed its startup handshake yet. This is distinct from
+[`isActivePhase`](#isactivephase) (READY | BUSY) where the runner is stable
+and accepting work.
+
+Useful for driving conditional polling: poll while transitional
+runners exist, stop when all runners reach a stable state.
+
+```tsx
+function isTransitionalPhase(phase: RunnerPhase): boolean
+```
+
+
 ### LaunchLocalRunnerResult
 
 Result returned by a successful `UseLaunchLocalRunnerReturn.launch` call.
@@ -433,6 +451,7 @@ Options for [`useRunnerList`](#userunnerlist).
 <TypeTable
   type={{
     includeSystemManaged: { type: "boolean", description: "Include system-managed (ephemeral cloud) runners in the result.  System-managed runners are labeled `stigmer.ai/system-managed: \"true\"` and are created by the platform for cloud executions. They are hidden from the session composer by default but useful in admin views." },
+    refetchInterval: { type: "number | false", description: "Poll interval in milliseconds for automatic re-fetching.  When set to a positive number, the hook re-fetches the runner list on a timer. Useful for monitoring status transitions (e.g. Pending to Ready) without requiring the user to navigate away and back.  Set to `false` or `0` to disable polling (the default)." },
   }}
 />
 
