@@ -1,5 +1,5 @@
 [package]
-name = "stigmer-desktop"
+name = "stigmer"
 version = "0.1.0"
 description = "Stigmer Desktop — native app for sessions, agents, and runner management"
 authors = ["Stigmer <oss@stigmer.ai>"]
