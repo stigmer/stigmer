@@ -15,7 +15,7 @@ DESKTOP_DIR="$(dirname "$SCRIPT_DIR")"
 BINARIES_DIR="$DESKTOP_DIR/src-tauri/binaries"
 
 TARGET_TRIPLE="$(rustc --print host-tuple)"
-SIDECAR_PATH="$BINARIES_DIR/stigmer-$TARGET_TRIPLE"
+SIDECAR_PATH="$BINARIES_DIR/stigmer-cli-$TARGET_TRIPLE"
 
 BAZEL_BIN="$DESKTOP_DIR/../../bazel-bin/client-apps/cli/stigmer_/stigmer"
 GOPATH_BIN="$(go env GOPATH 2>/dev/null)/bin/stigmer"

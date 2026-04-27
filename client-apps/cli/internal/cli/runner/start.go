@@ -31,6 +31,7 @@ type StartOptions struct {
 	Name             string
 	EndpointOverride string
 	TokenOverride    string
+	OrgOverride      string
 	Runtime          string // "native" (default) or "docker"
 	Image            string // Docker image override (only used when Runtime="docker")
 }
@@ -84,6 +85,7 @@ func Start(ctx context.Context, opts StartOptions) error {
 	backendInfo, err := ResolveBackendInfo(ResolveOptions{
 		EndpointOverride: opts.EndpointOverride,
 		TokenOverride:    opts.TokenOverride,
+		OrgOverride:      opts.OrgOverride,
 		Config:           cfg,
 	})
 	if err != nil {
