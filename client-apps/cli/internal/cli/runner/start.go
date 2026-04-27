@@ -361,7 +361,12 @@ func buildDockerEnv(info *BackendInfo, runnerID, taskQueue string) map[string]st
 		}
 	} else {
 		env["MODE"] = "cloud"
-		env["STIGMER_PROXY_ENDPOINT"] = info.Endpoint
+		env["STIGMER_PROXY_ENDPOINT"] = grpcEndpointToHTTPS(info.Endpoint)
+		env["TEMPORAL_SERVICE_ADDRESS"] = defaultCloudTemporalAddress
+		env["TEMPORAL_NAMESPACE"] = "default"
+		env["STIGMER_CHECKPOINTER_TYPE"] = "http"
+		env["ARTIFACT_STORAGE_TYPE"] = "proxy"
+		env["WORKSPACE_ROOT_DIR"] = "/workspace"
 		if info.Token != "" {
 			env["STIGMER_TOKEN"] = info.Token
 		}
