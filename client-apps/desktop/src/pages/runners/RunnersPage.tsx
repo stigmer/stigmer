@@ -347,14 +347,14 @@ export default function RunnersPage() {
           {!dialogOpen && launchError && (
             <div
               role="alert"
-              className="mb-2 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive-subtle px-3 py-2 text-xs text-destructive"
+              className="mb-2 flex items-start gap-2 rounded-lg border border-destructive bg-destructive-subtle px-3 py-2 text-xs text-destructive"
             >
               <span className="min-w-0 flex-1">{launchError}</span>
               <button
                 type="button"
                 onClick={() => setLaunchError(null)}
                 aria-label="Dismiss error"
-                className="shrink-0 rounded p-0.5 transition-colors hover:bg-destructive/10"
+                className="shrink-0 rounded p-0.5 transition-colors hover:bg-destructive-subtle"
               >
                 <X size={12} />
               </button>
