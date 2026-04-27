@@ -38,7 +38,7 @@
       "icons/icon.png"
     ],
     "externalBin": [
-      "binaries/stigmer"
+      "binaries/stigmer-cli"
     ]
   },
   "plugins": {

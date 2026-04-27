@@ -27,6 +27,7 @@ type BackendInfo struct {
 type ResolveOptions struct {
 	EndpointOverride string
 	TokenOverride    string
+	OrgOverride      string
 	Config           *config.Config
 }
 
@@ -101,6 +102,9 @@ func resolveEndpoint(opts ResolveOptions) string {
 }
 
 func resolveOrg(opts ResolveOptions) string {
+	if opts.OrgOverride != "" {
+		return opts.OrgOverride
+	}
 	if opts.Config != nil {
 		return opts.Config.ResolveContextOrganization()
 	}

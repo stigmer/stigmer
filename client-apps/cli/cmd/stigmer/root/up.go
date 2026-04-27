@@ -47,6 +47,7 @@ Use 'stigmer up server' to start the full local development stack
 	cmd.Flags().String("endpoint", "", "Backend gRPC endpoint (overrides config)")
 	cmd.Flags().String("token", "", "API key / auth token (overrides config and env)")
 	cmd.Flags().String("name", "", "Runner name (default: hostname)")
+	cmd.Flags().String("org", "", "Organization slug (overrides config context)")
 	cmd.Flags().String("runtime", "native", "Runner runtime: native (default) or docker")
 	cmd.Flags().String("image", "", "Docker image for the agent runner (only used with --runtime docker)")
 	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)
@@ -61,6 +62,7 @@ func handleUpRunner(cmd *cobra.Command) {
 	name, _ := cmd.Flags().GetString("name")
 	endpoint, _ := cmd.Flags().GetString("endpoint")
 	token, _ := cmd.Flags().GetString("token")
+	org, _ := cmd.Flags().GetString("org")
 	runtime, _ := cmd.Flags().GetString("runtime")
 	image, _ := cmd.Flags().GetString("image")
 
@@ -68,6 +70,7 @@ func handleUpRunner(cmd *cobra.Command) {
 		Name:             name,
 		EndpointOverride: endpoint,
 		TokenOverride:    token,
+		OrgOverride:      org,
 		Runtime:          runtime,
 		Image:            image,
 	})
@@ -145,6 +148,7 @@ Identical to 'stigmer up' — provided for clarity when used alongside
 	cmd.Flags().String("endpoint", "", "Backend gRPC endpoint (overrides config)")
 	cmd.Flags().String("token", "", "API key / auth token (overrides config and env)")
 	cmd.Flags().String("name", "", "Runner name (default: hostname)")
+	cmd.Flags().String("org", "", "Organization slug (overrides config context)")
 	cmd.Flags().String("runtime", "native", "Runner runtime: native (default) or docker")
 	cmd.Flags().String("image", "", "Docker image for the agent runner (only used with --runtime docker)")
 	addResultFormatFlags(cmd, &jsonOutput, &quietOutput)

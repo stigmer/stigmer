@@ -248,6 +248,11 @@ pub(crate) async fn stop_all_managed(app: &AppHandle) {
 // Tauri commands
 // ---------------------------------------------------------------------------
 
+/// Grace period to wait for the CLI to either stabilize or fail before
+/// returning success. Most startup failures (auth errors, connection
+/// refused) surface within a few seconds.
+const STARTUP_GRACE_MS: u64 = 8000;
+
 #[tauri::command]
 pub async fn start_runner(
     app: AppHandle,
@@ -291,7 +296,7 @@ pub async fn start_runner(
 
     let sidecar = app
         .shell()
-        .sidecar("stigmer")
+        .sidecar("stigmer-cli")
         .map_err(|e| format!("failed to create sidecar command: {e}"))?
         .args(&args);
 
@@ -301,6 +306,64 @@ pub async fn start_runner(
 
     let pid = child.pid();
 
+    // Wait for the CLI to either fail fast or survive the grace period.
+    // During this window we collect stderr so that startup errors (auth
+    // failures, connection refused, etc.) are returned synchronously.
+    let grace_deadline = tokio::time::Instant::now()
+        + tokio::time::Duration::from_millis(STARTUP_GRACE_MS);
+    let mut early_stderr: Vec<String> = Vec::new();
+    let mut early_exit: Option<Option<i32>> = None;
+
+    loop {
+        let remaining = grace_deadline.saturating_duration_since(tokio::time::Instant::now());
+        if remaining.is_zero() {
+            break;
+        }
+
+        tokio::select! {
+            event = rx.recv() => {
+                use tauri_plugin_shell::process::CommandEvent;
+                match event {
+                    Some(CommandEvent::Stderr(bytes)) => {
+                        let line = String::from_utf8_lossy(&bytes).to_string();
+                        early_stderr.push(line);
+                    }
+                    Some(CommandEvent::Stdout(_)) => {
+                        // CLI is producing output — likely past registration.
+                    }
+                    Some(CommandEvent::Terminated(payload)) => {
+                        early_exit = Some(payload.code);
+                        break;
+                    }
+                    Some(CommandEvent::Error(msg)) => {
+                        early_stderr.push(msg);
+                    }
+                    None => {
+                        early_exit = Some(None);
+                        break;
+                    }
+                    _ => {}
+                }
+            }
+            _ = tokio::time::sleep_until(grace_deadline) => {
+                break;
+            }
+        }
+    }
+
+    if let Some(code) = early_exit {
+        let exit_code = code.unwrap_or(-1);
+        if exit_code != 0 {
+            let detail = if early_stderr.is_empty() {
+                format!("CLI exited with code {exit_code}")
+            } else {
+                early_stderr.join("\n").trim().to_string()
+            };
+            return Err(detail);
+        }
+    }
+
+    // CLI survived the grace period — register it as managed.
     {
         let mut runners = state.runners.lock().await;
         runners.insert(
@@ -322,6 +385,21 @@ pub async fn start_runner(
 
     let event_app = app.clone();
     let event_name = runner_name.clone();
+
+    // Replay any stderr lines captured during the grace period into the
+    // log buffer so they are not lost.
+    {
+        let mgr = app.state::<ProcessManager>();
+        let mut runners = mgr.runners.lock().await;
+        if let Some(runner) = runners.get_mut(&runner_name) {
+            for line in &early_stderr {
+                if runner.log_buffer.len() >= LOG_BUFFER_CAPACITY {
+                    runner.log_buffer.pop_front();
+                }
+                runner.log_buffer.push_back(line.clone());
+            }
+        }
+    }
 
     tauri::async_runtime::spawn(async move {
         use tauri_plugin_shell::process::CommandEvent;
@@ -439,7 +517,7 @@ pub async fn stop_runner(
     // Not managed by this desktop instance — try stopping via the CLI.
     let sidecar = app
         .shell()
-        .sidecar("stigmer")
+        .sidecar("stigmer-cli")
         .map_err(|e| format!("failed to create sidecar command: {e}"))?
         .args(["down", "runner", "--name", &runner_name]);
 

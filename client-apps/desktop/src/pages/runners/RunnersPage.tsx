@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import {
@@ -17,6 +17,7 @@ import { Play, Square, ScrollText } from "lucide-react";
 import { useLocalRunners } from "../../hooks/useLocalRunners";
 import { useStartRunner } from "../../hooks/useStartRunner";
 import { useStopLocalRunner } from "../../hooks/useStopLocalRunner";
+import { onRunnerStopped, onRunnerError } from "../../hooks/tauri";
 import { StartRunnerDialog } from "./StartRunnerDialog";
 import { RunnerLogViewer } from "./RunnerLogViewer";
 import { toGrpcTarget } from "../../lib/grpc-target";
@@ -43,6 +44,44 @@ export default function RunnersPage() {
   const [logRunner, setLogRunner] = useState<string | null>(null);
   const [launchError, setLaunchError] = useState<string | null>(null);
   const [isLaunching, setIsLaunching] = useState(false);
+  const lastStartedRef = useRef<string | null>(null);
+
+  // Surface async runner failures that occur after the sidecar grace period.
+  // Most startup errors are caught synchronously (Bug 2 fix), but if the CLI
+  // fails after the grace window, we show the error via toast or dialog state.
+  useEffect(() => {
+    const unlisteners: Array<Promise<() => void>> = [];
+
+    unlisteners.push(
+      onRunnerStopped((payload) => {
+        if (
+          payload.exit_code != null &&
+          payload.exit_code !== 0 &&
+          payload.name === lastStartedRef.current
+        ) {
+          setLaunchError(
+            `Runner "${payload.name}" exited unexpectedly (code ${payload.exit_code}). Check the runner logs for details.`,
+          );
+          lastStartedRef.current = null;
+          setTimeout(refetchServer, 1000);
+        }
+      }),
+    );
+
+    unlisteners.push(
+      onRunnerError((payload) => {
+        if (payload.name === lastStartedRef.current) {
+          setLaunchError(payload.message);
+        }
+      }),
+    );
+
+    return () => {
+      for (const p of unlisteners) {
+        p.then((unlisten) => unlisten());
+      }
+    };
+  }, [refetchServer]);
 
   const localRunnerIds = useMemo(() => {
     const ids = new Set<string>();
@@ -77,24 +116,22 @@ export default function RunnersPage() {
       try {
         const cred = await getCredential(org || undefined);
 
-        await startRunner({
+        const runnerName = await startRunner({
           name: opts.name,
           token: opts.token || cred.token || undefined,
           endpoint: opts.endpoint || toGrpcTarget(cred.endpoint),
           org: org || undefined,
         });
+        lastStartedRef.current = runnerName;
         setDialogOpen(false);
         setTimeout(refetchServer, 3000);
       } catch (err) {
-        const message = describeStartFlowError(err);
-        if (!isStarting) {
-          setLaunchError(message);
-        }
+        setLaunchError(describeStartFlowError(err));
       } finally {
         setIsLaunching(false);
       }
     },
-    [getCredential, org, startRunner, isStarting, refetchServer],
+    [getCredential, org, startRunner, refetchServer],
   );
 
   const handleStop = useCallback(
