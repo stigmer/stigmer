@@ -549,6 +549,20 @@ activities=[
 ]
 ```
 
+### Runner Package Import Error (Native/CLI Mode)
+
+**Error**: `ModuleNotFoundError: No module named 'stigmer_runner'`
+
+**Fix**: The Go CLI must set `PYTHONPATH` to `<appDir>/src` so Python can
+resolve the `stigmer_runner` package from the `src/` layout. This is handled
+automatically by `BuildRunnerEnv` (runner_env.go) and `buildRunnerEnv`
+(daemon_process.go). If the error persists after a code update, delete the
+stale runtime and re-bootstrap:
+```bash
+rm -rf ~/.stigmer/runtimes/agent-runner/dev/
+stigmer up runner   # triggers fresh bootstrap
+```
+
 ### Proto Import Errors
 
 **Error**: `ModuleNotFoundError: No module named 'ai.stigmer'`

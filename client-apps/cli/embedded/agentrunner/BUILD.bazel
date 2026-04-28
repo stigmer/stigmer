@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "agentrunner.go",
         "agentrunner_dev.go",
+        "agentrunner_embed.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner",
     visibility = ["//visibility:public"],

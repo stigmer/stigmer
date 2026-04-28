@@ -42,6 +42,10 @@ func BuildRunnerEnv(params EnvParams) []string {
 
 	env := os.Environ()
 
+	if params.AppDir != "" {
+		env = append(env, fmt.Sprintf("PYTHONPATH=%s", filepath.Join(params.AppDir, "src")))
+	}
+
 	env = append(env,
 		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=%s", params.BackendInfo.Endpoint),
 		fmt.Sprintf("STIGMER_RUNNER_ID=%s", params.RunnerID),

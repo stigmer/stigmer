@@ -742,7 +742,7 @@ func buildComponents(cliBin, dataDir, logDir string, grpcPort int, serverOnly bo
 					runnerID = (*embeddedIdentity).RunnerID
 					taskQueue = (*embeddedIdentity).TaskQueue
 				}
-				env := buildRunnerEnv(dataDir, grpcPort, runnerID, taskQueue)
+				env := buildRunnerEnv(dataDir, grpcPort, runnerID, taskQueue, appDir)
 				return startChildProcessWithDir(pythonBin, []string{mainPy}, appDir, logDir, "agent-runner", env)
 			},
 		},
@@ -775,7 +775,7 @@ func buildWorkflowRunnerEnv(grpcPort int) []string {
 // When runnerID is non-empty, STIGMER_RUNNER_ID is set (enabling heartbeats).
 // When taskQueue is non-empty, STIGMER_TASK_QUEUE is set (per-runner queue);
 // otherwise the legacy TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE is used.
-func buildRunnerEnv(dataDir string, grpcPort int, runnerID, taskQueue string) []string {
+func buildRunnerEnv(dataDir string, grpcPort int, runnerID, taskQueue, appDir string) []string {
 	workspaceDir := filepath.Join(dataDir, "workspace")
 	artifactsDir := filepath.Join(dataDir, "artifacts")
 
@@ -783,6 +783,11 @@ func buildRunnerEnv(dataDir string, grpcPort int, runnerID, taskQueue string) []
 	_ = os.MkdirAll(artifactsDir, 0755)
 
 	env := os.Environ()
+
+	if appDir != "" {
+		env = append(env, fmt.Sprintf("PYTHONPATH=%s", filepath.Join(appDir, "src")))
+	}
+
 	env = append(env,
 		"MODE=local",
 		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=localhost:%d", grpcPort),
