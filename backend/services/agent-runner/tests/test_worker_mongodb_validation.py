@@ -39,8 +39,8 @@ def _make_runner(checkpointer_type="mongodb", mongodb_uri="mongodb://localhost:2
     config.redis_password = None
 
     with (
-        patch("worker.worker.configure_auth"),
-        patch("worker.worker.Runner._validate_mongodb_connectivity"),
+        patch("stigmer_runner.worker.worker.configure_auth"),
+        patch("stigmer_runner.worker.worker.Runner._validate_mongodb_connectivity"),
     ):
         from stigmer_runner.worker.worker import Runner
         runner = Runner(config)

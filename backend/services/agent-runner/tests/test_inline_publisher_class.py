@@ -73,7 +73,7 @@ class TestInlinePublisherPathNormalization:
         artifact = _fake_artifact()
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=artifact,
         ):
@@ -87,7 +87,7 @@ class TestInlinePublisherPathNormalization:
         artifact = _fake_artifact()
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=artifact,
         ) as mock_publish:
@@ -102,7 +102,7 @@ class TestInlinePublisherPathNormalization:
         artifact = _fake_artifact("deep.json")
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=artifact,
         ) as mock_publish:
@@ -120,7 +120,7 @@ class TestInlinePublisherArtifactRegistration:
         artifact = _fake_artifact()
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=artifact,
         ):
@@ -136,7 +136,7 @@ class TestInlinePublisherArtifactRegistration:
         artifact = _fake_artifact()
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=artifact,
         ) as mock_publish:
@@ -150,7 +150,7 @@ class TestInlinePublisherArtifactRegistration:
         artifact = _fake_artifact()
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=artifact,
         ) as mock_publish:
@@ -167,7 +167,7 @@ class TestInlinePublisherErrorSwallowing:
         publisher, _, status_builder = _make_publisher()
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             side_effect=OSError("upload failed"),
         ):
@@ -191,7 +191,7 @@ class TestInlinePublisherErrorSwallowing:
         status_builder.add_artifact.side_effect = RuntimeError("proto error")
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=artifact,
         ):
@@ -237,7 +237,7 @@ class TestSkillDirectoryDetection:
         dir_artifact = _fake_dir_artifact(entries=["SKILL.md"])
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=dir_artifact,
         ) as mock_publish:
@@ -258,7 +258,7 @@ class TestSkillDirectoryDetection:
         )
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=dir_artifact,
         ) as mock_publish:
@@ -283,7 +283,7 @@ class TestSkillDirectoryDetection:
         artifact = _fake_artifact("output.yaml")
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=artifact,
         ) as mock_publish:
@@ -310,7 +310,7 @@ class TestSkillDirectoryDetection:
         )
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=dir_artifact,
         ) as mock_publish:
@@ -334,7 +334,7 @@ class TestSkillDirectoryDetection:
         dir_b = _fake_dir_artifact(name="skill-b", sandbox_path="skill-b")
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
         ) as mock_publish:
             mock_publish.return_value = dir_a
@@ -359,7 +359,7 @@ class TestSkillDirectoryDetection:
         dir_artifact = _fake_dir_artifact()
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=dir_artifact,
         ):
@@ -377,7 +377,7 @@ class TestSkillDirectoryDetection:
         artifact = _fake_artifact("standalone.txt")
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=artifact,
         ) as mock_publish:
@@ -393,7 +393,7 @@ class TestSkillDirectoryDetection:
         backend.file_exists = MagicMock(return_value=True)
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             side_effect=OSError("zip failed"),
         ):
@@ -462,7 +462,7 @@ class TestDaytonaPathSeparation:
         )
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=dir_artifact,
         ):
@@ -486,7 +486,7 @@ class TestDaytonaPathSeparation:
         )
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=dir_artifact,
         ) as mock_publish:
@@ -516,7 +516,7 @@ class TestDaytonaPathSeparation:
         )
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=dir_artifact,
         ) as mock_publish:
@@ -537,7 +537,7 @@ class TestDaytonaPathSeparation:
         )
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=dir_artifact,
         ) as mock_publish:
@@ -556,7 +556,7 @@ class TestDaytonaPathSeparation:
         artifact = _fake_artifact("chart.yaml")
 
         with patch(
-            "worker.activities.graphton.inline_publisher.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
             return_value=artifact,
         ):

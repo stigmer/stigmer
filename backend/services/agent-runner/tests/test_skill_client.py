@@ -19,9 +19,9 @@ class TestSkillClientGetArtifact:
     @pytest.fixture
     def skill_client_with_mock_stub(self, mock_skill_stub):
         """Create SkillClient with mocked stub and channel."""
-        with patch('grpc_client.skill_client.Config') as mock_config_class, \
-             patch('grpc_client.skill_client.grpc.aio') as mock_grpc_aio, \
-             patch('grpc_client.skill_client.query_pb2_grpc') as mock_pb2_grpc:
+        with patch('stigmer_runner.grpc_client.skill_client.Config') as mock_config_class, \
+             patch('stigmer_runner.grpc_client.skill_client.grpc.aio') as mock_grpc_aio, \
+             patch('stigmer_runner.grpc_client.skill_client.query_pb2_grpc') as mock_pb2_grpc:
             
             # Mock config
             mock_config = MagicMock()
@@ -117,7 +117,7 @@ class TestSkillClientGetArtifact:
         storage_key = "skills/test-org/test-skill/abc123.zip"
         mock_skill_stub.getArtifact.return_value = mock_response
         
-        with patch('grpc_client.skill_client.logger') as mock_logger:
+        with patch('stigmer_runner.grpc_client.skill_client.logger') as mock_logger:
             # Act
             await skill_client_with_mock_stub.get_artifact(storage_key)
             
@@ -155,9 +155,9 @@ class TestSkillClientListByRefs:
     @pytest.fixture
     def skill_client_with_mock_stub(self, mock_skill_stub):
         """Create SkillClient with mocked stub."""
-        with patch('grpc_client.skill_client.Config') as mock_config_class, \
-             patch('grpc_client.skill_client.grpc.aio') as mock_grpc_aio, \
-             patch('grpc_client.skill_client.query_pb2_grpc') as mock_pb2_grpc:
+        with patch('stigmer_runner.grpc_client.skill_client.Config') as mock_config_class, \
+             patch('stigmer_runner.grpc_client.skill_client.grpc.aio') as mock_grpc_aio, \
+             patch('stigmer_runner.grpc_client.skill_client.query_pb2_grpc') as mock_pb2_grpc:
             
             mock_config = MagicMock()
             mock_config.stigmer_backend_endpoint = "localhost:9090"
