@@ -198,7 +198,7 @@ test: ## Run all unit tests
 		(cd $$mod && go test -race -timeout 30s ./...) || exit 1; \
 	done
 	@echo "testing  $(AGENT_RUNNER_DIR)"
-	@cd $(AGENT_RUNNER_DIR) && poetry install --no-interaction --quiet && poetry run pytest
+	@cd $(AGENT_RUNNER_DIR) && pip install -e . --no-deps -q && poetry run pytest
 
 # ─── Tidy ────────────────────────────────────
 
@@ -227,8 +227,7 @@ lint: ## Run all linters and type checks
 	@$(MAKE) -C apis lint
 	@cd backend/libs/python/graphton && poetry run ruff check .
 	@cd $(AGENT_RUNNER_DIR) && poetry run ruff check .
-	@cd $(AGENT_RUNNER_DIR) && poetry install --no-interaction --quiet && \
-		poetry run mypy grpc_client/ worker/ --show-error-codes
+	@cd $(AGENT_RUNNER_DIR) && poetry run mypy src/stigmer_runner/grpc_client/ src/stigmer_runner/worker/ --show-error-codes
 	npm run typecheck -w @stigmer/sdk
 	npm run lint -w @stigmer/react
 	npm run typecheck -w @stigmer/react

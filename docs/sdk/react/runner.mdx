@@ -72,9 +72,10 @@ function useLaunchLocalRunner(options?: UseLaunchLocalRunnerOptions): UseLaunchL
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    clearError: { type: "() => void", description: "Reset `error` and `lastLaunchResult` to `null`." },
     error: { type: "Error | null", description: "Error from the last failed launch attempt, or `null` when healthy." },
     isLaunching: { type: "boolean", description: "`true` while the token creation and URL dispatch are in flight." },
+    lastLaunchResult: { type: "LaunchLocalRunnerResult | null", description: "Result from the most recent successful launch dispatch, or `null` when no launch has been dispatched (or after clearError).  Consumers can use `lastLaunchResult.expiresAt` to implement timeout-based detection: if no runner appears before the token expires, the desktop app likely did not receive the deep link." },
     launch: { type: "(input: { org: string }) => Promise<LaunchLocalRunnerResult>", description: "Create a one-time launch token and open the `stigmer://` URL to trigger the desktop app (or CLI fallback) to start a local runner.  Resolves with the constructed URL and token expiry on success. The caller cannot detect whether the desktop app received the URL — use useRunnerList with `refetch()` to poll for the runner appearing in the list." },
   }}
 />
