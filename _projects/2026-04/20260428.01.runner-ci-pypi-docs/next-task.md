@@ -22,7 +22,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | T02 | Fix broken Windows desktop CI (`shell: bash` in sync step) | COMPLETE |
 | T03 | Harden desktop CI pipeline (main push trigger, agent-runner lint gate) | COMPLETE |
 | T04 | Publish agent-runner as PyPI package (`stigmer-runner`) | COMPLETE |
-| T05 | Rewrite runner docs for platform integrators | PENDING |
+| T05 | Rewrite runner docs for platform integrators | COMPLETE |
 
 ## Essential Files
 
@@ -42,8 +42,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-04-28 12:23
-**Current Task**: T05 (Rewrite runner docs)
-**Status**: T04 complete, ready for T05
+**Current Task**: —
+**Status**: All tasks complete
 
 ## Session Progress (2026-04-28)
 
@@ -82,9 +82,30 @@ Drop this file into your conversation to quickly resume work on this project.
 - PyPI names confirmed available: `graphton`, `stigmer-runner`
 - **Manual steps required**: Set up PyPI trusted publishing (see plan Phase 5)
 
+### Session 4 (T05)
+- Pushed back on T01 plan: concept page does NOT need a rewrite (it's strong), no separate `integration/` dir, no combined Pattern A/B/C page
+- Retitled `docs/guides/runners/` section from "Runners (CLI)" to "Runners"
+- Initially created Docker, PyPI, and env vars guides — then discovered critical architectural gap:
+  - The Python agent-runner is NOT a self-sufficient runner process
+  - Registration (`Runner.Apply`), heartbeats, and the bidi command stream live in the Go CLI
+  - Standalone `docker run` or `pip install stigmer-runner` produces a Temporal worker that can't register, heartbeat, or be managed from the web console
+- Removed Docker, PyPI, and env vars guides from navigation (files kept on disk for future reference)
+- Reverted concept page to original text (removed PyPI mention)
+- Created `docs/guides/runners/platform-integration.mdx` — the correct guide for platform builders:
+  - CLI sidecar pattern (bundle Go binary, spawn `stigmer up runner`)
+  - Architecture diagram showing CLI ↔ backend ↔ Python ↔ Temporal layers
+  - Build targets, startup grace period, process monitoring, state files
+  - Deep link launch token flow (`createLaunchToken` → URL scheme → `exchangeLaunchToken`)
+  - SDK `RunnerClient` API for programmatic management
+  - Desktop app as reference implementation
+- Updated `overview.mdx` — 3 cards (local runner, stop/cleanup, platform integration)
+- Updated `concepts/runners.mdx` — added platform integration link in "What's next"
+
 ## Next Steps
 
-1. T05: Rewrite runner docs for platform integrators
+All tasks complete. Manual steps remaining from T04:
+- Set up PyPI trusted publishing for `stigmer-runner` and `graphton` packages
+- Create CI workflow to push `ghcr.io/stigmer/agent-runner` Docker image on tag pushes
 
 ## Key Discovery
 
