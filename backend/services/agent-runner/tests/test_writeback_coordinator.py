@@ -177,7 +177,9 @@ class TestHasChanges:
     """Verify _has_changes works with ExecuteResult (not raw ExecuteResponse)."""
 
     def test_no_changes_returns_false(self):
-        from stigmer_runner.worker.activities.graphton.writeback_coordinator import WriteBackCoordinator
+        from stigmer_runner.worker.activities.graphton.writeback_coordinator import (
+            WriteBackCoordinator,
+        )
 
         def exec_fn(cmd: str, timeout: int = 15) -> ExecuteResult:
             return ExecuteResult(exit_code=0, stdout="", stderr="")
@@ -185,7 +187,9 @@ class TestHasChanges:
         assert WriteBackCoordinator._has_changes(exec_fn) is False
 
     def test_unstaged_diff_returns_true(self):
-        from stigmer_runner.worker.activities.graphton.writeback_coordinator import WriteBackCoordinator
+        from stigmer_runner.worker.activities.graphton.writeback_coordinator import (
+            WriteBackCoordinator,
+        )
 
         def exec_fn(cmd: str, timeout: int = 15) -> ExecuteResult:
             if "git diff --stat" in cmd and "--cached" not in cmd:
@@ -195,7 +199,9 @@ class TestHasChanges:
         assert WriteBackCoordinator._has_changes(exec_fn) is True
 
     def test_staged_diff_returns_true(self):
-        from stigmer_runner.worker.activities.graphton.writeback_coordinator import WriteBackCoordinator
+        from stigmer_runner.worker.activities.graphton.writeback_coordinator import (
+            WriteBackCoordinator,
+        )
 
         def exec_fn(cmd: str, timeout: int = 15) -> ExecuteResult:
             if "--cached" in cmd:
@@ -205,7 +211,9 @@ class TestHasChanges:
         assert WriteBackCoordinator._has_changes(exec_fn) is True
 
     def test_untracked_files_returns_true(self):
-        from stigmer_runner.worker.activities.graphton.writeback_coordinator import WriteBackCoordinator
+        from stigmer_runner.worker.activities.graphton.writeback_coordinator import (
+            WriteBackCoordinator,
+        )
 
         def exec_fn(cmd: str, timeout: int = 15) -> ExecuteResult:
             if "ls-files" in cmd:

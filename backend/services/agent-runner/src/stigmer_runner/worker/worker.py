@@ -98,7 +98,9 @@ class Runner:
         )
         from stigmer_runner.worker.activities.ensure_thread import ensure_thread
         from stigmer_runner.worker.activities.execute_graphton import execute_graphton
-        from stigmer_runner.worker.activities.generate_session_subject import generate_session_subject
+        from stigmer_runner.worker.activities.generate_session_subject import (
+            generate_session_subject,
+        )
         
         mode = "LOCAL" if self.config.is_local_mode() else "CLOUD"
         self.logger.info(f"🔧 Execution Mode: {mode}")

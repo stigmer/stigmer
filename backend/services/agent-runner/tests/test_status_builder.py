@@ -3544,7 +3544,9 @@ class TestApprovalPolicyResolution:
     
     def test_approval_message_template_rendering(self):
         """Test that message templates are rendered with tool arguments."""
-        from stigmer_runner.worker.activities.graphton.approval_policy import render_approval_message
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
+            render_approval_message,
+        )
         
         template = "Delete {{args.repo}} from {{args.owner}}"
         tool_args = {"repo": "my-repo", "owner": "acme-corp"}
@@ -3559,7 +3561,9 @@ class TestApprovalPolicyResolution:
     
     def test_approval_message_handles_missing_args(self):
         """Test that missing args are replaced with <unknown>."""
-        from stigmer_runner.worker.activities.graphton.approval_policy import render_approval_message
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
+            render_approval_message,
+        )
         
         template = "Send to {{args.recipient}}"
         tool_args = {}  # Missing recipient
@@ -3574,7 +3578,9 @@ class TestApprovalPolicyResolution:
     
     def test_approval_message_tool_name_placeholder(self):
         """Test that {{tool_name}} placeholder is replaced."""
-        from stigmer_runner.worker.activities.graphton.approval_policy import render_approval_message
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
+            render_approval_message,
+        )
         
         template = "Execute {{tool_name}} with {{args.path}}"
         tool_args = {"path": "/tmp/file.txt"}
@@ -3589,7 +3595,9 @@ class TestApprovalPolicyResolution:
     
     def test_approval_message_empty_template_uses_default(self):
         """Test that empty template uses default message."""
-        from stigmer_runner.worker.activities.graphton.approval_policy import render_approval_message
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
+            render_approval_message,
+        )
         
         result = render_approval_message(
             template="",
@@ -3601,7 +3609,9 @@ class TestApprovalPolicyResolution:
     
     def test_approval_message_nested_args(self):
         """Test rendering with nested argument values."""
-        from stigmer_runner.worker.activities.graphton.approval_policy import render_approval_message
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
+            render_approval_message,
+        )
         
         template = "Update {{args.user.name}} at {{args.user.email}}"
         tool_args = {"user": {"name": "John", "email": "john@example.com"}}
@@ -6569,25 +6579,33 @@ class TestPartialJsonHelpers:
     """Unit tests for the module-level JSON extraction helpers."""
 
     def test_find_field_with_space(self):
-        from stigmer_runner.worker.activities.graphton.status_builder import _find_json_string_value_start
+        from stigmer_runner.worker.activities.graphton.status_builder import (
+            _find_json_string_value_start,
+        )
         s = '{"contents": "hello"}'
         idx = _find_json_string_value_start(s, "contents")
         assert idx >= 0
         assert s[idx:idx+5] == "hello"
 
     def test_find_field_without_space(self):
-        from stigmer_runner.worker.activities.graphton.status_builder import _find_json_string_value_start
+        from stigmer_runner.worker.activities.graphton.status_builder import (
+            _find_json_string_value_start,
+        )
         s = '{"contents":"hello"}'
         idx = _find_json_string_value_start(s, "contents")
         assert idx >= 0
         assert s[idx:idx+5] == "hello"
 
     def test_find_field_not_present(self):
-        from stigmer_runner.worker.activities.graphton.status_builder import _find_json_string_value_start
+        from stigmer_runner.worker.activities.graphton.status_builder import (
+            _find_json_string_value_start,
+        )
         assert _find_json_string_value_start('{"path": "f.py"}', "contents") == -1
 
     def test_find_field_incomplete_value(self):
-        from stigmer_runner.worker.activities.graphton.status_builder import _find_json_string_value_start
+        from stigmer_runner.worker.activities.graphton.status_builder import (
+            _find_json_string_value_start,
+        )
         assert _find_json_string_value_start('{"contents": ', "contents") == -1
 
     def test_unescape_basic(self):
