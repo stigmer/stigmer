@@ -66,13 +66,13 @@ workspace.addLocalPath("/Users/dev/projects/frontend");
 
 Styled component that renders add/remove UI for workspace entries.
 
-Redesigned with two source buttons (GitHub Repo, Local Folder) that
-open inline popovers instead of the old tab-based form.
+Uses a tabbed layout when multiple workspace sources are available:
+- **Local Folder** (default when a runner is connected): Shows an
+  interactive file browser via [`RunnerFileBrowser`](/docs/sdk/react/runner#runnerfilebrowser).
+- **GitHub Repo**: Shows the repo picker or connect prompt.
 
-When `gitHubConnection` is provided and the user is connected, the
-GitHub button opens a repo picker. When not connected, it shows a
-connect prompt. When `gitHubConnection` is not provided, falls back
-to the manual URL input.
+When only one source is available, the tab bar is hidden and the
+content renders directly.
 
 All visual properties flow through `--stgm-*` tokens.
 
@@ -82,11 +82,12 @@ All visual properties flow through `--stgm-*` tokens.
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     disabled: { type: "boolean", description: "Disables all add/remove interactions." },
-    enableGitHub: { type: "boolean", description: "Show the GitHub Repo source button. Default: true." },
-    enableLocal: { type: "boolean", description: "Show the Local Folder source button. Default: false (set by Console based on deployment mode)." },
+    enableGitHub: { type: "boolean", description: "Show the GitHub Repo tab. Default: true." },
+    enableLocal: { type: "boolean", description: "Show the Local Folder tab. Default: false.  The tab is only rendered when `runnerId` is also provided, since the file browser requires a connected runner to query." },
     gitHubConnection: { type: "UseGitHubConnectionReturn", description: "GitHub connection state. When provided, enables the GitHub repo picker.", typeDescriptionLink: "/docs/sdk/react/github#usegithubconnectionreturn" },
-    onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback for desktop environments.  When provided and `enableLocal` is `true`, clicking the \"Local Folder\" button invokes this callback instead of showing the manual path input. Should resolve to an absolute folder path, or `null` if the user cancelled the dialog.  When not provided, falls back to the inline text input for manual path entry (backward compatible with web environments)." },
-    runnerName: { type: "string", description: "Display name of the currently selected runner.  When provided (i.e. a specific runner is selected instead of \"Auto\"), a contextual hint is shown above the local folder input indicating that local paths are relative to this runner's filesystem." },
+    onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback for desktop environments." },
+    runnerId: { type: "string | null", description: "ID of the runner to use for filesystem browsing.  When provided together with `enableLocal`, the Local Folder tab renders a RunnerFileBrowser that queries the runner's filesystem via the `ListDirectory` command." },
+    runnerName: { type: "string", description: "Display name of the currently selected runner.  When provided, a contextual hint is shown above the manual local path input (fallback when `runnerId` is not set) indicating that paths are relative to this runner's filesystem." },
     workspace: { type: "UseWorkspaceEntriesReturn", description: "Workspace state from useWorkspaceEntries.", required: true, typeDescriptionLink: "#useworkspaceentriesreturn" },
   }}
 />
@@ -101,7 +102,8 @@ function SessionSetup({ org }: { org: string }) {
       workspace={workspace}
       gitHubConnection={gh}
       enableGitHub
-      enableLocal={false}
+      enableLocal
+      runnerId={browseRunnerId}
     />
   );
 }

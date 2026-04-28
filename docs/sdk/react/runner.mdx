@@ -149,6 +149,72 @@ function StartRunnerButton({ org }: { org: string }) {
 ```
 
 
+### useRunnerFileBrowser
+
+Behavior hook that drives a filesystem browser against a connected runner.
+
+Sends `ListDirectory` commands via the runner's bidi stream (through the
+`sendCommand` unary RPC) and manages navigation state, breadcrumbs,
+loading/error handling, and hidden file filtering.
+
+Designed for composition with [`RunnerFileBrowser`](#runnerfilebrowser) but usable
+standalone by platform builders who want custom rendering.
+
+**Signature**
+
+```tsx
+function useRunnerFileBrowser(runnerId: string | null): UseRunnerFileBrowserReturn
+```
+
+<TypeTable
+  type={{
+    runnerId: { type: "string | null", description: "ID of the runner to browse. When `null`, the hook   is inert (no requests are made, entries are empty).", required: true },
+  }}
+/>
+
+**Returns** — `UseRunnerFileBrowserReturn`
+
+<TypeTable
+  type={{
+    currentDirectory: { type: "string", description: "Runner process's current working directory (enables CWD shortcut)." },
+    currentPath: { type: "string", description: "Current resolved absolute path." },
+    entries: { type: "readonly DirectoryEntry[]", description: "Directory entries for the current path." },
+    error: { type: "Error | null", description: "Error from the last navigation attempt." },
+    homeDirectory: { type: "string", description: "Runner's home directory (enables Home shortcut)." },
+    isAtRoot: { type: "boolean", description: "True when at the filesystem root (no parent)." },
+    isLoading: { type: "boolean", description: "True while a directory listing is in flight." },
+    navigateCwd: { type: "() => void", description: "Navigate to the runner's current working directory." },
+    navigateHome: { type: "() => void", description: "Navigate to the runner's home directory." },
+    navigateTo: { type: "(name: string) => void", description: "Navigate into a child directory by name." },
+    navigateToPath: { type: "(path: string) => void", description: "Navigate to an absolute path." },
+    navigateUp: { type: "() => void", description: "Navigate to the parent directory." },
+    retry: { type: "() => void", description: "Retry the last failed navigation." },
+    segments: { type: "readonly PathSegment[]", description: "Breadcrumb segments for the current path." },
+    showHidden: { type: "boolean", description: "Whether hidden files are shown." },
+    toggleHidden: { type: "() => void", description: "Toggle hidden file visibility." },
+  }}
+/>
+
+```tsx
+function MyFilePicker({ runnerId }: { runnerId: string }) {
+  const browser = useRunnerFileBrowser(runnerId);
+
+  return (
+    <div>
+      <p>Path: {browser.currentPath}</p>
+      {browser.entries
+        .filter(e => e.isDirectory)
+        .map(e => (
+          <button key={e.name} onClick={() => browser.navigateTo(e.name)}>
+            {e.name}
+          </button>
+        ))}
+    </div>
+  );
+}
+```
+
+
 ### useRunnerList
 
 Data hook that fetches runners for an organization.
@@ -234,6 +300,38 @@ refetch(); // refresh the runner list
 
 
 ## Components
+
+### RunnerFileBrowser
+
+Styled component for browsing a runner's filesystem and selecting
+a project directory as a workspace entry.
+
+Uses the runner's `ListDirectory` command (via `sendCommand`) to
+fetch directory listings over the bidi stream. The user navigates
+with breadcrumbs, shortcut buttons (Home, CWD), and click-to-enter
+for directories.
+
+All visual properties flow through `--stgm-*` tokens.
+
+**Props** — `RunnerFileBrowserProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    onCancel: { type: "() => void", description: "Called when the user dismisses the browser.", required: true },
+    onSelect: { type: "(absolutePath: string) => void", description: "Called when the user confirms the current directory as workspace.", required: true },
+    runnerId: { type: "string", description: "ID of the runner whose filesystem to browse.", required: true },
+  }}
+/>
+
+```tsx
+<RunnerFileBrowser
+  runnerId="runner-abc123"
+  onSelect={(path) => workspace.addLocalPath(path)}
+  onCancel={() => setShowBrowser(false)}
+/>
+```
+
 
 ### RunnerListPanel
 
@@ -368,6 +466,18 @@ Result returned by a successful `UseLaunchLocalRunnerReturn.launch` call.
   type={{
     expiresAt: { type: "Date | undefined", description: "Absolute expiry time of the launch token. The desktop app must exchange the token before this time (typically 60 seconds).", required: true },
     url: { type: "string", description: "The `stigmer://launch-runner?token=...` URL that was opened.", required: true },
+  }}
+/>
+
+
+### PathSegment
+
+A single segment of the breadcrumb path bar.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "Display name (directory name, or \"/\" for root).", required: true },
+    path: { type: "string", description: "Absolute path up to and including this segment.", required: true },
   }}
 />
 
