@@ -402,18 +402,29 @@ export function SessionComposer({
   const showAttach = enableAttachments;
 
   // ---------------------------------------------------------------------------
-  // Runner name resolution — for the workspace contextual hint
+  // Runner resolution — name for contextual hint + ID for file browsing
   // ---------------------------------------------------------------------------
 
-  const { runners: runnerListForName } = useRunnerList(
-    showRunner && runnerId ? (org ?? null) : null,
+  const needsRunnerList = showRunner && (runnerId || (showWorkspace && enableLocal));
+
+  const { runners: runnerListForBrowse } = useRunnerList(
+    needsRunnerList ? (org ?? null) : null,
   );
 
   const selectedRunnerName = useMemo(() => {
     if (!runnerId) return undefined;
-    const runner = runnerListForName.find((r) => r.metadata?.id === runnerId);
+    const runner = runnerListForBrowse.find((r) => r.metadata?.id === runnerId);
     return runner?.metadata?.name;
-  }, [runnerId, runnerListForName]);
+  }, [runnerId, runnerListForBrowse]);
+
+  const browseRunnerId = useMemo(() => {
+    if (runnerId) return runnerId;
+    if (!enableLocal) return null;
+    const active = runnerListForBrowse.find((r) =>
+      isActivePhase(r.status?.phase ?? RunnerPhase.UNSPECIFIED),
+    );
+    return active?.metadata?.id ?? null;
+  }, [runnerId, enableLocal, runnerListForBrowse]);
 
   // ---------------------------------------------------------------------------
   // Configure menu state — drives the Tier 2 drill-down popover
@@ -1351,6 +1362,7 @@ export function SessionComposer({
                   gitHubConnection={gitHubConnection}
                   enableGitHub={enableGitHub}
                   enableLocal={enableLocal}
+                  runnerId={browseRunnerId}
                   onBrowseLocalFolder={onBrowseLocalFolder}
                   runnerName={selectedRunnerName}
                 />

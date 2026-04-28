@@ -71,7 +71,7 @@ function SessionPageInner({ id }: { id: string }) {
               onModelChange={setModelId}
               workspace={flow.workspace}
               gitHubConnection={gitHubConnection}
-              enableGitHub={false}
+              enableGitHub
               enableLocal
               agentRef={flow.agentRef}
               onAgentRefChange={flow.setAgentRef}
