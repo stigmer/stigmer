@@ -138,7 +138,8 @@ COPY apis/stubs/python /app/apis/stubs/python
 COPY --from=runner-builder /app/backend/services/agent-runner/.venv /app/.venv
 
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH="/app/src"
 
 # Verify runner dependencies are importable in the final image.
 RUN cd /app && /app/.venv/bin/python -c "\
