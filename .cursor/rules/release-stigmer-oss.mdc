@@ -38,15 +38,17 @@ List commits for the user so they can see what's included.
 
 ### 3. Determine the Version Bump
 
-Apply **Conventional Commits** rules to choose `patch`, `minor`, or `major`:
+Use the **impact-based** semver policy below. The presence of a `feat` commit type alone is NOT sufficient for a minor bump — evaluate the actual scope and impact of the changes.
 
-| Condition | Bump |
-|-----------|------|
-| Any commit message contains `BREAKING CHANGE:` or has a `!` after the type/scope | **major** |
-| Any commit has type `feat` | **minor** |
-| Only `fix`, `docs`, `chore`, `ci`, `refactor`, `perf`, `style`, `test`, `revert` | **patch** |
+| Bump | Criteria |
+|------|----------|
+| **major** | Breaking changes (`BREAKING CHANGE:` footer or `!` after type/scope). Public API contracts change in incompatible ways. Proto field removals or renames. SDK exports removed or signatures changed. |
+| **minor** | Significant new capabilities that expand what users or platform builders can do — new API resources, new CLI commands, new major SDK surface areas (e.g., a whole new domain module), new platform-level features visible in the product. The bar: "Would this warrant a section in release notes that makes users excited to upgrade?" |
+| **patch** | Everything else: bug fixes, incremental enhancements to existing features (new components within an existing domain, UX improvements, refactors), CI/CD changes, documentation, tooling, chores, performance improvements, new tests. The vast majority of `feat` commits in day-to-day development are patch-level — they enhance existing capabilities rather than introducing new platform-level features. |
 
-Present the reasoning and proposed new version (e.g. "`feat` commit found → minor bump → **v0.2.0**"). Ask the user to confirm before proceeding.
+**Default to patch.** When in doubt between minor and patch, choose patch. A release can always be followed by another release — being conservative avoids version inflation.
+
+Present the reasoning and proposed new version. Ask the user to confirm before proceeding.
 
 ### 4. Check for Uncommitted Changes
 
