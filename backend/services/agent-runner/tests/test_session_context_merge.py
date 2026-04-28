@@ -8,7 +8,7 @@ Tests cover:
 
 from unittest.mock import MagicMock
 
-from worker.activities.graphton.session_context_merge import (
+from stigmer_runner.worker.activities.graphton.session_context_merge import (
     merge_mcp_server_usages,
     merge_skill_refs,
 )

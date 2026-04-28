@@ -41,7 +41,7 @@ class TestMcpServerClientGet:
             # Mock stub creation
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
-            from grpc_client.mcp_server_client import McpServerClient
+            from stigmer_runner.grpc_client.mcp_server_client import McpServerClient
             client = McpServerClient(token="test-api-key")
             
             return client
@@ -138,7 +138,7 @@ class TestMcpServerClientGetByReference:
             mock_grpc_aio.insecure_channel.return_value = mock_channel
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
-            from grpc_client.mcp_server_client import McpServerClient
+            from stigmer_runner.grpc_client.mcp_server_client import McpServerClient
             return McpServerClient(token="test-api-key")
 
     @pytest.mark.asyncio
@@ -224,7 +224,7 @@ class TestMcpServerClientListByIds:
             mock_grpc_aio.insecure_channel.return_value = mock_channel
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
-            from grpc_client.mcp_server_client import McpServerClient
+            from stigmer_runner.grpc_client.mcp_server_client import McpServerClient
             return McpServerClient(token="test-api-key")
 
     @pytest.mark.asyncio
@@ -296,7 +296,7 @@ class TestMcpServerClientListByRefs:
             mock_grpc_aio.insecure_channel.return_value = mock_channel
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
-            from grpc_client.mcp_server_client import McpServerClient
+            from stigmer_runner.grpc_client.mcp_server_client import McpServerClient
             return McpServerClient(token="test-api-key")
 
     @pytest.mark.asyncio
@@ -388,7 +388,7 @@ class TestMcpServerClientChannel:
             
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
-            from grpc_client.mcp_server_client import McpServerClient
+            from stigmer_runner.grpc_client.mcp_server_client import McpServerClient
             McpServerClient(token="test-api-key")
             
             # Assert secure_channel was called
@@ -407,7 +407,7 @@ class TestMcpServerClientChannel:
             
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
-            from grpc_client.mcp_server_client import McpServerClient
+            from stigmer_runner.grpc_client.mcp_server_client import McpServerClient
             McpServerClient(token="test-api-key")
             
             # Assert insecure_channel was called
@@ -430,7 +430,7 @@ class TestMcpServerClientChannel:
             mock_grpc_aio.insecure_channel.return_value = mock_channel
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
-            from grpc_client.mcp_server_client import McpServerClient
+            from stigmer_runner.grpc_client.mcp_server_client import McpServerClient
             client = McpServerClient(token="test-api-key")
             
             # Act

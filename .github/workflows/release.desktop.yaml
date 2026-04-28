@@ -103,9 +103,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Poetry
-        run: pip install poetry
-
       - name: Download proto stubs
         uses: actions/download-artifact@v4
         with:
@@ -116,15 +113,18 @@ jobs:
 
       - name: Install dependencies
         working-directory: backend/services/agent-runner
-        run: poetry install --no-interaction
+        run: |
+          pip install -r requirements.txt
+          pip install ../../libs/python/graphton ../../../apis/stubs/python/stigmer
+          pip install mypy ruff types-pyyaml
 
       - name: Run MyPy type checking
         working-directory: backend/services/agent-runner
-        run: poetry run mypy grpc_client/ worker/ --show-error-codes
+        run: mypy src/stigmer_runner/grpc_client/ src/stigmer_runner/worker/ --show-error-codes
 
       - name: Run Ruff linter
         working-directory: backend/services/agent-runner
-        run: poetry run ruff check grpc_client/ worker/
+        run: ruff check src/stigmer_runner/grpc_client/ src/stigmer_runner/worker/
 
   build:
     needs: [determine-version, generate-protos, lint-and-typecheck-agent-runner]

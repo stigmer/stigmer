@@ -27,7 +27,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import grpc
 import pytest
 
-from worker.resilience.grpc_retry import (
+from stigmer_runner.worker.resilience.grpc_retry import (
     NON_RETRYABLE_STATUS_CODES,
     RETRYABLE_STATUS_CODES,
     GrpcNonRetryableError,

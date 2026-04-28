@@ -15,7 +15,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from worker.workspace.tree import (
+from stigmer_runner.worker.workspace.tree import (
     TREE_SKIP_DIRS,
     _build_directory_tree_via_find,
     _format_workspace_tree,

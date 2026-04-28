@@ -10,7 +10,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 **Goal**: Ensure every tag push produces green builds across all platforms, publish the agent-runner as a pip-installable package on PyPI, and rewrite runner docs from a platform-builder perspective.
 
-**Tech Stack**: GitHub Actions CI/CD, Python/Poetry/PyPI, Tauri/Rust, Go CLI, Markdown/MDX documentation
+**Tech Stack**: GitHub Actions CI/CD, Python/Hatchling/PyPI, Tauri/Rust, Go CLI, Markdown/MDX documentation
 
 **Components**: CI workflows (.github/workflows/), agent-runner (backend/services/agent-runner/), desktop app (client-apps/desktop/), docs (docs/concepts/, docs/guides/)
 
@@ -21,7 +21,7 @@ Drop this file into your conversation to quickly resume work on this project.
 | T01 | Project planning | COMPLETE |
 | T02 | Fix broken Windows desktop CI (`shell: bash` in sync step) | COMPLETE |
 | T03 | Harden desktop CI pipeline (main push trigger, agent-runner lint gate) | COMPLETE |
-| T04 | Publish agent-runner as PyPI package (`stigmer-runner`) | PENDING |
+| T04 | Publish agent-runner as PyPI package (`stigmer-runner`) | COMPLETE |
 | T05 | Rewrite runner docs for platform integrators | PENDING |
 
 ## Essential Files
@@ -42,8 +42,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-04-28 12:23
-**Current Task**: T04 (Publish agent-runner as PyPI package)
-**Status**: T03 complete, ready for T04
+**Current Task**: T05 (Rewrite runner docs)
+**Status**: T04 complete, ready for T05
 
 ## Session Progress (2026-04-28)
 
@@ -62,15 +62,29 @@ Drop this file into your conversation to quickly resume work on this project.
 - Design decision: no path filters — accepted full build cost on push-to-main for reliability
 - Committed: `6af3a043 ci(desktop): add push-to-main trigger and agent-runner lint gate`
 
+### Session 3 (T04)
+- Verified graphton builds as a standalone PyPI package (name available on PyPI)
+- Restructured agent-runner: moved `worker/` and `grpc_client/` under `src/stigmer_runner/`
+- Rewrote all imports across ~130 files (`from worker.` → `from stigmer_runner.worker.`)
+- Switched build system from Poetry (`package-mode=false`) to hatchling (PEP 621)
+- Created `src/stigmer_runner/__init__.py` and `__main__.py` (console script entry point)
+- Updated Dockerfile to use pip + `requirements.txt` instead of Poetry (simpler, no Poetry install in Docker)
+- Updated sandbox Dockerfile.sandbox.full (same Poetry → pip migration)
+- Updated `sync.sh` for CLI embedding (copies from `src/stigmer_runner/` now)
+- Updated `BUILD.bazel` (glob paths, imports directive)
+- Updated `run.sh` to use venv directly instead of `poetry run`
+- Updated CI workflows: `release.desktop.yaml`, `release.cli.yaml`, `release.sandbox-cloud.yaml`
+  - Lint jobs: Poetry → pip install from requirements.txt + mypy/ruff directly
+  - Path filters updated to `src/stigmer_runner/` layout
+- Created `.github/workflows/release.python-runner.yaml` (determine-version → publish-graphton → publish-runner)
+- Updated agent-runner rule file `_rules/implement-agent-runner-features.mdc` paths
+- Both packages build successfully: `graphton-0.1.0-py3-none-any.whl`, `stigmer_runner-0.0.0.dev0-py3-none-any.whl`
+- PyPI names confirmed available: `graphton`, `stigmer-runner`
+- **Manual steps required**: Set up PyPI trusted publishing (see plan Phase 5)
+
 ## Next Steps
 
-1. T04: Publish agent-runner as PyPI package (`stigmer-runner`)
-   - Assess internal dependency packaging (graphton, stigmer-protos)
-   - Create PyPI-ready package configuration
-   - Create CI workflow `.github/workflows/release.python-runner.yaml`
-   - Create entry point script
-   - Test locally
-2. T05: Rewrite runner docs for platform integrators
+1. T05: Rewrite runner docs for platform integrators
 
 ## Key Discovery
 

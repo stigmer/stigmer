@@ -46,29 +46,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Match repository structure so Poetry's editable (path) dependencies resolve
 WORKDIR /app/backend/services/agent-runner
 
-ARG POETRY_VERSION=2.1.2
-RUN curl -fsSL https://install.python-poetry.org | POETRY_VERSION=${POETRY_VERSION} python3 - && \
-    mv /root/.local/bin/poetry /usr/local/bin/poetry
+# Create virtualenv
+RUN python3 -m venv .venv
 
-# Copy dependency files first for optimal layer caching
-COPY backend/services/agent-runner/pyproject.toml backend/services/agent-runner/poetry.lock* ./
+# Copy pinned requirements (auto-generated from poetry.lock, excludes path deps)
+COPY backend/services/agent-runner/requirements.txt ./
 
-# Copy local path dependencies referenced in pyproject.toml
+# Install PyPI dependencies from pinned list
+RUN .venv/bin/pip install --no-cache-dir -r requirements.txt
+
+# Install local path dependencies
 COPY backend/libs/python/graphton /app/backend/libs/python/graphton
 COPY apis/stubs/python /app/apis/stubs/python
-
-# Install dependencies into in-project virtualenv
-ENV POETRY_VIRTUALENVS_IN_PROJECT=true
-RUN poetry config virtualenvs.in-project true && \
-    poetry install --only main --no-interaction --no-ansi --no-root
+RUN .venv/bin/pip install --no-cache-dir /app/backend/libs/python/graphton
+RUN .venv/bin/pip install --no-cache-dir /app/apis/stubs/python/stigmer
 
 # WORKAROUND: deepagents-cli (0.0.3) ships files in the `deepagents/` namespace that
 # overwrite clean files from the `deepagents` package during installation. This is an
 # upstream packaging defect — both packages write to the same directory, and the CLI
-# package's copies are corrupted/truncated. Reinstalling `deepagents` after Poetry
+# package's copies are corrupted/truncated. Reinstalling `deepagents` after pip
 # restores the correct files. The verification step below will catch any regression.
 RUN .venv/bin/pip install --force-reinstall --no-deps deepagents==0.4.0
 
@@ -143,9 +141,8 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
 # Verify runner dependencies are importable in the final image.
-# Uses cd /app so that worker.* resolves on sys.path (WORKDIR is /workspace).
 RUN cd /app && /app/.venv/bin/python -c "\
-from worker.config import Config; \
+from stigmer_runner.worker.config import Config; \
 from deepagents.middleware.subagents import SubAgentMiddleware; \
 print('agent-runner import verification passed')"
 

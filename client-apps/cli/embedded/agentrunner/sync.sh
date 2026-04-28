@@ -24,8 +24,11 @@ mkdir -p "$SOURCE_DIR"
 echo "Syncing agent-runner source..."
 cp "$AGENT_RUNNER/main.py" "$SOURCE_DIR/"
 cp "$AGENT_RUNNER/requirements.txt" "$SOURCE_DIR/"
-cp -r "$AGENT_RUNNER/worker" "$SOURCE_DIR/worker"
-cp -r "$AGENT_RUNNER/grpc_client" "$SOURCE_DIR/grpc_client"
+mkdir -p "$SOURCE_DIR/src/stigmer_runner"
+cp "$AGENT_RUNNER/src/stigmer_runner/__init__.py" "$SOURCE_DIR/src/stigmer_runner/"
+cp "$AGENT_RUNNER/src/stigmer_runner/__main__.py" "$SOURCE_DIR/src/stigmer_runner/"
+cp -r "$AGENT_RUNNER/src/stigmer_runner/worker" "$SOURCE_DIR/src/stigmer_runner/worker"
+cp -r "$AGENT_RUNNER/src/stigmer_runner/grpc_client" "$SOURCE_DIR/src/stigmer_runner/grpc_client"
 
 if [ -d "$GRAPHTON" ]; then
     echo "Syncing graphton lib..."

@@ -22,7 +22,7 @@ from unittest.mock import patch
 
 import pytest
 
-from worker.streaming.update_scheduler import (
+from stigmer_runner.worker.streaming.update_scheduler import (
     StreamingConfig,
     StreamingUpdateScheduler,
     UpdateReason,

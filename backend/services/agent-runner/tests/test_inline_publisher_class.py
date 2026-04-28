@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from ai.stigmer.agentic.agentexecution.v1.artifact_pb2 import ExecutionArtifact
 
-from worker.activities.graphton.inline_publisher import InlinePublisher
+from stigmer_runner.worker.activities.graphton.inline_publisher import InlinePublisher
 
 
 def _make_publisher(

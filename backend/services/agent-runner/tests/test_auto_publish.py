@@ -21,7 +21,7 @@ import pytest
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
 from google.protobuf.struct_pb2 import Struct
 
-from worker.activities.execute_graphton import _auto_publish_written_files
+from stigmer_runner.worker.activities.execute_graphton import _auto_publish_written_files
 
 # =============================================================================
 # Helpers
