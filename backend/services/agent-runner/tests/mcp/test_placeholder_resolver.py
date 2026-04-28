@@ -13,7 +13,7 @@ import logging
 
 import pytest
 
-from worker.mcp.placeholder_resolver import (
+from stigmer_runner.worker.mcp.placeholder_resolver import (
     PLACEHOLDER_PATTERN,
     PlaceholderResolutionError,
     PlaceholderResolver,

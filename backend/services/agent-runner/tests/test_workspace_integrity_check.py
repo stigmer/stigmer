@@ -5,7 +5,7 @@ check is now done through the unified WorkspaceBackend interface.
 Local-mode tests use real filesystem (via ``tmp_path``).
 """
 
-from worker.workspace.local import LocalWorkspaceBackend
+from stigmer_runner.worker.workspace.local import LocalWorkspaceBackend
 
 
 class TestFileExistsLocal:

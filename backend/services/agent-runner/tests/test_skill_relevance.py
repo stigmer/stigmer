@@ -6,7 +6,7 @@ the threshold-based filtering logic.
 
 from __future__ import annotations
 
-from worker.activities.graphton.skill_relevance import (
+from stigmer_runner.worker.activities.graphton.skill_relevance import (
     SkillFilterResult,
     _tokenize,
     filter_skills,

@@ -20,7 +20,7 @@ from unittest.mock import patch
 
 import pytest
 
-from worker.config import CheckpointerConfig
+from stigmer_runner.worker.config import CheckpointerConfig
 
 # =============================================================================
 # Fixtures

@@ -13,8 +13,8 @@ import pytest
 from graphton.core.backends.filesystem import FilesystemBackend
 from graphton.core.sandbox_factory import create_sandbox_backend
 
-from worker.workspace.local import LocalWorkspaceBackend
-from worker.workspace.platform_mount import (
+from stigmer_runner.worker.workspace.local import LocalWorkspaceBackend
+from stigmer_runner.worker.workspace.platform_mount import (
     PLATFORM_DIR_NAME,
     PLATFORM_PREFIX,
     STIGMER_PLATFORM_DIR_ENV,

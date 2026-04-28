@@ -35,7 +35,7 @@ class TestSkillClientGetArtifact:
             # Mock stub creation
             mock_pb2_grpc.SkillQueryControllerStub.return_value = mock_skill_stub
             
-            from grpc_client.skill_client import SkillClient
+            from stigmer_runner.grpc_client.skill_client import SkillClient
             client = SkillClient(token="test-api-key")
             
             return client
@@ -167,7 +167,7 @@ class TestSkillClientListByRefs:
             mock_grpc_aio.insecure_channel.return_value = mock_channel
             mock_pb2_grpc.SkillQueryControllerStub.return_value = mock_skill_stub
             
-            from grpc_client.skill_client import SkillClient
+            from stigmer_runner.grpc_client.skill_client import SkillClient
             return SkillClient(token="test-api-key")
 
     @pytest.mark.asyncio

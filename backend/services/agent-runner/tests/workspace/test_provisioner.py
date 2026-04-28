@@ -7,9 +7,9 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from worker.workspace.backend import ExecuteResult
-from worker.workspace.local import LocalWorkspaceBackend
-from worker.workspace.provisioner import (
+from stigmer_runner.worker.workspace.backend import ExecuteResult
+from stigmer_runner.worker.workspace.local import LocalWorkspaceBackend
+from stigmer_runner.worker.workspace.provisioner import (
     GitMetadata,
     ProvisionResult,
     SourceType,

@@ -6,8 +6,8 @@ import os
 
 import pytest
 
-from worker.workspace.provisioner import SourceType, WorkspaceProvisionError
-from worker.workspace.sources import local_path as local_path_source
+from stigmer_runner.worker.workspace.provisioner import SourceType, WorkspaceProvisionError
+from stigmer_runner.worker.workspace.sources import local_path as local_path_source
 
 # ---------------------------------------------------------------------------
 # Mock proto

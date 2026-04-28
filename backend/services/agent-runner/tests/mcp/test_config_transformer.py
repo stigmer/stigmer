@@ -13,14 +13,14 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from worker.mcp.config_transformer import (
+from stigmer_runner.worker.mcp.config_transformer import (
     McpConfigResult,
     _get_discovered_tool_names,
     _resolve_stdio_args,
     transform_all_mcp_configs,
     transform_mcp_config,
 )
-from worker.mcp.placeholder_resolver import (
+from stigmer_runner.worker.mcp.placeholder_resolver import (
     PlaceholderResolutionError,
     resolve_placeholders,
 )

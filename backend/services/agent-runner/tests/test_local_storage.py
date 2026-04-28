@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from worker.storage.local import LocalArtifactStorage
+from stigmer_runner.worker.storage.local import LocalArtifactStorage
 
 
 class TestGetDownloadURL:

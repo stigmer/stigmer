@@ -26,13 +26,13 @@ from ai.stigmer.agentic.agentexecution.v1.message_pb2 import (
 from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
 from google.protobuf.struct_pb2 import Struct
 
-from worker.activities.graphton.hitl import (
+from stigmer_runner.worker.activities.graphton.hitl import (
     ResumeReconciler,
     extract_approval_decisions_from_execution,
     extract_interrupt_tool_call_ids,
 )
-from worker.activities.graphton.status_builder import StatusBuilder
-from worker.activities.graphton.temporal_helpers import slim_status_for_temporal
+from stigmer_runner.worker.activities.graphton.status_builder import StatusBuilder
+from stigmer_runner.worker.activities.graphton.temporal_helpers import slim_status_for_temporal
 
 
 def _logger():
@@ -348,7 +348,7 @@ class TestDirectInterruptResume:
         decisions: list[SubmitApprovalInput],
     ) -> dict:
         """Replicate the matching loop from execute_graphton.py."""
-        from worker.activities.execute_graphton import _build_decision_value
+        from stigmer_runner.worker.activities.execute_graphton import _build_decision_value
 
         action_map = TestDirectInterruptResume._action_map()
         decisions_by_tc = {d.tool_call_id: d for d in decisions}
@@ -458,7 +458,7 @@ class TestDirectInterruptResume:
 
     def test_summarize_direct(self):
         """_summarize_resume_entry formats direct decisions correctly."""
-        from worker.activities.execute_graphton import _summarize_resume_entry
+        from stigmer_runner.worker.activities.execute_graphton import _summarize_resume_entry
 
         result = _summarize_resume_entry("abcd1234efgh5678", {"action": "approve"})
         assert "action=approve" in result
@@ -579,7 +579,7 @@ class TestTaskToolResumeReconciliation:
     async def test_identity_dedup_does_not_block_task_handler(self):
         """Even if identity dedup detects a prior-cycle task tool, the task
         handler must still run so sub-agent lifecycle is managed."""
-        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+        from stigmer_runner.worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
 
         args = Struct()
         args.update({"description": "deploy service", "subagent_type": "generalPurpose"})

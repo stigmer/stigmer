@@ -16,8 +16,8 @@ from unittest.mock import MagicMock
 import pytest
 from graphton.core.backends.filesystem import FilesystemBackend
 
-from worker.activities.graphton.skill_writer import SkillWriter
-from worker.workspace.local import LocalWorkspaceBackend
+from stigmer_runner.worker.activities.graphton.skill_writer import SkillWriter
+from stigmer_runner.worker.workspace.local import LocalWorkspaceBackend
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -59,8 +59,8 @@ class TestStatusBuilderAddArtifact:
 
     def _import_and_create(self):
         """Import StatusBuilder and create an instance with minimal deps."""
-        from worker.activities.graphton.execution_state import ExecutionState
-        from worker.activities.graphton.status_builder import StatusBuilder
+        from stigmer_runner.worker.activities.graphton.execution_state import ExecutionState
+        from stigmer_runner.worker.activities.graphton.status_builder import StatusBuilder
 
         sb = StatusBuilder.__new__(StatusBuilder)
         sb.state = ExecutionState(proto=AgentExecutionStatus())
@@ -151,7 +151,7 @@ class TestStreamExecutorInlinePublish:
     """Tests for _on_file_modifying_tool_end in StreamExecutor."""
 
     def _make_executor(self, on_file_written=None):
-        from worker.activities.graphton.streaming import StreamExecutor
+        from stigmer_runner.worker.activities.graphton.streaming import StreamExecutor
 
         tc_write = MagicMock()
         tc_write.id = "run-write-1"

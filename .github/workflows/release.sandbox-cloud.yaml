@@ -12,8 +12,8 @@ on:
       - 'backend/services/agent-runner/pyproject.toml'
       - 'backend/services/agent-runner/poetry.lock'
       - 'backend/services/agent-runner/main.py'
-      - 'backend/services/agent-runner/worker/**'
-      - 'backend/services/agent-runner/grpc_client/**'
+      - 'backend/services/agent-runner/src/stigmer_runner/worker/**'
+      - 'backend/services/agent-runner/src/stigmer_runner/grpc_client/**'
       - 'backend/libs/python/graphton/**'
       - 'apis/stubs/python/**'
   workflow_dispatch:

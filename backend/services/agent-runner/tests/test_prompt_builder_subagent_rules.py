@@ -8,7 +8,7 @@ These rules were accidentally dropped during a refactor on March 26 and
 must remain present going forward.
 """
 
-from worker.activities.graphton.prompt_builder import _SUB_AGENT_RULES
+from stigmer_runner.worker.activities.graphton.prompt_builder import _SUB_AGENT_RULES
 
 
 class TestSubAgentRulesPresence:

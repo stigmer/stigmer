@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from worker.config import CheckpointerConfig, Config, ExecutionMode, LLMConfig
+from stigmer_runner.worker.config import CheckpointerConfig, Config, ExecutionMode, LLMConfig
 
 
 def _make_config(*, mode: str = "local", workspace_root_dir: str = "/tmp/workspace") -> Config:

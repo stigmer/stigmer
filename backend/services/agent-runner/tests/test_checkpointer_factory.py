@@ -21,13 +21,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from worker.checkpointer.factory import (
+from stigmer_runner.worker.checkpointer.factory import (
     CheckpointerCreationError,
     _create_memory_checkpointer,
     _mask_mongodb_uri,
     create_checkpointer,
 )
-from worker.config import CheckpointerConfig
+from stigmer_runner.worker.config import CheckpointerConfig
 
 # =============================================================================
 # Fixtures

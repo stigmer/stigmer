@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from worker.activities.relevance import (
+from stigmer_runner.worker.activities.relevance import (
     _MAX_RESULTS,
     ResolvedPath,
     WorkspaceRoot,
