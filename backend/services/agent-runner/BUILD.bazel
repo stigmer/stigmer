@@ -10,11 +10,9 @@ load("//tools/bazel/macros:port_forward.bzl", "port_forward_binary")
 py_library(
     name = "agent_runner_lib",
     srcs = glob([
-        "worker/**/*.py",
-        "grpc_client/**/*.py",
+        "src/stigmer_runner/**/*.py",
     ]),
-    # Make the top-level directory importable
-    imports = ["."],
+    imports = ["src"],
     visibility = ["//visibility:public"],
     # Note: External dependencies are managed by Poetry
     # They're available at runtime via Poetry's virtualenv

@@ -17,10 +17,10 @@ from __future__ import annotations
 
 import pytest
 
-from worker.activities.execute_graphton import build_workspace_prompt_section
-from worker.workspace.backend import ExecuteResult
-from worker.workspace.local import LocalWorkspaceBackend
-from worker.workspace.provisioner import WorkspaceProvisioner
+from stigmer_runner.worker.activities.execute_graphton import build_workspace_prompt_section
+from stigmer_runner.worker.workspace.backend import ExecuteResult
+from stigmer_runner.worker.workspace.local import LocalWorkspaceBackend
+from stigmer_runner.worker.workspace.provisioner import WorkspaceProvisioner
 
 # ---------------------------------------------------------------------------
 # Proto mocks — minimal duck-typed stand-ins for WorkspaceEntry / Source
@@ -550,7 +550,7 @@ class TestReferencedFilesPrimaryRootGuardRail:
     """
 
     def test_refs_resolved_against_primary_root(self, tmp_path):
-        from worker.activities.execute_graphton import (
+        from stigmer_runner.worker.activities.execute_graphton import (
             build_referenced_files_prompt_section,
         )
 
@@ -576,7 +576,7 @@ class TestReferencedFilesPrimaryRootGuardRail:
         assert "bytes" not in go_line
 
     def test_all_refs_listed_even_when_unresolvable(self, tmp_path):
-        from worker.activities.execute_graphton import (
+        from stigmer_runner.worker.activities.execute_graphton import (
             build_referenced_files_prompt_section,
         )
 

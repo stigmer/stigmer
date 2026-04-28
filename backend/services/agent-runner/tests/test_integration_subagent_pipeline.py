@@ -20,9 +20,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from worker.activities.graphton.skill_writer import SkillWriter
-from worker.activities.graphton.subagent_transformer import transform_sub_agents
-from worker.workspace.local import LocalWorkspaceBackend
+from stigmer_runner.worker.activities.graphton.skill_writer import SkillWriter
+from stigmer_runner.worker.activities.graphton.subagent_transformer import transform_sub_agents
+from stigmer_runner.worker.workspace.local import LocalWorkspaceBackend
 
 
 class TestFullPipelineIntegration:

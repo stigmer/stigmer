@@ -16,7 +16,7 @@ from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
-from worker.activities.graphton.checkpoint_validator import (
+from stigmer_runner.worker.activities.graphton.checkpoint_validator import (
     CheckpointValidationResult,
     Discrepancy,
     build_error_from_validation,

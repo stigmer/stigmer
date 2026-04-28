@@ -4,8 +4,8 @@ import os
 
 import pytest
 
-from worker.workspace.backend import ExecuteResult, WorkspaceBackend
-from worker.workspace.local import LocalWorkspaceBackend
+from stigmer_runner.worker.workspace.backend import ExecuteResult, WorkspaceBackend
+from stigmer_runner.worker.workspace.local import LocalWorkspaceBackend
 
 
 class TestConstruction:

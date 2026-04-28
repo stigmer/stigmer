@@ -32,7 +32,7 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
 from ai.stigmer.agentic.agentexecution.v1.message_pb2 import AgentMessage, ToolCall
 from graphton.core.summarization_callback import SOURCE_GRAPH_START, SOURCE_MID_EXECUTION
 
-from worker.activities.graphton.status_builder import StatusBuilder
+from stigmer_runner.worker.activities.graphton.status_builder import StatusBuilder
 
 # =============================================================================
 # Fixtures
@@ -1074,7 +1074,7 @@ class TestSubAgentInternals:
     def _patch_subject_gen(self):
         """Patch LLM-based subject generation for all tests in this class."""
         with patch(
-            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            "stigmer_runner.worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -1619,7 +1619,7 @@ class TestSubAgentInternals:
     async def test_task_tool_description_mapped_to_input(self, status_builder):
         """description arg (deepagents' full prompt) is mapped to input field."""
         with patch(
-            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            "stigmer_runner.worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="Scan workflow dependencies",
         ):
@@ -1644,7 +1644,7 @@ class TestSubAgentInternals:
     async def test_task_tool_subject_generated_via_llm(self, status_builder):
         """subject is generated from description via economy-tier LLM."""
         with patch(
-            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            "stigmer_runner.worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="Scan workflow dependencies",
         ) as mock_gen:
@@ -1714,7 +1714,7 @@ class TestSubAgentInternals:
         """_handle_sub_agent_end logs a warning when run_id has no matching SubAgentExecution."""
         import logging
 
-        with caplog.at_level(logging.WARNING, logger="worker.activities.graphton.status_builder"):
+        with caplog.at_level(logging.WARNING, logger="stigmer_runner.worker.activities.graphton.status_builder"):
             await status_builder.process_event({
                 "event": "on_tool_end",
                 "name": "task",
@@ -2186,7 +2186,7 @@ class TestSubAgentScenarios:
     def _patch_subject_gen(self):
         """Patch LLM-based subject generation for all tests in this class."""
         with patch(
-            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            "stigmer_runner.worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -2391,7 +2391,7 @@ class TestParentIdsNamespaceRouting:
     @pytest.fixture(autouse=True)
     def _patch_subject_gen(self):
         with patch(
-            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            "stigmer_runner.worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -2562,7 +2562,7 @@ class TestConcurrentSubAgentNamespaceRegistration:
     @pytest.fixture(autouse=True)
     def _patch_subject_gen(self):
         with patch(
-            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            "stigmer_runner.worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -2778,7 +2778,7 @@ class TestConcurrentSubAgentResumeRouting:
     @pytest.fixture(autouse=True)
     def _patch_subject_gen(self):
         with patch(
-            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            "stigmer_runner.worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -3366,7 +3366,7 @@ class TestApprovalPolicyResolution:
     
     def test_auto_approve_all_bypasses_all_policies(self):
         """Test that auto_approve_all=True bypasses all approval requirements."""
-        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        from stigmer_runner.worker.activities.graphton.approval_policy import resolve_tool_approval
         
         # Even with MCP default requiring approval, auto_approve_all bypasses
         default_policies = [
@@ -3387,7 +3387,7 @@ class TestApprovalPolicyResolution:
     
     def test_agent_override_takes_precedence_over_mcp_default(self):
         """Test that agent override takes precedence over MCP default."""
-        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        from stigmer_runner.worker.activities.graphton.approval_policy import resolve_tool_approval
         
         # MCP server has default approval for delete_repository
         default_policies = [
@@ -3413,7 +3413,7 @@ class TestApprovalPolicyResolution:
     
     def test_agent_override_adds_approval_not_in_mcp_default(self):
         """Test that agent can add approval for tools not in MCP defaults."""
-        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        from stigmer_runner.worker.activities.graphton.approval_policy import resolve_tool_approval
         
         # No MCP default for this tool
         default_policies = []
@@ -3442,7 +3442,7 @@ class TestApprovalPolicyResolution:
     
     def test_pinned_policy_applied_when_no_override(self):
         """Test that pinned policy is applied when no agent override exists."""
-        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        from stigmer_runner.worker.activities.graphton.approval_policy import resolve_tool_approval
 
         pinned = [
             {"tool_name": "delete_repository", "message": "Delete repo: {{args.repo}}"}
@@ -3463,7 +3463,7 @@ class TestApprovalPolicyResolution:
 
     def test_status_classifier_applied_when_no_pinned(self):
         """Test that status classifier policy is applied when no pinned policy exists."""
-        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        from stigmer_runner.worker.activities.graphton.approval_policy import resolve_tool_approval
 
         status = [
             {"tool_name": "execute_sql", "message": "Execute SQL: {{args.query}}"}
@@ -3484,7 +3484,7 @@ class TestApprovalPolicyResolution:
 
     def test_pinned_takes_precedence_over_status(self):
         """Test that pinned policy overrides status classifier for the same tool."""
-        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        from stigmer_runner.worker.activities.graphton.approval_policy import resolve_tool_approval
 
         pinned = [
             {"tool_name": "deploy", "message": "Pinned: deploy to {{args.env}}"}
@@ -3508,7 +3508,7 @@ class TestApprovalPolicyResolution:
 
     def test_agent_override_exempts_from_pinned_and_status(self):
         """Test that agent override with requires_approval=False exempts from both."""
-        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        from stigmer_runner.worker.activities.graphton.approval_policy import resolve_tool_approval
 
         overrides = [{"tool_name": "deploy", "requires_approval": False}]
         pinned = [{"tool_name": "deploy", "message": "Pinned deploy"}]
@@ -3528,7 +3528,7 @@ class TestApprovalPolicyResolution:
     
     def test_no_approval_required_when_no_policy_matches(self):
         """Test that tools without policies don't require approval."""
-        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        from stigmer_runner.worker.activities.graphton.approval_policy import resolve_tool_approval
         
         result = resolve_tool_approval(
             tool_name="list_issues",  # Non-platform tool with no policy
@@ -3544,7 +3544,9 @@ class TestApprovalPolicyResolution:
     
     def test_approval_message_template_rendering(self):
         """Test that message templates are rendered with tool arguments."""
-        from worker.activities.graphton.approval_policy import render_approval_message
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
+            render_approval_message,
+        )
         
         template = "Delete {{args.repo}} from {{args.owner}}"
         tool_args = {"repo": "my-repo", "owner": "acme-corp"}
@@ -3559,7 +3561,9 @@ class TestApprovalPolicyResolution:
     
     def test_approval_message_handles_missing_args(self):
         """Test that missing args are replaced with <unknown>."""
-        from worker.activities.graphton.approval_policy import render_approval_message
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
+            render_approval_message,
+        )
         
         template = "Send to {{args.recipient}}"
         tool_args = {}  # Missing recipient
@@ -3574,7 +3578,9 @@ class TestApprovalPolicyResolution:
     
     def test_approval_message_tool_name_placeholder(self):
         """Test that {{tool_name}} placeholder is replaced."""
-        from worker.activities.graphton.approval_policy import render_approval_message
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
+            render_approval_message,
+        )
         
         template = "Execute {{tool_name}} with {{args.path}}"
         tool_args = {"path": "/tmp/file.txt"}
@@ -3589,7 +3595,9 @@ class TestApprovalPolicyResolution:
     
     def test_approval_message_empty_template_uses_default(self):
         """Test that empty template uses default message."""
-        from worker.activities.graphton.approval_policy import render_approval_message
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
+            render_approval_message,
+        )
         
         result = render_approval_message(
             template="",
@@ -3601,7 +3609,9 @@ class TestApprovalPolicyResolution:
     
     def test_approval_message_nested_args(self):
         """Test rendering with nested argument values."""
-        from worker.activities.graphton.approval_policy import render_approval_message
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
+            render_approval_message,
+        )
         
         template = "Update {{args.user.name}} at {{args.user.email}}"
         tool_args = {"user": {"name": "John", "email": "john@example.com"}}
@@ -3625,7 +3635,7 @@ class TestPlatformToolApprovalDefaults:
     
     def test_platform_tool_read_no_approval_required(self):
         """Test that 'read' platform tool does not require approval by default."""
-        from worker.activities.graphton.approval_policy import (
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
             PLATFORM_SERVER_NAME,
             resolve_tool_approval,
         )
@@ -3645,7 +3655,7 @@ class TestPlatformToolApprovalDefaults:
     
     def test_platform_tool_write_requires_approval(self):
         """Test that 'write' platform tool requires approval by default."""
-        from worker.activities.graphton.approval_policy import (
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
             PLATFORM_SERVER_NAME,
             resolve_tool_approval,
         )
@@ -3666,7 +3676,7 @@ class TestPlatformToolApprovalDefaults:
     
     def test_platform_tool_execute_requires_approval(self):
         """Test that 'execute' platform tool requires approval by default."""
-        from worker.activities.graphton.approval_policy import (
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
             PLATFORM_SERVER_NAME,
             resolve_tool_approval,
         )
@@ -3687,7 +3697,7 @@ class TestPlatformToolApprovalDefaults:
     
     def test_platform_tool_edit_requires_approval(self):
         """Test that 'edit' platform tool requires approval by default."""
-        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        from stigmer_runner.worker.activities.graphton.approval_policy import resolve_tool_approval
         
         result = resolve_tool_approval(
             tool_name="edit",
@@ -3703,7 +3713,7 @@ class TestPlatformToolApprovalDefaults:
     
     def test_platform_tool_delete_requires_approval(self):
         """Test that 'delete' platform tool requires approval by default."""
-        from worker.activities.graphton.approval_policy import (
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
             PLATFORM_SERVER_NAME,
             resolve_tool_approval,
         )
@@ -3724,7 +3734,7 @@ class TestPlatformToolApprovalDefaults:
 
     def test_platform_tool_delete_file_alias_requires_approval(self):
         """Test that 'delete_file' alias resolves to 'delete' and requires approval."""
-        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        from stigmer_runner.worker.activities.graphton.approval_policy import resolve_tool_approval
         
         result = resolve_tool_approval(
             tool_name="delete_file",
@@ -3740,7 +3750,7 @@ class TestPlatformToolApprovalDefaults:
 
     def test_platform_tool_ls_no_approval_required(self):
         """Test that 'ls' platform tool does not require approval."""
-        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        from stigmer_runner.worker.activities.graphton.approval_policy import resolve_tool_approval
         
         result = resolve_tool_approval(
             tool_name="ls",
@@ -3756,7 +3766,7 @@ class TestPlatformToolApprovalDefaults:
     
     def test_platform_tool_glob_no_approval_required(self):
         """Test that 'glob' platform tool does not require approval."""
-        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        from stigmer_runner.worker.activities.graphton.approval_policy import resolve_tool_approval
         
         result = resolve_tool_approval(
             tool_name="glob",
@@ -3772,7 +3782,7 @@ class TestPlatformToolApprovalDefaults:
     
     def test_platform_tool_grep_no_approval_required(self):
         """Test that 'grep' platform tool does not require approval."""
-        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        from stigmer_runner.worker.activities.graphton.approval_policy import resolve_tool_approval
         
         result = resolve_tool_approval(
             tool_name="grep",
@@ -3788,7 +3798,7 @@ class TestPlatformToolApprovalDefaults:
     
     def test_auto_approve_all_bypasses_platform_tool_approval(self):
         """Test that auto_approve_all=True bypasses platform tool approval."""
-        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        from stigmer_runner.worker.activities.graphton.approval_policy import resolve_tool_approval
         
         result = resolve_tool_approval(
             tool_name="write",  # Normally requires approval
@@ -3804,7 +3814,7 @@ class TestPlatformToolApprovalDefaults:
     
     def test_is_platform_tool_helper(self):
         """Test is_platform_tool() helper function."""
-        from worker.activities.graphton.approval_policy import is_platform_tool
+        from stigmer_runner.worker.activities.graphton.approval_policy import is_platform_tool
         
         # Platform tools
         assert is_platform_tool("read") is True
@@ -3838,7 +3848,7 @@ class TestApprovalConfig:
     
     def test_get_mcp_server_for_tool_found(self):
         """Test getting MCP server for a known tool."""
-        from worker.activities.graphton.approval_policy import ApprovalConfig
+        from stigmer_runner.worker.activities.graphton.approval_policy import ApprovalConfig
         
         config = ApprovalConfig(
             auto_approve_all=False,
@@ -3850,7 +3860,7 @@ class TestApprovalConfig:
     
     def test_get_mcp_server_for_tool_not_found(self):
         """Test getting MCP server for unknown tool returns empty string."""
-        from worker.activities.graphton.approval_policy import ApprovalConfig
+        from stigmer_runner.worker.activities.graphton.approval_policy import ApprovalConfig
         
         config = ApprovalConfig(
             auto_approve_all=False,
@@ -3861,7 +3871,7 @@ class TestApprovalConfig:
     
     def test_get_status_policies_for_tool(self):
         """Test getting status (classifier) policies for a tool's MCP server."""
-        from worker.activities.graphton.approval_policy import ApprovalConfig
+        from stigmer_runner.worker.activities.graphton.approval_policy import ApprovalConfig
 
         policies = [{"tool_name": "delete_repository", "message": "Delete repo"}]
 
@@ -3876,7 +3886,7 @@ class TestApprovalConfig:
 
     def test_get_pinned_policies_for_tool(self):
         """Test getting pinned (manual override) policies for a tool's MCP server."""
-        from worker.activities.graphton.approval_policy import ApprovalConfig
+        from stigmer_runner.worker.activities.graphton.approval_policy import ApprovalConfig
 
         policies = [{"tool_name": "deploy", "message": "Deploy to {{args.env}}"}]
 
@@ -3891,7 +3901,7 @@ class TestApprovalConfig:
 
     def test_get_status_policies_for_unknown_server(self):
         """Test that unknown server returns empty policies list."""
-        from worker.activities.graphton.approval_policy import ApprovalConfig
+        from stigmer_runner.worker.activities.graphton.approval_policy import ApprovalConfig
 
         config = ApprovalConfig(
             auto_approve_all=False,
@@ -4303,7 +4313,7 @@ class TestToolStartApprovalIntegration:
         """Create StatusBuilder with approval config."""
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
 
-        from worker.activities.graphton.approval_policy import ApprovalConfig
+        from stigmer_runner.worker.activities.graphton.approval_policy import ApprovalConfig
         
         mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
         
@@ -4381,7 +4391,7 @@ class TestToolStartApprovalIntegration:
         """Test that auto_approve_all bypasses approval requirements."""
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase, ToolCallStatus
 
-        from worker.activities.graphton.approval_policy import ApprovalConfig
+        from stigmer_runner.worker.activities.graphton.approval_policy import ApprovalConfig
         
         mock_initial_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
         
@@ -4486,7 +4496,7 @@ class TestBuildApprovalConfig:
     
     def test_empty_inputs_return_safe_defaults(self):
         """Test that empty inputs return ApprovalConfig with safe defaults."""
-        from worker.activities.graphton.approval_policy import build_approval_config
+        from stigmer_runner.worker.activities.graphton.approval_policy import build_approval_config
         
         # Create minimal mock execution
         execution = MagicMock()
@@ -4506,7 +4516,7 @@ class TestBuildApprovalConfig:
     
     def test_auto_approve_all_extracted_from_execution_spec(self):
         """Test that auto_approve_all is correctly extracted from execution.spec."""
-        from worker.activities.graphton.approval_policy import build_approval_config
+        from stigmer_runner.worker.activities.graphton.approval_policy import build_approval_config
         
         # Test with auto_approve_all = True
         execution = MagicMock()
@@ -4523,7 +4533,7 @@ class TestBuildApprovalConfig:
     
     def test_auto_approve_all_defaults_false_when_missing(self):
         """Test that auto_approve_all defaults to False when field is missing."""
-        from worker.activities.graphton.approval_policy import build_approval_config
+        from stigmer_runner.worker.activities.graphton.approval_policy import build_approval_config
         
         # Create execution without auto_approve_all field
         execution = MagicMock()
@@ -4540,7 +4550,7 @@ class TestBuildApprovalConfig:
     
     def test_tool_approval_overrides_collected_from_all_usages(self):
         """Test that tool_approval_overrides are collected from all MCP server usages."""
-        from worker.activities.graphton.approval_policy import build_approval_config
+        from stigmer_runner.worker.activities.graphton.approval_policy import build_approval_config
         
         execution = MagicMock()
         execution.spec.auto_approve_all = False
@@ -4579,7 +4589,7 @@ class TestBuildApprovalConfig:
     
     def test_tool_approval_overrides_handles_empty_usages(self):
         """Test that empty tool_approval_overrides in usages are handled gracefully."""
-        from worker.activities.graphton.approval_policy import build_approval_config
+        from stigmer_runner.worker.activities.graphton.approval_policy import build_approval_config
         
         execution = MagicMock()
         execution.spec.auto_approve_all = False
@@ -4603,7 +4613,7 @@ class TestBuildApprovalConfig:
     
     def test_pinned_tool_approvals_keyed_by_server_slug(self):
         """Test that pinned_tool_approvals are correctly keyed by server slug."""
-        from worker.activities.graphton.approval_policy import build_approval_config
+        from stigmer_runner.worker.activities.graphton.approval_policy import build_approval_config
         
         execution = MagicMock()
         execution.spec.auto_approve_all = False
@@ -4640,7 +4650,7 @@ class TestBuildApprovalConfig:
     
     def test_pinned_tool_approvals_falls_back_to_name_when_slug_missing(self):
         """Test that server name is used as fallback when slug is missing."""
-        from worker.activities.graphton.approval_policy import build_approval_config
+        from stigmer_runner.worker.activities.graphton.approval_policy import build_approval_config
         
         execution = MagicMock()
         execution.spec.auto_approve_all = False
@@ -4665,7 +4675,7 @@ class TestBuildApprovalConfig:
     
     def test_pinned_tool_approvals_handles_empty_policies(self):
         """Test that servers with empty pinned_tool_approvals are skipped."""
-        from worker.activities.graphton.approval_policy import build_approval_config
+        from stigmer_runner.worker.activities.graphton.approval_policy import build_approval_config
         
         execution = MagicMock()
         execution.spec.auto_approve_all = False
@@ -4687,7 +4697,7 @@ class TestBuildApprovalConfig:
 
     def test_status_tool_approvals_extracted_from_server_status(self):
         """Test that status.tool_approvals are read and keyed by slug."""
-        from worker.activities.graphton.approval_policy import build_approval_config
+        from stigmer_runner.worker.activities.graphton.approval_policy import build_approval_config
 
         execution = MagicMock()
         execution.spec.auto_approve_all = False
@@ -4714,7 +4724,7 @@ class TestBuildApprovalConfig:
 
     def test_both_pinned_and_status_extracted(self):
         """Test that both pinned and status approvals are extracted independently."""
-        from worker.activities.graphton.approval_policy import build_approval_config
+        from stigmer_runner.worker.activities.graphton.approval_policy import build_approval_config
 
         execution = MagicMock()
         execution.spec.auto_approve_all = False
@@ -4744,7 +4754,7 @@ class TestBuildApprovalConfig:
 
     def test_tool_to_mcp_server_mapping_inverted_correctly(self):
         """Test that mcp_tools_config is correctly inverted to tool_to_mcp_server."""
-        from worker.activities.graphton.approval_policy import build_approval_config
+        from stigmer_runner.worker.activities.graphton.approval_policy import build_approval_config
         
         execution = MagicMock()
         execution.spec.auto_approve_all = False
@@ -4772,7 +4782,7 @@ class TestBuildApprovalConfig:
     
     def test_tool_to_mcp_server_handles_none_tool_lists(self):
         """Test that None tool lists in mcp_tools_config are handled gracefully."""
-        from worker.activities.graphton.approval_policy import build_approval_config
+        from stigmer_runner.worker.activities.graphton.approval_policy import build_approval_config
         
         execution = MagicMock()
         execution.spec.auto_approve_all = False
@@ -4797,7 +4807,7 @@ class TestBuildApprovalConfig:
     
     def test_full_integration_all_sources(self):
         """Integration test: verify all sources are assembled correctly."""
-        from worker.activities.graphton.approval_policy import build_approval_config
+        from stigmer_runner.worker.activities.graphton.approval_policy import build_approval_config
         
         # Setup execution
         execution = MagicMock()
@@ -4844,7 +4854,7 @@ class TestBuildApprovalConfig:
     
     def test_malformed_server_handled_gracefully(self):
         """Test that malformed MCP server objects don't crash the function."""
-        from worker.activities.graphton.approval_policy import build_approval_config
+        from stigmer_runner.worker.activities.graphton.approval_policy import build_approval_config
         
         execution = MagicMock()
         execution.spec.auto_approve_all = False
@@ -4865,7 +4875,7 @@ class TestBuildApprovalConfig:
     
     def test_malformed_usage_handled_gracefully(self):
         """Test that malformed MCP server usage objects don't crash the function."""
-        from worker.activities.graphton.approval_policy import build_approval_config
+        from stigmer_runner.worker.activities.graphton.approval_policy import build_approval_config
         
         execution = MagicMock()
         execution.spec.auto_approve_all = False
@@ -4900,7 +4910,7 @@ class TestCreateApprovalChecker:
     
     def test_creates_callable(self):
         """Test that create_approval_checker returns a callable."""
-        from worker.activities.graphton.approval_policy import (
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
             ApprovalConfig,
             create_approval_checker,
         )
@@ -4912,7 +4922,7 @@ class TestCreateApprovalChecker:
     
     def test_checker_returns_no_approval_when_auto_approve_all(self):
         """Test that checker returns no approval required when auto_approve_all is True."""
-        from worker.activities.graphton.approval_policy import (
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
             ApprovalConfig,
             create_approval_checker,
         )
@@ -4927,7 +4937,7 @@ class TestCreateApprovalChecker:
     
     def test_checker_returns_no_approval_when_no_policy_matches(self):
         """Test that checker returns no approval when no policy matches."""
-        from worker.activities.graphton.approval_policy import (
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
             ApprovalConfig,
             create_approval_checker,
         )
@@ -4947,7 +4957,7 @@ class TestCreateApprovalChecker:
     
     def test_checker_returns_approval_required_from_mcp_default(self):
         """Test that checker returns approval required from MCP default policy."""
-        from worker.activities.graphton.approval_policy import (
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
             ApprovalConfig,
             create_approval_checker,
         )
@@ -4973,7 +4983,7 @@ class TestCreateApprovalChecker:
     
     def test_checker_returns_approval_required_from_agent_override(self):
         """Test that checker returns approval required from agent override."""
-        from worker.activities.graphton.approval_policy import (
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
             ApprovalConfig,
             create_approval_checker,
         )
@@ -5000,7 +5010,7 @@ class TestCreateApprovalChecker:
     
     def test_checker_renders_message_template_with_args(self):
         """Test that checker renders {{args.field}} placeholders in message."""
-        from worker.activities.graphton.approval_policy import (
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
             ApprovalConfig,
             create_approval_checker,
         )
@@ -5025,7 +5035,7 @@ class TestCreateApprovalChecker:
     
     def test_checker_includes_mcp_server_in_result(self):
         """Test that checker result includes mcp_server field."""
-        from worker.activities.graphton.approval_policy import (
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
             ApprovalConfig,
             create_approval_checker,
         )
@@ -5044,7 +5054,7 @@ class TestCreateApprovalChecker:
     
     def test_checker_handles_missing_tool_gracefully(self):
         """Test that checker handles tools not in config gracefully."""
-        from worker.activities.graphton.approval_policy import (
+        from stigmer_runner.worker.activities.graphton.approval_policy import (
             ApprovalConfig,
             create_approval_checker,
         )
@@ -5522,7 +5532,7 @@ class TestRunIdAliasResolution:
         The new run_id is recorded as an alias."""
         from google.protobuf.struct_pb2 import Struct
 
-        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+        from stigmer_runner.worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
 
         original_tc_id = "toolu_original_001"
         new_run_id = "resumed-run-002"
@@ -5563,7 +5573,7 @@ class TestRunIdAliasResolution:
         original tool call from RUNNING to COMPLETED."""
         from google.protobuf.struct_pb2 import Struct
 
-        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+        from stigmer_runner.worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
 
         original_tc_id = "toolu_orig_100"
         new_run_id = "new-run-200"
@@ -5615,7 +5625,7 @@ class TestRunIdAliasResolution:
         to COMPLETED when their resumed on_tool_end events carry new run_ids."""
         from google.protobuf.struct_pb2 import Struct
 
-        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+        from stigmer_runner.worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
 
         files = [
             ("toolu_A", "new-A", "/skill/SKILL.md"),
@@ -5681,7 +5691,7 @@ class TestRunIdAliasResolution:
         tool call's result."""
         from google.protobuf.struct_pb2 import Struct
 
-        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+        from stigmer_runner.worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
 
         original_tc_id = "toolu_progress_1"
         new_run_id = "new-progress-1"
@@ -5800,7 +5810,7 @@ class TestRunIdAliasResolution:
         (edge case: tool_call_id matches the run_id)."""
         from google.protobuf.struct_pb2 import Struct
 
-        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+        from stigmer_runner.worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
 
         same_id = "toolu_same_999"
         args = Struct()
@@ -5867,7 +5877,7 @@ class TestResumePhantomGuard:
         tool call."""
         from google.protobuf.struct_pb2 import Struct
 
-        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+        from stigmer_runner.worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
 
         original_tc_id = "toolu_01WvNdJXKbCCtKJrbTnCzbit"
         phantom_run_id = "019d823d-cde5-7df0-8c51-0d3532198d43"
@@ -5913,7 +5923,7 @@ class TestResumePhantomGuard:
     async def test_no_false_positive_on_normal_tool_call(self, mock_initial_status):
         """A normal on_tool_start (no approval history) is not affected
         by the phantom guard and creates a new tool call as usual."""
-        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+        from stigmer_runner.worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
 
         run_id = "normal-run-001"
 
@@ -5942,7 +5952,7 @@ class TestResumePhantomGuard:
         transitioned to COMPLETED -- only RUNNING (actively resuming)."""
         from google.protobuf.struct_pb2 import Struct
 
-        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+        from stigmer_runner.worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
 
         completed_tc_id = "toolu_completed_001"
         new_run_id = "019d-new-run"
@@ -6569,49 +6579,57 @@ class TestPartialJsonHelpers:
     """Unit tests for the module-level JSON extraction helpers."""
 
     def test_find_field_with_space(self):
-        from worker.activities.graphton.status_builder import _find_json_string_value_start
+        from stigmer_runner.worker.activities.graphton.status_builder import (
+            _find_json_string_value_start,
+        )
         s = '{"contents": "hello"}'
         idx = _find_json_string_value_start(s, "contents")
         assert idx >= 0
         assert s[idx:idx+5] == "hello"
 
     def test_find_field_without_space(self):
-        from worker.activities.graphton.status_builder import _find_json_string_value_start
+        from stigmer_runner.worker.activities.graphton.status_builder import (
+            _find_json_string_value_start,
+        )
         s = '{"contents":"hello"}'
         idx = _find_json_string_value_start(s, "contents")
         assert idx >= 0
         assert s[idx:idx+5] == "hello"
 
     def test_find_field_not_present(self):
-        from worker.activities.graphton.status_builder import _find_json_string_value_start
+        from stigmer_runner.worker.activities.graphton.status_builder import (
+            _find_json_string_value_start,
+        )
         assert _find_json_string_value_start('{"path": "f.py"}', "contents") == -1
 
     def test_find_field_incomplete_value(self):
-        from worker.activities.graphton.status_builder import _find_json_string_value_start
+        from stigmer_runner.worker.activities.graphton.status_builder import (
+            _find_json_string_value_start,
+        )
         assert _find_json_string_value_start('{"contents": ', "contents") == -1
 
     def test_unescape_basic(self):
-        from worker.activities.graphton.status_builder import _json_unescape_partial
+        from stigmer_runner.worker.activities.graphton.status_builder import _json_unescape_partial
         assert _json_unescape_partial('hello\\nworld') == "hello\nworld"
 
     def test_unescape_stops_at_quote(self):
-        from worker.activities.graphton.status_builder import _json_unescape_partial
+        from stigmer_runner.worker.activities.graphton.status_builder import _json_unescape_partial
         assert _json_unescape_partial('hello", "other') == "hello"
 
     def test_unescape_trailing_backslash(self):
-        from worker.activities.graphton.status_builder import _json_unescape_partial
+        from stigmer_runner.worker.activities.graphton.status_builder import _json_unescape_partial
         assert _json_unescape_partial('abc\\') == "abc"
 
     def test_unescape_tab_and_escaped_quote(self):
-        from worker.activities.graphton.status_builder import _json_unescape_partial
+        from stigmer_runner.worker.activities.graphton.status_builder import _json_unescape_partial
         assert _json_unescape_partial('a\\tb\\"c') == 'a\tb"c'
 
     def test_unescape_unicode(self):
-        from worker.activities.graphton.status_builder import _json_unescape_partial
+        from stigmer_runner.worker.activities.graphton.status_builder import _json_unescape_partial
         assert _json_unescape_partial("caf\\u00e9") == "café"
 
     def test_unescape_incomplete_unicode(self):
-        from worker.activities.graphton.status_builder import _json_unescape_partial
+        from stigmer_runner.worker.activities.graphton.status_builder import _json_unescape_partial
         assert _json_unescape_partial("caf\\u00") == "caf"
 
 
@@ -6649,7 +6667,7 @@ class TestSubAgentSubjectDeduplication:
     async def test_first_subject_unchanged(self, status_builder):
         """First sub-agent with a given subject keeps it as-is."""
         with patch(
-            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            "stigmer_runner.worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="Research protobuf defs",
         ):
@@ -6664,7 +6682,7 @@ class TestSubAgentSubjectDeduplication:
     async def test_duplicate_subject_gets_suffix(self, status_builder):
         """Second sub-agent with the same subject gets ' (2)' appended."""
         with patch(
-            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            "stigmer_runner.worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="Research protobuf defs",
         ):
@@ -6688,7 +6706,7 @@ class TestSubAgentSubjectDeduplication:
     async def test_triple_duplicate_increments(self, status_builder):
         """Third duplicate gets ' (3)'."""
         with patch(
-            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            "stigmer_runner.worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="Find YAML examples",
         ):
@@ -6712,7 +6730,7 @@ class TestSubAgentSubjectDeduplication:
         """Distinct subjects are stored without any suffix."""
         subjects_to_return = iter(["Analyze CLI code", "Review backend tests"])
         with patch(
-            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            "stigmer_runner.worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             side_effect=lambda *_args, **_kw: next(subjects_to_return),
         ):
@@ -6732,11 +6750,11 @@ class TestSubAgentSubjectDeduplication:
     @pytest.mark.asyncio
     async def test_dedup_respects_max_subject_length(self, status_builder):
         """A long subject is truncated so the suffix still fits within 50 chars."""
-        from worker.activities.graphton.status_builder import _MAX_SUBJECT_LENGTH
+        from stigmer_runner.worker.activities.graphton.status_builder import _MAX_SUBJECT_LENGTH
 
         long_subject = "A" * _MAX_SUBJECT_LENGTH
         with patch(
-            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            "stigmer_runner.worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value=long_subject,
         ):
@@ -6755,7 +6773,7 @@ class TestSubAgentSubjectDeduplication:
     async def test_empty_subject_skips_dedup(self, status_builder):
         """Empty subjects (generation failures) are not deduplicated."""
         with patch(
-            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            "stigmer_runner.worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -6789,7 +6807,7 @@ class TestOrphanedSubAgentDetection:
     @pytest.fixture(autouse=True)
     def _patch_subject_gen(self):
         with patch(
-            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            "stigmer_runner.worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -7459,7 +7477,7 @@ class TestUniversalNamespaceRegistration:
     @pytest.fixture(autouse=True)
     def _patch_subject_gen(self):
         with patch(
-            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            "stigmer_runner.worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -7575,7 +7593,7 @@ class TestFinalizationPreservesTerminalStatus:
     @pytest.fixture(autouse=True)
     def _patch_subject_gen(self):
         with patch(
-            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            "stigmer_runner.worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -7736,7 +7754,7 @@ class TestRebuildFromProto:
 
     def test_indexes_main_agent_tool_calls(self, mock_initial_status):
         """Tool calls inside main-agent AI messages are indexed."""
-        from worker.activities.graphton.execution_state import ExecutionState
+        from stigmer_runner.worker.activities.graphton.execution_state import ExecutionState
 
         ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
         ai_msg.tool_calls.add(
@@ -7760,7 +7778,7 @@ class TestRebuildFromProto:
         """Tool calls inside sub-agent messages are also indexed."""
         from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
 
-        from worker.activities.graphton.execution_state import ExecutionState
+        from stigmer_runner.worker.activities.graphton.execution_state import ExecutionState
 
         sa = SubAgentExecution(
             id="toolu_SA1", name="generalPurpose",
@@ -7782,7 +7800,7 @@ class TestRebuildFromProto:
         """Completed/failed/cancelled sub-agents populate completed_sub_agents."""
         from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
 
-        from worker.activities.graphton.execution_state import ExecutionState
+        from stigmer_runner.worker.activities.graphton.execution_state import ExecutionState
 
         sa_done = SubAgentExecution(
             id="sa-1", name="generalPurpose",
@@ -7806,7 +7824,7 @@ class TestRebuildFromProto:
 
     def test_copies_artifacts(self):
         """Proto artifacts are copied into state.artifacts."""
-        from worker.activities.graphton.execution_state import ExecutionState
+        from stigmer_runner.worker.activities.graphton.execution_state import ExecutionState
 
         proto = AgentExecutionStatus()
         proto.artifacts.add(name="output.txt", sandbox_path="project/output.txt")
@@ -7820,7 +7838,7 @@ class TestRebuildFromProto:
 
     def test_ephemeral_state_starts_fresh(self, mock_initial_status):
         """Ephemeral fields (timing, buffers, approval) are empty after rebuild."""
-        from worker.activities.graphton.execution_state import ExecutionState
+        from stigmer_runner.worker.activities.graphton.execution_state import ExecutionState
 
         ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
         ai_msg.tool_calls.add(
@@ -7843,7 +7861,7 @@ class TestRebuildFromProto:
 
     def test_skips_tool_calls_without_id(self, mock_initial_status):
         """Tool calls with empty id are not indexed (edge case)."""
-        from worker.activities.graphton.execution_state import ExecutionState
+        from stigmer_runner.worker.activities.graphton.execution_state import ExecutionState
 
         ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
         ai_msg.tool_calls.add(id="", name="write")
@@ -7857,7 +7875,7 @@ class TestRebuildFromProto:
 
     def test_skips_non_ai_messages(self, mock_initial_status):
         """Human messages are ignored during tool call indexing."""
-        from worker.activities.graphton.execution_state import ExecutionState
+        from stigmer_runner.worker.activities.graphton.execution_state import ExecutionState
 
         human_msg = AgentMessage(type=MessageType.MESSAGE_HUMAN)
         ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
