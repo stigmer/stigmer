@@ -88,6 +88,9 @@ jobs:
     needs: [determine-version, generate-protos]
     permissions:
       contents: write
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
