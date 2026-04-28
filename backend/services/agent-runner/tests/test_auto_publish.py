@@ -137,7 +137,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -169,7 +169,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -203,7 +203,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -237,7 +237,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             side_effect=[mock_artifact_1, mock_artifact_2],
         ) as mock_publish:
@@ -266,7 +266,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -296,7 +296,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             side_effect=[FileNotFoundError("not found"), mock_artifact],
         ):
@@ -325,7 +325,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -377,7 +377,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -411,7 +411,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -442,7 +442,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -475,7 +475,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -539,7 +539,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -581,7 +581,7 @@ class TestAutoPublishWrittenFiles:
             return f"workspace/{p.lstrip('/')}"
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -617,7 +617,7 @@ class TestAutoPublishWrittenFiles:
             return f"workspace/{p.lstrip('/')}"
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -652,7 +652,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -685,7 +685,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
         ) as mock_publish:
             count = await _auto_publish_written_files(
@@ -715,7 +715,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -747,7 +747,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
         ) as mock_publish:
             count = await _auto_publish_written_files(
@@ -777,7 +777,7 @@ class TestAutoPublishWrittenFiles:
             return f"workspace/{p.lstrip('/')}"
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
         ) as mock_publish:
             count = await _auto_publish_written_files(
@@ -812,7 +812,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
         ) as mock_publish:
             count = await _auto_publish_written_files(
@@ -843,7 +843,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.graphton.attachments.publish_artifact",
+            "stigmer_runner.worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
