@@ -49,6 +49,7 @@ Ollama
 ADRs
 [Bb]ackend
 [Bb]ackends
+namespace
 namespaces
 hardcoding
 versionable
@@ -106,3 +107,10 @@ yourPlatform
 Figma
 Daytona
 uvx
+compat
+[Cc]heckpointer
+[Cc]heckpointers
+[Vv]env
+Docker's
+systemd
+deps

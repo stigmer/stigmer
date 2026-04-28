@@ -21,7 +21,7 @@ def _make_runner(checkpointer_type="mongodb", mongodb_uri="mongodb://localhost:2
     Patches Redis, Daytona, and MongoDB validation so we can test
     _validate_mongodb_connectivity in isolation afterward.
     """
-    from worker.config import CheckpointerConfig
+    from stigmer_runner.worker.config import CheckpointerConfig
 
     checkpointer_config = CheckpointerConfig(
         type=checkpointer_type,
@@ -39,10 +39,10 @@ def _make_runner(checkpointer_type="mongodb", mongodb_uri="mongodb://localhost:2
     config.redis_password = None
 
     with (
-        patch("worker.worker.configure_auth"),
-        patch("worker.worker.Runner._validate_mongodb_connectivity"),
+        patch("stigmer_runner.worker.worker.configure_auth"),
+        patch("stigmer_runner.worker.worker.Runner._validate_mongodb_connectivity"),
     ):
-        from worker.worker import Runner
+        from stigmer_runner.worker.worker import Runner
         runner = Runner(config)
 
     return runner

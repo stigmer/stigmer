@@ -73,7 +73,7 @@
 
 ### 1. Temporal Activities
 
-**Location**: `worker/activities/*.py`
+**Location**: `src/stigmer_runner/worker/activities/*.py`
 
 **Patterns**:
 - Use `@activity.defn(name="ActivityName")` decorator
@@ -106,7 +106,7 @@ async def execute_graphton(execution: AgentExecution, thread_id: str) -> None:
 **Register in worker**:
 ```python
 # worker/worker.py
-from worker.activities.execute_graphton import execute_graphton
+from stigmer_runner.worker.activities.execute_graphton import execute_graphton
 
 activities = [
     execute_graphton,
@@ -116,7 +116,7 @@ activities = [
 
 ### 2. gRPC Clients
 
-**Location**: `grpc_client/*.py`
+**Location**: `src/stigmer_runner/grpc_client/*.py`
 
 **Patterns**:
 - One client per API resource (AgentClient, ExecutionClient, etc.)
@@ -157,8 +157,8 @@ Input validation failed: api_version – value must equal `agentic.stigmer.ai/v1
 ```python
 import grpc
 from ai.stigmer.agentic.agent.v1 import query_pb2_grpc
-from worker.config import Config
-from grpc_client.auth.client_interceptor import AuthClientInterceptor
+from stigmer_runner.worker.config import Config
+from stigmer_runner.grpc_client.auth.client_interceptor import AuthClientInterceptor
 
 class AgentClient:
     def __init__(self, token_manager):
@@ -199,7 +199,7 @@ class AgentClient:
 
 ### 3. Graphton Agent Creation
 
-**Location**: `worker/activities/execute_graphton.py`
+**Location**: `src/stigmer_runner/worker/activities/execute_graphton.py`
 
 **Patterns**:
 - Use `create_deep_agent()` from graphton package
@@ -235,7 +235,7 @@ async for event in agent_graph.astream_events(
 
 ### 4. Sandbox Management
 
-**Location**: `worker/sandbox_manager.py`
+**Location**: `src/stigmer_runner/worker/sandbox_manager.py`
 
 **Patterns**:
 - Session-based lifecycle: sandbox tied to session
@@ -260,7 +260,7 @@ else:
 
 ### 5. Skills Integration
 
-**Location**: `worker/activities/graphton/skill_writer.py`
+**Location**: `src/stigmer_runner/worker/activities/graphton/skill_writer.py`
 
 **Patterns**:
 - Fetch skills via `SkillClient.list_by_ids()`
@@ -271,7 +271,7 @@ else:
 
 **Example**:
 ```python
-from worker.activities.graphton.skill_writer import SkillWriter
+from stigmer_runner.worker.activities.graphton.skill_writer import SkillWriter
 
 skills = await skill_client.list_by_ids(skill_ids)
 skill_writer = SkillWriter(sandbox=sandbox)
@@ -284,7 +284,7 @@ enhanced_prompt = base_instructions + skills_prompt
 
 ### 6. Token Management
 
-**Location**: `worker/token_service.py`, `grpc_client/auth/token_manager.py`
+**Location**: `src/stigmer_runner/worker/token_service.py`, `src/stigmer_runner/grpc_client/auth/token_manager.py`
 
 **Patterns**:
 - User tokens: One-time use from Redis, deleted after fetch
@@ -311,7 +311,7 @@ await token_manager.get_token()
 
 ### 7. Configuration
 
-**Location**: `worker/config.py`
+**Location**: `src/stigmer_runner/worker/config.py`
 
 **Patterns**:
 - Use dataclass for type safety
@@ -541,7 +541,7 @@ activity2.persist(result);  // Workflow passes data
 **Fix**: 
 1. Check worker running: `poetry run python main.py`
 2. Check logs: "Registered activities on task queue: execution"
-3. Verify in `worker/worker.py`:
+3. Verify in `src/stigmer_runner/worker/worker.py`:
 ```python
 activities=[
     execute_graphton,  # Must be in list
@@ -660,13 +660,13 @@ This agent-runner rule differs from stigmer-service backend handlers rule:
 ## Quick Reference
 
 **File Locations**:
-- Activities: `worker/activities/*.py`
-- gRPC Clients: `grpc_client/*.py`
-- Config: `worker/config.py`
-- Sandbox: `worker/sandbox_manager.py`
-- Skills: `worker/activities/graphton/skill_writer.py`
+- Activities: `src/stigmer_runner/worker/activities/*.py`
+- gRPC Clients: `src/stigmer_runner/grpc_client/*.py`
+- Config: `src/stigmer_runner/worker/config.py`
+- Sandbox: `src/stigmer_runner/worker/sandbox_manager.py`
+- Skills: `src/stigmer_runner/worker/activities/graphton/skill_writer.py`
 - Main: `main.py`
-- Worker: `worker/worker.py`
+- Worker: `src/stigmer_runner/worker/worker.py`
 
 **Key Imports**:
 ```python
@@ -677,7 +677,7 @@ from temporalio.worker import Worker
 
 # gRPC
 import grpc
-from grpc_client.auth.client_interceptor import AuthClientInterceptor
+from stigmer_runner.grpc_client.auth.client_interceptor import AuthClientInterceptor
 
 # Graphton
 from graphton import create_deep_agent
@@ -698,7 +698,7 @@ poetry run python main.py
 poetry run pytest
 
 # Type checking
-poetry run mypy worker/
+mypy src/stigmer_runner/worker/
 
 # Build Docker image
 docker build -f Dockerfile -t agent-runner .

@@ -25,9 +25,9 @@ class TestMcpServerClientGet:
     @pytest.fixture
     def mcp_client_with_mock_stub(self, mock_mcp_server_stub):
         """Create McpServerClient with mocked stub and channel."""
-        with patch('grpc_client.mcp_server_client.Config') as mock_config_class, \
-             patch('grpc_client.mcp_server_client.grpc.aio') as mock_grpc_aio, \
-             patch('grpc_client.mcp_server_client.query_pb2_grpc') as mock_pb2_grpc:
+        with patch('stigmer_runner.grpc_client.mcp_server_client.Config') as mock_config_class, \
+             patch('stigmer_runner.grpc_client.mcp_server_client.grpc.aio') as mock_grpc_aio, \
+             patch('stigmer_runner.grpc_client.mcp_server_client.query_pb2_grpc') as mock_pb2_grpc:
             
             # Mock config
             mock_config = MagicMock()
@@ -41,7 +41,7 @@ class TestMcpServerClientGet:
             # Mock stub creation
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
-            from grpc_client.mcp_server_client import McpServerClient
+            from stigmer_runner.grpc_client.mcp_server_client import McpServerClient
             client = McpServerClient(token="test-api-key")
             
             return client
@@ -126,9 +126,9 @@ class TestMcpServerClientGetByReference:
     @pytest.fixture
     def mcp_client_with_mock_stub(self, mock_mcp_server_stub):
         """Create McpServerClient with mocked stub and channel."""
-        with patch('grpc_client.mcp_server_client.Config') as mock_config_class, \
-             patch('grpc_client.mcp_server_client.grpc.aio') as mock_grpc_aio, \
-             patch('grpc_client.mcp_server_client.query_pb2_grpc') as mock_pb2_grpc:
+        with patch('stigmer_runner.grpc_client.mcp_server_client.Config') as mock_config_class, \
+             patch('stigmer_runner.grpc_client.mcp_server_client.grpc.aio') as mock_grpc_aio, \
+             patch('stigmer_runner.grpc_client.mcp_server_client.query_pb2_grpc') as mock_pb2_grpc:
             
             mock_config = MagicMock()
             mock_config.stigmer_backend_endpoint = "localhost:9090"
@@ -138,7 +138,7 @@ class TestMcpServerClientGetByReference:
             mock_grpc_aio.insecure_channel.return_value = mock_channel
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
-            from grpc_client.mcp_server_client import McpServerClient
+            from stigmer_runner.grpc_client.mcp_server_client import McpServerClient
             return McpServerClient(token="test-api-key")
 
     @pytest.mark.asyncio
@@ -212,9 +212,9 @@ class TestMcpServerClientListByIds:
     @pytest.fixture
     def mcp_client_with_mock_stub(self, mock_mcp_server_stub):
         """Create McpServerClient with mocked stub and channel."""
-        with patch('grpc_client.mcp_server_client.Config') as mock_config_class, \
-             patch('grpc_client.mcp_server_client.grpc.aio') as mock_grpc_aio, \
-             patch('grpc_client.mcp_server_client.query_pb2_grpc') as mock_pb2_grpc:
+        with patch('stigmer_runner.grpc_client.mcp_server_client.Config') as mock_config_class, \
+             patch('stigmer_runner.grpc_client.mcp_server_client.grpc.aio') as mock_grpc_aio, \
+             patch('stigmer_runner.grpc_client.mcp_server_client.query_pb2_grpc') as mock_pb2_grpc:
             
             mock_config = MagicMock()
             mock_config.stigmer_backend_endpoint = "localhost:9090"
@@ -224,7 +224,7 @@ class TestMcpServerClientListByIds:
             mock_grpc_aio.insecure_channel.return_value = mock_channel
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
-            from grpc_client.mcp_server_client import McpServerClient
+            from stigmer_runner.grpc_client.mcp_server_client import McpServerClient
             return McpServerClient(token="test-api-key")
 
     @pytest.mark.asyncio
@@ -284,9 +284,9 @@ class TestMcpServerClientListByRefs:
     @pytest.fixture
     def mcp_client_with_mock_stub(self, mock_mcp_server_stub):
         """Create McpServerClient with mocked stub and channel."""
-        with patch('grpc_client.mcp_server_client.Config') as mock_config_class, \
-             patch('grpc_client.mcp_server_client.grpc.aio') as mock_grpc_aio, \
-             patch('grpc_client.mcp_server_client.query_pb2_grpc') as mock_pb2_grpc:
+        with patch('stigmer_runner.grpc_client.mcp_server_client.Config') as mock_config_class, \
+             patch('stigmer_runner.grpc_client.mcp_server_client.grpc.aio') as mock_grpc_aio, \
+             patch('stigmer_runner.grpc_client.mcp_server_client.query_pb2_grpc') as mock_pb2_grpc:
             
             mock_config = MagicMock()
             mock_config.stigmer_backend_endpoint = "localhost:9090"
@@ -296,7 +296,7 @@ class TestMcpServerClientListByRefs:
             mock_grpc_aio.insecure_channel.return_value = mock_channel
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
-            from grpc_client.mcp_server_client import McpServerClient
+            from stigmer_runner.grpc_client.mcp_server_client import McpServerClient
             return McpServerClient(token="test-api-key")
 
     @pytest.mark.asyncio
@@ -378,9 +378,9 @@ class TestMcpServerClientChannel:
 
     def test_secure_channel_for_port_443(self, mock_mcp_server_stub):
         """Test that port 443 endpoints use secure channel."""
-        with patch('grpc_client.mcp_server_client.Config') as mock_config_class, \
-             patch('grpc_client.mcp_server_client.grpc.aio') as mock_grpc_aio, \
-             patch('grpc_client.mcp_server_client.query_pb2_grpc') as mock_pb2_grpc:
+        with patch('stigmer_runner.grpc_client.mcp_server_client.Config') as mock_config_class, \
+             patch('stigmer_runner.grpc_client.mcp_server_client.grpc.aio') as mock_grpc_aio, \
+             patch('stigmer_runner.grpc_client.mcp_server_client.query_pb2_grpc') as mock_pb2_grpc:
             
             mock_config = MagicMock()
             mock_config.stigmer_backend_endpoint = "api.stigmer.ai:443"
@@ -388,7 +388,7 @@ class TestMcpServerClientChannel:
             
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
-            from grpc_client.mcp_server_client import McpServerClient
+            from stigmer_runner.grpc_client.mcp_server_client import McpServerClient
             McpServerClient(token="test-api-key")
             
             # Assert secure_channel was called
@@ -397,9 +397,9 @@ class TestMcpServerClientChannel:
 
     def test_insecure_channel_for_other_ports(self, mock_mcp_server_stub):
         """Test that non-443 endpoints use insecure channel."""
-        with patch('grpc_client.mcp_server_client.Config') as mock_config_class, \
-             patch('grpc_client.mcp_server_client.grpc.aio') as mock_grpc_aio, \
-             patch('grpc_client.mcp_server_client.query_pb2_grpc') as mock_pb2_grpc:
+        with patch('stigmer_runner.grpc_client.mcp_server_client.Config') as mock_config_class, \
+             patch('stigmer_runner.grpc_client.mcp_server_client.grpc.aio') as mock_grpc_aio, \
+             patch('stigmer_runner.grpc_client.mcp_server_client.query_pb2_grpc') as mock_pb2_grpc:
             
             mock_config = MagicMock()
             mock_config.stigmer_backend_endpoint = "localhost:9090"
@@ -407,7 +407,7 @@ class TestMcpServerClientChannel:
             
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
-            from grpc_client.mcp_server_client import McpServerClient
+            from stigmer_runner.grpc_client.mcp_server_client import McpServerClient
             McpServerClient(token="test-api-key")
             
             # Assert insecure_channel was called
@@ -417,9 +417,9 @@ class TestMcpServerClientChannel:
     @pytest.mark.asyncio
     async def test_close_channel(self, mock_mcp_server_stub):
         """Test that close() properly closes the channel."""
-        with patch('grpc_client.mcp_server_client.Config') as mock_config_class, \
-             patch('grpc_client.mcp_server_client.grpc.aio') as mock_grpc_aio, \
-             patch('grpc_client.mcp_server_client.query_pb2_grpc') as mock_pb2_grpc:
+        with patch('stigmer_runner.grpc_client.mcp_server_client.Config') as mock_config_class, \
+             patch('stigmer_runner.grpc_client.mcp_server_client.grpc.aio') as mock_grpc_aio, \
+             patch('stigmer_runner.grpc_client.mcp_server_client.query_pb2_grpc') as mock_pb2_grpc:
             
             mock_config = MagicMock()
             mock_config.stigmer_backend_endpoint = "localhost:9090"
@@ -430,7 +430,7 @@ class TestMcpServerClientChannel:
             mock_grpc_aio.insecure_channel.return_value = mock_channel
             mock_pb2_grpc.McpServerQueryControllerStub.return_value = mock_mcp_server_stub
             
-            from grpc_client.mcp_server_client import McpServerClient
+            from stigmer_runner.grpc_client.mcp_server_client import McpServerClient
             client = McpServerClient(token="test-api-key")
             
             # Act

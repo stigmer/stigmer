@@ -13,13 +13,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from worker.activities.execute_graphton import (
+from stigmer_runner.worker.activities.execute_graphton import (
     _MAX_ZIP_EXTRACTED_SIZE,
     _MAX_ZIP_FILES,
     _validate_zip_for_extraction,
     inject_attachments,
 )
-from worker.workspace.local import LocalWorkspaceBackend
+from stigmer_runner.worker.workspace.local import LocalWorkspaceBackend
 
 # =============================================================================
 # Helpers

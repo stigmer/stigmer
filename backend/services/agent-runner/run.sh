@@ -59,5 +59,10 @@ cd "${SERVICE_DIR}"
 # Note: .env file is loaded automatically by main.py via python-dotenv
 # No need to source it here - Python's load_dotenv() handles it properly
 
-# Run with Poetry (which manages the virtualenv and dependencies)
-exec poetry run python main.py "$@"
+# Prefer the in-project virtualenv if it exists (production / poetry install),
+# otherwise fall back to whichever python3 is on PATH (Bazel, system venv).
+if [ -x "${SERVICE_DIR}/.venv/bin/python" ]; then
+    exec "${SERVICE_DIR}/.venv/bin/python" main.py "$@"
+else
+    exec python3 main.py "$@"
+fi

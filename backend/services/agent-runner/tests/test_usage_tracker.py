@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import pytest
 
-from worker.activities.graphton.usage_tracker import (
+from stigmer_runner.worker.activities.graphton.usage_tracker import (
     MAIN_SCOPE,
     UsageTracker,
     _compute_call_cost,

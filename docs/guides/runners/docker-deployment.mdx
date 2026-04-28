@@ -1,0 +1,221 @@
+---
+title: Deploy with Docker
+description:
+  Run the agent-runner as a Docker container. Covers standalone Docker, Docker
+  Compose, and Kubernetes deployment with health checks and production
+  configuration.
+---
+
+The `ghcr.io/stigmer/agent-runner` image packages the agent-runner as a
+ready-to-run container. Use it when you need isolation from the host, a
+reproducible environment, or a deployment target for Kubernetes.
+
+<Callout type="tip">
+  If you use Stigmer Cloud, the simplest path is [`stigmer up --runtime
+  docker`](/docs/guides/runners/local-runner#docker-runtime). The CLI handles
+  image pulling, Temporal configuration, and lifecycle automatically. This guide
+  is for deploying the container directly — useful for self-hosted setups,
+  Kubernetes, and CI/CD pipelines.
+</Callout>
+
+## Pull the image
+
+```bash
+docker pull ghcr.io/stigmer/agent-runner:latest
+```
+
+Tagged versions follow the CLI release tags (for example,
+`ghcr.io/stigmer/agent-runner:v0.5.0`). Use a specific tag in production to pin
+the version.
+
+## Run with Docker
+
+The minimum configuration depends on your deployment. For Stigmer Cloud, you
+need your API key and the backend address:
+
+```bash
+docker run -d \
+  --name stigmer-runner \
+  -e STIGMER_TOKEN=stk_your_api_key \
+  -e STIGMER_BACKEND_ENDPOINT=api.stigmer.ai:443 \
+  -v stigmer-workspace:/workspace \
+  ghcr.io/stigmer/agent-runner:latest
+```
+
+For a self-hosted Stigmer deployment where you run your own Temporal server:
+
+```bash
+docker run -d \
+  --name stigmer-runner \
+  -e MODE=local \
+  -e STIGMER_BACKEND_ENDPOINT=your-stigmer-server:50051 \
+  -e TEMPORAL_SERVICE_ADDRESS=your-temporal-server:7233 \
+  -v stigmer-workspace:/workspace \
+  ghcr.io/stigmer/agent-runner:latest
+```
+
+The runner registers with the server and begins accepting executions. It appears
+in **Settings > Runners** with a **Ready** phase badge.
+
+For the full list of environment variables, see the
+[environment variable reference](/docs/guides/runners/environment-variables).
+
+## Docker Compose
+
+For self-hosted setups where you run Temporal and the Stigmer server alongside
+the runner:
+
+```yaml
+services:
+  agent-runner:
+    image: ghcr.io/stigmer/agent-runner:latest
+    environment:
+      MODE: local
+      STIGMER_BACKEND_ENDPOINT: stigmer-server:50051
+      TEMPORAL_SERVICE_ADDRESS: temporal:7233
+      STIGMER_LLM_PROVIDER: ollama
+      STIGMER_LLM_BASE_URL: http://ollama:11434
+    volumes:
+      - runner-workspace:/workspace
+    depends_on:
+      - temporal
+      - stigmer-server
+
+volumes:
+  runner-workspace:
+```
+
+This example assumes `temporal`, `stigmer-server`, and `ollama` services are
+defined elsewhere in your Compose file. Adjust the service names and addresses
+to match your setup.
+
+## Kubernetes
+
+A Kubernetes Deployment for running the agent-runner in a cluster:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stigmer-runner
+  labels:
+    app: stigmer-runner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stigmer-runner
+  template:
+    metadata:
+      labels:
+        app: stigmer-runner
+    spec:
+      containers:
+        - name: agent-runner
+          image: ghcr.io/stigmer/agent-runner:latest
+          envFrom:
+            - secretRef:
+                name: stigmer-runner-credentials
+          env:
+            - name: STIGMER_BACKEND_ENDPOINT
+              value: "api.stigmer.ai:443"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          livenessProbe:
+            exec:
+              command:
+                - /app/.venv/bin/python
+                - -c
+                - "from stigmer_runner.worker.config import Config"
+            initialDelaySeconds: 40
+            periodSeconds: 30
+            timeoutSeconds: 10
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace
+      volumes:
+        - name: workspace
+          emptyDir: {}
+```
+
+Create the Secret with your credentials:
+
+```bash
+kubectl create secret generic stigmer-runner-credentials \
+  --from-literal=STIGMER_TOKEN=stk_your_api_key
+```
+
+### Scaling
+
+Each pod runs one runner process. To add capacity, increase `replicas`. Each
+replica registers as a separate runner and accepts executions independently.
+
+The runner supports up to 10 concurrent executions by default. Adjust
+`TEMPORAL_MAX_CONCURRENCY` to change this. Set resource limits based on your
+workload — LLM-heavy agents are memory-bound, tool-heavy agents are CPU-bound.
+
+## Health checks
+
+The image includes a built-in `HEALTHCHECK` that verifies the Python environment
+can import the runner's core modules. Docker uses this automatically.
+
+For Kubernetes, the example above uses the same check as a `livenessProbe`. The
+runner does not expose an HTTP health endpoint — the import check confirms the
+process is alive and the Python environment is intact.
+
+| Parameter             | Value | Reason                                          |
+| --------------------- | ----- | ----------------------------------------------- |
+| `initialDelaySeconds` | `40`  | Allows time for Python startup and venv loading |
+| `periodSeconds`       | `30`  | Matches the runner's heartbeat interval         |
+| `timeoutSeconds`      | `10`  | Python import should complete well within this  |
+
+## Custom images
+
+To add dependencies your agents need (system packages, Python libraries, or
+runtime tools), extend the base image:
+
+```dockerfile
+FROM ghcr.io/stigmer/agent-runner:latest
+
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN /app/.venv/bin/pip install --no-cache-dir \
+    pandas \
+    numpy
+
+USER stigmer
+```
+
+The base image runs as a non-root `stigmer` user (UID 1000). Switch to `root` to
+install system packages, then switch back.
+
+## Shutdown behavior
+
+When the container receives `SIGTERM` (from `docker stop` or Kubernetes pod
+termination), the runner shuts down gracefully:
+
+1. It stops accepting new executions.
+2. It waits for in-flight executions to complete.
+3. It sends a final status update to the server.
+4. The server marks the runner as **Stopped**.
+
+Docker's default stop timeout is 10 seconds. If your agents run long executions,
+increase the timeout with `docker stop --time 30` or set
+`terminationGracePeriodSeconds: 60` in the Kubernetes pod spec.
+
+## What's next
+
+- [Environment variables](/docs/guides/runners/environment-variables) — complete
+  reference for every variable the runner reads
+- [Stop runners and clean up](/docs/guides/runners/stop-and-cleanup) — stop
+  behavior, state files, and cleanup across all interfaces
+- [PyPI package](/docs/guides/runners/pypi-package) — install and run the runner
+  as a Python package without Docker

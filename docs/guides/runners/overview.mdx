@@ -1,20 +1,18 @@
 ---
-title: Runners (CLI)
+title: Runners
 description:
-  Start, stop, and monitor local runners from the command line. Manage native
-  and Docker runtimes, run multiple runners, and check status — all from your
-  terminal.
+  Start, stop, and monitor runners from the CLI or the desktop app. Integrate
+  runners into your own platform using the CLI as a sidecar.
 ---
 
-The `stigmer` CLI gives you full control over runner processes on your machine.
-Start a runner with one command, run multiple runners side by side, switch
-between native and Docker runtime options, and stop everything when you're done.
+These guides cover how to run and manage runners — from starting one on your
+laptop to integrating runner management into your own platform.
 
 If you prefer a graphical interface, the
-[Stigmer Desktop app](/docs/guides/desktop/overview) offers the same runner
-management through a native window and system tray. Both interfaces manage the
-same runners — start one from the CLI and stop it from the desktop app, or the
-other way around.
+[Stigmer Desktop app](/docs/guides/desktop/overview) manages runners through a
+native window and system tray. Both the CLI and the desktop app manage the same
+runners — start one from the CLI and stop it from the desktop app, or the other
+way around.
 
 ## CLI vs Desktop App vs Web Console
 
@@ -44,24 +42,28 @@ other way around.
     Stop individual runners or all at once, understand daemon-managed vs
     standalone runners, and clean up state files.
   </Card>
+  <Card
+    href="/docs/guides/runners/platform-integration"
+    title="Integrate runners into your platform"
+  >
+    Bundle the Stigmer CLI as a sidecar in your own app. Start, stop, and
+    monitor runners on behalf of your users.
+  </Card>
 </Cards>
 
 {/* vale on */}
 
 ## Who these guides are for
 
-These guides are for developers who prefer the terminal or need runner
-management in Environments without a graphical interface — SSH Sessions, CI/CD
-pipelines, Docker containers, or headless servers.
+These guides serve two audiences:
+
+- **Developers** who want to start a runner on their machine for development and
+  testing — via the CLI or the desktop app.
+- **Platform builders** who need to integrate runner management into their own
+  applications — using the CLI as a sidecar process or the SDK for programmatic
+  control.
 
 You should already understand what [Runners](/docs/concepts/runners) are and how
 they fit the platform. If terms like "runner phase" or "local vs cloud runner"
 aren't familiar yet, start with the
 [Runners concept page](/docs/concepts/runners).
-
-**Prerequisites:**
-
-- The Stigmer CLI is installed. If you went through the
-  [Quickstart](/docs/getting-started/quickstart), you already have it.
-- You are authenticated — either via `stigmer auth login` (cloud) or running a
-  local server with `stigmer up server`.

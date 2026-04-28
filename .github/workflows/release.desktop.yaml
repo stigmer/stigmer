@@ -2,6 +2,8 @@ name: release.desktop
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -35,6 +37,9 @@ jobs:
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="test-$(git rev-parse --short HEAD)"
             SHOULD_RELEASE="${{ github.event.inputs.create_release }}"
+          else
+            VERSION="test-$(git rev-parse --short HEAD)"
+            SHOULD_RELEASE="false"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
@@ -84,10 +89,50 @@ jobs:
           path: proto-stubs.tar.gz
           retention-days: 1
 
-  build:
+  # Lint and type-check agent-runner (Python)
+  # Gates the desktop build to prevent shipping broken code in the sidecar.
+  lint-and-typecheck-agent-runner:
     needs: [determine-version, generate-protos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Download proto stubs
+        uses: actions/download-artifact@v4
+        with:
+          name: proto-stubs
+
+      - name: Extract proto stubs
+        run: tar -xzf proto-stubs.tar.gz
+
+      - name: Install dependencies
+        working-directory: backend/services/agent-runner
+        run: |
+          pip install -r requirements.txt
+          pip install ../../libs/python/graphton ../../../apis/stubs/python/stigmer
+          pip install mypy ruff types-pyyaml
+
+      - name: Run MyPy type checking
+        working-directory: backend/services/agent-runner
+        run: mypy src/stigmer_runner/grpc_client/ src/stigmer_runner/worker/ --show-error-codes
+
+      - name: Run Ruff linter
+        working-directory: backend/services/agent-runner
+        run: ruff check src/stigmer_runner/grpc_client/ src/stigmer_runner/worker/
+
+  build:
+    needs: [determine-version, generate-protos, lint-and-typecheck-agent-runner]
     permissions:
       contents: write
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:

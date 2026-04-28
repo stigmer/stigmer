@@ -12,7 +12,7 @@ import pytest
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
 
-from worker.activities.graphton.streaming import StreamExecutor, StreamResult
+from stigmer_runner.worker.activities.graphton.streaming import StreamExecutor, StreamResult
 
 
 class TestHandlePauseNoGrpcCalls:

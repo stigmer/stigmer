@@ -1,4 +1,9 @@
 {
-  "title": "Runners (CLI)",
-  "pages": ["overview", "local-runner", "stop-and-cleanup"]
+  "title": "Runners",
+  "pages": [
+    "overview",
+    "local-runner",
+    "stop-and-cleanup",
+    "platform-integration"
+  ]
 }

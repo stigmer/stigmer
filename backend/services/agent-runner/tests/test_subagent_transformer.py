@@ -17,7 +17,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from worker.activities.graphton.subagent_transformer import (
+from stigmer_runner.worker.activities.graphton.subagent_transformer import (
     BUILTIN_SUBAGENT_TYPES,
     _build_usage_slug_map,
     _collect_all_skill_refs,

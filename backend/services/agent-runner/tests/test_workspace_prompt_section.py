@@ -10,18 +10,18 @@ Tests cover:
 
 from __future__ import annotations
 
-from worker.activities.execute_graphton import (
+from stigmer_runner.worker.activities.execute_graphton import (
     _format_entry_description,
     build_referenced_files_prompt_section,
     build_workspace_prompt_section,
 )
-from worker.workspace.provisioner import (
+from stigmer_runner.worker.workspace.provisioner import (
     GitMetadata,
     ProvisionResult,
     SourceType,
 )
-from worker.workspace.tree import build_directory_tree as _build_directory_tree
-from worker.workspace.tree import human_size as _human_size
+from stigmer_runner.worker.workspace.tree import build_directory_tree as _build_directory_tree
+from stigmer_runner.worker.workspace.tree import human_size as _human_size
 
 # =============================================================================
 # Helpers

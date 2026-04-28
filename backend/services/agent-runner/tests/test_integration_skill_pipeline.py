@@ -24,8 +24,8 @@ from unittest.mock import MagicMock
 import pytest
 
 # Import components under test
-from worker.activities.graphton.skill_writer import SkillWriter
-from worker.workspace.local import LocalWorkspaceBackend
+from stigmer_runner.worker.activities.graphton.skill_writer import SkillWriter
+from stigmer_runner.worker.workspace.local import LocalWorkspaceBackend
 
 
 class TestFullPipelineIntegration:
