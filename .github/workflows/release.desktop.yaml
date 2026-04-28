@@ -35,10 +35,10 @@ jobs:
             SHOULD_RELEASE="true"
             echo "Triggered by tag: $VERSION"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="test-$(git rev-parse --short HEAD)"
+            VERSION="0.0.0-test.$(git rev-parse --short HEAD)"
             SHOULD_RELEASE="${{ github.event.inputs.create_release }}"
           else
-            VERSION="test-$(git rev-parse --short HEAD)"
+            VERSION="0.0.0-test.$(git rev-parse --short HEAD)"
             SHOULD_RELEASE="false"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
