@@ -1,0 +1,133 @@
+---
+description: Action rule to create a semver-tagged release with rich annotated release notes for the Stigmer OSS repo
+alwaysApply: false
+---
+
+# Rule: Release Stigmer OSS
+
+## Purpose
+
+When triggered, determine the correct semver bump, create annotated tags with detailed release notes, and push them to origin — triggering all downstream CI release pipelines.
+
+## Rule Type
+
+**Action Rule** - Executes git tag and push operations
+
+## When to Use
+
+- When user asks to "release", "cut a release", "tag a release", or "make release"
+- After a set of changes on `main` are ready to ship
+
+## Execution Steps
+
+### 1. Identify the Previous Release
+
+```bash
+git tag -l "v*" | sort -V | tail -n1
+```
+
+Report the latest tag to the user (e.g. "Previous release: **v0.1.2**").
+
+### 2. Collect Commits Since Last Release
+
+```bash
+git log --oneline <previous-tag>..HEAD
+```
+
+List commits for the user so they can see what's included.
+
+### 3. Determine the Version Bump
+
+Apply **Conventional Commits** rules to choose `patch`, `minor`, or `major`:
+
+| Condition | Bump |
+|-----------|------|
+| Any commit message contains `BREAKING CHANGE:` or has a `!` after the type/scope | **major** |
+| Any commit has type `feat` | **minor** |
+| Only `fix`, `docs`, `chore`, `ci`, `refactor`, `perf`, `style`, `test`, `revert` | **patch** |
+
+Present the reasoning and proposed new version (e.g. "`feat` commit found → minor bump → **v0.2.0**"). Ask the user to confirm before proceeding.
+
+### 4. Check for Uncommitted Changes
+
+```bash
+git status --short
+```
+
+If there are uncommitted changes, warn the user and ask whether to commit first or abort.
+
+### 5. Compose Release Notes
+
+Build a Markdown-formatted annotated tag message. Group commits by Conventional Commit type:
+
+```
+Release v<NEW_VERSION>
+
+## What's Changed
+
+### Features
+- **<scope>**: <description>
+
+### Bug Fixes
+- **<scope>**: <description>
+
+### CI/CD
+- **<scope>**: <description>
+
+### Documentation
+- **<scope>**: <description>
+
+### Chores
+- <description>
+
+**Full Changelog**: https://github.com/stigmer/stigmer/compare/<PREV>...<NEW>
+```
+
+Rules for the notes:
+- Omit sections that have no commits (e.g. skip "### Features" if there are no `feat` commits)
+- Skip merge commits and project-management docs commits (changelogs, session checkpoints, next-task updates) from the notes — they add noise
+- Use imperative mood and keep each bullet to one line
+- Include scope in bold when available
+
+### 6. Create Tags
+
+Create three annotated tags (mirroring the `make release` target):
+
+```bash
+git tag -a "sdk/go/v<NEW>"     -m "Release sdk/go v<NEW>"
+git tag -a "mcp-server/v<NEW>" -m "Release mcp-server v<NEW>"
+git tag -a "v<NEW>"            -m "<full release notes from step 5>"
+```
+
+The `sdk/go` and `mcp-server` tags get short messages; the main `v*` tag gets the full release notes.
+
+### 7. Push Tags
+
+```bash
+for t in "sdk/go/v<NEW>" "mcp-server/v<NEW>" "v<NEW>"; do
+  echo "  pushing $t"
+  git push origin "$t"
+done
+```
+
+### 8. Confirm
+
+After pushing, print the CI summary (same as `make release`):
+
+```
+Tags pushed. CI will handle:
+  - Protos to BSR                  (release.buf.yaml)
+  - CLI binaries + GitHub release  (release.cli.yaml)
+  - Desktop app installers (draft) (release.desktop.yaml)
+  - @stigmer/* npm packages        (release.npm-libs.yaml)
+  - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)
+  - stigmer + stigmer-protos PyPI  (release.python-sdk.yaml)
+  - MCP server binaries + Docker   (release.mcp-server.yaml)
+```
+
+## Important Notes
+
+- **Never force-push tags** — if a tag already exists, stop and tell the user
+- **Always confirm** the version bump with the user before creating tags
+- **Clean working tree required** — do not tag with uncommitted changes unless the user explicitly approves
+- If the user specifies a bump type (`patch`, `minor`, `major`), use it; otherwise infer from commits
