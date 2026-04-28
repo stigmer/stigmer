@@ -4,6 +4,7 @@ import { useState, useCallback, type KeyboardEvent } from "react";
 import type { UseWorkspaceEntriesReturn } from "./useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 import { GitHubRepoPicker } from "../github/GitHubRepoPicker";
+import { RunnerFileBrowser } from "../runner/RunnerFileBrowser";
 import { useScrollShadows } from "../internal/useScrollShadows";
 import { ScrollFade } from "../internal/ScrollFade";
 
@@ -17,48 +18,42 @@ export interface WorkspaceEditorProps {
   readonly disabled?: boolean;
   /** GitHub connection state. When provided, enables the GitHub repo picker. */
   readonly gitHubConnection?: UseGitHubConnectionReturn;
-  /** Show the GitHub Repo source button. Default: true. */
+  /** Show the GitHub Repo tab. Default: true. */
   readonly enableGitHub?: boolean;
-  /** Show the Local Folder source button. Default: false (set by Console based on deployment mode). */
+  /**
+   * Show the Local Folder tab. Default: false.
+   *
+   * The tab is only rendered when `runnerId` is also provided, since the
+   * file browser requires a connected runner to query.
+   */
   readonly enableLocal?: boolean;
+  /**
+   * ID of the runner to use for filesystem browsing.
+   *
+   * When provided together with `enableLocal`, the Local Folder tab
+   * renders a {@link RunnerFileBrowser} that queries the runner's
+   * filesystem via the `ListDirectory` command.
+   */
+  readonly runnerId?: string | null;
   /**
    * Native folder picker callback for desktop environments.
    *
-   * When provided and `enableLocal` is `true`, clicking the "Local Folder"
-   * button invokes this callback instead of showing the manual path input.
-   * Should resolve to an absolute folder path, or `null` if the user
-   * cancelled the dialog.
-   *
-   * When not provided, falls back to the inline text input for manual
-   * path entry (backward compatible with web environments).
-   *
-   * @example
-   * ```tsx
-   * // Tauri desktop integration
-   * const browseFolder = useCallback(async () => {
-   *   const { open } = await import("@tauri-apps/plugin-dialog");
-   *   return open({ directory: true }) as Promise<string | null>;
-   * }, []);
-   *
-   * <WorkspaceEditor
-   *   workspace={workspace}
-   *   enableLocal
-   *   onBrowseLocalFolder={browseFolder}
-   * />
-   * ```
+   * @deprecated Prefer passing `runnerId` to enable the integrated
+   * {@link RunnerFileBrowser} which provides a consistent experience
+   * across web and desktop.
    */
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   /**
    * Display name of the currently selected runner.
    *
-   * When provided (i.e. a specific runner is selected instead of "Auto"),
-   * a contextual hint is shown above the local folder input indicating
-   * that local paths are relative to this runner's filesystem.
+   * When provided, a contextual hint is shown above the manual local
+   * path input (fallback when `runnerId` is not set) indicating that
+   * paths are relative to this runner's filesystem.
    */
   readonly runnerName?: string;
 }
 
-type ActivePanel = "none" | "github" | "local";
+type ActiveTab = "local" | "github";
 
 const TYPE_LABELS: Record<string, string> = {
   git: "GitHub",
@@ -68,13 +63,13 @@ const TYPE_LABELS: Record<string, string> = {
 /**
  * Styled component that renders add/remove UI for workspace entries.
  *
- * Redesigned with two source buttons (GitHub Repo, Local Folder) that
- * open inline popovers instead of the old tab-based form.
+ * Uses a tabbed layout when multiple workspace sources are available:
+ * - **Local Folder** (default when a runner is connected): Shows an
+ *   interactive file browser via {@link RunnerFileBrowser}.
+ * - **GitHub Repo**: Shows the repo picker or connect prompt.
  *
- * When `gitHubConnection` is provided and the user is connected, the
- * GitHub button opens a repo picker. When not connected, it shows a
- * connect prompt. When `gitHubConnection` is not provided, falls back
- * to the manual URL input.
+ * When only one source is available, the tab bar is hidden and the
+ * content renders directly.
  *
  * All visual properties flow through `--stgm-*` tokens.
  *
@@ -89,7 +84,8 @@ const TYPE_LABELS: Record<string, string> = {
  *       workspace={workspace}
  *       gitHubConnection={gh}
  *       enableGitHub
- *       enableLocal={false}
+ *       enableLocal
+ *       runnerId={browseRunnerId}
  *     />
  *   );
  * }
@@ -102,22 +98,25 @@ export function WorkspaceEditor({
   gitHubConnection,
   enableGitHub = true,
   enableLocal = false,
+  runnerId,
   onBrowseLocalFolder,
   runnerName,
 }: WorkspaceEditorProps) {
-  const [activePanel, setActivePanel] = useState<ActivePanel>(
-    enableGitHub ? "github" : "none",
+  const hasLocal = enableLocal && !!runnerId;
+  const hasGitHub = enableGitHub;
+  const hasBothTabs = hasLocal && hasGitHub;
+
+  const [activeTab, setActiveTab] = useState<ActiveTab>(
+    hasLocal ? "local" : "github",
   );
+
   const [manualUrl, setManualUrl] = useState("");
   const [manualBranch, setManualBranch] = useState("");
   const entryList = useScrollShadows();
-  const [localPath, setLocalPath] = useState("");
-  const [isBrowsing, setIsBrowsing] = useState(false);
 
   const handleGitHubSelect = useCallback(
     (repoUrl: string, branch: string) => {
       workspace.addGitRepo(repoUrl, branch);
-      setActivePanel("none");
     },
     [workspace],
   );
@@ -127,30 +126,8 @@ export function WorkspaceEditor({
       workspace.addGitRepo(manualUrl.trim(), manualBranch.trim() || undefined);
       setManualUrl("");
       setManualBranch("");
-      setActivePanel("none");
     }
   }, [manualUrl, manualBranch, workspace]);
-
-  const handleLocalAdd = useCallback(() => {
-    if (localPath.trim()) {
-      workspace.addLocalPath(localPath.trim());
-      setLocalPath("");
-      setActivePanel("none");
-    }
-  }, [localPath, workspace]);
-
-  const handleBrowseLocalFolder = useCallback(async () => {
-    if (!onBrowseLocalFolder || isBrowsing) return;
-    setIsBrowsing(true);
-    try {
-      const path = await onBrowseLocalFolder();
-      if (path) {
-        workspace.addLocalPath(path);
-      }
-    } finally {
-      setIsBrowsing(false);
-    }
-  }, [onBrowseLocalFolder, isBrowsing, workspace]);
 
   const handleKeyDown = useCallback(
     (handler: () => void) => (e: KeyboardEvent<HTMLInputElement>) => {
@@ -162,12 +139,11 @@ export function WorkspaceEditor({
     [],
   );
 
-  const togglePanel = useCallback(
-    (panel: ActivePanel) => {
-      setActivePanel((prev) => (prev === panel ? "none" : panel));
-    },
-    [],
-  );
+  const effectiveTab: ActiveTab = hasLocal && activeTab === "local"
+    ? "local"
+    : hasGitHub
+      ? "github"
+      : "local";
 
   return (
     <div className={["space-y-2", className].filter(Boolean).join(" ")}>
@@ -211,51 +187,60 @@ export function WorkspaceEditor({
         </div>
       )}
 
-      {/* Source buttons */}
-      <div className="flex items-center gap-2">
-        {enableGitHub && (
+      {/* Tab bar (only when both sources are available) */}
+      {hasBothTabs && (
+        <div className="flex rounded-md border border-border bg-muted-faint p-0.5">
           <button
             type="button"
-            onClick={() => togglePanel("github")}
+            onClick={() => setActiveTab("local")}
             disabled={disabled}
             className={[
-              "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50",
-              activePanel === "github"
-                ? "bg-accent text-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
-            ].join(" ")}
-          >
-            <GitHubIcon />
-            <span>GitHub Repo</span>
-          </button>
-        )}
-
-        {enableLocal && (
-          <button
-            type="button"
-            onClick={onBrowseLocalFolder ? handleBrowseLocalFolder : () => togglePanel("local")}
-            disabled={disabled || isBrowsing}
-            className={[
-              "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50",
-              activePanel === "local"
-                ? "bg-accent text-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent-hover",
+              "flex flex-1 items-center justify-center gap-1.5 rounded px-2 py-1 text-[0.65rem] font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
+              effectiveTab === "local"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
             ].join(" ")}
           >
             <FolderIcon />
-            <span>{isBrowsing ? "Opening\u2026" : "Local Folder"}</span>
+            Local Folder
           </button>
-        )}
-      </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab("github")}
+            disabled={disabled}
+            className={[
+              "flex flex-1 items-center justify-center gap-1.5 rounded px-2 py-1 text-[0.65rem] font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
+              effectiveTab === "github"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            ].join(" ")}
+          >
+            <GitHubIcon />
+            GitHub Repo
+          </button>
+        </div>
+      )}
 
-      {/* GitHub panel */}
-      {activePanel === "github" && (
-        <div className="rounded-md border border-border bg-card p-3">
-          {gitHubConnection ? (
+      {/* Tab content */}
+      <div className="rounded-md border border-border bg-card p-3">
+        {effectiveTab === "local" && hasLocal && (
+          <RunnerFileBrowser
+            runnerId={runnerId!}
+            onSelect={(path) => workspace.addLocalPath(path)}
+            onCancel={() => {
+              if (hasGitHub) setActiveTab("github");
+            }}
+          />
+        )}
+
+        {effectiveTab === "github" && hasGitHub && (
+          gitHubConnection ? (
             <GitHubPanel
               connection={gitHubConnection}
               onSelect={handleGitHubSelect}
-              onClose={() => setActivePanel("none")}
+              onClose={() => {
+                if (hasLocal) setActiveTab("local");
+              }}
             />
           ) : (
             <ManualGitPanel
@@ -264,51 +249,14 @@ export function WorkspaceEditor({
               onUrlChange={setManualUrl}
               onBranchChange={setManualBranch}
               onAdd={handleManualAdd}
-              onCancel={() => setActivePanel("none")}
+              onCancel={() => {
+                if (hasLocal) setActiveTab("local");
+              }}
               onKeyDown={handleKeyDown(handleManualAdd)}
             />
-          )}
-        </div>
-      )}
-
-      {/* Local folder panel */}
-      {activePanel === "local" && (
-        <div className="rounded-md border border-border bg-card p-3">
-          <div className="space-y-2">
-            {runnerName && (
-              <p className="text-[0.65rem] text-muted-foreground">
-                Paths relative to <span className="font-medium text-foreground">{runnerName}</span>
-              </p>
-            )}
-            <input
-              type="text"
-              placeholder="/path/to/project"
-              value={localPath}
-              onChange={(e) => setLocalPath(e.target.value)}
-              onKeyDown={handleKeyDown(handleLocalAdd)}
-              className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              autoFocus
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setActivePanel("none")}
-                className="rounded-md px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleLocalAdd}
-                disabled={!localPath.trim()}
-                className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary-hover transition-colors disabled:opacity-40"
-              >
-                Add
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          )
+        )}
+      </div>
     </div>
   );
 }
