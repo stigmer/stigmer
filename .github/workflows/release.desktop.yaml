@@ -33,17 +33,17 @@ jobs:
           if [ "${{ github.ref_type }}" = "tag" ]; then
             VERSION="${{ github.ref_name }}"
             SHOULD_RELEASE="true"
-            echo "Triggered by tag: $VERSION"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="0.0.0-test.$(git rev-parse --short HEAD)"
+            # Numeric-only pre-release id; Windows MSI rejects non-numeric identifiers.
+            VERSION="0.0.0-${{ github.run_number }}"
             SHOULD_RELEASE="${{ github.event.inputs.create_release }}"
           else
-            VERSION="0.0.0-test.$(git rev-parse --short HEAD)"
+            VERSION="0.0.0-${{ github.run_number }}"
             SHOULD_RELEASE="false"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
-          echo "Desktop build: $VERSION (release: $SHOULD_RELEASE)"
+          echo "Desktop build: $VERSION (release: $SHOULD_RELEASE) [$(git rev-parse --short HEAD)]"
 
   generate-protos:
     needs: determine-version
@@ -127,6 +127,7 @@ jobs:
         run: ruff check src/stigmer_runner/grpc_client/ src/stigmer_runner/worker/
 
   build:
+    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
     needs: [determine-version, generate-protos, lint-and-typecheck-agent-runner]
     permissions:
       contents: write
