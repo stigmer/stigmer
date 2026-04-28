@@ -118,6 +118,7 @@ VOLUME ["/workspace"]
 # Environment variable defaults (can be overridden)
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH="/app/src" \
     LOG_LEVEL=INFO
 
 # Run with virtualenv Python
