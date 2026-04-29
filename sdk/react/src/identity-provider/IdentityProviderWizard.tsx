@@ -26,7 +26,7 @@ export interface IdentityProviderWizardProps {
   readonly className?: string;
 }
 
-type WizardStep = "pick" | "configure" | "review";
+type WizardStep = "pick" | "configure" | "review" | "success";
 
 /**
  * Multi-step wizard for creating a new identity provider.
@@ -87,6 +87,9 @@ export function IdentityProviderWizard({
   const [autoGrant, setAutoGrant] = useState(false);
   const [autoGrantRole, setAutoGrantRole] = useState<IamRole>(IamRole.iam_role_unspecified);
   const [tenantOrgClaim, setTenantOrgClaim] = useState("");
+
+  // Success step
+  const [createdIdp, setCreatedIdp] = useState<IdentityProvider | null>(null);
 
   // -- Step transitions ------------------------------------------------
 
@@ -186,7 +189,8 @@ export function IdentityProviderWizard({
             }),
           }),
         });
-        onCreated?.(idp);
+        setCreatedIdp(idp);
+        setStep("success");
       } catch {
         // error state is managed by useCreateIdentityProvider
       }
@@ -194,7 +198,7 @@ export function IdentityProviderWizard({
     [
       name, org, jwksUri, issuers, audience, userinfoEndpoint,
       isSso, oidcClientId, autoProvision, autoGrant, autoGrantRole,
-      tenantOrgClaim, create, clearError, onCreated,
+      tenantOrgClaim, create, clearError,
     ],
   );
 
@@ -267,6 +271,18 @@ export function IdentityProviderWizard({
           onCancel={onCancel}
         />
       )}
+
+      {step === "success" && createdIdp && (
+        <SuccessStep
+          identityProvider={createdIdp}
+          org={org}
+          isSso={isSso}
+          autoProvision={autoProvision}
+          autoGrant={autoGrant}
+          autoGrantRole={autoGrantRole}
+          onDone={() => onCreated?.(createdIdp)}
+        />
+      )}
     </div>
   );
 }
@@ -279,6 +295,7 @@ const STEPS: { key: WizardStep; label: string }[] = [
   { key: "pick", label: "Provider" },
   { key: "configure", label: "Configure" },
   { key: "review", label: "Review" },
+  { key: "success", label: "Done" },
 ];
 
 function StepIndicator({ current }: { current: WizardStep }) {
@@ -605,6 +622,98 @@ function ReviewStep({
         )}
       </div>
     </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Success step (step 4)
+// ---------------------------------------------------------------------------
+
+function SuccessStep({
+  identityProvider,
+  org,
+  isSso,
+  autoProvision,
+  autoGrant,
+  autoGrantRole,
+  onDone,
+}: {
+  identityProvider: IdentityProvider;
+  org: string;
+  isSso: boolean;
+  autoProvision: boolean;
+  autoGrant: boolean;
+  autoGrantRole: IamRole;
+  onDone: () => void;
+}) {
+  const displayName =
+    identityProvider.spec?.displayName ||
+    identityProvider.metadata?.name ||
+    "Identity provider";
+
+  const roleName =
+    autoGrantRole !== IamRole.iam_role_unspecified
+      ? IamRole[autoGrantRole]
+      : "viewer";
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border border-primary/30 bg-primary-subtle px-3 py-2.5">
+        <p className="text-xs font-medium text-foreground">
+          {displayName} created successfully
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-foreground">What happens next</p>
+
+        {isSso ? (
+          <p className="text-[0.65rem] text-muted-foreground">
+            Users can sign in via SSO at{" "}
+            <span className="font-mono text-foreground">
+              /login?org={org}
+            </span>
+            . Accounts are auto-provisioned and granted the{" "}
+            <span className="font-medium text-foreground">viewer</span> role on
+            this organization.
+          </p>
+        ) : autoProvision && autoGrant ? (
+          <p className="text-[0.65rem] text-muted-foreground">
+            Users authenticating with JWTs from this provider will be
+            automatically provisioned and granted the{" "}
+            <span className="font-medium text-foreground">{roleName}</span> role
+            on this organization. No additional setup is required.
+          </p>
+        ) : autoProvision ? (
+          <p className="text-[0.65rem] text-muted-foreground">
+            Accounts are auto-provisioned on first authentication, but no
+            organization role is granted automatically. Use the Members page to
+            grant access.
+          </p>
+        ) : (
+          <p className="text-[0.65rem] text-muted-foreground">
+            The trust relationship is configured. Accounts must be created
+            manually before users can authenticate.
+          </p>
+        )}
+
+        <p className="text-[0.65rem] text-muted-foreground">
+          To verify the setup, have a user authenticate with a JWT from this
+          provider and confirm they can access the organization&apos;s resources.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={onDone}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
+          "bg-primary text-primary-foreground hover:bg-primary-hover",
+        )}
+      >
+        Done
+      </button>
+    </div>
   );
 }
 
