@@ -495,6 +495,9 @@ pub async fn stop_runner(
     app: AppHandle,
     state: State<'_, ProcessManager>,
     runner_name: String,
+    token: Option<String>,
+    endpoint: Option<String>,
+    org: Option<String>,
 ) -> Result<(), String> {
     let was_managed = {
         let mut runners = state.runners.lock().await;
@@ -524,11 +527,30 @@ pub async fn stop_runner(
     }
 
     // Not managed by this desktop instance — try stopping via the CLI.
+    let mut args: Vec<String> = vec![
+        "down".into(),
+        "runner".into(),
+        "--name".into(),
+        runner_name.clone(),
+    ];
+    if let Some(ref t) = token {
+        args.push("--token".into());
+        args.push(t.clone());
+    }
+    if let Some(ref ep) = endpoint {
+        args.push("--endpoint".into());
+        args.push(ep.clone());
+    }
+    if let Some(ref o) = org {
+        args.push("--org".into());
+        args.push(o.clone());
+    }
+
     let sidecar = app
         .shell()
         .sidecar("stigmer-cli")
         .map_err(|e| format!("failed to create sidecar command: {e}"))?
-        .args(["down", "runner", "--name", &runner_name]);
+        .args(&args);
 
     let output = sidecar
         .output()
