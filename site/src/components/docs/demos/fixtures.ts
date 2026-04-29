@@ -18,6 +18,7 @@ export const MOCK_WORKSPACE: UseWorkspaceEntriesReturn = {
   addLocalPath: noop,
   remove: noop,
   clear: noop,
+  clearLocal: noop,
   toInput: () => [],
   hasEntries: false,
 };
