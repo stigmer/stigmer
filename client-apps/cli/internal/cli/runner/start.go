@@ -81,6 +81,14 @@ func Start(ctx context.Context, opts StartOptions) error {
 		return err
 	}
 
+	if config.IsStandalone() && opts.TokenOverride == "" {
+		return errors.New(
+			"--standalone mode requires --token or --api-key\n\n" +
+				"In standalone mode the config file is not read. All credentials\n" +
+				"must be passed explicitly via flags or environment variables.",
+		)
+	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		climsg.Warning("Failed to load config, using defaults")
