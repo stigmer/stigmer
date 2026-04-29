@@ -5,7 +5,6 @@ import {
   SessionComposer,
   useNewSessionFlow,
   useEditSessionPrep,
-  useGitHubConnection,
   useActiveOrgSlug,
   CREATOR_AGENTS,
   parseDraftParams,
@@ -13,6 +12,7 @@ import {
 import type { DraftResourceType } from "@stigmer/react";
 import type { ResourceRef } from "@stigmer/sdk";
 import { useNativeFolderPicker } from "../hooks/useNativeFolderPicker";
+import { useDesktopGitHubConnection } from "../hooks/useDesktopGitHubConnection";
 
 const DRAFT_PLACEHOLDERS: Record<DraftResourceType, string> = {
   agent:
@@ -45,7 +45,7 @@ export function SessionLauncher() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const org = useActiveOrgSlug();
-  const gitHubConnection = useGitHubConnection(org);
+  const gitHubConnection = useDesktopGitHubConnection(org);
   const browseLocalFolder = useNativeFolderPicker();
 
   const draftParams = parseDraftParams(searchParams);
