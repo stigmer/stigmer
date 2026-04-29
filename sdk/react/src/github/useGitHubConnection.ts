@@ -42,6 +42,52 @@ export interface GitHubConnectOptions {
   readonly popup?: boolean;
 }
 
+/**
+ * Optional configuration for {@link useGitHubConnection}.
+ *
+ * Enables desktop and non-browser environments to participate in the
+ * GitHub OAuth flow without relying on `window.open()` popups.
+ */
+export interface UseGitHubConnectionConfig {
+  /**
+   * Custom function to open the authorization URL in a browser.
+   *
+   * When provided, the hook calls this instead of `window.open()` during
+   * popup-mode `connect()` flows. This enables desktop environments
+   * (e.g. Tauri, Electron) where webview popups are blocked but the
+   * system browser is available.
+   *
+   * When used with {@link callbackUrl}, the callback page processes the
+   * token exchange and the consumer calls {@link UseGitHubConnectionReturn.reconcile}
+   * to pick up the token from the personal environment.
+   *
+   * When used without {@link callbackUrl} (e.g. localhost callback server),
+   * the consumer calls {@link UseGitHubConnectionReturn.handleCallback}
+   * with the code, state, and redirect URI to complete the exchange.
+   */
+  readonly openUrl?: (url: string) => void | Promise<void>;
+
+  /**
+   * Override the OAuth callback URL.
+   *
+   * When provided, this replaces the `redirectUri` parameter passed to
+   * `connect()` by UI components like `WorkspaceEditor`. Use this to
+   * route the GitHub callback to a specific URL — for example, the
+   * Stigmer web console's callback page for desktop flows, or a
+   * localhost server for local development.
+   *
+   * When the callback page handles the token exchange itself (cloud
+   * desktop flows), the consumer triggers re-reconciliation via
+   * {@link UseGitHubConnectionReturn.reconcile} after the callback
+   * completes externally.
+   *
+   * When the consumer handles the exchange (localhost flows), the same
+   * URL must be passed to `handleCallback()` — GitHub requires an
+   * exact match between the authorize and exchange redirect URIs.
+   */
+  readonly callbackUrl?: string;
+}
+
 /** Return value of {@link useGitHubConnection}. */
 export interface UseGitHubConnectionReturn {
   /** Whether a valid GitHub token exists. */
@@ -72,6 +118,16 @@ export interface UseGitHubConnectionReturn {
     state: string,
     redirectUri: string,
   ) => Promise<void>;
+  /**
+   * Trigger re-reconciliation from the personal environment.
+   *
+   * Call this when the token exchange was handled externally (e.g. by
+   * the Stigmer web callback page during a desktop OAuth flow) and the
+   * token is already stored server-side. The hook will refetch the
+   * personal environment, reveal the token, and update
+   * {@link isConnected}.
+   */
+  readonly reconcile: () => void;
   /** Clear the stored token and user info. */
   readonly disconnect: () => void;
 }
@@ -160,6 +216,8 @@ function personalEnvHasKey(
  *
  * @param org - The active organization slug. Required for server-side
  *   token storage. Pass `null` to skip all server operations.
+ * @param config - Optional configuration for desktop / non-browser
+ *   environments. See {@link UseGitHubConnectionConfig}.
  *
  * @example
  * ```tsx
@@ -188,9 +246,23 @@ function personalEnvHasKey(
  *   );
  * }
  * ```
+ *
+ * @example Desktop (Tauri) — open in system browser, callback via deep link
+ * ```tsx
+ * function DesktopGitHubConnect({ org }: { org: string }) {
+ *   const gh = useGitHubConnection(org, {
+ *     openUrl: (url) => invoke("open_auth_in_browser", { authUrl: url }),
+ *     callbackUrl: "https://app.stigmer.ai/auth/github/callback?source=desktop",
+ *   });
+ *   // The web callback page processes the exchange, then redirects to
+ *   // stigmer://github/callback-done. The desktop deep link handler
+ *   // calls gh.reconcile() to pick up the token.
+ * }
+ * ```
  */
 export function useGitHubConnection(
   org: string | null,
+  config?: UseGitHubConnectionConfig,
 ): UseGitHubConnectionReturn {
   const stigmer = useStigmer();
   const [token, setToken] = useState<string | null>(null);
@@ -320,8 +392,12 @@ export function useGitHubConnection(
 
   const connect = useCallback(
     async (redirectUri: string, options?: GitHubConnectOptions) => {
+      const effectiveRedirectUri = config?.callbackUrl ?? redirectUri;
+
       const { authorizeUrl, state } =
-        await stigmer.github.getOAuthAuthorizeUrl({ redirectUri });
+        await stigmer.github.getOAuthAuthorizeUrl({
+          redirectUri: effectiveRedirectUri,
+        });
 
       sessionStorage.setItem(STORAGE_KEY_STATE, state);
 
@@ -330,7 +406,18 @@ export function useGitHubConnection(
         return;
       }
 
-      // If a popup is already open, bring it to focus.
+      // ── External opener (desktop / non-browser) ─────────────────────
+      // When `config.openUrl` is provided, delegate to the consumer
+      // instead of using `window.open()`. The consumer is responsible
+      // for delivering the callback data via `handleCallback()` or
+      // triggering re-reconciliation via `reconcile()`.
+      if (config?.openUrl) {
+        setIsConnecting(true);
+        await config.openUrl(authorizeUrl);
+        return;
+      }
+
+      // ── Browser popup ───────────────────────────────────────────────
       if (popupRef.current && !popupRef.current.closed) {
         popupRef.current.focus();
         return;
@@ -360,11 +447,19 @@ export function useGitHubConnection(
           popupPollRef.current = null;
           popupRef.current = null;
           setIsConnecting(false);
+
+          // The callback page may have exchanged the code and stored
+          // the token server-side (e.g. cross-origin popup flow for
+          // platform builders). Re-reconcile from the personal
+          // environment to pick up the token.
+          setIsLoading(true);
+          reconciled.current = false;
+          personalEnvRef.current.refetch();
         }
       }, POPUP_CLOSE_POLL_MS);
       popupPollRef.current = pollId;
     },
-    [stigmer],
+    [stigmer, config?.openUrl, config?.callbackUrl],
   );
 
   const handleCallback = useCallback(
@@ -375,27 +470,38 @@ export function useGitHubConnection(
       }
       clearOAuthState();
 
-      const { accessToken } = await stigmer.github.exchangeOAuthCode({
-        code,
-        state,
-        redirectUri,
-      });
+      try {
+        const { accessToken } = await stigmer.github.exchangeOAuthCode({
+          code,
+          state,
+          redirectUri,
+        });
 
-      const tokenVar = {
-        [GITHUB_TOKEN_KEY]: { value: accessToken, isSecret: true },
-      };
-      const env = await personalEnvRef.current.getOrCreate(tokenVar);
-      if (!personalEnvHasKey(env, GITHUB_TOKEN_KEY)) {
-        await personalEnvRef.current.addVariables(tokenVar);
+        const tokenVar = {
+          [GITHUB_TOKEN_KEY]: { value: accessToken, isSecret: true },
+        };
+        const env = await personalEnvRef.current.getOrCreate(tokenVar);
+        if (!personalEnvHasKey(env, GITHUB_TOKEN_KEY)) {
+          await personalEnvRef.current.addVariables(tokenVar);
+        }
+
+        setToken(accessToken);
+
+        const u = await fetchGitHubUser(accessToken);
+        setUser(u);
+      } finally {
+        setIsConnecting(false);
       }
-
-      setToken(accessToken);
-
-      const u = await fetchGitHubUser(accessToken);
-      setUser(u);
     },
     [stigmer],
   );
+
+  const reconcile = useCallback(() => {
+    setIsConnecting(false);
+    setIsLoading(true);
+    reconciled.current = false;
+    personalEnvRef.current.refetch();
+  }, []);
 
   const disconnect = useCallback(() => {
     sessionStorage.removeItem(STORAGE_KEY_STATE);
@@ -429,6 +535,7 @@ export function useGitHubConnection(
     token,
     connect,
     handleCallback,
+    reconcile,
     disconnect,
   };
 }

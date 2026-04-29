@@ -315,6 +315,7 @@ export {
 export type {
   GitHubUser,
   GitHubConnectOptions,
+  UseGitHubConnectionConfig,
   UseGitHubConnectionReturn,
   GitHubRepo,
   GitHubBranch,
