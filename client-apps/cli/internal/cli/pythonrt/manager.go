@@ -217,28 +217,29 @@ func (m *Manager) bootstrap(ctx context.Context) error {
 	return nil
 }
 
-// robustRemoveAll wraps os.RemoveAll with retries to handle transient
-// macOS failures. Spotlight indexing and .DS_Store file creation can race
-// with recursive directory removal, causing "directory not empty" errors
-// on an otherwise deletable tree. A short retry loop resolves this.
+// robustRemoveAll removes a directory tree reliably on macOS where
+// Spotlight indexing can race with os.RemoveAll, causing persistent
+// "directory not empty" errors even across retries.
+//
+// Strategy: rename the directory to a unique temp name first (atomic
+// on all filesystems), then remove it. Even if RemoveAll fails on the
+// renamed path, the original path is immediately clear for reuse.
 func robustRemoveAll(dir string) error {
-	const maxAttempts = 3
-	const retryDelay = 200 * time.Millisecond
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return nil
+	}
 
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		err := os.RemoveAll(dir)
-		if err == nil {
-			return nil
-		}
-		if attempt == maxAttempts || runtime.GOOS != "darwin" {
-			return err
-		}
-		log.Debug().
-			Err(err).
-			Int("attempt", attempt).
-			Str("path", dir).
-			Msg("RemoveAll failed, retrying after short delay")
-		time.Sleep(retryDelay)
+	tombstone := dir + fmt.Sprintf(".removing.%d", time.Now().UnixNano())
+	if err := os.Rename(dir, tombstone); err != nil {
+		// Rename failed (cross-device, permissions) — fall back to direct remove.
+		return os.RemoveAll(dir)
+	}
+
+	if err := os.RemoveAll(tombstone); err != nil && runtime.GOOS == "darwin" {
+		// Best-effort background cleanup on macOS. The renamed directory is
+		// out of the way so it does not block the caller.
+		log.Debug().Err(err).Str("path", tombstone).
+			Msg("Background cleanup of renamed directory failed (non-blocking)")
 	}
 	return nil
 }
