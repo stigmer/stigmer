@@ -27,6 +27,9 @@ GOPATH_BIN="$(go env GOPATH 2>/dev/null)/bin/stigmer"
 
 mkdir -p "$BINARIES_DIR"
 
+echo "Syncing agent-runner source for embedding..."
+(cd "$CLI_DIR/embedded/agentrunner" && bash sync.sh)
+
 echo "Building stigmer CLI from source..."
 (cd "$CLI_DIR" && CGO_ENABLED=0 go build -tags embed_agentrunner -ldflags="-s -w" -o "$GOPATH_BIN" .)
 echo "Installed: $GOPATH_BIN"
