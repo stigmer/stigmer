@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 #
-# Sets up the stigmer CLI sidecar binary for local Tauri development.
+# Builds the stigmer CLI from source and sets up the sidecar binary for
+# local Tauri development.
 #
 # Tauri expects binaries at src-tauri/binaries/<name>-<target-triple>.
-# This script creates a symlink from the locally-installed or Bazel-built
-# CLI binary to the expected path.
+# This script builds the CLI with embedded agent-runner source, installs
+# it to GOPATH/bin, and creates a symlink at the expected path.
+#
+# The build always runs to ensure the sidecar reflects the latest source.
+# The symlink is recreated if the target has changed.
 #
 # Usage: ./scripts/setup-sidecar-dev.sh
 
@@ -12,46 +16,32 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DESKTOP_DIR="$(dirname "$SCRIPT_DIR")"
+REPO_ROOT="$(cd "$DESKTOP_DIR/../.." && pwd)"
 BINARIES_DIR="$DESKTOP_DIR/src-tauri/binaries"
+CLI_DIR="$REPO_ROOT/client-apps/cli"
 
 TARGET_TRIPLE="$(rustc --print host-tuple)"
 SIDECAR_PATH="$BINARIES_DIR/stigmer-cli-$TARGET_TRIPLE"
 
-BAZEL_BIN="$DESKTOP_DIR/../../bazel-bin/client-apps/cli/stigmer_/stigmer"
 GOPATH_BIN="$(go env GOPATH 2>/dev/null)/bin/stigmer"
-SYSTEM_BIN="$(which stigmer 2>/dev/null || true)"
 
 mkdir -p "$BINARIES_DIR"
 
-if [ -L "$SIDECAR_PATH" ] || [ -e "$SIDECAR_PATH" ]; then
-  echo "Sidecar already exists at $SIDECAR_PATH"
-  ls -la "$SIDECAR_PATH"
-  echo ""
-  echo "To re-create, remove it first: rm $SIDECAR_PATH"
-  exit 0
+echo "Building stigmer CLI from source..."
+(cd "$CLI_DIR" && CGO_ENABLED=0 go build -tags embed_agentrunner -ldflags="-s -w" -o "$GOPATH_BIN" .)
+echo "Installed: $GOPATH_BIN"
+
+# Recreate symlink if missing or pointing to a different target.
+if [ -L "$SIDECAR_PATH" ]; then
+  CURRENT_TARGET="$(readlink "$SIDECAR_PATH")"
+  if [ "$CURRENT_TARGET" = "$GOPATH_BIN" ]; then
+    echo "Sidecar symlink up to date: $SIDECAR_PATH -> $GOPATH_BIN"
+    exit 0
+  fi
+  rm -f "$SIDECAR_PATH"
+elif [ -e "$SIDECAR_PATH" ]; then
+  rm -f "$SIDECAR_PATH"
 fi
 
-SOURCE=""
-
-if [ -x "$BAZEL_BIN" ]; then
-  SOURCE="$BAZEL_BIN"
-  echo "Using Bazel-built CLI: $SOURCE"
-elif [ -x "$GOPATH_BIN" ]; then
-  SOURCE="$GOPATH_BIN"
-  echo "Using GOPATH CLI: $SOURCE"
-elif [ -n "$SYSTEM_BIN" ] && [ -x "$SYSTEM_BIN" ]; then
-  SOURCE="$SYSTEM_BIN"
-  echo "Using system CLI: $SOURCE"
-else
-  echo "Error: stigmer CLI binary not found."
-  echo ""
-  echo "Build it with one of:"
-  echo "  cd client-apps/cli && make install"
-  echo "  cd client-apps/cli && make build"
-  echo ""
-  echo "Or install it to your PATH."
-  exit 1
-fi
-
-ln -s "$SOURCE" "$SIDECAR_PATH"
-echo "Created symlink: $SIDECAR_PATH -> $SOURCE"
+ln -s "$GOPATH_BIN" "$SIDECAR_PATH"
+echo "Created symlink: $SIDECAR_PATH -> $GOPATH_BIN"

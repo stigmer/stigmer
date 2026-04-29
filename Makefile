@@ -249,6 +249,7 @@ web-build:
 	npm run build -w client-apps/web
 
 desktop-dev: ## Start Stigmer Desktop in dev mode (Tauri + Vite hot-reload)
+	client-apps/desktop/scripts/setup-sidecar-dev.sh
 	npm run tauri dev -w desktop
 
 desktop-build: ## Build Stigmer Desktop native binary (requires TAURI_SIGNING_PRIVATE_KEY)
