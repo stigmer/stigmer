@@ -31,6 +31,11 @@ import { toGrpcTarget } from "../../lib/grpc-target";
 
 const SYSTEM_MANAGED_LABEL = "stigmer.ai/system-managed";
 
+const SESSION_EXPIRED_MESSAGE =
+  "Your session has expired. Please sign out and sign back in to start a runner.";
+const NO_ORG_MESSAGE =
+  "No organization selected. Switch to an organization before starting a runner.";
+
 // ---------------------------------------------------------------------------
 // Runner topology — determines available actions per runner
 // ---------------------------------------------------------------------------
@@ -285,12 +290,22 @@ export default function RunnersPage() {
 
       try {
         const cred = await getCredential(org || undefined);
+        const token = opts.token || cred.token;
+
+        if (!token) {
+          setLaunchError(SESSION_EXPIRED_MESSAGE);
+          return;
+        }
+        if (!org) {
+          setLaunchError(NO_ORG_MESSAGE);
+          return;
+        }
 
         const runnerName = await startRunner({
           name: opts.name,
-          token: opts.token || cred.token || undefined,
+          token,
           endpoint: opts.endpoint || toGrpcTarget(cred.endpoint),
-          org: org || undefined,
+          org,
         });
         lastStartedRef.current = runnerName;
         setDialogOpen(false);
@@ -306,12 +321,17 @@ export default function RunnersPage() {
   const handleStop = useCallback(
     async (name: string) => {
       try {
-        await stopRunner(name);
+        const cred = await getCredential(org || undefined);
+        await stopRunner(name, {
+          token: cred.token || undefined,
+          endpoint: toGrpcTarget(cred.endpoint),
+          org: org || undefined,
+        });
       } catch {
         // Error is captured in the hook.
       }
     },
-    [stopRunner],
+    [getCredential, org, stopRunner],
   );
 
   const handleRestart = useCallback(
@@ -320,14 +340,24 @@ export default function RunnersPage() {
       setIsLaunching(true);
 
       try {
+        const cred = await getCredential(org || undefined);
+
+        if (!cred.token) {
+          setLaunchError(SESSION_EXPIRED_MESSAGE);
+          return;
+        }
+        if (!org) {
+          setLaunchError(NO_ORG_MESSAGE);
+          return;
+        }
+
         await stopRunner(name).catch(() => {});
 
-        const cred = await getCredential(org || undefined);
         const runnerName = await startRunner({
           name,
-          token: cred.token || undefined,
+          token: cred.token,
           endpoint: toGrpcTarget(cred.endpoint),
-          org: org || undefined,
+          org,
         });
         lastStartedRef.current = runnerName;
         setHasTransitional(true);

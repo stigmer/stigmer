@@ -62,8 +62,20 @@ export function invokeStartRunner(
   });
 }
 
-export function invokeStopRunner(runnerName: string): Promise<void> {
-  return invoke<void>("stop_runner", { runnerName });
+export interface StopRunnerOptions {
+  runnerName: string;
+  token?: string;
+  endpoint?: string;
+  org?: string;
+}
+
+export function invokeStopRunner(opts: StopRunnerOptions): Promise<void> {
+  return invoke<void>("stop_runner", {
+    runnerName: opts.runnerName,
+    token: opts.token ?? null,
+    endpoint: opts.endpoint ?? null,
+    org: opts.org ?? null,
+  });
 }
 
 export function invokeStopAllRunners(): Promise<void> {
