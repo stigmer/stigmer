@@ -18,12 +18,60 @@ import { Play, Square, ScrollText, X } from "lucide-react";
 import { useLocalRunners } from "../../hooks/useLocalRunners";
 import { useStartRunner } from "../../hooks/useStartRunner";
 import { useStopLocalRunner } from "../../hooks/useStopLocalRunner";
-import { onRunnerStarted, onRunnerStopped, onRunnerError } from "../../hooks/tauri";
+import {
+  onRunnerStarted,
+  onRunnerStopped,
+  onRunnerError,
+  invokeCheckRunnerLogExists,
+  type LocalRunnerInfo,
+} from "../../hooks/tauri";
 import { StartRunnerDialog } from "./StartRunnerDialog";
 import { RunnerLogViewer } from "./RunnerLogViewer";
 import { toGrpcTarget } from "../../lib/grpc-target";
 
 const SYSTEM_MANAGED_LABEL = "stigmer.ai/system-managed";
+
+// ---------------------------------------------------------------------------
+// Runner topology — determines available actions per runner
+// ---------------------------------------------------------------------------
+
+type RunnerTopology =
+  | "desktop-managed"
+  | "local-cli"
+  | "local-daemon"
+  | "remote"
+  | "stopped-local";
+
+function deriveTopology(
+  localInfo: LocalRunnerInfo | undefined,
+  hasLogFile: boolean,
+): RunnerTopology {
+  if (localInfo) {
+    if (localInfo.managed_by_desktop) return "desktop-managed";
+    if (localInfo.managed_by_daemon) return "local-daemon";
+    return "local-cli";
+  }
+  if (hasLogFile) return "stopped-local";
+  return "remote";
+}
+
+function isLocalTopology(topology: RunnerTopology): boolean {
+  return topology !== "remote";
+}
+
+function canStop(topology: RunnerTopology, phase: RunnerPhase): boolean {
+  if (!isActivePhase(phase)) return false;
+  return topology === "desktop-managed" || topology === "local-cli";
+}
+
+function canStart(topology: RunnerTopology, phase: RunnerPhase): boolean {
+  if (phase !== RunnerPhase.STOPPED) return false;
+  return topology !== "remote";
+}
+
+function canViewLogs(topology: RunnerTopology): boolean {
+  return topology !== "remote";
+}
 const TRANSITIONAL_POLL_MS = 5_000;
 
 const LOG_PANEL_RATIO_KEY = "stigmer:runner-log-panel-ratio";
@@ -141,26 +189,63 @@ export default function RunnersPage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [logRunnerName]);
 
-  const localRunnerIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const [, info] of localRunners) {
-      if (info.runner_id) ids.add(info.runner_id);
+  // Build a lookup from runner name or ID to LocalRunnerInfo for topology
+  // derivation. A runner matches local state if either its server-side name
+  // or ID appears in the on-disk state files.
+  const localInfoByKey = useMemo(() => {
+    const map = new Map<string, LocalRunnerInfo>();
+    for (const [name, info] of localRunners) {
+      map.set(name, info);
+      if (info.runner_id) map.set(info.runner_id, info);
     }
-    return ids;
-  }, [localRunners]);
-
-  const localRunnerNames = useMemo(() => {
-    const names = new Set<string>();
-    for (const [name] of localRunners) {
-      names.add(name);
-    }
-    return names;
+    return map;
   }, [localRunners]);
 
   const sorted = useMemo(
     () => [...serverRunners].sort(phaseThenName),
     [serverRunners],
   );
+
+  // For stopped runners that are not in localRunners, probe whether a log
+  // file exists on disk so the UI can offer "View Logs" for crashed runners.
+  const [stoppedLogNames, setStoppedLogNames] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const stoppedNames = sorted
+      .filter((r) => {
+        const phase = r.status?.phase ?? RunnerPhase.UNSPECIFIED;
+        if (phase !== RunnerPhase.STOPPED && phase !== RunnerPhase.FAILED) return false;
+        const name = r.metadata?.name ?? "";
+        const id = r.metadata?.id ?? "";
+        return !localInfoByKey.has(name) && !localInfoByKey.has(id);
+      })
+      .map((r) => r.metadata?.name ?? "")
+      .filter(Boolean);
+
+    if (stoppedNames.length === 0) {
+      setStoppedLogNames(new Set());
+      return;
+    }
+
+    Promise.all(
+      stoppedNames.map(async (name) => {
+        try {
+          const exists = await invokeCheckRunnerLogExists(name);
+          return exists ? name : null;
+        } catch {
+          return null;
+        }
+      }),
+    ).then((results) => {
+      if (cancelled) return;
+      setStoppedLogNames(new Set(results.filter(Boolean) as string[]));
+    });
+
+    return () => { cancelled = true; };
+  }, [sorted, localInfoByKey]);
 
   // Stabilize the runner object passed to RunnerLogViewer so it only
   // updates when display-relevant fields actually change, preventing
@@ -383,15 +468,17 @@ export default function RunnersPage() {
               {sorted.map((runner) => {
                 const runnerId = runner.metadata?.id ?? "";
                 const runnerName = runner.metadata?.name ?? "";
-                const isLocal =
-                  localRunnerIds.has(runnerId) ||
-                  localRunnerNames.has(runnerName);
+                const localInfo =
+                  localInfoByKey.get(runnerName) ??
+                  localInfoByKey.get(runnerId);
+                const hasLogFile = stoppedLogNames.has(runnerName);
+                const topology = deriveTopology(localInfo, hasLogFile);
 
                 return (
                   <RunnerRow
                     key={runnerId}
                     runner={runner}
-                    isLocal={isLocal}
+                    topology={topology}
                     isSelected={runnerName === logRunnerName}
                     isStopping={isStopping}
                     isLaunching={isLaunching || isStarting}
@@ -451,7 +538,7 @@ export default function RunnersPage() {
 
 function RunnerRow({
   runner,
-  isLocal,
+  topology,
   isSelected,
   isStopping,
   isLaunching,
@@ -460,7 +547,7 @@ function RunnerRow({
   onShowLogs,
 }: {
   runner: Runner;
-  isLocal: boolean;
+  topology: RunnerTopology;
   isSelected: boolean;
   isStopping: boolean;
   isLaunching: boolean;
@@ -471,14 +558,19 @@ function RunnerRow({
   const name = runner.metadata?.name ?? "Unnamed";
   const phase = runner.status?.phase ?? RunnerPhase.UNSPECIFIED;
   const active = isActivePhase(phase);
+  const local = isLocalTopology(topology);
   const systemManaged =
     runner.metadata?.labels[SYSTEM_MANAGED_LABEL] === "true";
+
+  const showLogs = canViewLogs(topology);
+  const showStop = canStop(topology, phase);
+  const showStart = canStart(topology, phase);
+  const hasActions = showLogs || showStop || showStart;
 
   const info = runner.status?.connectionInfo;
   const hostname = info?.hostname;
   const osArch =
     info?.os && info?.arch ? `${info.os}/${info.arch}` : undefined;
-  const version = info?.runnerVersion;
   const executions = runner.status?.currentExecutions ?? 0;
   const lastHeartbeat = runner.status?.lastHeartbeatAt;
 
@@ -507,7 +599,7 @@ function RunnerRow({
           <span className="truncate text-sm font-medium text-foreground">
             {name}
           </span>
-          {isLocal && (
+          {local && (
             <span className="shrink-0 rounded bg-primary-subtle px-1.5 py-0.5 text-[0.6rem] font-medium text-primary">
               Local
             </span>
@@ -528,49 +620,48 @@ function RunnerRow({
         )}
       </div>
 
-      {/* Actions — visible for active local runners */}
-      {isLocal && active && (
+      {hasActions && (
         <div className="flex shrink-0 items-center gap-1 pt-0.5">
-          <button
-            type="button"
-            onClick={onShowLogs}
-            title="View logs"
-            aria-label={`View logs for ${name}`}
-            className={cn(
-              "rounded p-1.5 transition-colors",
-              isSelected
-                ? "bg-primary-subtle text-primary"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-          >
-            <ScrollText size={14} />
-          </button>
-          <button
-            type="button"
-            onClick={onStop}
-            disabled={isStopping}
-            title="Stop runner"
-            aria-label={`Stop ${name}`}
-            className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-destructive-subtle hover:text-destructive disabled:opacity-50"
-          >
-            <Square size={14} />
-          </button>
-        </div>
-      )}
-
-      {/* Start action — visible for stopped runners */}
-      {phase === RunnerPhase.STOPPED && (
-        <div className="flex shrink-0 items-center gap-1 pt-0.5">
-          <button
-            type="button"
-            onClick={onStart}
-            disabled={isLaunching}
-            title="Start runner"
-            aria-label={`Start ${name}`}
-            className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-primary-subtle hover:text-primary disabled:opacity-50"
-          >
-            <Play size={14} />
-          </button>
+          {showLogs && (
+            <button
+              type="button"
+              onClick={onShowLogs}
+              title="View logs"
+              aria-label={`View logs for ${name}`}
+              className={cn(
+                "rounded p-1.5 transition-colors",
+                isSelected
+                  ? "bg-primary-subtle text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              <ScrollText size={14} />
+            </button>
+          )}
+          {showStop && (
+            <button
+              type="button"
+              onClick={onStop}
+              disabled={isStopping}
+              title="Stop runner"
+              aria-label={`Stop ${name}`}
+              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-destructive-subtle hover:text-destructive disabled:opacity-50"
+            >
+              <Square size={14} />
+            </button>
+          )}
+          {showStart && (
+            <button
+              type="button"
+              onClick={onStart}
+              disabled={isLaunching}
+              title="Start runner"
+              aria-label={`Start ${name}`}
+              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-primary-subtle hover:text-primary disabled:opacity-50"
+            >
+              <Play size={14} />
+            </button>
+          )}
         </div>
       )}
     </div>

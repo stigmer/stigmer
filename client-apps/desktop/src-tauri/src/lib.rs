@@ -43,6 +43,7 @@ pub fn run() {
             sidecar::stop_all_runners,
             sidecar::list_local_runners,
             sidecar::get_runner_logs,
+            sidecar::check_runner_log_exists,
             sidecar::tail_runner_log_file,
             sidecar::watch_runner_log_file,
         ])

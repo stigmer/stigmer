@@ -583,6 +583,16 @@ pub async fn get_runner_logs(
     Ok(lines)
 }
 
+/// Returns true if a log file exists on disk for the given runner name.
+/// Used by the frontend to determine whether "View Logs" should be shown
+/// for stopped runners whose state file has already been cleaned up.
+#[tauri::command]
+pub async fn check_runner_log_exists(runner_name: String) -> Result<bool, String> {
+    let dir = runners_dir()?;
+    let log_path = dir.join(format!("{runner_name}.log"));
+    Ok(log_path.exists())
+}
+
 /// Reads the last `tail` lines from a runner's on-disk log file. This
 /// works for any local runner (CLI-started, daemon-managed, or desktop-
 /// managed) as long as the CLI wrote a log file.
