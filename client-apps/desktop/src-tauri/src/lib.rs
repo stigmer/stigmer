@@ -38,6 +38,7 @@ pub fn run() {
             auth::open_auth_in_browser,
             auth::cancel_auth,
             auth::start_auth_callback_server,
+            auth::start_github_callback_server,
             sidecar::start_runner,
             sidecar::stop_runner,
             sidecar::stop_all_runners,
@@ -57,17 +58,28 @@ pub fn run() {
             let handle = app.handle().clone();
             app.deep_link().on_open_url(move |event| {
                 for raw in event.urls() {
-                    if raw.scheme() == "stigmer"
+                    let is_auth = raw.scheme() == "stigmer"
                         && raw.host_str() == Some("auth")
-                        && raw.path() == "/callback"
-                    {
+                        && raw.path() == "/callback";
+
+                    let is_github = raw.scheme() == "stigmer"
+                        && raw.host_str() == Some("github")
+                        && raw.path() == "/callback";
+
+                    if is_auth || is_github {
                         let payload = AuthCallbackPayload {
                             code: param(&raw, "code"),
                             state: param(&raw, "state"),
                             error: param(&raw, "error"),
                             error_description: param(&raw, "error_description"),
                         };
-                        let _ = handle.emit("auth-callback", payload);
+
+                        let event_name = if is_github {
+                            "github-callback"
+                        } else {
+                            "auth-callback"
+                        };
+                        let _ = handle.emit(event_name, payload);
 
                         if let Some(window) = handle.get_webview_window("main") {
                             let _ = window.show();

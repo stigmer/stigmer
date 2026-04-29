@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import {
   useSessionPageFlow,
-  useGitHubConnection,
   useActiveOrgSlug,
   MessageThread,
   SessionComposer,
@@ -19,6 +18,7 @@ import {
   isSecretFlowError,
 } from "@stigmer/react";
 import { getUserMessage } from "@stigmer/sdk";
+import { useDesktopGitHubConnection } from "../hooks/useDesktopGitHubConnection";
 
 export default function SessionPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,7 +28,7 @@ export default function SessionPage() {
 
 function SessionPageInner({ id }: { id: string }) {
   const org = useActiveOrgSlug();
-  const gitHubConnection = useGitHubConnection(org);
+  const gitHubConnection = useDesktopGitHubConnection(org);
 
   const flow = useSessionPageFlow({ sessionId: id, org });
   const { conv } = flow;
