@@ -12,6 +12,8 @@ import { getUserMessage } from "@stigmer/sdk";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useOrganization } from "./useOrganization";
 import { useUpdateOrganization } from "./useUpdateOrganization";
+import { useIdentityProviderList } from "../identity-provider/useIdentityProviderList";
+import { useResourceAvailable, ApiResourceKind } from "../deployment-mode";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -338,7 +340,103 @@ export function OrgProfilePanel({
           </button>
         )}
       </div>
+
+      {/* -- Identity Providers summary -- */}
+      <IdentityProvidersSummary orgSlug={serverSlug} />
     </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// IdentityProvidersSummary — shows linked IDPs on the org profile
+// ---------------------------------------------------------------------------
+
+function IdentityProvidersSummary({ orgSlug }: { orgSlug: string }) {
+  const idpAvailable = useResourceAvailable(ApiResourceKind.identity_provider);
+  const { identityProviders, isLoading } = useIdentityProviderList(
+    idpAvailable && orgSlug ? orgSlug : null,
+  );
+
+  if (!idpAvailable || !orgSlug) return null;
+
+  return (
+    <>
+      <hr className="border-border" />
+      <div className="space-y-2">
+        <p className="text-[0.65rem] font-medium text-muted-foreground uppercase tracking-wider">
+          Identity Providers
+        </p>
+
+        {isLoading ? (
+          <div className="bg-muted-subtle h-8 animate-pulse rounded" />
+        ) : identityProviders.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            No identity providers configured.{" "}
+            <a
+              href="/settings/identity-providers"
+              className="text-primary hover:text-primary-hover underline underline-offset-2"
+            >
+              Set up federated authentication
+            </a>
+          </p>
+        ) : (
+          <div className="space-y-1.5">
+            {identityProviders.map((idp) => {
+              const spec = idp.spec;
+              const displayName =
+                spec?.displayName || idp.metadata?.name || "Unnamed";
+              const isSso = spec?.isSsoProvider;
+              const isJit = !isSso && spec?.autoProvisionAccounts;
+
+              return (
+                <div
+                  key={idp.metadata?.id}
+                  className="flex items-center gap-2 text-xs"
+                >
+                  <ShieldSmallIcon />
+                  <span className="text-foreground truncate">{displayName}</span>
+                  {isSso && (
+                    <span className="rounded-full border border-primary/30 bg-primary-subtle px-1.5 py-px text-[0.6rem] font-medium text-primary">
+                      SSO
+                    </span>
+                  )}
+                  {isJit && (
+                    <span className="rounded-full border border-primary/30 bg-primary-subtle px-1.5 py-px text-[0.6rem] font-medium text-primary">
+                      JIT
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+            <a
+              href="/settings/identity-providers"
+              className="inline-block text-[0.65rem] text-primary hover:text-primary-hover underline underline-offset-2"
+            >
+              Manage
+            </a>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function ShieldSmallIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="shrink-0 text-muted-foreground"
+    >
+      <path d="M8 1.5L2 4v4c0 3.5 2.5 5.5 6 7 3.5-1.5 6-3.5 6-7V4L8 1.5z" />
+    </svg>
   );
 }
 
