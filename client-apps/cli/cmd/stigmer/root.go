@@ -8,10 +8,12 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/cmd/stigmer/root"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
+	cliconfig "github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 )
 
 var (
-	debugMode bool
+	debugMode      bool
+	standaloneMode bool
 )
 
 var rootCmd = &cobra.Command{
@@ -33,6 +35,10 @@ Run locally or scale to production with Stigmer Cloud.`,
 			zerolog.SetGlobalLevel(zerolog.Disabled)
 		}
 
+		if standaloneMode {
+			cliconfig.SetStandalone()
+		}
+
 		if apiKey, _ := cmd.Flags().GetString("api-key"); apiKey != "" {
 			os.Setenv("STIGMER_API_KEY", apiKey)
 		}
@@ -41,6 +47,7 @@ Run locally or scale to production with Stigmer Cloud.`,
 
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&debugMode, "debug", "d", false, "enable debug mode with detailed logs")
+	rootCmd.PersistentFlags().BoolVar(&standaloneMode, "standalone", false, "ignore config file; all config must come from flags or env vars")
 	rootCmd.PersistentFlags().String("org", "", "organization slug (overrides context)")
 	rootCmd.PersistentFlags().String("api-key", "", "API key for cloud authentication (overrides stored token)")
 

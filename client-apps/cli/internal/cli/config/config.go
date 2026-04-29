@@ -4,10 +4,24 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
+
+// standalone is set by the CLI root command when --standalone is passed.
+// When active, Load() returns GetDefault() without reading the config file,
+// isolating the process from ambient CLI configuration.
+var standalone atomic.Bool
+
+// SetStandalone enables standalone mode. In this mode, Load() returns the
+// default config without reading ~/.stigmer/config.yaml. Used by desktop
+// sidecars and automation tools that pass all config via flags/env vars.
+func SetStandalone() { standalone.Store(true) }
+
+// IsStandalone reports whether standalone mode is active.
+func IsStandalone() bool { return standalone.Load() }
 
 const (
 	// ConfigDir is the directory name for Stigmer config
@@ -121,10 +135,18 @@ func (cfg *Config) ResolveContextOrganization() string {
 	return ""
 }
 
-// Load reads the config file from ~/.stigmer/config.yaml
+// Load reads the config file from ~/.stigmer/config.yaml.
+//
+// In standalone mode (set via SetStandalone), the config file is not read
+// and GetDefault() is returned. This isolates sidecar and automation
+// invocations from the user's CLI configuration.
 //
 // If the config file doesn't exist, returns a default config with local backend.
 func Load() (*Config, error) {
+	if standalone.Load() {
+		return GetDefault(), nil
+	}
+
 	configPath, err := GetConfigPath()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get config path")

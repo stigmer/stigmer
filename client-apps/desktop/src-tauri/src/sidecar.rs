@@ -280,7 +280,7 @@ pub async fn start_runner(
         }
     }
 
-    let mut args: Vec<String> = vec!["up".into(), "runner".into()];
+    let mut args: Vec<String> = vec!["up".into(), "runner".into(), "--standalone".into()];
     if let Some(ref n) = name {
         args.push("--name".into());
         args.push(n.clone());
@@ -530,6 +530,7 @@ pub async fn stop_runner(
     let mut args: Vec<String> = vec![
         "down".into(),
         "runner".into(),
+        "--standalone".into(),
         "--name".into(),
         runner_name.clone(),
     ];
