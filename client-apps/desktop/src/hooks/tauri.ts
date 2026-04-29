@@ -74,6 +74,12 @@ export function invokeListLocalRunners(): Promise<LocalRunnerInfo[]> {
   return invoke<LocalRunnerInfo[]>("list_local_runners");
 }
 
+export function invokeCheckRunnerLogExists(
+  runnerName: string,
+): Promise<boolean> {
+  return invoke<boolean>("check_runner_log_exists", { runnerName });
+}
+
 export function invokeGetRunnerLogs(
   runnerName: string,
   tail?: number,
