@@ -320,7 +320,9 @@ All visual properties flow through `--stgm-*` tokens.
     className: { type: "string", description: "Additional CSS class names for the root container." },
     onCancel: { type: "() => void", description: "Called when the user dismisses the browser.", required: true },
     onSelect: { type: "(absolutePath: string) => void", description: "Called when the user confirms the current directory as workspace.", required: true },
+    runnerHostname: { type: "string", description: "Hostname of the runner's machine (e.g. \"Alice's MacBook Pro\"). Shown alongside the runner name in the context header." },
     runnerId: { type: "string", description: "ID of the runner whose filesystem to browse.", required: true },
+    runnerName: { type: "string", description: "Display name of the runner (e.g. \"dev-macbook\"). Shown in the context header so users know which machine they're browsing." },
   }}
 />
 
