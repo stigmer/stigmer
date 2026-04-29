@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, type KeyboardEvent } from "react";
+import { useState, useCallback, type KeyboardEvent, type MouseEvent } from "react";
 import type { UseWorkspaceEntriesReturn } from "./useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 import { GitHubRepoPicker } from "../github/GitHubRepoPicker";
@@ -38,19 +38,26 @@ export interface WorkspaceEditorProps {
   /**
    * Native folder picker callback for desktop environments.
    *
-   * @deprecated Prefer passing `runnerId` to enable the integrated
-   * {@link RunnerFileBrowser} which provides a consistent experience
-   * across web and desktop.
+   * When provided alongside `runnerId`, renders an "Open system dialog"
+   * button above the file browser. This is an enhancement for desktop
+   * apps where the runner is known to be on the same machine — the
+   * native OS dialog may feel more familiar to users. The integrated
+   * {@link RunnerFileBrowser} remains the primary browsing mechanism.
+   *
+   * Web console callers should NOT provide this prop — browsers cannot
+   * open native directory pickers for remote machines.
    */
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   /**
    * Display name of the currently selected runner.
-   *
-   * When provided, a contextual hint is shown above the manual local
-   * path input (fallback when `runnerId` is not set) indicating that
-   * paths are relative to this runner's filesystem.
+   * Passed through to {@link RunnerFileBrowser} for the context header.
    */
   readonly runnerName?: string;
+  /**
+   * Hostname of the runner's machine (e.g. "Alice's MacBook Pro").
+   * Passed through to {@link RunnerFileBrowser} for the context header.
+   */
+  readonly runnerHostname?: string;
 }
 
 type ActiveTab = "local" | "github";
@@ -101,6 +108,7 @@ export function WorkspaceEditor({
   runnerId,
   onBrowseLocalFolder,
   runnerName,
+  runnerHostname,
 }: WorkspaceEditorProps) {
   const hasLocal = enableLocal && !!runnerId;
   const hasGitHub = enableGitHub;
@@ -137,6 +145,16 @@ export function WorkspaceEditor({
       }
     },
     [],
+  );
+
+  const handleNativeBrowse = useCallback(
+    async (e: MouseEvent) => {
+      e.preventDefault();
+      if (!onBrowseLocalFolder) return;
+      const path = await onBrowseLocalFolder();
+      if (path) workspace.addLocalPath(path);
+    },
+    [onBrowseLocalFolder, workspace],
   );
 
   const effectiveTab: ActiveTab = hasLocal && activeTab === "local"
@@ -224,13 +242,28 @@ export function WorkspaceEditor({
       {/* Tab content */}
       <div className="rounded-md border border-border bg-card p-3">
         {effectiveTab === "local" && hasLocal && (
-          <RunnerFileBrowser
-            runnerId={runnerId!}
-            onSelect={(path) => workspace.addLocalPath(path)}
-            onCancel={() => {
-              if (hasGitHub) setActiveTab("github");
-            }}
-          />
+          <div className="space-y-2">
+            {onBrowseLocalFolder && (
+              <button
+                type="button"
+                onClick={handleNativeBrowse}
+                disabled={disabled}
+                className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border px-2.5 py-1.5 text-[0.65rem] text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+              >
+                <SystemDialogIcon />
+                Open system file dialog
+              </button>
+            )}
+            <RunnerFileBrowser
+              runnerId={runnerId!}
+              onSelect={(path) => workspace.addLocalPath(path)}
+              onCancel={() => {
+                if (hasGitHub) setActiveTab("github");
+              }}
+              runnerName={runnerName}
+              runnerHostname={runnerHostname}
+            />
+          </div>
         )}
 
         {effectiveTab === "github" && hasGitHub && (
@@ -447,6 +480,16 @@ function ManualGitPanel({
         </button>
       </div>
     </div>
+  );
+}
+
+function SystemDialogIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1.5 3V9.5a1 1 0 001 1h7a1 1 0 001-1V5a1 1 0 00-1-1H6L4.5 2.5h-2a1 1 0 00-1 .5z" />
+      <path d="M6 6.5V9" />
+      <path d="M4.5 8L6 9.5L7.5 8" />
+    </svg>
   );
 }
 

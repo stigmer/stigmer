@@ -411,11 +411,13 @@ export function SessionComposer({
     needsRunnerList ? (org ?? null) : null,
   );
 
-  const selectedRunnerName = useMemo(() => {
+  const selectedRunner = useMemo(() => {
     if (!runnerId) return undefined;
-    const runner = runnerListForBrowse.find((r) => r.metadata?.id === runnerId);
-    return runner?.metadata?.name;
+    return runnerListForBrowse.find((r) => r.metadata?.id === runnerId);
   }, [runnerId, runnerListForBrowse]);
+
+  const selectedRunnerName = selectedRunner?.metadata?.name;
+  const selectedRunnerHostname = selectedRunner?.status?.connectionInfo?.hostname;
 
   const browseRunnerId = useMemo(() => {
     if (runnerId) return runnerId;
@@ -1365,6 +1367,7 @@ export function SessionComposer({
                   runnerId={browseRunnerId}
                   onBrowseLocalFolder={onBrowseLocalFolder}
                   runnerName={selectedRunnerName}
+                  runnerHostname={selectedRunnerHostname}
                 />
               : null
           }

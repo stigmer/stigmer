@@ -58,6 +58,12 @@ export interface UseRunnerFileBrowserReturn {
 // Reducer
 // ---------------------------------------------------------------------------
 
+/** Cached result of a single directory listing. */
+interface CachedListing {
+  readonly entries: readonly DirectoryEntry[];
+  readonly fetchedAt: number;
+}
+
 interface State {
   currentPath: string;
   entries: readonly DirectoryEntry[];
@@ -68,13 +74,18 @@ interface State {
   error: Error | null;
   /** The path we last requested — used for retry. */
   requestedPath: string;
+  /** Directory listing cache keyed by resolved absolute path. */
+  cache: Map<string, CachedListing>;
 }
 
 type Action =
   | { type: "NAVIGATE"; path: string }
   | { type: "SUCCESS"; resolvedPath: string; entries: DirectoryEntry[]; homeDirectory: string; currentDirectory: string }
   | { type: "FAILURE"; error: Error }
-  | { type: "TOGGLE_HIDDEN" };
+  | { type: "TOGGLE_HIDDEN" }
+  | { type: "CACHE_HIT"; resolvedPath: string; entries: readonly DirectoryEntry[] };
+
+const CACHE_MAX_AGE_MS = 30_000;
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -85,7 +96,12 @@ function reducer(state: State, action: Action): State {
         isLoading: true,
         error: null,
       };
-    case "SUCCESS":
+    case "SUCCESS": {
+      const nextCache = new Map(state.cache);
+      nextCache.set(action.resolvedPath, {
+        entries: action.entries,
+        fetchedAt: Date.now(),
+      });
       return {
         ...state,
         currentPath: action.resolvedPath,
@@ -94,6 +110,17 @@ function reducer(state: State, action: Action): State {
         currentDirectory: action.currentDirectory || state.currentDirectory,
         isLoading: false,
         error: null,
+        cache: nextCache,
+      };
+    }
+    case "CACHE_HIT":
+      return {
+        ...state,
+        currentPath: action.resolvedPath,
+        entries: action.entries,
+        isLoading: false,
+        error: null,
+        requestedPath: action.resolvedPath,
       };
     case "FAILURE":
       return { ...state, isLoading: false, error: action.error };
@@ -111,6 +138,7 @@ const INITIAL_STATE: State = {
   isLoading: false,
   error: null,
   requestedPath: "",
+  cache: new Map(),
 };
 
 // ---------------------------------------------------------------------------
@@ -182,9 +210,18 @@ export function useRunnerFileBrowser(
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
   const requestIdRef = useRef(0);
 
+  const cacheRef = useRef(state.cache);
+  cacheRef.current = state.cache;
+
   const fetchDirectory = useCallback(
     async (path: string) => {
       if (!runnerId) return;
+
+      const cached = cacheRef.current.get(path);
+      if (cached && Date.now() - cached.fetchedAt < CACHE_MAX_AGE_MS) {
+        dispatch({ type: "CACHE_HIT", resolvedPath: path, entries: cached.entries });
+        return;
+      }
 
       const id = ++requestIdRef.current;
       dispatch({ type: "NAVIGATE", path });
@@ -200,7 +237,6 @@ export function useRunnerFileBrowser(
           }),
         );
 
-        // Stale response guard — a newer navigation has started.
         if (id !== requestIdRef.current) return;
 
         if (response.result.case === "error") {
