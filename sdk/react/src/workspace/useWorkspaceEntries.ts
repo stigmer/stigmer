@@ -49,6 +49,14 @@ export interface UseWorkspaceEntriesReturn {
   readonly remove: (id: string) => void;
   /** Remove all entries. */
   readonly clear: () => void;
+  /**
+   * Remove all local folder entries, keeping git entries intact.
+   *
+   * Used when the user switches runners — local paths from the previous
+   * runner are invalid on the new runner, but git repos are
+   * runner-independent and can stay.
+   */
+  readonly clearLocal: () => void;
   /** Convert entries to the `WorkspaceEntryInput[]` shape required by the SDK. */
   readonly toInput: () => WorkspaceEntryInput[];
   /** `true` when at least one entry exists. */
@@ -133,6 +141,10 @@ export function useWorkspaceEntries(): UseWorkspaceEntriesReturn {
     setEntries([]);
   }, []);
 
+  const clearLocal = useCallback(() => {
+    setEntries((prev) => prev.filter((e) => e.type !== "local"));
+  }, []);
+
   const toInput = useCallback((): WorkspaceEntryInput[] => {
     return entries.map((entry): WorkspaceEntryInput => {
       const source: WorkspaceSourceInput =
@@ -150,6 +162,7 @@ export function useWorkspaceEntries(): UseWorkspaceEntriesReturn {
     addLocalPath,
     remove,
     clear,
+    clearLocal,
     toInput,
     hasEntries: entries.length > 0,
   };

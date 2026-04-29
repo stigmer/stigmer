@@ -69,6 +69,23 @@ function subscribe(callback: () => void): () => void {
   return () => listeners.delete(callback);
 }
 
+const EMPTY: readonly RecentWorkspace[] = [];
+
+let cachedRunnerId: string | null = null;
+let cachedVersion = -1;
+let cachedResult: readonly RecentWorkspace[] = EMPTY;
+
+function getSnapshot(runnerId: string | null): readonly RecentWorkspace[] {
+  if (!runnerId) return EMPTY;
+  if (runnerId === cachedRunnerId && snapshotVersion === cachedVersion) {
+    return cachedResult;
+  }
+  cachedRunnerId = runnerId;
+  cachedVersion = snapshotVersion;
+  cachedResult = sortEntries(readEntries(runnerId));
+  return cachedResult;
+}
+
 /**
  * Manages recently used workspace paths for a specific runner,
  * persisted in `localStorage`.
@@ -83,11 +100,8 @@ export function useRecentWorkspaces(
 ): UseRecentWorkspacesReturn {
   const entries = useSyncExternalStore(
     subscribe,
-    () => {
-      void snapshotVersion;
-      return runnerId ? sortEntries(readEntries(runnerId)) : [];
-    },
-    () => [],
+    () => getSnapshot(runnerId),
+    () => EMPTY,
   );
 
   const recordSelection = useCallback(

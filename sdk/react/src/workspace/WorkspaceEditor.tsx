@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, type KeyboardEvent, type MouseEvent } from "react";
+import { useState, useCallback, type KeyboardEvent } from "react";
 import type { UseWorkspaceEntriesReturn } from "./useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 import { GitHubRepoPicker } from "../github/GitHubRepoPicker";
@@ -18,34 +18,29 @@ export interface WorkspaceEditorProps {
   readonly disabled?: boolean;
   /** GitHub connection state. When provided, enables the GitHub repo picker. */
   readonly gitHubConnection?: UseGitHubConnectionReturn;
-  /** Show the GitHub Repo tab. Default: true. */
+  /** Enable the "Connect GitHub" action. Default: true. */
   readonly enableGitHub?: boolean;
   /**
-   * Show the Local Folder tab. Default: false.
+   * Enable the "Browse Folder" action.
    *
-   * The tab is only rendered when `runnerId` is also provided, since the
-   * file browser requires a connected runner to query.
+   * The action is only functional when `runnerId` is also provided,
+   * since the file browser requires a connected runner to query.
+   * When `runnerId` is null (Auto selected), the action is disabled.
    */
   readonly enableLocal?: boolean;
   /**
    * ID of the runner to use for filesystem browsing.
    *
-   * When provided together with `enableLocal`, the Local Folder tab
-   * renders a {@link RunnerFileBrowser} that queries the runner's
-   * filesystem via the `ListDirectory` command.
+   * When provided together with `enableLocal`, the "Browse Folder"
+   * action drills into a {@link RunnerFileBrowser} that queries the
+   * runner's filesystem via the `ListDirectory` command.
    */
   readonly runnerId?: string | null;
   /**
    * Native folder picker callback for desktop environments.
    *
    * When provided alongside `runnerId`, renders an "Open system dialog"
-   * button above the file browser. This is an enhancement for desktop
-   * apps where the runner is known to be on the same machine — the
-   * native OS dialog may feel more familiar to users. The integrated
-   * {@link RunnerFileBrowser} remains the primary browsing mechanism.
-   *
-   * Web console callers should NOT provide this prop — browsers cannot
-   * open native directory pickers for remote machines.
+   * button in the Browse Folder drill-in view. Desktop-only enhancement.
    */
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   /**
@@ -60,23 +55,23 @@ export interface WorkspaceEditorProps {
   readonly runnerHostname?: string;
 }
 
-type ActiveTab = "local" | "github";
+type ActivePanel = "browse" | "github" | null;
 
 const TYPE_LABELS: Record<string, string> = {
   git: "GitHub",
-  local: "Local",
 };
 
 /**
- * Styled component that renders add/remove UI for workspace entries.
+ * Styled component for managing workspace entries with a flat-list
+ * layout and drill-in sub-views.
  *
- * Uses a tabbed layout when multiple workspace sources are available:
- * - **Local Folder** (default when a runner is connected): Shows an
- *   interactive file browser via {@link RunnerFileBrowser}.
- * - **GitHub Repo**: Shows the repo picker or connect prompt.
+ * The default view shows:
+ * 1. Current workspace entries (with remove buttons)
+ * 2. Action items: "Browse Folder" and "Connect GitHub"
  *
- * When only one source is available, the tab bar is hidden and the
- * content renders directly.
+ * Each action drills into a sub-view (file browser or GitHub picker)
+ * with a back button to return to the list. This follows the same
+ * progressive-disclosure pattern as the Configure menu.
  *
  * All visual properties flow through `--stgm-*` tokens.
  *
@@ -110,17 +105,12 @@ export function WorkspaceEditor({
   runnerName,
   runnerHostname,
 }: WorkspaceEditorProps) {
-  const hasLocal = enableLocal && !!runnerId;
-  const hasGitHub = enableGitHub;
-  const hasBothTabs = hasLocal && hasGitHub;
-
-  const [activeTab, setActiveTab] = useState<ActiveTab>(
-    hasLocal ? "local" : "github",
-  );
-
+  const [activePanel, setActivePanel] = useState<ActivePanel>(null);
   const [manualUrl, setManualUrl] = useState("");
   const [manualBranch, setManualBranch] = useState("");
   const entryList = useScrollShadows();
+
+  const canBrowse = enableLocal && !!runnerId;
 
   const handleGitHubSelect = useCallback(
     (repoUrl: string, branch: string) => {
@@ -147,21 +137,87 @@ export function WorkspaceEditor({
     [],
   );
 
-  const handleNativeBrowse = useCallback(
-    async (e: MouseEvent) => {
-      e.preventDefault();
-      if (!onBrowseLocalFolder) return;
-      const path = await onBrowseLocalFolder();
-      if (path) workspace.addLocalPath(path);
-    },
-    [onBrowseLocalFolder, workspace],
-  );
+  const goBack = useCallback(() => setActivePanel(null), []);
 
-  const effectiveTab: ActiveTab = hasLocal && activeTab === "local"
-    ? "local"
-    : hasGitHub
-      ? "github"
-      : "local";
+  // ---------------------------------------------------------------------------
+  // Drill-in: Browse Folder
+  // ---------------------------------------------------------------------------
+
+  if (activePanel === "browse" && canBrowse) {
+    return (
+      <div className={["space-y-2", className].filter(Boolean).join(" ")}>
+        <button
+          type="button"
+          onClick={goBack}
+          className="inline-flex items-center gap-1 text-[0.65rem] text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeftIcon />
+          Back
+        </button>
+        <div className="space-y-2">
+          <RunnerFileBrowser
+            runnerId={runnerId!}
+            onSelect={(path) => {
+              workspace.addLocalPath(path);
+              setActivePanel(null);
+            }}
+            onCancel={goBack}
+            runnerName={runnerName}
+            runnerHostname={runnerHostname}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Drill-in: Connect GitHub
+  // ---------------------------------------------------------------------------
+
+  if (activePanel === "github" && enableGitHub) {
+    return (
+      <div className={["space-y-2", className].filter(Boolean).join(" ")}>
+        <button
+          type="button"
+          onClick={goBack}
+          className="inline-flex items-center gap-1 text-[0.65rem] text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeftIcon />
+          Back
+        </button>
+        {gitHubConnection ? (
+          <GitHubPanel
+            connection={gitHubConnection}
+            onSelect={(url, branch) => {
+              handleGitHubSelect(url, branch);
+              setActivePanel(null);
+            }}
+            onClose={goBack}
+          />
+        ) : (
+          <ManualGitPanel
+            url={manualUrl}
+            branch={manualBranch}
+            onUrlChange={setManualUrl}
+            onBranchChange={setManualBranch}
+            onAdd={() => {
+              handleManualAdd();
+              setActivePanel(null);
+            }}
+            onCancel={goBack}
+            onKeyDown={handleKeyDown(() => {
+              handleManualAdd();
+              setActivePanel(null);
+            })}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Default view: flat list (entries + actions)
+  // ---------------------------------------------------------------------------
 
   return (
     <div className={["space-y-2", className].filter(Boolean).join(" ")}>
@@ -170,15 +226,21 @@ export function WorkspaceEditor({
         <div className="relative">
           {entryList.canScrollUp && <ScrollFade position="top" />}
 
-          <div ref={entryList.scrollRef} className="max-h-28 space-y-2 overflow-y-auto">
+          <div ref={entryList.scrollRef} className="max-h-28 space-y-1 overflow-y-auto">
             {workspace.entries.map((entry) => (
               <div
                 key={entry.id}
                 className="flex items-center gap-2 rounded-md border border-border bg-muted-faint px-2.5 py-1.5 text-xs"
               >
-                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
-                  {TYPE_LABELS[entry.type] ?? entry.type}
-                </span>
+                {TYPE_LABELS[entry.type] ? (
+                  <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
+                    {TYPE_LABELS[entry.type]}
+                  </span>
+                ) : (
+                  <span className="shrink-0 text-muted-foreground">
+                    <FolderIcon />
+                  </span>
+                )}
                 <span
                   className={[
                     "min-w-0 flex-1 truncate text-foreground",
@@ -205,96 +267,48 @@ export function WorkspaceEditor({
         </div>
       )}
 
-      {/* Tab bar (only when both sources are available) */}
-      {hasBothTabs && (
-        <div className="flex rounded-md border border-border bg-muted-faint p-0.5">
+      {/* Action items */}
+      <div className="space-y-0.5">
+        {enableLocal && (
           <button
             type="button"
-            onClick={() => setActiveTab("local")}
-            disabled={disabled}
-            className={[
-              "flex flex-1 items-center justify-center gap-1.5 rounded px-2 py-1 text-[0.65rem] font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
-              effectiveTab === "local"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            ].join(" ")}
+            onClick={
+              onBrowseLocalFolder
+                ? async () => {
+                    const path = await onBrowseLocalFolder();
+                    if (path) workspace.addLocalPath(path);
+                  }
+                : () => setActivePanel("browse")
+            }
+            disabled={disabled || !runnerId}
+            className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs text-foreground transition-colors hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-40"
           >
             <FolderIcon />
-            Local Folder
+            <span className="flex-1 text-left">Browse Folder</span>
+            {!onBrowseLocalFolder && <ChevronRightIcon />}
           </button>
+        )}
+        {enableGitHub && (
           <button
             type="button"
-            onClick={() => setActiveTab("github")}
+            onClick={() => setActivePanel("github")}
             disabled={disabled}
-            className={[
-              "flex flex-1 items-center justify-center gap-1.5 rounded px-2 py-1 text-[0.65rem] font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
-              effectiveTab === "github"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            ].join(" ")}
+            className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs text-foreground transition-colors hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-40"
           >
             <GitHubIcon />
-            GitHub Repo
+            <span className="flex-1 text-left">Connect GitHub</span>
+            <ChevronRightIcon />
           </button>
-        </div>
-      )}
-
-      {/* Tab content */}
-      <div className="rounded-md border border-border bg-card p-3">
-        {effectiveTab === "local" && hasLocal && (
-          <div className="space-y-2">
-            {onBrowseLocalFolder && (
-              <button
-                type="button"
-                onClick={handleNativeBrowse}
-                disabled={disabled}
-                className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border px-2.5 py-1.5 text-[0.65rem] text-muted-foreground transition-colors hover:border-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
-              >
-                <SystemDialogIcon />
-                Open system file dialog
-              </button>
-            )}
-            <RunnerFileBrowser
-              runnerId={runnerId!}
-              onSelect={(path) => workspace.addLocalPath(path)}
-              onCancel={() => {
-                if (hasGitHub) setActiveTab("github");
-              }}
-              runnerName={runnerName}
-              runnerHostname={runnerHostname}
-            />
-          </div>
-        )}
-
-        {effectiveTab === "github" && hasGitHub && (
-          gitHubConnection ? (
-            <GitHubPanel
-              connection={gitHubConnection}
-              onSelect={handleGitHubSelect}
-              onClose={() => {
-                if (hasLocal) setActiveTab("local");
-              }}
-            />
-          ) : (
-            <ManualGitPanel
-              url={manualUrl}
-              branch={manualBranch}
-              onUrlChange={setManualUrl}
-              onBranchChange={setManualBranch}
-              onAdd={handleManualAdd}
-              onCancel={() => {
-                if (hasLocal) setActiveTab("local");
-              }}
-              onKeyDown={handleKeyDown(handleManualAdd)}
-            />
-          )
         )}
       </div>
     </div>
   );
 }
 
-/** GitHub panel with progressive disclosure: connect prompt or repo picker. */
+// ---------------------------------------------------------------------------
+// GitHub panel (progressive disclosure: connect prompt or repo picker)
+// ---------------------------------------------------------------------------
+
 function GitHubPanel({
   connection,
   onSelect,
@@ -328,16 +342,6 @@ function GitHubPanel({
 
     return (
       <div className="space-y-3 text-center">
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Close"
-          >
-            <XIcon />
-          </button>
-        </div>
         <div className="space-y-1">
           <p className="text-xs font-medium text-foreground">
             Choose a GitHub repo to add to workspace
@@ -398,23 +402,13 @@ function GitHubPanel({
             {connection.user?.login ?? "Connected"}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={connection.disconnect}
-            className="text-[0.6rem] text-muted-foreground hover:text-destructive transition-colors"
-          >
-            Disconnect
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Close"
-          >
-            <XIcon />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={connection.disconnect}
+          className="text-[0.6rem] text-muted-foreground hover:text-destructive transition-colors"
+        >
+          Disconnect
+        </button>
       </div>
       <GitHubRepoPicker
         token={connection.token!}
@@ -425,7 +419,10 @@ function GitHubPanel({
   );
 }
 
-/** Fallback manual git URL input for platform builders without GitHub connection. */
+// ---------------------------------------------------------------------------
+// Manual git URL input (fallback for platform builders without GitHub OAuth)
+// ---------------------------------------------------------------------------
+
 function ManualGitPanel({
   url,
   branch,
@@ -483,12 +480,22 @@ function ManualGitPanel({
   );
 }
 
-function SystemDialogIcon() {
+// ---------------------------------------------------------------------------
+// Icons
+// ---------------------------------------------------------------------------
+
+function ChevronLeftIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1.5 3V9.5a1 1 0 001 1h7a1 1 0 001-1V5a1 1 0 00-1-1H6L4.5 2.5h-2a1 1 0 00-1 .5z" />
-      <path d="M6 6.5V9" />
-      <path d="M4.5 8L6 9.5L7.5 8" />
+      <path d="M7.5 2.5L4 6L7.5 9.5" />
+    </svg>
+  );
+}
+
+function ChevronRightIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+      <path d="M4.5 2.5L8 6L4.5 9.5" />
     </svg>
   );
 }

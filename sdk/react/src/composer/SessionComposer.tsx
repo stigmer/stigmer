@@ -21,6 +21,7 @@ import type { UseSessionVariablesReturn } from "../execution/useSessionVariables
 import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 import { useRunnerList } from "../runner/useRunnerList";
+import { WorkspaceRunnerSelector } from "../runner/WorkspaceRunnerSelector";
 import { useAttachments } from "../attachment/useAttachments";
 import { AttachmentChipList } from "../attachment/AttachmentChipList";
 import { useSessionEnvPool } from "../environment/useSessionEnvPool";
@@ -419,14 +420,23 @@ export function SessionComposer({
   const selectedRunnerName = selectedRunner?.metadata?.name;
   const selectedRunnerHostname = selectedRunner?.status?.connectionInfo?.hostname;
 
-  const browseRunnerId = useMemo(() => {
-    if (runnerId) return runnerId;
-    if (!enableLocal) return null;
-    const active = runnerListForBrowse.find((r) =>
-      isActivePhase(r.status?.phase ?? RunnerPhase.UNSPECIFIED),
-    );
-    return active?.metadata?.id ?? null;
-  }, [runnerId, enableLocal, runnerListForBrowse]);
+  const browseRunnerId = runnerId ?? null;
+
+  // ---------------------------------------------------------------------------
+  // Runner-switch safety — clear local workspace entries when runner changes
+  // ---------------------------------------------------------------------------
+
+  const prevRunnerIdRef = useRef(runnerId);
+
+  useEffect(() => {
+    if (prevRunnerIdRef.current !== runnerId) {
+      const hadLocal = workspace?.entries.some((e) => e.type === "local");
+      prevRunnerIdRef.current = runnerId;
+      if (hadLocal) {
+        workspace?.clearLocal();
+      }
+    }
+  }, [runnerId, workspace]);
 
   // ---------------------------------------------------------------------------
   // Configure menu state — drives the Tier 2 drill-down popover
@@ -885,17 +895,6 @@ export function SessionComposer({
       });
     }
 
-    if (workspace) {
-      for (const entry of workspace.entries) {
-        items.push({
-          key: `ws:${entry.id}`,
-          label: entry.name,
-          type: "workspace",
-          onRemove: () => workspace.remove(entry.id),
-        });
-      }
-    }
-
     if (showMcp) {
       for (const [key, entry] of Object.entries(mcpSetup.entries)) {
         const slug = key.slice(key.indexOf("/") + 1);
@@ -946,15 +945,6 @@ export function SessionComposer({
           },
         });
       }
-    }
-
-    if (showRunner && runnerId) {
-      items.push({
-        key: `runner:${runnerId}`,
-        label: selectedRunnerName ?? "Runner",
-        type: "runner",
-        onRemove: () => onRunnerIdChange?.(null),
-      });
     }
 
     if (sessionVariables) {
@@ -1059,7 +1049,7 @@ export function SessionComposer({
         count: skillCount,
       });
     }
-    if (showRunner) {
+    if (showRunner && !showWorkspace) {
       items.push({
         id: "runner",
         icon: <RunnerIcon />,
@@ -1076,7 +1066,7 @@ export function SessionComposer({
       });
     }
     return items;
-  }, [showAgent, agentRef, agentSetup.state, showMcp, mcpCount, mcpSetup.needsSetupCount, showSkills, skillCount, showRunner, runnerId, showSessionVars, sessionVarCount]);
+  }, [showAgent, agentRef, agentSetup.state, showMcp, mcpCount, mcpSetup.needsSetupCount, showSkills, skillCount, showRunner, showWorkspace, runnerId, showSessionVars, sessionVarCount]);
 
   const renderConfigPanel = useCallback(
     (panelId: string): React.ReactNode => {
@@ -1358,17 +1348,27 @@ export function SessionComposer({
           workspaceCount={workspaceCount}
           workspaceContent={
             workspace
-              ? <WorkspaceEditor
-                  workspace={workspace}
-                  disabled={isDisabled}
-                  gitHubConnection={gitHubConnection}
-                  enableGitHub={enableGitHub}
-                  enableLocal={enableLocal}
-                  runnerId={browseRunnerId}
-                  onBrowseLocalFolder={onBrowseLocalFolder}
-                  runnerName={selectedRunnerName}
-                  runnerHostname={selectedRunnerHostname}
-                />
+              ? <div className="space-y-3">
+                  {showRunner && org && (
+                    <WorkspaceRunnerSelector
+                      org={org}
+                      value={runnerId ?? null}
+                      onChange={(id) => onRunnerIdChange?.(id)}
+                      disabled={isDisabled}
+                    />
+                  )}
+                  <WorkspaceEditor
+                    workspace={workspace}
+                    disabled={isDisabled}
+                    gitHubConnection={gitHubConnection}
+                    enableGitHub={enableGitHub}
+                    enableLocal={enableLocal}
+                    runnerId={browseRunnerId}
+                    onBrowseLocalFolder={runnerId ? onBrowseLocalFolder : undefined}
+                    runnerName={selectedRunnerName}
+                    runnerHostname={selectedRunnerHostname}
+                  />
+                </div>
               : null
           }
           configureItems={configureItems}

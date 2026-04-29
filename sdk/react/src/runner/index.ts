@@ -41,6 +41,9 @@ export type {
 export { RunnerListPanel } from "./RunnerListPanel";
 export type { RunnerListPanelProps } from "./RunnerListPanel";
 
+export { WorkspaceRunnerSelector } from "./WorkspaceRunnerSelector";
+export type { WorkspaceRunnerSelectorProps } from "./WorkspaceRunnerSelector";
+
 export {
   phaseLabel,
   phaseDotColor,
