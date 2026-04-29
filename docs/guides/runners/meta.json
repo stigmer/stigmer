@@ -2,8 +2,10 @@
   "title": "Runners",
   "pages": [
     "overview",
-    "local-runner",
-    "stop-and-cleanup",
-    "platform-integration"
+    "sidecar-setup",
+    "local-mode",
+    "sandbox-mode",
+    "cloud-mode",
+    "stop-and-cleanup"
   ]
 }

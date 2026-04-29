@@ -225,7 +225,7 @@ function DownloadPage() {
                 <ul className="space-y-4">
                   <li>
                     <Link
-                      href="/docs/guides/desktop/install"
+                      href="/docs/guides/runners/sidecar-setup"
                       className="group flex items-start gap-3"
                     >
                       <Icon
@@ -235,39 +235,18 @@ function DownloadPage() {
                       />
                       <div>
                         <span className="text-sm font-medium text-foreground group-hover:underline">
-                          Install and set up
+                          Set up the sidecar
                         </span>
                         <p className="text-sm text-muted-foreground mt-0.5">
-                          First launch, signing in, and connecting to your
-                          organization.
+                          Bundle the CLI in your app, spawn runners, and manage
+                          deep links.
                         </p>
                       </div>
                     </Link>
                   </li>
                   <li>
                     <Link
-                      href="/docs/guides/desktop/manage-runners"
-                      className="group flex items-start gap-3"
-                    >
-                      <Icon
-                        name="arrow-right"
-                        size="sm"
-                        className="text-subtle mt-0.5 transition-transform group-hover:translate-x-0.5"
-                      />
-                      <div>
-                        <span className="text-sm font-medium text-foreground group-hover:underline">
-                          Manage runners
-                        </span>
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          Start runners, launch sessions from the browser, and
-                          use tray controls.
-                        </p>
-                      </div>
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/docs/guides/runners/local-runner"
+                      href="/docs/guides/runners/local-mode"
                       className="group flex items-start gap-3"
                     >
                       <Icon
@@ -284,7 +263,7 @@ function DownloadPage() {
                           <code className="text-xs font-mono px-1 py-0.5 rounded bg-muted">
                             stigmer up runner
                           </code>{" "}
-                          for headless or Docker-based runners.
+                          for local or Docker-based runners.
                         </p>
                       </div>
                     </Link>

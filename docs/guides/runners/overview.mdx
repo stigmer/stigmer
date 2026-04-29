@@ -1,53 +1,85 @@
 ---
 title: Runners
 description:
-  Start, stop, and monitor runners from the CLI or the desktop app. Integrate
-  runners into your own platform using the CLI as a sidecar.
+  Integrate Stigmer into your desktop application. Set up a runner sidecar,
+  choose an execution mode, and give your users local, sandboxed, or cloud
+  compute for AI agents.
 ---
 
-These guides cover how to run and manage runners — from starting one on your
-laptop to integrating runner management into your own platform.
+A Runner is the process that executes your users' Agents. If you are building a
+desktop application and want your users to run Stigmer agents, you need to
+understand how runners work and how to set one up.
 
-If you prefer a graphical interface, the
-[Stigmer Desktop app](/docs/guides/desktop/overview) manages runners through a
-native window and system tray. Both the CLI and the desktop app manage the same
-runners — start one from the CLI and stop it from the desktop app, or the other
-way around.
+These guides walk you through the integration — from bundling the `stigmer` CLI
+as a sidecar in your app to choosing the right execution mode for your users'
+workloads.
 
-## CLI vs Desktop App vs Web Console
+## Three execution modes
 
-|                          | CLI (`stigmer`)                 | Desktop App                     | Web Console                       |
-| ------------------------ | ------------------------------- | ------------------------------- | --------------------------------- |
-| **Start a runner**       | `stigmer up`                    | Settings > Runners > Start      | Launch via `stigmer://` deep link |
-| **Stop a runner**        | `stigmer down runner`           | Action menu or system tray      | Settings > Runners > Stop         |
-| **List runners**         | `stigmer list runners`          | Settings > Runners panel        | Settings > Runners panel          |
-| **Docker runtime**       | `--runtime docker`              | Runtime picker in start dialog  | —                                 |
-| **Multiple runners**     | One terminal per runner         | All in one window               | View only — start from CLI or app |
-| **Background operation** | Runs in a terminal Session      | System tray keeps runners alive | —                                 |
-| **Best for**             | Scripting, CI/CD, SSH, headless | Day-to-day development          | Monitoring and remote stop        |
+Every runner integration starts with a choice: where should agent commands run?
+
+|                     | Local                                    | Sandbox                                      | Cloud (auto)                          |
+| ------------------- | ---------------------------------------- | -------------------------------------------- | ------------------------------------- |
+| **What runs where** | Agent commands run on the user's machine | Agent commands run in a Docker container     | Stigmer provisions compute on demand  |
+| **Start command**   | `stigmer up`                             | `stigmer up --runtime docker`                | No command — automatic                |
+| **Isolation**       | None — full host access                  | Container-level                              | Platform-managed                      |
+| **Good for**        | Development, on-premises, data-sensitive | Untrusted workloads, consistent environments | Zero-setup production, burst capacity |
+
+**Local** is the default. Your app spawns `stigmer up` and the runner executes
+agent commands directly on the user's machine. The agent has full access to the
+local file system.
+
+**Sandbox** adds isolation. The runner executes agent commands inside a Docker
+container, keeping untrusted operations away from the host. Your app spawns
+`stigmer up --runtime docker` or configures the execution mode to `sandbox`.
+
+**Cloud (auto)** requires no local runner at all. When a Session needs compute
+and no runner is specified, Stigmer provisions an ephemeral cloud runner on
+demand. If your app does not start a runner, this is what happens.
+
+## The sidecar pattern
+
+Your application bundles the `stigmer` CLI binary and spawns it as a child
+process. The CLI handles everything — runner registration, heartbeats, the
+bidirectional command stream, and the Python runtime. Your app only needs to
+start and stop it.
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={`
+graph LR
+  App["Your App"] -->|spawns| CLI["stigmer CLI"]
+  CLI -->|registers| Backend["Stigmer Backend"]
+  CLI -->|"heartbeats + commands"| Backend
+  CLI -->|starts| Runner["Python agent-runner"]
+`}
+/>
 
 ## Guides in this section
 
 {/* vale off */}
 
 <Cards>
-  <Card href="/docs/guides/runners/local-runner" title="Start a local runner">
-    Start a runner with stigmer up, choose native or Docker, name your runners,
-    and manage multiple runners at once.
+  <Card href="/docs/guides/runners/sidecar-setup" title="Set up the sidecar">
+    Bundle the Stigmer CLI in your app. Build the binary, spawn the process, and
+    manage its lifecycle.
+  </Card>
+  <Card href="/docs/guides/runners/local-mode" title="Local mode">
+    Start a runner where agent commands execute directly on the user's machine.
+  </Card>
+  <Card href="/docs/guides/runners/sandbox-mode" title="Sandbox mode">
+    Start a runner where agent commands execute inside an isolated Docker
+    container.
+  </Card>
+  <Card href="/docs/guides/runners/cloud-mode" title="Cloud mode (auto)">
+    Skip local setup entirely. Stigmer provisions compute on demand when no
+    runner is available.
   </Card>
   <Card
     href="/docs/guides/runners/stop-and-cleanup"
     title="Stop runners and clean up"
   >
-    Stop individual runners or all at once, understand daemon-managed vs
-    standalone runners, and clean up state files.
-  </Card>
-  <Card
-    href="/docs/guides/runners/platform-integration"
-    title="Integrate runners into your platform"
-  >
-    Bundle the Stigmer CLI as a sidecar in your own app. Start, stop, and
-    monitor runners on behalf of your users.
+    Stop individual runners or all at once, and clean up state files.
   </Card>
 </Cards>
 
@@ -55,15 +87,10 @@ way around.
 
 ## Who these guides are for
 
-These guides serve two audiences:
-
-- **Developers** who want to start a runner on their machine for development and
-  testing — via the CLI or the desktop app.
-- **Platform builders** who need to integrate runner management into their own
-  applications — using the CLI as a sidecar process or the SDK for programmatic
-  control.
+These guides are for **platform builders** who want to integrate Stigmer into
+their own desktop applications. The journey assumes you are building an app that
+manages runner processes on behalf of your users — using the CLI as a sidecar.
 
 You should already understand what [Runners](/docs/concepts/runners) are and how
-they fit the platform. If terms like "runner phase" or "local vs cloud runner"
-aren't familiar yet, start with the
-[Runners concept page](/docs/concepts/runners).
+they fit the platform. If terms like "runner phase" or "runner lifecycle" are
+not familiar yet, start with the [Runners concept page](/docs/concepts/runners).

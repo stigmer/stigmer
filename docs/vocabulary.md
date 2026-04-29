@@ -257,8 +257,8 @@ A process that connects to Stigmer and executes your Agents.
 - **Key fields**: `status.phase` (Pending, Ready, Busy, Stopped, Failed),
   `status.task_queue` (immutable routing address), `status.connection_info`
   (host name, OS, architecture, runner version), `status.current_executions`.
-- **Two types**: Local runners (user-started via CLI or desktop app, persistent)
-  and cloud runners (platform-provisioned, ephemeral, labeled
+- **Two types**: Local runners (user-started via CLI, persistent) and cloud
+  runners (platform-provisioned, ephemeral, labeled
   `stigmer.ai/system-managed: "true"`).
 - **Related terms**: Sessions bind to a runner via `SessionSpec.runner_id`.
   Executions record which runner handled them via

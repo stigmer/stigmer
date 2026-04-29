@@ -1,4 +1,4 @@
 {
   "title": "Guides",
-  "pages": ["desktop", "runners", "integrations", "authentication"]
+  "pages": ["runners", "integrations", "authentication"]
 }
