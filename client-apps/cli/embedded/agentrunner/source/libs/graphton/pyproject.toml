@@ -1,0 +1,68 @@
+[tool.poetry]
+name = "graphton"
+version = "0.1.0"
+description = "Declarative agent creation framework for LangGraph (Stigmer local copy)"
+authors = ["Stigmer <engineering@stigmer.ai>"]
+license = "Apache-2.0"
+readme = "README.md"
+keywords = ["langgraph", "langchain", "agents", "mcp", "ai"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+packages = [{include = "graphton", from = "src"}]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<4.0"
+deepagents = ">=0.4.0,!=0.4.1,<0.5.0"  # 0.4.1 has corrupted __init__.py (IndentationError)
+langgraph = ">=1.0.0,<2.0.0"
+langchain = ">=1.0.0,<2.0.0"
+langchain-anthropic = ">=1.0.0,<2.0.0"
+langchain-openai = ">=1.0.0,<2.0.0"
+langchain-ollama = ">=1.0.0,<2.0.0"
+langchain-mcp-adapters = ">=0.2.0,<0.3.0"
+pydantic = ">=2.0.0,<3.0.0"
+nest-asyncio = ">=1.6.0,<2.0.0"
+# Context summarization dependencies
+langmem = ">=0.0.30,<1.0.0"
+tiktoken = ">=0.7.0,<1.0.0"
+# .gitignore pattern matching (used by FilesystemBackend, tree generation)
+pathspec = ">=0.12.0,<1.0.0"
+# HTTP client for platform tools that call external APIs (e.g. GitHub PR creation)
+httpx = ">=0.28.0,<1.0.0"
+
+[tool.poetry.group.dev.dependencies]
+ruff = ">=0.6.0"
+mypy = ">=1.10.0"
+pytest = ">=8.0.0"
+pytest-asyncio = ">=0.24.0"
+pytest-cov = ">=5.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+# Aligned with agent-runner for consistency across the Python codebase.
+# E: pycodestyle errors, F: pyflakes, I: isort, UP: pyupgrade, N: pep8-naming
+select = ["E", "F", "I", "UP", "N"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["N802", "N803"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+asyncio_mode = "auto"
+

@@ -32,12 +32,13 @@ return value as a prop.
 **Signature**
 
 ```tsx
-function useGitHubConnection(org: string | null): UseGitHubConnectionReturn
+function useGitHubConnection(org: string | null, config?: UseGitHubConnectionConfig): UseGitHubConnectionReturn
 ```
 
 <TypeTable
   type={{
     org: { type: "string | null", description: "The active organization slug. Required for server-side   token storage. Pass `null` to skip all server operations.", required: true },
+    config: { type: "UseGitHubConnectionConfig", description: "Optional configuration for desktop / non-browser   environments. See UseGitHubConnectionConfig." },
   }}
 />
 
@@ -52,6 +53,7 @@ function useGitHubConnection(org: string | null): UseGitHubConnectionReturn
     isConnecting: { type: "boolean", description: "Whether an OAuth popup is open and the flow is in progress." },
     isLoading: { type: "boolean", description: "Whether the connection state is being validated on mount." },
     popupBlocked: { type: "boolean", description: "Whether the last popup `connect()` attempt was blocked by the browser. When `true`, the UI should prompt the user to allow popups or offer a redirect fallback (call `connect` without `{ popup: true }`)." },
+    reconcile: { type: "() => void", description: "Trigger re-reconciliation from the personal environment.  Call this when the token exchange was handled externally (e.g. by the Stigmer web callback page during a desktop OAuth flow) and the token is already stored server-side. The hook will refetch the personal environment, reveal the token, and update isConnected." },
     token: { type: "string | null", description: "The current access token (null if not connected)." },
     user: { type: "GitHubUser | null", description: "The connected GitHub user profile, if connected." },
   }}
@@ -81,6 +83,18 @@ function GitHubConnect({ org }: { org: string }) {
       <button onClick={gh.disconnect}>Disconnect</button>
     </div>
   );
+}
+```
+
+```tsx
+function DesktopGitHubConnect({ org }: { org: string }) {
+  const gh = useGitHubConnection(org, {
+    openUrl: (url) => invoke("open_auth_in_browser", { authUrl: url }),
+    callbackUrl: "https://app.stigmer.ai/auth/github/callback?source=desktop",
+  });
+  // The web callback page processes the exchange, then redirects to
+  // stigmer://github/callback-done. The desktop deep link handler
+  // calls gh.reconcile() to pick up the token.
 }
 ```
 
@@ -312,6 +326,21 @@ Minimal GitHub user profile for display.
     avatarUrl: { type: "string", description: "URL of the user's avatar image.", required: true },
     login: { type: "string", description: "GitHub username (e.g. `\"octocat\"`).", required: true },
     name: { type: "string | null", description: "Display name, or `null` when the user has not set one.", required: true },
+  }}
+/>
+
+
+### UseGitHubConnectionConfig
+
+Optional configuration for [`useGitHubConnection`](#usegithubconnection).
+
+Enables desktop and non-browser environments to participate in the
+GitHub OAuth flow without relying on `window.open()` popups.
+
+<TypeTable
+  type={{
+    callbackUrl: { type: "string", description: "Override the OAuth callback URL.  When provided, this replaces the `redirectUri` parameter passed to `connect()` by UI components like `WorkspaceEditor`. Use this to route the GitHub callback to a specific URL — for example, the Stigmer web console's callback page for desktop flows, or a localhost server for local development.  When the callback page handles the token exchange itself (cloud desktop flows), the consumer triggers re-reconciliation via UseGitHubConnectionReturn.reconcile after the callback completes externally.  When the consumer handles the exchange (localhost flows), the same URL must be passed to `handleCallback()` — GitHub requires an exact match between the authorize and exchange redirect URIs." },
+    openUrl: { type: "(url: string) => void | Promise<void>", description: "Custom function to open the authorization URL in a browser.  When provided, the hook calls this instead of `window.open()` during popup-mode `connect()` flows. This enables desktop environments (e.g. Tauri, Electron) where webview popups are blocked but the system browser is available.  When used with callbackUrl, the callback page processes the token exchange and the consumer calls UseGitHubConnectionReturn.reconcile to pick up the token from the personal environment.  When used without callbackUrl (e.g. localhost callback server), the consumer calls UseGitHubConnectionReturn.handleCallback with the code, state, and redirect URI to complete the exchange." },
   }}
 />
 
