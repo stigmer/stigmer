@@ -64,9 +64,8 @@ function canStop(topology: RunnerTopology, phase: RunnerPhase): boolean {
   return topology === "desktop-managed" || topology === "local-cli";
 }
 
-function canStart(topology: RunnerTopology, phase: RunnerPhase): boolean {
-  if (phase !== RunnerPhase.STOPPED) return false;
-  return topology !== "remote";
+function canStart(_topology: RunnerTopology, phase: RunnerPhase): boolean {
+  return phase === RunnerPhase.STOPPED;
 }
 
 function canViewLogs(topology: RunnerTopology): boolean {
