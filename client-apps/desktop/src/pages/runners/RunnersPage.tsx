@@ -14,7 +14,7 @@ import {
 import type { Runner } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
 import { RunnerPhase } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/enum_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { Play, Square, ScrollText, X } from "lucide-react";
+import { Play, Square, ScrollText, X, Loader2 } from "lucide-react";
 import { useLocalRunners } from "../../hooks/useLocalRunners";
 import { useStartRunner } from "../../hooks/useStartRunner";
 import { useStopLocalRunner } from "../../hooks/useStopLocalRunner";
@@ -608,7 +608,18 @@ function RunnerRow({
               System
             </span>
           )}
-          <PhaseBadge phase={phase} />
+          {isLaunching && showStart ? (
+            <span className="inline-flex shrink-0 items-center gap-1">
+              <Loader2
+                size={10}
+                className="animate-spin text-primary"
+                aria-hidden="true"
+              />
+              <span className="text-[0.65rem] text-primary">Starting…</span>
+            </span>
+          ) : (
+            <PhaseBadge phase={phase} />
+          )}
         </div>
 
         {/* Line 2: metadata */}
@@ -654,11 +665,20 @@ function RunnerRow({
               type="button"
               onClick={onStart}
               disabled={isLaunching}
-              title="Start runner"
-              aria-label={`Start ${name}`}
-              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-primary-subtle hover:text-primary disabled:opacity-50"
+              title={isLaunching ? "Starting runner…" : "Start runner"}
+              aria-label={isLaunching ? `Starting ${name}…` : `Start ${name}`}
+              className={cn(
+                "rounded p-1.5 transition-colors disabled:opacity-50",
+                isLaunching
+                  ? "text-primary"
+                  : "text-muted-foreground hover:bg-primary-subtle hover:text-primary",
+              )}
             >
-              <Play size={14} />
+              {isLaunching ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Play size={14} />
+              )}
             </button>
           )}
         </div>
