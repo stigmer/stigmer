@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/pkg/errors"
@@ -131,7 +132,7 @@ func (m *Manager) refreshDevSource(ctx context.Context) error {
 		Str("app_dir", m.AppDir()).
 		Msg("Dev mode: refreshing application source and path dependencies")
 
-	if err := os.RemoveAll(m.AppDir()); err != nil {
+	if err := robustRemoveAll(m.AppDir()); err != nil {
 		return errors.Wrap(err, "failed to remove stale app source")
 	}
 	if err := m.extractAppSource(); err != nil {
@@ -185,7 +186,7 @@ func (m *Manager) bootstrap(ctx context.Context) error {
 	success := false
 	defer func() {
 		if !success {
-			_ = os.RemoveAll(runtimeDir)
+			_ = robustRemoveAll(runtimeDir)
 		}
 	}()
 
@@ -216,9 +217,35 @@ func (m *Manager) bootstrap(ctx context.Context) error {
 	return nil
 }
 
+// robustRemoveAll wraps os.RemoveAll with retries to handle transient
+// macOS failures. Spotlight indexing and .DS_Store file creation can race
+// with recursive directory removal, causing "directory not empty" errors
+// on an otherwise deletable tree. A short retry loop resolves this.
+func robustRemoveAll(dir string) error {
+	const maxAttempts = 3
+	const retryDelay = 200 * time.Millisecond
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		err := os.RemoveAll(dir)
+		if err == nil {
+			return nil
+		}
+		if attempt == maxAttempts || runtime.GOOS != "darwin" {
+			return err
+		}
+		log.Debug().
+			Err(err).
+			Int("attempt", attempt).
+			Str("path", dir).
+			Msg("RemoveAll failed, retrying after short delay")
+		time.Sleep(retryDelay)
+	}
+	return nil
+}
+
 // prepareDir removes any stale directory at path and creates a fresh one.
 func prepareDir(dir string) error {
-	if err := os.RemoveAll(dir); err != nil {
+	if err := robustRemoveAll(dir); err != nil {
 		return errors.Wrap(err, "failed to remove stale runtime directory")
 	}
 	if err := os.MkdirAll(dir, 0755); err != nil {
