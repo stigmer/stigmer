@@ -93,8 +93,9 @@ When building a sidecar integration, you have two ways to stop runners:
 `~/.stigmer/runners/<name>.json` and signal the process directly. The CLI
 handles graceful shutdown automatically.
 
-**Spawn a stop command.** Run `stigmer-cli down runner --name <name>` as a new
-child process. The CLI reads the state file, signals the runner, and cleans up.
+**Spawn a stop command.** Run
+`stigmer-cli --standalone down runner --name <name>` as a new child process. The
+CLI reads the state file, signals the runner, and cleans up.
 
 ### Application exit
 

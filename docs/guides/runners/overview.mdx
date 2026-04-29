@@ -18,20 +18,21 @@ workloads.
 
 Every runner integration starts with a choice: where should agent commands run?
 
-|                     | Local                                    | Sandbox                                      | Cloud (auto)                          |
-| ------------------- | ---------------------------------------- | -------------------------------------------- | ------------------------------------- |
-| **What runs where** | Agent commands run on the user's machine | Agent commands run in a Docker container     | Stigmer provisions compute on demand  |
-| **Start command**   | `stigmer up`                             | `stigmer up --runtime docker`                | No command — automatic                |
-| **Isolation**       | None — full host access                  | Container-level                              | Platform-managed                      |
-| **Good for**        | Development, on-premises, data-sensitive | Untrusted workloads, consistent environments | Zero-setup production, burst capacity |
+|                     | Local                                    | Sandbox                                               | Cloud (auto)                          |
+| ------------------- | ---------------------------------------- | ----------------------------------------------------- | ------------------------------------- |
+| **What runs where** | Agent commands run on the user's machine | Agent commands run in a Docker container              | Stigmer provisions compute on demand  |
+| **Start command**   | `stigmer-cli --standalone up runner`     | `stigmer-cli --standalone up runner --runtime docker` | No command — automatic                |
+| **Isolation**       | None — full host access                  | Container-level                                       | Platform-managed                      |
+| **Good for**        | Development, on-premises, data-sensitive | Untrusted workloads, consistent environments          | Zero-setup production, burst capacity |
 
-**Local** is the default. Your app spawns `stigmer up` and the runner executes
-agent commands directly on the user's machine. The agent has full access to the
-local file system.
+**Local** is the default. Your app spawns `stigmer-cli --standalone up runner`
+and the runner executes agent commands directly on the user's machine. The agent
+has full access to the local file system.
 
 **Sandbox** adds isolation. The runner executes agent commands inside a Docker
 container, keeping untrusted operations away from the host. Your app spawns
-`stigmer up --runtime docker` or configures the execution mode to `sandbox`.
+`stigmer-cli --standalone up runner --runtime docker` or configures the
+execution mode to `sandbox`.
 
 **Cloud (auto)** requires no local runner at all. When a Session needs compute
 and no runner is specified, Stigmer provisions an ephemeral cloud runner on
@@ -54,6 +55,20 @@ graph LR
   CLI -->|starts| Runner["Python agent-runner"]
 `}
 />
+
+### The `--standalone` flag
+
+Every sidecar invocation uses the `--standalone` flag. This tells the CLI to
+ignore the user's `~/.stigmer/config.yaml` file — all configuration must come
+from flags or environment variables that your app provides.
+
+Without `--standalone`, the CLI reads the user's config file. If the user has
+previously run `stigmer auth login` or `stigmer config set`, those stored
+settings could silently override the credentials and endpoint your app passes.
+The `--standalone` flag prevents this by isolating your sidecar from any ambient
+CLI configuration on the machine.
+
+You will see `--standalone` in every CLI example throughout these guides.
 
 ## Guides in this section
 
