@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 )
 
@@ -112,18 +111,15 @@ func LoadState(name string) (*RunnerState, error) {
 	return &state, nil
 }
 
-// RemoveState deletes the state file and associated log file for a named runner.
+// RemoveState deletes the state file for a named runner. The log file is
+// intentionally preserved so that crash diagnostics remain available to
+// the user and the desktop app's log viewer after the runner exits. The
+// log file is truncated on the next start by openRunnerLogFile, so stale
+// logs do not accumulate.
 func RemoveState(name string) error {
 	dir, err := RunnersDir()
 	if err != nil {
 		return err
-	}
-
-	// Remove the log file (best-effort; missing file is fine).
-	logPath := filepath.Join(dir, name+".log")
-	if err := os.Remove(logPath); err != nil && !os.IsNotExist(err) {
-		// Non-fatal — log the failure but continue with state removal.
-		log.Warn().Err(err).Str("path", logPath).Msg("Failed to remove runner log file")
 	}
 
 	path := filepath.Join(dir, name+".json")
