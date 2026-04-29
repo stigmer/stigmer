@@ -94,6 +94,39 @@ async function fetchGitHubUser(token: string): Promise<GitHubUser | null> {
 }
 
 /**
+ * Reads the OAuth state from the opener window's sessionStorage when
+ * running inside a popup (same-origin). Falls back to the current
+ * window's sessionStorage for redirect-based flows or when the
+ * opener is unavailable.
+ */
+function getSavedOAuthState(): string | null {
+  try {
+    if (window.opener && !window.opener.closed) {
+      const openerState = window.opener.sessionStorage.getItem(
+        STORAGE_KEY_STATE,
+      );
+      if (openerState) return openerState;
+    }
+  } catch {
+    // Cross-origin or closed opener — fall through to local storage.
+  }
+  return sessionStorage.getItem(STORAGE_KEY_STATE);
+}
+
+/**
+ * Removes the OAuth state key from both the current window's and the
+ * opener's sessionStorage (best-effort).
+ */
+function clearOAuthState(): void {
+  sessionStorage.removeItem(STORAGE_KEY_STATE);
+  try {
+    window.opener?.sessionStorage?.removeItem(STORAGE_KEY_STATE);
+  } catch {
+    // Cross-origin or closed opener — ignore.
+  }
+}
+
+/**
  * Checks whether the personal environment's redacted data contains a given key.
  * The key is present even when the value is redacted (`***REDACTED***`).
  */
@@ -336,11 +369,11 @@ export function useGitHubConnection(
 
   const handleCallback = useCallback(
     async (code: string, state: string, redirectUri: string) => {
-      const savedState = sessionStorage.getItem(STORAGE_KEY_STATE);
+      const savedState = getSavedOAuthState();
       if (savedState && savedState !== state) {
         throw new Error("OAuth state mismatch — possible CSRF attack");
       }
-      sessionStorage.removeItem(STORAGE_KEY_STATE);
+      clearOAuthState();
 
       const { accessToken } = await stigmer.github.exchangeOAuthCode({
         code,
