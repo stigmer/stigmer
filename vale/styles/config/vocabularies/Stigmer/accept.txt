@@ -81,6 +81,9 @@ Graphton
 agentic
 approvers
 sandboxing
+[Ss]andboxed
+[Uu]ntrusted
+Tauri
 Zigflow
 subtask
 mcp_server_ref

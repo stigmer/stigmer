@@ -1,24 +1,18 @@
 ---
-title: Integrate runners into your platform
+title: Set up the sidecar
 description:
-  Bundle the Stigmer CLI as a sidecar in your own application to start, stop,
-  and monitor runners on behalf of your users. Includes deep link integration
-  and the SDK runner management API.
+  Bundle the Stigmer CLI as a sidecar in your desktop application. Build the
+  binary, spawn runner processes, handle deep links, and manage the runner
+  lifecycle on behalf of your users.
 ---
 
-If you are building a platform that runs Stigmer agents, your application needs
-to manage runner processes. The recommended pattern is to bundle the `stigmer`
-CLI binary alongside your app and spawn it as a child process. The CLI handles
-runner registration, heartbeats, the bidirectional command stream, and the
-Python runtime — your app only needs to start and stop it.
-
-The [Stigmer Desktop app](/docs/guides/desktop/overview) is a reference
-implementation of this pattern. It ships the CLI as a `Tauri` sidecar and
-manages runners through child process lifecycle events.
+Your application manages runner processes by spawning the `stigmer` CLI as a
+child process. The CLI is a single, self-contained binary that handles
+everything needed to run agents — runner registration, heartbeats, the
+bidirectional command stream, and the Python runtime. Your app only needs to
+start it, read its output, and stop it when done.
 
 ## Architecture
-
-Your app spawns the CLI, which does everything needed to run agents:
 
 {/* prettier-ignore */}
 <Mermaid
@@ -32,8 +26,7 @@ graph LR
 `}
 />
 
-The CLI binary is a single, self-contained process. When your app spawns
-`stigmer up runner`, the CLI:
+When your app spawns `stigmer up runner`, the CLI:
 
 1. Registers the runner with the backend (`Runner.Apply`), receiving a runner ID
    and task queue.
@@ -49,7 +42,7 @@ The Python process connects to Temporal and executes Agent activities. It does
 not register or heartbeat on its own — the CLI manages the full runner
 lifecycle.
 
-## Bundle the CLI binary
+## Build the CLI binary
 
 The CLI is a cross-compiled Go binary. Build it for each target platform and
 ship it alongside your application.
@@ -65,7 +58,7 @@ ship it alongside your application.
 | Linux (ARM)       | `stigmer-cli-aarch64-unknown-linux-gnu`  |
 | Windows           | `stigmer-cli-x86_64-pc-windows-msvc.exe` |
 
-Build with the `embed_agentrunner` tag to bundle the Python Agent-runner source
+Build with the `embed_agentrunner` tag to bundle the Python agent-runner source
 inside the binary:
 
 ```bash
@@ -75,12 +68,14 @@ go build -tags embed_agentrunner -ldflags="-s -w" -o stigmer-cli ./cmd/stigmer
 Without this tag, the CLI locates `agent-runner` source from the repository tree
 at runtime (development mode only).
 
+### Bundle the binary
+
+Place the compiled binary in a known location relative to your app bundle and
+resolve the path at runtime.
+
 {/* vale off */}
 
-### Desktop app example
-
-The Stigmer Desktop app uses the `Tauri` framework's `externalBin` to bundle the
-CLI:
+If you use Tauri, the `externalBin` configuration handles this:
 
 ```json
 {
@@ -96,8 +91,8 @@ Silicon).
 
 {/* vale on */}
 
-For other frameworks, place the binary in a known location relative to your app
-bundle and resolve the path at runtime.
+For other frameworks, use whatever mechanism your platform provides for shipping
+companion binaries (Electron `extraResources`, Flutter asset bundling, etc.).
 
 ## Start a runner
 
@@ -123,18 +118,18 @@ until stopped.
 
 ### Startup grace period
 
-The desktop app waits 8 seconds after spawning the CLI before considering the
-runner started. During this window, it reads stderr for startup errors. If the
-process exits with a non-zero code within the grace period, the start failed —
-surface the stderr output to your user.
+Wait about 8 seconds after spawning the CLI before considering the runner
+started. During this window, read stderr for startup errors. If the process
+exits with a non-zero code within the grace period, the start failed — surface
+the stderr output to your user.
 
 ## Monitor the runner
 
 ### Logs
 
-Read stdout and stderr from the child process for real-time log output. The
-desktop app maintains a bounded ring buffer (2,000 lines) per runner and exposes
-it through a log viewer.
+Read stdout and stderr from the child process for real-time log output. Consider
+maintaining a bounded ring buffer (for example, 2,000 lines) per runner for your
+app's log viewer.
 
 ### State files
 
@@ -157,12 +152,10 @@ automatically removes stale state files on startup.
 
 ### Process events
 
-The desktop app emits events for runner lifecycle changes:
+Emit events in your app for runner lifecycle changes:
 
-- **`runner:log`** — a new log line from stdout or stderr
-- **`runner:stopped`** — the runner process exited (includes exit code)
-
-Implement similar event dispatching in your app's process management layer.
+- **Runner log** — a new log line from stdout or stderr
+- **Runner stopped** — the runner process exited (include the exit code)
 
 ## Stop a runner
 
@@ -178,8 +171,7 @@ cleans up.
 
 ### Application exit
 
-When your app is shutting down, stop all managed runners. The desktop app's
-pattern:
+When your app shuts down, stop all managed runners:
 
 1. Send `SIGTERM` to all managed runner process IDs.
 2. Wait 3 seconds for graceful shutdown.
@@ -188,8 +180,8 @@ pattern:
 ## Browser-to-app deep links
 
 The web console can launch a runner on the user's machine through a deep link.
-This flow lets your users click a button in the browser and have a runner start
-in your desktop app automatically.
+This lets your users click a button in the browser and have a runner start in
+your app automatically.
 
 {/* prettier-ignore */}
 <Mermaid
@@ -214,19 +206,24 @@ sequenceDiagram
 1. Your web app calls `createLaunchToken` on the Runner API. This returns a
    short-lived, single-use opaque token (60-second TTL).
 2. The browser opens a `stigmer://launch-runner?token=<token>` URL.
-3. The operating system routes the URL to your desktop app (registered via a
-   custom URL scheme).
+3. The operating system routes the URL to your app (registered via a custom URL
+   scheme).
 4. Your app extracts the token from the URL and calls `exchangeLaunchToken`.
    This returns a Bearer JWT, the Organization slug, and other metadata.
 5. Your app starts the runner with the exchanged credentials:
    `stigmer-cli up runner --token <jwt> --endpoint <endpoint> --org <org>`.
 
-{/* vale off */}
-
 ### Registering the URL scheme
 
-The desktop app registers the `stigmer://` scheme through the `Tauri` deep link
-plugin:
+Register a custom URL scheme through your platform's native mechanism:
+
+- **macOS** — `CFBundleURLSchemes` in `Info.plist`
+- **Windows** — Windows registry
+- **Linux** — `.desktop` file with `MimeType`
+
+{/* vale off */}
+
+If you use Tauri, the deep link plugin handles registration:
 
 ```json
 {
@@ -240,26 +237,17 @@ plugin:
 }
 ```
 
-For other frameworks, register a custom URL scheme through your platform's
-native mechanism (macOS `CFBundleURLSchemes`, Windows registry, Linux `.desktop`
-file).
-
 {/* vale on */}
 
 ### Cold start handling
 
 If your app is not running when the user clicks the deep link, the OS launches
-it. Queue the URL until the user is authenticated, then process it. The desktop
-app stores the pending URL in a ref and processes it after sign-in completes.
+it. Queue the URL until the user is authenticated, then process it.
 
 ## SDK runner management API
 
-For server-side platforms that manage runners programmatically — without a
-desktop app or CLI child process — the SDK provides `RunnerClient` in all four
-languages (Go, TypeScript, Python, Java). All clients are code-generated from
-the same proto definitions.
-
-Key operations:
+For programmatic runner management — beyond spawning CLI processes — the SDK
+provides `RunnerClient` in all four languages (Go, TypeScript, Python, Java).
 
 | Method                | Purpose                                            |
 | --------------------- | -------------------------------------------------- |
@@ -276,11 +264,11 @@ signatures and request/response types.
 
 ## What's next
 
-- [Start a local runner](/docs/guides/runners/local-runner) — the CLI flags,
-  naming, Docker runtime, and multi-runner setup
-- [Stop runners and clean up](/docs/guides/runners/stop-and-cleanup) — shutdown
-  behavior, daemon-managed vs standalone, state file cleanup
-- [Desktop runner management](/docs/guides/desktop/manage-runners) — the
-  reference implementation of the sidecar pattern in Stigmer Desktop
-- [Runner API reference](/docs/sdk/resources/runner) — full SDK documentation
-  for programmatic runner management
+With the sidecar set up, choose an execution mode for your runners:
+
+- [Local mode](/docs/guides/runners/local-mode) — agent commands run directly on
+  the user's machine
+- [Sandbox mode](/docs/guides/runners/sandbox-mode) — agent commands run inside
+  an isolated Docker container
+- [Cloud mode](/docs/guides/runners/cloud-mode) — no local runner needed;
+  Stigmer provisions compute on demand

@@ -1,16 +1,13 @@
 ---
 title: Stop runners and clean up
 description:
-  Stop individual runners or all at once from the CLI, understand daemon-managed
-  vs standalone runners, and clean up state files.
+  Stop individual runners or all at once from the CLI or the SDK. Understand
+  shutdown behavior for native and Docker runners, and clean up state files.
 ---
 
 Runners started with `stigmer up` keep running until you stop them. This guide
-covers every way to stop a runner, explains the difference between standalone
-and daemon-managed runners, and describes what happens to state files when a
-runner shuts down.
-
-<DemoStopRunnerTour />
+covers every way to stop a runner, explains the shutdown behavior for each
+runtime, and describes what happens to state files when a runner shuts down.
 
 ## Stop a specific runner
 
@@ -37,8 +34,8 @@ stigmer down runner
 ```
 
 This reads all state files in `~/.stigmer/runners/`, skips any that are
-daemon-managed, and stops the rest. Use this when you've been running multiple
-runners and want to shut them all down at once.
+daemon-managed, and stops the rest. Use this when you have multiple runners
+running and want to shut them all down at once.
 
 ## Stop everything
 
@@ -49,9 +46,8 @@ standalone runners:
 stigmer down
 ```
 
-This is the full shutdown. It stops the daemon (Temporal, Stigmer server, the
-embedded runner) and then stops every standalone runner. Use it when you're done
-with a local development Session and want to free all resources.
+This stops the daemon (Temporal, Stigmer server, the embedded runner) and then
+stops every standalone runner.
 
 ## Standalone vs daemon-managed runners
 
@@ -68,12 +64,6 @@ daemon-managed runner by name, the CLI tells you to use `stigmer down` instead.
 `stigmer down` stops **both** — it shuts down the daemon first (which stops the
 embedded runner), then stops any standalone runners.
 
-<Callout type="info">
-  The embedded runner inside `stigmer up server` is the runner that handles
-  executions in local development mode. It starts and stops with the server —
-  it's part of the local development stack, not something you manage on its own.
-</Callout>
-
 ## How stop works
 
 The stop mechanism depends on the runner's runtime.
@@ -81,7 +71,7 @@ The stop mechanism depends on the runner's runtime.
 **Native runners** (default):
 
 1. The CLI sends `SIGTERM` to the recorded process ID.
-2. If the process doesn't exit within 5 seconds, it sends `SIGKILL`.
+2. If the process does not exit within 5 seconds, it sends `SIGKILL`.
 3. The state file is removed.
 
 **Docker runners** (`--runtime docker`):
@@ -95,21 +85,38 @@ server marks the runner as Stopped. If the process crashes without notifying the
 server, the server detects the missing heartbeat and marks the runner as Stopped
 after the heartbeat window expires (about 30 seconds).
 
-## Stop from other interfaces
+## Stop from your application
 
-You can stop a runner from anywhere — the stop command reaches the runner
-through the server's bidirectional command stream.
+When building a sidecar integration, you have two ways to stop runners:
 
-| Interface       | How to stop                               | What happens                                      |
-| --------------- | ----------------------------------------- | ------------------------------------------------- |
-| **CLI**         | `stigmer down runner --name dev-laptop`   | Direct signal to local process                    |
-| **Web console** | Settings > Runners > action menu > Stop   | Server sends stop command over the command stream |
-| **Desktop app** | Action menu or "Stop All Runners" in tray | Same as web console — command stream              |
-| **SDK**         | `useStopRunner` hook                      | Same as web console — API call to server          |
+**Send SIGTERM to the process ID.** Read the PID from the state file at
+`~/.stigmer/runners/<name>.json` and signal the process directly. The CLI
+handles graceful shutdown automatically.
+
+**Spawn a stop command.** Run `stigmer-cli down runner --name <name>` as a new
+child process. The CLI reads the state file, signals the runner, and cleans up.
+
+### Application exit
+
+When your app shuts down, stop all managed runners:
+
+1. Send `SIGTERM` to all managed runner process IDs.
+2. Wait 3 seconds for graceful shutdown.
+3. Send `SIGKILL` to any processes still alive.
+
+## Stop via the SDK
+
+You can stop a runner from the server side using the SDK. The stop command
+reaches the runner through the server's bidirectional command stream, regardless
+of where the command originates.
+
+| Method                     | What it does                                          |
+| -------------------------- | ----------------------------------------------------- |
+| `RunnerClient.stop`        | Stop a runner by ID                                   |
+| `RunnerClient.sendCommand` | Send a command (including stop) to a connected runner |
 
 When the server sends a stop command through the command stream, the runner
 receives it and shuts down cleanly — same SIGTERM / Docker stop flow as the CLI.
-The state file on the runner's machine is cleaned up by the CLI's stream client.
 
 ## State files
 
@@ -130,11 +137,11 @@ starts. The file contains:
 State files are automatically removed when a runner stops normally. If a runner
 crashes or its process disappears without cleanup, the state file becomes stale.
 
-**Stale state cleanup**: The next `stigmer up` call checks all existing state
-files and removes any whose process is no longer alive. You don't need to delete
-stale files manually. If you want to, the files are plain JSON in
-`~/.stigmer/runners/` — delete the file for a runner that's no longer running
-and the CLI won't complain.
+**Stale state cleanup.** The next `stigmer up` call checks all existing state
+files and removes any whose process is no longer alive. You do not need to
+delete stale files manually. If you want to, the files are plain JSON in
+`~/.stigmer/runners/` — delete the file for a runner that is no longer running
+and the CLI will not complain.
 
 ## CLI reference
 
@@ -147,11 +154,9 @@ For the complete flag reference, see the generated CLI documentation:
 
 ## What's next
 
-If you prefer managing runners from a graphical interface, the
-[Stigmer Desktop app](/docs/guides/desktop/manage-runners) offers the same
-start, stop, and monitoring capabilities through a native window and system
-tray.
-
-For programmatic runner management in your own application, the
-[React SDK runner reference](/docs/sdk/react/runner) documents `useRunnerList`,
-`RunnerListPanel`, `RunnerPicker`, and the launch, stop, and delete hooks.
+- [Local mode](/docs/guides/runners/local-mode) — start a runner where agent
+  commands execute directly on the user's machine
+- [Sandbox mode](/docs/guides/runners/sandbox-mode) — run agent commands in an
+  isolated Docker container
+- [Cloud mode](/docs/guides/runners/cloud-mode) — skip local setup and let
+  Stigmer provision compute on demand

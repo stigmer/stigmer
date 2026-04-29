@@ -2,7 +2,7 @@
 title: Runners
 description:
   A Runner is a process that connects to Stigmer and executes your Agents. Learn
-  about local and cloud runners, their lifecycle phases, and how sessions
+  about the three execution modes, the runner lifecycle, and how Sessions
   connect to runners.
 ---
 
@@ -48,29 +48,33 @@ heartbeats to stay alive, and picks up executions. The server tracks each runner
 as a resource with a thin spec and rich status — similar to how Kubernetes
 tracks Nodes.
 
-## Local and cloud runners
+## Three execution modes
 
-Runners come in two flavors. The distinction determines who controls the
-machine, how the runner starts, and when it goes away.
+Runners operate in one of three modes. The mode determines where agent commands
+run and who manages the infrastructure.
 
-|                   | Local runner                                                | Cloud runner                                       |
-| ----------------- | ----------------------------------------------------------- | -------------------------------------------------- |
-| **Who starts it** | You — via the CLI or the desktop app                        | The platform — automatically                       |
-| **Where it runs** | Your machine (laptop, server, CI)                           | Stigmer-managed infrastructure                     |
-| **Lifecycle**     | Persistent — stays until you stop it                        | Ephemeral — created per execution, torn down after |
-| **Visibility**    | Appears in Settings > Runners and the Session composer      | Hidden from the Session composer by default        |
-| **Good for**      | Development, testing, on-premises, data-sensitive workloads | Zero-setup production, burst capacity              |
+|                   | Local                                    | Sandbox                                      | Cloud (auto)                                        |
+| ----------------- | ---------------------------------------- | -------------------------------------------- | --------------------------------------------------- |
+| **Who starts it** | You — via `stigmer up`                   | You — via `stigmer up --runtime docker`      | The platform — automatically                        |
+| **Where it runs** | Your machine (laptop, server, CI)        | Docker container on your machine             | Stigmer-managed infrastructure                      |
+| **Isolation**     | None — full host access                  | Container-level                              | Platform-managed                                    |
+| **Lifecycle**     | Persistent — stays until you stop it     | Persistent — stays until you stop it         | Ephemeral — created per execution, cleaned up after |
+| **Good for**      | Development, on-premises, data-sensitive | Untrusted workloads, consistent environments | Zero-setup production, burst capacity               |
 
-**Local runners** give you control. Your Agent executes on your machine, with
-access to your local file system. Start one with `stigmer up` from the CLI or
-launch one from the [Stigmer Desktop](/docs/guides/desktop/overview) app. Local
-runners can use the native Python runtime or run inside a Docker container — the
-[CLI runner guides](/docs/guides/runners/local-runner) cover both options.
+**Local** is the default. Start a runner with `stigmer up` and agent commands
+execute directly on the host machine. The agent has full access to the local
+file system. See the [local mode guide](/docs/guides/runners/local-mode) for
+details.
 
-**Cloud runners** remove setup entirely. When a Session needs compute and no
-runner is specified, the platform provisions one on demand. Cloud runners are
-labeled `stigmer.ai/system-managed` and cleaned up automatically. You see them
-in the admin runner list but not in the Session composer.
+**Sandbox** adds isolation. Start a runner with `stigmer up --runtime docker` or
+set the execution mode to `sandbox`. Agent commands run inside a Docker
+container, keeping untrusted operations away from the host. See the
+[sandbox mode guide](/docs/guides/runners/sandbox-mode) for details.
+
+**Cloud (auto)** requires no setup. When a Session needs compute and no runner
+is specified, the platform provisions an ephemeral runner on demand. Cloud
+runners are labeled `stigmer.ai/system-managed` and cleaned up automatically.
+See the [cloud mode guide](/docs/guides/runners/cloud-mode) for details.
 
 ## Runner lifecycle
 
@@ -139,9 +143,9 @@ bound runner is unavailable, the Session falls back to automatic provisioning.
 ## Runners in the web console
 
 In Settings > Runners, you see every runner in your Organization — local runners
-you started, and optionally the system-managed ones the platform created. Each
-row shows the runner's name, phase badge, machine info, and an action menu for
-stop and delete operations.
+you started, sandboxed runners, and optionally the system-managed ones the
+platform created. Each row shows the runner's name, phase badge, machine info,
+and an action menu for stop and delete operations.
 
 <DemoRunnerListDetail />
 
@@ -150,15 +154,18 @@ stop and delete operations.
 You understand what runners are and how they fit the platform. The next step
 depends on what you want to do:
 
-- **Manage runners from the CLI** — The
-  [CLI runner guides](/docs/guides/runners/local-runner) cover `stigmer up`,
-  Docker runners, and stopping runners.
-- **Install the desktop app** — The
-  [Desktop app guide](/docs/guides/desktop/overview) walks you through
-  installing Stigmer Desktop and launching local runners from your browser.
-- **Integrate runners into your platform** — The
-  [platform integration guide](/docs/guides/runners/platform-integration) covers
-  bundling the CLI as a sidecar, deep links, and the SDK runner API.
+- **Set up a runner sidecar** — The
+  [sidecar setup guide](/docs/guides/runners/sidecar-setup) covers bundling the
+  CLI in your app, spawning runner processes, deep links, and the SDK runner
+  API.
+- **Start a local runner** — The
+  [local mode guide](/docs/guides/runners/local-mode) covers `stigmer up`,
+  naming, backend configuration, and running multiple runners.
+- **Run in a sandbox** — The
+  [sandbox mode guide](/docs/guides/runners/sandbox-mode) covers Docker
+  isolation at the runner and command level.
+- **Use cloud mode** — The [cloud mode guide](/docs/guides/runners/cloud-mode)
+  explains automatic provisioning when no local runner is available.
 - **Build with runner hooks** — The
   [React SDK runner reference](/docs/sdk/react/runner) documents
   `useRunnerList`, `RunnerListPanel`, `RunnerPicker`, and the launch, stop, and
