@@ -26,7 +26,7 @@ The entire runner process — including the Python runtime and all agent command
 — runs inside a Docker container:
 
 ```bash
-stigmer up --runtime docker --name my-sandbox
+stigmer-cli --standalone up runner --runtime docker --token stk_key --name my-sandbox
 ```
 
 Docker must be running on the user's machine. The CLI checks for Docker
@@ -40,7 +40,7 @@ streams output until the container exits or the process is terminated.
 tagged with the CLI's own version. To use a different image:
 
 ```bash
-stigmer up --runtime docker --image ghcr.io/stigmer/agent-runner:latest
+stigmer-cli --standalone up runner --runtime docker --image ghcr.io/stigmer/agent-runner:latest --token stk_key --name my-sandbox
 ```
 
 This is useful when you need a specific version or a custom image with

@@ -30,12 +30,16 @@ runner with the server, and begins accepting
 [Agent Executions](/docs/concepts/agents#blueprint-vs-runtime). The runner stays
 running until you stop it or the process is terminated.
 
-For your sidecar integration, spawn this as a child process with authentication
-flags:
+For your sidecar integration, spawn this as a child process with `--standalone`
+and authentication flags:
 
 ```bash
-stigmer-cli up runner --token stk_your_api_key --name my-runner
+stigmer-cli --standalone up runner --token stk_your_api_key --name my-runner
 ```
+
+The `--standalone` flag ensures the CLI ignores the user's config file. See
+[Set up the sidecar](/docs/guides/runners/sidecar-setup#start-a-runner) for why
+this matters.
 
 ## Runner naming
 
@@ -106,10 +110,10 @@ In your app, spawn one child process per runner:
 
 ```bash
 # Runner 1
-stigmer-cli up runner --token stk_key --name laptop-native
+stigmer-cli --standalone up runner --token stk_key --name laptop-native
 
 # Runner 2
-stigmer-cli up runner --token stk_key --name laptop-build
+stigmer-cli --standalone up runner --token stk_key --name laptop-build
 ```
 
 Both runners register with the server and accept executions. In the web

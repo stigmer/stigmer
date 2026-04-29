@@ -96,25 +96,40 @@ companion binaries (Electron `extraResources`, Flutter asset bundling, etc.).
 
 ## Start a runner
 
-Spawn `stigmer up runner` as a child process with the appropriate flags:
-
-| Flag         | Required | Description                                             |
-| ------------ | -------- | ------------------------------------------------------- |
-| `--token`    | Yes      | API key (`stk_*`) or JWT for authentication             |
-| `--endpoint` | No       | Backend gRPC address (defaults to `api.stigmer.ai:443`) |
-| `--name`     | No       | Runner name (defaults to sanitized host name)           |
-| `--org`      | No       | Organization slug                                       |
-| `--runtime`  | No       | `native` (default) or `docker`                          |
-| `--image`    | No       | Docker image when `--runtime docker`                    |
-
-Example invocation:
+Spawn `stigmer up runner` as a child process with the `--standalone` flag and
+the appropriate credentials:
 
 ```bash
-stigmer-cli up runner --token stk_your_api_key --name my-runner
+stigmer-cli --standalone up runner --token stk_your_api_key --name my-runner
 ```
+
+The `--standalone` flag tells the CLI to ignore the user's
+`~/.stigmer/config.yaml` file. All configuration must come from flags or
+environment variables. This isolates your sidecar from any ambient CLI
+configuration on the user's machine — your app controls exactly which backend
+the runner connects to and which credentials it uses.
+
+<Callout type="warn">
+  Without `--standalone`, the CLI reads the user's config file. If the user has
+  previously run `stigmer auth login` or `stigmer config set`, those settings
+  could override the flags your app passes. Always use `--standalone` in sidecar
+  integrations.
+</Callout>
 
 The process runs in the foreground and streams logs to stdout/stderr. It blocks
 until stopped.
+
+### Flags
+
+| Flag           | Required | Description                                             |
+| -------------- | -------- | ------------------------------------------------------- |
+| `--standalone` | Yes      | Ignore config file; all config from flags or env vars   |
+| `--token`      | Yes      | API key (`stk_*`) or JWT for authentication             |
+| `--endpoint`   | No       | Backend gRPC address (defaults to `api.stigmer.ai:443`) |
+| `--name`       | No       | Runner name (defaults to sanitized host name)           |
+| `--org`        | No       | Organization slug                                       |
+| `--runtime`    | No       | `native` (default) or `docker`                          |
+| `--image`      | No       | Docker image when `--runtime docker`                    |
 
 ### Startup grace period
 
@@ -197,7 +212,7 @@ sequenceDiagram
   OS->>App: Forward URL
   App->>Server: exchangeLaunchToken
   Server-->>App: access_token + org
-  App->>App: stigmer-cli up runner --token ... --org ...
+  App->>App: stigmer-cli --standalone up runner --token ... --org ...
 `}
 />
 
@@ -211,7 +226,7 @@ sequenceDiagram
 4. Your app extracts the token from the URL and calls `exchangeLaunchToken`.
    This returns a Bearer JWT, the Organization slug, and other metadata.
 5. Your app starts the runner with the exchanged credentials:
-   `stigmer-cli up runner --token <jwt> --endpoint <endpoint> --org <org>`.
+   `stigmer-cli --standalone up runner --token <jwt> --endpoint <endpoint> --org <org>`.
 
 ### Registering the URL scheme
 
