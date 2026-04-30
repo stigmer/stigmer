@@ -14,9 +14,9 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: April 30, 2026 -- T02 HITL Research Spike completed
-- **Active Task**: T01 COMPLETED, T02 COMPLETED, ready for T03
-- **Commit**: `48444d4d4` on branch `feat/cursor-harness`
+- **Last Session**: April 30, 2026 -- T03 Cursor Runner TypeScript Service implemented
+- **Active Task**: T01 COMPLETED, T02 COMPLETED, T03 COMPLETED, ready for T04
+- **Branch**: `feat/cursor-harness`
 
 ## Session Progress (April 30, 2026)
 
@@ -49,15 +49,42 @@ Drop this file into your conversation to quickly resume work on this project.
 - `design-decisions/hitl-cursor-hooks-approach.md` -- Cursor harness HITL bridge design
 - `design-decisions/execution-interceptors-concept.md` -- Future extensibility concept (shelved)
 
+### Session 3: T03 Cursor Runner TypeScript Service
+- Created `backend/services/cursor-runner/` -- 15 TypeScript files, full Temporal activity worker
+- Resolved 5 major architecture decisions collaboratively before implementation
+- **Key architecture revision**: Changed from blocking HITL model to durable hook-deny + workflow reinvoke model (same pattern as LangGraph)
+- Mapped `SessionSpec.thread_id` to Cursor `agentId` (no new proto fields needed)
+- Confirmed pause/resume support via `run.cancel()` + `Agent.resume()`
+- Same `approvalGateResolved` signal pattern as LangGraph -- minimal T04 workflow changes needed
+
+### Key Decisions (T03)
+- **Activity signature**: `ExecuteCursor(executionId, threadId)` -- parallel to `ExecuteGraphton`
+- **Durable HITL**: Hook-deny + activity returns to workflow + reinvoke (NOT blocking). Survives 10-day approval waits.
+- **thread_id reuse**: `SessionSpec.thread_id` stores Cursor agentId (same field, harness-aware semantics)
+- **Approval notification**: Same `approvalGateResolved` signal -- no polling, no new infra
+- **Pause/resume**: `run.cancel()` + `Agent.resume()` -- maps to existing workflow signals
+- **No HTTP server for hooks**: Simplified to file-based state (hook reads JSON state file)
+
+### Files Created (T03)
+```
+backend/services/cursor-runner/
+  package.json, tsconfig.json
+  src/main.ts, config.ts, worker.ts
+  src/activity/execute-cursor.ts
+  src/adapter/message-translator.ts, usage-tracker.ts, mcp-resolver.ts, session-lifecycle.ts
+  src/client/stigmer-client.ts
+  src/hitl/workspace-setup.ts, hook-script.ts, approval-policy.ts, approval-state.ts
+```
+
 ## Next Steps
 
-Phase 2 is ready to begin:
+Phase 2 core engine is complete. Ready for Phase 2 dispatch:
 
-1. **T03: Cursor Runner TypeScript Service** -- Create the new TypeScript Temporal activity worker at `backend/services/cursor-runner/`. The HITL design from T02 informs how the hooks-based approval bridge is implemented.
-2. **T04: Go Workflow Dispatch Update** -- Update the Go workflow to dispatch `ExecuteCursor` based on session harness. Can start in parallel with T03.
+1. **T04: Go Workflow Dispatch Update** -- Update the Go workflow to dispatch `ExecuteCursor` based on session harness. The T03 durable HITL model means minimal workflow changes (same signal pattern as LangGraph).
+2. **T05: CLI Daemon Multi-Worker Management** -- Add cursor-runner as second managed component alongside Python agent-runner.
 
 ### Recommended Next Pick
-- **T03** -- The core engine. This is on the critical path and T02's HITL design is ready to inform it.
+- **T04** -- Connects T03 to the workflow. Small scope (activity stub + dispatch branch), enables end-to-end testing.
 
 ## Essential Files to Review
 
@@ -110,17 +137,18 @@ Phase 2 is ready to begin:
 When starting a new session:
 
 1. [ ] Read the latest checkpoint from `checkpoints/`
-2. [ ] Check current task status (T01 done, T02 done, T03-T09 pending)
-3. [ ] Review design decisions — especially `hitl-cursor-hooks-approach.md` (informs T03 HITL implementation)
-4. [ ] Check coding guidelines in `coding-guidelines/`
-5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Start T03 (Cursor Runner TypeScript Service)
+2. [ ] Check current task status (T01 done, T02 done, T03 done, T04-T09 pending)
+3. [ ] Review `backend/services/cursor-runner/` for T03 implementation
+4. [ ] Review design decisions for context
+5. [ ] Check coding guidelines in `coding-guidelines/`
+6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
+7. [ ] Start T04 (Go Workflow Dispatch Update)
 
 ## Quick Commands
 
 After loading context:
-- "Start T03" - Begin Cursor Runner TypeScript service
 - "Start T04" - Begin Go workflow dispatch update
+- "Start T05" - Begin CLI daemon multi-worker management
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
