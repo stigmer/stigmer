@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 /**
  * Entry point for the cursor-runner service.
  *

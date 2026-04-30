@@ -13,88 +13,69 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: COMPLETE -- All tasks done (T01-T09) + CursorProxyController
-- **Last Session**: April 30, 2026 -- CursorProxyController implemented in stigmer-cloud
-- **Active Task**: None -- all implementation tasks complete
+- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests
+- **Last Session**: April 30, 2026 — Session 12: Automated test suite (207 new tests)
+- **Active Task**: None — implementation and test coverage complete
 - **Branch**: `feat/cursor-harness`
 
-## Session Progress (April 30, 2026 -- Session 10)
+## Session Progress (April 30, 2026 — Session 12)
 
-### CursorProxyController (stigmer-cloud)
-- Created `CursorProxyController.java` -- server-side HTTP reverse proxy for Cursor SDK traffic
-  - Host allowlist (`api2.cursor.sh`, `api.cursor.com`, `api.cursor.sh`) prevents open relay abuse
-  - Upstream URL reconstruction from path-encoded hostname
-  - `CURSOR_API_KEY` injection into outbound `Authorization: Bearer` header
-  - `StreamingResponseBody` relay for SSE/streaming responses
-  - HTTP/1.1 forcing (SSE fallback, per Cursor enterprise proxy guidance)
-  - 5-minute timeout for long-running agent executions
-  - Forwardable header filtering (strips hop-by-hop and proxy headers)
-  - Cost attribution logging (user, latency, upstream host)
-- Created `CursorProxyConfig.java` -- `@ConfigurationProperties` binding for `stigmer.proxy.cursor.api-key`
-- Updated `application.yaml` -- added `cursor:` block under `stigmer.proxy:`
-- Updated `_kustomize/base/service.yaml` -- added `STIGMER_PROXY_CURSOR_API_KEY` secret reference
-- Created `cursor.yaml` SecretsGroup manifest in `_ops/planton/service-hub/secrets-group/`
-- Applied SecretsGroup to Planton
-- Bazel build verified clean
+### Automated Test Suite
+- **sdk/react**: 5 new test files, 74 new tests (total suite: 220 tests across 21 files)
+  - `harness.test.ts` — proto converters, constants, labels
+  - `useModelRegistry.test.tsx` — harness-aware filtering, default models
+  - `HarnessSelector.test.tsx` — ARIA compliance, keyboard navigation, click interaction
+  - `useCreateSession.test.tsx` — agent resolution, harness-to-proto threading
+  - `useNewSessionFlow.test.tsx` — localStorage persistence, per-harness model keys
+- **cursor-runner**: 8 new test files, 133 new tests (from zero)
+  - `model-pricing.test.ts` — pricing lookup, cost computation, fallback
+  - `approval-policy.test.ts` — fail-closed, destructive tools, autoApproveAll
+  - `message-translator.test.ts` — SDK event mapping, denied tool extraction
+  - `mcp-resolver.test.ts` — stdio/HTTP/SSE config, slug extraction
+  - `fetch-interceptor.test.ts` — URL rewriting, auth replacement, lifecycle
+  - `approval-state.test.ts` — state construction, file persistence
+  - `usage-tracker.test.ts` — metrics proto, sequence, cumulative cost
+  - `config.test.ts` — env parsing, modes, normalizeEndpoint
+- **Infrastructure**: Added vitest to cursor-runner (devDep, config, test scripts)
 
-### Previous Session (Session 9): T08 SDK/React Session Harness Selector
-- Created `HarnessOption` type, label map, proto converters in `sdk/react/src/models/harness.ts`
-- Created `HarnessSelector` segmented control component with ARIA radiogroup, keyboard navigation, premium indicator
-- Added harness-aware model filtering to `useModelRegistry` (cursor harness shows only cursor models)
-- Threaded harness through `ModelSelector`, `ComposerToolbar`, `SessionComposer`
-- Added harness to `useCreateSession` (converts to proto via `toProtoHarness()`)
-- Added harness state with localStorage persistence to `useNewSessionFlow` (per-harness model storage keys)
-- Made `usePersistedModel` harness-aware (optional param, harness-qualified storage key)
-- Exposed read-only harness from `useSessionPageFlow` (derived from session spec, for badge rendering)
-- Updated all barrel exports
-- 2 new files, 12 modified files, 231 lines added
-
-## Project Completion Summary
-
-All 9 tasks complete:
-
-| Task | Description | Status |
-|------|-------------|--------|
-| T01 | Proto Changes (Harness enum, SessionSpec.harness) | Done |
-| T02 | HITL Research Spike (Cursor hooks approach) | Done |
-| T03 | Cursor Runner TypeScript Service | Done |
-| T04 | Workflow Harness Dispatch (Go + Java) | Done |
-| T05 | CLI Daemon Multi-Worker + Cursor Proxy | Done |
-| T06 | Cost Model and Billing Integration | Done |
-| T07 | Session Lifecycle (Cursor Agent Management) | Done |
-| T08 | SDK/React Session Harness Selector | Done |
-| T09 | Embedded Cursor Runner Packaging | Done |
+### Bug Discovery
+- **ApprovalAction enum misuse** in `approval-state.ts` and `execute-cursor.ts`: uses `APPROVAL_ACTION_APPROVE` (proto field name) instead of `APPROVE` (TS enum name) — evaluates to `undefined`, breaking HITL approval logic. Documented in tests, source fix needed.
 
 ## Next Steps
 
-Project is feature-complete including the server-side proxy. Remaining work:
-1. Integration testing across the full flow (create session with Cursor harness → execution → streaming → billing)
-2. End-to-end test: cursor-runner → fetch interceptor → CursorProxyController → Cursor API
-3. QA on the HarnessSelector UI component
-4. PR review and merge of `feat/cursor-harness` branch (stigmer OSS)
-5. PR review and merge of CursorProxyController changes (stigmer-cloud)
-6. Release
+1. **Fix ApprovalAction enum bug** — correct `APPROVAL_ACTION_APPROVE`/`REJECT`/`ALWAYS_APPROVE` to `APPROVE`/`REJECT`/`ALWAYS_APPROVE` in `approval-state.ts` and `execute-cursor.ts`, then update tests to assert correct behavior
+2. Integration testing across the full flow (create session → execution → streaming → billing)
+3. PR review and merge of `feat/cursor-harness` branch (stigmer OSS)
+4. PR review and merge of CursorProxyController changes (stigmer-cloud)
+5. Release
 
 ## Context for Resume
-- CursorProxyController is in stigmer-cloud (separate commit/PR needed)
-- SecretsGroup `cursor` has been applied to Planton with placeholder API key -- real key needs to be set before production testing
-- The proxy controller follows the same pattern as `LlmProxyController` -- review that as reference
-- HTTP/1.1 was chosen deliberately to force SSE fallback (per Cursor's enterprise proxy docs)
-- Host allowlist is hardcoded; expand only if Cursor adds new API domains
+
+- All 207 tests pass: `sdk/react` (220 total, 74 new) and `cursor-runner` (133 total, all new)
+- Verification clean: `@stigmer/react lint` ✅, `@stigmer/react typecheck` ✅, all tests ✅
+- The `ApprovalAction` enum bug is the only known functional defect — tests currently assert the buggy behavior with explanatory comments
+- CursorProxyController work is in stigmer-cloud (separate commit/PR)
+- SecretsGroup `cursor` applied to Planton with placeholder API key
+- Session 11 gap assessment files (Makefile, Dockerfile, workflows, Go immutability, npm publish config) are uncommitted — commit those separately or together with tests
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-04-30-session-10.md
+_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-04-30-session-12.md
 ```
 
-### 2. Task Plan
+### 2. Previous Checkpoint (Gap Assessment)
+```
+_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-04-30-session-11.md
+```
+
+### 3. Task Plan
 ```
 _projects/2026-04/20260430.01.cursor-harness/tasks/T01_0_plan.md
 ```
 
-### 3. Design Decisions
+### 4. Design Decisions
 ```
 _projects/2026-04/20260430.01.cursor-harness/design-decisions/cursor-harness-analysis.md
 _projects/2026-04/20260430.01.cursor-harness/design-decisions/hitl-cursor-hooks-approach.md
