@@ -18,19 +18,29 @@ export {
 export { type DeploymentMode, isResourceAvailable, ApiResourceKind } from "@stigmer/sdk";
 export { CloudFeatureNotice, type CloudFeatureNoticeProps } from "./internal/CloudFeatureNotice";
 
-// Models — data hook, styled component, and registry data
+// Models — data hook, styled components, and registry data
 export {
   MODEL_REGISTRY,
   DEFAULT_MODEL_ID,
+  DEFAULT_CURSOR_MODEL_ID,
+  DISABLED_PROVIDERS,
   useModelRegistry,
   ModelSelector,
+  HarnessSelector,
+  DEFAULT_HARNESS,
+  HARNESS_LABELS,
+  toProtoHarness,
+  fromProtoHarness,
 } from "./models";
 export type {
   ModelInfo,
   Provider,
   CostTier,
   UseModelRegistryReturn,
+  UseModelRegistryOptions,
   ModelSelectorProps,
+  HarnessSelectorProps,
+  HarnessOption,
 } from "./models";
 
 // Workspace — behavior hooks and styled components

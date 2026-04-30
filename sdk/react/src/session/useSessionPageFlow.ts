@@ -8,6 +8,8 @@ import { useStigmer } from "../hooks";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace";
 import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables";
 import type { SessionComposerSubmitContext } from "../composer";
+import { fromProtoHarness, type HarnessOption } from "../models/harness";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { useSessionConversation, type UseSessionConversationReturn } from "./useSessionConversation";
 import { useAgentRefFromSession } from "./useAgentRefFromSession";
 import { usePersistedModel, type UsePersistedModelReturn } from "./usePersistedModel";
@@ -30,6 +32,17 @@ export interface UseSessionPageFlowOptions {
 export interface UseSessionPageFlowReturn {
   /** Full conversation state from `useSessionConversation`. */
   readonly conv: UseSessionConversationReturn;
+
+  /**
+   * Session's execution harness (read-only, derived from session spec).
+   *
+   * Use this to:
+   * - Filter the model selector for follow-up messages
+   * - Render a harness badge in the session header
+   *
+   * Defaults to `"native"` while the session is loading.
+   */
+  readonly harness: HarnessOption;
 
   /** Persisted model selection: `[modelId, setModelId]`. */
   readonly model: UsePersistedModelReturn;
@@ -135,7 +148,10 @@ export function useSessionPageFlow(
 
   const stigmer = useStigmer();
   const conv = useSessionConversation(sessionId, org);
-  const model = usePersistedModel();
+  const harness: HarnessOption = fromProtoHarness(
+    conv.session?.spec?.harness ?? Harness.UNSPECIFIED,
+  );
+  const model = usePersistedModel({ harness });
   const [modelId] = model;
 
   const workspace = useWorkspaceEntries();
@@ -261,6 +277,7 @@ export function useSessionPageFlow(
 
   return {
     conv,
+    harness,
     model,
     agentRef,
     setAgentRef,

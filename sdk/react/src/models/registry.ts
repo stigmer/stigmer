@@ -111,5 +111,8 @@ export const MODEL_REGISTRY: readonly ModelInfo[] = [
   { modelId: "mistral:7b", provider: "ollama", displayName: "Mistral 7B", costTier: "economy" },
 ] as const;
 
-/** Model ID used when no user preference is set. */
+/** Model ID used when no user preference is set (native harness). */
 export const DEFAULT_MODEL_ID = "claude-sonnet-4.5";
+
+/** Model ID used when the Cursor harness is selected and no user preference is set. */
+export const DEFAULT_CURSOR_MODEL_ID = "auto";
