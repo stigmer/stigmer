@@ -10,7 +10,7 @@
  * same pipeline as the Python agent-runner's config_transformer.py.
  */
 
-import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb.js";
+import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 
 /**
  * Cursor SDK MCP server config shape (matches @cursor/sdk McpServerConfig).

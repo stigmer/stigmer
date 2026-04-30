@@ -1,0 +1,60 @@
+{
+  "name": "@stigmer/cursor-runner",
+  "version": "0.0.0-dev",
+  "description": "Cursor SDK Temporal activity worker for the Stigmer platform",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "stigmer-cursor-runner": "./dist/main.js"
+  },
+  "main": "./src/main.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "keywords": [
+    "stigmer",
+    "cursor-runner",
+    "temporal",
+    "ai-agents",
+    "cursor-sdk"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/main.js",
+    "types": "./dist/main.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/main.d.ts",
+        "import": "./dist/main.js"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "backend/services/cursor-runner"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.12.0",
+    "@connectrpc/connect": "^2.0.0",
+    "@connectrpc/connect-node": "^2.0.0",
+    "@cursor/sdk": "^1.0.0",
+    "@stigmer/protos": "file:./libs/stigmer-protos",
+    "@temporalio/activity": "^1.11.0",
+    "@temporalio/client": "^1.11.0",
+    "@temporalio/common": "^1.11.0",
+    "@temporalio/worker": "^1.11.0"
+  }
+}

@@ -12,8 +12,8 @@
  */
 
 import { create } from "@bufbuild/protobuf";
-import { LlmCallMetricsSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb.js";
-import type { LlmCallMetrics } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb.js";
+import { LlmCallMetricsSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import type { LlmCallMetrics } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { getCursorModelPricing, computeTurnCost } from "./model-pricing.js";
 
 export interface CursorTurnUsage {

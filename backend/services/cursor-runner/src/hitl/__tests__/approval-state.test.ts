@@ -8,20 +8,6 @@ import {
   writeApprovalStateFile,
 } from "../approval-state.js";
 
-/*
- * NOTE: The source code in approval-state.ts and execute-cursor.ts uses
- * `ApprovalAction.APPROVAL_ACTION_APPROVE` (full proto field name), but
- * the generated protobuf-es v2 enum uses short names:
- * `ApprovalAction.APPROVE`, `.SKIP`, `.REJECT`, `.UNSPECIFIED`.
- *
- * `ApprovalAction.APPROVAL_ACTION_APPROVE` evaluates to `undefined`,
- * making the condition `action === undefined` — which silently matches
- * any `undefined` action and never matches real enum values.
- *
- * These tests use the correct short enum names to test the INTENDED
- * behavior. The source code enum references should be fixed separately.
- */
-
 describe("buildApprovalState", () => {
   it("returns default state with no decisions", () => {
     const state = buildApprovalState();
@@ -40,28 +26,24 @@ describe("buildApprovalState", () => {
     expect(state.approvedTools).toEqual([]);
   });
 
-  /*
-   * The following tests document the CURRENT behavior of buildApprovalState,
-   * which compares against `ApprovalAction.APPROVAL_ACTION_APPROVE` (undefined).
-   * This means:
-   * - Real enum values (APPROVE=1, SKIP=2, REJECT=3) never match the condition
-   * - Only `undefined` values would match
-   *
-   * When the enum references are fixed to use short names, these tests should
-   * be updated to verify the intended behavior.
-   */
-
-  it("currently does not add entries for APPROVE due to enum name mismatch", () => {
+  it("adds wildcard entry for each APPROVE decision", () => {
     const decisions = new Map<string, ApprovalAction>([
       ["tc-1", ApprovalAction.APPROVE],
     ]);
     const state = buildApprovalState(decisions);
-    // BUG: source uses APPROVAL_ACTION_APPROVE (undefined) instead of APPROVE (1)
-    // So real APPROVE values don't match the condition
-    expect(state.approvedTools).toEqual([]);
+    expect(state.approvedTools).toEqual([{ name: "*", argsPreview: "*" }]);
   });
 
-  it("currently does not add entries for SKIP", () => {
+  it("adds entries for multiple APPROVE decisions", () => {
+    const decisions = new Map<string, ApprovalAction>([
+      ["tc-1", ApprovalAction.APPROVE],
+      ["tc-2", ApprovalAction.APPROVE],
+    ]);
+    const state = buildApprovalState(decisions);
+    expect(state.approvedTools).toHaveLength(2);
+  });
+
+  it("does not add entries for SKIP decisions", () => {
     const decisions = new Map<string, ApprovalAction>([
       ["tc-1", ApprovalAction.SKIP],
     ]);
@@ -69,12 +51,23 @@ describe("buildApprovalState", () => {
     expect(state.approvedTools).toEqual([]);
   });
 
-  it("currently does not add entries for REJECT", () => {
+  it("does not add entries for REJECT decisions", () => {
     const decisions = new Map<string, ApprovalAction>([
       ["tc-1", ApprovalAction.REJECT],
     ]);
     const state = buildApprovalState(decisions);
     expect(state.approvedTools).toEqual([]);
+  });
+
+  it("only adds entries for APPROVE, ignoring SKIP and REJECT", () => {
+    const decisions = new Map<string, ApprovalAction>([
+      ["tc-1", ApprovalAction.APPROVE],
+      ["tc-2", ApprovalAction.SKIP],
+      ["tc-3", ApprovalAction.REJECT],
+      ["tc-4", ApprovalAction.APPROVE],
+    ]);
+    const state = buildApprovalState(decisions);
+    expect(state.approvedTools).toHaveLength(2);
   });
 });
 

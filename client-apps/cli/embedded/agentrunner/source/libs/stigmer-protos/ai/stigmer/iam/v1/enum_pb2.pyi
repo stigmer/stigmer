@@ -31,6 +31,7 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     login_to_back_office: _ClassVar[IamPermission]
     can_connect: _ClassVar[IamPermission]
     can_create_runner: _ClassVar[IamPermission]
+    can_delete_session: _ClassVar[IamPermission]
 
 class IamRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -64,6 +65,7 @@ can_manage_identity_accounts: IamPermission
 login_to_back_office: IamPermission
 can_connect: IamPermission
 can_create_runner: IamPermission
+can_delete_session: IamPermission
 iam_role_unspecified: IamRole
 owner: IamRole
 admin: IamRole
