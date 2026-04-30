@@ -29,6 +29,8 @@ go_library(
         "draft_mcp_server.go",
         "draft_skill.go",
         "get.go",
+        "inode_unix.go",
+        "inode_windows.go",
         "internal.go",
         "list.go",
         "logs_cmd.go",

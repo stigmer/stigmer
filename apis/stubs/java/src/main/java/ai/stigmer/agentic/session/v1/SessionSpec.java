@@ -44,6 +44,7 @@ private static final long serialVersionUID = 0L;
     mcpServerUsages_ = java.util.Collections.emptyList();
     runnerId_ = "";
     skillRefs_ = java.util.Collections.emptyList();
+    harness_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -246,7 +247,7 @@ private static final long serialVersionUID = 0L;
    *
    * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
    * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-   *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
+   *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
    * @return The sandboxId.
    */
   @java.lang.Override
@@ -272,7 +273,7 @@ private static final long serialVersionUID = 0L;
    *
    * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
    * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-   *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
+   *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
    * @return The bytes for sandboxId.
    */
   @java.lang.Override
@@ -761,6 +762,56 @@ java.lang.String defaultValue) {
     return skillRefs_.get(index);
   }
 
+  public static final int HARNESS_FIELD_NUMBER = 10;
+  private int harness_ = 0;
+  /**
+   * <pre>
+   * Execution harness for this session.
+   *
+   * Determines which Temporal activity type is dispatched when an
+   * AgentExecution is created in this session:
+   * - LANGGRAPH (default): ExecuteGraphton activity -&gt; Python/LangGraph worker
+   * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
+   *
+   * The harness affects which tools the agent has, how conversation state
+   * is managed, available models, and billing tier. Once set and an execution
+   * has run, the harness is immutable — changing it would break conversation
+   * continuity since each harness owns its own state.
+   *
+   * When unspecified, defaults to HARNESS_LANGGRAPH.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>
+   * @return The enum numeric value on the wire for harness.
+   */
+  @java.lang.Override public int getHarnessValue() {
+    return harness_;
+  }
+  /**
+   * <pre>
+   * Execution harness for this session.
+   *
+   * Determines which Temporal activity type is dispatched when an
+   * AgentExecution is created in this session:
+   * - LANGGRAPH (default): ExecuteGraphton activity -&gt; Python/LangGraph worker
+   * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
+   *
+   * The harness affects which tools the agent has, how conversation state
+   * is managed, available models, and billing tier. Once set and an execution
+   * has run, the harness is immutable — changing it would break conversation
+   * continuity since each harness owns its own state.
+   *
+   * When unspecified, defaults to HARNESS_LANGGRAPH.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>
+   * @return The harness.
+   */
+  @java.lang.Override public ai.stigmer.agentic.session.v1.Harness getHarness() {
+    ai.stigmer.agentic.session.v1.Harness result = ai.stigmer.agentic.session.v1.Harness.forNumber(harness_);
+    return result == null ? ai.stigmer.agentic.session.v1.Harness.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -804,6 +855,9 @@ java.lang.String defaultValue) {
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runnerId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 9, runnerId_);
+    }
+    if (harness_ != ai.stigmer.agentic.session.v1.Harness.HARNESS_UNSPECIFIED.getNumber()) {
+      output.writeEnum(10, harness_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -866,6 +920,10 @@ java.lang.String defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runnerId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(9, runnerId_);
     }
+    if (harness_ != ai.stigmer.agentic.session.v1.Harness.HARNESS_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(10, harness_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -899,6 +957,7 @@ java.lang.String defaultValue) {
         .equals(other.getRunnerId())) return false;
     if (!getSkillRefsList()
         .equals(other.getSkillRefsList())) return false;
+    if (harness_ != other.harness_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -936,6 +995,8 @@ java.lang.String defaultValue) {
       hash = (37 * hash) + SKILL_REFS_FIELD_NUMBER;
       hash = (53 * hash) + getSkillRefsList().hashCode();
     }
+    hash = (37 * hash) + HARNESS_FIELD_NUMBER;
+    hash = (53 * hash) + harness_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1124,6 +1185,7 @@ java.lang.String defaultValue) {
         skillRefsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000100);
+      harness_ = 0;
       return this;
     }
 
@@ -1206,6 +1268,9 @@ java.lang.String defaultValue) {
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
         result.runnerId_ = runnerId_;
+      }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.harness_ = harness_;
       }
     }
 
@@ -1327,6 +1392,9 @@ java.lang.String defaultValue) {
           }
         }
       }
+      if (other.harness_ != 0) {
+        setHarnessValue(other.getHarnessValue());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1426,6 +1494,11 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000080;
               break;
             } // case 74
+            case 80: {
+              harness_ = input.readEnum();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 80
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1770,7 +1843,7 @@ java.lang.String defaultValue) {
      *
      * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
      * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-     *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
+     *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
      * @return The sandboxId.
      */
     @java.lang.Deprecated public java.lang.String getSandboxId() {
@@ -1795,7 +1868,7 @@ java.lang.String defaultValue) {
      *
      * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
      * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-     *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
+     *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
      * @return The bytes for sandboxId.
      */
     @java.lang.Deprecated public com.google.protobuf.ByteString
@@ -1821,7 +1894,7 @@ java.lang.String defaultValue) {
      *
      * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
      * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-     *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
+     *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
      * @param value The sandboxId to set.
      * @return This builder for chaining.
      */
@@ -1843,7 +1916,7 @@ java.lang.String defaultValue) {
      *
      * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
      * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-     *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
+     *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
      * @return This builder for chaining.
      */
     @java.lang.Deprecated public Builder clearSandboxId() {
@@ -1862,7 +1935,7 @@ java.lang.String defaultValue) {
      *
      * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
      * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-     *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
+     *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
      * @param value The bytes for sandboxId to set.
      * @return This builder for chaining.
      */
@@ -3554,6 +3627,138 @@ java.lang.String defaultValue) {
         skillRefs_ = null;
       }
       return skillRefsBuilder_;
+    }
+
+    private int harness_ = 0;
+    /**
+     * <pre>
+     * Execution harness for this session.
+     *
+     * Determines which Temporal activity type is dispatched when an
+     * AgentExecution is created in this session:
+     * - LANGGRAPH (default): ExecuteGraphton activity -&gt; Python/LangGraph worker
+     * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
+     *
+     * The harness affects which tools the agent has, how conversation state
+     * is managed, available models, and billing tier. Once set and an execution
+     * has run, the harness is immutable — changing it would break conversation
+     * continuity since each harness owns its own state.
+     *
+     * When unspecified, defaults to HARNESS_LANGGRAPH.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>
+     * @return The enum numeric value on the wire for harness.
+     */
+    @java.lang.Override public int getHarnessValue() {
+      return harness_;
+    }
+    /**
+     * <pre>
+     * Execution harness for this session.
+     *
+     * Determines which Temporal activity type is dispatched when an
+     * AgentExecution is created in this session:
+     * - LANGGRAPH (default): ExecuteGraphton activity -&gt; Python/LangGraph worker
+     * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
+     *
+     * The harness affects which tools the agent has, how conversation state
+     * is managed, available models, and billing tier. Once set and an execution
+     * has run, the harness is immutable — changing it would break conversation
+     * continuity since each harness owns its own state.
+     *
+     * When unspecified, defaults to HARNESS_LANGGRAPH.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>
+     * @param value The enum numeric value on the wire for harness to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setHarnessValue(int value) {
+      harness_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Execution harness for this session.
+     *
+     * Determines which Temporal activity type is dispatched when an
+     * AgentExecution is created in this session:
+     * - LANGGRAPH (default): ExecuteGraphton activity -&gt; Python/LangGraph worker
+     * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
+     *
+     * The harness affects which tools the agent has, how conversation state
+     * is managed, available models, and billing tier. Once set and an execution
+     * has run, the harness is immutable — changing it would break conversation
+     * continuity since each harness owns its own state.
+     *
+     * When unspecified, defaults to HARNESS_LANGGRAPH.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>
+     * @return The harness.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.Harness getHarness() {
+      ai.stigmer.agentic.session.v1.Harness result = ai.stigmer.agentic.session.v1.Harness.forNumber(harness_);
+      return result == null ? ai.stigmer.agentic.session.v1.Harness.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Execution harness for this session.
+     *
+     * Determines which Temporal activity type is dispatched when an
+     * AgentExecution is created in this session:
+     * - LANGGRAPH (default): ExecuteGraphton activity -&gt; Python/LangGraph worker
+     * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
+     *
+     * The harness affects which tools the agent has, how conversation state
+     * is managed, available models, and billing tier. Once set and an execution
+     * has run, the harness is immutable — changing it would break conversation
+     * continuity since each harness owns its own state.
+     *
+     * When unspecified, defaults to HARNESS_LANGGRAPH.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>
+     * @param value The harness to set.
+     * @return This builder for chaining.
+     */
+    public Builder setHarness(ai.stigmer.agentic.session.v1.Harness value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000200;
+      harness_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Execution harness for this session.
+     *
+     * Determines which Temporal activity type is dispatched when an
+     * AgentExecution is created in this session:
+     * - LANGGRAPH (default): ExecuteGraphton activity -&gt; Python/LangGraph worker
+     * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
+     *
+     * The harness affects which tools the agent has, how conversation state
+     * is managed, available models, and billing tier. Once set and an execution
+     * has run, the harness is immutable — changing it would break conversation
+     * continuity since each harness owns its own state.
+     *
+     * When unspecified, defaults to HARNESS_LANGGRAPH.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearHarness() {
+      bitField0_ = (bitField0_ & ~0x00000200);
+      harness_ = 0;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.SessionSpec)

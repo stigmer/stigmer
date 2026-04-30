@@ -6,6 +6,8 @@ go_library(
         "daemon.go",
         "daemon_process.go",
         "download.go",
+        "proc_unix.go",
+        "proc_windows.go",
         "reset.go",
         "runner_native.go",
         "runner_stream.go",
@@ -49,6 +51,7 @@ go_test(
     ],
     embed = [":daemon"],
     deps = [
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/agentic/runner/v1:runner",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
     ],

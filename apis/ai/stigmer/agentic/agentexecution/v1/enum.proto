@@ -141,6 +141,16 @@ enum MessageType {
 
   // A system-generated message injected by the platform (e.g., budget warnings, summarization notices).
   MESSAGE_SYSTEM = 4;
+
+  // Reasoning/thinking content from the model.
+  //
+  // Emitted by models with extended thinking enabled (e.g., Claude with
+  // thinking, Cursor's thinking events). Contains the model's internal
+  // reasoning that is distinct from the final assistant response.
+  //
+  // Rendered distinctly from assistant text in the UI (e.g., collapsible
+  // thinking block with subdued styling).
+  MESSAGE_THINKING = 5;
 }
 
 // ToolCallStatus defines the status of a tool call.

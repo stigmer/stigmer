@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//client-apps/cli/cmd/stigmer/root",
         "//client-apps/cli/internal/cli/clierr",
+        "//client-apps/cli/internal/cli/config",
         "@com_github_rs_zerolog//:zerolog",
         "@com_github_rs_zerolog//log",
         "@com_github_spf13_cobra//:cobra",

@@ -39,11 +39,13 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "to\022\035ai.stigmer.agentic.session.v1*Y\n\020Git" +
       "WriteBackMode\022#\n\037GIT_WRITE_BACK_MODE_UNS" +
       "PECIFIED\020\000\022 \n\034GIT_WRITE_BACK_BRANCH_AND_" +
-      "PR\020\001B\244\001B\tEnumProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer" +
-      ".Agentic.Session.V1\312\002\035Ai\\Stigmer\\Agentic" +
-      "\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Session" +
-      "\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agentic::" +
-      "Session::V1b\006proto3"
+      "PR\020\001*M\n\007Harness\022\027\n\023HARNESS_UNSPECIFIED\020\000" +
+      "\022\025\n\021HARNESS_LANGGRAPH\020\001\022\022\n\016HARNESS_CURSO" +
+      "R\020\002B\244\001B\tEnumProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer." +
+      "Agentic.Session.V1\312\002\035Ai\\Stigmer\\Agentic\\" +
+      "Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Session\\" +
+      "V1\\GPBMetadata\352\002!Ai::Stigmer::Agentic::S" +
+      "ession::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

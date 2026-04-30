@@ -6,6 +6,8 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { McpServerUsage } from "../../agent/v1/spec_pb";
 import { file_ai_stigmer_agentic_agent_v1_spec } from "../../agent/v1/spec_pb";
+import type { Harness } from "./enum_pb";
+import { file_ai_stigmer_agentic_session_v1_enum } from "./enum_pb";
 import type { WorkspaceEntry } from "./workspace_pb";
 import { file_ai_stigmer_agentic_session_v1_workspace } from "./workspace_pb";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb";
@@ -18,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSLVBQoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIRCgl0aHJlYWRfaWQYAyABKAkSFgoKc2FuZGJveF9pZBgEIAEoCUICGAESSgoIbWV0YWRhdGEYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYy5NZXRhZGF0YUVudHJ5EkgKEXdvcmtzcGFjZV9lbnRyaWVzGAYgAygLMi0uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuV29ya3NwYWNlRW50cnkS2QEKEW1jcF9zZXJ2ZXJfdXNhZ2VzGAcgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLk1jcFNlcnZlclVzYWdlQpABukiMAZIBiAEihQG6AYEBCh5zZXNzaW9uX21jcF9zZXJ2ZXJfdXNhZ2VzLmtpbmQSP21jcF9zZXJ2ZXJfdXNhZ2VzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9bWNwX3NlcnZlchoedGhpcy5tY3Bfc2VydmVyX3JlZi5raW5kID09IDQ0EhEKCXJ1bm5lcl9pZBgJIAEoCRK4AQoKc2tpbGxfcmVmcxgIIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJuukhnkgFkImK6AV8KF3Nlc3Npb25fc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSKOBgoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIRCgl0aHJlYWRfaWQYAyABKAkSFgoKc2FuZGJveF9pZBgEIAEoCUICGAESSgoIbWV0YWRhdGEYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYy5NZXRhZGF0YUVudHJ5EkgKEXdvcmtzcGFjZV9lbnRyaWVzGAYgAygLMi0uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuV29ya3NwYWNlRW50cnkS2QEKEW1jcF9zZXJ2ZXJfdXNhZ2VzGAcgAygLMisuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLk1jcFNlcnZlclVzYWdlQpABukiMAZIBiAEihQG6AYEBCh5zZXNzaW9uX21jcF9zZXJ2ZXJfdXNhZ2VzLmtpbmQSP21jcF9zZXJ2ZXJfdXNhZ2VzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9bWNwX3NlcnZlchoedGhpcy5tY3Bfc2VydmVyX3JlZi5raW5kID09IDQ0EhEKCXJ1bm5lcl9pZBgJIAEoCRK4AQoKc2tpbGxfcmVmcxgIIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJuukhnkgFkImK6AV8KF3Nlc3Npb25fc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsSNwoHaGFybmVzcxgKIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3MaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * SessionSpec defines the configurable properties of a session.
@@ -141,6 +143,25 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8;
    */
   skillRefs: ApiResourceReference[];
+
+  /**
+   * Execution harness for this session.
+   *
+   * Determines which Temporal activity type is dispatched when an
+   * AgentExecution is created in this session:
+   * - LANGGRAPH (default): ExecuteGraphton activity -> Python/LangGraph worker
+   * - CURSOR: ExecuteCursor activity -> TypeScript/Cursor SDK worker
+   *
+   * The harness affects which tools the agent has, how conversation state
+   * is managed, available models, and billing tier. Once set and an execution
+   * has run, the harness is immutable — changing it would break conversation
+   * continuity since each harness owns its own state.
+   *
+   * When unspecified, defaults to HARNESS_LANGGRAPH.
+   *
+   * @generated from field: ai.stigmer.agentic.session.v1.Harness harness = 10;
+   */
+  harness: Harness;
 };
 
 /**

@@ -98,7 +98,21 @@ type SessionSpec struct {
 	//
 	// @internal
 	// Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
-	SkillRefs     []*apiresource.ApiResourceReference `protobuf:"bytes,8,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
+	SkillRefs []*apiresource.ApiResourceReference `protobuf:"bytes,8,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
+	// Execution harness for this session.
+	//
+	// Determines which Temporal activity type is dispatched when an
+	// AgentExecution is created in this session:
+	// - LANGGRAPH (default): ExecuteGraphton activity -> Python/LangGraph worker
+	// - CURSOR: ExecuteCursor activity -> TypeScript/Cursor SDK worker
+	//
+	// The harness affects which tools the agent has, how conversation state
+	// is managed, available models, and billing tier. Once set and an execution
+	// has run, the harness is immutable — changing it would break conversation
+	// continuity since each harness owns its own state.
+	//
+	// When unspecified, defaults to HARNESS_LANGGRAPH.
+	Harness       Harness `protobuf:"varint,10,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -197,11 +211,18 @@ func (x *SessionSpec) GetSkillRefs() []*apiresource.ApiResourceReference {
 	return nil
 }
 
+func (x *SessionSpec) GetHarness() Harness {
+	if x != nil {
+		return x.Harness
+	}
+	return Harness_HARNESS_UNSPECIFIED
+}
+
 var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xd2\x06\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x94\a\n" +
 	"\vSessionSpec\x12*\n" +
 	"\x11agent_instance_id\x18\x01 \x01(\tR\x0fagentInstanceId\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12\x1b\n" +
@@ -215,7 +236,9 @@ const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\trunner_id\x18\t \x01(\tR\brunnerId\x12\xc3\x01\n" +
 	"\n" +
 	"skill_refs\x18\b \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBn\xbaHg\x92\x01d\"b\xba\x01_\n" +
-	"\x17session_skill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\x1a;\n" +
+	"\x17session_skill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\x12@\n" +
+	"\aharness\x18\n" +
+	" \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x99\x02\n" +
@@ -240,17 +263,19 @@ var file_ai_stigmer_agentic_session_v1_spec_proto_goTypes = []any{
 	(*WorkspaceEntry)(nil),                   // 2: ai.stigmer.agentic.session.v1.WorkspaceEntry
 	(*v1.McpServerUsage)(nil),                // 3: ai.stigmer.agentic.agent.v1.McpServerUsage
 	(*apiresource.ApiResourceReference)(nil), // 4: ai.stigmer.commons.apiresource.ApiResourceReference
+	(Harness)(0),                             // 5: ai.stigmer.agentic.session.v1.Harness
 }
 var file_ai_stigmer_agentic_session_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.session.v1.SessionSpec.metadata:type_name -> ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
 	2, // 1: ai.stigmer.agentic.session.v1.SessionSpec.workspace_entries:type_name -> ai.stigmer.agentic.session.v1.WorkspaceEntry
 	3, // 2: ai.stigmer.agentic.session.v1.SessionSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.agent.v1.McpServerUsage
 	4, // 3: ai.stigmer.agentic.session.v1.SessionSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	5, // 4: ai.stigmer.agentic.session.v1.SessionSpec.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_spec_proto_init() }
@@ -258,6 +283,7 @@ func file_ai_stigmer_agentic_session_v1_spec_proto_init() {
 	if File_ai_stigmer_agentic_session_v1_spec_proto != nil {
 		return
 	}
+	file_ai_stigmer_agentic_session_v1_enum_proto_init()
 	file_ai_stigmer_agentic_session_v1_workspace_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
