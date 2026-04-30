@@ -9,6 +9,7 @@ import {
 } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
+import { toProtoHarness, type HarnessOption } from "../models/harness";
 
 /** Shared fields present in both variants of {@link CreateSessionInput}. */
 export interface SharedSessionFields {
@@ -30,6 +31,13 @@ export interface SharedSessionFields {
    * auto-bind in OSS, cloud auto-provisioning in Cloud).
    */
   readonly runnerId?: string;
+  /**
+   * Execution harness for this session.
+   *
+   * Determines which execution engine processes agent activities.
+   * Immutable after the first execution runs. Defaults to `"native"`.
+   */
+  readonly harness?: HarnessOption;
 }
 
 /**
@@ -157,6 +165,7 @@ export function useCreateSession(): UseCreateSessionReturn {
           skillRefs: input.skillRefs,
           runnerId: input.runnerId,
           agentInstanceId: resolvedInstanceId,
+          harness: input.harness ? toProtoHarness(input.harness) : undefined,
         });
 
         return { sessionId: session.metadata!.id };

@@ -3,6 +3,7 @@
 import { Select } from "@base-ui/react/select";
 import { useModelRegistry } from "./useModelRegistry";
 import type { Provider } from "./registry";
+import type { HarnessOption } from "./harness";
 
 const PROVIDER_LABELS: Record<Provider, string> = {
   anthropic: "Anthropic",
@@ -23,6 +24,13 @@ export interface ModelSelectorProps {
   readonly value?: string;
   /** Called when the user picks a different model. Receives the new `modelId`. */
   readonly onValueChange: (modelId: string) => void;
+  /**
+   * Filter the model catalog by harness.
+   *
+   * When `"cursor"`, only Cursor-provider models are shown.
+   * When `"native"` or omitted, the default catalog applies.
+   */
+  readonly harness?: HarnessOption;
   /** Additional CSS class names for the trigger button. */
   readonly className?: string;
   /** When true, disables the selector. */
@@ -54,10 +62,11 @@ export interface ModelSelectorProps {
 export function ModelSelector({
   value,
   onValueChange,
+  harness,
   className,
   disabled,
 }: ModelSelectorProps) {
-  const { byProvider, defaultModel, providers } = useModelRegistry();
+  const { byProvider, defaultModel, providers } = useModelRegistry({ harness });
 
   return (
     <Select.Root

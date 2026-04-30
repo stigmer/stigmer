@@ -4,6 +4,8 @@ import { cn } from "@stigmer/theme";
 import { ContextPopover } from "./ContextPopover";
 import { ConfigureMenu, type ConfigureMenuItem } from "./ConfigureMenu";
 import { ModelSelector } from "../models/ModelSelector";
+import { HarnessSelector } from "../models/HarnessSelector";
+import type { HarnessOption } from "../models/harness";
 import {
   PaperclipIcon,
   WorkspaceIcon,
@@ -39,6 +41,12 @@ export interface ComposerToolbarProps {
   readonly onConfigActivePanelChange: (panel: string | null) => void;
   /** Render the picker content for a given configure panel id. */
   readonly renderConfigPanel: (itemId: string) => React.ReactNode;
+
+  // -- Harness selector -----------------------------------------------------
+
+  readonly showHarnessSelector: boolean;
+  readonly harness?: HarnessOption;
+  readonly onHarnessChange: (harness: HarnessOption) => void;
 
   // -- Model selector -------------------------------------------------------
 
@@ -78,13 +86,16 @@ export function ComposerToolbar({
   configActivePanel,
   onConfigActivePanelChange,
   renderConfigPanel,
+  showHarnessSelector,
+  harness,
+  onHarnessChange,
   showModelSelector,
   modelId,
   onModelChange,
 }: ComposerToolbarProps) {
   const hasTier1 = showAttach || showWorkspace;
   const hasTier2 = configureItems.length > 0;
-  const hasExecParams = showModelSelector;
+  const hasExecParams = showHarnessSelector || showModelSelector;
 
   return (
     <div className="flex items-center justify-between gap-2 border-t border-border-muted px-3 py-2">
@@ -149,10 +160,19 @@ export function ComposerToolbar({
           <div className="mx-0.5 h-4 w-px bg-border/50" aria-hidden="true" />
         )}
 
+        {showHarnessSelector && (
+          <HarnessSelector
+            value={harness ?? "native"}
+            onValueChange={onHarnessChange}
+            disabled={disabled}
+          />
+        )}
+
         {showModelSelector && (
           <ModelSelector
             value={modelId}
             onValueChange={onModelChange}
+            harness={harness}
             disabled={disabled}
           />
         )}

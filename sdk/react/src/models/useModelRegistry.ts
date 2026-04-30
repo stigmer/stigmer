@@ -4,10 +4,23 @@ import { useMemo } from "react";
 import {
   MODEL_REGISTRY,
   DEFAULT_MODEL_ID,
+  DEFAULT_CURSOR_MODEL_ID,
   DISABLED_PROVIDERS,
   type ModelInfo,
   type Provider,
 } from "./registry";
+import type { HarnessOption } from "./harness";
+
+/** Options for {@link useModelRegistry}. */
+export interface UseModelRegistryOptions {
+  /**
+   * When `"cursor"`, only Cursor-provider models are shown and the
+   * default model switches to {@link DEFAULT_CURSOR_MODEL_ID}.
+   * When `"native"` or omitted, current behavior applies
+   * ({@link DISABLED_PROVIDERS} are filtered out).
+   */
+  readonly harness?: HarnessOption;
+}
 
 /** Return value of {@link useModelRegistry}. */
 export interface UseModelRegistryReturn {
@@ -31,6 +44,10 @@ export interface UseModelRegistryReturn {
  * who want full control over rendering import this hook and build
  * their own UI.
  *
+ * When `options.harness` is `"cursor"`, the registry shows only
+ * Cursor-provider models. Otherwise, {@link DISABLED_PROVIDERS} are
+ * filtered out (default behavior).
+ *
  * @example
  * ```tsx
  * function CustomModelPicker({ onSelect }: { onSelect: (id: string) => void }) {
@@ -51,15 +68,24 @@ export interface UseModelRegistryReturn {
  * }
  * ```
  */
-export function useModelRegistry(): UseModelRegistryReturn {
+export function useModelRegistry(options?: UseModelRegistryOptions): UseModelRegistryReturn {
+  const harness = options?.harness;
+
   return useMemo(() => {
+    const isCursor = harness === "cursor";
+    const defaultId = isCursor ? DEFAULT_CURSOR_MODEL_ID : DEFAULT_MODEL_ID;
+
     const byProvider = new Map<Provider, ModelInfo[]>();
     const byId = new Map<string, ModelInfo>();
     const enabledModels: ModelInfo[] = [];
     let defaultModel: ModelInfo | undefined;
 
     for (const model of MODEL_REGISTRY) {
-      if (DISABLED_PROVIDERS.has(model.provider)) continue;
+      if (isCursor) {
+        if (model.provider !== "cursor") continue;
+      } else {
+        if (DISABLED_PROVIDERS.has(model.provider)) continue;
+      }
 
       enabledModels.push(model);
       byId.set(model.modelId, model);
@@ -71,7 +97,7 @@ export function useModelRegistry(): UseModelRegistryReturn {
         byProvider.set(model.provider, [model]);
       }
 
-      if (model.modelId === DEFAULT_MODEL_ID) {
+      if (model.modelId === defaultId) {
         defaultModel = model;
       }
     }
@@ -85,5 +111,5 @@ export function useModelRegistry(): UseModelRegistryReturn {
       getModel: (modelId: string) => byId.get(modelId),
       providers,
     };
-  }, []);
+  }, [harness]);
 }

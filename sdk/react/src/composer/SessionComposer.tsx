@@ -6,6 +6,8 @@ import { getUserMessage, type AttachmentInput, type EnvVarInput, type McpServerU
 import { useComposer } from "./useComposer";
 import { ComposerToolbar } from "./ComposerToolbar";
 import { type ConfigureMenuItem } from "./ConfigureMenu";
+import type { HarnessOption } from "../models/harness";
+import { useModelRegistry } from "../models/useModelRegistry";
 import { ContextChip, type ChipItem } from "./ContextChip";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor";
 import { AgentPicker } from "../agent/AgentPicker";
@@ -100,6 +102,22 @@ export interface SessionComposerProps {
   readonly isSubmitting?: boolean;
   /** Disables the entire composer (e.g., while an execution streams). */
   readonly disabled?: boolean;
+
+  /**
+   * Currently selected execution harness.
+   *
+   * Controls which models appear in the model selector and flows
+   * through to session creation. When omitted, defaults to `"native"`.
+   */
+  readonly harness?: HarnessOption;
+  /**
+   * Called when the user switches the harness.
+   *
+   * Providing this callback enables the harness selector in the toolbar.
+   */
+  readonly onHarnessChange?: (harness: HarnessOption) => void;
+  /** Show the harness selector in the toolbar. @default false */
+  readonly showHarnessSelector?: boolean;
 
   /** Initial model ID for the model selector. */
   readonly defaultModelId?: string;
@@ -357,6 +375,9 @@ export function SessionComposer({
   onSubmit,
   isSubmitting = false,
   disabled = false,
+  harness,
+  onHarnessChange,
+  showHarnessSelector = false,
   defaultModelId,
   onModelChange,
   showModelSelector = true,
@@ -387,6 +408,20 @@ export function SessionComposer({
   className,
 }: SessionComposerProps) {
   const [modelId, setModelId] = useState<string | undefined>(defaultModelId);
+  const { getModel: getHarnessModel, defaultModel: harnessDefaultModel } =
+    useModelRegistry({ harness });
+
+  // Reset model when harness changes and current model is invalid
+  const prevHarnessRef = useRef(harness);
+  useEffect(() => {
+    if (prevHarnessRef.current === harness) return;
+    prevHarnessRef.current = harness;
+    if (modelId && !getHarnessModel(modelId)) {
+      const newId = harnessDefaultModel?.modelId;
+      setModelId(newId);
+      if (newId) onModelChange?.(newId);
+    }
+  }, [harness, modelId, getHarnessModel, harnessDefaultModel, onModelChange]);
 
   const [displayNames, setDisplayNames] = useState<Map<string, string>>(
     () => new Map(),
@@ -632,6 +667,13 @@ export function SessionComposer({
       onModelChange?.(id);
     },
     [onModelChange],
+  );
+
+  const handleHarnessChange = useCallback(
+    (h: HarnessOption) => {
+      onHarnessChange?.(h);
+    },
+    [onHarnessChange],
   );
 
   const handleDisplayNameResolved = useCallback(
@@ -1377,6 +1419,9 @@ export function SessionComposer({
           configActivePanel={configActivePanel}
           onConfigActivePanelChange={handleConfigActivePanelChange}
           renderConfigPanel={renderConfigPanel}
+          showHarnessSelector={showHarnessSelector}
+          harness={harness}
+          onHarnessChange={handleHarnessChange}
           showModelSelector={showModelSelector}
           modelId={modelId}
           onModelChange={handleModelChange}

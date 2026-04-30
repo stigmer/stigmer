@@ -61,7 +61,7 @@ export type {
 } from "./useSessionPageFlow";
 
 export { usePersistedModel } from "./usePersistedModel";
-export type { UsePersistedModelReturn } from "./usePersistedModel";
+export type { UsePersistedModelReturn, UsePersistedModelOptions } from "./usePersistedModel";
 
 export { useEditSessionPrep } from "./useEditSessionPrep";
 export type { UseEditSessionPrepReturn } from "./useEditSessionPrep";
