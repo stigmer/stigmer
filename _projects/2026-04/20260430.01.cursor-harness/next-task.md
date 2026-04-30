@@ -6,8 +6,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Project: 20260430.01.cursor-harness
 
-**Description**: Integrate the Cursor TypeScript SDK as a premium execution harness alongside the existing LangGraph harness within the runner daemon. Introduces the Harness concept to SessionSpec, a new TypeScript Temporal activity worker (ExecuteCursor), embedded Node.js runtime in the CLI, and unified cost/streaming/HITL adapters.
-**Goal**: Enable Stigmer sessions to choose between LangGraph (standard) and Cursor (premium) execution harnesses. When a session uses the Cursor harness, executions are processed by a TypeScript worker wrapping the Cursor SDK, with full streaming, MCP integration, HITL approval, and unified billing.
+**Description**: Integrate the Cursor TypeScript SDK as a premium execution harness alongside Stigmer's native harness within the runner daemon. Introduces the Harness concept to SessionSpec, a new TypeScript Temporal activity worker (ExecuteCursor), embedded Node.js runtime in the CLI, and unified cost/streaming/HITL adapters.
+**Goal**: Enable Stigmer sessions to choose between native (standard) and Cursor (premium) execution harnesses. When a session uses the Cursor harness, executions are processed by a TypeScript worker wrapping the Cursor SDK, with full streaming, MCP integration, HITL approval, and unified billing.
 **Tech Stack**: TypeScript (Cursor SDK, Temporal SDK), Go (workflow dispatch, CLI daemon), Protocol Buffers (session/execution protos), Node.js/Bun (embedded runtime)
 **Components**: protos (session, agentexecution enums), CLI daemon (multi-worker management), Go workflow (dispatch by harness), new TypeScript cursor-runner service, embedded CLI packaging, SDK/React (session harness picker), cost/billing adapter
 
@@ -21,12 +21,13 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Session Progress (April 30, 2026)
 
 ### Session 1: T01 Proto Changes
-- Added `Harness` enum (UNSPECIFIED, LANGGRAPH, CURSOR) to `session/v1/enum.proto`
+- Added `Harness` enum (UNSPECIFIED, NATIVE, CURSOR) to `session/v1/enum.proto`
 - Added `SessionSpec.harness` field (number 10) to `session/v1/spec.proto`
 - Added `MESSAGE_THINKING = 5` to `MessageType` in `agentexecution/v1/enum.proto`
 - Ran `buf lint`, `buf format`, `make codegen` -- all passed
 - Regenerated stubs in stigmer-cloud via `make protos`
 - 48 files committed across Go/Java/Python/TypeScript stubs, SDKs, docs, schemas
+- **Renamed** `HARNESS_LANGGRAPH` to `HARNESS_NATIVE` -- LangGraph is an implementation detail; "native" names what the harness IS to the user (Stigmer's own built-in engine)
 
 ### Session 2: T02 HITL Research Spike
 - Researched Cursor SDK TypeScript docs (full API surface)

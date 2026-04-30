@@ -4,11 +4,11 @@
 
 ## Summary
 
-Added the `Harness` concept to the Stigmer proto layer, enabling sessions to choose between different execution engines. This is the foundational proto change for the Cursor harness integration -- a new premium execution tier that wraps the Cursor SDK alongside the existing LangGraph engine. Also added `MESSAGE_THINKING` to `MessageType` for models with extended thinking capabilities.
+Added the `Harness` concept to the Stigmer proto layer, enabling sessions to choose between different execution engines. This is the foundational proto change for the Cursor harness integration -- a new premium execution tier that wraps the Cursor SDK alongside Stigmer's native engine. Also added `MESSAGE_THINKING` to `MessageType` for models with extended thinking capabilities.
 
 ## Problem Statement
 
-Stigmer currently supports a single execution engine (LangGraph via Python). To offer a premium tier powered by the Cursor SDK, the platform needs a way to express which execution engine a session uses, so the Go workflow can dispatch to the correct Temporal activity type.
+Stigmer currently supports a single execution engine (the native Stigmer engine). To offer a premium tier powered by the Cursor SDK, the platform needs a way to express which execution engine a session uses, so the Go workflow can dispatch to the correct Temporal activity type.
 
 ### Pain Points
 
@@ -24,11 +24,11 @@ Introduced the `Harness` enum and `SessionSpec.harness` field as additive, non-b
 
 ### Three proto changes across two packages
 
-1. **`Harness` enum** in `session/v1/enum.proto` -- Three values: `HARNESS_UNSPECIFIED` (defaults to LangGraph), `HARNESS_LANGGRAPH`, `HARNESS_CURSOR`. Placed alongside `GitWriteBackMode` following the existing enum organization pattern.
+1. **`Harness` enum** in `session/v1/enum.proto` -- Three values: `HARNESS_UNSPECIFIED` (defaults to native), `HARNESS_NATIVE`, `HARNESS_CURSOR`. Placed alongside `GitWriteBackMode` following the existing enum organization pattern.
 
 2. **`SessionSpec.harness`** field (number 10) in `session/v1/spec.proto` -- New import of `enum.proto`, field added at the end of `SessionSpec`. Field 10 is the next sequential number (corrected from the original plan's field 11 to avoid an unexplained gap).
 
-3. **`MESSAGE_THINKING = 5`** in `agentexecution/v1/enum.proto` -- Added to `MessageType` enum. This is harness-agnostic: LangGraph with Claude extended thinking can also emit thinking events.
+3. **`MESSAGE_THINKING = 5`** in `agentexecution/v1/enum.proto` -- Added to `MessageType` enum. This is harness-agnostic: the native engine with Claude extended thinking can also emit thinking events.
 
 ### Codegen propagation
 
@@ -38,15 +38,16 @@ Introduced the `Harness` enum and `SessionSpec.harness` field as additive, non-b
 
 - **Field number 10** (not 11): SessionSpec uses fields 1-9 with no gaps and no `reserved` declarations. Using 10 avoids creating an unexplained gap.
 - **Enum in `enum.proto`** (not inline): Follows the package convention where shared enums live in a dedicated `enum.proto` file.
-- **No validation constraints**: All `Harness` values are valid at the proto layer. `UNSPECIFIED` defaulting to LangGraph is handled in server logic (T04).
+- **NATIVE not LANGGRAPH**: The native engine value is named `HARNESS_NATIVE`, not `HARNESS_LANGGRAPH`. LangGraph is an implementation detail; "native" names what the harness IS to the user (Stigmer's own built-in engine) and keeps the enum at the same abstraction level as `HARNESS_CURSOR`.
+- **No validation constraints**: All `Harness` values are valid at the proto layer. `UNSPECIFIED` defaulting to native is handled in server logic (T04).
 - **No Runner proto changes**: The Runner is infrastructure and remains harness-agnostic.
 
 ## Benefits
 
 - Clean proto foundation for multi-harness architecture
-- Fully backward compatible -- existing sessions default to `HARNESS_UNSPECIFIED` (LangGraph)
+- Fully backward compatible -- existing sessions default to `HARNESS_UNSPECIFIED` (native)
 - All language stubs (Go, Java, Python, TypeScript, Dart) generated and compilable
-- `MESSAGE_THINKING` independently useful for Claude extended thinking in the LangGraph harness
+- `MESSAGE_THINKING` independently useful for Claude extended thinking in the native harness
 
 ## Impact
 
