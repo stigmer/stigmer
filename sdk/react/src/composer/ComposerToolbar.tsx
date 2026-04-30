@@ -95,7 +95,8 @@ export function ComposerToolbar({
 }: ComposerToolbarProps) {
   const hasTier1 = showAttach || showWorkspace;
   const hasTier2 = configureItems.length > 0;
-  const hasExecParams = showHarnessSelector || showModelSelector;
+  const showHarnessSeparate = showHarnessSelector && !showModelSelector;
+  const hasExecParams = showHarnessSeparate || showModelSelector;
 
   return (
     <div className="flex items-center justify-between gap-2 border-t border-border-muted px-3 py-2">
@@ -160,7 +161,7 @@ export function ComposerToolbar({
           <div className="mx-0.5 h-4 w-px bg-border/50" aria-hidden="true" />
         )}
 
-        {showHarnessSelector && (
+        {showHarnessSeparate && (
           <HarnessSelector
             value={harness ?? "native"}
             onValueChange={onHarnessChange}
@@ -172,7 +173,7 @@ export function ComposerToolbar({
           <ModelSelector
             value={modelId}
             onValueChange={onModelChange}
-            harness={harness}
+            onHarnessResolved={onHarnessChange}
             disabled={disabled}
           />
         )}

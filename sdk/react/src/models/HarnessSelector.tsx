@@ -30,6 +30,11 @@ export interface HarnessSelectorProps {
  * Platform builders who need different rendering use
  * {@link HarnessOption} and {@link HARNESS_LABELS} directly.
  *
+ * @deprecated Use {@link ModelSelector} in unified mode (without the
+ * `harness` prop) instead. The unified model picker embeds an engine
+ * tag on each model row, eliminating the need for a separate harness
+ * control. This component is kept for backward compatibility.
+ *
  * @example
  * ```tsx
  * function LauncherToolbar() {

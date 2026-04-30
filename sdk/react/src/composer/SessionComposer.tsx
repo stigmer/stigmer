@@ -7,7 +7,7 @@ import { useComposer } from "./useComposer";
 import { ComposerToolbar } from "./ComposerToolbar";
 import { type ConfigureMenuItem } from "./ConfigureMenu";
 import type { HarnessOption } from "../models/harness";
-import { useModelRegistry } from "../models/useModelRegistry";
+import { parseModelKey } from "../models/registry";
 import { ContextChip, type ChipItem } from "./ContextChip";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor";
 import { AgentPicker } from "../agent/AgentPicker";
@@ -408,20 +408,6 @@ export function SessionComposer({
   className,
 }: SessionComposerProps) {
   const [modelId, setModelId] = useState<string | undefined>(defaultModelId);
-  const { getModel: getHarnessModel, defaultModel: harnessDefaultModel } =
-    useModelRegistry({ harness });
-
-  // Reset model when harness changes and current model is invalid
-  const prevHarnessRef = useRef(harness);
-  useEffect(() => {
-    if (prevHarnessRef.current === harness) return;
-    prevHarnessRef.current = harness;
-    if (modelId && !getHarnessModel(modelId)) {
-      const newId = harnessDefaultModel?.modelId;
-      setModelId(newId);
-      if (newId) onModelChange?.(newId);
-    }
-  }, [harness, modelId, getHarnessModel, harnessDefaultModel, onModelChange]);
 
   const [displayNames, setDisplayNames] = useState<Map<string, string>>(
     () => new Map(),
@@ -647,7 +633,10 @@ export function SessionComposer({
             }
           : undefined;
 
-      onSubmit(message, modelId, context);
+      const resolvedModelId = modelId
+        ? (parseModelKey(modelId)?.modelId ?? modelId)
+        : undefined;
+      onSubmit(message, resolvedModelId, context);
 
       if (enableAttachments) {
         attachments.clear();

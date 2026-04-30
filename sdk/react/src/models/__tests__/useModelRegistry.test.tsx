@@ -6,15 +6,23 @@ import {
   DEFAULT_MODEL_ID,
   DEFAULT_CURSOR_MODEL_ID,
   DISABLED_PROVIDERS,
+  modelKey,
 } from "../registry";
 
 describe("useModelRegistry", () => {
-  describe("native harness (default)", () => {
+  describe("unified mode (no harness)", () => {
     it("excludes DISABLED_PROVIDERS from models", () => {
       const { result } = renderHook(() => useModelRegistry());
       for (const model of result.current.models) {
         expect(DISABLED_PROVIDERS.has(model.provider)).toBe(false);
       }
+    });
+
+    it("includes models from both native and cursor harnesses", () => {
+      const { result } = renderHook(() => useModelRegistry());
+      const harnesses = new Set(result.current.models.map((m) => m.harness));
+      expect(harnesses.has("native")).toBe(true);
+      expect(harnesses.has("cursor")).toBe(true);
     });
 
     it("includes all non-disabled models from MODEL_REGISTRY", () => {
@@ -66,37 +74,101 @@ describe("useModelRegistry", () => {
       const { result } = renderHook(() => useModelRegistry());
       expect(result.current.getModel("nonexistent-model")).toBeUndefined();
     });
+
+    it("returns featured models subset", () => {
+      const { result } = renderHook(() => useModelRegistry());
+      expect(result.current.featured.length).toBeGreaterThan(0);
+      for (const model of result.current.featured) {
+        expect(model.featured).toBe(true);
+      }
+    });
+
+    it("featured models are a subset of all models", () => {
+      const { result } = renderHook(() => useModelRegistry());
+      const allKeys = new Set(
+        result.current.models.map((m) => modelKey(m.harness, m.modelId)),
+      );
+      for (const model of result.current.featured) {
+        expect(allKeys.has(modelKey(model.harness, model.modelId))).toBe(true);
+      }
+    });
+
+    it("resolves models by compound key via getByKey", () => {
+      const { result } = renderHook(() => useModelRegistry());
+      const key = modelKey("native", DEFAULT_MODEL_ID);
+      const model = result.current.getByKey(key);
+      expect(model).toBeDefined();
+      expect(model!.modelId).toBe(DEFAULT_MODEL_ID);
+      expect(model!.harness).toBe("native");
+    });
+
+    it("resolves cursor models by compound key via getByKey", () => {
+      const { result } = renderHook(() => useModelRegistry());
+      const key = modelKey("cursor", DEFAULT_CURSOR_MODEL_ID);
+      const model = result.current.getByKey(key);
+      expect(model).toBeDefined();
+      expect(model!.modelId).toBe(DEFAULT_CURSOR_MODEL_ID);
+      expect(model!.harness).toBe("cursor");
+    });
+
+    it("returns undefined for unknown compound keys via getByKey", () => {
+      const { result } = renderHook(() => useModelRegistry());
+      expect(result.current.getByKey("native/nonexistent")).toBeUndefined();
+    });
   });
 
   describe("native harness (explicit)", () => {
-    it("produces the same result as omitting harness", () => {
-      const { result: defaultResult } = renderHook(() => useModelRegistry());
-      const { result: nativeResult } = renderHook(() =>
+    it("shows only native-harness models", () => {
+      const { result } = renderHook(() =>
         useModelRegistry({ harness: "native" }),
       );
-      expect(nativeResult.current.models).toEqual(defaultResult.current.models);
-      expect(nativeResult.current.defaultModel.modelId).toBe(
-        defaultResult.current.defaultModel.modelId,
+      for (const model of result.current.models) {
+        expect(model.harness).toBe("native");
+      }
+    });
+
+    it("excludes cursor-harness models", () => {
+      const { result } = renderHook(() =>
+        useModelRegistry({ harness: "native" }),
       );
+      const cursorModels = result.current.models.filter(
+        (m) => m.harness === "cursor",
+      );
+      expect(cursorModels).toHaveLength(0);
+    });
+
+    it("resolves defaultModel to DEFAULT_MODEL_ID", () => {
+      const { result } = renderHook(() =>
+        useModelRegistry({ harness: "native" }),
+      );
+      expect(result.current.defaultModel.modelId).toBe(DEFAULT_MODEL_ID);
     });
   });
 
   describe("cursor harness", () => {
-    it("shows only cursor-provider models", () => {
+    it("shows only cursor-harness models", () => {
       const { result } = renderHook(() =>
         useModelRegistry({ harness: "cursor" }),
       );
       for (const model of result.current.models) {
-        expect(model.provider).toBe("cursor");
+        expect(model.harness).toBe("cursor");
       }
     });
 
-    it("includes all cursor models from MODEL_REGISTRY", () => {
+    it("includes cursor-harness models from multiple providers", () => {
+      const { result } = renderHook(() =>
+        useModelRegistry({ harness: "cursor" }),
+      );
+      const providers = new Set(result.current.models.map((m) => m.provider));
+      expect(providers.size).toBeGreaterThan(1);
+    });
+
+    it("includes all cursor-harness models from MODEL_REGISTRY", () => {
       const { result } = renderHook(() =>
         useModelRegistry({ harness: "cursor" }),
       );
       const cursorModels = MODEL_REGISTRY.filter(
-        (m) => m.provider === "cursor",
+        (m) => m.harness === "cursor",
       );
       expect(result.current.models).toHaveLength(cursorModels.length);
     });
@@ -108,13 +180,6 @@ describe("useModelRegistry", () => {
       expect(result.current.defaultModel.modelId).toBe(
         DEFAULT_CURSOR_MODEL_ID,
       );
-    });
-
-    it("only lists cursor in providers", () => {
-      const { result } = renderHook(() =>
-        useModelRegistry({ harness: "cursor" }),
-      );
-      expect(result.current.providers).toEqual(["cursor"]);
     });
 
     it("looks up cursor models via getModel", () => {

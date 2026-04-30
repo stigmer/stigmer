@@ -24,6 +24,8 @@ export {
   DEFAULT_MODEL_ID,
   DEFAULT_CURSOR_MODEL_ID,
   DISABLED_PROVIDERS,
+  modelKey,
+  parseModelKey,
   useModelRegistry,
   ModelSelector,
   HarnessSelector,
