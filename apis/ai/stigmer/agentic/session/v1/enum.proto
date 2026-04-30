@@ -37,16 +37,16 @@ enum GitWriteBackMode {
 // - Which LLM models are available
 // - Billing tier and cost structure
 //
-// HARNESS_UNSPECIFIED defaults to LANGGRAPH for backward compatibility.
+// HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.
 enum Harness {
-  // Platform default — resolves to HARNESS_LANGGRAPH.
+  // Platform default — resolves to HARNESS_NATIVE.
   HARNESS_UNSPECIFIED = 0;
 
-  // Python/LangGraph execution engine.
+  // Stigmer's native execution engine.
   //
   // Stigmer-managed checkpoints, custom tools, sandbox isolation,
   // pause/resume, and full HITL approval flow.
-  HARNESS_LANGGRAPH = 1;
+  HARNESS_NATIVE = 1;
 
   // Cursor SDK execution engine.
   //

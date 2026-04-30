@@ -12,10 +12,10 @@ class GitWriteBackMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
 class Harness(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     HARNESS_UNSPECIFIED: _ClassVar[Harness]
-    HARNESS_LANGGRAPH: _ClassVar[Harness]
+    HARNESS_NATIVE: _ClassVar[Harness]
     HARNESS_CURSOR: _ClassVar[Harness]
 GIT_WRITE_BACK_MODE_UNSPECIFIED: GitWriteBackMode
 GIT_WRITE_BACK_BRANCH_AND_PR: GitWriteBackMode
 HARNESS_UNSPECIFIED: Harness
-HARNESS_LANGGRAPH: Harness
+HARNESS_NATIVE: Harness
 HARNESS_CURSOR: Harness

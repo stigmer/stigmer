@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/session/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9lbnVtLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSpZChBHaXRXcml0ZUJhY2tNb2RlEiMKH0dJVF9XUklURV9CQUNLX01PREVfVU5TUEVDSUZJRUQQABIgChxHSVRfV1JJVEVfQkFDS19CUkFOQ0hfQU5EX1BSEAEqTQoHSGFybmVzcxIXChNIQVJORVNTX1VOU1BFQ0lGSUVEEAASFQoRSEFSTkVTU19MQU5HR1JBUEgQARISCg5IQVJORVNTX0NVUlNPUhACYgZwcm90bzM");
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9lbnVtLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSpZChBHaXRXcml0ZUJhY2tNb2RlEiMKH0dJVF9XUklURV9CQUNLX01PREVfVU5TUEVDSUZJRUQQABIgChxHSVRfV1JJVEVfQkFDS19CUkFOQ0hfQU5EX1BSEAEqSgoHSGFybmVzcxIXChNIQVJORVNTX1VOU1BFQ0lGSUVEEAASEgoOSEFSTkVTU19OQVRJVkUQARISCg5IQVJORVNTX0NVUlNPUhACYgZwcm90bzM");
 
 /**
  * GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.
@@ -65,27 +65,27 @@ export const GitWriteBackModeSchema: GenEnum<GitWriteBackMode> = /*@__PURE__*/
  * - Which LLM models are available
  * - Billing tier and cost structure
  *
- * HARNESS_UNSPECIFIED defaults to LANGGRAPH for backward compatibility.
+ * HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.
  *
  * @generated from enum ai.stigmer.agentic.session.v1.Harness
  */
 export enum Harness {
   /**
-   * Platform default — resolves to HARNESS_LANGGRAPH.
+   * Platform default — resolves to HARNESS_NATIVE.
    *
    * @generated from enum value: HARNESS_UNSPECIFIED = 0;
    */
   UNSPECIFIED = 0,
 
   /**
-   * Python/LangGraph execution engine.
+   * Stigmer's native execution engine.
    *
    * Stigmer-managed checkpoints, custom tools, sandbox isolation,
    * pause/resume, and full HITL approval flow.
    *
-   * @generated from enum value: HARNESS_LANGGRAPH = 1;
+   * @generated from enum value: HARNESS_NATIVE = 1;
    */
-  LANGGRAPH = 1,
+  NATIVE = 1,
 
   /**
    * Cursor SDK execution engine.

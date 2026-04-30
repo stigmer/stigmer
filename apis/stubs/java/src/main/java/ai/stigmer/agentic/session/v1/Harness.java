@@ -17,7 +17,7 @@ package ai.stigmer.agentic.session.v1;
  * - Which LLM models are available
  * - Billing tier and cost structure
  *
- * HARNESS_UNSPECIFIED defaults to LANGGRAPH for backward compatibility.
+ * HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.session.v1.Harness}
@@ -27,7 +27,7 @@ public enum Harness
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Platform default — resolves to HARNESS_LANGGRAPH.
+   * Platform default — resolves to HARNESS_NATIVE.
    * </pre>
    *
    * <code>HARNESS_UNSPECIFIED = 0;</code>
@@ -35,15 +35,15 @@ public enum Harness
   HARNESS_UNSPECIFIED(0),
   /**
    * <pre>
-   * Python/LangGraph execution engine.
+   * Stigmer's native execution engine.
    *
    * Stigmer-managed checkpoints, custom tools, sandbox isolation,
    * pause/resume, and full HITL approval flow.
    * </pre>
    *
-   * <code>HARNESS_LANGGRAPH = 1;</code>
+   * <code>HARNESS_NATIVE = 1;</code>
    */
-  HARNESS_LANGGRAPH(1),
+  HARNESS_NATIVE(1),
   /**
    * <pre>
    * Cursor SDK execution engine.
@@ -69,7 +69,7 @@ public enum Harness
   }
   /**
    * <pre>
-   * Platform default — resolves to HARNESS_LANGGRAPH.
+   * Platform default — resolves to HARNESS_NATIVE.
    * </pre>
    *
    * <code>HARNESS_UNSPECIFIED = 0;</code>
@@ -77,15 +77,15 @@ public enum Harness
   public static final int HARNESS_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * Python/LangGraph execution engine.
+   * Stigmer's native execution engine.
    *
    * Stigmer-managed checkpoints, custom tools, sandbox isolation,
    * pause/resume, and full HITL approval flow.
    * </pre>
    *
-   * <code>HARNESS_LANGGRAPH = 1;</code>
+   * <code>HARNESS_NATIVE = 1;</code>
    */
-  public static final int HARNESS_LANGGRAPH_VALUE = 1;
+  public static final int HARNESS_NATIVE_VALUE = 1;
   /**
    * <pre>
    * Cursor SDK execution engine.
@@ -124,7 +124,7 @@ public enum Harness
   public static Harness forNumber(int value) {
     switch (value) {
       case 0: return HARNESS_UNSPECIFIED;
-      case 1: return HARNESS_LANGGRAPH;
+      case 1: return HARNESS_NATIVE;
       case 2: return HARNESS_CURSOR;
       default: return null;
     }
