@@ -14,8 +14,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: April 30, 2026 -- T06 Cost Model and Billing Integration completed
-- **Active Task**: T01-T06 + T09 COMPLETED, ready for T07/T08
+- **Last Session**: April 30, 2026 -- T07 Session Lifecycle completed
+- **Active Task**: T01-T07 + T09 COMPLETED, ready for T08
 - **Branch**: `feat/cursor-harness`
 
 ## Session Progress (April 30, 2026)
@@ -157,18 +157,29 @@ backend/services/cursor-runner/
 ### Design Decision Documents (T06)
 - `design-decisions/cursor-cost-model.md` -- Full rationale for cost model decisions
 
+### Session 8: T07 Session Lifecycle -- Cursor Agent Management
+- **Bug fix**: `ReadSessionThreadId` local activity was never registered on the Go Temporal worker. Added registration in `worker_config.go`. Without this, every Cursor harness execution would fail at runtime.
+- **Resume failure hardening**: Removed dangerous silent fallback in `resolveAgent()`. When `Agent.resume()` fails for an existing session (agent expired/deleted on Cursor's side), the execution now fails with a clear, actionable error instead of silently creating a new agent and losing all conversation context.
+- **Session delete restricted to operators**: Added `can_delete_session` permission (`IamPermission = 26`) gated at platform level. Changed session delete RPC annotation from `can_delete` on session to `can_delete_session` on `platform:stigmer`. Updated FGA models: added `can_delete_session: operator` to `platform.fga`, removed `can_delete: owner` from `session.fga`. Protects billing/audit trail.
+- **Verified Java wiring**: Java `readSessionThreadId` correctly wired via `UpdateExecutionStatusActivity` local activity stub. No registration gap (unlike Go).
+- **Verified threadId persistence**: `execute-cursor.ts` correctly persists `agent.agentId` as `session.spec.thread_id` via the update RPC. Safe from concurrent modification because session spec is immutable during execution.
+- Ran `make codegen` (stigmer) and `make protos` (stigmer-cloud) -- all passed.
+
+### Key Decisions (T07)
+- **Session delete restricted to operators**: Protects billing audit trail. Regular users cannot delete sessions. Operator-only via FGA `can_delete_session` permission on `platform:stigmer`.
+- **Cursor agent cleanup deferred**: Session delete does NOT call `Agent.archive` on Cursor's side. Cursor agents expire naturally. Revisit when SDK lifecycle semantics are better understood.
+- **Resume failure = fail loud**: No silent fallback. If `Agent.resume()` fails, execution fails with actionable error: "Please start a new session to continue."
+
 ## Next Steps
 
-Phase 3 (CLI Integration) and T06 (Cost Model) are COMPLETE. T05 + T06 + T09 done.
+Phase 4 (Polish) is nearly complete. T07 done, T08 remaining.
 
-Ready for remaining Phase 4 (Polish):
+Ready for:
 
-1. **T07: Session Lifecycle -- Cursor Agent Management** -- Create/resume/delete Cursor agents on session lifecycle.
-2. **T08: SDK/React -- Session Harness Picker** -- UI for selecting native vs Cursor harness.
+1. **T08: SDK/React -- Session Harness Picker** -- UI for selecting native vs Cursor harness.
 
 ### Recommended Next Pick
-- **T07** -- Session lifecycle correctness (create/resume/delete Cursor agents) is foundational for multi-turn conversations.
-- Alternatively, **T08** if UI is higher priority.
+- **T08** -- The final task. UI component for harness selection when creating a session.
 
 ## Essential Files to Review
 
@@ -193,6 +204,8 @@ Ready for remaining Phase 4 (Polish):
 - `apis/ai/stigmer/agentic/session/v1/enum.proto` -- Harness enum
 - `apis/ai/stigmer/agentic/session/v1/spec.proto` -- SessionSpec.harness field
 - `apis/ai/stigmer/agentic/agentexecution/v1/enum.proto` -- MESSAGE_THINKING
+- `apis/ai/stigmer/iam/v1/enum.proto` -- `can_delete_session` permission (T07)
+- `apis/ai/stigmer/agentic/session/v1/command.proto` -- Session delete RPC: operator-only (T07)
 
 ## Knowledge Folders to Check
 
@@ -221,17 +234,16 @@ Ready for remaining Phase 4 (Polish):
 When starting a new session:
 
 1. [ ] Read the latest checkpoint from `checkpoints/`
-2. [ ] Check current task status (T01-T06 + T09 done, T07-T08 pending)
-3. [ ] Review T06 changes: `model-pricing.ts` (Cursor pricing), `usage-tracker.ts` (per-message LlmCallMetrics), `execute-cursor.ts` (metrics stamping)
+2. [ ] Check current task status (T01-T07 + T09 done, T08 pending)
+3. [ ] Review T07 changes: `worker_config.go` (ReadSessionThreadId registration), `session-lifecycle.ts` (fail-loud resume), `command.proto` + FGA models (operator-only delete)
 4. [ ] Review design decisions for context (especially `cursor-cost-model.md`, `embedded-packaging-strategy.md`, `cursor-sdk-proxy-support.md`)
 5. [ ] Check coding guidelines in `coding-guidelines/`
 6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-7. [ ] Pick next task: T07 (session lifecycle) or T08 (SDK/React)
+7. [ ] Pick next task: T08 (SDK/React session harness picker)
 
 ## Quick Commands
 
 After loading context:
-- "Start T07" - Begin session lifecycle / Cursor agent management
 - "Start T08" - Begin SDK/React session harness picker
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress

@@ -69,7 +69,7 @@ Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`create`](#create) | Create a session. |
 | [`update`](#update) | Update an existing session (e.g., subject, thread_id). |
 | [`updateSubject`](#updatesubject) | Set the session subject. |
-| [`delete`](#delete) | Delete a session (also cleans up thread). |
+| [`delete`](#delete) | Delete a session. |
 
 ### get
 
@@ -520,7 +520,7 @@ Session session = client.sessions().updateSubject(UpdateSessionSubjectRequest.bu
 
 ### delete
 
-Delete a session (also cleans up thread).
+Delete a session.
 
 <SDKTabs>
 <Tab value="TypeScript">

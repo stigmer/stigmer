@@ -5,9 +5,11 @@ go_library(
     srcs = [
         "complete_external_activity.go",
         "ensure_thread.go",
+        "execute_cursor.go",
         "execute_graphton.go",
         "generate_session_subject.go",
         "load_execution.go",
+        "read_session_thread_id.go",
         "update_status.go",
         "update_status_impl.go",
         "wait_for_runner_ready.go",
@@ -17,6 +19,7 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
         "//apis/stubs/go/ai/stigmer/agentic/runner/v1:runner",
+        "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/store",

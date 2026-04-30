@@ -45,7 +45,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.SessionId",
           "outputType": "Session",
           "outputFullType": "ai.stigmer.agentic.session.v1.Session",
-          "description": "Delete a session (also cleans up thread)."
+          "description": "Delete a session.\n\n @internal\n Restricted to platform operators to preserve the billing and audit trail.\n Regular users (including session owners) cannot delete sessions."
         }
       ]
     },
