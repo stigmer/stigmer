@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
+	"github.com/stigmer/stigmer/client-apps/cli/embedded/cursorrunner"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
@@ -202,15 +203,15 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner) error {
 
 	// Optionally start cursor-runner alongside the Python agent-runner.
 	var cursorProc *exec.Cmd
-	if IsCursorRunnerAvailable() {
+	if IsCursorRunnerAvailable(reg.backendInfo) {
 		cursorProc = startCursorRunnerProcess(ctx, reg, dataDir)
 		if cursorProc != nil {
 			state.CursorRunnerPID = cursorProc.Process.Pid
 		}
-	} else if os.Getenv("CURSOR_API_KEY") == "" {
-		log.Debug().Msg("Cursor harness: skipped (CURSOR_API_KEY not set)")
-	} else {
+	} else if !cursorrunner.IsAvailable() {
 		log.Debug().Msg("Cursor harness: skipped (cursor-runner source not found)")
+	} else if reg.backendInfo.IsLocal {
+		log.Debug().Msg("Cursor harness: skipped (CURSOR_API_KEY not set, required for local mode)")
 	}
 
 	if err := SaveState(reg.name, state); err != nil {

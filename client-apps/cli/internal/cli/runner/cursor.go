@@ -26,14 +26,18 @@ type CursorRunnerBootstrapResult struct {
 }
 
 // IsCursorRunnerAvailable reports whether the cursor-runner can be started.
-// Requires cursor-runner source AND either:
-// - CURSOR_API_KEY (direct mode, local/OSS)
-// - STIGMER_PROXY_ENDPOINT (proxy mode, cloud — no CURSOR_API_KEY needed)
-func IsCursorRunnerAvailable() bool {
+//
+// Cloud mode (!IsLocal): the proxy endpoint is derived from the backend
+// endpoint at child-env construction time, so no CURSOR_API_KEY is needed.
+// Local mode: direct Cursor API access requires an explicit CURSOR_API_KEY.
+func IsCursorRunnerAvailable(backendInfo *BackendInfo) bool {
 	if !cursorrunner.IsAvailable() {
 		return false
 	}
-	return os.Getenv("CURSOR_API_KEY") != "" || os.Getenv("STIGMER_PROXY_ENDPOINT") != ""
+	if backendInfo != nil && !backendInfo.IsLocal {
+		return true
+	}
+	return os.Getenv("CURSOR_API_KEY") != ""
 }
 
 // BootstrapCursorRunnerRuntime prepares the Node.js runtime and installs
