@@ -1,19 +1,34 @@
 /**
  * Entry point for the cursor-runner service.
  *
- * Loads configuration from environment variables, starts the Temporal worker,
- * and handles graceful shutdown on SIGTERM/SIGINT.
+ * IMPORTANT: The fetch interceptor MUST be installed before any module that
+ * imports @cursor/sdk. The SDK captures a reference to fetch() at import
+ * time, so the interceptor must be in place first. This is why we load
+ * config and install the interceptor before the dynamic import of worker.
  *
  * Mirrors the Python agent-runner's __main__.py pattern.
  */
 
 import { loadConfig } from "./config.js";
-import { startWorker } from "./worker.js";
+import { installFetchInterceptor } from "./proxy/fetch-interceptor.js";
 
 let shutdownRequested = false;
 
 async function main(): Promise<void> {
   const config = loadConfig();
+
+  // Install the fetch interceptor BEFORE importing the worker module,
+  // which transitively imports @cursor/sdk. In proxy mode, all outbound
+  // Cursor SDK requests are rewritten to route through Stigmer's proxy.
+  installFetchInterceptor({
+    proxyEndpoint: config.proxyEndpoint ?? undefined,
+    stigmerToken: config.stigmerToken ?? undefined,
+  });
+
+  // Dynamic import: worker.ts → execute-cursor.ts → @cursor/sdk.
+  // The SDK captures global.fetch at module evaluation time, so the
+  // interceptor above must already be installed.
+  const { startWorker } = await import("./worker.js");
 
   console.log("=".repeat(60));
   console.log(`Stigmer Cursor Runner - ${config.mode.toUpperCase()} Mode`);
@@ -22,6 +37,11 @@ async function main(): Promise<void> {
   console.log(`Temporal: ${config.temporalAddress} (namespace: ${config.temporalNamespace})`);
   console.log(`Backend: ${config.stigmerBackendEndpoint}`);
   console.log(`Workspace: ${config.workspaceRootDir}`);
+  if (config.proxyEndpoint) {
+    console.log(`Proxy: ${config.proxyEndpoint} (credential-free mode)`);
+  } else {
+    console.log(`Proxy: disabled (direct Cursor API key)`);
+  }
   console.log("=".repeat(60));
 
   const worker = await startWorker(config);

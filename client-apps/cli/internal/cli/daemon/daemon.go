@@ -16,6 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/client-apps/cli/embedded"
 	"github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner"
+	"github.com/stigmer/stigmer/client-apps/cli/embedded/cursorrunner"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/llm"
@@ -44,6 +45,9 @@ const (
 
 	// RunnerPIDFileName stores the agent-runner PID.
 	RunnerPIDFileName = "agent-runner.pid"
+
+	// CursorRunnerPIDFileName stores the cursor-runner PID.
+	CursorRunnerPIDFileName = "cursor-runner.pid"
 )
 
 // StartOptions provides options for starting the daemon.
@@ -208,6 +212,39 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		}
 	}
 
+	// Bootstrap cursor-runner runtime if CURSOR_API_KEY is available and
+	// the cursor-runner source is present. This is optional -- users who
+	// don't have a Cursor API key simply run without the Cursor harness.
+	var cursorNodeBin, cursorAppDir string
+	cursorAvailable := false
+
+	if !opts.ServerOnly {
+		cursorAPIKey := os.Getenv("CURSOR_API_KEY")
+		if cursorAPIKey == "" {
+			if secretKey, ok := secrets["CURSOR_API_KEY"]; ok && secretKey != "" {
+				cursorAPIKey = secretKey
+			}
+		}
+
+		if cursorAPIKey != "" && cursorrunner.IsAvailable() {
+			if opts.Progress != nil {
+				opts.Progress.SetPhase(cliprint.PhaseInstalling, "Bootstrapping Node.js runtime")
+			}
+
+			var cursorErr error
+			cursorNodeBin, cursorAppDir, cursorErr = bootstrapCursorRunnerRuntime()
+			if cursorErr != nil {
+				log.Warn().Err(cursorErr).Msg("Cursor harness bootstrap failed (non-fatal, continuing without Cursor harness)")
+			} else {
+				cursorAvailable = true
+			}
+		} else if cursorAPIKey == "" {
+			log.Debug().Msg("Cursor harness: skipped (CURSOR_API_KEY not set)")
+		} else {
+			log.Debug().Msg("Cursor harness: skipped (cursor-runner source not found)")
+		}
+	}
+
 	// --- Phase 3: Starting ---
 	// Spawn the daemon process. The daemon itself starts and supervises
 	// Temporal (if managed) along with all other child components.
@@ -258,6 +295,13 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 		env = append(env,
 			fmt.Sprintf("STIGMER_AGENT_RUNNER_PYTHON_BIN=%s", pythonBin),
 			fmt.Sprintf("STIGMER_AGENT_RUNNER_APP_DIR=%s", appDir),
+		)
+	}
+
+	if cursorAvailable {
+		env = append(env,
+			fmt.Sprintf("STIGMER_CURSOR_RUNNER_NODE_BIN=%s", cursorNodeBin),
+			fmt.Sprintf("STIGMER_CURSOR_RUNNER_APP_DIR=%s", cursorAppDir),
 		)
 	}
 
@@ -345,6 +389,7 @@ func cleanupOrphanedProcesses(dataDir string) {
 		"stigmer-server":  filepath.Join(dataDir, StigmerServerPIDFileName),
 		"workflow-runner": filepath.Join(dataDir, WorkflowRunnerPIDFileName),
 		"agent-runner":    filepath.Join(dataDir, RunnerPIDFileName),
+		"cursor-runner":   filepath.Join(dataDir, CursorRunnerPIDFileName),
 	}
 
 	orphansFound := false
@@ -720,6 +765,8 @@ func rotateLogsIfNeeded(dataDir string) error {
 		"agent-runner.err",
 		"workflow-runner.log",
 		"workflow-runner.err",
+		"cursor-runner.log",
+		"cursor-runner.err",
 		"temporal.log",
 		"llm.log",
 	}

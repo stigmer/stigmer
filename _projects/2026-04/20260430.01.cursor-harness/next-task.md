@@ -14,8 +14,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: April 30, 2026 -- T04 Workflow Harness Dispatch completed
-- **Active Task**: T01-T04 COMPLETED, ready for T05
+- **Last Session**: April 30, 2026 -- T05 CLI Daemon Multi-Worker Management completed
+- **Active Task**: T01-T05 COMPLETED, ready for T06/T07/T08/T09
 - **Branch**: `feat/cursor-harness`
 
 ## Session Progress (April 30, 2026)
@@ -86,6 +86,31 @@ backend/services/cursor-runner/
 - Skip GenerateSessionSubject for Cursor (generates conversation context natively)
 - Committed across both stigmer and stigmer-cloud repos
 
+### Session 5: T05 CLI Daemon Multi-Worker Management + Cursor Proxy Architecture
+- Researched Cursor SDK proxy support -- no `baseURL` parameter on `Agent.create()`
+- **Critical finding**: Proxy IS feasible via `global.fetch` interception (JavaScript-level equivalent of LangChain's `base_url`)
+- Created `src/proxy/fetch-interceptor.ts` -- rewrites Cursor-bound requests to `STIGMER_PROXY_ENDPOINT/v1/proxy/cursor/...`, replaces auth with `STIGMER_TOKEN`
+- Updated `config.ts` with two credential modes: direct (local, `CURSOR_API_KEY`) and proxy (cloud, `STIGMER_PROXY_ENDPOINT` + `STIGMER_TOKEN`)
+- Updated `main.ts` with critical load ordering: interceptor installs BEFORE SDK import (dynamic import of worker.ts)
+- Created `embedded/cursorrunner/` package (SourceFS, SourceDir, dev-mode locator, embed placeholder)
+- Created `nodert/bootstrap.go` -- shared Node.js version check, npm install, tsx resolution
+- Added cursor-runner as optional managed component in daemon (`buildComponents` expansion)
+- Added cursor-runner to standalone runner path (`startNativeRunner` dual-worker support)
+- Standalone cloud env builder passes `STIGMER_PROXY_ENDPOINT` to enable proxy mode
+- Both workers share the same runner identity and task queue (Temporal routes by activity type)
+- Non-fatal: if cursor-runner bootstrap fails, agent-runner continues normally
+
+### Key Decisions (T05)
+- **Cursor proxy IS feasible**: `global.fetch` interception before SDK load. SDK uses `fetch()` internally (Node.js 20+). Cursor documents enterprise proxy support with automatic SSE fallback.
+- **Two credential modes**: Direct (local: `CURSOR_API_KEY` from user) and Proxy (cloud: `STIGMER_PROXY_ENDPOINT` + `STIGMER_TOKEN`, runner is credential-free). Architecturally identical to LLM proxy pattern.
+- **Cursor harness is optional**: Env-var driven detection. Available when `CURSOR_API_KEY` set (local) or `STIGMER_PROXY_ENDPOINT` set (cloud).
+- **System Node.js for dev mode**: Require >= 20 on PATH. Embedding (bun compile) deferred to T09.
+- **Both runner paths covered**: daemon (`stigmer up server`) and standalone (`stigmer up` / `stigmer up runner`).
+- **Docker runner path deferred**: Multi-process container pattern not in T05 scope.
+- **Shared nodert package**: `EnsureNodeAvailable` + `EnsureDepsInstalled` + `TsxArgs` shared between daemon and standalone.
+- **Non-fatal failures**: Bootstrap errors logged as warnings, daemon continues without cursor harness.
+- **CursorProxyController**: Separate task in stigmer-cloud. Reverse proxy at `/v1/proxy/cursor/**`, same pattern as `LlmProxyController`.
+
 ### Key Decisions (T04)
 - **EnsureThread skipped for Cursor**: Python's EnsureThread generates deterministic "thread-{sessionId}" which is not a valid Cursor agentId. Cursor flow uses ReadSessionThreadId instead.
 - **approvalDecisions removed (not added to Cursor)**: Parameter was always nil/null. Both harnesses read decisions from DB. Cleaner to remove than perpetuate.
@@ -95,13 +120,18 @@ backend/services/cursor-runner/
 
 ## Next Steps
 
-Phase 2 (Core Engine) is complete. Ready for Phase 3 (CLI Integration):
+Phase 3 (CLI Integration) is in progress. T05 done, T09 pending.
 
-1. **T05: CLI Daemon Multi-Worker Management** -- Add cursor-runner as second managed component alongside Python agent-runner. `stigmer up` starts both workers.
-2. **T09: Embedded Cursor Runner Packaging** -- Package cursor-runner for embedding in CLI binary.
+Ready for Phase 4 (Polish):
+
+1. **T09: Embedded Cursor Runner Packaging** -- Package cursor-runner for embedding in CLI binary (`bun build --compile` or similar). Currently requires system Node.js.
+2. **T06: Cost Model and Billing Integration** -- Unified Cursor usage tracking in UsageMetrics.
+3. **T07: Session Lifecycle -- Cursor Agent Management** -- Create/resume/delete Cursor agents on session lifecycle.
+4. **T08: SDK/React -- Session Harness Picker** -- UI for selecting native vs Cursor harness.
 
 ### Recommended Next Pick
-- **T05** -- Enables end-to-end testing. Users can run `stigmer up` and both harnesses work.
+- **T09** -- Completes CLI integration phase. After this, `stigmer up` works with embedded cursor-runner (no system Node.js required).
+- Alternatively, **T06** if billing/cost visibility is higher priority.
 
 ## Essential Files to Review
 
@@ -154,18 +184,18 @@ Phase 2 (Core Engine) is complete. Ready for Phase 3 (CLI Integration):
 When starting a new session:
 
 1. [ ] Read the latest checkpoint from `checkpoints/`
-2. [ ] Check current task status (T01-T04 done, T05-T09 pending)
-3. [ ] Review T04 changes: Go `invoke_workflow_impl.go`, Java `InvokeAgentExecutionWorkflowImpl.java`
-4. [ ] Review design decisions for context
+2. [ ] Check current task status (T01-T05 done, T06-T09 pending)
+3. [ ] Review T05 changes: `daemon_process.go` (buildComponents), `runner/start.go` (startNativeRunner), `nodert/bootstrap.go`, `embedded/cursorrunner/`
+4. [ ] Review design decisions for context (especially `cursor-sdk-proxy-support.md`)
 5. [ ] Check coding guidelines in `coding-guidelines/`
 6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-7. [ ] Start T05 (CLI Daemon Multi-Worker Management)
+7. [ ] Pick next task: T09 (embedded packaging) or T06 (cost/billing)
 
 ## Quick Commands
 
 After loading context:
-- "Start T05" - Begin CLI daemon multi-worker management
 - "Start T09" - Begin embedded cursor-runner packaging
+- "Start T06" - Begin cost model and billing integration
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

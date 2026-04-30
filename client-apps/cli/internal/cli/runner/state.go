@@ -42,6 +42,11 @@ type RunnerState struct {
 	Runtime     string `json:"runtime,omitempty"`
 	ContainerID string `json:"container_id,omitempty"`
 
+	// CursorRunnerPID is the PID of the cursor-runner TypeScript process
+	// when it runs alongside the agent-runner. Zero when the Cursor harness
+	// is not active.
+	CursorRunnerPID int `json:"cursor_runner_pid,omitempty"`
+
 	// LogFile is the absolute path to the runner's log file. The CLI
 	// tees stdout+stderr to this file so that external consumers (e.g.
 	// the desktop app) can tail logs for any local runner, not just

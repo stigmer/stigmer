@@ -23,7 +23,7 @@ import { AgentExecutionUpdateStatusInputSchema } from "@stigmer/protos/ai/stigme
 
 export interface StigmerClientOptions {
   endpoint: string;
-  token: string;
+  token: string | null;
 }
 
 /**
@@ -40,15 +40,18 @@ export class StigmerClient {
   private readonly sessionCommand: Client<typeof SessionCommandController>;
 
   constructor(options: StigmerClientOptions) {
+    const token = options.token;
     this.transport = createGrpcTransport({
       baseUrl: options.endpoint,
       httpVersion: "2",
-      interceptors: [
-        (next) => async (req) => {
-          req.header.set("authorization", `Bearer ${options.token}`);
-          return next(req);
-        },
-      ],
+      interceptors: token
+        ? [
+            (next) => async (req) => {
+              req.header.set("authorization", `Bearer ${token}`);
+              return next(req);
+            },
+          ]
+        : [],
     });
 
     this.executionQuery = createClient(AgentExecutionQueryController, this.transport);
