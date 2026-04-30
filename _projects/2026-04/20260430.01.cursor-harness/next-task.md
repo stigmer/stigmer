@@ -14,8 +14,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: April 30, 2026 -- T03 Cursor Runner TypeScript Service implemented
-- **Active Task**: T01 COMPLETED, T02 COMPLETED, T03 COMPLETED, ready for T04
+- **Last Session**: April 30, 2026 -- T04 Workflow Harness Dispatch completed
+- **Active Task**: T01-T04 COMPLETED, ready for T05
 - **Branch**: `feat/cursor-harness`
 
 ## Session Progress (April 30, 2026)
@@ -76,15 +76,32 @@ backend/services/cursor-runner/
   src/hitl/workspace-setup.ts, hook-script.ts, approval-policy.ts, approval-state.ts
 ```
 
+### Session 4: T04 Workflow Harness Dispatch (Go + Java)
+- Added harness-based dispatch to Go and Java workflows -- Cursor sessions now route to ExecuteCursor
+- Removed vestigial `approvalDecisions` parameter from ExecuteGraphton across Go, Java, and Python
+- Added Harness to DispatchResult and WorkflowInput (propagation from session DB through dispatch to workflow)
+- Created ExecuteCursorActivity interface + stub (Go + Java)
+- Created ReadSessionThreadId local activity (Go + Java) for Cursor agentId resolution
+- Added executeCursorFlow with same HITL loop and pause/resume as Graphton
+- Skip GenerateSessionSubject for Cursor (generates conversation context natively)
+- Committed across both stigmer and stigmer-cloud repos
+
+### Key Decisions (T04)
+- **EnsureThread skipped for Cursor**: Python's EnsureThread generates deterministic "thread-{sessionId}" which is not a valid Cursor agentId. Cursor flow uses ReadSessionThreadId instead.
+- **approvalDecisions removed (not added to Cursor)**: Parameter was always nil/null. Both harnesses read decisions from DB. Cleaner to remove than perpetuate.
+- **Minimal branching**: Cursor flow structurally identical to Graphton -- same HITL loop, same pause/resume, same signals. Only variation: threadId source and activity type.
+- **No GenerateSessionSubject for Cursor**: Cursor generates conversation context natively during execution; redundant LLM call avoided.
+- **invokerIdentityAccountId on Java ExecuteCursor**: Added for forward-compatibility even though not used by cursor-runner today.
+
 ## Next Steps
 
-Phase 2 core engine is complete. Ready for Phase 2 dispatch:
+Phase 2 (Core Engine) is complete. Ready for Phase 3 (CLI Integration):
 
-1. **T04: Go Workflow Dispatch Update** -- Update the Go workflow to dispatch `ExecuteCursor` based on session harness. The T03 durable HITL model means minimal workflow changes (same signal pattern as LangGraph).
-2. **T05: CLI Daemon Multi-Worker Management** -- Add cursor-runner as second managed component alongside Python agent-runner.
+1. **T05: CLI Daemon Multi-Worker Management** -- Add cursor-runner as second managed component alongside Python agent-runner. `stigmer up` starts both workers.
+2. **T09: Embedded Cursor Runner Packaging** -- Package cursor-runner for embedding in CLI binary.
 
 ### Recommended Next Pick
-- **T04** -- Connects T03 to the workflow. Small scope (activity stub + dispatch branch), enables end-to-end testing.
+- **T05** -- Enables end-to-end testing. Users can run `stigmer up` and both harnesses work.
 
 ## Essential Files to Review
 
@@ -137,18 +154,18 @@ Phase 2 core engine is complete. Ready for Phase 2 dispatch:
 When starting a new session:
 
 1. [ ] Read the latest checkpoint from `checkpoints/`
-2. [ ] Check current task status (T01 done, T02 done, T03 done, T04-T09 pending)
-3. [ ] Review `backend/services/cursor-runner/` for T03 implementation
+2. [ ] Check current task status (T01-T04 done, T05-T09 pending)
+3. [ ] Review T04 changes: Go `invoke_workflow_impl.go`, Java `InvokeAgentExecutionWorkflowImpl.java`
 4. [ ] Review design decisions for context
 5. [ ] Check coding guidelines in `coding-guidelines/`
 6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-7. [ ] Start T04 (Go Workflow Dispatch Update)
+7. [ ] Start T05 (CLI Daemon Multi-Worker Management)
 
 ## Quick Commands
 
 After loading context:
-- "Start T04" - Begin Go workflow dispatch update
 - "Start T05" - Begin CLI daemon multi-worker management
+- "Start T09" - Begin embedded cursor-runner packaging
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
