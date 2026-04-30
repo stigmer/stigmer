@@ -6,6 +6,7 @@ import (
 	"time"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities"
 	ecactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/temporal/activities"
 	"go.temporal.io/api/enums/v1"
@@ -18,30 +19,15 @@ import (
 //
 // Polyglot Workflow Pattern:
 // - Workflow (Go): Orchestrates activity execution
-// - Python Activities (agent-runner): ExecuteGraphton, EnsureThread (on "execution" queue)
+// - Python Activities (agent-runner): ExecuteGraphton, EnsureThread (on runner queue)
+// - TypeScript Activities (cursor-runner): ExecuteCursor (on same runner queue)
 //
-// The workflow:
-// 1. Ensures thread exists for conversation state (Python activity)
-// 2. Executes Graphton agent (Python activity)
-//   - During execution, agent-runner sends progressive status updates via gRPC
-//   - Updates are processed by AgentExecutionUpdateHandler (custom status merge logic)
-//   - Final status is returned to workflow for observability
+// Harness dispatch: input.Harness determines which flow runs:
+// - NATIVE/UNSPECIFIED: executeGraphtonFlow (EnsureThread -> ExecuteGraphton)
+// - CURSOR: executeCursorFlow (ReadSessionThreadId -> ExecuteCursor)
 //
-// 3. If tool requires approval (HITL), waits for approvalGateResolved signal
-//   - SubmitApproval handler sends signal when all decisions are in or on REJECT
-//   - Workflow re-invokes Python activity (decisions read from DB by Python)
-//   - Loop continues until execution completes or max approvals reached
-//
-// Status Update Strategy:
-// - Real-time updates: gRPC calls from Python activity to stigmer-server
-// - Final state: Returned to workflow (for Temporal observability)
-//
-// HITL Approval Flow:
-// - Python activity returns with EXECUTION_WAITING_FOR_APPROVAL phase
-// - Workflow waits for a single approvalGateResolved signal
-// - SubmitApproval handler sends the signal when the gate resolves
-// - Workflow re-invokes Python (Python reads decisions from DB)
-// - Max 100 approval cycles to prevent infinite loops
+// Both flows share the same HITL approval loop (approvalGateResolved signal)
+// and pause/resume pattern (CancellationScope).
 type InvokeAgentExecutionWorkflowImpl struct{}
 
 // Run implements InvokeAgentExecutionWorkflow.Run
@@ -60,8 +46,14 @@ func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, input *Invo
 			"token_length", len(callbackToken))
 	}
 
-	// Execute the Graphton flow
-	if err := w.executeGraphtonFlow(ctx, input); err != nil {
+	// Dispatch by harness
+	var flowErr error
+	if sessionv1.Harness(input.Harness) == sessionv1.Harness_HARNESS_CURSOR {
+		flowErr = w.executeCursorFlow(ctx, input)
+	} else {
+		flowErr = w.executeGraphtonFlow(ctx, input)
+	}
+	if err := flowErr; err != nil {
 		// Cancellation path: workflow was cancelled externally (user cancel, namespace timeout).
 		// All cleanup runs in a disconnected context to guarantee execution.
 		if temporal.IsCanceledError(ctx.Err()) {
@@ -318,7 +310,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonWithHitl(
 
 	executeGraphtonActivity := activities.NewExecuteGraphtonActivityStub(ctx, activityTaskQueue)
 
-	finalStatus, err := executeGraphtonActivity.ExecuteGraphton(executionID, threadID, nil)
+	finalStatus, err := executeGraphtonActivity.ExecuteGraphton(executionID, threadID)
 	if err != nil {
 		return nil, err
 	}
@@ -391,7 +383,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonWithHitl(
 			"execution_id", executionID,
 			"cycle", approvalCycle)
 
-		finalStatus, err = executeGraphtonActivity.ExecuteGraphton(executionID, threadID, nil)
+		finalStatus, err = executeGraphtonActivity.ExecuteGraphton(executionID, threadID)
 		if err != nil {
 			return nil, err
 		}
@@ -409,6 +401,227 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonWithHitl(
 	}
 
 	return finalStatus, nil
+}
+
+// executeCursorFlow executes a Cursor harness agent. Structurally identical to
+// executeGraphtonFlow with three variation points:
+//   - threadId comes from ReadSessionThreadId (not EnsureThread)
+//   - ExecuteCursor activity (not ExecuteGraphton)
+//   - No GenerateSessionSubject (Cursor generates conversation context natively)
+//
+// Same HITL approval loop, same pause/resume pattern.
+func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlow(ctx workflow.Context, input *InvokeAgentExecutionWorkflowInput) error {
+	logger := workflow.GetLogger(ctx)
+
+	sessionID := input.SessionID
+	executionID := input.ExecutionID
+
+	activityTaskQueue := w.getActivityTaskQueue(ctx)
+
+	// Wait for runner readiness (same as Graphton)
+	if input.RunnerID != "" {
+		logger.Info("Waiting for runner readiness", "runner_id", input.RunnerID)
+		localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
+			ScheduleToCloseTimeout: 5 * time.Minute,
+			RetryPolicy:            &temporal.RetryPolicy{MaximumAttempts: 1},
+		})
+		if err := workflow.ExecuteLocalActivity(localCtx,
+			activities.WaitForRunnerReadyActivityName, input.RunnerID).Get(localCtx, nil); err != nil {
+			return w.wrapActivityError("WaitForRunnerReady", err)
+		}
+	}
+
+	// No GenerateSessionSubject for Cursor — Cursor generates conversation
+	// context natively during execution.
+
+	logger.Info("Executing Cursor agent", "execution_id", executionID, "session_id", sessionID)
+
+	pauseCh := workflow.GetSignalChannel(ctx, SignalPause)
+	resumeCh := workflow.GetSignalChannel(ctx, SignalResume)
+
+	var finalStatus *agentexecutionv1.AgentExecutionStatus
+	pauseCycle := 0
+
+	for {
+		var pauseRequested bool
+		activityCtx, cancelActivity := workflow.WithCancel(ctx)
+
+		workflow.Go(activityCtx, func(gCtx workflow.Context) {
+			var reason string
+			if !pauseCh.Receive(gCtx, &reason) {
+				return
+			}
+			logger.Info("Pause signal received", "execution_id", executionID, "reason", reason)
+			pauseRequested = true
+			cancelActivity()
+		})
+
+		result, err := w.executeCursorWithHitl(activityCtx, activityTaskQueue, executionID, sessionID)
+
+		if err != nil && pauseRequested {
+			pauseCycle++
+			if pauseCycle > MaxPauseCycles {
+				return fmt.Errorf("max pause cycles (%d) reached - possible infinite loop", MaxPauseCycles)
+			}
+
+			logger.Info("Cursor execution paused, waiting for resume signal",
+				"execution_id", executionID, "pause_cycle", pauseCycle)
+
+			pausedStatus := &agentexecutionv1.AgentExecutionStatus{
+				Phase: agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED,
+			}
+			if persistErr := w.persistFinalStatus(ctx, executionID, pausedStatus); persistErr != nil {
+				logger.Warn("Failed to persist PAUSED status (non-fatal)",
+					"execution_id", executionID, "error", persistErr.Error())
+			}
+
+			resumeCh.Receive(ctx, nil)
+			logger.Info("Resume signal received, restarting Cursor activity",
+				"execution_id", executionID, "pause_cycle", pauseCycle)
+			continue
+		}
+
+		cancelActivity()
+
+		if err != nil {
+			return w.wrapActivityError("ExecuteCursor", err)
+		}
+
+		finalStatus = result
+		break
+	}
+
+	logger.Info("Cursor execution completed",
+		"execution_id", executionID,
+		"phase", finalStatus.GetPhase().String(),
+		"pause_cycles", pauseCycle)
+
+	if finalStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED {
+		logger.Warn("Activity returned EXECUTION_FAILED -- persisting as fallback",
+			"execution_id", executionID, "error", finalStatus.GetError())
+		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
+			logger.Error("Failed to persist fallback FAILED status",
+				"execution_id", executionID, "error", err.Error())
+		}
+	}
+
+	return nil
+}
+
+// executeCursorWithHitl runs the ExecuteCursor activity and handles the HITL
+// approval loop. Reads threadId from the session before each invocation so
+// the Cursor agentId (stored by the activity on first run) is available for
+// reinvocations.
+func (w *InvokeAgentExecutionWorkflowImpl) executeCursorWithHitl(
+	ctx workflow.Context,
+	activityTaskQueue string,
+	executionID string,
+	sessionID string,
+) (*agentexecutionv1.AgentExecutionStatus, error) {
+	logger := workflow.GetLogger(ctx)
+
+	// Read threadId (Cursor agentId) from session — empty on first execution,
+	// populated by the activity after Agent.create().
+	threadID, err := w.readSessionThreadId(ctx, sessionID)
+	if err != nil {
+		logger.Warn("Failed to read session thread_id (non-fatal, using empty)",
+			"session_id", sessionID, "error", err.Error())
+		threadID = ""
+	}
+
+	executeCursorActivity := activities.NewExecuteCursorActivityStub(ctx, activityTaskQueue)
+
+	finalStatus, err := executeCursorActivity.ExecuteCursor(executionID, threadID)
+	if err != nil {
+		return nil, err
+	}
+
+	if finalStatus == nil {
+		return nil, fmt.Errorf("cursor activity returned null status - this should never happen")
+	}
+
+	logger.Info("Cursor activity returned slim status",
+		"execution_id", executionID,
+		"phase", finalStatus.GetPhase().String())
+
+	approvalCycle := 0
+	for finalStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
+		approvalCycle++
+		if approvalCycle > MaxApprovalCycles {
+			return nil, fmt.Errorf("max approval cycles (%d) reached - possible infinite loop", MaxApprovalCycles)
+		}
+
+		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
+			logger.Warn("Failed to persist WAITING_FOR_APPROVAL status (non-fatal)",
+				"execution_id", executionID, "error", err.Error())
+		}
+
+		dbExecution, loadErr := w.loadExecution(ctx, executionID)
+		pendingCount := 0
+		if loadErr != nil {
+			logger.Warn("Failed to load execution for pending count (non-fatal)",
+				"execution_id", executionID, "error", loadErr.Error())
+			pendingCount = 1
+		} else {
+			pendingCount = len(dbExecution.GetStatus().GetPendingApprovals())
+		}
+
+		logger.Info("Cursor execution waiting for approval",
+			"execution_id", executionID, "cycle", approvalCycle, "pending_count", pendingCount)
+
+		if pendingCount == 0 {
+			logger.Warn("pending_approvals empty but phase is WAITING_FOR_APPROVAL — re-invoking immediately",
+				"execution_id", executionID, "cycle", approvalCycle)
+		} else {
+			signalChan := workflow.GetSignalChannel(ctx, SignalApprovalGateResolved)
+			signalChan.Receive(ctx, nil)
+			logger.Info("Received approvalGateResolved signal",
+				"execution_id", executionID, "cycle", approvalCycle)
+		}
+
+		// Re-read threadId — the first ExecuteCursor call stored the Cursor agentId
+		threadID, err = w.readSessionThreadId(ctx, sessionID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read session thread_id for reinvocation: %w", err)
+		}
+
+		logger.Info("Re-invoking Cursor after approval", "execution_id", executionID,
+			"cycle", approvalCycle, "thread_id", threadID)
+
+		finalStatus, err = executeCursorActivity.ExecuteCursor(executionID, threadID)
+		if err != nil {
+			return nil, err
+		}
+
+		if finalStatus == nil {
+			return nil, fmt.Errorf("cursor activity returned null status after approval - this should never happen")
+		}
+
+		logger.Info("Cursor activity returned slim status after approval",
+			"execution_id", executionID,
+			"phase", finalStatus.GetPhase().String(),
+			"cycle", approvalCycle)
+	}
+
+	return finalStatus, nil
+}
+
+// readSessionThreadId reads the thread_id from a session via local activity.
+func (w *InvokeAgentExecutionWorkflowImpl) readSessionThreadId(ctx workflow.Context, sessionID string) (string, error) {
+	localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
+		ScheduleToCloseTimeout: 30 * time.Second,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts: 3,
+			InitialInterval: 2 * time.Second,
+		},
+	})
+
+	var threadID string
+	err := workflow.ExecuteLocalActivity(localCtx, activities.ReadSessionThreadIdActivityName, sessionID).Get(localCtx, &threadID)
+	if err != nil {
+		return "", fmt.Errorf("read session thread_id for %s: %w", sessionID, err)
+	}
+	return threadID, nil
 }
 
 // wrapActivityError wraps activity errors with helpful context for troubleshooting.

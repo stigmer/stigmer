@@ -14,7 +14,6 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     SubAgentStatus,
 )
 from ai.stigmer.agentic.agentexecution.v1.io_pb2 import (
-    ApprovalDecisionList,
     SubmitApprovalInput,
 )
 from ai.stigmer.agentic.agentexecution.v1.message_pb2 import AgentMessage
@@ -144,7 +143,6 @@ async def _persist_and_return_failed_status(
 async def execute_graphton(
     execution_id: str,
     thread_id: str,
-    approval_decisions_wrapper: ApprovalDecisionList | None = None,
     invoker_identity_account_id: str | None = None,
 ) -> AgentExecutionStatus:
     """
@@ -156,22 +154,12 @@ async def execute_graphton(
     activity payloads small and bounded, avoiding the ~2 MB payload limit that
     can be hit when status.tool_calls / status.messages accumulate.
 
-    Polyglot Workflow Pattern:
-    1. Fetches AgentExecution via gRPC get(execution_id)
-    2. Fetches Agent configuration via gRPC chain resolution
-    3. Creates Graphton agent at runtime
-    4. Creates/reuses Daytona sandbox
-    5. Executes agent and builds status locally
-    6. Returns final status to workflow
+    HITL approval decisions are read from the database by the activity (DB-driven
+    resume). No decisions are passed via Temporal arguments.
 
     Args:
         execution_id: The AgentExecution ID to fetch and execute
         thread_id: LangGraph thread ID for state persistence
-        approval_decisions_wrapper: Approval decisions wrapped in ApprovalDecisionList
-            for polyglot Temporal serialization (None on first invocation).
-            Each entry carries a tool_call_id, action (APPROVE/SKIP/REJECT), and
-            optional comment.  The activity queries the LangGraph checkpoint to
-            match decisions to interrupts and build the Command(resume=...) dict.
         invoker_identity_account_id: Identity account ID of the user who triggered
             the execution. Used by the runner for on-behalf-of gRPC impersonation
             (x-on-behalf-of header). None for backward compatibility.
@@ -182,18 +170,10 @@ async def execute_graphton(
     activity_logger = cast(logging.Logger, activity.logger)
     activity_logger.info(f"ExecuteGraphton started for execution: {execution_id}")
 
-    # Unwrap ApprovalDecisionList → list[SubmitApprovalInput].
-    if approval_decisions_wrapper is not None and approval_decisions_wrapper.decisions:
-        approval_decisions: list[SubmitApprovalInput] = list(
-            approval_decisions_wrapper.decisions
-        )
-    else:
-        approval_decisions = []
-
     execution_tracker.increment()
     try:
         return await _execute_graphton_impl(
-            execution_id, thread_id, approval_decisions, activity_logger,
+            execution_id, thread_id, [], activity_logger,
             invoker_identity_account_id,
         )
     except Exception as system_error:
