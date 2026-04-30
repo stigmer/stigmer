@@ -1,0 +1,11 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "cursorrunner",
+    srcs = [
+        "cursorrunner.go",
+        "cursorrunner_dev.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/embedded/cursorrunner",
+    visibility = ["//visibility:public"],
+)

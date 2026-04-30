@@ -180,6 +180,12 @@ jobs:
           chmod +x sync.sh
           ./sync.sh
 
+      - name: Sync cursor-runner source for embedding
+        run: |
+          cd client-apps/cli/embedded/cursorrunner
+          chmod +x sync.sh
+          ./sync.sh
+
       - name: Build CLI sidecar
         shell: bash
         env:
@@ -187,16 +193,16 @@ jobs:
         run: |
           BINDIR=client-apps/desktop/src-tauri/binaries
           if [ "${{ matrix.go_arch }}" = "universal" ]; then
-            GOOS=darwin GOARCH=arm64 go build -tags embed_agentrunner -ldflags="-s -w" \
+            GOOS=darwin GOARCH=arm64 go build -tags 'embed_agentrunner embed_cursorrunner' -ldflags="-s -w" \
               -o "$BINDIR/stigmer-cli-aarch64-apple-darwin" ./client-apps/cli
-            GOOS=darwin GOARCH=amd64 go build -tags embed_agentrunner -ldflags="-s -w" \
+            GOOS=darwin GOARCH=amd64 go build -tags 'embed_agentrunner embed_cursorrunner' -ldflags="-s -w" \
               -o "$BINDIR/stigmer-cli-x86_64-apple-darwin" ./client-apps/cli
             lipo -create \
               -output "$BINDIR/stigmer-cli-universal-apple-darwin" \
               "$BINDIR/stigmer-cli-aarch64-apple-darwin" \
               "$BINDIR/stigmer-cli-x86_64-apple-darwin"
           else
-            GOOS=${{ matrix.go_os }} GOARCH=${{ matrix.go_arch }} go build -tags embed_agentrunner -ldflags="-s -w" \
+            GOOS=${{ matrix.go_os }} GOARCH=${{ matrix.go_arch }} go build -tags 'embed_agentrunner embed_cursorrunner' -ldflags="-s -w" \
               -o "$BINDIR/${{ matrix.sidecar_name }}" \
               ./client-apps/cli
           fi

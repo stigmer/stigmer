@@ -1,0 +1,21 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "nodert",
+    srcs = [
+        "bootstrap.go",
+        "checksums.go",
+        "download.go",
+        "manager.go",
+        "manifest.go",
+        "platform.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/nodert",
+    visibility = ["//client-apps/cli:__subpackages__"],
+    deps = [
+        "//client-apps/cli/internal/cli/httputil",
+        "@com_github_pkg_errors//:errors",
+        "@com_github_rs_zerolog//:zerolog",
+        "@com_github_rs_zerolog//log",
+    ],
+)

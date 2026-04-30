@@ -30,8 +30,11 @@ mkdir -p "$BINARIES_DIR"
 echo "Syncing agent-runner source for embedding..."
 (cd "$CLI_DIR/embedded/agentrunner" && bash sync.sh)
 
+echo "Syncing cursor-runner source for embedding..."
+(cd "$CLI_DIR/embedded/cursorrunner" && bash sync.sh)
+
 echo "Building stigmer CLI from source..."
-(cd "$CLI_DIR" && CGO_ENABLED=0 go build -tags embed_agentrunner -ldflags="-s -w" -o "$GOPATH_BIN" .)
+(cd "$CLI_DIR" && CGO_ENABLED=0 go build -tags 'embed_agentrunner embed_cursorrunner' -ldflags="-s -w" -o "$GOPATH_BIN" .)
 echo "Installed: $GOPATH_BIN"
 
 # Recreate symlink if missing or pointing to a different target.

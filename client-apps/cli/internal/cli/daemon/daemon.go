@@ -215,7 +215,7 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 	// Bootstrap cursor-runner runtime if CURSOR_API_KEY is available and
 	// the cursor-runner source is present. This is optional -- users who
 	// don't have a Cursor API key simply run without the Cursor harness.
-	var cursorNodeBin, cursorAppDir string
+	var cursorResult *CursorRunnerBootstrapResult
 	cursorAvailable := false
 
 	if !opts.ServerOnly {
@@ -232,7 +232,7 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 			}
 
 			var cursorErr error
-			cursorNodeBin, cursorAppDir, cursorErr = bootstrapCursorRunnerRuntime()
+			cursorResult, cursorErr = bootstrapCursorRunnerRuntime()
 			if cursorErr != nil {
 				log.Warn().Err(cursorErr).Msg("Cursor harness bootstrap failed (non-fatal, continuing without Cursor harness)")
 			} else {
@@ -300,8 +300,9 @@ func StartWithOptions(dataDir string, opts StartOptions) error {
 
 	if cursorAvailable {
 		env = append(env,
-			fmt.Sprintf("STIGMER_CURSOR_RUNNER_NODE_BIN=%s", cursorNodeBin),
-			fmt.Sprintf("STIGMER_CURSOR_RUNNER_APP_DIR=%s", cursorAppDir),
+			fmt.Sprintf("STIGMER_CURSOR_RUNNER_NODE_BIN=%s", cursorResult.NodeBin),
+			fmt.Sprintf("STIGMER_CURSOR_RUNNER_APP_DIR=%s", cursorResult.AppDir),
+			fmt.Sprintf("STIGMER_CURSOR_RUNNER_ENTRY_ARGS=%s", strings.Join(cursorResult.EntryArgs, ",")),
 		)
 	}
 

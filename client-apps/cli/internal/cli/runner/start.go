@@ -288,7 +288,7 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner) error {
 func startCursorRunnerProcess(ctx context.Context, reg *registeredRunner, dataDir string) *exec.Cmd {
 	climsg.Info("Bootstrapping Node.js runtime for Cursor harness ...")
 
-	nodeBin, cursorAppDir, err := BootstrapCursorRunnerRuntime(ctx)
+	result, err := BootstrapCursorRunnerRuntime(ctx)
 	if err != nil {
 		climsg.Warning("Cursor harness bootstrap failed: %v (continuing without Cursor harness)", err)
 		return nil
@@ -299,15 +299,12 @@ func startCursorRunnerProcess(ctx context.Context, reg *registeredRunner, dataDi
 		RunnerID:    reg.runnerID,
 		TaskQueue:   reg.taskQueue,
 		DataDir:     dataDir,
-		AppDir:      cursorAppDir,
+		AppDir:      result.AppDir,
 	}
 	cursorEnv := BuildCursorRunnerEnv(cursorEnvParams)
 
-	tsxBin := filepath.Join(cursorAppDir, "node_modules", ".bin", "tsx")
-	entryPoint := filepath.Join("src", "main.ts")
-
-	cmd := exec.Command(nodeBin, tsxBin, entryPoint)
-	cmd.Dir = cursorAppDir
+	cmd := exec.Command(result.NodeBin, result.EntryArgs...)
+	cmd.Dir = result.AppDir
 	cmd.Env = cursorEnv
 
 	cursorLogFile, _, logErr := openRunnerLogFile(reg.name + "-cursor")
