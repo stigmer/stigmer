@@ -96,17 +96,17 @@ func (GitWriteBackMode) EnumDescriptor() ([]byte, []int) {
 // - Which LLM models are available
 // - Billing tier and cost structure
 //
-// HARNESS_UNSPECIFIED defaults to LANGGRAPH for backward compatibility.
+// HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.
 type Harness int32
 
 const (
-	// Platform default — resolves to HARNESS_LANGGRAPH.
+	// Platform default — resolves to HARNESS_NATIVE.
 	Harness_HARNESS_UNSPECIFIED Harness = 0
-	// Python/LangGraph execution engine.
+	// Stigmer's native execution engine.
 	//
 	// Stigmer-managed checkpoints, custom tools, sandbox isolation,
 	// pause/resume, and full HITL approval flow.
-	Harness_HARNESS_LANGGRAPH Harness = 1
+	Harness_HARNESS_NATIVE Harness = 1
 	// Cursor SDK execution engine.
 	//
 	// Cursor-managed conversation state, Cursor built-in tools + MCP,
@@ -118,12 +118,12 @@ const (
 var (
 	Harness_name = map[int32]string{
 		0: "HARNESS_UNSPECIFIED",
-		1: "HARNESS_LANGGRAPH",
+		1: "HARNESS_NATIVE",
 		2: "HARNESS_CURSOR",
 	}
 	Harness_value = map[string]int32{
 		"HARNESS_UNSPECIFIED": 0,
-		"HARNESS_LANGGRAPH":   1,
+		"HARNESS_NATIVE":      1,
 		"HARNESS_CURSOR":      2,
 	}
 )
@@ -162,10 +162,10 @@ const file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc = "" +
 	"(ai/stigmer/agentic/session/v1/enum.proto\x12\x1dai.stigmer.agentic.session.v1*Y\n" +
 	"\x10GitWriteBackMode\x12#\n" +
 	"\x1fGIT_WRITE_BACK_MODE_UNSPECIFIED\x10\x00\x12 \n" +
-	"\x1cGIT_WRITE_BACK_BRANCH_AND_PR\x10\x01*M\n" +
+	"\x1cGIT_WRITE_BACK_BRANCH_AND_PR\x10\x01*J\n" +
 	"\aHarness\x12\x17\n" +
-	"\x13HARNESS_UNSPECIFIED\x10\x00\x12\x15\n" +
-	"\x11HARNESS_LANGGRAPH\x10\x01\x12\x12\n" +
+	"\x13HARNESS_UNSPECIFIED\x10\x00\x12\x12\n" +
+	"\x0eHARNESS_NATIVE\x10\x01\x12\x12\n" +
 	"\x0eHARNESS_CURSOR\x10\x02B\x99\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\tEnumProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 

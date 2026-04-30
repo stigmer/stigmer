@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "agentrunner",
+    srcs = ["agent_runner_gen.go"],
+    importpath = "github.com/stigmer/stigmer/mcp-server/gen/agentic/agentrunner",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//mcp-server/internal/convert",
+        "//mcp-server/proto/ai/stigmer/commons/apiresource",
+        "@com_github_stigmer_stigmer_mcp_server//proto/ai/stigmer/agentic/agentrunner/v1:agentrunner",
+    ],
+)

@@ -122,11 +122,11 @@
         "kind": "string",
         "enumType": "ai.stigmer.agentic.session.v1.Harness",
         "enumValues": [
-          "HARNESS_LANGGRAPH",
+          "HARNESS_NATIVE",
           "HARNESS_CURSOR"
         ]
       },
-      "description": "Execution harness for this session.\n\n Determines which Temporal activity type is dispatched when an\n AgentExecution is created in this session:\n - LANGGRAPH (default): ExecuteGraphton activity -\u003e Python/LangGraph worker\n - CURSOR: ExecuteCursor activity -\u003e TypeScript/Cursor SDK worker\n\n The harness affects which tools the agent has, how conversation state\n is managed, available models, and billing tier. Once set and an execution\n has run, the harness is immutable — changing it would break conversation\n continuity since each harness owns its own state.\n\n When unspecified, defaults to HARNESS_LANGGRAPH.",
+      "description": "Execution harness for this session.\n\n Determines which Temporal activity type is dispatched when an\n AgentExecution is created in this session:\n - NATIVE (default): ExecuteGraphton activity -\u003e Stigmer native worker\n - CURSOR: ExecuteCursor activity -\u003e TypeScript/Cursor SDK worker\n\n The harness affects which tools the agent has, how conversation state\n is managed, available models, and billing tier. Once set and an execution\n has run, the harness is immutable — changing it would break conversation\n continuity since each harness owns its own state.\n\n When unspecified, defaults to HARNESS_NATIVE.",
       "required": false
     }
   ]

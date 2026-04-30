@@ -474,7 +474,7 @@ java.lang.String defaultValue);
    *
    * Determines which Temporal activity type is dispatched when an
    * AgentExecution is created in this session:
-   * - LANGGRAPH (default): ExecuteGraphton activity -&gt; Python/LangGraph worker
+   * - NATIVE (default): ExecuteGraphton activity -&gt; Stigmer native worker
    * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
    *
    * The harness affects which tools the agent has, how conversation state
@@ -482,7 +482,7 @@ java.lang.String defaultValue);
    * has run, the harness is immutable — changing it would break conversation
    * continuity since each harness owns its own state.
    *
-   * When unspecified, defaults to HARNESS_LANGGRAPH.
+   * When unspecified, defaults to HARNESS_NATIVE.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>
@@ -495,7 +495,7 @@ java.lang.String defaultValue);
    *
    * Determines which Temporal activity type is dispatched when an
    * AgentExecution is created in this session:
-   * - LANGGRAPH (default): ExecuteGraphton activity -&gt; Python/LangGraph worker
+   * - NATIVE (default): ExecuteGraphton activity -&gt; Stigmer native worker
    * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
    *
    * The harness affects which tools the agent has, how conversation state
@@ -503,7 +503,7 @@ java.lang.String defaultValue);
    * has run, the harness is immutable — changing it would break conversation
    * continuity since each harness owns its own state.
    *
-   * When unspecified, defaults to HARNESS_LANGGRAPH.
+   * When unspecified, defaults to HARNESS_NATIVE.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>

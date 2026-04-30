@@ -149,7 +149,7 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    *
    * Determines which Temporal activity type is dispatched when an
    * AgentExecution is created in this session:
-   * - LANGGRAPH (default): ExecuteGraphton activity -> Python/LangGraph worker
+   * - NATIVE (default): ExecuteGraphton activity -> Stigmer native worker
    * - CURSOR: ExecuteCursor activity -> TypeScript/Cursor SDK worker
    *
    * The harness affects which tools the agent has, how conversation state
@@ -157,7 +157,7 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * has run, the harness is immutable — changing it would break conversation
    * continuity since each harness owns its own state.
    *
-   * When unspecified, defaults to HARNESS_LANGGRAPH.
+   * When unspecified, defaults to HARNESS_NATIVE.
    *
    * @generated from field: ai.stigmer.agentic.session.v1.Harness harness = 10;
    */
