@@ -14,8 +14,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: April 30, 2026 -- T05 CLI Daemon Multi-Worker Management completed
-- **Active Task**: T01-T05 COMPLETED, ready for T06/T07/T08/T09
+- **Last Session**: April 30, 2026 -- T09 Embedded Cursor Runner Packaging completed
+- **Active Task**: T01-T05 + T09 COMPLETED, ready for T06/T07/T08
 - **Branch**: `feat/cursor-harness`
 
 ## Session Progress (April 30, 2026)
@@ -111,6 +111,27 @@ backend/services/cursor-runner/
 - **Non-fatal failures**: Bootstrap errors logged as warnings, daemon continues without cursor harness.
 - **CursorProxyController**: Separate task in stigmer-cloud. Reverse proxy at `/v1/proxy/cursor/**`, same pattern as `LlmProxyController`.
 
+### Session 6: T09 Embedded Cursor Runner Packaging
+- **Critical finding**: `bun build --compile` is NOT viable -- Temporal Worker SDK requires Node-API native modules, worker_threads, vm, async_hooks (all Node.js-specific)
+- **Decision**: Mirror Python agentrunner pattern -- embed compiled JS source, download managed Node.js at first bootstrap, npm install for platform-specific native deps
+- Created `nodert.Manager` (5 files) -- managed Node.js 22.22.2 LTS lifecycle, parallel to `pythonrt.Manager`
+- Created `cursorrunner/sync.sh` -- build-time source preparation: copy TS, resolve protos, tsc compile, strip for embedding
+- Created `tsconfig.build.json` for emit-capable TypeScript compilation
+- Implemented dual-mode bootstrap: dev (system Node.js + tsx) and embed (`nodert.Manager` + compiled JS)
+- New `CursorRunnerBootstrapResult` type with `EntryArgs` -- daemon process reads entry point from env
+- Updated daemon.go, daemon_process.go, runner/start.go for new bootstrap API
+- Created BUILD.bazel for cursorrunner and nodert packages
+- Updated release.cli.yaml (3 platform jobs), release.desktop.yaml, setup-sidecar-dev.sh with cursor-runner sync + embed_cursorrunner tag
+- Updated root Makefile: cursorrunner devSourceDir ldflags + clean target
+
+### Key Decisions (T09)
+- **Bun compile invalidated**: Temporal Worker SDK requires Node.js-specific APIs. Bun is unsupported.
+- **Node.js SEA rejected**: Cross-compilation requires per-platform builds, native module handling is fragile.
+- **Mirror Python pattern**: Embed source via go:embed, download managed Node.js (22.22.2 LTS) at first bootstrap, npm install for native deps. Same UX as Python.
+- **tsc at build time, npm at runtime**: TypeScript compiled during sync.sh. npm install runs at runtime because @temporalio/core-bridge is platform-specific.
+- **Two-mode bootstrap**: Dev mode (system Node.js + tsx) preserved. Embed mode (managed Node.js + compiled JS) for release.
+- **Entry args via env var**: `STIGMER_CURSOR_RUNNER_ENTRY_ARGS` communicates entry point from bootstrap to daemon process.
+
 ### Key Decisions (T04)
 - **EnsureThread skipped for Cursor**: Python's EnsureThread generates deterministic "thread-{sessionId}" which is not a valid Cursor agentId. Cursor flow uses ReadSessionThreadId instead.
 - **approvalDecisions removed (not added to Cursor)**: Parameter was always nil/null. Both harnesses read decisions from DB. Cleaner to remove than perpetuate.
@@ -120,18 +141,17 @@ backend/services/cursor-runner/
 
 ## Next Steps
 
-Phase 3 (CLI Integration) is in progress. T05 done, T09 pending.
+Phase 3 (CLI Integration) is COMPLETE. T05 + T09 done.
 
 Ready for Phase 4 (Polish):
 
-1. **T09: Embedded Cursor Runner Packaging** -- Package cursor-runner for embedding in CLI binary (`bun build --compile` or similar). Currently requires system Node.js.
-2. **T06: Cost Model and Billing Integration** -- Unified Cursor usage tracking in UsageMetrics.
-3. **T07: Session Lifecycle -- Cursor Agent Management** -- Create/resume/delete Cursor agents on session lifecycle.
-4. **T08: SDK/React -- Session Harness Picker** -- UI for selecting native vs Cursor harness.
+1. **T06: Cost Model and Billing Integration** -- Unified Cursor usage tracking in UsageMetrics.
+2. **T07: Session Lifecycle -- Cursor Agent Management** -- Create/resume/delete Cursor agents on session lifecycle.
+3. **T08: SDK/React -- Session Harness Picker** -- UI for selecting native vs Cursor harness.
 
 ### Recommended Next Pick
-- **T09** -- Completes CLI integration phase. After this, `stigmer up` works with embedded cursor-runner (no system Node.js required).
-- Alternatively, **T06** if billing/cost visibility is higher priority.
+- **T06** -- Cost/billing visibility is important for internal dogfooding and understanding usage.
+- Alternatively, **T07** if session lifecycle correctness is higher priority.
 
 ## Essential Files to Review
 
@@ -184,18 +204,19 @@ Ready for Phase 4 (Polish):
 When starting a new session:
 
 1. [ ] Read the latest checkpoint from `checkpoints/`
-2. [ ] Check current task status (T01-T05 done, T06-T09 pending)
-3. [ ] Review T05 changes: `daemon_process.go` (buildComponents), `runner/start.go` (startNativeRunner), `nodert/bootstrap.go`, `embedded/cursorrunner/`
-4. [ ] Review design decisions for context (especially `cursor-sdk-proxy-support.md`)
+2. [ ] Check current task status (T01-T05 + T09 done, T06-T08 pending)
+3. [ ] Review T09 changes: `nodert/manager.go` (managed Node.js), `cursorrunner/sync.sh`, `runner_cursor.go` (dual-mode bootstrap)
+4. [ ] Review design decisions for context (especially `embedded-packaging-strategy.md`, `cursor-sdk-proxy-support.md`)
 5. [ ] Check coding guidelines in `coding-guidelines/`
 6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-7. [ ] Pick next task: T09 (embedded packaging) or T06 (cost/billing)
+7. [ ] Pick next task: T06 (cost/billing), T07 (session lifecycle), or T08 (SDK/React)
 
 ## Quick Commands
 
 After loading context:
-- "Start T09" - Begin embedded cursor-runner packaging
 - "Start T06" - Begin cost model and billing integration
+- "Start T07" - Begin session lifecycle / Cursor agent management
+- "Start T08" - Begin SDK/React session harness picker
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

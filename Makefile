@@ -345,7 +345,8 @@ update-deps: ## Regenerate agent-runner requirements.txt from poetry.lock
 
 # ─── Local Dev ────────────────────────────────
 
-DEV_LDFLAGS := -X github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner.devSourceDir=$(CURDIR)/backend/services/agent-runner
+DEV_LDFLAGS := -X github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner.devSourceDir=$(CURDIR)/backend/services/agent-runner \
+               -X github.com/stigmer/stigmer/client-apps/cli/embedded/cursorrunner.devSourceDir=$(CURDIR)/backend/services/cursor-runner
 
 .PHONY: local
 local: ## Build + install CLI, server, and workflow-runner for local development
@@ -459,6 +460,7 @@ clean: ## Remove all build artifacts
 	rm -rf backend/services/stigmer-server/bin/
 	rm -rf backend/services/workflow-runner/bin/
 	rm -rf client-apps/cli/embedded/agentrunner/source/
+	rm -rf client-apps/cli/embedded/cursorrunner/source/
 	rm -rf client-apps/cli/embedded/webconsole/out/
 	rm -rf client-apps/web/out/ client-apps/web/.next/
 	$(MAKE) -C apis clean
