@@ -14,8 +14,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: April 30, 2026 -- T09 Embedded Cursor Runner Packaging completed
-- **Active Task**: T01-T05 + T09 COMPLETED, ready for T06/T07/T08
+- **Last Session**: April 30, 2026 -- T06 Cost Model and Billing Integration completed
+- **Active Task**: T01-T06 + T09 COMPLETED, ready for T07/T08
 - **Branch**: `feat/cursor-harness`
 
 ## Session Progress (April 30, 2026)
@@ -139,19 +139,36 @@ backend/services/cursor-runner/
 - **No GenerateSessionSubject for Cursor**: Cursor generates conversation context natively during execution; redundant LLM call avoided.
 - **invokerIdentityAccountId on Java ExecuteCursor**: Added for forward-compatibility even though not used by cursor-runner today.
 
+### Session 7: T06 Cost Model and Billing Integration
+- **Critical architecture fix**: T03's `UsageTracker` built aggregate `UsageMetrics` but the system uses per-message `LlmCallMetrics`. Rewrote to match established pattern.
+- **Research finding**: Cursor SDK `TurnEndedUpdate.usage` provides token counts only (no cost, no pricing). `totalCents` exists only in Admin/Analytics API, not real-time SDK events.
+- Created `model-pricing.ts` -- Cursor model pricing registry from published rates at cursor.com/docs/models-and-pricing
+- Rewrote `usage-tracker.ts` -- `recordTurn()` now returns `LlmCallMetrics` with pricing stamped at call time
+- Modified `execute-cursor.ts` -- stamps `LlmCallMetrics` on `MESSAGE_AI` messages via `pendingMetrics` queue
+- Added `"cursor"` provider and model entries to React `MODEL_REGISTRY`
+- **Verified**: Go server, Java service, React hooks, and all usage UI work for Cursor sessions with zero changes
+
+### Key Decisions (T06)
+- **Per-message LlmCallMetrics**: Matches Python agent-runner pattern. Entire downstream pipeline works unchanged.
+- **Static Cursor pricing table**: SDK doesn't provide cost. Rates sourced from Cursor's published pricing page, stamped at execution time.
+- **Provider = "cursor"**: Cursor is the billing provider from Stigmer's perspective.
+- **One LlmCallMetrics per Cursor turn**: Finest granularity available from the SDK.
+
+### Design Decision Documents (T06)
+- `design-decisions/cursor-cost-model.md` -- Full rationale for cost model decisions
+
 ## Next Steps
 
-Phase 3 (CLI Integration) is COMPLETE. T05 + T09 done.
+Phase 3 (CLI Integration) and T06 (Cost Model) are COMPLETE. T05 + T06 + T09 done.
 
-Ready for Phase 4 (Polish):
+Ready for remaining Phase 4 (Polish):
 
-1. **T06: Cost Model and Billing Integration** -- Unified Cursor usage tracking in UsageMetrics.
-2. **T07: Session Lifecycle -- Cursor Agent Management** -- Create/resume/delete Cursor agents on session lifecycle.
-3. **T08: SDK/React -- Session Harness Picker** -- UI for selecting native vs Cursor harness.
+1. **T07: Session Lifecycle -- Cursor Agent Management** -- Create/resume/delete Cursor agents on session lifecycle.
+2. **T08: SDK/React -- Session Harness Picker** -- UI for selecting native vs Cursor harness.
 
 ### Recommended Next Pick
-- **T06** -- Cost/billing visibility is important for internal dogfooding and understanding usage.
-- Alternatively, **T07** if session lifecycle correctness is higher priority.
+- **T07** -- Session lifecycle correctness (create/resume/delete Cursor agents) is foundational for multi-turn conversations.
+- Alternatively, **T08** if UI is higher priority.
 
 ## Essential Files to Review
 
@@ -204,17 +221,16 @@ Ready for Phase 4 (Polish):
 When starting a new session:
 
 1. [ ] Read the latest checkpoint from `checkpoints/`
-2. [ ] Check current task status (T01-T05 + T09 done, T06-T08 pending)
-3. [ ] Review T09 changes: `nodert/manager.go` (managed Node.js), `cursorrunner/sync.sh`, `runner_cursor.go` (dual-mode bootstrap)
-4. [ ] Review design decisions for context (especially `embedded-packaging-strategy.md`, `cursor-sdk-proxy-support.md`)
+2. [ ] Check current task status (T01-T06 + T09 done, T07-T08 pending)
+3. [ ] Review T06 changes: `model-pricing.ts` (Cursor pricing), `usage-tracker.ts` (per-message LlmCallMetrics), `execute-cursor.ts` (metrics stamping)
+4. [ ] Review design decisions for context (especially `cursor-cost-model.md`, `embedded-packaging-strategy.md`, `cursor-sdk-proxy-support.md`)
 5. [ ] Check coding guidelines in `coding-guidelines/`
 6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-7. [ ] Pick next task: T06 (cost/billing), T07 (session lifecycle), or T08 (SDK/React)
+7. [ ] Pick next task: T07 (session lifecycle) or T08 (SDK/React)
 
 ## Quick Commands
 
 After loading context:
-- "Start T06" - Begin cost model and billing integration
 - "Start T07" - Begin session lifecycle / Cursor agent management
 - "Start T08" - Begin SDK/React session harness picker
 - "Show project status" - Get overview of progress
