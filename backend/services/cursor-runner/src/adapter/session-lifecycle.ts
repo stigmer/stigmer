@@ -43,7 +43,8 @@ export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent
  * Resume an existing Cursor Agent for subsequent executions.
  *
  * If the agent is not found (expired, deleted on Cursor's side), this
- * throws. The caller should catch and decide whether to recreate.
+ * throws. The caller must NOT silently create a new agent — that would
+ * lose conversation context without any indication to the user.
  */
 export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent> {
   return Agent.resume(options.agentId, {
@@ -53,8 +54,14 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent
 }
 
 /**
- * Resolve agent: resume if threadId exists, create otherwise.
- * Returns the agent handle and whether it was newly created.
+ * Resolve agent: resume if threadId exists, create if first execution.
+ *
+ * When threadId is non-empty (subsequent execution), the agent MUST be
+ * resumed successfully. If resume fails (agent expired, deleted, or
+ * Cursor service error), the error propagates — creating a new agent
+ * would silently discard the entire conversation history.
+ *
+ * When threadId is empty (first execution), a new agent is created.
  */
 export async function resolveAgent(
   threadId: string,
@@ -69,9 +76,12 @@ export async function resolveAgent(
       });
       return { agent, isNew: false };
     } catch (err) {
-      console.warn(
-        `Failed to resume Cursor agent ${threadId}, creating new agent:`,
-        err instanceof Error ? err.message : err,
+      const detail = err instanceof Error ? err.message : String(err);
+      throw new Error(
+        `Failed to resume Cursor agent "${threadId}" for this session. ` +
+        `The agent may have expired or been deleted on Cursor's side. ` +
+        `Please start a new session to continue. ` +
+        `Original error: ${detail}`,
       );
     }
   }

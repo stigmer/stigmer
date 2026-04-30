@@ -75,7 +75,11 @@ export const SessionCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Delete a session (also cleans up thread).
+     * Delete a session.
+     *
+     * @internal
+     * Restricted to platform operators to preserve the billing and audit trail.
+     * Regular users (including session owners) cannot delete sessions.
      *
      * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.delete
      */

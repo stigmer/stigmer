@@ -289,7 +289,10 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a session (also cleans up thread).
+     * Delete a session.
+     * &#64;internal
+     * Restricted to platform operators to preserve the billing and audit trail.
+     * Regular users (including session owners) cannot delete sessions.
      * </pre>
      */
     default void delete(ai.stigmer.agentic.session.v1.SessionId request,
@@ -388,7 +391,10 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a session (also cleans up thread).
+     * Delete a session.
+     * &#64;internal
+     * Restricted to platform operators to preserve the billing and audit trail.
+     * Regular users (including session owners) cannot delete sessions.
      * </pre>
      */
     public void delete(ai.stigmer.agentic.session.v1.SessionId request,
@@ -470,7 +476,10 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a session (also cleans up thread).
+     * Delete a session.
+     * &#64;internal
+     * Restricted to platform operators to preserve the billing and audit trail.
+     * Regular users (including session owners) cannot delete sessions.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.Session delete(ai.stigmer.agentic.session.v1.SessionId request) throws io.grpc.StatusException {
@@ -551,7 +560,10 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a session (also cleans up thread).
+     * Delete a session.
+     * &#64;internal
+     * Restricted to platform operators to preserve the billing and audit trail.
+     * Regular users (including session owners) cannot delete sessions.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.Session delete(ai.stigmer.agentic.session.v1.SessionId request) {
@@ -636,7 +648,10 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete a session (also cleans up thread).
+     * Delete a session.
+     * &#64;internal
+     * Restricted to platform operators to preserve the billing and audit trail.
+     * Regular users (including session owners) cannot delete sessions.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.Session> delete(

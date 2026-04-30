@@ -15,7 +15,6 @@ go_library(
     deps = [
         "//client-apps/cli/internal/cli/httputil",
         "@com_github_pkg_errors//:errors",
-        "@com_github_rs_zerolog//:zerolog",
         "@com_github_rs_zerolog//log",
     ],
 )
