@@ -221,6 +221,7 @@ const session = await stigmer.session.apply({
   mcpServerUsages: [],
   runnerId: "...",
   skillRefs: [],
+  harness: "...",
 });
 ```
 </Tab>
@@ -240,6 +241,7 @@ session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
   McpServerUsages:  []stigmer.McpServerUsageInput{},
   RunnerId:         "...",
   SkillRefs:        []stigmer.ResourceRef{},
+  Harness:          "...",
 })
 ```
 </Tab>
@@ -259,6 +261,7 @@ session = client.sessions.apply(SessionInput(
     mcp_server_usages=[],
     runner_id="...",
     skill_refs=[],
+    harness="...",
 ))
 ```
 </Tab>
@@ -278,6 +281,7 @@ Session session = client.sessions().apply(SessionInput.builder()
     .mcpServerUsages(List.of())
     .runnerId("...")
     .skillRefs(List.of())
+    .harness("...")
     .build());
 ```
 </Tab>
@@ -308,6 +312,7 @@ const session = await stigmer.session.create({
   mcpServerUsages: [],
   runnerId: "...",
   skillRefs: [],
+  harness: "...",
 });
 ```
 </Tab>
@@ -327,6 +332,7 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
   McpServerUsages:  []stigmer.McpServerUsageInput{},
   RunnerId:         "...",
   SkillRefs:        []stigmer.ResourceRef{},
+  Harness:          "...",
 })
 ```
 </Tab>
@@ -346,6 +352,7 @@ session = client.sessions.create(SessionInput(
     mcp_server_usages=[],
     runner_id="...",
     skill_refs=[],
+    harness="...",
 ))
 ```
 </Tab>
@@ -365,6 +372,7 @@ Session session = client.sessions().create(SessionInput.builder()
     .mcpServerUsages(List.of())
     .runnerId("...")
     .skillRefs(List.of())
+    .harness("...")
     .build());
 ```
 </Tab>
@@ -395,6 +403,7 @@ const session = await stigmer.session.update({
   mcpServerUsages: [],
   runnerId: "...",
   skillRefs: [],
+  harness: "...",
 });
 ```
 </Tab>
@@ -414,6 +423,7 @@ session, err := client.Session.Update(ctx, &stigmer.SessionInput{
   McpServerUsages:  []stigmer.McpServerUsageInput{},
   RunnerId:         "...",
   SkillRefs:        []stigmer.ResourceRef{},
+  Harness:          "...",
 })
 ```
 </Tab>
@@ -433,6 +443,7 @@ session = client.sessions.update(SessionInput(
     mcp_server_usages=[],
     runner_id="...",
     skill_refs=[],
+    harness="...",
 ))
 ```
 </Tab>
@@ -452,6 +463,7 @@ Session session = client.sessions().update(SessionInput.builder()
     .mcpServerUsages(List.of())
     .runnerId("...")
     .skillRefs(List.of())
+    .harness("...")
     .build());
 ```
 </Tab>
@@ -562,6 +574,7 @@ Input for creating or updating a Session.
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers to make available in this session.", typeDescriptionLink: "#mcpserverusageinput" },
     runnerId: { type: "string", description: "Runner that executes work for this session." },
     skillRefs: { type: "ResourceRef[]", description: "Skills to inject into this session's context.", typeDescriptionLink: "#resourceref" },
+    harness: { type: "Harness", description: "Execution harness for this session.", typeDescriptionLink: "#harness" },
   }}
 />
 
@@ -707,6 +720,15 @@ Session represents a multi-turn conversation thread with an agent.
     status: { type: "SessionStatus", description: "System-managed state. See `SessionStatus`." },
   }}
 />
+
+### Harness
+
+Harness identifies the execution engine that processes agent activities for a session.
+
+| Value | Description |
+|-------|-------------|
+| `HARNESS_LANGGRAPH` | Python/LangGraph execution engine. |
+| `HARNESS_CURSOR` | Cursor SDK execution engine. |
 
 ### GitWriteBackMode
 

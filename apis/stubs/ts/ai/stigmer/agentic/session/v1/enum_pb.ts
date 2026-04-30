@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/session/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9lbnVtLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSpZChBHaXRXcml0ZUJhY2tNb2RlEiMKH0dJVF9XUklURV9CQUNLX01PREVfVU5TUEVDSUZJRUQQABIgChxHSVRfV1JJVEVfQkFDS19CUkFOQ0hfQU5EX1BSEAFiBnByb3RvMw");
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9lbnVtLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSpZChBHaXRXcml0ZUJhY2tNb2RlEiMKH0dJVF9XUklURV9CQUNLX01PREVfVU5TUEVDSUZJRUQQABIgChxHSVRfV1JJVEVfQkFDS19CUkFOQ0hfQU5EX1BSEAEqTQoHSGFybmVzcxIXChNIQVJORVNTX1VOU1BFQ0lGSUVEEAASFQoRSEFSTkVTU19MQU5HR1JBUEgQARISCg5IQVJORVNTX0NVUlNPUhACYgZwcm90bzM");
 
 /**
  * GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.
@@ -53,4 +53,54 @@ export enum GitWriteBackMode {
  */
 export const GitWriteBackModeSchema: GenEnum<GitWriteBackMode> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_session_v1_enum, 0);
+
+/**
+ * Harness identifies the execution engine that processes agent activities
+ * for a session.
+ *
+ * Each harness corresponds to a different Temporal activity type registered
+ * by the runner daemon. The harness determines:
+ * - Which tools the agent has access to
+ * - How conversation state is managed (Stigmer checkpoints vs engine-native)
+ * - Which LLM models are available
+ * - Billing tier and cost structure
+ *
+ * HARNESS_UNSPECIFIED defaults to LANGGRAPH for backward compatibility.
+ *
+ * @generated from enum ai.stigmer.agentic.session.v1.Harness
+ */
+export enum Harness {
+  /**
+   * Platform default — resolves to HARNESS_LANGGRAPH.
+   *
+   * @generated from enum value: HARNESS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Python/LangGraph execution engine.
+   *
+   * Stigmer-managed checkpoints, custom tools, sandbox isolation,
+   * pause/resume, and full HITL approval flow.
+   *
+   * @generated from enum value: HARNESS_LANGGRAPH = 1;
+   */
+  LANGGRAPH = 1,
+
+  /**
+   * Cursor SDK execution engine.
+   *
+   * Cursor-managed conversation state, Cursor built-in tools + MCP,
+   * both local and cloud runtimes. Premium billing tier.
+   *
+   * @generated from enum value: HARNESS_CURSOR = 2;
+   */
+  CURSOR = 2,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.session.v1.Harness.
+ */
+export const HarnessSchema: GenEnum<Harness> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_session_v1_enum, 1);
 

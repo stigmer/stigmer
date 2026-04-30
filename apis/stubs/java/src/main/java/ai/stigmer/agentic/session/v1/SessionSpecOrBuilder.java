@@ -96,7 +96,7 @@ public interface SessionSpecOrBuilder extends
    *
    * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
    * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-   *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
+   *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
    * @return The sandboxId.
    */
   @java.lang.Deprecated java.lang.String getSandboxId();
@@ -110,7 +110,7 @@ public interface SessionSpecOrBuilder extends
    *
    * <code>string sandbox_id = 4 [json_name = "sandboxId", deprecated = true];</code>
    * @deprecated ai.stigmer.agentic.session.v1.SessionSpec.sandbox_id is deprecated.
-   *     See ai/stigmer/agentic/session/v1/spec.proto;l=37
+   *     See ai/stigmer/agentic/session/v1/spec.proto;l=38
    * @return The bytes for sandboxId.
    */
   @java.lang.Deprecated com.google.protobuf.ByteString
@@ -467,4 +467,47 @@ java.lang.String defaultValue);
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getSkillRefsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Execution harness for this session.
+   *
+   * Determines which Temporal activity type is dispatched when an
+   * AgentExecution is created in this session:
+   * - LANGGRAPH (default): ExecuteGraphton activity -&gt; Python/LangGraph worker
+   * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
+   *
+   * The harness affects which tools the agent has, how conversation state
+   * is managed, available models, and billing tier. Once set and an execution
+   * has run, the harness is immutable — changing it would break conversation
+   * continuity since each harness owns its own state.
+   *
+   * When unspecified, defaults to HARNESS_LANGGRAPH.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>
+   * @return The enum numeric value on the wire for harness.
+   */
+  int getHarnessValue();
+  /**
+   * <pre>
+   * Execution harness for this session.
+   *
+   * Determines which Temporal activity type is dispatched when an
+   * AgentExecution is created in this session:
+   * - LANGGRAPH (default): ExecuteGraphton activity -&gt; Python/LangGraph worker
+   * - CURSOR: ExecuteCursor activity -&gt; TypeScript/Cursor SDK worker
+   *
+   * The harness affects which tools the agent has, how conversation state
+   * is managed, available models, and billing tier. Once set and an execution
+   * has run, the harness is immutable — changing it would break conversation
+   * continuity since each harness owns its own state.
+   *
+   * When unspecified, defaults to HARNESS_LANGGRAPH.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>
+   * @return The harness.
+   */
+  ai.stigmer.agentic.session.v1.Harness getHarness();
 }

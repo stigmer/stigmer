@@ -91,6 +91,7 @@ class SessionInput:
     mcp_server_usages: list[McpServerUsageInput] = field(default_factory=list)
     runner_id: str = ""
     skill_refs: list[ResourceRef] = field(default_factory=list)
+    harness: int = 0
 
     def _to_proto(self) -> api_pb2.Session:
         spec = spec_pb2.SessionSpec(
@@ -99,6 +100,7 @@ class SessionInput:
             thread_id=self.thread_id,
             sandbox_id=self.sandbox_id,
             runner_id=self.runner_id,
+            harness=self.harness,
         )
         if self.metadata:
             spec.metadata.update(self.metadata)
