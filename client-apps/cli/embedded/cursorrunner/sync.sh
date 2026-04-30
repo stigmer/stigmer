@@ -94,4 +94,4 @@ rm -f "$SOURCE_DIR/tsconfig.json" "$SOURCE_DIR/tsconfig.build.json"
 
 echo "Sync complete: $SOURCE_DIR"
 echo "Contents:"
-find "$SOURCE_DIR" -type f | head -20
+find "$SOURCE_DIR" -type f | head -20 || true
