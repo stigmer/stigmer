@@ -11,15 +11,15 @@
 
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
-import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_connect.js";
-import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_connect.js";
-import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_connect.js";
-import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_connect.js";
-import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb.js";
-import type { AgentExecutionUpdateStatusInput } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb.js";
-import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb.js";
+import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
+import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
+import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
+import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentExecutionUpdateStatusInput } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb.js";
+import { AgentExecutionUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 
 export interface StigmerClientOptions {
   endpoint: string;
@@ -43,7 +43,6 @@ export class StigmerClient {
     const token = options.token;
     this.transport = createGrpcTransport({
       baseUrl: options.endpoint,
-      httpVersion: "2",
       interceptors: token
         ? [
             (next) => async (req) => {
@@ -69,7 +68,7 @@ export class StigmerClient {
     status: AgentExecutionStatus,
   ): Promise<AgentExecution> {
     const input = create(AgentExecutionUpdateStatusInputSchema, {
-      id: executionId,
+      executionId,
       status,
     });
     return this.executionCommand.updateStatus(input);

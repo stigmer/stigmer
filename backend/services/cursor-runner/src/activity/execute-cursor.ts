@@ -19,14 +19,14 @@
 
 import { type Context, heartbeat } from "@temporalio/activity";
 import { create } from "@bufbuild/protobuf";
-import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb.js";
-import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb.js";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb.js";
-import { SetupProgressSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb.js";
-import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb.js";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb.js";
-import { ExecutionPhase, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb.js";
-import type { LlmCallMetrics } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb.js";
+import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+import { SetupProgressSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { ExecutionPhase, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { LlmCallMetrics } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import type { SDKMessage } from "@cursor/sdk";
 
 import type { Config } from "../config.js";
@@ -90,13 +90,13 @@ async function executeCursor(
         approvalDecisions = new Map();
         for (const pa of existingStatus.pendingApprovals) {
           const matchingTc = findToolCallByIdInMessages(existingStatus.messages, pa.toolCallId);
-          if (matchingTc?.approvalAction && matchingTc.approvalAction !== ApprovalAction.APPROVAL_ACTION_UNSPECIFIED) {
+          if (matchingTc?.approvalAction) {
             approvalDecisions.set(pa.toolCallId, matchingTc.approvalAction);
           }
         }
 
         const hasReject = [...approvalDecisions.values()].some(
-          (a) => a === ApprovalAction.APPROVAL_ACTION_REJECT,
+          (a) => a === ApprovalAction.REJECT,
         );
         if (hasReject) {
           status.phase = ExecutionPhase.EXECUTION_FAILED;
@@ -292,9 +292,9 @@ function buildPrompt(
   const skipped: string[] = [];
 
   for (const [toolCallId, action] of approvalDecisions) {
-    if (action === ApprovalAction.APPROVAL_ACTION_APPROVE) {
+    if (action === ApprovalAction.APPROVE) {
       approved.push(toolCallId);
-    } else if (action === ApprovalAction.APPROVAL_ACTION_SKIP) {
+    } else if (action === ApprovalAction.SKIP) {
       skipped.push(toolCallId);
     }
   }

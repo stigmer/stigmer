@@ -256,8 +256,8 @@ describe("extractDeniedToolCalls", () => {
 
   it("ignores non-tool_call events", () => {
     const events: SDKMessage[] = [
-      { type: "assistant", message: { content: [] } } as SDKMessage,
-      { type: "thinking", text: "hmm" } as SDKMessage,
+      { type: "assistant", message: { content: [] } } as unknown as SDKMessage,
+      { type: "thinking", text: "hmm" } as unknown as SDKMessage,
     ];
 
     expect(extractDeniedToolCalls(events)).toHaveLength(0);

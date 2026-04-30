@@ -91,7 +91,11 @@ class SessionCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def delete(self, request, context):
-        """Delete a session (also cleans up thread).
+        """Delete a session.
+
+        @internal
+        Restricted to platform operators to preserve the billing and audit trail.
+        Regular users (including session owners) cannot delete sessions.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

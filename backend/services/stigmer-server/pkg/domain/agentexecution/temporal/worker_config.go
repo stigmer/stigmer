@@ -59,13 +59,13 @@ import (
 // - TEMPORAL_AGENT_EXECUTION_STIGMER_TASK_QUEUE (Go workflows, default: agent_execution_stigmer)
 // - TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE (Python activities, default: agent_execution_runner)
 type WorkerConfig struct {
-	config                      *Config
-	store                       store.Store
-	updateStatusActivityImpl    *activities.UpdateExecutionStatusActivityImpl
-	loadExecutionActivityImpl   *activities.LoadAgentExecutionActivityImpl
-	deleteECActivityImpl        *ecactivities.DeleteExecutionContextActivityImpl
-	waitForRunnerReadyImpl      *activities.WaitForRunnerReadyActivityImpl
-	readSessionThreadIdImpl     *activities.ReadSessionThreadIdActivityImpl
+	config                    *Config
+	store                     store.Store
+	updateStatusActivityImpl  *activities.UpdateExecutionStatusActivityImpl
+	loadExecutionActivityImpl *activities.LoadAgentExecutionActivityImpl
+	deleteECActivityImpl      *ecactivities.DeleteExecutionContextActivityImpl
+	waitForRunnerReadyImpl    *activities.WaitForRunnerReadyActivityImpl
+	readSessionThreadIdImpl   *activities.ReadSessionThreadIdActivityImpl
 }
 
 // NewWorkerConfig creates a new WorkerConfig.
@@ -75,13 +75,13 @@ func NewWorkerConfig(
 	streamBroker activities.StreamBroker,
 ) *WorkerConfig {
 	return &WorkerConfig{
-		config:                      config,
-		store:                       store,
-		updateStatusActivityImpl:    activities.NewUpdateExecutionStatusActivityImpl(store, streamBroker),
-		loadExecutionActivityImpl:   activities.NewLoadAgentExecutionActivityImpl(store),
-		deleteECActivityImpl:        ecactivities.NewDeleteExecutionContextActivityImpl(store),
-		waitForRunnerReadyImpl:      activities.NewWaitForRunnerReadyActivityImpl(store),
-		readSessionThreadIdImpl:     activities.NewReadSessionThreadIdActivityImpl(store),
+		config:                    config,
+		store:                     store,
+		updateStatusActivityImpl:  activities.NewUpdateExecutionStatusActivityImpl(store, streamBroker),
+		loadExecutionActivityImpl: activities.NewLoadAgentExecutionActivityImpl(store),
+		deleteECActivityImpl:      ecactivities.NewDeleteExecutionContextActivityImpl(store),
+		waitForRunnerReadyImpl:    activities.NewWaitForRunnerReadyActivityImpl(store),
+		readSessionThreadIdImpl:   activities.NewReadSessionThreadIdActivityImpl(store),
 	}
 }
 

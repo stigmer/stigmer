@@ -20,7 +20,7 @@
 
 import { writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb.js";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 export interface ApprovedTool {
   name: string;
@@ -43,7 +43,7 @@ export function buildApprovalState(
 
   if (decisions) {
     for (const [_toolCallId, action] of decisions) {
-      if (action === ApprovalAction.APPROVAL_ACTION_APPROVE) {
+      if (action === ApprovalAction.APPROVE) {
         // TODO: resolve tool name and args from the tool_call_id via execution status
         // For now, mark as approved (the hook will match by tool call ID)
         approvedTools.push({ name: "*", argsPreview: "*" });
