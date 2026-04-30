@@ -26,6 +26,7 @@ import { SetupProgressSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb.js";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb.js";
 import { ExecutionPhase, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb.js";
+import type { LlmCallMetrics } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb.js";
 import type { SDKMessage } from "@cursor/sdk";
 
 import type { Config } from "../config.js";
@@ -144,18 +145,26 @@ async function executeCursor(
 
     // Phase 8: Send message and stream events
     status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
-    const usageTracker = new UsageTracker(spec.executionConfig?.modelName || "composer-2");
+    const modelName = spec.executionConfig?.modelName || "composer-2";
+    const usageTracker = new UsageTracker(modelName);
     const collectedEvents: SDKMessage[] = [];
+
+    // pendingMetrics collects LlmCallMetrics from turn-ended events.
+    // The onDelta callback fires synchronously between stream events,
+    // so by the time the next stream() iteration runs the metrics are
+    // available for stamping onto the most recent MESSAGE_AI message.
+    const pendingMetrics: LlmCallMetrics[] = [];
 
     const run = await agent.send(prompt, {
       onDelta: ({ update }) => {
         if (update.type === "turn-ended" && update.usage) {
-          usageTracker.recordTurn({
+          const metrics = usageTracker.recordTurn({
             inputTokens: update.usage.inputTokens,
             outputTokens: update.usage.outputTokens,
             cacheReadTokens: update.usage.cacheReadTokens,
             cacheWriteTokens: update.usage.cacheWriteTokens,
           });
+          pendingMetrics.push(metrics);
         }
         heartbeat();
       },
@@ -166,10 +175,25 @@ async function executeCursor(
       const messages = translateEvent(event);
       status.messages.push(...messages);
 
+      // Stamp any pending LlmCallMetrics onto the most recent MESSAGE_AI.
+      // turn-ended fires after the turn's assistant/tool events are emitted,
+      // so the target AI message is already in status.messages.
+      while (pendingMetrics.length > 0) {
+        const metrics = pendingMetrics.shift()!;
+        stampMetricsOnLastAiMessage(status.messages, metrics);
+      }
+
       if (status.messages.length % 5 === 0) {
         await persistStatus(client, executionId, status);
         heartbeat();
       }
+    }
+
+    // Drain any remaining metrics after the stream ends (edge case:
+    // turn-ended fires with no subsequent stream event).
+    while (pendingMetrics.length > 0) {
+      const metrics = pendingMetrics.shift()!;
+      stampMetricsOnLastAiMessage(status.messages, metrics);
     }
 
     // Phase 9: Check for denied tool calls (HITL)
@@ -326,6 +350,35 @@ async function reportSetupProgress(
     setupProgress: create(SetupProgressSchema, { currentPhase: phase }),
   });
   await persistStatus(client, executionId, status);
+}
+
+/**
+ * Stamp LlmCallMetrics onto the most recent MESSAGE_AI message.
+ *
+ * Cursor's turn-ended event reports aggregate token usage for the entire
+ * turn. The corresponding AI message (the model's text output for that
+ * turn) is the natural home for llm_metrics — matching the Python
+ * agent-runner's pattern where each on_chat_model_end stamps metrics
+ * onto the AI message it produced.
+ *
+ * If no AI message exists yet (e.g., the turn consisted only of tool
+ * calls with no assistant text), we skip silently. The tokens are still
+ * logged by UsageTracker for observability.
+ */
+function stampMetricsOnLastAiMessage(
+  messages: AgentMessage[],
+  metrics: LlmCallMetrics,
+): void {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].type === MessageType.MESSAGE_AI && !messages[i].llmMetrics) {
+      messages[i].llmMetrics = metrics;
+      return;
+    }
+  }
+  console.warn(
+    "No unstamped MESSAGE_AI found for turn %d — metrics not attached to a message",
+    metrics.sequence,
+  );
 }
 
 /**

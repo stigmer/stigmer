@@ -8,6 +8,7 @@ const PROVIDER_LABELS: Record<Provider, string> = {
   anthropic: "Anthropic",
   openai: "OpenAI",
   ollama: "Ollama",
+  cursor: "Cursor",
 };
 
 const COST_TIER_INDICATOR: Record<string, string> = {

@@ -24,7 +24,7 @@ export type CostTier = "economy" | "standard" | "premium";
  * backend. The {@link MODEL_REGISTRY} groups models by provider for
  * display in {@link ModelSelector}.
  */
-export type Provider = "anthropic" | "openai" | "ollama";
+export type Provider = "anthropic" | "openai" | "ollama" | "cursor";
 
 /**
  * Providers whose models should be hidden from the UI.
@@ -38,6 +38,7 @@ export type Provider = "anthropic" | "openai" | "ollama";
 export const DISABLED_PROVIDERS: ReadonlySet<Provider> = new Set([
   "openai",
   "ollama",
+  "cursor",
 ]);
 
 /**
@@ -94,6 +95,11 @@ export const MODEL_REGISTRY: readonly ModelInfo[] = [
   { modelId: "gpt-3.5-turbo", provider: "openai", displayName: "GPT-3.5 Turbo", costTier: "economy" },
   { modelId: "o1", provider: "openai", displayName: "o1", costTier: "premium" },
   { modelId: "o1-mini", provider: "openai", displayName: "o1 Mini", costTier: "standard" },
+
+  // ── Cursor (harness-only, not shown in native model selector) ─────
+  { modelId: "composer-2", provider: "cursor", displayName: "Composer 2", costTier: "economy" },
+  { modelId: "composer-1.5", provider: "cursor", displayName: "Composer 1.5", costTier: "standard" },
+  { modelId: "auto", provider: "cursor", displayName: "Auto", costTier: "standard" },
 
   // ── Ollama (local, no cost) ───────────────────────────────────────
   { modelId: "qwen2.5-coder:7b", provider: "ollama", displayName: "Qwen 2.5 Coder 7B", costTier: "economy" },
