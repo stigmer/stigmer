@@ -1,13 +1,14 @@
-# Cloud Sandbox with Agent Runner
+# Cloud Sandbox with Agent Runner + Cursor Runner
 # Daytona sandbox image for cloud-mode agent execution. Published to GHCR.
 #
 # Build context: Repository root
 # Build command: docker build -f backend/services/agent-runner/sandbox/Dockerfile.sandbox.full .
 #
 # This image provides:
-#   1. MCP server runtimes: npx (Node.js), uvx (Python), go run (Go)
+#   1. MCP server runtimes: npx (Node.js 22 LTS), uvx (Python), go run (Go)
 #   2. Agent-runner Python worker (virtualenv + source + dependencies)
-#   3. Core utilities: git, curl, jq, yq, yamllint
+#   3. Cursor-runner TypeScript worker (compiled JS + node_modules)
+#   4. Core utilities: git, curl, jq, yq, yamllint
 #
 # MCP server packages (npm, pip, go modules) are NOT baked into the image.
 # They are installed on-demand by the agent-runner during execution setup,
@@ -17,10 +18,10 @@
 # Cloud CLIs (aws, gcloud, az, kubectl, terraform, pulumi, helm, etc.) are
 # NOT included. Agents that need them can install on-demand.
 #
-# The agent-runner is baked in per DD01 (unified sandbox image). Daytona
+# Both runners are baked in per DD01 (unified sandbox image). Daytona
 # creates sandboxes directly from this image via CreateSandboxFromImageParams.
 # The CI pipeline warms Daytona's image cache after each push for sub-second
-# sandbox creation. The runner process is started by stigmer-service via
+# sandbox creation. Runner processes are started by stigmer-service via
 # sandbox.process.exec() after sandbox creation — CMD stays /bin/bash
 # per Daytona convention.
 #
@@ -88,6 +89,49 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver; \
 from langgraph.checkpoint.mongodb import MongoDBSaver; \
 print('checkpointer import verification passed')"
 
+# ---------- Cursor Runner Builder ----------
+# Compiles TypeScript to JavaScript and installs production npm dependencies.
+# Uses the official Node.js 22 image (matches the runtime in the final stage).
+FROM public.ecr.aws/docker/library/node:22-slim AS cursor-runner-builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Copy proto stubs (local file: dependency)
+COPY apis/stubs/ts /build/apis/stubs/ts
+RUN cd /build/apis/stubs/ts && npm install
+
+# Copy cursor-runner source and install deps
+COPY backend/services/cursor-runner/package.json \
+     backend/services/cursor-runner/package-lock.json* \
+     backend/services/cursor-runner/tsconfig.json \
+     backend/services/cursor-runner/tsconfig.build.json \
+     /build/cursor-runner/
+
+# Rewrite the file: proto dep to point to /build/apis/stubs/ts
+RUN cd /build/cursor-runner && \
+    node -e "const p=require('./package.json'); \
+    p.dependencies['@stigmer/protos']='file:/build/apis/stubs/ts'; \
+    require('fs').writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
+
+RUN cd /build/cursor-runner && npm install
+
+COPY backend/services/cursor-runner/src /build/cursor-runner/src
+RUN cd /build/cursor-runner && npx tsc -p tsconfig.build.json
+
+# Reinstall without devDependencies for a lean production node_modules
+RUN cd /build/cursor-runner && npm prune --omit=dev
+
+# Verify the build output is importable
+RUN node -e "require('/build/cursor-runner/dist/config.js')" 2>/dev/null || \
+    node --input-type=module -e "import '/build/cursor-runner/dist/config.js'" && \
+    echo "cursor-runner build verification passed"
+
 # ---------- Sandbox Image ----------
 FROM debian:bookworm-slim
 
@@ -101,16 +145,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python3, pip, Node.js, and npm (MCP server runtimes: npx, uvx)
+# Install Python3, pip, yamllint
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     python3-venv \
-    nodejs \
-    npm \
     yamllint \
     && ln -sf /usr/bin/python3 /usr/bin/python \
     && rm -rf /var/lib/apt/lists/*
+
+# Node.js 22 LTS — required by Cursor SDK (>=20) and used for MCP server
+# runtimes (npx). Copied from the official Node.js image instead of using
+# Debian's package (which ships v18 on bookworm).
+COPY --from=public.ecr.aws/docker/library/node:22-slim /usr/local/bin/node /usr/local/bin/node
+COPY --from=public.ecr.aws/docker/library/node:22-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -sf /usr/local/bin/node /usr/local/bin/nodejs \
+    && ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -sf /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
 # Install PyYAML globally
 RUN pip3 install --no-cache-dir pyyaml --break-system-packages
@@ -141,11 +192,24 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH="/app/src"
 
-# Verify runner dependencies are importable in the final image.
+# Verify agent-runner dependencies are importable in the final image.
 RUN cd /app && /app/.venv/bin/python -c "\
 from stigmer_runner.worker.config import Config; \
 from deepagents.middleware.subagents import SubAgentMiddleware; \
 print('agent-runner import verification passed')"
+
+# ---------- Cursor Runner ----------
+# Compiled JS + production node_modules from the builder stage.
+# stigmer-service starts this worker via sandbox.process.exec() when
+# the session harness is HARNESS_CURSOR.
+COPY --from=cursor-runner-builder /build/cursor-runner/dist /cursor-runner/dist
+COPY --from=cursor-runner-builder /build/cursor-runner/node_modules /cursor-runner/node_modules
+COPY --from=cursor-runner-builder /build/cursor-runner/package.json /cursor-runner/package.json
+
+# Verify cursor-runner is importable in the final image.
+RUN node --input-type=module -e "\
+import '/cursor-runner/dist/config.js'; \
+console.log('cursor-runner import verification passed')"
 
 # Set working directory (Daytona convention — user workspace, not runner code)
 WORKDIR /workspace
