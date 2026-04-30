@@ -153,9 +153,48 @@ func Start(ctx context.Context, opts StartOptions) error {
 	}
 }
 
+// cursorHandle provides thread-safe access to a cursor-runner process that
+// may be started asynchronously after the main runner is already serving.
+type cursorHandle struct {
+	mu   sync.Mutex
+	proc *exec.Cmd
+	done chan struct{} // closed when the cursor-runner process exits
+}
+
+func newCursorHandle() *cursorHandle {
+	return &cursorHandle{done: make(chan struct{})}
+}
+
+func (h *cursorHandle) set(cmd *exec.Cmd) {
+	h.mu.Lock()
+	h.proc = cmd
+	h.mu.Unlock()
+}
+
+func (h *cursorHandle) shutdown() {
+	h.mu.Lock()
+	proc := h.proc
+	h.mu.Unlock()
+
+	if proc == nil || proc.Process == nil {
+		return
+	}
+
+	_ = proc.Process.Signal(syscall.SIGTERM)
+	select {
+	case <-h.done:
+	case <-time.After(gracefulShutdownTimeout):
+		_ = proc.Process.Kill()
+		<-h.done
+	}
+}
+
 // startNativeRunner bootstraps a Python venv, starts the agent-runner as a
 // local process, optionally starts the cursor-runner alongside it, and blocks
 // until exit or shutdown signal.
+//
+// The cursor-runner bootstrap (Node.js download + npm install) runs in a
+// background goroutine so it never delays the heartbeat stream.
 func startNativeRunner(ctx context.Context, reg *registeredRunner) error {
 	climsg.Info("Bootstrapping Python runtime ...")
 
@@ -201,29 +240,14 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner) error {
 		state.LogFile = logFilePath
 	}
 
-	// Optionally start cursor-runner alongside the Python agent-runner.
-	var cursorProc *exec.Cmd
-	if IsCursorRunnerAvailable(reg.backendInfo) {
-		cursorProc = startCursorRunnerProcess(ctx, reg, dataDir)
-		if cursorProc != nil {
-			state.CursorRunnerPID = cursorProc.Process.Pid
-		}
-	} else if !cursorrunner.IsAvailable() {
-		log.Debug().Msg("Cursor harness: skipped (cursor-runner source not found)")
-	} else if reg.backendInfo.IsLocal {
-		log.Debug().Msg("Cursor harness: skipped (CURSOR_API_KEY not set, required for local mode)")
-	}
-
 	if err := SaveState(reg.name, state); err != nil {
 		log.Warn().Err(err).Msg("Failed to save runner state (non-fatal)")
 	}
 
-	if cursorProc != nil {
-		climsg.Success("Runner %q started (agent-runner PID %d, cursor-runner PID %d)", reg.name, proc.Process.Pid, cursorProc.Process.Pid)
-	} else {
-		climsg.Success("Runner %q started (PID %d)", reg.name, proc.Process.Pid)
-	}
+	climsg.Success("Runner %q started (PID %d)", reg.name, proc.Process.Pid)
 
+	// Start the heartbeat stream immediately so the server sees this runner
+	// as RUNNING without waiting for the cursor-runner bootstrap.
 	streamCtx, streamCancel := context.WithCancel(context.Background())
 	var streamWg sync.WaitGroup
 
@@ -246,33 +270,48 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner) error {
 		}
 	}()
 
-	// Wait for cursor-runner exit in the background (non-blocking for main flow).
-	if cursorProc != nil {
+	// Bootstrap and start the cursor-runner asynchronously. The Node.js
+	// download + npm install can take minutes on first run; doing it here
+	// avoids blocking the heartbeat and state persistence above.
+	cursor := newCursorHandle()
+	if IsCursorRunnerAvailable(reg.backendInfo) {
 		go func() {
-			if err := cursorProc.Wait(); err != nil {
-				log.Warn().Err(err).Int("pid", cursorProc.Process.Pid).Msg("Cursor runner exited with error")
+			defer close(cursor.done)
+
+			cursorProc := startCursorRunnerProcess(ctx, reg, dataDir)
+			if cursorProc == nil {
+				return
+			}
+			cursor.set(cursorProc)
+
+			// Update the on-disk state with the cursor-runner PID.
+			if existing, loadErr := LoadState(reg.name); loadErr == nil {
+				existing.CursorRunnerPID = cursorProc.Process.Pid
+				if saveErr := SaveState(reg.name, existing); saveErr != nil {
+					log.Warn().Err(saveErr).Msg("Failed to update runner state with cursor-runner PID")
+				}
+			}
+
+			climsg.Info("Cursor runner ready (PID %d)", cursorProc.Process.Pid)
+
+			if waitErr := cursorProc.Wait(); waitErr != nil {
+				log.Warn().Err(waitErr).Int("pid", cursorProc.Process.Pid).Msg("Cursor runner exited with error")
 			} else {
 				log.Info().Int("pid", cursorProc.Process.Pid).Msg("Cursor runner exited normally")
 			}
 		}()
+	} else {
+		close(cursor.done)
+		if !cursorrunner.IsAvailable() {
+			log.Debug().Msg("Cursor harness: skipped (cursor-runner source not found)")
+		} else if reg.backendInfo.IsLocal {
+			log.Debug().Msg("Cursor harness: skipped (CURSOR_API_KEY not set, required for local mode)")
+		}
 	}
 
 	exitErr := waitForExitOrSignal(proc)
 
-	// Stop cursor-runner if it's still running.
-	if cursorProc != nil && cursorProc.Process != nil {
-		_ = cursorProc.Process.Signal(syscall.SIGTERM)
-		done := make(chan struct{})
-		go func() {
-			_ = cursorProc.Wait()
-			close(done)
-		}()
-		select {
-		case <-done:
-		case <-time.After(gracefulShutdownTimeout):
-			_ = cursorProc.Process.Kill()
-		}
-	}
+	cursor.shutdown()
 
 	streamCancel()
 	streamWg.Wait()
