@@ -153,7 +153,8 @@ func Start(ctx context.Context, opts StartOptions) error {
 }
 
 // startNativeRunner bootstraps a Python venv, starts the agent-runner as a
-// local process, and blocks until exit or shutdown signal.
+// local process, optionally starts the cursor-runner alongside it, and blocks
+// until exit or shutdown signal.
 func startNativeRunner(ctx context.Context, reg *registeredRunner) error {
 	climsg.Info("Bootstrapping Python runtime ...")
 
@@ -198,11 +199,29 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner) error {
 	if logFilePath != "" {
 		state.LogFile = logFilePath
 	}
+
+	// Optionally start cursor-runner alongside the Python agent-runner.
+	var cursorProc *exec.Cmd
+	if IsCursorRunnerAvailable() {
+		cursorProc = startCursorRunnerProcess(ctx, reg, dataDir)
+		if cursorProc != nil {
+			state.CursorRunnerPID = cursorProc.Process.Pid
+		}
+	} else if os.Getenv("CURSOR_API_KEY") == "" {
+		log.Debug().Msg("Cursor harness: skipped (CURSOR_API_KEY not set)")
+	} else {
+		log.Debug().Msg("Cursor harness: skipped (cursor-runner source not found)")
+	}
+
 	if err := SaveState(reg.name, state); err != nil {
 		log.Warn().Err(err).Msg("Failed to save runner state (non-fatal)")
 	}
 
-	climsg.Success("Runner %q started (PID %d)", reg.name, proc.Process.Pid)
+	if cursorProc != nil {
+		climsg.Success("Runner %q started (agent-runner PID %d, cursor-runner PID %d)", reg.name, proc.Process.Pid, cursorProc.Process.Pid)
+	} else {
+		climsg.Success("Runner %q started (PID %d)", reg.name, proc.Process.Pid)
+	}
 
 	streamCtx, streamCancel := context.WithCancel(context.Background())
 	var streamWg sync.WaitGroup
@@ -226,7 +245,33 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner) error {
 		}
 	}()
 
+	// Wait for cursor-runner exit in the background (non-blocking for main flow).
+	if cursorProc != nil {
+		go func() {
+			if err := cursorProc.Wait(); err != nil {
+				log.Warn().Err(err).Int("pid", cursorProc.Process.Pid).Msg("Cursor runner exited with error")
+			} else {
+				log.Info().Int("pid", cursorProc.Process.Pid).Msg("Cursor runner exited normally")
+			}
+		}()
+	}
+
 	exitErr := waitForExitOrSignal(proc)
+
+	// Stop cursor-runner if it's still running.
+	if cursorProc != nil && cursorProc.Process != nil {
+		_ = cursorProc.Process.Signal(syscall.SIGTERM)
+		done := make(chan struct{})
+		go func() {
+			_ = cursorProc.Wait()
+			close(done)
+		}()
+		select {
+		case <-done:
+		case <-time.After(gracefulShutdownTimeout):
+			_ = cursorProc.Process.Kill()
+		}
+	}
 
 	streamCancel()
 	streamWg.Wait()
@@ -236,6 +281,55 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner) error {
 	}
 
 	return exitErr
+}
+
+// startCursorRunnerProcess bootstraps and starts the cursor-runner TypeScript
+// process. Returns the process handle, or nil if bootstrap fails (non-fatal).
+func startCursorRunnerProcess(ctx context.Context, reg *registeredRunner, dataDir string) *exec.Cmd {
+	climsg.Info("Bootstrapping Node.js runtime for Cursor harness ...")
+
+	nodeBin, cursorAppDir, err := BootstrapCursorRunnerRuntime(ctx)
+	if err != nil {
+		climsg.Warning("Cursor harness bootstrap failed: %v (continuing without Cursor harness)", err)
+		return nil
+	}
+
+	cursorEnvParams := CursorEnvParams{
+		BackendInfo: reg.backendInfo,
+		RunnerID:    reg.runnerID,
+		TaskQueue:   reg.taskQueue,
+		DataDir:     dataDir,
+		AppDir:      cursorAppDir,
+	}
+	cursorEnv := BuildCursorRunnerEnv(cursorEnvParams)
+
+	tsxBin := filepath.Join(cursorAppDir, "node_modules", ".bin", "tsx")
+	entryPoint := filepath.Join("src", "main.ts")
+
+	cmd := exec.Command(nodeBin, tsxBin, entryPoint)
+	cmd.Dir = cursorAppDir
+	cmd.Env = cursorEnv
+
+	cursorLogFile, _, logErr := openRunnerLogFile(reg.name + "-cursor")
+	if logErr != nil {
+		log.Warn().Err(logErr).Msg("Failed to open cursor-runner log file")
+	}
+	if cursorLogFile != nil {
+		capped := &cappedWriter{w: cursorLogFile, limit: maxLogFileBytes}
+		cmd.Stdout = io.MultiWriter(os.Stdout, capped)
+		cmd.Stderr = io.MultiWriter(os.Stderr, capped)
+	} else {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
+
+	if err := cmd.Start(); err != nil {
+		climsg.Warning("Failed to start cursor-runner: %v (continuing without Cursor harness)", err)
+		return nil
+	}
+
+	climsg.Info("Cursor runner started (PID %d)", cmd.Process.Pid)
+	return cmd
 }
 
 // startDockerRunner starts the agent-runner inside a Docker container and
