@@ -13,14 +13,31 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: COMPLETE -- All tasks done (T01-T09)
-- **Last Session**: April 30, 2026 -- T08 SDK/React Session Harness Selector completed
-- **Active Task**: None -- all 9 tasks complete
+- **Status**: COMPLETE -- All tasks done (T01-T09) + CursorProxyController
+- **Last Session**: April 30, 2026 -- CursorProxyController implemented in stigmer-cloud
+- **Active Task**: None -- all implementation tasks complete
 - **Branch**: `feat/cursor-harness`
 
-## Session Progress (April 30, 2026 -- Session 9)
+## Session Progress (April 30, 2026 -- Session 10)
 
-### T08: SDK/React Session Harness Selector
+### CursorProxyController (stigmer-cloud)
+- Created `CursorProxyController.java` -- server-side HTTP reverse proxy for Cursor SDK traffic
+  - Host allowlist (`api2.cursor.sh`, `api.cursor.com`, `api.cursor.sh`) prevents open relay abuse
+  - Upstream URL reconstruction from path-encoded hostname
+  - `CURSOR_API_KEY` injection into outbound `Authorization: Bearer` header
+  - `StreamingResponseBody` relay for SSE/streaming responses
+  - HTTP/1.1 forcing (SSE fallback, per Cursor enterprise proxy guidance)
+  - 5-minute timeout for long-running agent executions
+  - Forwardable header filtering (strips hop-by-hop and proxy headers)
+  - Cost attribution logging (user, latency, upstream host)
+- Created `CursorProxyConfig.java` -- `@ConfigurationProperties` binding for `stigmer.proxy.cursor.api-key`
+- Updated `application.yaml` -- added `cursor:` block under `stigmer.proxy:`
+- Updated `_kustomize/base/service.yaml` -- added `STIGMER_PROXY_CURSOR_API_KEY` secret reference
+- Created `cursor.yaml` SecretsGroup manifest in `_ops/planton/service-hub/secrets-group/`
+- Applied SecretsGroup to Planton
+- Bazel build verified clean
+
+### Previous Session (Session 9): T08 SDK/React Session Harness Selector
 - Created `HarnessOption` type, label map, proto converters in `sdk/react/src/models/harness.ts`
 - Created `HarnessSelector` segmented control component with ARIA radiogroup, keyboard navigation, premium indicator
 - Added harness-aware model filtering to `useModelRegistry` (cursor harness shows only cursor models)
@@ -50,17 +67,26 @@ All 9 tasks complete:
 
 ## Next Steps
 
-Project is feature-complete. Remaining work:
+Project is feature-complete including the server-side proxy. Remaining work:
 1. Integration testing across the full flow (create session with Cursor harness → execution → streaming → billing)
-2. QA on the HarnessSelector UI component
-3. PR review and merge of `feat/cursor-harness` branch
-4. Release
+2. End-to-end test: cursor-runner → fetch interceptor → CursorProxyController → Cursor API
+3. QA on the HarnessSelector UI component
+4. PR review and merge of `feat/cursor-harness` branch (stigmer OSS)
+5. PR review and merge of CursorProxyController changes (stigmer-cloud)
+6. Release
+
+## Context for Resume
+- CursorProxyController is in stigmer-cloud (separate commit/PR needed)
+- SecretsGroup `cursor` has been applied to Planton with placeholder API key -- real key needs to be set before production testing
+- The proxy controller follows the same pattern as `LlmProxyController` -- review that as reference
+- HTTP/1.1 was chosen deliberately to force SSE fallback (per Cursor's enterprise proxy docs)
+- Host allowlist is hardcoded; expand only if Cursor adds new API domains
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-04-30-session-9.md
+_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-04-30-session-10.md
 ```
 
 ### 2. Task Plan
