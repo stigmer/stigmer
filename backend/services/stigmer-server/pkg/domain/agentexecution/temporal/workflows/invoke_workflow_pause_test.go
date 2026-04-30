@@ -17,7 +17,7 @@ import (
 // workflow.ExecuteActivity calls can be matched and mocked.
 func stubEnsureThread(_ string, _ string) (string, error) { return "", nil }
 func stubGenerateSessionSubject(_ string) error           { return nil }
-func stubExecuteGraphton(_ string, _ string, _ *agentexecutionv1.ApprovalDecisionList) (*agentexecutionv1.AgentExecutionStatus, error) {
+func stubExecuteGraphton(_ string, _ string) (*agentexecutionv1.AgentExecutionStatus, error) {
 	return nil, nil
 }
 func stubUpdateExecutionStatus(_ string, _ *agentexecutionv1.AgentExecutionStatus) error {
@@ -88,8 +88,8 @@ func TestPauseSignalCancelsActivityAndWaitsForResume(t *testing.T) {
 	// The first invocation is cancelled by the pause signal (mock not called).
 	// After resume, the second invocation runs the mock and completes.
 	resumeCallCount := 0
-	env.OnActivity(stubExecuteGraphton, mock.Anything, mock.Anything, mock.Anything).
-		Return(func(eid string, tid string, ad *agentexecutionv1.ApprovalDecisionList) (*agentexecutionv1.AgentExecutionStatus, error) {
+	env.OnActivity(stubExecuteGraphton, mock.Anything, mock.Anything).
+		Return(func(eid string, tid string) (*agentexecutionv1.AgentExecutionStatus, error) {
 			resumeCallCount++
 			return &agentexecutionv1.AgentExecutionStatus{
 				Phase: agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
@@ -125,7 +125,7 @@ func TestNormalCompletionWithoutPause(t *testing.T) {
 	const executionID = "exec-456"
 	registerCommonMocks(env, threadID)
 
-	env.OnActivity(stubExecuteGraphton, mock.Anything, mock.Anything, mock.Anything).
+	env.OnActivity(stubExecuteGraphton, mock.Anything, mock.Anything).
 		Return(&agentexecutionv1.AgentExecutionStatus{
 			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
 		}, nil)
@@ -162,8 +162,8 @@ func TestHitlApprovalLoopWithoutPause(t *testing.T) {
 		}, nil)
 
 	callCount := 0
-	env.OnActivity(stubExecuteGraphton, mock.Anything, mock.Anything, mock.Anything).
-		Return(func(eid string, tid string, ad *agentexecutionv1.ApprovalDecisionList) (*agentexecutionv1.AgentExecutionStatus, error) {
+	env.OnActivity(stubExecuteGraphton, mock.Anything, mock.Anything).
+		Return(func(eid string, tid string) (*agentexecutionv1.AgentExecutionStatus, error) {
 			callCount++
 			if callCount == 1 {
 				return &agentexecutionv1.AgentExecutionStatus{
@@ -205,8 +205,8 @@ func TestMultiplePauseResumeCycles(t *testing.T) {
 	// In the test env, cancelled invocations don't run the mock, so only the
 	// final (non-cancelled) invocation runs.
 	resumeCallCount := 0
-	env.OnActivity(stubExecuteGraphton, mock.Anything, mock.Anything, mock.Anything).
-		Return(func(eid string, tid string, ad *agentexecutionv1.ApprovalDecisionList) (*agentexecutionv1.AgentExecutionStatus, error) {
+	env.OnActivity(stubExecuteGraphton, mock.Anything, mock.Anything).
+		Return(func(eid string, tid string) (*agentexecutionv1.AgentExecutionStatus, error) {
 			resumeCallCount++
 			return &agentexecutionv1.AgentExecutionStatus{
 				Phase: agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
@@ -247,7 +247,7 @@ func TestFailedActivityPropagatesError(t *testing.T) {
 	const executionID = "exec-fail"
 	registerCommonMocks(env, threadID)
 
-	env.OnActivity(stubExecuteGraphton, mock.Anything, mock.Anything, mock.Anything).
+	env.OnActivity(stubExecuteGraphton, mock.Anything, mock.Anything).
 		Return(&agentexecutionv1.AgentExecutionStatus{
 			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_FAILED,
 			Error: "something went wrong",
