@@ -46,6 +46,19 @@ if [ -f "$CURSOR_RUNNER/package-lock.json" ]; then
 fi
 
 # --------------------------------------------------------------------------
+# Step 1b: Copy model-registry.json so the relative import in
+# src/adapter/model-pricing-data.ts resolves correctly.
+# From source/src/adapter/, the path ../../../../libs/model-registry.json
+# resolves to embedded/libs/ rather than backend/libs/.
+# --------------------------------------------------------------------------
+MODEL_REGISTRY="$REPO_ROOT/backend/libs/model-registry.json"
+if [ -f "$MODEL_REGISTRY" ]; then
+    echo "Syncing model-registry.json..."
+    mkdir -p "$SCRIPT_DIR/../libs"
+    cp "$MODEL_REGISTRY" "$SCRIPT_DIR/../libs/"
+fi
+
+# --------------------------------------------------------------------------
 # Step 2: Copy @stigmer/protos TS stubs as a local lib
 # --------------------------------------------------------------------------
 if [ -d "$TS_STUBS" ]; then

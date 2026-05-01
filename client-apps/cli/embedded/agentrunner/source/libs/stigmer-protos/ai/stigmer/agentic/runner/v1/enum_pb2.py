@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'ai/stigmer/agentic/runner/v1/enum.proto\x12\x1c\x61i.stigmer.agentic.runner.v1*\xa7\x01\n\x0bRunnerPhase\x12\x1c\n\x18RUNNER_PHASE_UNSPECIFIED\x10\x00\x12\x18\n\x14RUNNER_PHASE_PENDING\x10\x01\x12\x16\n\x12RUNNER_PHASE_READY\x10\x02\x12\x15\n\x11RUNNER_PHASE_BUSY\x10\x03\x12\x18\n\x14RUNNER_PHASE_STOPPED\x10\x04\x12\x17\n\x13RUNNER_PHASE_FAILED\x10\x05\x42\xc2\x01\n com.ai.stigmer.agentic.runner.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SAR\xaa\x02\x1c\x41i.Stigmer.Agentic.Runner.V1\xca\x02\x1c\x41i\\Stigmer\\Agentic\\Runner\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Runner\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Runner::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'ai/stigmer/agentic/runner/v1/enum.proto\x12\x1c\x61i.stigmer.agentic.runner.v1*\xc2\x01\n\x0bRunnerPhase\x12\x1c\n\x18RUNNER_PHASE_UNSPECIFIED\x10\x00\x12\x18\n\x14RUNNER_PHASE_PENDING\x10\x01\x12\x16\n\x12RUNNER_PHASE_READY\x10\x02\x12\x15\n\x11RUNNER_PHASE_BUSY\x10\x03\x12\x18\n\x14RUNNER_PHASE_STOPPED\x10\x04\x12\x17\n\x13RUNNER_PHASE_FAILED\x10\x05\x12\x19\n\x15RUNNER_PHASE_STARTING\x10\x06\x42\xc2\x01\n com.ai.stigmer.agentic.runner.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SAR\xaa\x02\x1c\x41i.Stigmer.Agentic.Runner.V1\xca\x02\x1c\x41i\\Stigmer\\Agentic\\Runner\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Runner\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Runner::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,5 +33,5 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n com.ai.stigmer.agentic.runner.v1B\tEnumProtoP\001\242\002\004ASAR\252\002\034Ai.Stigmer.Agentic.Runner.V1\312\002\034Ai\\Stigmer\\Agentic\\Runner\\V1\342\002(Ai\\Stigmer\\Agentic\\Runner\\V1\\GPBMetadata\352\002 Ai::Stigmer::Agentic::Runner::V1'
   _globals['_RUNNERPHASE']._serialized_start=74
-  _globals['_RUNNERPHASE']._serialized_end=241
+  _globals['_RUNNERPHASE']._serialized_end=268
 # @@protoc_insertion_point(module_scope)

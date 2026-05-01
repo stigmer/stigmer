@@ -206,6 +206,7 @@ class LLMConfig:
         self,
         proxy_endpoint: str | None = None,
         proxy_auth_token: str | None = None,
+        execution_id: str | None = None,
     ) -> dict[str, Any]:
         """Build provider-appropriate kwargs for ``parse_model_string``.
         
@@ -224,6 +225,9 @@ class LLMConfig:
                 and ``api_key`` are resolved for the proxy.
             proxy_auth_token: Auth token for the proxy
                 (typically ``STIGMER_API_KEY``).
+            execution_id: Agent execution ID for proxy authorization.
+                When set, included as ``X-Stigmer-Execution-Id`` header
+                so the proxy can verify FGA access.
         
         Returns:
             Dict of kwargs to pass to ``parse_model_string``.
@@ -237,10 +241,15 @@ class LLMConfig:
             else:
                 proxy_base = f"{proxy_endpoint}/v1/proxy/llm/anthropic"
             
-            return {
+            kwargs: dict[str, Any] = {
                 "base_url": proxy_base,
                 "api_key": proxy_auth_token,
             }
+            if execution_id:
+                kwargs["default_headers"] = {
+                    "X-Stigmer-Execution-Id": execution_id,
+                }
+            return kwargs
         
         if self.provider == "ollama":
             return {"base_url": self.base_url}
