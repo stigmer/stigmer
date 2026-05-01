@@ -92,7 +92,7 @@ delete pkg.devDependencies;
 pkg.scripts.start = 'node dist/main.js';
 
 process.stdout.write(JSON.stringify(pkg, null, 2) + '\n');
-" > "$SOURCE_DIR/package.json"
+" > "$SOURCE_DIR/package.json.tmp" && mv "$SOURCE_DIR/package.json.tmp" "$SOURCE_DIR/package.json"
 
 # --------------------------------------------------------------------------
 # Step 4: Install dependencies (needed for tsc to resolve types)
