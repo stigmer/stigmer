@@ -36,16 +36,16 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n\'ai/stigmer/agentic/runner/v1/enum.prot" +
-      "o\022\034ai.stigmer.agentic.runner.v1*\247\001\n\013Runn" +
+      "o\022\034ai.stigmer.agentic.runner.v1*\302\001\n\013Runn" +
       "erPhase\022\034\n\030RUNNER_PHASE_UNSPECIFIED\020\000\022\030\n" +
       "\024RUNNER_PHASE_PENDING\020\001\022\026\n\022RUNNER_PHASE_" +
       "READY\020\002\022\025\n\021RUNNER_PHASE_BUSY\020\003\022\030\n\024RUNNER" +
       "_PHASE_STOPPED\020\004\022\027\n\023RUNNER_PHASE_FAILED\020" +
-      "\005B\240\001B\tEnumProtoP\001\242\002\004ASAR\252\002\034Ai.Stigmer.Ag" +
-      "entic.Runner.V1\312\002\034Ai\\Stigmer\\Agentic\\Run" +
-      "ner\\V1\342\002(Ai\\Stigmer\\Agentic\\Runner\\V1\\GP" +
-      "BMetadata\352\002 Ai::Stigmer::Agentic::Runner" +
-      "::V1b\006proto3"
+      "\005\022\031\n\025RUNNER_PHASE_STARTING\020\006B\240\001B\tEnumPro" +
+      "toP\001\242\002\004ASAR\252\002\034Ai.Stigmer.Agentic.Runner." +
+      "V1\312\002\034Ai\\Stigmer\\Agentic\\Runner\\V1\342\002(Ai\\S" +
+      "tigmer\\Agentic\\Runner\\V1\\GPBMetadata\352\002 A" +
+      "i::Stigmer::Agentic::Runner::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

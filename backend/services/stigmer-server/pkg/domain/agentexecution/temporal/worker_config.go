@@ -22,7 +22,9 @@ import (
 // Go Worker (this):
 // - Registers: InvokeAgentExecutionWorkflow (orchestration only)
 // - Registers: UpdateExecutionStatusActivity (for failure recovery, as LOCAL activity)
+// - Registers: ReadSessionThreadIdActivity (Cursor harness thread_id, LOCAL activity)
 // - Does NOT register: ExecuteGraphton, EnsureThread (those are Python activities)
+// - Does NOT register: ExecuteCursor (TypeScript cursor-runner activity)
 //
 // Python Worker (agent-runner):
 // - Registers: ExecuteGraphton, EnsureThread, CleanupSandbox (activities only)
@@ -48,9 +50,10 @@ import (
 //
 // Why This Works:
 // ===============
-// Temporal routes tasks based on what each worker advertises:
-// - Workflow task for "InvokeAgentExecutionWorkflow" → Goes to Go (only worker that has it)
-// - Activity task for "ExecuteGraphton" → Goes to Python (only worker on that queue)
+// Each worker polls a dedicated queue, ensuring deterministic routing:
+// - Workflow task for "InvokeAgentExecutionWorkflow" → Goes to Go (only worker on stigmer queue)
+// - Activity task for "ExecuteGraphton" → Goes to Python (only worker on the runner base queue)
+// - Activity task for "ExecuteCursor" → Goes to TypeScript (only worker on {baseQueue}:cursor)
 // - Activity task for "UpdateExecutionStatusActivity" → Goes to Go (local activity, in-process)
 //
 // Environment Variables:
@@ -63,6 +66,7 @@ type WorkerConfig struct {
 	loadExecutionActivityImpl *activities.LoadAgentExecutionActivityImpl
 	deleteECActivityImpl      *ecactivities.DeleteExecutionContextActivityImpl
 	waitForRunnerReadyImpl    *activities.WaitForRunnerReadyActivityImpl
+	readSessionThreadIdImpl   *activities.ReadSessionThreadIdActivityImpl
 }
 
 // NewWorkerConfig creates a new WorkerConfig.
@@ -78,6 +82,7 @@ func NewWorkerConfig(
 		loadExecutionActivityImpl: activities.NewLoadAgentExecutionActivityImpl(store),
 		deleteECActivityImpl:      ecactivities.NewDeleteExecutionContextActivityImpl(store),
 		waitForRunnerReadyImpl:    activities.NewWaitForRunnerReadyActivityImpl(store),
+		readSessionThreadIdImpl:   activities.NewReadSessionThreadIdActivityImpl(store),
 	}
 }
 
@@ -149,11 +154,13 @@ func (wc *WorkerConfig) CreateWorker(temporalClient client.Client) worker.Worker
 	w.RegisterActivity(wc.loadExecutionActivityImpl.LoadAgentExecution)
 	w.RegisterActivity(wc.deleteECActivityImpl.DeleteExecutionContext)
 	w.RegisterActivity(wc.waitForRunnerReadyImpl.WaitForRunnerReady)
+	w.RegisterActivity(wc.readSessionThreadIdImpl.ReadSessionThreadId)
 
 	log.Info().Msg("✅ [POLYGLOT] Registered UpdateExecutionStatusActivity (regular + local, named)")
 	log.Info().Msg("✅ [POLYGLOT] Registered LoadAgentExecutionActivity as LOCAL activity (in-process)")
 	log.Info().Msg("✅ [POLYGLOT] Registered DeleteExecutionContextActivity as LOCAL activity (in-process)")
 	log.Info().Msg("✅ [POLYGLOT] Registered WaitForRunnerReadyActivity as LOCAL activity (ephemeral runner gate)")
+	log.Info().Msg("✅ [POLYGLOT] Registered ReadSessionThreadIdActivity as LOCAL activity (Cursor harness thread_id)")
 	log.Info().Msg("✅ [POLYGLOT] Temporal will route: workflow tasks → Go, Python activity tasks → Python")
 
 	return w

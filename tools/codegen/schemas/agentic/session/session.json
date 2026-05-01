@@ -113,6 +113,21 @@
       "description": "Skills to inject into this session's context.\n\n Provides domain-specific knowledge for this specific conversation without\n modifying the agent blueprint. Each reference points to a Skill resource\n whose content is added to the agent's context alongside agent-level skills.\n\n @internal\n Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.",
       "required": false,
       "referenceKind": 43
+    },
+    {
+      "name": "Harness",
+      "jsonName": "harness",
+      "protoField": "harness",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.session.v1.Harness",
+        "enumValues": [
+          "HARNESS_NATIVE",
+          "HARNESS_CURSOR"
+        ]
+      },
+      "description": "Execution harness for this session.\n\n Determines which Temporal activity type is dispatched when an\n AgentExecution is created in this session:\n - NATIVE (default): ExecuteGraphton activity -\u003e Stigmer native worker\n - CURSOR: ExecuteCursor activity -\u003e TypeScript/Cursor SDK worker\n\n The harness affects which tools the agent has, how conversation state\n is managed, available models, and billing tier. Once set and an execution\n has run, the harness is immutable — changing it would break conversation\n continuity since each harness owns its own state.\n\n When unspecified, defaults to HARNESS_NATIVE.",
+      "required": false
     }
   ]
 }

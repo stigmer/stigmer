@@ -152,6 +152,9 @@ export function SessionLauncher() {
           runnerId={flow.runnerId}
           onRunnerIdChange={flow.setRunnerId}
           sessionVariables={flow.sessionVariables}
+          showHarnessSelector
+          harness={flow.harness}
+          onHarnessChange={flow.setHarness}
           defaultModelId={flow.modelId}
           onModelChange={flow.setModelId}
           placeholder={placeholder}

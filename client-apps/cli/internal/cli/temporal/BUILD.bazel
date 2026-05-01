@@ -4,7 +4,10 @@ go_library(
     name = "temporal",
     srcs = [
         "download.go",
+        "flock_windows.go",
         "manager.go",
+        "proc_unix.go",
+        "proc_windows.go",
         "supervisor.go",
     ],
     importpath = "github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal",
@@ -12,5 +15,10 @@ go_library(
     deps = [
         "@com_github_pkg_errors//:errors",
         "@com_github_rs_zerolog//log",
-    ],
+    ] + select({
+        "@rules_go//go/platform:windows": [
+            "@org_golang_x_sys//windows",
+        ],
+        "//conditions:default": [],
+    }),
 )

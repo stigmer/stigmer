@@ -69,6 +69,9 @@ const (
 	IamPermission_can_connect IamPermission = 22
 	// Organization-level runner create permission.
 	IamPermission_can_create_runner IamPermission = 25
+	// Platform-level permission to delete sessions.
+	// Session deletion is restricted to operators to preserve billing audit trail.
+	IamPermission_can_delete_session IamPermission = 26
 )
 
 // Enum value maps for IamPermission.
@@ -99,6 +102,7 @@ var (
 		20: "login_to_back_office",
 		22: "can_connect",
 		25: "can_create_runner",
+		26: "can_delete_session",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -126,6 +130,7 @@ var (
 		"login_to_back_office":         20,
 		"can_connect":                  22,
 		"can_create_runner":            25,
+		"can_delete_session":           26,
 	}
 )
 
@@ -229,7 +234,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xcf\x04\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xe7\x04\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -257,7 +262,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x1ccan_manage_identity_accounts\x10\x12\x12\x18\n" +
 	"\x14login_to_back_office\x10\x14\x12\x0f\n" +
 	"\vcan_connect\x10\x16\x12\x15\n" +
-	"\x11can_create_runner\x10\x19*Q\n" +
+	"\x11can_create_runner\x10\x19\x12\x16\n" +
+	"\x12can_delete_session\x10\x1a*Q\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

@@ -6,6 +6,7 @@ go_library(
         "backend_info.go",
         "bootstrap.go",
         "copydir.go",
+        "cursor.go",
         "docker.go",
         "runner_env.go",
         "start.go",
@@ -17,8 +18,10 @@ go_library(
     deps = [
         "//client-apps/cli/embedded",
         "//client-apps/cli/embedded/agentrunner",
+        "//client-apps/cli/embedded/cursorrunner",
         "//client-apps/cli/internal/cli/config",
         "//client-apps/cli/internal/cli/daemon",
+        "//client-apps/cli/internal/cli/nodert",
         "//client-apps/cli/internal/cli/pythonrt",
         "//client-apps/cli/pkg/climsg",
         "@com_github_pkg_errors//:errors",

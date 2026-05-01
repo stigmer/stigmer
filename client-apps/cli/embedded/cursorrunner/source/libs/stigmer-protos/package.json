@@ -1,0 +1,48 @@
+{
+  "name": "@stigmer/protos",
+  "version": "0.0.0-dev",
+  "description": "Generated TypeScript protobuf stubs for Stigmer APIs",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./*": {
+      "types": "./*.ts",
+      "import": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "stigmer",
+    "protobuf",
+    "grpc",
+    "connect-rpc",
+    "ai-agents"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      "./*": {
+        "types": "./dist/*.d.ts",
+        "import": "./dist/*.js"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "apis/stubs/ts"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.12.0"
+  }
+}

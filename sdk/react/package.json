@@ -27,6 +27,7 @@
     "tsdoc:check": "typedoc --treatValidationWarningsAsErrors"
   },
   "files": [
+    "data",
     "dist",
     "src"
   ],

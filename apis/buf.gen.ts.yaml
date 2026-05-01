@@ -4,10 +4,12 @@ plugins:
     out: stubs/ts
     opt:
       - target=ts
+      - import_extension=js
     include_imports: true
   - remote: buf.build/connectrpc/es:v1.6.1
     out: stubs/ts
     opt:
       - target=ts
+      - import_extension=js
 inputs:
   - directory: .

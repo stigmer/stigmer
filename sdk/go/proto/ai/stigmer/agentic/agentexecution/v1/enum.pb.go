@@ -205,6 +205,15 @@ const (
 	MessageType_MESSAGE_TOOL MessageType = 3
 	// A system-generated message injected by the platform (e.g., budget warnings, summarization notices).
 	MessageType_MESSAGE_SYSTEM MessageType = 4
+	// Reasoning/thinking content from the model.
+	//
+	// Emitted by models with extended thinking enabled (e.g., Claude with
+	// thinking, Cursor's thinking events). Contains the model's internal
+	// reasoning that is distinct from the final assistant response.
+	//
+	// Rendered distinctly from assistant text in the UI (e.g., collapsible
+	// thinking block with subdued styling).
+	MessageType_MESSAGE_THINKING MessageType = 5
 )
 
 // Enum value maps for MessageType.
@@ -215,6 +224,7 @@ var (
 		2: "MESSAGE_AI",
 		3: "MESSAGE_TOOL",
 		4: "MESSAGE_SYSTEM",
+		5: "MESSAGE_THINKING",
 	}
 	MessageType_value = map[string]int32{
 		"MESSAGE_TYPE_UNSPECIFIED": 0,
@@ -222,6 +232,7 @@ var (
 		"MESSAGE_AI":               2,
 		"MESSAGE_TOOL":             3,
 		"MESSAGE_SYSTEM":           4,
+		"MESSAGE_THINKING":         5,
 	}
 )
 
@@ -806,14 +817,15 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x13EXECUTION_CANCELLED\x10\x05\x12\x18\n" +
 	"\x14EXECUTION_TERMINATED\x10\b\x12\"\n" +
 	"\x1eEXECUTION_WAITING_FOR_APPROVAL\x10\x06\x12\x14\n" +
-	"\x10EXECUTION_PAUSED\x10\a*t\n" +
+	"\x10EXECUTION_PAUSED\x10\a*\x8a\x01\n" +
 	"\vMessageType\x12\x1c\n" +
 	"\x18MESSAGE_TYPE_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rMESSAGE_HUMAN\x10\x01\x12\x0e\n" +
 	"\n" +
 	"MESSAGE_AI\x10\x02\x12\x10\n" +
 	"\fMESSAGE_TOOL\x10\x03\x12\x12\n" +
-	"\x0eMESSAGE_SYSTEM\x10\x04*\xc6\x01\n" +
+	"\x0eMESSAGE_SYSTEM\x10\x04\x12\x14\n" +
+	"\x10MESSAGE_THINKING\x10\x05*\xc6\x01\n" +
 	"\x0eToolCallStatus\x12 \n" +
 	"\x1cTOOL_CALL_STATUS_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11TOOL_CALL_PENDING\x10\x01\x12\x15\n" +

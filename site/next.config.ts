@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
     "@stigmer/protos",
   ],
   webpack: (config, { isServer }) => {
+    config.resolve.extensionAlias = {
+      ".js": [".ts", ".tsx", ".js"],
+      ".mjs": [".mts", ".mjs"],
+    };
     if (!isServer) {
       config.resolve.alias["msw/node"] = false;
     }

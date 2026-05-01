@@ -164,6 +164,15 @@ public enum IamPermission
    * <code>can_create_runner = 25;</code>
    */
   can_create_runner(25),
+  /**
+   * <pre>
+   * Platform-level permission to delete sessions.
+   * Session deletion is restricted to operators to preserve billing audit trail.
+   * </pre>
+   *
+   * <code>can_delete_session = 26;</code>
+   */
+  can_delete_session(26),
   UNRECOGNIZED(-1),
   ;
 
@@ -316,6 +325,15 @@ public enum IamPermission
    * <code>can_create_runner = 25;</code>
    */
   public static final int can_create_runner_VALUE = 25;
+  /**
+   * <pre>
+   * Platform-level permission to delete sessions.
+   * Session deletion is restricted to operators to preserve billing audit trail.
+   * </pre>
+   *
+   * <code>can_delete_session = 26;</code>
+   */
+  public static final int can_delete_session_VALUE = 26;
 
 
   public final int getNumber() {
@@ -367,6 +385,7 @@ public enum IamPermission
       case 20: return login_to_back_office;
       case 22: return can_connect;
       case 25: return can_create_runner;
+      case 26: return can_delete_session;
       default: return null;
     }
   }

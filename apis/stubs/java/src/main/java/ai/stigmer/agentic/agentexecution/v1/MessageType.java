@@ -55,6 +55,21 @@ public enum MessageType
    * <code>MESSAGE_SYSTEM = 4;</code>
    */
   MESSAGE_SYSTEM(4),
+  /**
+   * <pre>
+   * Reasoning/thinking content from the model.
+   *
+   * Emitted by models with extended thinking enabled (e.g., Claude with
+   * thinking, Cursor's thinking events). Contains the model's internal
+   * reasoning that is distinct from the final assistant response.
+   *
+   * Rendered distinctly from assistant text in the UI (e.g., collapsible
+   * thinking block with subdued styling).
+   * </pre>
+   *
+   * <code>MESSAGE_THINKING = 5;</code>
+   */
+  MESSAGE_THINKING(5),
   UNRECOGNIZED(-1),
   ;
 
@@ -107,6 +122,21 @@ public enum MessageType
    * <code>MESSAGE_SYSTEM = 4;</code>
    */
   public static final int MESSAGE_SYSTEM_VALUE = 4;
+  /**
+   * <pre>
+   * Reasoning/thinking content from the model.
+   *
+   * Emitted by models with extended thinking enabled (e.g., Claude with
+   * thinking, Cursor's thinking events). Contains the model's internal
+   * reasoning that is distinct from the final assistant response.
+   *
+   * Rendered distinctly from assistant text in the UI (e.g., collapsible
+   * thinking block with subdued styling).
+   * </pre>
+   *
+   * <code>MESSAGE_THINKING = 5;</code>
+   */
+  public static final int MESSAGE_THINKING_VALUE = 5;
 
 
   public final int getNumber() {
@@ -138,6 +168,7 @@ public enum MessageType
       case 2: return MESSAGE_AI;
       case 3: return MESSAGE_TOOL;
       case 4: return MESSAGE_SYSTEM;
+      case 5: return MESSAGE_THINKING;
       default: return null;
     }
   }

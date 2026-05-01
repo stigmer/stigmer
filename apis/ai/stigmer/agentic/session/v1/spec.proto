@@ -3,6 +3,7 @@ syntax = "proto3";
 package ai.stigmer.agentic.session.v1;
 
 import "ai/stigmer/agentic/agent/v1/spec.proto";
+import "ai/stigmer/agentic/session/v1/enum.proto";
 import "ai/stigmer/agentic/session/v1/workspace.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
@@ -99,4 +100,19 @@ message SessionSpec {
       expression: "this.kind == 43"
     }
   ];
+
+  // Execution harness for this session.
+  //
+  // Determines which Temporal activity type is dispatched when an
+  // AgentExecution is created in this session:
+  // - NATIVE (default): ExecuteGraphton activity -> Stigmer native worker
+  // - CURSOR: ExecuteCursor activity -> TypeScript/Cursor SDK worker
+  //
+  // The harness affects which tools the agent has, how conversation state
+  // is managed, available models, and billing tier. Once set and an execution
+  // has run, the harness is immutable — changing it would break conversation
+  // continuity since each harness owns its own state.
+  //
+  // When unspecified, defaults to HARNESS_NATIVE.
+  Harness harness = 10;
 }

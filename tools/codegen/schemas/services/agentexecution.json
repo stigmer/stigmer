@@ -1297,6 +1297,11 @@
           "name": "MESSAGE_SYSTEM",
           "number": 4,
           "description": "A system-generated message injected by the platform (e.g., budget warnings, summarization notices)."
+        },
+        {
+          "name": "MESSAGE_THINKING",
+          "number": 5,
+          "description": "Reasoning/thinking content from the model.\n\n Emitted by models with extended thinking enabled (e.g., Claude with\n thinking, Cursor's thinking events). Contains the model's internal\n reasoning that is distinct from the final assistant response.\n\n Rendered distinctly from assistant text in the UI (e.g., collapsible\n thinking block with subdued styling)."
         }
       ]
     },
@@ -1721,7 +1726,8 @@
               "MESSAGE_HUMAN",
               "MESSAGE_AI",
               "MESSAGE_TOOL",
-              "MESSAGE_SYSTEM"
+              "MESSAGE_SYSTEM",
+              "MESSAGE_THINKING"
             ]
           },
           "description": "Type of message (human, ai, tool, system).",

@@ -79,6 +79,7 @@ type SessionInput struct {
 	McpServerUsages  []*McpServerUsageInput
 	RunnerId         string
 	SkillRefs        []ResourceRef
+	Harness          sessionv1.Harness
 }
 
 // WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
@@ -136,6 +137,7 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 		ref.Kind = apiresourcekind.ApiResourceKind_skill
 		resource.Spec.SkillRefs = append(resource.Spec.SkillRefs, ref)
 	}
+	resource.Spec.Harness = i.Harness
 	return resource
 }
 
@@ -177,6 +179,7 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 		for _, r := range s.GetSkillRefs() {
 			input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
 		}
+		input.Harness = s.GetHarness()
 	}
 	return input
 }

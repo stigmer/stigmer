@@ -53,11 +53,15 @@ service SessionCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update session subject";
   }
 
-  // Delete a session (also cleans up thread).
+  // Delete a session.
+  //
+  // @internal
+  // Restricted to platform operators to preserve the billing and audit trail.
+  // Regular users (including session owners) cannot delete sessions.
   rpc delete(SessionId) returns (Session) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = session;
-    option (ai.stigmer.commons.rpc.config).permission = can_delete;
-    option (ai.stigmer.commons.rpc.config).field_path = "value";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete session";
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete_session;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete session — operator access required";
   }
 }

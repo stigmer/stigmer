@@ -154,6 +154,7 @@ func TestStreamLoop_StopError_SendsGracefulStop(t *testing.T) {
 		runnerID:          "runner-1",
 		heartbeatInterval: 30 * time.Second,
 		connectionInfo:    &runnerv1.RunnerConnectionInfo{},
+		currentPhase:      runnerv1.RunnerPhase_RUNNER_PHASE_READY,
 	}
 
 	parentCtx := context.Background()

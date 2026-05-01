@@ -1,14 +1,15 @@
 /**
  * Model registry — UI-relevant metadata for all platform-supported LLM models.
  *
- * Ported from the Python source of truth at
- * backend/libs/python/graphton/src/graphton/core/model_registry.py.
+ * Reads from the unified JSON registry at backend/libs/model-registry.json,
+ * which is the single source of truth for model IDs, display names, pricing,
+ * and cost tiers across all harnesses and runtimes.
  *
- * This is a static, hardcoded list. A future backend RPC will replace it
- * with a dynamic query; when that happens consumers will only need to
- * swap from the static constant to a fetched result — the shape stays
- * the same.
+ * Update it with: @update-model-registry
  */
+
+import type { HarnessOption } from "./harness";
+import registryData from "../../data/model-registry.json";
 
 /**
  * Pricing bracket for a model.
@@ -21,10 +22,18 @@ export type CostTier = "economy" | "standard" | "premium";
 
 /**
  * LLM provider identifier. Each provider maps to a distinct inference
- * backend. The {@link MODEL_REGISTRY} groups models by provider for
- * display in {@link ModelSelector}.
+ * backend (or intermediary, in the case of Cursor-served third-party
+ * models). The {@link MODEL_REGISTRY} uses this for grouping in the
+ * "Show All" expanded view.
  */
-export type Provider = "anthropic" | "openai" | "ollama";
+export type Provider =
+  | "anthropic"
+  | "openai"
+  | "google"
+  | "xai"
+  | "cursor"
+  | "moonshot"
+  | "ollama";
 
 /**
  * Providers whose models should be hidden from the UI.
@@ -36,7 +45,6 @@ export type Provider = "anthropic" | "openai" | "ollama";
  * To re-enable a provider, simply remove it from this set.
  */
 export const DISABLED_PROVIDERS: ReadonlySet<Provider> = new Set([
-  "openai",
   "ollama",
 ]);
 
@@ -56,54 +64,118 @@ export interface ModelInfo {
   readonly modelId: string;
   /** LLM provider that serves this model. */
   readonly provider: Provider;
-  /** Human-readable name shown in the {@link ModelSelector} dropdown. */
+  /** Human-readable name shown in the model picker. */
   readonly displayName: string;
   /** Pricing bracket used for cost-tier indicators in the UI. */
   readonly costTier: CostTier;
+  /** Which execution engine serves this model. */
+  readonly harness: HarnessOption;
+  /**
+   * When `true`, appears in the curated default list (the short view
+   * before "Show All Models" is expanded or search is used).
+   */
+  readonly featured: boolean;
 }
 
 /**
- * Static catalog of all platform-supported LLM models.
+ * Per-model cost entry for programmatic access to pricing data.
+ * Re-exported for consumers that need dollar-level pricing beyond the
+ * coarse `CostTier` label.
+ */
+export interface ModelCostEntry {
+  readonly modelId: string;
+  readonly inputPricePerMillion: number;
+  readonly outputPricePerMillion: number;
+  readonly cacheWritePricePerMillion: number;
+  readonly cacheReadPricePerMillion: number;
+}
+
+/**
+ * Build a compound key that uniquely identifies a model across harnesses.
  *
- * Each entry carries the metadata needed for model selection UI.
+ * The same underlying model name (e.g. `claude-4.6-sonnet`) can exist in
+ * both native and cursor harnesses. The compound key disambiguates.
+ */
+export function modelKey(harness: HarnessOption, modelId: string): string {
+  return `${harness}/${modelId}`;
+}
+
+/** Parsed result of a compound `harness/modelId` key. */
+export interface ParsedModelKey {
+  /** Harness portion of the compound key. */
+  harness: HarnessOption;
+  /** Model ID portion of the compound key. */
+  modelId: string;
+}
+
+/**
+ * Parse a compound key back into its `(harness, modelId)` parts.
+ * Returns `undefined` for malformed keys.
+ */
+export function parseModelKey(key: string): ParsedModelKey | undefined {
+  const idx = key.indexOf("/");
+  if (idx < 1) return undefined;
+  const harness = key.slice(0, idx);
+  if (harness !== "native" && harness !== "cursor") return undefined;
+  return { harness, modelId: key.slice(idx + 1) };
+}
+
+// ---------------------------------------------------------------------------
+// JSON → ModelInfo mapping
+// ---------------------------------------------------------------------------
+
+interface RegistryJsonEntry {
+  id?: string;
+  displayName?: string;
+  provider?: string;
+  harness?: string;
+  costTier?: string;
+  featured?: boolean;
+  pricing?: {
+    inputPricePerMillion: number;
+    outputPricePerMillion: number;
+    cacheWritePricePerMillion: number;
+    cacheReadPricePerMillion: number;
+  };
+  $comment?: string;
+}
+
+const VALID_COST_TIERS = new Set(["economy", "standard", "premium"]);
+const VALID_HARNESSES = new Set(["native", "cursor"]);
+
+function isModelEntry(entry: RegistryJsonEntry): entry is Required<Pick<RegistryJsonEntry, "id" | "displayName" | "provider" | "harness" | "costTier">> & RegistryJsonEntry {
+  return (
+    typeof entry.id === "string" &&
+    typeof entry.displayName === "string" &&
+    typeof entry.provider === "string" &&
+    typeof entry.harness === "string" && VALID_HARNESSES.has(entry.harness) &&
+    typeof entry.costTier === "string" && VALID_COST_TIERS.has(entry.costTier)
+  );
+}
+
+/**
+ * Static catalog of all platform-supported LLM models, loaded from the
+ * unified JSON registry.
+ *
  * {@link useModelRegistry} filters out disabled providers and provides
  * lookup helpers on top of this list.
  */
-export const MODEL_REGISTRY: readonly ModelInfo[] = [
-  // ── Anthropic — Generation 4.6 ────────────────────────────────────
-  { modelId: "claude-opus-4.6", provider: "anthropic", displayName: "Claude Opus 4.6", costTier: "premium" },
-  { modelId: "claude-sonnet-4.6", provider: "anthropic", displayName: "Claude Sonnet 4.6", costTier: "standard" },
+export const MODEL_REGISTRY: readonly ModelInfo[] = (
+  registryData.models as RegistryJsonEntry[]
+)
+  .filter(isModelEntry)
+  .map((m) => ({
+    modelId: m.id,
+    provider: m.provider as Provider,
+    displayName: m.displayName,
+    costTier: m.costTier as CostTier,
+    harness: m.harness as HarnessOption,
+    featured: m.featured ?? false,
+  }));
 
-  // ── Anthropic — Generation 4.5 ────────────────────────────────────
-  { modelId: "claude-opus-4.5", provider: "anthropic", displayName: "Claude Opus 4.5", costTier: "premium" },
-  { modelId: "claude-sonnet-4.5", provider: "anthropic", displayName: "Claude Sonnet 4.5", costTier: "standard" },
-
-  // ── Anthropic — Generation 4 ──────────────────────────────────────
-  { modelId: "claude-opus-4", provider: "anthropic", displayName: "Claude Opus 4", costTier: "premium" },
-  { modelId: "claude-haiku-4.5", provider: "anthropic", displayName: "Claude Haiku 4.5", costTier: "economy" },
-
-  // ── Anthropic — Generation 3.5 ────────────────────────────────────
-  { modelId: "claude-sonnet-3.5", provider: "anthropic", displayName: "Claude Sonnet 3.5", costTier: "standard" },
-  { modelId: "claude-haiku-3.5", provider: "anthropic", displayName: "Claude Haiku 3.5", costTier: "economy" },
-
-  // ── OpenAI ────────────────────────────────────────────────────────
-  { modelId: "gpt-4", provider: "openai", displayName: "GPT-4", costTier: "premium" },
-  { modelId: "gpt-4-turbo", provider: "openai", displayName: "GPT-4 Turbo", costTier: "standard" },
-  { modelId: "gpt-4o", provider: "openai", displayName: "GPT-4o", costTier: "standard" },
-  { modelId: "gpt-4o-mini", provider: "openai", displayName: "GPT-4o Mini", costTier: "economy" },
-  { modelId: "gpt-3.5-turbo", provider: "openai", displayName: "GPT-3.5 Turbo", costTier: "economy" },
-  { modelId: "o1", provider: "openai", displayName: "o1", costTier: "premium" },
-  { modelId: "o1-mini", provider: "openai", displayName: "o1 Mini", costTier: "standard" },
-
-  // ── Ollama (local, no cost) ───────────────────────────────────────
-  { modelId: "qwen2.5-coder:7b", provider: "ollama", displayName: "Qwen 2.5 Coder 7B", costTier: "economy" },
-  { modelId: "qwen2.5-coder:14b", provider: "ollama", displayName: "Qwen 2.5 Coder 14B", costTier: "economy" },
-  { modelId: "codellama:7b", provider: "ollama", displayName: "Code Llama 7B", costTier: "economy" },
-  { modelId: "codellama:13b", provider: "ollama", displayName: "Code Llama 13B", costTier: "economy" },
-  { modelId: "deepseek-coder-v2:16b", provider: "ollama", displayName: "DeepSeek Coder V2 16B", costTier: "economy" },
-  { modelId: "llama3.2:3b", provider: "ollama", displayName: "Llama 3.2 3B", costTier: "economy" },
-  { modelId: "mistral:7b", provider: "ollama", displayName: "Mistral 7B", costTier: "economy" },
-] as const;
-
-/** Model ID used when no user preference is set. */
+/** Model ID used when no user preference is set (native harness). */
 export const DEFAULT_MODEL_ID = "claude-sonnet-4.5";
+
+/** Model ID used when the Cursor harness is selected and no user preference is set. */
+export const DEFAULT_CURSOR_MODEL_ID = "default";
+
