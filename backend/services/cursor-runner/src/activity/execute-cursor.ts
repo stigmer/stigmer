@@ -43,6 +43,7 @@ import { buildEnhancedPrompt, buildReinvocationPrompt } from "../adapter/prompt-
 import { writeHooksToWorkspace } from "../hitl/workspace-setup.js";
 import { buildApprovalState } from "../hitl/approval-state.js";
 import { setInterceptorExecutionId } from "../proxy/fetch-interceptor.js";
+import { discoverModels, resolveModelId } from "../adapter/model-discovery.js";
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -145,20 +146,32 @@ async function executeCursor(
     );
     const attachmentPaths = attachmentResults.map((a) => a.relativePath);
 
-    // Phase 6: Resolve Cursor Agent (create or resume)
+    // Phase 6: Discover models and validate selection
+    await reportSetupProgress(client, executionId, "Discovering available models");
+    const availableModels = await discoverModels(config.cursorApiKey);
+    const requestedModel = spec.executionConfig?.modelName || "default";
+    const validatedModel = resolveModelId(availableModels, requestedModel);
+    if (validatedModel !== requestedModel) {
+      console.log(
+        `ExecuteCursor model resolved: execution=${executionId}, requested="${requestedModel}", using="${validatedModel}"`,
+      );
+    }
+    heartbeat();
+
+    // Phase 7: Resolve Cursor Agent (create or resume)
     await reportSetupProgress(client, executionId, "Initializing Cursor agent");
     const { agent, isNew } = await resolveAgent(threadId, {
       apiKey: config.cursorApiKey,
-      model: spec.executionConfig?.modelName || "composer-2",
+      model: validatedModel,
       workspaceDirs: blueprint.workspaceDirs,
       mcpServers: mcpConfig,
     });
 
-    // Phase 7: Write hooks for HITL
+    // Phase 8: Write hooks for HITL
     const approvalState = buildApprovalState(approvalDecisions);
     await writeHooksToWorkspace(primaryWorkspaceDir, approvalState);
 
-    // Phase 8: Store new agentId as thread_id if this is a new agent
+    // Phase 9: Store new agentId as thread_id if this is a new agent
     if (isNew && agent.agentId) {
       try {
         blueprint.sessionSpec.threadId = agent.agentId;
@@ -169,7 +182,7 @@ async function executeCursor(
       }
     }
 
-    // Phase 9: Build the prompt
+    // Phase 10: Build the prompt
     let prompt: string;
     if (isReinvocation && approvalDecisions?.size) {
       prompt = buildReinvocationPrompt(approvalDecisions);
@@ -185,10 +198,9 @@ async function executeCursor(
       });
     }
 
-    // Phase 10: Send message and stream events
+    // Phase 11: Send message and stream events
     status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
-    const modelName = spec.executionConfig?.modelName || "composer-2";
-    const usageTracker = new UsageTracker(modelName);
+    const usageTracker = new UsageTracker(validatedModel);
     const collectedEvents: SDKMessage[] = [];
 
     const pendingMetrics: LlmCallMetrics[] = [];
@@ -243,7 +255,7 @@ async function executeCursor(
       stampMetricsOnLastAiMessage(status.messages, metrics);
     }
 
-    // Phase 11: Check for denied tool calls (HITL)
+    // Phase 12: Check for denied tool calls (HITL)
     const deniedCalls = extractDeniedToolCalls(collectedEvents);
     if (deniedCalls.length > 0) {
       status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
@@ -264,7 +276,7 @@ async function executeCursor(
       return slimStatus(status);
     }
 
-    // Phase 12: Map final result
+    // Phase 13: Map final result
     const result = await run.wait();
     console.log(
       `ExecuteCursor run.wait() result: execution=${executionId}, result=${JSON.stringify(result)}`,

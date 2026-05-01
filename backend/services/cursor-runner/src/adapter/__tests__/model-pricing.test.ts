@@ -9,12 +9,14 @@ describe("getCursorModelPricing", () => {
   it.each([
     "composer-2",
     "composer-1.5",
-    "composer-1",
-    "auto",
-    "claude-4.7-opus",
-    "claude-4.6-sonnet",
+    "default",
+    "claude-opus-4-7",
+    "claude-sonnet-4-6",
     "gpt-5.5",
+    "gpt-5.4-mini",
     "gemini-3-flash",
+    "grok-4-20",
+    "kimi-k2.5",
   ])("returns pricing for known model %s", (model) => {
     const pricing = getCursorModelPricing(model);
     expect(pricing.model).toBe(model);
@@ -31,14 +33,14 @@ describe("getCursorModelPricing", () => {
 
   it("uses conservative default rates (auto-pool level) for unknown models", () => {
     const unknown = getCursorModelPricing("mystery-model");
-    const auto = getCursorModelPricing("auto");
+    const auto = getCursorModelPricing("default");
     expect(unknown.inputPricePerMillion).toBe(auto.inputPricePerMillion);
     expect(unknown.outputPricePerMillion).toBe(auto.outputPricePerMillion);
   });
 
   it("returns distinct rates for different cost tiers", () => {
     const economy = getCursorModelPricing("composer-2");
-    const premium = getCursorModelPricing("claude-4.7-opus");
+    const premium = getCursorModelPricing("claude-opus-4-7");
     expect(premium.inputPricePerMillion).toBeGreaterThan(
       economy.inputPricePerMillion,
     );
@@ -48,6 +50,7 @@ describe("getCursorModelPricing", () => {
 describe("computeTurnCost", () => {
   const pricing: CursorModelPricing = {
     model: "test-model",
+    displayName: "Test Model",
     inputPricePerMillion: 1.0,
     outputPricePerMillion: 2.0,
     cacheWritePricePerMillion: 3.0,
