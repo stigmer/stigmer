@@ -11,7 +11,7 @@
  * Mirrors the Python agent-runner's __main__.py pattern.
  */
 
-import { loadConfig } from "./config.js";
+import { loadConfig, CURSOR_QUEUE_SUFFIX } from "./config.js";
 import { installFetchInterceptor } from "./proxy/fetch-interceptor.js";
 
 let shutdownRequested = false;
@@ -35,7 +35,7 @@ async function main(): Promise<void> {
   console.log("=".repeat(60));
   console.log(`Stigmer Cursor Runner - ${config.mode.toUpperCase()} Mode`);
   console.log("=".repeat(60));
-  console.log(`Task Queue: ${config.taskQueue}`);
+  console.log(`Task Queue: ${config.taskQueue}${CURSOR_QUEUE_SUFFIX}`);
   console.log(`Temporal: ${config.temporalAddress} (namespace: ${config.temporalNamespace})`);
   console.log(`Backend: ${config.stigmerBackendEndpoint}`);
   console.log(`Workspace: ${config.workspaceRootDir}`);

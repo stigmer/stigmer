@@ -19,12 +19,17 @@ import (
 //
 // Polyglot Workflow Pattern:
 // - Workflow (Go): Orchestrates activity execution
-// - Python Activities (agent-runner): ExecuteGraphton, EnsureThread (on runner queue)
-// - TypeScript Activities (cursor-runner): ExecuteCursor (on same runner queue)
+// - Python Activities (agent-runner): ExecuteGraphton, EnsureThread (on runner base queue)
+// - TypeScript Activities (cursor-runner): ExecuteCursor (on {baseQueue}:cursor)
 //
 // Harness dispatch: input.Harness determines which flow runs:
 // - NATIVE/UNSPECIFIED: executeGraphtonFlow (EnsureThread -> ExecuteGraphton)
 // - CURSOR: executeCursorFlow (ReadSessionThreadId -> ExecuteCursor)
+//
+// Queue routing: Python activities dispatch to the base queue from the memo.
+// ExecuteCursor dispatches to {baseQueue}:cursor via CursorQueueSuffix in the
+// activity stub. This ensures deterministic routing — Temporal dispatches
+// activity tasks to any worker on a queue without activity-type awareness.
 //
 // Both flows share the same HITL approval loop (approvalGateResolved signal)
 // and pause/resume pattern (CancellationScope).

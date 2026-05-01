@@ -6,7 +6,15 @@
 
 ## Executive Summary
 
-Add Cursor as a second execution engine inside the existing runner daemon. `stigmer up` starts ONE daemon that launches BOTH the Python/LangGraph worker and the TypeScript/Cursor worker on the same Temporal task queue. Temporal routes activities by activity type (`ExecuteGraphton` vs `ExecuteCursor`). The backend choice lives on `SessionSpec` -- when a user creates a session, they pick LangGraph (standard) or Cursor (premium). The Runner resource stays unchanged.
+Add Cursor as a second execution engine inside the existing runner daemon. `stigmer up` starts ONE daemon that launches BOTH the Python/LangGraph worker and the TypeScript/Cursor worker. Each worker polls a **separate derived task queue** — Python on `runner:{id}` (base queue), TypeScript on `runner:{id}:cursor`. The workflow dispatches activities to the correct queue based on the session's harness field. The backend choice lives on `SessionSpec` -- when a user creates a session, they pick LangGraph (standard) or Cursor (premium). The Runner resource stays unchanged.
+
+> **Correction (2026-05-01):** The original design assumed "Temporal routes activities by
+> activity type name." This is incorrect — Temporal dispatches activity tasks to any worker
+> polling a queue without regard to registered activity types. Sharing one queue between
+> Python and TypeScript workers caused non-deterministic routing where the Python worker
+> could receive `ExecuteCursor` tasks and permanently fail them. The fix uses a derived
+> queue (`{baseQueue}:cursor`) for the cursor runner, with the workflow dispatching
+> `ExecuteCursor` to that specific queue.
 
 ---
 
@@ -17,7 +25,7 @@ Add Cursor as a second execution engine inside the existing runner daemon. `stig
 | Where does backend selection live? | **SessionSpec** -- new `execution_backend` field |
 | Runner proto changes? | **None** -- Runner is infrastructure, backend-agnostic. No `RunnerBackend` enum. |
 | Runner connection info changes? | **None** -- we don't capture LangGraph SDK version, so don't capture Cursor SDK version either |
-| Task queue model? | **Same queue** -- both workers poll the runner's single task queue. Activity type determines routing. |
+| Task queue model? | **Derived queues** -- Python polls `runner:{id}` (base), TypeScript polls `runner:{id}:cursor`. Workflow dispatches to the correct queue per harness. |
 | Cursor API key ownership? | **Stigmer service account** -- customer never sees Cursor. Stigmer absorbs cost and adds platform fee. |
 | Cost UX? | **Unified** -- same billing experience as LangGraph. Stigmer captures Cursor's cost data and presents it in its own cost model. |
 | Scope? | **Both Local and Cloud** -- target both Cursor runtimes. |
@@ -39,15 +47,17 @@ flowchart TD
 
     subgraph PlatformLayer ["Platform (stigmer-server)"]
         CreateExec["Create AgentExecution"]
-        ReadSession["Read session.spec.execution_backend"]
+        ReadSession["Read session.spec.harness"]
         Dispatch["ResolveActivityTaskQueue"]
         GoWF["Go Workflow: InvokeAgentExecution"]
     end
 
     subgraph RunnerDaemon ["Runner Daemon (stigmer up)"]
         Register["Register Runner via Apply"]
-        subgraph SameQueue ["Same Task Queue: runner:{id}"]
+        subgraph BaseQueue ["Queue: runner:{id}"]
             PyWorker["Python Worker\n(registers ExecuteGraphton)"]
+        end
+        subgraph CursorQueue ["Queue: runner:{id}:cursor"]
             TsWorker["TypeScript Worker\n(registers ExecuteCursor)"]
         end
     end
@@ -61,8 +71,8 @@ flowchart TD
     CreateExec --> ReadSession
     ReadSession --> Dispatch
     Dispatch --> GoWF
-    GoWF -->|"ExecuteGraphton activity"| PyWorker
-    GoWF -->|"ExecuteCursor activity"| TsWorker
+    GoWF -->|"ExecuteGraphton on base queue"| PyWorker
+    GoWF -->|"ExecuteCursor on :cursor queue"| TsWorker
     PyWorker --> LG
     TsWorker --> CursorSDK
     Register -.->|"runner.status.task_queue"| Dispatch
@@ -71,14 +81,14 @@ flowchart TD
 ### How it works
 
 1. **`stigmer up`** registers ONE Runner resource, starts the daemon.
-2. The daemon bootstraps TWO Temporal activity workers on the **same** `runner:{runner-id}` task queue:
-   - Python worker registers `ExecuteGraphton` activity (existing)
-   - TypeScript worker registers `ExecuteCursor` activity (new)
-3. User creates a Session with `execution_backend = CURSOR` (or `LANGGRAPH`, the default).
-4. When an AgentExecution is created, the Go workflow reads `session.spec.execution_backend` and dispatches the corresponding activity type.
-5. Temporal routes the activity to the worker that registered it.
+2. The daemon bootstraps TWO Temporal activity workers on **separate derived queues**:
+   - Python worker polls `runner:{runner-id}` (base queue) — registers `ExecuteGraphton`
+   - TypeScript worker polls `runner:{runner-id}:cursor` — registers `ExecuteCursor`
+3. User creates a Session with `harness = CURSOR` (or `NATIVE`, the default).
+4. When an AgentExecution is created, the Go/Java workflow reads `session.spec.harness` and dispatches the corresponding activity type to the correct queue.
+5. Deterministic routing: each queue has exactly one worker, so the activity always reaches the right handler.
 
-This is the same pattern as the existing polyglot architecture (Go workflows + Python activities). Adding TypeScript activities is a natural extension.
+The `:cursor` suffix is a convention applied by both the workflow (when setting `ActivityOptions.TaskQueue`) and the cursor runner (when creating its `Worker`). No proto or runner registration changes are required — the daemon passes the same base queue env var to both processes.
 
 ---
 
@@ -209,14 +219,16 @@ stigmer up
   +-> Bootstrap Python runtime [unchanged]
   +-> Bootstrap Node.js runtime (embedded cursor-runner)  [NEW]
   +-> Start Python process (main.py)  [unchanged]
-       +-> Temporal Worker polls runner:{id} queue
+       +-> Temporal Worker polls runner:{id} queue (base)
        +-> Registered activity: ExecuteGraphton
   +-> Start Node.js process (cursor-runner/main.ts)  [NEW]
-       +-> Temporal Worker polls SAME runner:{id} queue
+       +-> Temporal Worker polls runner:{id}:cursor queue (derived)
        +-> Registered activity: ExecuteCursor
   +-> Start bidi connect stream [unchanged]
   +-> Wait for exit/signal (both child processes)
 ```
+
+Both processes receive the same `STIGMER_TASK_QUEUE` env var (the base queue name). The cursor runner appends `:cursor` internally when creating its Temporal Worker. This keeps the daemon simple — it doesn't need to know about queue derivation.
 
 The daemon supervises both child processes. If either crashes, the daemon can restart it. On `stigmer down` or SIGTERM, both are shut down gracefully.
 

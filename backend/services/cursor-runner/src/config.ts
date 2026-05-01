@@ -23,6 +23,13 @@
  * of MODE. This allows testing the proxy locally.
  */
 
+/**
+ * Suffix appended to the runner's base task queue to form the cursor-specific
+ * activity queue. The Go/Java workflow applies the same suffix when dispatching
+ * ExecuteCursor activities, ensuring deterministic routing to this worker.
+ */
+export const CURSOR_QUEUE_SUFFIX = ":cursor";
+
 export interface Config {
   readonly taskQueue: string;
   readonly temporalAddress: string;

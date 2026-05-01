@@ -13,36 +13,44 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation + RUNNER_PHASE_STARTING lifecycle + cursor-runner enum crash fix + parallel bootstrap
-- **Last Session**: May 1, 2026 — Session 18: Fix Cursor Runner Enum Crash and Parallelize Bootstrap
-- **Active Task**: None — enum crash fixed and bootstrap parallelized
+- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation + RUNNER_PHASE_STARTING lifecycle + cursor-runner enum crash fix + parallel bootstrap + **Temporal routing fix**
+- **Last Session**: May 1, 2026 — Session 19: Fix Temporal Activity Routing for Cursor Harness
+- **Active Task**: None — routing fix committed in both OSS and cloud repos
 - **Branch**: `feat/cursor-harness`
 
-## Session Progress (May 1, 2026 — Session 18)
+## Session Progress (May 1, 2026 — Session 19)
 
-### Fix Cursor Runner TypeScript Enum Crash and Parallelize Bootstrap
+### Fix Temporal Activity Routing for Cursor Harness
 
-Fixed a runtime crash in the embedded cursor-runner caused by Node.js 22's strip-only TypeScript mode encountering `export enum` in proto stubs. Also parallelized the Python and Node.js bootstrap phases to reduce first-run startup latency.
+Fixed a critical non-deterministic routing bug: Temporal dispatches activity tasks to any worker polling a queue without activity-type awareness. With both Python and TypeScript workers on the same queue, `ExecuteCursor` could be received by the Python worker — causing permanent `NotFoundError` failures.
 
-**sync.sh (covers all deployment paths):**
-- Added Step 2b: compiles proto stubs to JS via `tsc`, rewrites `package.json` exports to conditional exports (`types` → `.ts`, `import` → `dist/*.js`)
-- Single change covers local dev (`make desktop-dev`), CI desktop (`release.desktop.yaml`), and CI CLI (`release.cli.yaml`)
+**Root cause**: The design assumed "Temporal routes activities by activity type name" — this is incorrect. Temporal round-robins across all pollers on a queue.
 
-**start.go (parallel bootstrap):**
-- Added `cursorBootstrapOutcome` struct for channel-based result passing
-- Restructured `startNativeRunner` to launch `BootstrapCursorRunnerRuntime` in a goroutine concurrently with `BootstrapPythonRuntime`
-- Replaced `startCursorRunnerProcess` with `launchCursorRunnerProcess` (receives pre-completed bootstrap result)
+**Fix**: Derived task queue convention `{baseQueue}:cursor`. The cursor-runner polls this derived queue; the Go/Java workflows dispatch `ExecuteCursor` to it.
+
+**Files changed (OSS — commit 3803d1cd0):**
+- `backend/services/cursor-runner/src/config.ts` — added `CURSOR_QUEUE_SUFFIX`
+- `backend/services/cursor-runner/src/worker.ts` — polls derived queue
+- `backend/services/cursor-runner/src/main.ts` — logs actual queue
+- `backend/services/stigmer-server/.../execute_cursor.go` — dispatches to derived queue
+- `backend/services/stigmer-server/.../invoke_workflow_impl.go` — updated docs
+- `backend/services/stigmer-server/.../worker_config.go` — updated docs
+- Design doc corrected
+
+**Files changed (Cloud — commit 49ce29c4):**
+- `InvokeAgentExecutionWorkflowImpl.java` — dispatches to derived queue
 
 ## Next Steps
 
-1. **Fix ApprovalAction enum bug** — correct `APPROVAL_ACTION_APPROVE`/`REJECT`/`ALWAYS_APPROVE` to `APPROVE`/`REJECT`/`ALWAYS_APPROVE` in `approval-state.ts` and `execute-cursor.ts`
-2. **Implement env var resolution** for MCP server configs (${VAR_NAME} placeholders in stdio args and http headers)
-3. **Implement cloud-mode attachment download** from artifact storage (currently only local mode)
-4. **End-to-end validation**: Full blueprint propagation flow testing
-5. Integration testing across the full flow (create session → execution → streaming → billing)
-6. PR review and merge of `feat/cursor-harness` branch (stigmer OSS)
-7. PR review and merge of CursorProxyController changes (stigmer-cloud)
-8. Release
+1. **Re-sync embedded cursorrunner** — run `sync.sh` so the CLI embed picks up the derived-queue change
+2. **Fix ApprovalAction enum bug** — correct `APPROVAL_ACTION_APPROVE`/`REJECT`/`ALWAYS_APPROVE` to `APPROVE`/`REJECT`/`ALWAYS_APPROVE` in `approval-state.ts` and `execute-cursor.ts`
+3. **Implement env var resolution** for MCP server configs (${VAR_NAME} placeholders in stdio args and http headers)
+4. **Implement cloud-mode attachment download** from artifact storage (currently only local mode)
+5. **End-to-end validation**: Full blueprint propagation flow testing — now includes verifying Cursor executions route to the cursor-runner deterministically
+6. Integration testing across the full flow (create session → execution → streaming → billing)
+7. PR review and merge of `feat/cursor-harness` branch (stigmer OSS)
+8. PR review and merge of CursorProxyController changes (stigmer-cloud)
+9. Release
 
 ## Context for Resume
 
@@ -55,6 +63,7 @@ Fixed a runtime crash in the embedded cursor-runner caused by Node.js 22's strip
 - Node.js 22 strip-only mode cannot handle `export enum` — the embed path now pre-compiles proto stubs to JS via `sync.sh`
 - The April 30 `import_extension=js` fix is a prerequisite for the enum crash fix (ensures correct import paths in compiled output)
 - Daemon path (`daemon_process.go`) bootstrap is still sequential — parallelization deferred as a follow-up
+- **NEW**: Temporal does NOT route activities by type name — it round-robins across pollers. Cursor-runner must poll a separate derived queue (`{baseQueue}:cursor`). Both Go and Java workflows apply the same suffix constant when dispatching `ExecuteCursor`.
 
 ## Essential Files to Review
 

@@ -34,9 +34,15 @@ type ExecuteCursorActivity interface {
 // This MUST match the TypeScript cursor-runner activity name exactly.
 const ExecuteCursorActivityName = "ExecuteCursor"
 
+// CursorQueueSuffix is appended to the runner's base task queue to form the
+// cursor-specific activity queue. The TypeScript cursor-runner polls this
+// derived queue exclusively, ensuring Temporal dispatches ExecuteCursor tasks
+// only to the cursor worker (not the Python worker on the base queue).
+const CursorQueueSuffix = ":cursor"
+
 func NewExecuteCursorActivityStub(ctx workflow.Context, taskQueue string) ExecuteCursorActivity {
 	options := workflow.ActivityOptions{
-		TaskQueue:              taskQueue,
+		TaskQueue:              taskQueue + CursorQueueSuffix,
 		StartToCloseTimeout:    24 * time.Hour,
 		ScheduleToStartTimeout: 1 * time.Minute,
 		HeartbeatTimeout:       2 * time.Minute,
