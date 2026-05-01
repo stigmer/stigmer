@@ -13,30 +13,39 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation
-- **Last Session**: May 1, 2026 — Session 16: Agent Blueprint Propagation
-- **Active Task**: None — blueprint propagation implemented
+- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation + RUNNER_PHASE_STARTING lifecycle
+- **Last Session**: May 1, 2026 — Session 17: Add RUNNER_PHASE_STARTING to Runner Lifecycle
+- **Active Task**: None — STARTING phase fully implemented
 - **Branch**: `feat/cursor-harness`
 
-## Session Progress (May 1, 2026 — Session 16)
+## Session Progress (May 1, 2026 — Session 17)
 
-### Agent Blueprint Propagation
+### Add RUNNER_PHASE_STARTING to Runner Lifecycle
 
-Implemented full agent blueprint propagation for the Cursor Harness. Previously, the cursor-runner sent only the bare user message to the Cursor agent — no persona, instructions, MCP servers, skills, sub-agents, or workspace context was carried forward. This session closed that critical gap by replicating the Python agent-runner's full pipeline.
+Introduced a new `RUNNER_PHASE_STARTING` phase to the runner lifecycle so the UI displays a continuous spinner from the moment the user clicks "Start Runner" until the runtime is fully bootstrapped and ready to accept executions. Previously, the runner would briefly show a spinner, then switch to "Stopped" for the duration of the Python/Node.js bootstrap, confusing users into thinking startup had failed.
 
-**New modules (4 files):**
-- `blueprint-resolver.ts` — resolves agent chain (execution → session → agentInstance → agent), merges MCP + skills
-- `prompt-builder.ts` — assembles enhanced prompt with instructions, skills, sub-agents, workspace context, response rules
-- `skill-resolver.ts` — fetches skills via gRPC, writes to platform-managed `.stigmer/skills/` directory
-- `attachment-resolver.ts` — copies attachments to `.stigmer/inputs/` platform directory
+**Proto layer:**
+- Added `RUNNER_PHASE_STARTING = 6` to `enum.proto` with updated transition diagram
+- Regenerated stubs in both `stigmer` (Go, TS, Java, Python) and `stigmer-cloud` (Go, TS, Java, Python, Dart) repos
 
-**Modified files (4 files):**
-- `stigmer-client.ts` — added 7 new gRPC methods (Agent, AgentInstance, McpServer, Skill queries)
-- `mcp-resolver.ts` — added `resolveMcpServers()` with full gRPC resolution pipeline
-- `session-lifecycle.ts` — multi-workspace support (string[])
-- `execute-cursor.ts` — full orchestration rewrite with 12 phases including blueprint resolution
+**Server-side (heartbeat.go):**
+- Updated `isReactivation` logic to recognize `STARTING` as an active-transition phase
+- `PENDING/STOPPED → STARTING` now correctly sets `started_at` and clears `stopped_at`
 
-**Verification:** TypeScript compilation clean (0 errors), 135 tests pass (8 files), no linter errors.
+**CLI (runner_stream.go, start.go):**
+- Added dynamic phase support to `RunnerStreamClient`: `InitialPhase` config, `SetPhase()`, `phaseChanged` channel
+- Restructured `startNativeRunner` to open the heartbeat stream with `STARTING` phase *before* Python bootstrap
+- After Python process starts successfully, transitions to `READY` via `SetPhase()`
+- Phase changes trigger an immediate heartbeat (no waiting for the next tick)
+
+**React SDK (phase.ts, RunnerListPanel.tsx):**
+- Added `STARTING` to sort order, labels, `isTransitionalPhase()`, and `phaseDotColor()`
+- Updated `RunnerListPanel` PhaseBadge with CSS spinner for `STARTING`
+- Updated unit tests
+
+**Desktop UI (RunnersPage.tsx):**
+- PhaseBadge shows `Loader2` spinner with primary color for `STARTING`
+- Reduced `RESTART_GRACE_MS` from 30s to 10s (STARTING phase makes the long grace unnecessary)
 
 ## Next Steps
 
@@ -62,19 +71,14 @@ Implemented full agent blueprint propagation for the Cursor Harness. Previously,
 
 ### 1. Latest Checkpoint
 ```
+_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-01-session-17.md
+```
+
+### 2. Previous Checkpoints
+```
 _projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-01-session-16.md
-```
-
-### 2. Blueprint Propagation Plan
-```
-.cursor/plans/blueprint_propagation_gap_analysis_be91e880.plan.md
-```
-
-### 3. Previous Checkpoints
-```
 _projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-01-session-15.md
 _projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-04-30-session-14.md
-_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-04-30-session-12.md
 ```
 
 ### 4. Task Plan

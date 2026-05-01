@@ -696,7 +696,7 @@
     },
     {
       "name": "RunnerPhase",
-      "description": "RunnerPhase tracks the operational state of a runner process.\n\n Phase transitions are driven by two sources:\n - The runner process itself (via connect stream heartbeat): PENDING -\u003e READY, READY \u003c-\u003e BUSY\n - The server (via heartbeat timeout or explicit stop): any -\u003e STOPPED, any -\u003e FAILED\n\n Transition diagram:\n   PENDING  -\u003e READY   (first heartbeat received)\n   READY    -\u003e BUSY    (runner reports max capacity reached)\n   BUSY     -\u003e READY   (runner reports capacity freed)\n   READY    -\u003e STOPPED (heartbeat timeout or explicit stop)\n   BUSY     -\u003e STOPPED (heartbeat timeout or explicit stop)\n   STOPPED  -\u003e READY   (runner restarts and heartbeats again)\n   any      -\u003e FAILED  (unrecoverable error reported by runner or server)",
+      "description": "RunnerPhase tracks the operational state of a runner process.\n\n Phase transitions are driven by two sources:\n - The runner process itself (via connect stream heartbeat): PENDING -\u003e STARTING -\u003e READY, READY \u003c-\u003e BUSY\n - The server (via heartbeat timeout or explicit stop): any -\u003e STOPPED, any -\u003e FAILED\n\n Transition diagram:\n   PENDING  -\u003e STARTING (runner process launched, bootstrapping runtime)\n   STARTING -\u003e READY    (bootstrap complete, agent process started)\n   PENDING  -\u003e READY    (legacy: first heartbeat without STARTING phase)\n   READY    -\u003e BUSY     (runner reports max capacity reached)\n   BUSY     -\u003e READY    (runner reports capacity freed)\n   READY    -\u003e STOPPED  (heartbeat timeout or explicit stop)\n   BUSY     -\u003e STOPPED  (heartbeat timeout or explicit stop)\n   STARTING -\u003e STOPPED  (bootstrap failed or process killed)\n   STOPPED  -\u003e STARTING (runner restarts and begins bootstrapping)\n   STOPPED  -\u003e READY    (legacy: runner restarts without STARTING phase)\n   any      -\u003e FAILED   (unrecoverable error reported by runner or server)",
       "protoType": "ai.stigmer.agentic.runner.v1.RunnerPhase",
       "values": [
         {
@@ -723,6 +723,11 @@
           "name": "RUNNER_PHASE_FAILED",
           "number": 5,
           "description": "Unrecoverable error. Runner or server reported a fatal condition.\n Requires investigation; does not auto-recover on heartbeat."
+        },
+        {
+          "name": "RUNNER_PHASE_STARTING",
+          "number": 6,
+          "description": "Runner process has been launched and is bootstrapping its runtime\n (downloading dependencies, extracting source, creating venv).\n The runner is heartbeating but not yet ready to accept executions.\n Transitions to READY once bootstrap completes and the agent process\n starts polling its task queue."
         }
       ]
     },
@@ -774,7 +779,8 @@
             "RUNNER_PHASE_READY",
             "RUNNER_PHASE_BUSY",
             "RUNNER_PHASE_STOPPED",
-            "RUNNER_PHASE_FAILED"
+            "RUNNER_PHASE_FAILED",
+            "RUNNER_PHASE_STARTING"
           ]
         },
         "description": "Current operational phase of the runner process.",

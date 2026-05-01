@@ -835,4 +835,5 @@ RunnerPhase tracks the operational state of a runner process.
 | `RUNNER_PHASE_BUSY` | Runner is heartbeating but at maximum concurrent execution capacity. |
 | `RUNNER_PHASE_STOPPED` | Runner has stopped heartbeating (timeout) or was explicitly stopped. |
 | `RUNNER_PHASE_FAILED` | Unrecoverable error. |
+| `RUNNER_PHASE_STARTING` | Runner process has been launched and is bootstrapping its runtime (downloading dependencies, extracting source, creating venv). |
 

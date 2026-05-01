@@ -80,11 +80,11 @@ const TRANSITIONAL_POLL_MS = 5_000;
 
 /**
  * After a restart attempt, keep polling for this long even if no runners
- * are in a transitional phase. This covers the window between the sidecar
- * reporting success and the heartbeat stream making the server-side phase
- * transition to RUNNING.
+ * are in a transitional phase. This covers the brief window between the
+ * sidecar reporting success and the first STARTING heartbeat reaching
+ * the server (typically under 1 second).
  */
-const RESTART_GRACE_MS = 30_000;
+const RESTART_GRACE_MS = 10_000;
 
 const LOG_PANEL_RATIO_KEY = "stigmer:runner-log-panel-ratio";
 const DEFAULT_LOG_RATIO = 0.4;
@@ -759,13 +759,22 @@ function RunnerRow({
 // ---------------------------------------------------------------------------
 
 function PhaseBadge({ phase }: { phase: RunnerPhase }) {
+  const starting = phase === RunnerPhase.STARTING;
   return (
     <span className="inline-flex shrink-0 items-center gap-1">
-      <span
-        className={`inline-block h-1.5 w-1.5 rounded-full ${phaseDotColor(phase)}`}
-        aria-hidden="true"
-      />
-      <span className="text-[0.65rem] text-muted-foreground">
+      {starting ? (
+        <Loader2
+          size={10}
+          className="animate-spin text-primary"
+          aria-hidden="true"
+        />
+      ) : (
+        <span
+          className={`inline-block h-1.5 w-1.5 rounded-full ${phaseDotColor(phase)}`}
+          aria-hidden="true"
+        />
+      )}
+      <span className={cn("text-[0.65rem]", starting ? "text-primary" : "text-muted-foreground")}>
         {phaseLabel(phase)}
       </span>
     </span>

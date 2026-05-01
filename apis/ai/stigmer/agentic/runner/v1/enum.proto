@@ -5,17 +5,21 @@ package ai.stigmer.agentic.runner.v1;
 // RunnerPhase tracks the operational state of a runner process.
 //
 // Phase transitions are driven by two sources:
-// - The runner process itself (via connect stream heartbeat): PENDING -> READY, READY <-> BUSY
+// - The runner process itself (via connect stream heartbeat): PENDING -> STARTING -> READY, READY <-> BUSY
 // - The server (via heartbeat timeout or explicit stop): any -> STOPPED, any -> FAILED
 //
 // Transition diagram:
-//   PENDING  -> READY   (first heartbeat received)
-//   READY    -> BUSY    (runner reports max capacity reached)
-//   BUSY     -> READY   (runner reports capacity freed)
-//   READY    -> STOPPED (heartbeat timeout or explicit stop)
-//   BUSY     -> STOPPED (heartbeat timeout or explicit stop)
-//   STOPPED  -> READY   (runner restarts and heartbeats again)
-//   any      -> FAILED  (unrecoverable error reported by runner or server)
+//   PENDING  -> STARTING (runner process launched, bootstrapping runtime)
+//   STARTING -> READY    (bootstrap complete, agent process started)
+//   PENDING  -> READY    (legacy: first heartbeat without STARTING phase)
+//   READY    -> BUSY     (runner reports max capacity reached)
+//   BUSY     -> READY    (runner reports capacity freed)
+//   READY    -> STOPPED  (heartbeat timeout or explicit stop)
+//   BUSY     -> STOPPED  (heartbeat timeout or explicit stop)
+//   STARTING -> STOPPED  (bootstrap failed or process killed)
+//   STOPPED  -> STARTING (runner restarts and begins bootstrapping)
+//   STOPPED  -> READY    (legacy: runner restarts without STARTING phase)
+//   any      -> FAILED   (unrecoverable error reported by runner or server)
 enum RunnerPhase {
   RUNNER_PHASE_UNSPECIFIED = 0;
 
@@ -39,4 +43,11 @@ enum RunnerPhase {
   // Unrecoverable error. Runner or server reported a fatal condition.
   // Requires investigation; does not auto-recover on heartbeat.
   RUNNER_PHASE_FAILED = 5;
+
+  // Runner process has been launched and is bootstrapping its runtime
+  // (downloading dependencies, extracting source, creating venv).
+  // The runner is heartbeating but not yet ready to accept executions.
+  // Transitions to READY once bootstrap completes and the agent process
+  // starts polling its task queue.
+  RUNNER_PHASE_STARTING = 6;
 }

@@ -17,7 +17,9 @@ import (
 // status in place. Called within store.UpdateResource's atomic read-modify-write.
 //
 // Phase transition rules:
+//   - PENDING/STOPPED + input STARTING -> STARTING (runner bootstrapping)
 //   - PENDING/STOPPED + input READY -> READY (runner starting/restarting)
+//   - STARTING + input READY -> READY (bootstrap complete)
 //   - READY + input BUSY -> BUSY (at capacity)
 //   - BUSY + input READY -> READY (capacity freed)
 //   - FAILED -> rejected with FAILED_PRECONDITION (requires investigation)
@@ -53,7 +55,9 @@ func applyHeartbeat(runner *runnerv1.Runner, heartbeat *runnerv1.RunnerHeartbeat
 
 	isReactivation := (existingPhase == runnerv1.RunnerPhase_RUNNER_PHASE_PENDING ||
 		existingPhase == runnerv1.RunnerPhase_RUNNER_PHASE_STOPPED) &&
-		reportedPhase == runnerv1.RunnerPhase_RUNNER_PHASE_READY
+		(reportedPhase == runnerv1.RunnerPhase_RUNNER_PHASE_STARTING ||
+			reportedPhase == runnerv1.RunnerPhase_RUNNER_PHASE_READY ||
+			reportedPhase == runnerv1.RunnerPhase_RUNNER_PHASE_BUSY)
 
 	if isReactivation {
 		updatedStatus.StartedAt = nowTs
@@ -61,7 +65,8 @@ func applyHeartbeat(runner *runnerv1.Runner, heartbeat *runnerv1.RunnerHeartbeat
 		log.Info().
 			Str("runner_id", heartbeat.GetRunnerId()).
 			Str("previous_phase", existingPhase.String()).
-			Msg("Runner reactivated: transitioning to READY")
+			Str("new_phase", reportedPhase.String()).
+			Msg("Runner reactivated")
 	}
 
 	runner.Status = updatedStatus

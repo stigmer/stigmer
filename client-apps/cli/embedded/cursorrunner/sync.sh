@@ -8,6 +8,7 @@
 # What it does:
 #   1. Copies cursor-runner TypeScript source into source/
 #   2. Copies @stigmer/protos TS stubs as a local lib (resolves file: dependency)
+#   2b. Compiles proto stubs to JS and rewrites exports for Node.js runtime
 #   3. Rewrites package.json to use the local protos path
 #   4. Runs npm install (needed for tsc to compile)
 #   5. Compiles TypeScript to JavaScript via tsc
@@ -43,6 +44,35 @@ if [ -d "$TS_STUBS" ]; then
     echo "Syncing stigmer-protos (TypeScript stubs)..."
     mkdir -p "$SOURCE_DIR/libs/stigmer-protos"
     cp -r "$TS_STUBS"/* "$SOURCE_DIR/libs/stigmer-protos/" 2>/dev/null || true
+fi
+
+# --------------------------------------------------------------------------
+# Step 2b: Compile proto stubs to JS for Node.js runtime compatibility
+#
+# Node.js 22 has built-in TypeScript support in "strip-only" mode which
+# removes type annotations but cannot transform runtime syntax like `enum`.
+# The proto stubs use `export enum` extensively (21 files), so plain
+# `node dist/main.js` crashes with ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX.
+#
+# Fix: compile the stubs to JS here, then rewrite the package exports so
+# the `import` condition resolves to compiled dist/*.js at runtime while
+# the `types` condition still points at raw .ts for tsc type-checking.
+# --------------------------------------------------------------------------
+PROTOS_DIR="$SOURCE_DIR/libs/stigmer-protos"
+if [ -d "$PROTOS_DIR" ] && [ -f "$PROTOS_DIR/tsconfig.build.json" ]; then
+    echo "Compiling proto stubs to JavaScript..."
+    cd "$PROTOS_DIR"
+    npm install --ignore-scripts 2>&1 | tail -1
+    npx tsc -p tsconfig.build.json
+
+    node -e "
+const pkg = require('./package.json');
+pkg.exports = { './*': { types: './*.ts', 'import': './dist/*.js' } };
+process.stdout.write(JSON.stringify(pkg, null, 2) + '\n');
+" > package.json.tmp && mv package.json.tmp package.json
+
+    rm -rf node_modules
+    cd "$SOURCE_DIR"
 fi
 
 # --------------------------------------------------------------------------

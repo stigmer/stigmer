@@ -576,13 +576,21 @@ function ActionMenu({
 // ---------------------------------------------------------------------------
 
 function PhaseBadge({ phase }: { phase: RunnerPhase }) {
+  const starting = phase === RunnerPhase.STARTING;
   return (
     <span className="inline-flex shrink-0 items-center gap-1">
-      <span
-        className={`inline-block h-1.5 w-1.5 rounded-full ${phaseDotColor(phase)}`}
-        aria-hidden="true"
-      />
-      <span className="text-[0.65rem] text-muted-foreground">
+      {starting ? (
+        <span
+          className="inline-block h-2.5 w-2.5 animate-spin rounded-full border border-primary border-t-transparent"
+          aria-hidden="true"
+        />
+      ) : (
+        <span
+          className={`inline-block h-1.5 w-1.5 rounded-full ${phaseDotColor(phase)}`}
+          aria-hidden="true"
+        />
+      )}
+      <span className={cn("text-[0.65rem]", starting ? "text-primary" : "text-muted-foreground")}>
         {phaseLabel(phase)}
       </span>
     </span>

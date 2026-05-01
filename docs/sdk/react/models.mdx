@@ -16,59 +16,94 @@ Pure data layer — no rendering, no side effects. Platform builders
 who want full control over rendering import this hook and build
 their own UI.
 
+**Modes:**
+- `options.harness === "cursor"` — Cursor-harness models only
+- `options.harness === "native"` — native models, excluding disabled providers
+- `options.harness` omitted — unified: both harnesses, excluding disabled providers
+
 **Signature**
 
 ```tsx
-function useModelRegistry(): UseModelRegistryReturn
+function useModelRegistry(options?: UseModelRegistryOptions): UseModelRegistryReturn
 ```
+
+<TypeTable
+  type={{
+    options: { type: "UseModelRegistryOptions", description: "" },
+  }}
+/>
 
 **Returns** — `UseModelRegistryReturn`
 
 <TypeTable
   type={{
     byProvider: { type: "ReadonlyMap<Provider, readonly ModelInfo[]>", description: "Models grouped by provider for sectioned rendering." },
-    defaultModel: { type: "ModelInfo", description: "The platform default model, resolved from DEFAULT_MODEL_ID.", typeDescriptionLink: "#modelinfo" },
-    getModel: { type: "(modelId: string) => ModelInfo | undefined", description: "Look up a single model by its `modelId`. Returns `undefined` for unknown or disabled models." },
-    models: { type: "readonly ModelInfo[]", description: "All enabled models, filtered to exclude DISABLED_PROVIDERS." },
+    defaultModel: { type: "ModelInfo", description: "The platform default model for the current mode.", typeDescriptionLink: "#modelinfo" },
+    featured: { type: "readonly ModelInfo[]", description: "Curated subset of models marked as `featured` in the registry." },
+    getByKey: { type: "(key: string) => ModelInfo | undefined", description: "Look up a model by its compound key (`\"native/claude-sonnet-4.6\"`). Always unambiguous, even in unified mode." },
+    getModel: { type: "(modelId: string) => ModelInfo | undefined", description: "Look up a single model by its `modelId`.  In unified mode the same modelId can exist under both harnesses (e.g. `claude-sonnet-4.5` on native and `claude-4.5-sonnet` on cursor). This returns the first match. Use getByKey with a compound key for an unambiguous lookup." },
+    models: { type: "readonly ModelInfo[]", description: "All enabled models for the selected mode." },
     providers: { type: "readonly Provider[]", description: "Ordered list of enabled provider identifiers." },
   }}
 />
 
 ```tsx
-function CustomModelPicker({ onSelect }: { onSelect: (id: string) => void }) {
-  const { models, byProvider, defaultModel, getModel } = useModelRegistry();
+// Unified mode — flat picker with all models
+const { featured, models, getByKey } = useModelRegistry();
 
-  return (
-    <select
-      defaultValue={defaultModel.modelId}
-      onChange={(e) => onSelect(e.target.value)}
-    >
-      {models.map((m) => (
-        <option key={m.modelId} value={m.modelId}>
-          {m.displayName} ({m.costTier})
-        </option>
-      ))}
-    </select>
-  );
-}
+// Legacy single-harness mode
+const { models, defaultModel } = useModelRegistry({ harness: "native" });
 ```
 
 
 ## Components
 
-### ModelSelector
+### HarnessSelector
 
-Theme-able model picker built on `@base-ui/react` Select for
-accessible keyboard navigation and ARIA.
+Compact segmented control for choosing the session execution engine.
 
-Consumes [`useModelRegistry`](#usemodelregistry) internally. Groups models by
-provider and shows a subtle cost-tier indicator.
+Renders two mutually exclusive options — "Stigmer" (native) and
+"Cursor" (premium) — as adjacent pill segments. The Cursor segment
+carries a subtle premium tier indicator.
 
-All visual properties flow through `--stgm-*` tokens — no
-hardcoded colors or sizes.
+Built as a `radiogroup` with full arrow-key navigation and ARIA
+semantics. All visual properties flow through `--stgm-*` tokens.
 
 Platform builders who need different rendering use
-`useModelRegistry()` directly.
+[`HarnessOption`](#harnessoption) and [`HARNESS_LABELS`](#harness_labels) directly.
+
+**Props** — `HarnessSelectorProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    disabled: { type: "boolean", description: "When true, disables the selector." },
+    onValueChange: { type: "(harness: HarnessOption) => void", description: "Called when the user picks a different harness.", required: true },
+    value: { type: "HarnessOption", description: "Currently selected harness.", required: true, typeDescriptionLink: "#harnessoption" },
+  }}
+/>
+
+```tsx
+function LauncherToolbar() {
+  const [harness, setHarness] = useState<HarnessOption>("native");
+
+  return <HarnessSelector value={harness} onValueChange={setHarness} />;
+}
+```
+
+
+### ModelSelector
+
+Cursor-style model picker: a flat searchable list inside a popover.
+
+Shows a curated list of featured models by default. The user can
+expand via "Show All Models" or type to search the full catalog.
+
+Each model row shows the display name, an engine tag
+("Stigmer" / "Cursor"), and a cost-tier indicator.
+
+In unified mode (no `harness` prop), selecting a model implicitly
+resolves the harness via `ModelSelectorProps.onHarnessResolved`.
 
 **Props** — `ModelSelectorProps`
 
@@ -76,17 +111,19 @@ Platform builders who need different rendering use
   type={{
     className: { type: "string", description: "Additional CSS class names for the trigger button." },
     disabled: { type: "boolean", description: "When true, disables the selector." },
-    onValueChange: { type: "(modelId: string) => void", description: "Called when the user picks a different model. Receives the new `modelId`.", required: true },
-    value: { type: "string", description: "Currently selected model ID. Falls back to DEFAULT_MODEL_ID when omitted." },
+    harness: { type: "HarnessOption", description: "When provided, restricts the catalog to a single harness (backward compat). When omitted, shows the unified picker with models from both engines.", typeDescriptionLink: "#harnessoption" },
+    onHarnessResolved: { type: "(harness: HarnessOption) => void", description: "Fires when the selected model belongs to a different harness than the previous selection. Only relevant in unified mode (no `harness` prop)." },
+    onValueChange: { type: "(modelId: string) => void", description: "Called when the user picks a different model. Receives the `modelId`.", required: true },
+    value: { type: "string", description: "Currently selected compound key (`\"native/claude-sonnet-4.6\"`) or plain `modelId`." },
   }}
 />
 
 ```tsx
-function ComposerHeader() {
-  const [modelId, setModelId] = useState<string>();
-
-  return <ModelSelector value={modelId} onValueChange={setModelId} />;
-}
+<ModelSelector
+  value={selectedModelId}
+  onValueChange={setSelectedModelId}
+  onHarnessResolved={setHarness}
+/>
 ```
 
 
@@ -101,9 +138,54 @@ Pricing bracket for a model.
 - `premium` — highest-capability models for complex reasoning or critical tasks
 
 
+### DEFAULT_CURSOR_MODEL_ID
+
+Model ID used when the Cursor harness is selected and no user preference is set.
+
+
+### DEFAULT_HARNESS
+
+Platform default — resolves to the native engine.
+
+
 ### DEFAULT_MODEL_ID
 
-Model ID used when no user preference is set.
+Model ID used when no user preference is set (native harness).
+
+
+### DISABLED_PROVIDERS
+
+Providers whose models should be hidden from the UI.
+
+The model entries themselves stay in MODEL_REGISTRY so backend
+compatibility is preserved. The useModelRegistry hook filters
+them out before anything reaches a component.
+
+To re-enable a provider, simply remove it from this set.
+
+
+### fromProtoHarness
+
+Convert a proto `Harness` enum to a [`HarnessOption`](#harnessoption) string.
+
+`UNSPECIFIED` and any unknown values map to `"native"`.
+
+```tsx
+function fromProtoHarness(h: Harness): HarnessOption
+```
+
+
+### HARNESS_LABELS
+
+User-facing labels for each harness option.
+
+
+### HarnessOption
+
+String literal alias for the proto `Harness` enum.
+
+Used on component props and hook options so platform builders
+do not need to import proto enums to use the SDK.
 
 
 ### MODEL_REGISTRY
@@ -122,7 +204,9 @@ UI-relevant metadata for a single platform-supported LLM model.
 <TypeTable
   type={{
     costTier: { type: "CostTier", description: "Pricing bracket used for cost-tier indicators in the UI.", required: true, typeDescriptionLink: "#costtier" },
-    displayName: { type: "string", description: "Human-readable name shown in the ModelSelector dropdown.", required: true },
+    displayName: { type: "string", description: "Human-readable name shown in the model picker.", required: true },
+    featured: { type: "boolean", description: "When `true`, appears in the curated default list (the short view before \"Show All Models\" is expanded or search is used).", required: true },
+    harness: { type: "HarnessOption", description: "Which execution engine serves this model.", required: true, typeDescriptionLink: "#harnessoption" },
     modelId: { type: "string", description: "Unique model identifier sent to the backend (e.g. `\"claude-sonnet-4.5\"`).", required: true },
     provider: { type: "Provider", description: "LLM provider that serves this model.", required: true, typeDescriptionLink: "#provider" },
   }}
@@ -136,9 +220,52 @@ const model = getModel(selectedId) ?? defaultModel;
 ```
 
 
+### modelKey
+
+Build a compound key that uniquely identifies a model across harnesses.
+
+The same underlying model name (e.g. `claude-4.6-sonnet`) can exist in
+both native and cursor harnesses. The compound key disambiguates.
+
+```tsx
+function modelKey(harness: HarnessOption, modelId: string): string
+```
+
+
+### parseModelKey
+
+Parse a compound key back into its `(harness, modelId)` parts.
+Returns `undefined` for malformed keys.
+
+```tsx
+function parseModelKey(key: string): { harness: HarnessOption; modelId: string } | undefined
+```
+
+
 ### Provider
 
 LLM provider identifier. Each provider maps to a distinct inference
-backend. The [`MODEL_REGISTRY`](#model_registry) groups models by provider for
-display in [`ModelSelector`](#modelselector).
+backend (or intermediary, in the case of Cursor-served third-party
+models). The [`MODEL_REGISTRY`](#model_registry) uses this for grouping in the
+"Show All" expanded view.
+
+
+### toProtoHarness
+
+Convert a [`HarnessOption`](#harnessoption) string to the proto `Harness` enum.
+
+```tsx
+function toProtoHarness(h: HarnessOption): Harness
+```
+
+
+### UseModelRegistryOptions
+
+Options for [`useModelRegistry`](#usemodelregistry).
+
+<TypeTable
+  type={{
+    harness: { type: "HarnessOption", description: "Restrict to a single harness.  - `\"cursor\"` — only Cursor-harness models, default → DEFAULT_CURSOR_MODEL_ID - `\"native\"` — only native-harness models, filtered by DISABLED_PROVIDERS - omitted — **unified mode**: all enabled models from both harnesses", typeDescriptionLink: "#harnessoption" },
+  }}
+/>
 

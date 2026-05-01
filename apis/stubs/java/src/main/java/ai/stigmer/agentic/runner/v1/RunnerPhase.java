@@ -10,17 +10,21 @@ package ai.stigmer.agentic.runner.v1;
  * RunnerPhase tracks the operational state of a runner process.
  *
  * Phase transitions are driven by two sources:
- * - The runner process itself (via connect stream heartbeat): PENDING -&gt; READY, READY &lt;-&gt; BUSY
+ * - The runner process itself (via connect stream heartbeat): PENDING -&gt; STARTING -&gt; READY, READY &lt;-&gt; BUSY
  * - The server (via heartbeat timeout or explicit stop): any -&gt; STOPPED, any -&gt; FAILED
  *
  * Transition diagram:
- * PENDING  -&gt; READY   (first heartbeat received)
- * READY    -&gt; BUSY    (runner reports max capacity reached)
- * BUSY     -&gt; READY   (runner reports capacity freed)
- * READY    -&gt; STOPPED (heartbeat timeout or explicit stop)
- * BUSY     -&gt; STOPPED (heartbeat timeout or explicit stop)
- * STOPPED  -&gt; READY   (runner restarts and heartbeats again)
- * any      -&gt; FAILED  (unrecoverable error reported by runner or server)
+ * PENDING  -&gt; STARTING (runner process launched, bootstrapping runtime)
+ * STARTING -&gt; READY    (bootstrap complete, agent process started)
+ * PENDING  -&gt; READY    (legacy: first heartbeat without STARTING phase)
+ * READY    -&gt; BUSY     (runner reports max capacity reached)
+ * BUSY     -&gt; READY    (runner reports capacity freed)
+ * READY    -&gt; STOPPED  (heartbeat timeout or explicit stop)
+ * BUSY     -&gt; STOPPED  (heartbeat timeout or explicit stop)
+ * STARTING -&gt; STOPPED  (bootstrap failed or process killed)
+ * STOPPED  -&gt; STARTING (runner restarts and begins bootstrapping)
+ * STOPPED  -&gt; READY    (legacy: runner restarts without STARTING phase)
+ * any      -&gt; FAILED   (unrecoverable error reported by runner or server)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.runner.v1.RunnerPhase}
@@ -78,6 +82,18 @@ public enum RunnerPhase
    * <code>RUNNER_PHASE_FAILED = 5;</code>
    */
   RUNNER_PHASE_FAILED(5),
+  /**
+   * <pre>
+   * Runner process has been launched and is bootstrapping its runtime
+   * (downloading dependencies, extracting source, creating venv).
+   * The runner is heartbeating but not yet ready to accept executions.
+   * Transitions to READY once bootstrap completes and the agent process
+   * starts polling its task queue.
+   * </pre>
+   *
+   * <code>RUNNER_PHASE_STARTING = 6;</code>
+   */
+  RUNNER_PHASE_STARTING(6),
   UNRECOGNIZED(-1),
   ;
 
@@ -140,6 +156,18 @@ public enum RunnerPhase
    * <code>RUNNER_PHASE_FAILED = 5;</code>
    */
   public static final int RUNNER_PHASE_FAILED_VALUE = 5;
+  /**
+   * <pre>
+   * Runner process has been launched and is bootstrapping its runtime
+   * (downloading dependencies, extracting source, creating venv).
+   * The runner is heartbeating but not yet ready to accept executions.
+   * Transitions to READY once bootstrap completes and the agent process
+   * starts polling its task queue.
+   * </pre>
+   *
+   * <code>RUNNER_PHASE_STARTING = 6;</code>
+   */
+  public static final int RUNNER_PHASE_STARTING_VALUE = 6;
 
 
   public final int getNumber() {
@@ -172,6 +200,7 @@ public enum RunnerPhase
       case 3: return RUNNER_PHASE_BUSY;
       case 4: return RUNNER_PHASE_STOPPED;
       case 5: return RUNNER_PHASE_FAILED;
+      case 6: return RUNNER_PHASE_STARTING;
       default: return null;
     }
   }

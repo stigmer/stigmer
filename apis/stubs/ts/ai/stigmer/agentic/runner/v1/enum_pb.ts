@@ -9,23 +9,27 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/runner/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_runner_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvcnVubmVyL3YxL2VudW0ucHJvdG8SHGFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEqpwEKC1J1bm5lclBoYXNlEhwKGFJVTk5FUl9QSEFTRV9VTlNQRUNJRklFRBAAEhgKFFJVTk5FUl9QSEFTRV9QRU5ESU5HEAESFgoSUlVOTkVSX1BIQVNFX1JFQURZEAISFQoRUlVOTkVSX1BIQVNFX0JVU1kQAxIYChRSVU5ORVJfUEhBU0VfU1RPUFBFRBAEEhcKE1JVTk5FUl9QSEFTRV9GQUlMRUQQBWIGcHJvdG8z");
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvcnVubmVyL3YxL2VudW0ucHJvdG8SHGFpLnN0aWdtZXIuYWdlbnRpYy5ydW5uZXIudjEqwgEKC1J1bm5lclBoYXNlEhwKGFJVTk5FUl9QSEFTRV9VTlNQRUNJRklFRBAAEhgKFFJVTk5FUl9QSEFTRV9QRU5ESU5HEAESFgoSUlVOTkVSX1BIQVNFX1JFQURZEAISFQoRUlVOTkVSX1BIQVNFX0JVU1kQAxIYChRSVU5ORVJfUEhBU0VfU1RPUFBFRBAEEhcKE1JVTk5FUl9QSEFTRV9GQUlMRUQQBRIZChVSVU5ORVJfUEhBU0VfU1RBUlRJTkcQBmIGcHJvdG8z");
 
 /**
  * RunnerPhase tracks the operational state of a runner process.
  *
  * Phase transitions are driven by two sources:
- * - The runner process itself (via connect stream heartbeat): PENDING -> READY, READY <-> BUSY
+ * - The runner process itself (via connect stream heartbeat): PENDING -> STARTING -> READY, READY <-> BUSY
  * - The server (via heartbeat timeout or explicit stop): any -> STOPPED, any -> FAILED
  *
  * Transition diagram:
- *   PENDING  -> READY   (first heartbeat received)
- *   READY    -> BUSY    (runner reports max capacity reached)
- *   BUSY     -> READY   (runner reports capacity freed)
- *   READY    -> STOPPED (heartbeat timeout or explicit stop)
- *   BUSY     -> STOPPED (heartbeat timeout or explicit stop)
- *   STOPPED  -> READY   (runner restarts and heartbeats again)
- *   any      -> FAILED  (unrecoverable error reported by runner or server)
+ *   PENDING  -> STARTING (runner process launched, bootstrapping runtime)
+ *   STARTING -> READY    (bootstrap complete, agent process started)
+ *   PENDING  -> READY    (legacy: first heartbeat without STARTING phase)
+ *   READY    -> BUSY     (runner reports max capacity reached)
+ *   BUSY     -> READY    (runner reports capacity freed)
+ *   READY    -> STOPPED  (heartbeat timeout or explicit stop)
+ *   BUSY     -> STOPPED  (heartbeat timeout or explicit stop)
+ *   STARTING -> STOPPED  (bootstrap failed or process killed)
+ *   STOPPED  -> STARTING (runner restarts and begins bootstrapping)
+ *   STOPPED  -> READY    (legacy: runner restarts without STARTING phase)
+ *   any      -> FAILED   (unrecoverable error reported by runner or server)
  *
  * @generated from enum ai.stigmer.agentic.runner.v1.RunnerPhase
  */
@@ -75,6 +79,17 @@ export enum RunnerPhase {
    * @generated from enum value: RUNNER_PHASE_FAILED = 5;
    */
   FAILED = 5,
+
+  /**
+   * Runner process has been launched and is bootstrapping its runtime
+   * (downloading dependencies, extracting source, creating venv).
+   * The runner is heartbeating but not yet ready to accept executions.
+   * Transitions to READY once bootstrap completes and the agent process
+   * starts polling its task queue.
+   *
+   * @generated from enum value: RUNNER_PHASE_STARTING = 6;
+   */
+  STARTING = 6,
 }
 
 /**
