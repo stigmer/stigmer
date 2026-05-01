@@ -216,6 +216,12 @@ async function executeCursor(
       accumulator.processEvent(event);
       eventCount++;
 
+      if (event.type === "status") {
+        console.log(
+          `ExecuteCursor stream status: execution=${executionId}, status=${JSON.stringify(event)}`,
+        );
+      }
+
       while (pendingMetrics.length > 0) {
         const metrics = pendingMetrics.shift()!;
         stampMetricsOnLastAiMessage(status.messages, metrics);
@@ -228,6 +234,9 @@ async function executeCursor(
     }
 
     accumulator.finalize();
+    console.log(
+      `ExecuteCursor stream ended: execution=${executionId}, events=${eventCount}, messages=${status.messages.length}`,
+    );
 
     while (pendingMetrics.length > 0) {
       const metrics = pendingMetrics.shift()!;
@@ -257,6 +266,9 @@ async function executeCursor(
 
     // Phase 12: Map final result
     const result = await run.wait();
+    console.log(
+      `ExecuteCursor run.wait() result: execution=${executionId}, result=${JSON.stringify(result)}`,
+    );
     status.completedAt = utcTimestamp();
 
     switch (result.status) {
@@ -266,6 +278,9 @@ async function executeCursor(
       case "error":
         status.phase = ExecutionPhase.EXECUTION_FAILED;
         status.error = result.result ?? "Cursor run failed";
+        console.error(
+          `ExecuteCursor agent error: execution=${executionId}, error=${status.error}`,
+        );
         break;
       case "cancelled":
         status.phase = ExecutionPhase.EXECUTION_CANCELLED;
@@ -275,7 +290,10 @@ async function executeCursor(
     }
 
     await persistStatus(client, executionId, status);
-    console.log(`ExecuteCursor completed: execution=${executionId}, phase=${ExecutionPhase[status.phase]}`);
+    console.log(
+      `ExecuteCursor completed: execution=${executionId}, phase=${ExecutionPhase[status.phase]}` +
+        (status.error ? `, error=${status.error}` : ""),
+    );
 
     return slimStatus(status);
 
