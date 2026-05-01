@@ -8,7 +8,7 @@
  * Update it with: @update-model-registry
  */
 
-import registryData from "../../../../libs/model-registry.json";
+import registryData from "../../../../libs/model-registry.json" with { type: "json" };
 
 export interface CursorModelPricing {
   readonly model: string;
