@@ -58,7 +58,8 @@
       "OAuthApp": "/docs/sdk/resources/oauth-app",
       "PlatformClient": "/docs/sdk/resources/platform-client",
       "PlatformClientCreateResponse": "/docs/sdk/resources/platform-client",
-      "Runner": "/docs/sdk/resources/runner"
+      "Runner": "/docs/sdk/resources/runner",
+      "Harness": "#"
     },
     "@stigmer/react": {
       "STALE_THRESHOLD_MS": "#",

@@ -1030,6 +1030,17 @@ Options for [`useNewSessionFlow`](#usenewsessionflow).
 />
 
 
+### UsePersistedModelOptions
+
+Options for [`usePersistedModel`](#usepersistedmodel).
+
+<TypeTable
+  type={{
+    harness: { type: "HarnessOption", description: "Filter the model registry by harness before validating the stored model.  When `\"cursor\"`, the persisted model is read from a cursor-specific localStorage key and validated against cursor-provider models. When `\"native\"` or omitted, the default key and registry apply.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
+  }}
+/>
+
+
 ### UsePersistedModelReturn
 
 Return value of [`usePersistedModel`](#usepersistedmodel).
