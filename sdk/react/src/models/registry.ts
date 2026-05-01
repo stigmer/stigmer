@@ -9,7 +9,7 @@
  */
 
 import type { HarnessOption } from "./harness";
-import registryData from "../../../../backend/libs/model-registry.json";
+import registryData from "../../data/model-registry.json";
 
 /**
  * Pricing bracket for a model.
@@ -100,13 +100,19 @@ export function modelKey(harness: HarnessOption, modelId: string): string {
   return `${harness}/${modelId}`;
 }
 
+/** Parsed result of a compound `harness/modelId` key. */
+export interface ParsedModelKey {
+  /** Harness portion of the compound key. */
+  harness: HarnessOption;
+  /** Model ID portion of the compound key. */
+  modelId: string;
+}
+
 /**
  * Parse a compound key back into its `(harness, modelId)` parts.
  * Returns `undefined` for malformed keys.
  */
-export function parseModelKey(
-  key: string,
-): { harness: HarnessOption; modelId: string } | undefined {
+export function parseModelKey(key: string): ParsedModelKey | undefined {
   const idx = key.indexOf("/");
   if (idx < 1) return undefined;
   const harness = key.slice(0, idx);

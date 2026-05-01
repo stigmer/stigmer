@@ -201,7 +201,7 @@ test: ## Run all unit tests
 		(cd $$mod && go test -race -timeout 30s ./...) || exit 1; \
 	done
 	@echo "testing  $(AGENT_RUNNER_DIR)"
-	@cd $(AGENT_RUNNER_DIR) && pip install -e . --no-deps -q && poetry run pytest
+	@cd $(AGENT_RUNNER_DIR) && poetry run pip install -e . --no-deps -q && poetry run pytest
 	@echo "testing  $(CURSOR_RUNNER_DIR)"
 	@cd $(CURSOR_RUNNER_DIR) && npm test
 

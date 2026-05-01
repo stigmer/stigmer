@@ -190,9 +190,9 @@ do not need to import proto enums to use the SDK.
 
 ### MODEL_REGISTRY
 
-Static catalog of all platform-supported LLM models.
+Static catalog of all platform-supported LLM models, loaded from the
+unified JSON registry.
 
-Each entry carries the metadata needed for model selection UI.
 [`useModelRegistry`](#usemodelregistry) filters out disabled providers and provides
 lookup helpers on top of this list.
 
@@ -232,13 +232,25 @@ function modelKey(harness: HarnessOption, modelId: string): string
 ```
 
 
+### ParsedModelKey
+
+Parsed result of a compound `harness/modelId` key.
+
+<TypeTable
+  type={{
+    harness: { type: "HarnessOption", description: "Harness portion of the compound key.", required: true, typeDescriptionLink: "#harnessoption" },
+    modelId: { type: "string", description: "Model ID portion of the compound key.", required: true },
+  }}
+/>
+
+
 ### parseModelKey
 
 Parse a compound key back into its `(harness, modelId)` parts.
 Returns `undefined` for malformed keys.
 
 ```tsx
-function parseModelKey(key: string): { harness: HarnessOption; modelId: string } | undefined
+function parseModelKey(key: string): ParsedModelKey | undefined
 ```
 
 

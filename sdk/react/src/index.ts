@@ -36,6 +36,7 @@ export {
 } from "./models";
 export type {
   ModelInfo,
+  ParsedModelKey,
   Provider,
   CostTier,
   UseModelRegistryReturn,
@@ -104,6 +105,7 @@ export type {
   UseNewSessionFlowReturn,
   UseSessionPageFlowOptions,
   UseSessionPageFlowReturn,
+  UsePersistedModelOptions,
   UsePersistedModelReturn,
   UseEditSessionPrepReturn,
   DraftResourceType,
