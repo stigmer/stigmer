@@ -46,16 +46,19 @@ if [ -f "$CURSOR_RUNNER/package-lock.json" ]; then
 fi
 
 # --------------------------------------------------------------------------
-# Step 1b: Copy model-registry.json so the relative import in
-# src/adapter/model-pricing-data.ts resolves correctly.
-# From source/src/adapter/, the path ../../../../libs/model-registry.json
-# resolves to embedded/libs/ rather than backend/libs/.
+# Step 1b: Copy model-registry.json INSIDE src/ so it stays within tsc's
+# rootDir boundary. All source files must share the same root (src/) to
+# produce a flat dist/ layout (dist/main.js, not dist/src/main.js).
+# Placing the JSON outside src/ causes TypeScript to inflate rootDir to the
+# common ancestor, breaking the "node dist/main.js" start script.
 # --------------------------------------------------------------------------
 MODEL_REGISTRY="$REPO_ROOT/backend/libs/model-registry.json"
 if [ -f "$MODEL_REGISTRY" ]; then
     echo "Syncing model-registry.json..."
-    mkdir -p "$SCRIPT_DIR/../libs"
-    cp "$MODEL_REGISTRY" "$SCRIPT_DIR/../libs/"
+    cp "$MODEL_REGISTRY" "$SOURCE_DIR/src/"
+    # Rewrite the import path: from src/adapter/ → ../model-registry.json = src/
+    sed -i '' 's|from "../../../../libs/model-registry.json"|from "../model-registry.json"|g' \
+        "$SOURCE_DIR/src/adapter/model-pricing-data.ts"
 fi
 
 # --------------------------------------------------------------------------
