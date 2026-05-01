@@ -24,6 +24,7 @@ const CURSOR_DOMAINS = [
 interface ProxyConfig {
   proxyEndpoint: string;
   stigmerToken: string;
+  executionId?: string;
 }
 
 let interceptorConfig: ProxyConfig | null = null;
@@ -54,9 +55,12 @@ function rewriteUrl(originalUrl: string, proxyEndpoint: string): string {
   return `${proxyBase}/v1/proxy/cursor/${parsed.hostname}${parsed.pathname}${parsed.search}`;
 }
 
-function replaceAuth(init: RequestInit | undefined, token: string): RequestInit {
+function replaceAuth(init: RequestInit | undefined, config: ProxyConfig): RequestInit {
   const headers = new Headers(init?.headers);
-  headers.set("authorization", `Bearer ${token}`);
+  headers.set("authorization", `Bearer ${config.stigmerToken}`);
+  if (config.executionId) {
+    headers.set("x-stigmer-execution-id", config.executionId);
+  }
   return { ...init, headers };
 }
 
@@ -78,7 +82,7 @@ const interceptedFetch: typeof fetch = async (input, init) => {
   }
 
   const rewrittenUrl = rewriteUrl(url, interceptorConfig.proxyEndpoint);
-  const rewrittenInit = replaceAuth(init, interceptorConfig.stigmerToken);
+  const rewrittenInit = replaceAuth(init, interceptorConfig);
 
   return originalFetch(rewrittenUrl, rewrittenInit);
 };
@@ -115,6 +119,18 @@ export function installFetchInterceptor(config: {
   console.log(
     `Cursor proxy interceptor installed: Cursor traffic → ${config.proxyEndpoint}/v1/proxy/cursor/`,
   );
+}
+
+/**
+ * Update the execution ID on the active interceptor. Called at the start
+ * of each Temporal activity to scope proxy requests to the current
+ * execution. Temporal workers process one activity at a time per slot,
+ * so a mutable config is safe here.
+ */
+export function setInterceptorExecutionId(executionId: string | undefined): void {
+  if (interceptorConfig) {
+    interceptorConfig = { ...interceptorConfig, executionId };
+  }
 }
 
 /**
