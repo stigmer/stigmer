@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -711,7 +712,7 @@ func buildComponents(cliBin, dataDir, logDir string, grpcPort int, serverOnly bo
 	pythonBin := os.Getenv("STIGMER_AGENT_RUNNER_PYTHON_BIN")
 	appDir := os.Getenv("STIGMER_AGENT_RUNNER_APP_DIR")
 
-	return append(components,
+	components = append(components,
 		&managedComponent{
 			name:    "workflow-runner",
 			pidFile: filepath.Join(dataDir, WorkflowRunnerPIDFileName),
@@ -747,6 +748,37 @@ func buildComponents(cliBin, dataDir, logDir string, grpcPort int, serverOnly bo
 			},
 		},
 	)
+
+	// cursor-runner is optional. It starts only when the daemon receives
+	// STIGMER_CURSOR_RUNNER_NODE_BIN, STIGMER_CURSOR_RUNNER_APP_DIR, and
+	// STIGMER_CURSOR_RUNNER_ENTRY_ARGS (set by StartWithOptions when
+	// CURSOR_API_KEY is available and Node.js bootstrap succeeds).
+	cursorNodeBin := os.Getenv("STIGMER_CURSOR_RUNNER_NODE_BIN")
+	cursorAppDir := os.Getenv("STIGMER_CURSOR_RUNNER_APP_DIR")
+	cursorEntryArgsRaw := os.Getenv("STIGMER_CURSOR_RUNNER_ENTRY_ARGS")
+
+	if cursorNodeBin != "" && cursorAppDir != "" && cursorEntryArgsRaw != "" {
+		cursorEntryArgs := strings.Split(cursorEntryArgsRaw, ",")
+		components = append(components, &managedComponent{
+			name:    "cursor-runner",
+			pidFile: filepath.Join(dataDir, CursorRunnerPIDFileName),
+			state:   &ComponentState{},
+			startFn: func() (*exec.Cmd, error) {
+				var runnerID, taskQueue string
+				if embeddedIdentity != nil && *embeddedIdentity != nil {
+					runnerID = (*embeddedIdentity).RunnerID
+					taskQueue = (*embeddedIdentity).TaskQueue
+				}
+				env := buildCursorRunnerEnv(dataDir, grpcPort, runnerID, taskQueue)
+				return startChildProcessWithDir(cursorNodeBin, cursorEntryArgs, cursorAppDir, logDir, "cursor-runner", env)
+			},
+		})
+		log.Info().Msg("Cursor harness: enabled (cursor-runner component registered)")
+	} else {
+		log.Debug().Msg("Cursor harness: not registered (env vars not set)")
+	}
+
+	return components
 }
 
 // buildWorkflowRunnerEnv constructs the environment for workflow-runner.

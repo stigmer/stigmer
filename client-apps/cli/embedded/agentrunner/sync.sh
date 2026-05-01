@@ -30,6 +30,15 @@ cp "$AGENT_RUNNER/src/stigmer_runner/__main__.py" "$SOURCE_DIR/src/stigmer_runne
 cp -r "$AGENT_RUNNER/src/stigmer_runner/worker" "$SOURCE_DIR/src/stigmer_runner/worker"
 cp -r "$AGENT_RUNNER/src/stigmer_runner/grpc_client" "$SOURCE_DIR/src/stigmer_runner/grpc_client"
 
+# Copy model-registry.json so that Graphton's ModelRegistry can find it.
+# model_registry.py uses Path(__file__).resolve().parents[5] / "model-registry.json"
+# which, from the embedded tree, resolves to source/model-registry.json.
+MODEL_REGISTRY="$REPO_ROOT/backend/libs/model-registry.json"
+if [ -f "$MODEL_REGISTRY" ]; then
+    echo "Syncing model-registry.json..."
+    cp "$MODEL_REGISTRY" "$SOURCE_DIR/"
+fi
+
 if [ -d "$GRAPHTON" ]; then
     echo "Syncing graphton lib..."
     mkdir -p "$SOURCE_DIR/libs/graphton/src"

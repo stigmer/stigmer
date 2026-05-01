@@ -78,6 +78,14 @@ function canViewLogs(topology: RunnerTopology): boolean {
 }
 const TRANSITIONAL_POLL_MS = 5_000;
 
+/**
+ * After a restart attempt, keep polling for this long even if no runners
+ * are in a transitional phase. This covers the brief window between the
+ * sidecar reporting success and the first STARTING heartbeat reaching
+ * the server (typically under 1 second).
+ */
+const RESTART_GRACE_MS = 10_000;
+
 const LOG_PANEL_RATIO_KEY = "stigmer:runner-log-panel-ratio";
 const DEFAULT_LOG_RATIO = 0.4;
 const MIN_LOG_RATIO = 0.15;
@@ -130,14 +138,41 @@ export default function RunnersPage() {
   const [isLaunching, setIsLaunching] = useState(false);
   const [logPanelRatio, setLogPanelRatio] = useState(readPersistedRatio);
   const lastStartedRef = useRef<string | null>(null);
+  const restartGraceRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setHasTransitional(
-      serverRunners.some((r) =>
-        isTransitionalPhase(r.status?.phase ?? RunnerPhase.UNSPECIFIED),
-      ),
+    const inGrace =
+      restartGraceRef.current !== null &&
+      Date.now() - restartGraceRef.current < RESTART_GRACE_MS;
+
+    const anyTransitional = serverRunners.some((r) =>
+      isTransitionalPhase(r.status?.phase ?? RunnerPhase.UNSPECIFIED),
     );
+
+    // When a runner we just restarted reaches an active phase, the grace
+    // period is no longer needed.
+    if (
+      !anyTransitional &&
+      !inGrace
+    ) {
+      setHasTransitional(false);
+      return;
+    }
+
+    setHasTransitional(true);
+
+    // If we're only polling because of the grace period (no server-side
+    // transitional runners yet), schedule a re-evaluation when it expires
+    // so polling stops automatically.
+    if (inGrace && !anyTransitional) {
+      const remaining = RESTART_GRACE_MS - (Date.now() - restartGraceRef.current!);
+      const timer = setTimeout(() => {
+        restartGraceRef.current = null;
+        setHasTransitional(false);
+      }, remaining);
+      return () => clearTimeout(timer);
+    }
   }, [serverRunners]);
 
   useEffect(() => {
@@ -308,6 +343,7 @@ export default function RunnersPage() {
           org,
         });
         lastStartedRef.current = runnerName;
+        restartGraceRef.current = Date.now();
         setDialogOpen(false);
       } catch (err) {
         setLaunchError(describeStartFlowError(err));
@@ -360,6 +396,7 @@ export default function RunnersPage() {
           org,
         });
         lastStartedRef.current = runnerName;
+        restartGraceRef.current = Date.now();
         setHasTransitional(true);
         refetchServer();
       } catch (err) {
@@ -722,13 +759,22 @@ function RunnerRow({
 // ---------------------------------------------------------------------------
 
 function PhaseBadge({ phase }: { phase: RunnerPhase }) {
+  const starting = phase === RunnerPhase.STARTING;
   return (
     <span className="inline-flex shrink-0 items-center gap-1">
-      <span
-        className={`inline-block h-1.5 w-1.5 rounded-full ${phaseDotColor(phase)}`}
-        aria-hidden="true"
-      />
-      <span className="text-[0.65rem] text-muted-foreground">
+      {starting ? (
+        <Loader2
+          size={10}
+          className="animate-spin text-primary"
+          aria-hidden="true"
+        />
+      ) : (
+        <span
+          className={`inline-block h-1.5 w-1.5 rounded-full ${phaseDotColor(phase)}`}
+          aria-hidden="true"
+        />
+      )}
+      <span className={cn("text-[0.65rem]", starting ? "text-primary" : "text-muted-foreground")}>
         {phaseLabel(phase)}
       </span>
     </span>

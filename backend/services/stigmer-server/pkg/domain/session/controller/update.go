@@ -42,8 +42,9 @@ func (c *SessionController) buildUpdatePipeline() *pipeline.Pipeline[*sessionv1.
 		AddStep(steps.NewValidateProtoStep[*sessionv1.Session]()).                                     // 1. Validate field constraints
 		AddStep(steps.NewResolveSlugStep[*sessionv1.Session]()).                                       // 2. Resolve slug
 		AddStep(steps.NewLoadExistingStep[*sessionv1.Session](c.store)).                               // 3. Load existing session
-		AddStep(steps.NewBuildUpdateStateStep[*sessionv1.Session]()).                                  // 4. Build updated state
-		AddStep(steps.NewPersistStep[*sessionv1.Session](c.store)).                                    // 5. Persist session
-		AddStep(steps.NewIndexSearchStep[*sessionv1.Session](c.store, &extractor.SessionExtractor{})). // 6. Update search index
+		AddStep(NewValidateHarnessImmutabilityStep()).                                                 // 4. Reject harness change after first execution
+		AddStep(steps.NewBuildUpdateStateStep[*sessionv1.Session]()).                                  // 5. Build updated state
+		AddStep(steps.NewPersistStep[*sessionv1.Session](c.store)).                                    // 6. Persist session
+		AddStep(steps.NewIndexSearchStep[*sessionv1.Session](c.store, &extractor.SessionExtractor{})). // 7. Update search index
 		Build()
 }

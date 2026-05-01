@@ -13,12 +13,13 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// DispatchResult holds the resolved Temporal task queue and Runner ID for
-// routing Python activities. Every successful dispatch now resolves to a
-// specific runner — the global shared queue is no longer used.
+// DispatchResult holds the resolved Temporal task queue, Runner ID, and
+// session harness for workflow creation. Every successful dispatch now
+// resolves to a specific runner — the global shared queue is no longer used.
 type DispatchResult struct {
 	TaskQueue string
 	RunnerID  string
+	Harness   sessionv1.Harness
 }
 
 // HasRunner returns true when dispatch resolved to a specific Runner.
@@ -58,14 +59,26 @@ func ResolveActivityTaskQueue(ctx context.Context, s store.Store, sessionID stri
 		return DispatchResult{}, fmt.Errorf("failed to load session for dispatch: %w", err)
 	}
 
+	harness := session.GetSpec().GetHarness()
+
 	runnerID := session.GetSpec().GetRunnerId()
 	if runnerID == "" {
 		log.Debug().Str("session_id", sessionID).
 			Msg("Session has no bound runner, resolving by available runner")
-		return resolveByAvailableRunner(ctx, s)
+		result, err := resolveByAvailableRunner(ctx, s)
+		if err != nil {
+			return result, err
+		}
+		result.Harness = harness
+		return result, nil
 	}
 
-	return resolveByExplicitRunner(ctx, s, sessionID, runnerID)
+	result, err := resolveByExplicitRunner(ctx, s, sessionID, runnerID)
+	if err != nil {
+		return result, err
+	}
+	result.Harness = harness
+	return result, nil
 }
 
 // resolveByExplicitRunner loads the runner that a session is explicitly bound

@@ -23,6 +23,7 @@ class MessageType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     MESSAGE_AI: _ClassVar[MessageType]
     MESSAGE_TOOL: _ClassVar[MessageType]
     MESSAGE_SYSTEM: _ClassVar[MessageType]
+    MESSAGE_THINKING: _ClassVar[MessageType]
 
 class ToolCallStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -89,6 +90,7 @@ MESSAGE_HUMAN: MessageType
 MESSAGE_AI: MessageType
 MESSAGE_TOOL: MessageType
 MESSAGE_SYSTEM: MessageType
+MESSAGE_THINKING: MessageType
 TOOL_CALL_STATUS_UNSPECIFIED: ToolCallStatus
 TOOL_CALL_PENDING: ToolCallStatus
 TOOL_CALL_RUNNING: ToolCallStatus

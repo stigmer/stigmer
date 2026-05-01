@@ -6,6 +6,7 @@ import ai.stigmer.agentic.agent.v1.McpServerUsage;
 import ai.stigmer.agentic.agent.v1.ToolApprovalOverride;
 import ai.stigmer.agentic.session.v1.GitRepoSource;
 import ai.stigmer.agentic.session.v1.GitWriteBackMode;
+import ai.stigmer.agentic.session.v1.Harness;
 import ai.stigmer.agentic.session.v1.LocalPathSource;
 import ai.stigmer.agentic.session.v1.Session;
 import ai.stigmer.agentic.session.v1.SessionSpec;
@@ -29,6 +30,7 @@ public final class SessionInput {
     private final java.util.List<McpServerUsageInput> mcpServerUsages;
     private final String runnerId;
     private final java.util.List<ResourceRef> skillRefs;
+    private final Harness harness;
 
     private SessionInput(Builder builder) {
         this.name = builder.name;
@@ -44,6 +46,7 @@ public final class SessionInput {
         this.mcpServerUsages = builder.mcpServerUsages;
         this.runnerId = builder.runnerId;
         this.skillRefs = builder.skillRefs;
+        this.harness = builder.harness;
     }
 
     Session toProto() {
@@ -82,6 +85,9 @@ public final class SessionInput {
                     .setKind(ApiResourceKind.skill).build());
             }
         }
+        if (this.harness != null) {
+            spec.setHarness(this.harness);
+        }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
@@ -115,6 +121,7 @@ public final class SessionInput {
         private java.util.List<McpServerUsageInput> mcpServerUsages;
         private String runnerId;
         private java.util.List<ResourceRef> skillRefs;
+        private Harness harness;
 
         private Builder() {}
 
@@ -131,6 +138,7 @@ public final class SessionInput {
         public Builder mcpServerUsages(java.util.List<McpServerUsageInput> mcpServerUsages) { this.mcpServerUsages = mcpServerUsages; return this; }
         public Builder runnerId(String runnerId) { this.runnerId = runnerId; return this; }
         public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
+        public Builder harness(Harness harness) { this.harness = harness; return this; }
 
         public SessionInput build() { return new SessionInput(this); }
     }

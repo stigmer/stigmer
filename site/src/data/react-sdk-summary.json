@@ -103,7 +103,7 @@
       "title": "Models",
       "description": "Hooks and components for model registry data and selector.",
       "hooks": 1,
-      "components": 1
+      "components": 2
     },
     {
       "slug": "oauth-app",

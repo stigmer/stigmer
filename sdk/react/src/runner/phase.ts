@@ -9,15 +9,17 @@ import { RunnerPhase } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/enum_p
 export const PHASE_SORT_ORDER: Record<RunnerPhase, number> = {
   [RunnerPhase.READY]: 0,
   [RunnerPhase.BUSY]: 1,
-  [RunnerPhase.PENDING]: 2,
-  [RunnerPhase.STOPPED]: 3,
-  [RunnerPhase.FAILED]: 4,
-  [RunnerPhase.UNSPECIFIED]: 5,
+  [RunnerPhase.STARTING]: 2,
+  [RunnerPhase.PENDING]: 3,
+  [RunnerPhase.STOPPED]: 4,
+  [RunnerPhase.FAILED]: 5,
+  [RunnerPhase.UNSPECIFIED]: 6,
 };
 
 const LABELS: Record<RunnerPhase, string> = {
   [RunnerPhase.READY]: "Ready",
   [RunnerPhase.BUSY]: "Busy",
+  [RunnerPhase.STARTING]: "Starting",
   [RunnerPhase.PENDING]: "Pending",
   [RunnerPhase.STOPPED]: "Stopped",
   [RunnerPhase.FAILED]: "Failed",
@@ -37,9 +39,10 @@ export function phaseLabel(phase: RunnerPhase): string {
 /**
  * Tailwind `bg-*` class for the small colored dot indicator.
  *
- * - Ready  → `bg-success`  (green)
- * - Busy   → `bg-warning`  (amber)
- * - Others → `bg-muted-foreground` (neutral)
+ * - Ready    → `bg-success`  (green)
+ * - Busy     → `bg-warning`  (amber)
+ * - Starting → `bg-primary`  (blue)
+ * - Others   → `bg-muted-foreground` (neutral)
  */
 export function phaseDotColor(phase: RunnerPhase): string {
   switch (phase) {
@@ -47,6 +50,8 @@ export function phaseDotColor(phase: RunnerPhase): string {
       return "bg-success";
     case RunnerPhase.BUSY:
       return "bg-warning";
+    case RunnerPhase.STARTING:
+      return "bg-primary";
     default:
       return "bg-muted-foreground";
   }
@@ -65,14 +70,15 @@ export function isActivePhase(phase: RunnerPhase): boolean {
  * Whether the runner is in a transitional phase whose status is
  * expected to change soon without user action.
  *
- * Currently only `PENDING` — the runner has registered but hasn't
- * completed its startup handshake yet. This is distinct from
- * {@link isActivePhase} (READY | BUSY) where the runner is stable
- * and accepting work.
+ * `PENDING` — resource created, no process launched yet.
+ * `STARTING` — process launched, runtime bootstrapping in progress.
+ *
+ * This is distinct from {@link isActivePhase} (READY | BUSY) where
+ * the runner is stable and accepting work.
  *
  * Useful for driving conditional polling: poll while transitional
  * runners exist, stop when all runners reach a stable state.
  */
 export function isTransitionalPhase(phase: RunnerPhase): boolean {
-  return phase === RunnerPhase.PENDING;
+  return phase === RunnerPhase.PENDING || phase === RunnerPhase.STARTING;
 }

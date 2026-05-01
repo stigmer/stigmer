@@ -55,7 +55,11 @@ type SessionCommandControllerClient interface {
 	// Server-side field-level update, race-safe. Atomically modifies only
 	// spec.subject without touching other fields.
 	UpdateSubject(ctx context.Context, in *UpdateSessionSubjectRequest, opts ...grpc.CallOption) (*Session, error)
-	// Delete a session (also cleans up thread).
+	// Delete a session.
+	//
+	// @internal
+	// Restricted to platform operators to preserve the billing and audit trail.
+	// Regular users (including session owners) cannot delete sessions.
 	Delete(ctx context.Context, in *SessionId, opts ...grpc.CallOption) (*Session, error)
 }
 
@@ -146,7 +150,11 @@ type SessionCommandControllerServer interface {
 	// Server-side field-level update, race-safe. Atomically modifies only
 	// spec.subject without touching other fields.
 	UpdateSubject(context.Context, *UpdateSessionSubjectRequest) (*Session, error)
-	// Delete a session (also cleans up thread).
+	// Delete a session.
+	//
+	// @internal
+	// Restricted to platform operators to preserve the billing and audit trail.
+	// Regular users (including session owners) cannot delete sessions.
 	Delete(context.Context, *SessionId) (*Session, error)
 }
 

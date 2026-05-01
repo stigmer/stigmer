@@ -168,13 +168,15 @@ function useNewSessionFlow(options: UseNewSessionFlowOptions): UseNewSessionFlow
 <TypeTable
   type={{
     agentRef: { type: "ResourceRef | null", description: "Currently selected agent reference, or `null` for the default agent." },
+    harness: { type: "HarnessOption", description: "Currently selected harness (persisted to localStorage).", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     isSubmitting: { type: "boolean", description: "`true` while the create session + execution flow is in flight." },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "Active MCP server configurations." },
-    modelId: { type: "string | undefined", description: "Currently selected model ID (persisted to localStorage)." },
+    modelId: { type: "string | undefined", description: "Currently selected model ID (persisted per-harness to localStorage)." },
     resolution: { type: "AgentResolution | null", description: "Current agent resolution state (saved instance vs direct reference)." },
     runnerId: { type: "string | null", description: "Selected runner ID, or `null` for auto-selection." },
     sessionVariables: { type: "UseSessionVariablesReturn", description: "Session variables (per-execution secrets) manager.", typeDescriptionLink: "/docs/sdk/react/execution#usesessionvariablesreturn" },
     setAgentRef: { type: "(ref: ResourceRef | null) => void", description: "Update the selected agent reference." },
+    setHarness: { type: "(harness: HarnessOption) => void", description: "Switch the harness. Resets the model if invalid for the new harness." },
     setMcpServerUsages: { type: "(usages: McpServerUsageInput[]) => void", description: "Update MCP server configurations." },
     setModelId: { type: "(id: string) => void", description: "Update the selected model. Automatically persists to localStorage." },
     setResolution: { type: "(r: AgentResolution | null) => void", description: "Update the agent resolution." },
@@ -224,14 +226,23 @@ model registry. Invalid or removed models are silently ignored (returns
 `undefined`). On change, persists the new selection to localStorage so
 it survives page reloads and navigation.
 
+When `options.harness` is provided, the stored model is read from a
+harness-specific key and validated against the harness-filtered registry.
+
 Used by both the session launcher (new session) and session page
 (follow-up messages) to maintain a consistent model preference.
 
 **Signature**
 
 ```tsx
-function usePersistedModel(): UsePersistedModelReturn
+function usePersistedModel(options?: UsePersistedModelOptions): UsePersistedModelReturn
 ```
+
+<TypeTable
+  type={{
+    options: { type: "UsePersistedModelOptions", description: "" },
+  }}
+/>
 
 
 ### useSession
@@ -580,6 +591,7 @@ function useSessionPageFlow(options: UseSessionPageFlowOptions): UseSessionPageF
     conv: { type: "UseSessionConversationReturn", description: "Full conversation state from `useSessionConversation`.", typeDescriptionLink: "#usesessionconversationreturn" },
     displayExecution: { type: "AgentExecution | null", description: "The most relevant execution for sidebar display — the active streaming execution, or the last completed one." },
     handleSubmit: { type: "(message: string, model?: string, context?: SessionComposerSubmitContext) => Promise<void>", description: "Submit a follow-up message. Handles agent override resolution (if the user changed the agent mid-session) and delegates to `conv.sendFollowUp` with all managed state." },
+    harness: { type: "HarnessOption", description: "Session's execution harness (read-only, derived from session spec).  Use this to: - Filter the model selector for follow-up messages - Render a harness badge in the session header  Defaults to `\"native\"` while the session is loading.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "Active MCP server configurations for follow-ups." },
     model: { type: "UsePersistedModelReturn", description: "Persisted model selection: `[modelId, setModelId]`.", typeDescriptionLink: "#usepersistedmodelreturn" },
     resolution: { type: "AgentResolution | null", description: "Current agent resolution state." },
@@ -994,6 +1006,7 @@ Shared fields present in both variants of [`CreateSessionInput`](#createsessioni
 
 <TypeTable
   type={{
+    harness: { type: "HarnessOption", description: "Execution harness for this session.  Determines which execution engine processes agent activities. Immutable after the first execution runs. Defaults to `\"native\"`.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
     org: { type: "string", description: "Organization slug for the new session.", required: true },
     runnerId: { type: "string", description: "Runner to bind this session to.  When set, all executions in the session are routed to this runner's task queue. When omitted, the backend auto-selects a runner (session auto-bind in OSS, cloud auto-provisioning in Cloud)." },
@@ -1013,6 +1026,17 @@ Options for [`useNewSessionFlow`](#usenewsessionflow).
     onError: { type: "(message: string) => void", description: "Called when an error occurs during session creation. The consumer can use this for toast notifications or other UI feedback. If not provided, errors are still available via UseNewSessionFlowReturn.submitError." },
     onSessionCreated: { type: "(sessionId: string) => void", description: "Called after a session and its first execution are created successfully. The consumer is responsible for navigation (e.g. `router.push`).", required: true },
     org: { type: "string", description: "Organization slug. Required for session and execution creation.", required: true },
+  }}
+/>
+
+
+### UsePersistedModelOptions
+
+Options for [`usePersistedModel`](#usepersistedmodel).
+
+<TypeTable
+  type={{
+    harness: { type: "HarnessOption", description: "Filter the model registry by harness before validating the stored model.  When `\"cursor\"`, the persisted model is read from a cursor-specific localStorage key and validated against cursor-provider models. When `\"native\"` or omitted, the default key and registry apply.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
   }}
 />
 

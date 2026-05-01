@@ -47,15 +47,14 @@ type ExecuteGraphtonActivity interface {
 	// updates sent during execution and are intentionally omitted to stay under
 	// Temporal's payload size limit.
 	//
+	// HITL approval decisions are read from the database by the Python activity
+	// (DB-driven resume). No decisions are passed via Temporal arguments.
+	//
 	// executionID: The AgentExecution ID to fetch and execute
 	// threadID: The LangGraph thread ID for conversation state persistence
-	// approvalDecisions: Approval decisions for HITL resume (nil on first invocation).
-	//   Wrapped in ApprovalDecisionList for polyglot Temporal serialization —
-	//   a bare slice is not a proto.Message so the SDK would fall back to
-	//   json/plain encoding, which the Python worker cannot decode.
 	//
 	// Returns: Slim execution status (phase, pending_approvals, error, usage).
-	ExecuteGraphton(executionID string, threadID string, approvalDecisions *agentexecutionv1.ApprovalDecisionList) (*agentexecutionv1.AgentExecutionStatus, error)
+	ExecuteGraphton(executionID string, threadID string) (*agentexecutionv1.AgentExecutionStatus, error)
 }
 
 // ExecuteGraphtonActivityName is the activity name used for registration.
@@ -65,14 +64,13 @@ const ExecuteGraphtonActivityName = "ExecuteGraphton"
 // NewExecuteGraphtonActivityStub creates an activity stub for calling ExecuteGraphton from workflows.
 // This is used by workflow implementations to call the Python activity.
 func NewExecuteGraphtonActivityStub(ctx workflow.Context, taskQueue string) ExecuteGraphtonActivity {
-	// Create activity options with explicit task queue routing to Python worker
 	options := workflow.ActivityOptions{
-		TaskQueue:              taskQueue,       // Route to Python worker (from memo)
-		StartToCloseTimeout:    24 * time.Hour,  // No practical limit — HeartbeatTimeout is the real liveness check
-		ScheduleToStartTimeout: 1 * time.Minute, // Max wait for worker to pick up task
-		HeartbeatTimeout:       2 * time.Minute, // 2 minutes — generous margin for LangGraph checkpoint I/O and SDK-side heartbeat throttling (Rust core sends at 0.8× this interval)
+		TaskQueue:              taskQueue,
+		StartToCloseTimeout:    24 * time.Hour,
+		ScheduleToStartTimeout: 1 * time.Minute,
+		HeartbeatTimeout:       2 * time.Minute,
 		RetryPolicy: &temporal.RetryPolicy{
-			MaximumAttempts:    1, // No retries for agent execution (not idempotent)
+			MaximumAttempts:    1,
 			InitialInterval:    10 * time.Second,
 			BackoffCoefficient: 2.0,
 		},
@@ -88,8 +86,8 @@ type executeGraphtonActivityStub struct {
 	ctx workflow.Context
 }
 
-func (s *executeGraphtonActivityStub) ExecuteGraphton(executionID string, threadID string, approvalDecisions *agentexecutionv1.ApprovalDecisionList) (*agentexecutionv1.AgentExecutionStatus, error) {
+func (s *executeGraphtonActivityStub) ExecuteGraphton(executionID string, threadID string) (*agentexecutionv1.AgentExecutionStatus, error) {
 	var result *agentexecutionv1.AgentExecutionStatus
-	err := workflow.ExecuteActivity(s.ctx, ExecuteGraphtonActivityName, executionID, threadID, approvalDecisions).Get(s.ctx, &result)
+	err := workflow.ExecuteActivity(s.ctx, ExecuteGraphtonActivityName, executionID, threadID).Get(s.ctx, &result)
 	return result, err
 }

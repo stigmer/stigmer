@@ -64,6 +64,8 @@ codegen-schemas:
 # Discriminated unions (e.g., workflow task_config) are auto-detected from
 # proto custom options (discriminated_by / discriminator_value).
 codegen-mcp:
+	@rm -rf gen
+	@mkdir -p gen
 	go run ../tools/codegen/generator/ \
 		--comprehensive --schema-dir=../tools/codegen/schemas --output-dir=gen --target=mcp
 

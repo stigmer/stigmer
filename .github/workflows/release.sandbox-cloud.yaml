@@ -16,6 +16,11 @@ on:
       - 'backend/services/agent-runner/src/stigmer_runner/grpc_client/**'
       - 'backend/libs/python/graphton/**'
       - 'apis/stubs/python/**'
+      - 'backend/services/cursor-runner/src/**'
+      - 'backend/services/cursor-runner/package.json'
+      - 'backend/services/cursor-runner/package-lock.json'
+      - 'backend/services/cursor-runner/tsconfig*.json'
+      - 'apis/stubs/ts/**'
   workflow_dispatch:
 
 jobs:

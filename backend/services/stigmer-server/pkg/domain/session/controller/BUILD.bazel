@@ -13,6 +13,7 @@ go_library(
         "session_controller.go",
         "update.go",
         "update_subject.go",
+        "validate_harness_immutability.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller",
     visibility = ["//visibility:public"],

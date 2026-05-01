@@ -1089,6 +1089,7 @@ async def _perform_setup_core(
     llm_kwargs = worker_config.llm.build_llm_kwargs(
         proxy_endpoint=worker_config.stigmer_proxy_endpoint,
         proxy_auth_token=worker_config.stigmer_token,
+        execution_id=execution_id,
     )
 
     approval_checker = create_approval_checker(approval_config)

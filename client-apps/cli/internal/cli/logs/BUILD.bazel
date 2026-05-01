@@ -3,6 +3,8 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "logs",
     srcs = [
+        "inode_unix.go",
+        "inode_windows.go",
         "merger.go",
         "parser.go",
         "streamer.go",

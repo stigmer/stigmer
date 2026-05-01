@@ -24,18 +24,22 @@ const (
 // RunnerPhase tracks the operational state of a runner process.
 //
 // Phase transitions are driven by two sources:
-// - The runner process itself (via connect stream heartbeat): PENDING -> READY, READY <-> BUSY
+// - The runner process itself (via connect stream heartbeat): PENDING -> STARTING -> READY, READY <-> BUSY
 // - The server (via heartbeat timeout or explicit stop): any -> STOPPED, any -> FAILED
 //
 // Transition diagram:
 //
-//	PENDING  -> READY   (first heartbeat received)
-//	READY    -> BUSY    (runner reports max capacity reached)
-//	BUSY     -> READY   (runner reports capacity freed)
-//	READY    -> STOPPED (heartbeat timeout or explicit stop)
-//	BUSY     -> STOPPED (heartbeat timeout or explicit stop)
-//	STOPPED  -> READY   (runner restarts and heartbeats again)
-//	any      -> FAILED  (unrecoverable error reported by runner or server)
+//	PENDING  -> STARTING (runner process launched, bootstrapping runtime)
+//	STARTING -> READY    (bootstrap complete, agent process started)
+//	PENDING  -> READY    (legacy: first heartbeat without STARTING phase)
+//	READY    -> BUSY     (runner reports max capacity reached)
+//	BUSY     -> READY    (runner reports capacity freed)
+//	READY    -> STOPPED  (heartbeat timeout or explicit stop)
+//	BUSY     -> STOPPED  (heartbeat timeout or explicit stop)
+//	STARTING -> STOPPED  (bootstrap failed or process killed)
+//	STOPPED  -> STARTING (runner restarts and begins bootstrapping)
+//	STOPPED  -> READY    (legacy: runner restarts without STARTING phase)
+//	any      -> FAILED   (unrecoverable error reported by runner or server)
 type RunnerPhase int32
 
 const (
@@ -56,6 +60,12 @@ const (
 	// Unrecoverable error. Runner or server reported a fatal condition.
 	// Requires investigation; does not auto-recover on heartbeat.
 	RunnerPhase_RUNNER_PHASE_FAILED RunnerPhase = 5
+	// Runner process has been launched and is bootstrapping its runtime
+	// (downloading dependencies, extracting source, creating venv).
+	// The runner is heartbeating but not yet ready to accept executions.
+	// Transitions to READY once bootstrap completes and the agent process
+	// starts polling its task queue.
+	RunnerPhase_RUNNER_PHASE_STARTING RunnerPhase = 6
 )
 
 // Enum value maps for RunnerPhase.
@@ -67,6 +77,7 @@ var (
 		3: "RUNNER_PHASE_BUSY",
 		4: "RUNNER_PHASE_STOPPED",
 		5: "RUNNER_PHASE_FAILED",
+		6: "RUNNER_PHASE_STARTING",
 	}
 	RunnerPhase_value = map[string]int32{
 		"RUNNER_PHASE_UNSPECIFIED": 0,
@@ -75,6 +86,7 @@ var (
 		"RUNNER_PHASE_BUSY":        3,
 		"RUNNER_PHASE_STOPPED":     4,
 		"RUNNER_PHASE_FAILED":      5,
+		"RUNNER_PHASE_STARTING":    6,
 	}
 )
 
@@ -109,14 +121,15 @@ var File_ai_stigmer_agentic_runner_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_runner_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/agentic/runner/v1/enum.proto\x12\x1cai.stigmer.agentic.runner.v1*\xa7\x01\n" +
+	"'ai/stigmer/agentic/runner/v1/enum.proto\x12\x1cai.stigmer.agentic.runner.v1*\xc2\x01\n" +
 	"\vRunnerPhase\x12\x1c\n" +
 	"\x18RUNNER_PHASE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14RUNNER_PHASE_PENDING\x10\x01\x12\x16\n" +
 	"\x12RUNNER_PHASE_READY\x10\x02\x12\x15\n" +
 	"\x11RUNNER_PHASE_BUSY\x10\x03\x12\x18\n" +
 	"\x14RUNNER_PHASE_STOPPED\x10\x04\x12\x17\n" +
-	"\x13RUNNER_PHASE_FAILED\x10\x05B\x95\x02\n" +
+	"\x13RUNNER_PHASE_FAILED\x10\x05\x12\x19\n" +
+	"\x15RUNNER_PHASE_STARTING\x10\x06B\x95\x02\n" +
 	" com.ai.stigmer.agentic.runner.v1B\tEnumProtoP\x01ZQgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/runner/v1;runnerv1\xa2\x02\x04ASAR\xaa\x02\x1cAi.Stigmer.Agentic.Runner.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Runner\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Runner\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Runner::V1b\x06proto3"
 
 var (

@@ -86,6 +86,75 @@ func (GitWriteBackMode) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP(), []int{0}
 }
 
+// Harness identifies the execution engine that processes agent activities
+// for a session.
+//
+// Each harness corresponds to a different Temporal activity type registered
+// by the runner daemon. The harness determines:
+// - Which tools the agent has access to
+// - How conversation state is managed (Stigmer checkpoints vs engine-native)
+// - Which LLM models are available
+// - Billing tier and cost structure
+//
+// HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.
+type Harness int32
+
+const (
+	// Platform default — resolves to HARNESS_NATIVE.
+	Harness_HARNESS_UNSPECIFIED Harness = 0
+	// Stigmer's native execution engine.
+	//
+	// Stigmer-managed checkpoints, custom tools, sandbox isolation,
+	// pause/resume, and full HITL approval flow.
+	Harness_HARNESS_NATIVE Harness = 1
+	// Cursor SDK execution engine.
+	//
+	// Cursor-managed conversation state, Cursor built-in tools + MCP,
+	// both local and cloud runtimes. Premium billing tier.
+	Harness_HARNESS_CURSOR Harness = 2
+)
+
+// Enum value maps for Harness.
+var (
+	Harness_name = map[int32]string{
+		0: "HARNESS_UNSPECIFIED",
+		1: "HARNESS_NATIVE",
+		2: "HARNESS_CURSOR",
+	}
+	Harness_value = map[string]int32{
+		"HARNESS_UNSPECIFIED": 0,
+		"HARNESS_NATIVE":      1,
+		"HARNESS_CURSOR":      2,
+	}
+)
+
+func (x Harness) Enum() *Harness {
+	p := new(Harness)
+	*p = x
+	return p
+}
+
+func (x Harness) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Harness) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[1].Descriptor()
+}
+
+func (Harness) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes[1]
+}
+
+func (x Harness) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Harness.Descriptor instead.
+func (Harness) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP(), []int{1}
+}
+
 var File_ai_stigmer_agentic_session_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc = "" +
@@ -93,7 +162,11 @@ const file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc = "" +
 	"(ai/stigmer/agentic/session/v1/enum.proto\x12\x1dai.stigmer.agentic.session.v1*Y\n" +
 	"\x10GitWriteBackMode\x12#\n" +
 	"\x1fGIT_WRITE_BACK_MODE_UNSPECIFIED\x10\x00\x12 \n" +
-	"\x1cGIT_WRITE_BACK_BRANCH_AND_PR\x10\x01B\x99\x02\n" +
+	"\x1cGIT_WRITE_BACK_BRANCH_AND_PR\x10\x01*J\n" +
+	"\aHarness\x12\x17\n" +
+	"\x13HARNESS_UNSPECIFIED\x10\x00\x12\x12\n" +
+	"\x0eHARNESS_NATIVE\x10\x01\x12\x12\n" +
+	"\x0eHARNESS_CURSOR\x10\x02B\x99\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\tEnumProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
@@ -108,9 +181,10 @@ func file_ai_stigmer_agentic_session_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_session_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_ai_stigmer_agentic_session_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_ai_stigmer_agentic_session_v1_enum_proto_goTypes = []any{
 	(GitWriteBackMode)(0), // 0: ai.stigmer.agentic.session.v1.GitWriteBackMode
+	(Harness)(0),          // 1: ai.stigmer.agentic.session.v1.Harness
 }
 var file_ai_stigmer_agentic_session_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -130,7 +204,7 @@ func file_ai_stigmer_agentic_session_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

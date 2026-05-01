@@ -1,15 +1,18 @@
-"""Model Registry - Single source of truth for all model metadata.
+"""Model Registry — runtime configuration for all native-harness LLM models.
 
-This module provides a centralized registry for all supported LLM model metadata,
-including context window sizes, token counting methods, cost tiers, and
-summarization thresholds. All model-specific logic should query this registry
-rather than hardcoding values.
+Pricing data is loaded from the unified JSON registry at
+``backend/libs/model-registry.json`` (the single source of truth for IDs,
+display names, pricing, and cost tiers across all harnesses).
+Runtime-specific fields (context windows, token counting, capabilities,
+summarization thresholds) are defined here and merged with the JSON pricing.
+
+Update the JSON registry with: @update-model-registry
 
 Design Principles:
-    1. Single Source of Truth - All model metadata lives here
+    1. Single Source of Truth - Pricing and IDs live in the shared JSON
     2. Fail-Safe Defaults - Unknown models get conservative defaults (8K context)
     3. Cost-Aware - Summarization uses economy-tier models by default
-    4. Extensible - Adding new models = adding one entry to _MODELS
+    4. Extensible - Adding new models = JSON entry + runtime config here
     5. Immutable - ModelMetadata is frozen to prevent accidental mutations
 
 Example:
@@ -27,9 +30,11 @@ Example:
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import ClassVar
 
 logger = logging.getLogger(__name__)
@@ -269,383 +274,84 @@ class ModelRegistry:
         "ollama": None,  # Use same model - local models have no cost
     }
     
-    # Complete registry of all supported models
-    _MODELS: ClassVar[dict[str, ModelMetadata]] = {
-        # =========================================================================
-        # ANTHROPIC MODELS
-        # =========================================================================
-        
-        # --- Generation 4.6 ---
-        "claude-opus-4.6": ModelMetadata(
-            model_id="claude-opus-4.6",
-            provider="anthropic",
-            display_name="Claude Opus 4.6",
-            context_window_tokens=200000,
-            max_output_tokens=131072,
-            summarization_trigger_threshold=180000,
-            summarization_target_tokens=160000,
-            max_summary_tokens=2000,
-            token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
-            cost_tier=CostTier.PREMIUM,
-            api_model_id="claude-opus-4-6",
-            input_price_per_million=5.0,
-            output_price_per_million=25.0,
-            cache_creation_price_per_million=6.25,
-            cache_read_price_per_million=0.50,
-            supports_vision=True,
-            supports_adaptive_thinking=True,
-        ),
-        "claude-sonnet-4.6": ModelMetadata(
-            model_id="claude-sonnet-4.6",
-            provider="anthropic",
-            display_name="Claude Sonnet 4.6",
-            context_window_tokens=200000,
-            max_output_tokens=65536,
-            summarization_trigger_threshold=180000,
-            summarization_target_tokens=160000,
-            max_summary_tokens=2000,
-            token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
-            cost_tier=CostTier.STANDARD,
-            api_model_id="claude-sonnet-4-6",
-            input_price_per_million=3.0,
-            output_price_per_million=15.0,
-            cache_creation_price_per_million=3.75,
-            cache_read_price_per_million=0.30,
-            supports_vision=True,
-            supports_thinking=True,
-        ),
-        
-        # --- Generation 4.5 ---
-        "claude-opus-4.5": ModelMetadata(
-            model_id="claude-opus-4.5",
-            provider="anthropic",
-            display_name="Claude Opus 4.5",
-            context_window_tokens=200000,
-            max_output_tokens=65536,
-            summarization_trigger_threshold=180000,
-            summarization_target_tokens=160000,
-            max_summary_tokens=2000,
-            token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
-            cost_tier=CostTier.PREMIUM,
-            api_model_id="claude-opus-4-5-20251101",
-            input_price_per_million=5.0,
-            output_price_per_million=25.0,
-            cache_creation_price_per_million=6.25,
-            cache_read_price_per_million=0.50,
-            supports_vision=True,
-            supports_thinking=True,
-        ),
-        "claude-sonnet-4.5": ModelMetadata(
-            model_id="claude-sonnet-4.5",
-            provider="anthropic",
-            display_name="Claude Sonnet 4.5",
-            context_window_tokens=200000,
-            max_output_tokens=65536,
-            summarization_trigger_threshold=180000,
-            summarization_target_tokens=160000,
-            max_summary_tokens=2000,
-            token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
-            cost_tier=CostTier.STANDARD,
-            api_model_id="claude-sonnet-4-5-20250929",
-            input_price_per_million=3.0,
-            output_price_per_million=15.0,
-            cache_creation_price_per_million=3.75,
-            cache_read_price_per_million=0.30,
-            supports_vision=True,
-            supports_thinking=True,
-        ),
-        
-        # --- Generation 4 ---
-        "claude-opus-4": ModelMetadata(
-            model_id="claude-opus-4",
-            provider="anthropic",
-            display_name="Claude Opus 4",
-            context_window_tokens=200000,
-            max_output_tokens=32768,
-            summarization_trigger_threshold=180000,
-            summarization_target_tokens=160000,
-            max_summary_tokens=2000,
-            token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
-            cost_tier=CostTier.PREMIUM,
-            api_model_id="claude-opus-4-20250514",
-            input_price_per_million=15.0,
-            output_price_per_million=75.0,
-            cache_creation_price_per_million=18.75,
-            cache_read_price_per_million=1.50,
-            supports_vision=True,
-            supports_thinking=True,
-        ),
-        "claude-haiku-4.5": ModelMetadata(
-            model_id="claude-haiku-4.5",
-            provider="anthropic",
-            display_name="Claude Haiku 4.5",
-            context_window_tokens=200000,
-            max_output_tokens=64000,
-            summarization_trigger_threshold=180000,
-            summarization_target_tokens=160000,
-            max_summary_tokens=2000,
-            token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
-            cost_tier=CostTier.ECONOMY,
-            api_model_id="claude-haiku-4-5-20251001",
-            input_price_per_million=1.0,
-            output_price_per_million=5.0,
-            cache_creation_price_per_million=1.25,
-            cache_read_price_per_million=0.10,
-            supports_vision=True,
-        ),
-        
-        # --- Generation 3.5 ---
-        "claude-sonnet-3.5": ModelMetadata(
-            model_id="claude-sonnet-3.5",
-            provider="anthropic",
-            display_name="Claude Sonnet 3.5",
-            context_window_tokens=200000,
-            max_output_tokens=8192,
-            summarization_trigger_threshold=180000,
-            summarization_target_tokens=160000,
-            max_summary_tokens=2000,
-            token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
-            cost_tier=CostTier.STANDARD,
-            api_model_id="claude-3-5-sonnet-20241022",
-            input_price_per_million=3.0,
-            output_price_per_million=15.0,
-            cache_creation_price_per_million=3.75,
-            cache_read_price_per_million=0.30,
-            supports_vision=True,
-        ),
-        "claude-haiku-3.5": ModelMetadata(
-            model_id="claude-haiku-3.5",
-            provider="anthropic",
-            display_name="Claude Haiku 3.5",
-            context_window_tokens=200000,
-            max_output_tokens=8192,
-            summarization_trigger_threshold=180000,
-            summarization_target_tokens=160000,
-            max_summary_tokens=2000,
-            token_counter_method=TokenCounterMethod.ANTHROPIC_NATIVE,
-            cost_tier=CostTier.ECONOMY,
-            api_model_id="claude-3-5-haiku-20241022",
-            input_price_per_million=0.80,
-            output_price_per_million=4.0,
-            cache_creation_price_per_million=1.00,
-            cache_read_price_per_million=0.08,
-            supports_vision=True,
-        ),
-        
-        # =========================================================================
-        # OPENAI MODELS
-        # =========================================================================
-        "gpt-4": ModelMetadata(
-            model_id="gpt-4",
-            provider="openai",
-            display_name="GPT-4",
-            context_window_tokens=8192,
-            max_output_tokens=4096,
-            summarization_trigger_threshold=7000,
-            summarization_target_tokens=6000,
-            max_summary_tokens=500,
-            token_counter_method=TokenCounterMethod.TIKTOKEN_CL100K,
-            cost_tier=CostTier.PREMIUM,
-            input_price_per_million=30.0,
-            output_price_per_million=60.0,
-            cache_creation_price_per_million=30.0,
-            cache_read_price_per_million=15.0,
-        ),
-        "gpt-4-turbo": ModelMetadata(
-            model_id="gpt-4-turbo",
-            provider="openai",
-            display_name="GPT-4 Turbo",
-            context_window_tokens=128000,
-            max_output_tokens=4096,
-            summarization_trigger_threshold=115000,
-            summarization_target_tokens=100000,
-            max_summary_tokens=2000,
-            token_counter_method=TokenCounterMethod.TIKTOKEN_CL100K,
-            cost_tier=CostTier.STANDARD,
-            input_price_per_million=10.0,
-            output_price_per_million=30.0,
-            cache_creation_price_per_million=10.0,
-            cache_read_price_per_million=5.0,
-            supports_vision=True,
-        ),
-        "gpt-4o": ModelMetadata(
-            model_id="gpt-4o",
-            provider="openai",
-            display_name="GPT-4o",
-            context_window_tokens=128000,
-            max_output_tokens=16384,
-            summarization_trigger_threshold=115000,
-            summarization_target_tokens=100000,
-            max_summary_tokens=2000,
-            token_counter_method=TokenCounterMethod.TIKTOKEN_O200K,
-            cost_tier=CostTier.STANDARD,
-            input_price_per_million=5.0,
-            output_price_per_million=15.0,
-            cache_creation_price_per_million=5.0,
-            cache_read_price_per_million=2.50,
-            supports_vision=True,
-        ),
-        "gpt-4o-mini": ModelMetadata(
-            model_id="gpt-4o-mini",
-            provider="openai",
-            display_name="GPT-4o Mini",
-            context_window_tokens=128000,
-            max_output_tokens=16384,
-            summarization_trigger_threshold=115000,
-            summarization_target_tokens=100000,
-            max_summary_tokens=2000,
-            token_counter_method=TokenCounterMethod.TIKTOKEN_O200K,
-            cost_tier=CostTier.ECONOMY,
-            input_price_per_million=0.15,
-            output_price_per_million=0.60,
-            cache_creation_price_per_million=0.15,
-            cache_read_price_per_million=0.075,
-            supports_vision=True,
-        ),
-        "gpt-3.5-turbo": ModelMetadata(
-            model_id="gpt-3.5-turbo",
-            provider="openai",
-            display_name="GPT-3.5 Turbo",
-            context_window_tokens=16385,
-            max_output_tokens=4096,
-            summarization_trigger_threshold=14000,
-            summarization_target_tokens=12000,
-            max_summary_tokens=1000,
-            token_counter_method=TokenCounterMethod.TIKTOKEN_CL100K,
-            cost_tier=CostTier.ECONOMY,
-            input_price_per_million=0.50,
-            output_price_per_million=1.50,
-            cache_creation_price_per_million=0.50,
-            cache_read_price_per_million=0.25,
-        ),
-        "o1": ModelMetadata(
-            model_id="o1",
-            provider="openai",
-            display_name="o1",
-            context_window_tokens=200000,
-            max_output_tokens=100000,
-            summarization_trigger_threshold=180000,
-            summarization_target_tokens=160000,
-            max_summary_tokens=2000,
-            token_counter_method=TokenCounterMethod.TIKTOKEN_O200K,
-            cost_tier=CostTier.PREMIUM,
-            input_price_per_million=15.0,
-            output_price_per_million=60.0,
-            cache_creation_price_per_million=15.0,
-            cache_read_price_per_million=7.50,
-            supports_tool_use=False,  # o1 has limited tool support
-        ),
-        "o1-mini": ModelMetadata(
-            model_id="o1-mini",
-            provider="openai",
-            display_name="o1 Mini",
-            context_window_tokens=128000,
-            max_output_tokens=65536,
-            summarization_trigger_threshold=115000,
-            summarization_target_tokens=100000,
-            max_summary_tokens=2000,
-            token_counter_method=TokenCounterMethod.TIKTOKEN_O200K,
-            cost_tier=CostTier.STANDARD,
-            input_price_per_million=3.0,
-            output_price_per_million=12.0,
-            cache_creation_price_per_million=3.0,
-            cache_read_price_per_million=1.50,
-            supports_tool_use=False,  # o1-mini has limited tool support
-        ),
-        
-        # =========================================================================
-        # OLLAMA MODELS (Local - No Cost)
-        # =========================================================================
-        "qwen2.5-coder:7b": ModelMetadata(
-            model_id="qwen2.5-coder:7b",
-            provider="ollama",
-            display_name="Qwen 2.5 Coder 7B",
-            context_window_tokens=32768,
-            max_output_tokens=8192,
-            summarization_trigger_threshold=28000,
-            summarization_target_tokens=24000,
-            max_summary_tokens=1000,
-            token_counter_method=TokenCounterMethod.APPROXIMATE,
-            cost_tier=CostTier.ECONOMY,
-        ),
-        "qwen2.5-coder:14b": ModelMetadata(
-            model_id="qwen2.5-coder:14b",
-            provider="ollama",
-            display_name="Qwen 2.5 Coder 14B",
-            context_window_tokens=32768,
-            max_output_tokens=8192,
-            summarization_trigger_threshold=28000,
-            summarization_target_tokens=24000,
-            max_summary_tokens=1000,
-            token_counter_method=TokenCounterMethod.APPROXIMATE,
-            cost_tier=CostTier.ECONOMY,
-        ),
-        "codellama:7b": ModelMetadata(
-            model_id="codellama:7b",
-            provider="ollama",
-            display_name="Code Llama 7B",
-            context_window_tokens=16384,
-            max_output_tokens=4096,
-            summarization_trigger_threshold=14000,
-            summarization_target_tokens=12000,
-            max_summary_tokens=1000,
-            token_counter_method=TokenCounterMethod.APPROXIMATE,
-            cost_tier=CostTier.ECONOMY,
-        ),
-        "codellama:13b": ModelMetadata(
-            model_id="codellama:13b",
-            provider="ollama",
-            display_name="Code Llama 13B",
-            context_window_tokens=16384,
-            max_output_tokens=4096,
-            summarization_trigger_threshold=14000,
-            summarization_target_tokens=12000,
-            max_summary_tokens=1000,
-            token_counter_method=TokenCounterMethod.APPROXIMATE,
-            cost_tier=CostTier.ECONOMY,
-        ),
-        "deepseek-coder-v2:16b": ModelMetadata(
-            model_id="deepseek-coder-v2:16b",
-            provider="ollama",
-            display_name="DeepSeek Coder V2 16B",
-            context_window_tokens=128000,
-            max_output_tokens=8192,
-            summarization_trigger_threshold=115000,
-            summarization_target_tokens=100000,
-            max_summary_tokens=2000,
-            token_counter_method=TokenCounterMethod.APPROXIMATE,
-            cost_tier=CostTier.ECONOMY,
-        ),
-        "llama3.2:3b": ModelMetadata(
-            model_id="llama3.2:3b",
-            provider="ollama",
-            display_name="Llama 3.2 3B",
-            context_window_tokens=128000,
-            max_output_tokens=8192,
-            summarization_trigger_threshold=115000,
-            summarization_target_tokens=100000,
-            max_summary_tokens=2000,
-            token_counter_method=TokenCounterMethod.APPROXIMATE,
-            cost_tier=CostTier.ECONOMY,
-        ),
-        "mistral:7b": ModelMetadata(
-            model_id="mistral:7b",
-            provider="ollama",
-            display_name="Mistral 7B",
-            context_window_tokens=32768,
-            max_output_tokens=8192,
-            summarization_trigger_threshold=28000,
-            summarization_target_tokens=24000,
-            max_summary_tokens=1000,
-            token_counter_method=TokenCounterMethod.APPROXIMATE,
-            cost_tier=CostTier.ECONOMY,
-        ),
+    _REGISTRY_JSON_PATH: ClassVar[Path] = (
+        Path(__file__).resolve().parents[5] / "model-registry.json"
+    )
+
+    _TOKEN_COUNTER_MAP: ClassVar[dict[str, TokenCounterMethod]] = {
+        "anthropic_native": TokenCounterMethod.ANTHROPIC_NATIVE,
+        "tiktoken_cl100k": TokenCounterMethod.TIKTOKEN_CL100K,
+        "tiktoken_o200k": TokenCounterMethod.TIKTOKEN_O200K,
+        "approximate": TokenCounterMethod.APPROXIMATE,
     }
+
+    _COST_TIER_MAP: ClassVar[dict[str, CostTier]] = {
+        "economy": CostTier.ECONOMY,
+        "standard": CostTier.STANDARD,
+        "premium": CostTier.PREMIUM,
+    }
+
+    _MODELS: ClassVar[dict[str, ModelMetadata]] = {}
+    _MODELS_LOADED: ClassVar[bool] = False
+
+    @classmethod
+    def _ensure_loaded(cls) -> None:
+        """Build _MODELS entirely from model-registry.json (native harness entries)."""
+        if cls._MODELS_LOADED:
+            return
+
+        try:
+            with open(cls._REGISTRY_JSON_PATH) as f:
+                registry = json.load(f)
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.warning("Failed to load model-registry.json: %s", exc)
+            cls._MODELS_LOADED = True
+            return
+
+        for entry in registry.get("models", []):
+            model_id = entry.get("id")
+            if not model_id or entry.get("harness") != "native":
+                continue
+
+            pricing = entry.get("pricing", {})
+            summarization = entry.get("summarization", {})
+            capabilities = entry.get("capabilities", {})
+
+            cls._MODELS[model_id] = ModelMetadata(
+                model_id=model_id,
+                provider=entry.get("provider", "unknown"),
+                display_name=entry.get("displayName", model_id),
+                context_window_tokens=entry.get("contextWindowTokens", 8192),
+                max_output_tokens=entry.get("maxOutputTokens", 4096),
+                summarization_trigger_threshold=summarization.get("triggerThreshold", 7000),
+                summarization_target_tokens=summarization.get("targetTokens", 6000),
+                max_summary_tokens=summarization.get("maxSummaryTokens", 500),
+                token_counter_method=cls._TOKEN_COUNTER_MAP.get(
+                    entry.get("tokenCounterMethod", "approximate"),
+                    TokenCounterMethod.APPROXIMATE,
+                ),
+                cost_tier=cls._COST_TIER_MAP.get(
+                    entry.get("costTier", "economy"), CostTier.ECONOMY,
+                ),
+                api_model_id=entry.get("apiModelId"),
+                input_price_per_million=pricing.get("inputPricePerMillion"),
+                output_price_per_million=pricing.get("outputPricePerMillion"),
+                cache_creation_price_per_million=pricing.get("cacheWritePricePerMillion"),
+                cache_read_price_per_million=pricing.get("cacheReadPricePerMillion"),
+                supports_tool_use=capabilities.get("toolUse", True),
+                supports_vision=capabilities.get("vision", False),
+                supports_streaming=capabilities.get("streaming", True),
+                supports_thinking=capabilities.get("thinking", False),
+                supports_adaptive_thinking=capabilities.get("adaptiveThinking", False),
+            )
+
+        cls._MODELS_LOADED = True
     
     _API_MODEL_ID_INDEX: ClassVar[dict[str, ModelMetadata] | None] = None
     
     @classmethod
     def _ensure_api_model_id_index(cls) -> dict[str, ModelMetadata]:
+        cls._ensure_loaded()
         """Build (once) and return the reverse index from API model IDs to metadata.
         
         The index maps every identifier a provider might return at runtime
@@ -737,6 +443,7 @@ class ModelRegistry:
             Model not found
         
         """
+        cls._ensure_loaded()
         if model_id not in cls._MODELS:
             available = ", ".join(sorted(cls._MODELS.keys()))
             raise KeyError(
@@ -779,6 +486,7 @@ class ModelRegistry:
             anthropic
         
         """
+        cls._ensure_loaded()
         if model_id in cls._MODELS:
             return cls._MODELS[model_id]
         
@@ -849,6 +557,7 @@ class ModelRegistry:
             raise KeyError("Model identifier cannot be empty")
         
         user_input = user_input.strip()
+        cls._ensure_loaded()
         
         # Priority 1: Exact match on model_id
         if user_input in cls._MODELS:
@@ -1000,6 +709,7 @@ class ModelRegistry:
             claude-sonnet-4.5: standard
         
         """
+        cls._ensure_loaded()
         models = [
             metadata
             for metadata in cls._MODELS.values()
@@ -1020,6 +730,7 @@ class ModelRegistry:
             Total models: 22
         
         """
+        cls._ensure_loaded()
         return sorted(
             cls._MODELS.values(),
             key=lambda m: (m.provider, m.model_id),
@@ -1042,6 +753,7 @@ class ModelRegistry:
             False
         
         """
+        cls._ensure_loaded()
         return model_id in cls._MODELS
     
     @classmethod
@@ -1057,6 +769,7 @@ class ModelRegistry:
             ['anthropic', 'ollama', 'openai']
         
         """
+        cls._ensure_loaded()
         providers = {metadata.provider for metadata in cls._MODELS.values()}
         return sorted(providers)
     
@@ -1076,6 +789,7 @@ class ModelRegistry:
             ...
         
         """
+        cls._ensure_loaded()
         models = [
             metadata
             for metadata in cls._MODELS.values()

@@ -1,6 +1,11 @@
-export { MODEL_REGISTRY, DEFAULT_MODEL_ID, DISABLED_PROVIDERS } from "./registry";
+export { MODEL_REGISTRY, DEFAULT_MODEL_ID, DEFAULT_CURSOR_MODEL_ID, DISABLED_PROVIDERS, modelKey, parseModelKey } from "./registry";
+export type { ParsedModelKey } from "./registry";
 export type { ModelInfo, Provider, CostTier } from "./registry";
 export { useModelRegistry } from "./useModelRegistry";
-export type { UseModelRegistryReturn } from "./useModelRegistry";
+export type { UseModelRegistryReturn, UseModelRegistryOptions } from "./useModelRegistry";
 export { ModelSelector } from "./ModelSelector";
 export type { ModelSelectorProps } from "./ModelSelector";
+export { HarnessSelector } from "./HarnessSelector";
+export type { HarnessSelectorProps } from "./HarnessSelector";
+export { DEFAULT_HARNESS, HARNESS_LABELS, toProtoHarness, fromProtoHarness } from "./harness";
+export type { HarnessOption } from "./harness";

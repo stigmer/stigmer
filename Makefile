@@ -11,6 +11,7 @@ GO_MODULES := \
 	tools
 
 AGENT_RUNNER_DIR := backend/services/agent-runner
+CURSOR_RUNNER_DIR := backend/services/cursor-runner
 
 .DEFAULT_GOAL := help
 
@@ -32,6 +33,8 @@ setup: ## Install all dependencies (one-time)
 	done
 	@echo "poetry install   $(AGENT_RUNNER_DIR)"
 	@cd $(AGENT_RUNNER_DIR) && poetry install
+	@echo "npm install      $(CURSOR_RUNNER_DIR)"
+	@cd $(CURSOR_RUNNER_DIR) && npm install
 	@if command -v pre-commit >/dev/null 2>&1; then \
 		pre-commit install && echo "pre-commit hooks installed"; \
 	else \
@@ -198,7 +201,9 @@ test: ## Run all unit tests
 		(cd $$mod && go test -race -timeout 30s ./...) || exit 1; \
 	done
 	@echo "testing  $(AGENT_RUNNER_DIR)"
-	@cd $(AGENT_RUNNER_DIR) && pip install -e . --no-deps -q && poetry run pytest
+	@cd $(AGENT_RUNNER_DIR) && poetry run pip install -e . --no-deps -q && poetry run pytest
+	@echo "testing  $(CURSOR_RUNNER_DIR)"
+	@cd $(CURSOR_RUNNER_DIR) && npm test
 
 # ─── Tidy ────────────────────────────────────
 
@@ -232,6 +237,8 @@ lint: ## Run all linters and type checks
 	npm run lint -w @stigmer/react
 	npm run typecheck -w @stigmer/react
 	npm run lint -w client-apps/web
+	@echo "typecheck $(CURSOR_RUNNER_DIR)"
+	@cd $(CURSOR_RUNNER_DIR) && npm run typecheck
 	$(MAKE) -C site lint
 	$(MAKE) -C site typecheck
 
@@ -343,9 +350,11 @@ update-deps: ## Regenerate agent-runner requirements.txt from poetry.lock
 	@rm -f /tmp/stigmer-ar-deps.txt
 	@echo "updated: $(AGENT_RUNNER_DIR)/requirements.txt ($$(wc -l < $(AGENT_RUNNER_DIR)/requirements.txt | tr -d ' ') lines)"
 
+
 # ─── Local Dev ────────────────────────────────
 
-DEV_LDFLAGS := -X github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner.devSourceDir=$(CURDIR)/backend/services/agent-runner
+DEV_LDFLAGS := -X github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner.devSourceDir=$(CURDIR)/backend/services/agent-runner \
+               -X github.com/stigmer/stigmer/client-apps/cli/embedded/cursorrunner.devSourceDir=$(CURDIR)/backend/services/cursor-runner
 
 .PHONY: local
 local: ## Build + install CLI, server, and workflow-runner for local development
@@ -459,6 +468,7 @@ clean: ## Remove all build artifacts
 	rm -rf backend/services/stigmer-server/bin/
 	rm -rf backend/services/workflow-runner/bin/
 	rm -rf client-apps/cli/embedded/agentrunner/source/
+	rm -rf client-apps/cli/embedded/cursorrunner/source/
 	rm -rf client-apps/cli/embedded/webconsole/out/
 	rm -rf client-apps/web/out/ client-apps/web/.next/
 	$(MAKE) -C apis clean

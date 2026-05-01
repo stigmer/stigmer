@@ -5,14 +5,21 @@ import { getUserMessage, type McpServerUsageInput, type ResourceRef } from "@sti
 import type { AgentResolution } from "../agent";
 import { useDefaultAgent } from "../agent";
 import { useModelRegistry } from "../models";
+import { DEFAULT_HARNESS, type HarnessOption } from "../models/harness";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace";
 import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables";
 import type { SessionComposerSubmitContext } from "../composer";
 import { useCreateSession } from "./useCreateSession";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
 
-const STORAGE_KEY_MODEL = "stigmer:session:model";
+const STORAGE_KEY_HARNESS = "stigmer:session:harness";
 const STORAGE_KEY_RUNNER = "stigmer:session:runner";
+
+function modelStorageKey(harness: HarnessOption): string {
+  return harness === "cursor"
+    ? "stigmer:session:model:cursor"
+    : "stigmer:session:model";
+}
 
 /** Options for {@link useNewSessionFlow}. */
 export interface UseNewSessionFlowOptions {
@@ -33,7 +40,12 @@ export interface UseNewSessionFlowOptions {
 
 /** Return value of {@link useNewSessionFlow}. */
 export interface UseNewSessionFlowReturn {
-  /** Currently selected model ID (persisted to localStorage). */
+  /** Currently selected harness (persisted to localStorage). */
+  readonly harness: HarnessOption;
+  /** Switch the harness. Resets the model if invalid for the new harness. */
+  readonly setHarness: (harness: HarnessOption) => void;
+
+  /** Currently selected model ID (persisted per-harness to localStorage). */
   readonly modelId: string | undefined;
   /** Update the selected model. Automatically persists to localStorage. */
   readonly setModelId: (id: string) => void;
@@ -136,7 +148,13 @@ export function useNewSessionFlow(
 ): UseNewSessionFlowReturn {
   const { org, onSessionCreated, onError } = options;
 
-  const { getModel } = useModelRegistry();
+  const [harness, setHarnessRaw] = useState<HarnessOption>(() => {
+    if (typeof window === "undefined") return DEFAULT_HARNESS;
+    const stored = localStorage.getItem(STORAGE_KEY_HARNESS);
+    return stored === "cursor" ? "cursor" : DEFAULT_HARNESS;
+  });
+
+  const { getModel } = useModelRegistry({ harness });
   const { create: createSession } = useCreateSession();
   const { create: createExecution } = useCreateAgentExecution();
   const {
@@ -158,20 +176,35 @@ export function useNewSessionFlow(
 
   const validModelId = modelId && getModel(modelId) ? modelId : undefined;
 
-  // Restore persisted model on mount
+  // Persist harness on change
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY_MODEL);
+    localStorage.setItem(STORAGE_KEY_HARNESS, harness);
+  }, [harness]);
+
+  const setHarness = useCallback(
+    (h: HarnessOption) => {
+      setHarnessRaw(h);
+      // Restore per-harness model preference, or clear if none stored
+      const storedModel = localStorage.getItem(modelStorageKey(h));
+      setModelId(storedModel ?? undefined);
+    },
+    [],
+  );
+
+  // Restore persisted model on mount (using current harness key)
+  useEffect(() => {
+    const stored = localStorage.getItem(modelStorageKey(harness));
     if (stored && getModel(stored)) {
       setModelId(stored);
     }
-  }, [getModel]);
+  }, [getModel, harness]);
 
-  // Persist model on change
+  // Persist model on change (using current harness key)
   useEffect(() => {
     if (modelId) {
-      localStorage.setItem(STORAGE_KEY_MODEL, modelId);
+      localStorage.setItem(modelStorageKey(harness), modelId);
     }
-  }, [modelId]);
+  }, [modelId, harness]);
 
   // Restore persisted runner on mount
   useEffect(() => {
@@ -216,6 +249,7 @@ export function useNewSessionFlow(
           mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
           skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
           runnerId: runnerId ?? undefined,
+          harness,
         };
 
         const executionFields = {
@@ -277,6 +311,7 @@ export function useNewSessionFlow(
     [
       isSubmitting,
       org,
+      harness,
       validModelId,
       workspace,
       mcpServerUsages,
@@ -296,6 +331,8 @@ export function useNewSessionFlow(
   );
 
   return {
+    harness,
+    setHarness,
     modelId: validModelId,
     setModelId,
     agentRef,
