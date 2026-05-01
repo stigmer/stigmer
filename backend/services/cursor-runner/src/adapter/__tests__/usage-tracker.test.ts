@@ -100,7 +100,7 @@ describe("UsageTracker", () => {
     });
 
     it("uses the correct model pricing", () => {
-      const premiumTracker = new UsageTracker("claude-4.7-opus");
+      const premiumTracker = new UsageTracker("claude-opus-4-7");
       const economyTracker = new UsageTracker("composer-2");
       const usage = { inputTokens: 1_000_000, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
 

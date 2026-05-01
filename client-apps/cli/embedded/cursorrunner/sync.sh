@@ -37,6 +37,14 @@ cp -r "$CURSOR_RUNNER/src" "$SOURCE_DIR/src"
 cp "$CURSOR_RUNNER/tsconfig.json" "$SOURCE_DIR/"
 cp "$CURSOR_RUNNER/tsconfig.build.json" "$SOURCE_DIR/"
 
+# Copy the lock file so npm install in Step 4 resolves the exact same
+# dependency versions that were tested upstream. Without this, npm install
+# generates a fresh lock file and may pick up newer (potentially breaking)
+# versions of native SDKs like @cursor/sdk.
+if [ -f "$CURSOR_RUNNER/package-lock.json" ]; then
+    cp "$CURSOR_RUNNER/package-lock.json" "$SOURCE_DIR/"
+fi
+
 # --------------------------------------------------------------------------
 # Step 2: Copy @stigmer/protos TS stubs as a local lib
 # --------------------------------------------------------------------------

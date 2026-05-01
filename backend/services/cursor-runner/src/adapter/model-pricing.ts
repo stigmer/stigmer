@@ -2,6 +2,11 @@
  * Cursor model pricing registry — per-token rates from Cursor's published
  * pricing at https://cursor.com/docs/models-and-pricing.
  *
+ * Model IDs use the exact values returned by the Cursor API's GET /v1/models
+ * endpoint (e.g., "claude-opus-4-7", NOT "claude-4.7-opus"). The pricing
+ * module is a cost-estimation lookup only; model discovery and validation
+ * are handled by model-discovery.ts via Cursor.models.list().
+ *
  * Cursor is the provider: Stigmer pays Cursor per-token, adds a platform
  * margin, and bills the customer. The rates here are Cursor's published API
  * rates, not the underlying LLM provider rates.
@@ -14,6 +19,7 @@
 
 export interface CursorModelPricing {
   readonly model: string;
+  readonly displayName: string;
   readonly inputPricePerMillion: number;
   readonly outputPricePerMillion: number;
   readonly cacheWritePricePerMillion: number;
@@ -21,32 +27,46 @@ export interface CursorModelPricing {
 }
 
 const PRICING_TABLE: readonly CursorModelPricing[] = [
-  // ── Cursor own models ───────────────────────────────────────────────
-  { model: "composer-2", inputPricePerMillion: 0.50, outputPricePerMillion: 2.50, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.20 },
-  { model: "composer-1.5", inputPricePerMillion: 3.50, outputPricePerMillion: 17.50, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.35 },
-  { model: "composer-1", inputPricePerMillion: 1.25, outputPricePerMillion: 10.00, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.125 },
-
   // ── Auto pool ───────────────────────────────────────────────────────
-  { model: "auto", inputPricePerMillion: 1.25, outputPricePerMillion: 6.00, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.25 },
+  { model: "default", displayName: "Auto", inputPricePerMillion: 1.25, outputPricePerMillion: 6.00, cacheWritePricePerMillion: 0.25, cacheReadPricePerMillion: 0.25 },
+
+  // ── Cursor own models ───────────────────────────────────────────────
+  { model: "composer-2", displayName: "Composer 2", inputPricePerMillion: 0.50, outputPricePerMillion: 2.50, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.20 },
+  { model: "composer-1.5", displayName: "Composer 1.5", inputPricePerMillion: 3.50, outputPricePerMillion: 17.50, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.35 },
 
   // ── Anthropic via Cursor API pool ──────────────────────────────────
-  { model: "claude-4.7-opus", inputPricePerMillion: 5, outputPricePerMillion: 25, cacheWritePricePerMillion: 6.25, cacheReadPricePerMillion: 0.50 },
-  { model: "claude-4.6-sonnet", inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.30 },
-  { model: "claude-4.6-opus", inputPricePerMillion: 5, outputPricePerMillion: 25, cacheWritePricePerMillion: 6.25, cacheReadPricePerMillion: 0.50 },
-  { model: "claude-4.5-sonnet", inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.30 },
-  { model: "claude-4.5-opus", inputPricePerMillion: 5, outputPricePerMillion: 25, cacheWritePricePerMillion: 6.25, cacheReadPricePerMillion: 0.50 },
-  { model: "claude-4.5-haiku", inputPricePerMillion: 1, outputPricePerMillion: 5, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.10 },
-  { model: "claude-4-sonnet", inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.30 },
+  { model: "claude-opus-4-7", displayName: "Opus 4.7", inputPricePerMillion: 5, outputPricePerMillion: 25, cacheWritePricePerMillion: 6.25, cacheReadPricePerMillion: 0.50 },
+  { model: "claude-sonnet-4-6", displayName: "Sonnet 4.6", inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.30 },
+  { model: "claude-opus-4-6", displayName: "Opus 4.6", inputPricePerMillion: 5, outputPricePerMillion: 25, cacheWritePricePerMillion: 6.25, cacheReadPricePerMillion: 0.50 },
+  { model: "claude-opus-4-5", displayName: "Opus 4.5", inputPricePerMillion: 5, outputPricePerMillion: 25, cacheWritePricePerMillion: 6.25, cacheReadPricePerMillion: 0.50 },
+  { model: "claude-sonnet-4-5", displayName: "Sonnet 4.5", inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.30 },
+  { model: "claude-haiku-4-5", displayName: "Haiku 4.5", inputPricePerMillion: 1, outputPricePerMillion: 5, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.10 },
+  { model: "claude-sonnet-4", displayName: "Sonnet 4", inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.30 },
 
   // ── OpenAI via Cursor API pool ─────────────────────────────────────
-  { model: "gpt-5.5", inputPricePerMillion: 5, outputPricePerMillion: 30, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.50 },
-  { model: "gpt-5.4", inputPricePerMillion: 2.50, outputPricePerMillion: 15, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.25 },
-  { model: "gpt-5.3-codex", inputPricePerMillion: 1.75, outputPricePerMillion: 14, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.175 },
-  { model: "gpt-5", inputPricePerMillion: 1.25, outputPricePerMillion: 10, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.125 },
+  { model: "gpt-5.5", displayName: "GPT-5.5", inputPricePerMillion: 5, outputPricePerMillion: 30, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.50 },
+  { model: "gpt-5.4", displayName: "GPT-5.4", inputPricePerMillion: 2.50, outputPricePerMillion: 15, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.25 },
+  { model: "gpt-5.4-mini", displayName: "GPT-5.4 Mini", inputPricePerMillion: 0.75, outputPricePerMillion: 4.50, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.075 },
+  { model: "gpt-5.4-nano", displayName: "GPT-5.4 Nano", inputPricePerMillion: 0.20, outputPricePerMillion: 1.25, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.02 },
+  { model: "gpt-5.3-codex", displayName: "Codex 5.3", inputPricePerMillion: 1.75, outputPricePerMillion: 14, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.175 },
+  { model: "gpt-5.3-codex-spark", displayName: "Codex 5.3 Spark", inputPricePerMillion: 1.75, outputPricePerMillion: 14, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.175 },
+  { model: "gpt-5.2", displayName: "GPT-5.2", inputPricePerMillion: 1.75, outputPricePerMillion: 14, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.175 },
+  { model: "gpt-5.2-codex", displayName: "Codex 5.2", inputPricePerMillion: 1.75, outputPricePerMillion: 14, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.175 },
+  { model: "gpt-5.1", displayName: "GPT-5.1", inputPricePerMillion: 1.25, outputPricePerMillion: 10, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.125 },
+  { model: "gpt-5.1-codex-max", displayName: "Codex 5.1 Max", inputPricePerMillion: 1.25, outputPricePerMillion: 10, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.125 },
+  { model: "gpt-5.1-codex-mini", displayName: "Codex 5.1 Mini", inputPricePerMillion: 0.25, outputPricePerMillion: 2, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.025 },
+  { model: "gpt-5-mini", displayName: "GPT-5 Mini", inputPricePerMillion: 0.25, outputPricePerMillion: 2, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.025 },
 
   // ── Google via Cursor API pool ─────────────────────────────────────
-  { model: "gemini-3.1-pro", inputPricePerMillion: 2, outputPricePerMillion: 12, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.20 },
-  { model: "gemini-3-flash", inputPricePerMillion: 0.50, outputPricePerMillion: 3, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.05 },
+  { model: "gemini-3.1-pro", displayName: "Gemini 3.1 Pro", inputPricePerMillion: 2, outputPricePerMillion: 12, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.20 },
+  { model: "gemini-3-flash", displayName: "Gemini 3 Flash", inputPricePerMillion: 0.50, outputPricePerMillion: 3, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.05 },
+  { model: "gemini-2.5-flash", displayName: "Gemini 2.5 Flash", inputPricePerMillion: 0.30, outputPricePerMillion: 2.50, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.03 },
+
+  // ── xAI via Cursor API pool ────────────────────────────────────────
+  { model: "grok-4-20", displayName: "Grok 4.20", inputPricePerMillion: 2, outputPricePerMillion: 6, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.20 },
+
+  // ── Moonshot via Cursor API pool ───────────────────────────────────
+  { model: "kimi-k2.5", displayName: "Kimi K2.5", inputPricePerMillion: 0.60, outputPricePerMillion: 3, cacheWritePricePerMillion: 0, cacheReadPricePerMillion: 0.10 },
 ];
 
 const pricingByModel = new Map<string, CursorModelPricing>(
@@ -55,6 +75,7 @@ const pricingByModel = new Map<string, CursorModelPricing>(
 
 const DEFAULT_PRICING: CursorModelPricing = {
   model: "unknown",
+  displayName: "Unknown",
   inputPricePerMillion: 1.25,
   outputPricePerMillion: 6.00,
   cacheWritePricePerMillion: 1.25,
