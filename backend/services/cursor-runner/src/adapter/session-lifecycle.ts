@@ -16,7 +16,7 @@ import type { CursorMcpServerConfig } from "./mcp-resolver.js";
 export interface CreateAgentOptions {
   apiKey: string;
   model: string;
-  workspaceCwd: string;
+  workspaceDirs: string[];
   mcpServers?: Record<string, CursorMcpServerConfig>;
 }
 
@@ -29,12 +29,18 @@ export interface ResumeAgentOptions {
 /**
  * Create a new Cursor Agent for the first execution in a session.
  * Returns the agent handle and its durable agentId (to be stored as thread_id).
+ *
+ * Supports multi-workspace: passes string[] when multiple dirs, string when single.
  */
 export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent> {
+  const cwd = options.workspaceDirs.length === 1
+    ? options.workspaceDirs[0]
+    : options.workspaceDirs;
+
   return Agent.create({
     apiKey: options.apiKey,
     model: { id: options.model },
-    local: { cwd: options.workspaceCwd },
+    local: { cwd },
     mcpServers: options.mcpServers as Record<string, any>,
   });
 }
