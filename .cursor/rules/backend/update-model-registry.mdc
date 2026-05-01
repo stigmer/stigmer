@@ -1,0 +1,176 @@
+---
+description: Action rule to refresh the unified model registry from live sources (Cursor pricing page + Cursor API + provider pricing pages) and write model-registry.json
+alwaysApply: false
+---
+
+# Rule: Update Model Registry
+
+## Purpose
+
+Single-entry-point workflow that refreshes the unified model registry at `backend/libs/model-registry.json`. The AI fetches live data from multiple sources, cross-references them, and writes the JSON file that serves as the single source of truth for all model metadata across all harnesses and runtimes.
+
+## When to Use
+
+- Periodically (e.g., weekly) to pick up new models or pricing changes
+- When Cursor or Anthropic/OpenAI announce model additions or pricing updates
+- After a model execution fails with a "not in pricing registry" warning
+- When a new model needs to be added to the platform
+
+## What This Registry Controls
+
+The JSON file at `backend/libs/model-registry.json` is consumed by:
+
+| Consumer | Filters on | Uses |
+|---|---|---|
+| `cursor-runner/src/adapter/model-pricing-data.ts` | `harness: "cursor"` | Pricing lookup + model validation |
+| `sdk/react/src/models/registry.ts` | All models | UI model picker, cost tier labels |
+| `backend/libs/python/graphton/.../model_registry.py` | `harness: "native"` | Pricing + runtime config for native harness |
+
+If a model isn't in this JSON, it won't appear in the UI and the runner will fall back to "default."
+
+## Execution Flow
+
+### Step 1: Fetch Cursor Pricing Data
+
+Use `WebFetch` to read:
+```
+https://cursor.com/docs/models-and-pricing.md
+```
+
+This returns a markdown document with:
+1. **Auto pricing table** — "Token type" / "Price per 1M tokens" with Input + Cache Write, Output, Cache Read
+2. **Model pricing table** — "Model" / "Provider" / "Input" / "Cache write" / "Cache read" / "Output" / "Notes"
+
+All prices are USD per 1,000,000 tokens. A dash means zero. Model names may be markdown links.
+
+### Step 2: Fetch Cursor Model Catalog
+
+Read the Stigmer token from local config:
+
+```bash
+awk '/cloud:/{c=1} c && /token:/{print $2; exit}' "$HOME/.stigmer/config.yaml"
+```
+
+Then call the Cursor model catalog through the Stigmer proxy:
+
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://api.stigmer.ai/v1/proxy/cursor/api.cursor.com/v1/models"
+```
+
+Response has `items` array with `id` (canonical API ID) and `displayName` (Cursor's internal name).
+
+### Step 3: Cross-Reference Cursor Models
+
+Match proxy models to pricing rows:
+
+| Proxy displayName | Pricing page name | Pattern |
+|-|-|-|
+| Opus 4.7 | Claude 4.7 Opus | Anthropic: proxy drops "Claude", reorders |
+| Codex 5.3 | GPT-5.3 Codex | OpenAI: proxy drops "GPT-", reorders |
+| Composer 2 | Composer 2 | Cursor own: exact match |
+| GPT-5.5 | GPT-5.5 | Some OpenAI: exact match |
+
+### Step 4: Update Native Harness Pricing (if needed)
+
+For native harness models (direct Anthropic/OpenAI), check the current pricing against provider pricing pages:
+- Anthropic: https://www.anthropic.com/pricing
+- OpenAI: https://openai.com/api/pricing/
+
+If pricing has changed, update the JSON entries. If no changes detected, leave them as-is.
+
+### Step 5: Write model-registry.json
+
+Update `backend/libs/model-registry.json` with the cross-referenced data:
+
+**JSON entry schema (native harness — full metadata):**
+```json
+{
+  "id": "claude-sonnet-4.6",
+  "apiModelId": "claude-sonnet-4-6",
+  "displayName": "Claude Sonnet 4.6",
+  "provider": "anthropic",
+  "harness": "native",
+  "costTier": "standard",
+  "featured": true,
+  "pricing": {
+    "inputPricePerMillion": 3.0,
+    "outputPricePerMillion": 15.0,
+    "cacheWritePricePerMillion": 3.75,
+    "cacheReadPricePerMillion": 0.30
+  },
+  "contextWindowTokens": 200000,
+  "maxOutputTokens": 65536,
+  "tokenCounterMethod": "anthropic_native",
+  "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
+  "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": true, "adaptiveThinking": false }
+}
+```
+
+**JSON entry schema (cursor harness — pricing + UI only):**
+```json
+{
+  "id": "claude-opus-4-7",
+  "displayName": "Claude 4.7 Opus",
+  "provider": "anthropic",
+  "harness": "cursor",
+  "costTier": "premium",
+  "featured": true,
+  "pricing": {
+    "inputPricePerMillion": 5.0,
+    "outputPricePerMillion": 25.0,
+    "cacheWritePricePerMillion": 6.25,
+    "cacheReadPricePerMillion": 0.5
+  }
+}
+```
+
+**Rules:**
+- Cursor models use the proxy's canonical `id` (e.g., `claude-opus-4-7`, not `claude-4.7-opus`)
+- Native models use platform IDs (e.g., `claude-opus-4.6`) with `apiModelId` for the provider API
+- `$comment` entries are allowed for section headers (these are ignored by consumers)
+- Ollama models have zero pricing
+- `featured: true` for models that appear in the short picker list
+- `costTier` based on output price: economy (<$5), standard ($5-$20), premium (>$20)
+- Sort: native models first, then cursor models; within each, group by provider
+
+**Present unmatched items** to the developer for guidance before writing.
+
+### Step 6: Verify
+
+Run tests to confirm no regressions:
+
+```bash
+cd backend/services/cursor-runner && npm run test
+```
+
+Also check:
+```bash
+cd sdk/react && npm run typecheck
+```
+
+### Step 7: Summary
+
+Report:
+- How many models per harness
+- New models added or removed
+- Any pricing changes
+- Unresolved items needing manual attention
+
+## Key Files
+
+| File | Role | AI Edits? |
+|---|---|---|
+| `backend/libs/model-registry.json` | Unified registry (JSON) | Yes |
+| `backend/services/cursor-runner/src/adapter/model-pricing-data.ts` | Thin cursor wrapper | No |
+| `backend/services/cursor-runner/src/adapter/model-pricing.ts` | Lookup + validate + compute | No |
+| `sdk/react/src/models/registry.ts` | UI registry wrapper | No |
+| `backend/libs/python/graphton/.../model_registry.py` | Pure JSON loader (zero model data) | No |
+
+## Important Notes
+
+- **model-registry.json is the single source of truth.** All model data — pricing, display names, cost tiers, IDs, context windows, capabilities, summarization thresholds, token counter methods — lives here.
+- **Do NOT hardcode model data** in any consumer file. The Python `model_registry.py` is a pure loader with zero model entries.
+- **Run tests after every change.** The cursor-runner and React SDK tests validate known model IDs. Python tests validate context windows, capabilities, and pricing.
+- **Native harness models need full metadata** in the JSON: `contextWindowTokens`, `maxOutputTokens`, `tokenCounterMethod`, `summarization` (triggerThreshold, targetTokens, maxSummaryTokens), and `capabilities` (toolUse, vision, streaming, thinking, adaptiveThinking). Cursor harness models only need pricing + UI fields.
+- **Adding a new model = adding one JSON entry.** All consumers pick it up automatically.

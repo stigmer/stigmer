@@ -1,18 +1,15 @@
 /**
  * Model registry — UI-relevant metadata for all platform-supported LLM models.
  *
- * Ported from the Python source of truth at
- * backend/libs/python/graphton/src/graphton/core/model_registry.py
- * (native harness models) and extended with Cursor harness models
- * whose IDs match `cursor-runner/src/adapter/model-pricing.ts`.
+ * Reads from the unified JSON registry at backend/libs/model-registry.json,
+ * which is the single source of truth for model IDs, display names, pricing,
+ * and cost tiers across all harnesses and runtimes.
  *
- * This is a static, hardcoded list. A future backend RPC will replace it
- * with a dynamic query; when that happens consumers will only need to
- * swap from the static constant to a fetched result — the shape stays
- * the same.
+ * Update it with: @update-model-registry
  */
 
 import type { HarnessOption } from "./harness";
+import registryData from "../../../../backend/libs/model-registry.json";
 
 /**
  * Pricing bracket for a model.
@@ -35,6 +32,7 @@ export type Provider =
   | "google"
   | "xai"
   | "cursor"
+  | "moonshot"
   | "ollama";
 
 /**
@@ -80,6 +78,19 @@ export interface ModelInfo {
 }
 
 /**
+ * Per-model cost entry for programmatic access to pricing data.
+ * Re-exported for consumers that need dollar-level pricing beyond the
+ * coarse `CostTier` label.
+ */
+export interface ModelCostEntry {
+  readonly modelId: string;
+  readonly inputPricePerMillion: number;
+  readonly outputPricePerMillion: number;
+  readonly cacheWritePricePerMillion: number;
+  readonly cacheReadPricePerMillion: number;
+}
+
+/**
  * Build a compound key that uniquely identifies a model across harnesses.
  *
  * The same underlying model name (e.g. `claude-4.6-sonnet`) can exist in
@@ -103,86 +114,62 @@ export function parseModelKey(
   return { harness, modelId: key.slice(idx + 1) };
 }
 
+// ---------------------------------------------------------------------------
+// JSON → ModelInfo mapping
+// ---------------------------------------------------------------------------
+
+interface RegistryJsonEntry {
+  id?: string;
+  displayName?: string;
+  provider?: string;
+  harness?: string;
+  costTier?: string;
+  featured?: boolean;
+  pricing?: {
+    inputPricePerMillion: number;
+    outputPricePerMillion: number;
+    cacheWritePricePerMillion: number;
+    cacheReadPricePerMillion: number;
+  };
+  $comment?: string;
+}
+
+const VALID_COST_TIERS = new Set(["economy", "standard", "premium"]);
+const VALID_HARNESSES = new Set(["native", "cursor"]);
+
+function isModelEntry(entry: RegistryJsonEntry): entry is Required<Pick<RegistryJsonEntry, "id" | "displayName" | "provider" | "harness" | "costTier">> & RegistryJsonEntry {
+  return (
+    typeof entry.id === "string" &&
+    typeof entry.displayName === "string" &&
+    typeof entry.provider === "string" &&
+    typeof entry.harness === "string" && VALID_HARNESSES.has(entry.harness) &&
+    typeof entry.costTier === "string" && VALID_COST_TIERS.has(entry.costTier)
+  );
+}
+
 /**
- * Static catalog of all platform-supported LLM models.
+ * Static catalog of all platform-supported LLM models, loaded from the
+ * unified JSON registry.
  *
- * Each entry carries the metadata needed for model selection UI.
  * {@link useModelRegistry} filters out disabled providers and provides
  * lookup helpers on top of this list.
  */
-export const MODEL_REGISTRY: readonly ModelInfo[] = [
-  // ═══════════════════════════════════════════════════════════════════
-  //  STIGMER (native harness)
-  // ═══════════════════════════════════════════════════════════════════
-
-  // ── Anthropic — Generation 4.6 ────────────────────────────────────
-  { modelId: "claude-opus-4.6", provider: "anthropic", displayName: "Claude Opus 4.6", costTier: "premium", harness: "native", featured: false },
-  { modelId: "claude-sonnet-4.6", provider: "anthropic", displayName: "Claude Sonnet 4.6", costTier: "standard", harness: "native", featured: true },
-
-  // ── Anthropic — Generation 4.5 ────────────────────────────────────
-  { modelId: "claude-opus-4.5", provider: "anthropic", displayName: "Claude Opus 4.5", costTier: "premium", harness: "native", featured: false },
-  { modelId: "claude-sonnet-4.5", provider: "anthropic", displayName: "Claude Sonnet 4.5", costTier: "standard", harness: "native", featured: false },
-
-  // ── Anthropic — Generation 4 ──────────────────────────────────────
-  { modelId: "claude-opus-4", provider: "anthropic", displayName: "Claude Opus 4", costTier: "premium", harness: "native", featured: false },
-  { modelId: "claude-haiku-4.5", provider: "anthropic", displayName: "Claude Haiku 4.5", costTier: "economy", harness: "native", featured: false },
-
-  // ── Anthropic — Generation 3.5 ────────────────────────────────────
-  { modelId: "claude-sonnet-3.5", provider: "anthropic", displayName: "Claude Sonnet 3.5", costTier: "standard", harness: "native", featured: false },
-  { modelId: "claude-haiku-3.5", provider: "anthropic", displayName: "Claude Haiku 3.5", costTier: "economy", harness: "native", featured: false },
-
-  // ── OpenAI (native, currently disabled via DISABLED_PROVIDERS) ────
-  { modelId: "gpt-4", provider: "openai", displayName: "GPT-4", costTier: "premium", harness: "native", featured: false },
-  { modelId: "gpt-4-turbo", provider: "openai", displayName: "GPT-4 Turbo", costTier: "standard", harness: "native", featured: false },
-  { modelId: "gpt-4o", provider: "openai", displayName: "GPT-4o", costTier: "standard", harness: "native", featured: false },
-  { modelId: "gpt-4o-mini", provider: "openai", displayName: "GPT-4o Mini", costTier: "economy", harness: "native", featured: false },
-  { modelId: "gpt-3.5-turbo", provider: "openai", displayName: "GPT-3.5 Turbo", costTier: "economy", harness: "native", featured: false },
-  { modelId: "o1", provider: "openai", displayName: "o1", costTier: "premium", harness: "native", featured: false },
-  { modelId: "o1-mini", provider: "openai", displayName: "o1 Mini", costTier: "standard", harness: "native", featured: false },
-
-  // ═══════════════════════════════════════════════════════════════════
-  //  CURSOR harness
-  //  Model IDs match cursor-runner/src/adapter/model-pricing.ts
-  // ═══════════════════════════════════════════════════════════════════
-
-  // ── Cursor own models ─────────────────────────────────────────────
-  { modelId: "auto", provider: "cursor", displayName: "Auto", costTier: "standard", harness: "cursor", featured: true },
-  { modelId: "composer-2", provider: "cursor", displayName: "Composer 2", costTier: "economy", harness: "cursor", featured: true },
-  { modelId: "composer-1.5", provider: "cursor", displayName: "Composer 1.5", costTier: "standard", harness: "cursor", featured: false },
-
-  // ── Anthropic via Cursor ──────────────────────────────────────────
-  { modelId: "claude-4.7-opus", provider: "anthropic", displayName: "Opus 4.7", costTier: "premium", harness: "cursor", featured: true },
-  { modelId: "claude-4.6-opus", provider: "anthropic", displayName: "Opus 4.6", costTier: "premium", harness: "cursor", featured: true },
-  { modelId: "claude-4.6-sonnet", provider: "anthropic", displayName: "Sonnet 4.6", costTier: "standard", harness: "cursor", featured: true },
-  { modelId: "claude-4.5-opus", provider: "anthropic", displayName: "Opus 4.5", costTier: "premium", harness: "cursor", featured: false },
-  { modelId: "claude-4.5-sonnet", provider: "anthropic", displayName: "Sonnet 4.5", costTier: "standard", harness: "cursor", featured: false },
-  { modelId: "claude-4.5-haiku", provider: "anthropic", displayName: "Haiku 4.5", costTier: "economy", harness: "cursor", featured: false },
-  { modelId: "claude-4-sonnet", provider: "anthropic", displayName: "Sonnet 4", costTier: "standard", harness: "cursor", featured: false },
-
-  // ── OpenAI via Cursor ─────────────────────────────────────────────
-  { modelId: "gpt-5.5", provider: "openai", displayName: "GPT-5.5", costTier: "premium", harness: "cursor", featured: true },
-  { modelId: "gpt-5.3-codex", provider: "openai", displayName: "Codex 5.3", costTier: "standard", harness: "cursor", featured: true },
-  { modelId: "gpt-5.4", provider: "openai", displayName: "GPT-5.4", costTier: "standard", harness: "cursor", featured: false },
-  { modelId: "gpt-5", provider: "openai", displayName: "GPT-5", costTier: "standard", harness: "cursor", featured: false },
-
-  // ── Google via Cursor ─────────────────────────────────────────────
-  { modelId: "gemini-3.1-pro", provider: "google", displayName: "Gemini 3.1 Pro", costTier: "standard", harness: "cursor", featured: false },
-  { modelId: "gemini-3-flash", provider: "google", displayName: "Gemini 3 Flash", costTier: "economy", harness: "cursor", featured: false },
-
-  // ═══════════════════════════════════════════════════════════════════
-  //  OLLAMA (local, disabled by default)
-  // ═══════════════════════════════════════════════════════════════════
-  { modelId: "qwen2.5-coder:7b", provider: "ollama", displayName: "Qwen 2.5 Coder 7B", costTier: "economy", harness: "native", featured: false },
-  { modelId: "qwen2.5-coder:14b", provider: "ollama", displayName: "Qwen 2.5 Coder 14B", costTier: "economy", harness: "native", featured: false },
-  { modelId: "codellama:7b", provider: "ollama", displayName: "Code Llama 7B", costTier: "economy", harness: "native", featured: false },
-  { modelId: "codellama:13b", provider: "ollama", displayName: "Code Llama 13B", costTier: "economy", harness: "native", featured: false },
-  { modelId: "deepseek-coder-v2:16b", provider: "ollama", displayName: "DeepSeek Coder V2 16B", costTier: "economy", harness: "native", featured: false },
-  { modelId: "llama3.2:3b", provider: "ollama", displayName: "Llama 3.2 3B", costTier: "economy", harness: "native", featured: false },
-  { modelId: "mistral:7b", provider: "ollama", displayName: "Mistral 7B", costTier: "economy", harness: "native", featured: false },
-];
+export const MODEL_REGISTRY: readonly ModelInfo[] = (
+  registryData.models as RegistryJsonEntry[]
+)
+  .filter(isModelEntry)
+  .map((m) => ({
+    modelId: m.id,
+    provider: m.provider as Provider,
+    displayName: m.displayName,
+    costTier: m.costTier as CostTier,
+    harness: m.harness as HarnessOption,
+    featured: m.featured ?? false,
+  }));
 
 /** Model ID used when no user preference is set (native harness). */
 export const DEFAULT_MODEL_ID = "claude-sonnet-4.5";
 
 /** Model ID used when the Cursor harness is selected and no user preference is set. */
-export const DEFAULT_CURSOR_MODEL_ID = "auto";
+export const DEFAULT_CURSOR_MODEL_ID = "default";
+
