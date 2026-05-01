@@ -19,7 +19,7 @@
  */
 
 import { heartbeat } from "@temporalio/activity";
-import { create } from "@bufbuild/protobuf";
+import { create, toJson } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
@@ -54,7 +54,7 @@ export function createActivities(config: Config) {
   });
 
   return {
-    ExecuteCursor: async (executionId: string, threadId: string): Promise<AgentExecutionStatus> => {
+    ExecuteCursor: async (executionId: string, threadId: string): Promise<unknown> => {
       return executeCursor(config, client, executionId, threadId);
     },
   };
@@ -65,7 +65,7 @@ async function executeCursor(
   client: StigmerClient,
   executionId: string,
   threadId: string,
-): Promise<AgentExecutionStatus> {
+): Promise<unknown> {
   console.log(`ExecuteCursor started: execution=${executionId}, threadId=${threadId || "(new)"}`);
 
   const status = create(AgentExecutionStatusSchema, {
@@ -305,15 +305,22 @@ async function executeCursor(
 /**
  * Return a slim status containing only workflow-critical fields.
  * Heavy fields (messages, tool_calls) are already persisted via gRPC.
+ *
+ * Uses toJson() to produce canonical protobuf JSON (base64 bytes, string
+ * enums, omitted defaults) instead of returning a raw @bufbuild/protobuf
+ * message. Temporal's default JsonPayloadConverter calls JSON.stringify,
+ * which serializes Uint8Array bytes fields as {} — invalid protobuf JSON
+ * that the Java workflow's JsonFormat.Parser rejects.
  */
-function slimStatus(full: AgentExecutionStatus): AgentExecutionStatus {
-  return create(AgentExecutionStatusSchema, {
+function slimStatus(full: AgentExecutionStatus): unknown {
+  const slim = create(AgentExecutionStatusSchema, {
     phase: full.phase,
     error: full.error,
     startedAt: full.startedAt,
     completedAt: full.completedAt,
     pendingApprovals: full.pendingApprovals,
   });
+  return toJson(AgentExecutionStatusSchema, slim);
 }
 
 async function persistStatus(
