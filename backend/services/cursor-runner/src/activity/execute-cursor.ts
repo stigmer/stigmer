@@ -42,6 +42,7 @@ import { resolveAttachments } from "../adapter/attachment-resolver.js";
 import { buildEnhancedPrompt, buildReinvocationPrompt } from "../adapter/prompt-builder.js";
 import { writeHooksToWorkspace } from "../hitl/workspace-setup.js";
 import { buildApprovalState } from "../hitl/approval-state.js";
+import { setInterceptorExecutionId } from "../proxy/fetch-interceptor.js";
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -67,6 +68,8 @@ async function executeCursor(
   threadId: string,
 ): Promise<unknown> {
   console.log(`ExecuteCursor started: execution=${executionId}, threadId=${threadId || "(new)"}`);
+
+  setInterceptorExecutionId(executionId);
 
   const status = create(AgentExecutionStatusSchema, {
     phase: ExecutionPhase.EXECUTION_IN_PROGRESS,

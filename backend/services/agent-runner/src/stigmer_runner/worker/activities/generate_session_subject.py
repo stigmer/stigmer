@@ -139,7 +139,8 @@ async def _generate_and_update_subject(execution_id: str) -> None:
 
         # Step 5: Generate title with economy-tier model
         generated_subject = await _generate_title(
-            user_message, agent_name, agent_description
+            user_message, agent_name, agent_description,
+            execution_id=execution_id,
         )
 
         if not generated_subject:
@@ -195,6 +196,8 @@ async def _generate_title(
     user_message: str,
     agent_name: str,
     agent_description: str,
+    *,
+    execution_id: str | None = None,
 ) -> str | None:
     """Use an economy-tier LLM to generate a concise session title.
 
@@ -213,6 +216,7 @@ async def _generate_title(
     llm_kwargs = worker_config.llm.build_llm_kwargs(
         proxy_endpoint=worker_config.stigmer_proxy_endpoint,
         proxy_auth_token=worker_config.stigmer_token,
+        execution_id=execution_id,
     )
 
     model = parse_model_string(
