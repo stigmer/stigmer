@@ -33,7 +33,7 @@ import type { SDKMessage } from "@cursor/sdk";
 import type { Config } from "../config.js";
 import { StigmerClient } from "../client/stigmer-client.js";
 import { resolveAgent } from "../adapter/session-lifecycle.js";
-import { translateEvent, extractDeniedToolCalls, utcTimestamp } from "../adapter/message-translator.js";
+import { MessageAccumulator, extractDeniedToolCalls, utcTimestamp } from "../adapter/message-translator.js";
 import { UsageTracker } from "../adapter/usage-tracker.js";
 import { resolveMcpServers } from "../adapter/mcp-resolver.js";
 import { resolveBlueprint } from "../adapter/blueprint-resolver.js";
@@ -208,21 +208,26 @@ async function executeCursor(
       },
     });
 
+    const accumulator = new MessageAccumulator(status.messages);
+    let eventCount = 0;
+
     for await (const event of run.stream()) {
       collectedEvents.push(event);
-      const messages = translateEvent(event);
-      status.messages.push(...messages);
+      accumulator.processEvent(event);
+      eventCount++;
 
       while (pendingMetrics.length > 0) {
         const metrics = pendingMetrics.shift()!;
         stampMetricsOnLastAiMessage(status.messages, metrics);
       }
 
-      if (status.messages.length % 5 === 0) {
+      if (eventCount % 20 === 0) {
         await persistStatus(client, executionId, status);
         heartbeat();
       }
     }
+
+    accumulator.finalize();
 
     while (pendingMetrics.length > 0) {
       const metrics = pendingMetrics.shift()!;

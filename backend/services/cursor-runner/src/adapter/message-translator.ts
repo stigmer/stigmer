@@ -1,10 +1,15 @@
 /**
  * Translates Cursor SDK streaming events into Stigmer AgentMessage protos.
  *
- * The Cursor SDK emits SDKMessage events during a Run. This module maps
- * each event type to the corresponding Stigmer proto type (AgentMessage,
- * ToolCall, etc.) so status updates sent to the Stigmer server look
- * identical regardless of which harness produced them.
+ * The Cursor SDK emits SDKMessage events during a Run. This module provides
+ * both stateless translation (translateEvent) and stateful accumulation
+ * (MessageAccumulator) for building coherent messages from token-level
+ * streaming events.
+ *
+ * The Cursor SDK emits one SDKAssistantMessage per token chunk — a single
+ * LLM turn produces dozens of events. MessageAccumulator merges them into
+ * a single AgentMessage per turn, matching the Python agent-runner's
+ * proven pattern (see chat_model.py handle_chat_model_stream).
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -118,6 +123,132 @@ function isTerminalToolStatus(status: ToolCallStatus): boolean {
     status === ToolCallStatus.TOOL_CALL_FAILED ||
     status === ToolCallStatus.TOOL_CALL_SKIPPED
   );
+}
+
+/**
+ * Stateful accumulator that merges per-token SDK events into coherent
+ * AgentMessages.
+ *
+ * The Cursor SDK emits one `assistant` event per token chunk (validated:
+ * a 2-sentence response produces ~41 events). Without accumulation each
+ * chunk becomes a separate AgentMessage, causing the UI to render each
+ * word on its own line.
+ *
+ * MessageAccumulator tracks the active AI and thinking messages per
+ * run_id. Consecutive assistant events for the same run_id append to
+ * the existing message's content instead of creating new ones.
+ *
+ * Mirrors the Python agent-runner's StatusBuilder pattern where
+ * `handle_chat_model_stream` does `ai_message.content += token`.
+ */
+export class MessageAccumulator {
+  private readonly messages: AgentMessage[];
+  private activeAiByRunId = new Map<string, AgentMessage>();
+  private activeThinkingByRunId = new Map<string, AgentMessage>();
+
+  constructor(messages: AgentMessage[]) {
+    this.messages = messages;
+  }
+
+  processEvent(event: SDKMessage): void {
+    switch (event.type) {
+      case "assistant":
+        this.accumulateAssistant(event);
+        break;
+      case "thinking":
+        this.accumulateThinking(event);
+        break;
+      case "tool_call":
+        this.finalizeStreaming(event.run_id);
+        this.messages.push(translateToolCall(event));
+        break;
+      case "task":
+        if (event.text) {
+          this.messages.push(translateTask(event));
+        }
+        break;
+    }
+  }
+
+  /**
+   * Close all active streaming messages. Call after the stream loop ends
+   * so that persisted messages have is_streaming=false.
+   */
+  finalize(): void {
+    for (const msg of this.activeAiByRunId.values()) {
+      msg.isStreaming = false;
+    }
+    for (const msg of this.activeThinkingByRunId.values()) {
+      msg.isStreaming = false;
+    }
+    this.activeAiByRunId.clear();
+    this.activeThinkingByRunId.clear();
+  }
+
+  private accumulateAssistant(
+    event: Extract<SDKMessage, { type: "assistant" }>,
+  ): void {
+    const text = event.message.content
+      .filter((b): b is { type: "text"; text: string } => b.type === "text")
+      .map((b) => b.text)
+      .join("");
+
+    if (!text) return;
+
+    const existing = this.activeAiByRunId.get(event.run_id);
+    if (existing) {
+      existing.content += text;
+      return;
+    }
+
+    const msg = create(AgentMessageSchema, {
+      type: MessageType.MESSAGE_AI,
+      content: text,
+      timestamp: utcTimestamp(),
+      isStreaming: true,
+    });
+    this.messages.push(msg);
+    this.activeAiByRunId.set(event.run_id, msg);
+  }
+
+  private accumulateThinking(
+    event: Extract<SDKMessage, { type: "thinking" }>,
+  ): void {
+    if (!event.text) return;
+
+    const existing = this.activeThinkingByRunId.get(event.run_id);
+    if (existing) {
+      existing.content += event.text;
+      return;
+    }
+
+    const msg = create(AgentMessageSchema, {
+      type: MessageType.MESSAGE_THINKING,
+      content: event.text,
+      timestamp: utcTimestamp(),
+      isStreaming: true,
+    });
+    this.messages.push(msg);
+    this.activeThinkingByRunId.set(event.run_id, msg);
+  }
+
+  /**
+   * Finalize streaming messages for a given run_id. Called when a
+   * non-text event (tool_call) arrives, indicating the model has
+   * finished its text output for this turn and moved on.
+   */
+  private finalizeStreaming(runId: string): void {
+    const ai = this.activeAiByRunId.get(runId);
+    if (ai) {
+      ai.isStreaming = false;
+      this.activeAiByRunId.delete(runId);
+    }
+    const thinking = this.activeThinkingByRunId.get(runId);
+    if (thinking) {
+      thinking.isStreaming = false;
+      this.activeThinkingByRunId.delete(runId);
+    }
+  }
 }
 
 /**
