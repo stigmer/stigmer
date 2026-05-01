@@ -33,8 +33,16 @@ echo "Syncing agent-runner source for embedding..."
 echo "Syncing cursor-runner source for embedding..."
 (cd "$CLI_DIR/embedded/cursorrunner" && bash sync.sh)
 
-echo "Building stigmer CLI from source..."
-(cd "$CLI_DIR" && CGO_ENABLED=0 go build -tags 'embed_agentrunner embed_cursorrunner' -ldflags="-s -w" -o "$GOPATH_BIN" .)
+# Compute a content hash of the embedded source so the runtime managers
+# can skip refreshDevSource() when the source hasn't changed between restarts.
+EMBED_HASH=$(cd "$CLI_DIR/embedded" && find agentrunner/source cursorrunner/source -type f 2>/dev/null | sort | xargs shasum -a 256 | shasum -a 256 | cut -c1-12)
+BUILD_VERSION="dev-${EMBED_HASH}"
+
+echo "Building stigmer CLI from source (version: $BUILD_VERSION)..."
+(cd "$CLI_DIR" && CGO_ENABLED=0 go build \
+  -tags 'embed_agentrunner embed_cursorrunner' \
+  -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=${BUILD_VERSION}" \
+  -o "$GOPATH_BIN" .)
 echo "Installed: $GOPATH_BIN"
 
 # Recreate symlink if missing or pointing to a different target.

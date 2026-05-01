@@ -13,42 +13,26 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector
-- **Last Session**: April 30, 2026 — Session 14: Unified Model Selector (Cursor-Style)
-- **Active Task**: None — unified model selector fully implemented and tested
+- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix
+- **Last Session**: May 1, 2026 — Session 15: Fix Dev-Mode Runner Startup Delay
+- **Active Task**: None — dev-mode startup delay fixed
 - **Branch**: `feat/cursor-harness`
 
-## Session Progress (April 30, 2026 — Session 14)
+## Session Progress (May 1, 2026 — Session 15)
 
-### Unified Model Selector (Cursor-Style)
+### Fix Dev-Mode Runner Startup Delay
 
-Merged the separate HarnessSelector and ModelSelector into a single Cursor-style flat model picker with search, expanding the Cursor model catalog from 3 to 16 models.
+Fixed a 60-120 second delay when starting runners in dev mode. The root cause was that `setup-sidecar-dev.sh` built the CLI without setting `buildVersion`, so `GetBuildVersion()` returned `"dev"`, which triggered unconditional `refreshDevSource()` in both Python and Node.js runtime managers on every startup — re-extracting source and reinstalling dependencies even when nothing had changed.
 
-**Changes (9 files, +542 / -192 lines):**
+**Fix**: Compute a content hash of the embedded source directories and inject it as `buildVersion` via ldflags (e.g., `dev-a4baea168b83`). The existing version-based caching in both runtime managers now works correctly, skipping expensive bootstrap when source is unchanged.
 
-1. **`sdk/react/src/models/registry.ts`** — Extended `ModelInfo` with `harness` and `featured` fields. Expanded `Provider` type to include `"google"` and `"xai"`. Removed `"cursor"` from `DISABLED_PROVIDERS`. Added 16 Cursor-harness models (IDs verified against `model-pricing.ts`). Added `modelKey()` and `parseModelKey()` utility functions.
+**Changes (1 file, +10 / -2 lines):**
 
-2. **`sdk/react/src/models/useModelRegistry.ts`** — Added unified mode (no `harness` arg) returning models from both engines. Added `featured` (curated subset) and `getByKey` (compound key lookup) to return value. Backward-compatible single-harness modes preserved.
+1. **`client-apps/desktop/scripts/setup-sidecar-dev.sh`** — Added content hash computation of `agentrunner/source` and `cursorrunner/source`, injected as `buildVersion` via `-X` ldflags. Dev-mode runner start time reduced from 60-120s to 3-5s.
 
-3. **`sdk/react/src/models/ModelSelector.tsx`** — Rewrote from `@base-ui/react` Select to Popover-based Cursor-style flat picker. Search input, curated default list (~10 featured models), "Show All Models" expansion, engine tags ("Stigmer"/"Cursor"), cost tier indicators, checkmark on selected, keyboard navigation, proper ARIA roles.
+### Previous Session (April 30, 2026 — Session 14)
 
-4. **`sdk/react/src/composer/ComposerToolbar.tsx`** — When `showModelSelector` is true, `HarnessSelector` is now suppressed. Unified `ModelSelector` receives `onHarnessResolved` wired to toolbar's `onHarnessChange`.
-
-5. **`sdk/react/src/composer/SessionComposer.tsx`** — Removed harness-switch model reset effect (now internal to ModelSelector). Added compound key resolution in `handleSubmit` so raw `modelId` is passed to consumer.
-
-6. **`sdk/react/src/models/HarnessSelector.tsx`** — Marked as `@deprecated` with guidance to use `ModelSelector` in unified mode. Export preserved for backward compatibility.
-
-7. **`sdk/react/src/models/index.ts`** / **`sdk/react/src/index.ts`** — Added `modelKey` and `parseModelKey` to public API.
-
-8. **`sdk/react/src/models/__tests__/useModelRegistry.test.tsx`** — Rewritten for unified/native/cursor semantics. 24 tests covering featured models, compound key lookup, provider filtering, and backward compat.
-
-**Test results**: All 228 tests pass across 21 test files.
-
-### Key Design Decisions
-- **Flat list over hierarchy**: Copied Cursor's model picker pattern — no tabs, no grouping
-- **Compound keys**: `"${harness}/${modelId}"` used internally since the same model can appear under both engines
-- **Curated defaults**: 10 featured models (2 Stigmer + 8 Cursor) shown by default; "Show All" expands to ~30
-- **Implicit harness resolution**: Selecting a model from a different engine automatically updates the session harness via `onHarnessResolved`
+Unified Model Selector (Cursor-Style) — merged HarnessSelector and ModelSelector into a single Cursor-style flat model picker. See checkpoint `2026-04-30-session-14.md` for details.
 
 ## Next Steps
 
