@@ -582,6 +582,15 @@
       "pricing": { "inputPricePerMillion": 1.25, "outputPricePerMillion": 10.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.125 }
     },
     {
+      "id": "gpt-5.1",
+      "displayName": "GPT-5.1",
+      "provider": "openai",
+      "harness": "cursor",
+      "costTier": "standard",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 1.25, "outputPricePerMillion": 10.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.125 }
+    },
+    {
       "id": "gpt-5.1-codex-mini",
       "displayName": "GPT-5.1 Codex Mini",
       "provider": "openai",
