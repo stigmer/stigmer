@@ -64,6 +64,14 @@ function replaceAuth(init: RequestInit | undefined, config: ProxyConfig): Reques
   return { ...init, headers };
 }
 
+function extractPath(url: string): string {
+  try {
+    return new URL(url).pathname;
+  } catch {
+    return url;
+  }
+}
+
 const interceptedFetch: typeof fetch = async (input, init) => {
   if (!interceptorConfig) {
     return originalFetch(input, init);
@@ -83,8 +91,25 @@ const interceptedFetch: typeof fetch = async (input, init) => {
 
   const rewrittenUrl = rewriteUrl(url, interceptorConfig.proxyEndpoint);
   const rewrittenInit = replaceAuth(init, interceptorConfig);
+  const path = extractPath(url);
 
-  return originalFetch(rewrittenUrl, rewrittenInit);
+  try {
+    const response = await originalFetch(rewrittenUrl, rewrittenInit);
+
+    if (!response.ok) {
+      console.warn(
+        `[proxy-interceptor] Cursor request failed: ${init?.method ?? "GET"} ${path} → proxy status=${response.status}`,
+      );
+    }
+
+    return response;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(
+      `[proxy-interceptor] Cursor request error: ${init?.method ?? "GET"} ${path} → ${msg}`,
+    );
+    throw err;
+  }
 };
 
 /**
