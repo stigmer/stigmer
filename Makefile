@@ -350,6 +350,20 @@ update-deps: ## Regenerate agent-runner requirements.txt from poetry.lock
 	@rm -f /tmp/stigmer-ar-deps.txt
 	@echo "updated: $(AGENT_RUNNER_DIR)/requirements.txt ($$(wc -l < $(AGENT_RUNNER_DIR)/requirements.txt | tr -d ' ') lines)"
 
+.PHONY: update-pricing
+update-pricing: ## Regenerate cursor-runner model pricing from Cursor's published rates
+	@STIGMER_CONFIG="$$HOME/.stigmer/config.yaml"; \
+	if [ ! -f "$$STIGMER_CONFIG" ]; then \
+		echo "error: $$STIGMER_CONFIG not found — run 'stigmer auth login' first"; \
+		exit 1; \
+	fi; \
+	TOKEN=$$(awk '/cloud:/{c=1} c && /token:/{print $$2; exit}' "$$STIGMER_CONFIG"); \
+	if [ -z "$$TOKEN" ]; then \
+		echo "error: no cloud token in $$STIGMER_CONFIG — run 'stigmer auth login' first"; \
+		exit 1; \
+	fi; \
+	cd $(CURSOR_RUNNER_DIR) && STIGMER_TOKEN="$$TOKEN" npm run update-pricing
+
 # ─── Local Dev ────────────────────────────────
 
 DEV_LDFLAGS := -X github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner.devSourceDir=$(CURDIR)/backend/services/agent-runner \
