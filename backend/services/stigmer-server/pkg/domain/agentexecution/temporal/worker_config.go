@@ -50,9 +50,10 @@ import (
 //
 // Why This Works:
 // ===============
-// Temporal routes tasks based on what each worker advertises:
-// - Workflow task for "InvokeAgentExecutionWorkflow" → Goes to Go (only worker that has it)
-// - Activity task for "ExecuteGraphton" → Goes to Python (only worker on that queue)
+// Each worker polls a dedicated queue, ensuring deterministic routing:
+// - Workflow task for "InvokeAgentExecutionWorkflow" → Goes to Go (only worker on stigmer queue)
+// - Activity task for "ExecuteGraphton" → Goes to Python (only worker on the runner base queue)
+// - Activity task for "ExecuteCursor" → Goes to TypeScript (only worker on {baseQueue}:cursor)
 // - Activity task for "UpdateExecutionStatusActivity" → Goes to Go (local activity, in-process)
 //
 // Environment Variables:
