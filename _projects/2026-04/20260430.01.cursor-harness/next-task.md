@@ -13,39 +13,25 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation + RUNNER_PHASE_STARTING lifecycle
-- **Last Session**: May 1, 2026 — Session 17: Add RUNNER_PHASE_STARTING to Runner Lifecycle
-- **Active Task**: None — STARTING phase fully implemented
+- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation + RUNNER_PHASE_STARTING lifecycle + cursor-runner enum crash fix + parallel bootstrap
+- **Last Session**: May 1, 2026 — Session 18: Fix Cursor Runner Enum Crash and Parallelize Bootstrap
+- **Active Task**: None — enum crash fixed and bootstrap parallelized
 - **Branch**: `feat/cursor-harness`
 
-## Session Progress (May 1, 2026 — Session 17)
+## Session Progress (May 1, 2026 — Session 18)
 
-### Add RUNNER_PHASE_STARTING to Runner Lifecycle
+### Fix Cursor Runner TypeScript Enum Crash and Parallelize Bootstrap
 
-Introduced a new `RUNNER_PHASE_STARTING` phase to the runner lifecycle so the UI displays a continuous spinner from the moment the user clicks "Start Runner" until the runtime is fully bootstrapped and ready to accept executions. Previously, the runner would briefly show a spinner, then switch to "Stopped" for the duration of the Python/Node.js bootstrap, confusing users into thinking startup had failed.
+Fixed a runtime crash in the embedded cursor-runner caused by Node.js 22's strip-only TypeScript mode encountering `export enum` in proto stubs. Also parallelized the Python and Node.js bootstrap phases to reduce first-run startup latency.
 
-**Proto layer:**
-- Added `RUNNER_PHASE_STARTING = 6` to `enum.proto` with updated transition diagram
-- Regenerated stubs in both `stigmer` (Go, TS, Java, Python) and `stigmer-cloud` (Go, TS, Java, Python, Dart) repos
+**sync.sh (covers all deployment paths):**
+- Added Step 2b: compiles proto stubs to JS via `tsc`, rewrites `package.json` exports to conditional exports (`types` → `.ts`, `import` → `dist/*.js`)
+- Single change covers local dev (`make desktop-dev`), CI desktop (`release.desktop.yaml`), and CI CLI (`release.cli.yaml`)
 
-**Server-side (heartbeat.go):**
-- Updated `isReactivation` logic to recognize `STARTING` as an active-transition phase
-- `PENDING/STOPPED → STARTING` now correctly sets `started_at` and clears `stopped_at`
-
-**CLI (runner_stream.go, start.go):**
-- Added dynamic phase support to `RunnerStreamClient`: `InitialPhase` config, `SetPhase()`, `phaseChanged` channel
-- Restructured `startNativeRunner` to open the heartbeat stream with `STARTING` phase *before* Python bootstrap
-- After Python process starts successfully, transitions to `READY` via `SetPhase()`
-- Phase changes trigger an immediate heartbeat (no waiting for the next tick)
-
-**React SDK (phase.ts, RunnerListPanel.tsx):**
-- Added `STARTING` to sort order, labels, `isTransitionalPhase()`, and `phaseDotColor()`
-- Updated `RunnerListPanel` PhaseBadge with CSS spinner for `STARTING`
-- Updated unit tests
-
-**Desktop UI (RunnersPage.tsx):**
-- PhaseBadge shows `Loader2` spinner with primary color for `STARTING`
-- Reduced `RESTART_GRACE_MS` from 30s to 10s (STARTING phase makes the long grace unnecessary)
+**start.go (parallel bootstrap):**
+- Added `cursorBootstrapOutcome` struct for channel-based result passing
+- Restructured `startNativeRunner` to launch `BootstrapCursorRunnerRuntime` in a goroutine concurrently with `BootstrapPythonRuntime`
+- Replaced `startCursorRunnerProcess` with `launchCursorRunnerProcess` (receives pre-completed bootstrap result)
 
 ## Next Steps
 
@@ -66,19 +52,22 @@ Introduced a new `RUNNER_PHASE_STARTING` phase to the runner lifecycle so the UI
 - MCP merge: session overrides agent by slug; skill refs: union deduplicated by slug
 - Multi-workspace: resolved from `session.spec.workspaceEntries`, passed as `string[]` to Cursor SDK
 - The `openai` native provider remains in `DISABLED_PROVIDERS` (only Cursor-served OpenAI models are visible)
+- Node.js 22 strip-only mode cannot handle `export enum` — the embed path now pre-compiles proto stubs to JS via `sync.sh`
+- The April 30 `import_extension=js` fix is a prerequisite for the enum crash fix (ensures correct import paths in compiled output)
+- Daemon path (`daemon_process.go`) bootstrap is still sequential — parallelization deferred as a follow-up
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-01-session-17.md
+_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-01-session-18.md
 ```
 
 ### 2. Previous Checkpoints
 ```
+_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-01-session-17.md
 _projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-01-session-16.md
 _projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-01-session-15.md
-_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-04-30-session-14.md
 ```
 
 ### 4. Task Plan
