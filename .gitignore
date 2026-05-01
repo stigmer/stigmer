@@ -126,6 +126,9 @@ vale/styles/Google/
 vale/styles/Microsoft/
 vale/styles/alex/
 
+# uv lockfile (project uses Poetry; uv.lock is auto-generated noise)
+uv.lock
+
 # Environment files (local secrets, never commit)
 .env
 .env_export
