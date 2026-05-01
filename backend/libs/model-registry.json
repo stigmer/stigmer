@@ -1,0 +1,660 @@
+{
+  "$comment": "Unified model registry — single source of truth for all model metadata. Maintained by AI via @update-model-registry.",
+  "models": [
+    {
+      "$comment": "═══ NATIVE HARNESS — Anthropic (direct API) ═══"
+    },
+    {
+      "id": "claude-opus-4.6",
+      "apiModelId": "claude-opus-4-6",
+      "displayName": "Claude Opus 4.6",
+      "provider": "anthropic",
+      "harness": "native",
+      "costTier": "premium",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 5.0,
+        "outputPricePerMillion": 25.0,
+        "cacheWritePricePerMillion": 6.25,
+        "cacheReadPricePerMillion": 0.50
+      },
+      "contextWindowTokens": 200000,
+      "maxOutputTokens": 131072,
+      "tokenCounterMethod": "anthropic_native",
+      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
+      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": false, "adaptiveThinking": true }
+    },
+    {
+      "id": "claude-sonnet-4.6",
+      "apiModelId": "claude-sonnet-4-6",
+      "displayName": "Claude Sonnet 4.6",
+      "provider": "anthropic",
+      "harness": "native",
+      "costTier": "standard",
+      "featured": true,
+      "pricing": {
+        "inputPricePerMillion": 3.0,
+        "outputPricePerMillion": 15.0,
+        "cacheWritePricePerMillion": 3.75,
+        "cacheReadPricePerMillion": 0.30
+      },
+      "contextWindowTokens": 200000,
+      "maxOutputTokens": 65536,
+      "tokenCounterMethod": "anthropic_native",
+      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
+      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": true, "adaptiveThinking": false }
+    },
+    {
+      "id": "claude-opus-4.5",
+      "apiModelId": "claude-opus-4-5-20251101",
+      "displayName": "Claude Opus 4.5",
+      "provider": "anthropic",
+      "harness": "native",
+      "costTier": "premium",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 5.0,
+        "outputPricePerMillion": 25.0,
+        "cacheWritePricePerMillion": 6.25,
+        "cacheReadPricePerMillion": 0.50
+      },
+      "contextWindowTokens": 200000,
+      "maxOutputTokens": 65536,
+      "tokenCounterMethod": "anthropic_native",
+      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
+      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": true, "adaptiveThinking": false }
+    },
+    {
+      "id": "claude-sonnet-4.5",
+      "apiModelId": "claude-sonnet-4-5-20250929",
+      "displayName": "Claude Sonnet 4.5",
+      "provider": "anthropic",
+      "harness": "native",
+      "costTier": "standard",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 3.0,
+        "outputPricePerMillion": 15.0,
+        "cacheWritePricePerMillion": 3.75,
+        "cacheReadPricePerMillion": 0.30
+      },
+      "contextWindowTokens": 200000,
+      "maxOutputTokens": 65536,
+      "tokenCounterMethod": "anthropic_native",
+      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
+      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": true, "adaptiveThinking": false }
+    },
+    {
+      "id": "claude-opus-4",
+      "apiModelId": "claude-opus-4-20250514",
+      "displayName": "Claude Opus 4",
+      "provider": "anthropic",
+      "harness": "native",
+      "costTier": "premium",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 15.0,
+        "outputPricePerMillion": 75.0,
+        "cacheWritePricePerMillion": 18.75,
+        "cacheReadPricePerMillion": 1.50
+      },
+      "contextWindowTokens": 200000,
+      "maxOutputTokens": 32768,
+      "tokenCounterMethod": "anthropic_native",
+      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
+      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": true, "adaptiveThinking": false }
+    },
+    {
+      "id": "claude-haiku-4.5",
+      "apiModelId": "claude-haiku-4-5-20251001",
+      "displayName": "Claude Haiku 4.5",
+      "provider": "anthropic",
+      "harness": "native",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 1.0,
+        "outputPricePerMillion": 5.0,
+        "cacheWritePricePerMillion": 1.25,
+        "cacheReadPricePerMillion": 0.10
+      },
+      "contextWindowTokens": 200000,
+      "maxOutputTokens": 64000,
+      "tokenCounterMethod": "anthropic_native",
+      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
+      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": false, "adaptiveThinking": false }
+    },
+    {
+      "id": "claude-sonnet-3.5",
+      "apiModelId": "claude-3-5-sonnet-20241022",
+      "displayName": "Claude Sonnet 3.5",
+      "provider": "anthropic",
+      "harness": "native",
+      "costTier": "standard",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 3.0,
+        "outputPricePerMillion": 15.0,
+        "cacheWritePricePerMillion": 3.75,
+        "cacheReadPricePerMillion": 0.30
+      },
+      "contextWindowTokens": 200000,
+      "maxOutputTokens": 8192,
+      "tokenCounterMethod": "anthropic_native",
+      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
+      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": false, "adaptiveThinking": false }
+    },
+    {
+      "id": "claude-haiku-3.5",
+      "apiModelId": "claude-3-5-haiku-20241022",
+      "displayName": "Claude Haiku 3.5",
+      "provider": "anthropic",
+      "harness": "native",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 0.80,
+        "outputPricePerMillion": 4.0,
+        "cacheWritePricePerMillion": 1.00,
+        "cacheReadPricePerMillion": 0.08
+      },
+      "contextWindowTokens": 200000,
+      "maxOutputTokens": 8192,
+      "tokenCounterMethod": "anthropic_native",
+      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
+      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": false, "adaptiveThinking": false }
+    },
+
+    {
+      "$comment": "═══ NATIVE HARNESS — OpenAI (direct API) ═══"
+    },
+    {
+      "id": "gpt-4",
+      "displayName": "GPT-4",
+      "provider": "openai",
+      "harness": "native",
+      "costTier": "premium",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 30.0,
+        "outputPricePerMillion": 60.0,
+        "cacheWritePricePerMillion": 30.0,
+        "cacheReadPricePerMillion": 15.0
+      },
+      "contextWindowTokens": 8192,
+      "maxOutputTokens": 4096,
+      "tokenCounterMethod": "tiktoken_cl100k",
+      "summarization": { "triggerThreshold": 7000, "targetTokens": 6000, "maxSummaryTokens": 500 },
+      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+    },
+    {
+      "id": "gpt-4-turbo",
+      "displayName": "GPT-4 Turbo",
+      "provider": "openai",
+      "harness": "native",
+      "costTier": "standard",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 10.0,
+        "outputPricePerMillion": 30.0,
+        "cacheWritePricePerMillion": 10.0,
+        "cacheReadPricePerMillion": 5.0
+      },
+      "contextWindowTokens": 128000,
+      "maxOutputTokens": 4096,
+      "tokenCounterMethod": "tiktoken_cl100k",
+      "summarization": { "triggerThreshold": 115000, "targetTokens": 100000, "maxSummaryTokens": 2000 },
+      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": false, "adaptiveThinking": false }
+    },
+    {
+      "id": "gpt-4o",
+      "displayName": "GPT-4o",
+      "provider": "openai",
+      "harness": "native",
+      "costTier": "standard",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 5.0,
+        "outputPricePerMillion": 15.0,
+        "cacheWritePricePerMillion": 5.0,
+        "cacheReadPricePerMillion": 2.50
+      },
+      "contextWindowTokens": 128000,
+      "maxOutputTokens": 16384,
+      "tokenCounterMethod": "tiktoken_o200k",
+      "summarization": { "triggerThreshold": 115000, "targetTokens": 100000, "maxSummaryTokens": 2000 },
+      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": false, "adaptiveThinking": false }
+    },
+    {
+      "id": "gpt-4o-mini",
+      "displayName": "GPT-4o Mini",
+      "provider": "openai",
+      "harness": "native",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 0.15,
+        "outputPricePerMillion": 0.60,
+        "cacheWritePricePerMillion": 0.15,
+        "cacheReadPricePerMillion": 0.075
+      },
+      "contextWindowTokens": 128000,
+      "maxOutputTokens": 16384,
+      "tokenCounterMethod": "tiktoken_o200k",
+      "summarization": { "triggerThreshold": 115000, "targetTokens": 100000, "maxSummaryTokens": 2000 },
+      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": false, "adaptiveThinking": false }
+    },
+    {
+      "id": "gpt-3.5-turbo",
+      "displayName": "GPT-3.5 Turbo",
+      "provider": "openai",
+      "harness": "native",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 0.50,
+        "outputPricePerMillion": 1.50,
+        "cacheWritePricePerMillion": 0.50,
+        "cacheReadPricePerMillion": 0.25
+      },
+      "contextWindowTokens": 16385,
+      "maxOutputTokens": 4096,
+      "tokenCounterMethod": "tiktoken_cl100k",
+      "summarization": { "triggerThreshold": 14000, "targetTokens": 12000, "maxSummaryTokens": 1000 },
+      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+    },
+    {
+      "id": "o1",
+      "displayName": "o1",
+      "provider": "openai",
+      "harness": "native",
+      "costTier": "premium",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 15.0,
+        "outputPricePerMillion": 60.0,
+        "cacheWritePricePerMillion": 15.0,
+        "cacheReadPricePerMillion": 7.50
+      },
+      "contextWindowTokens": 200000,
+      "maxOutputTokens": 100000,
+      "tokenCounterMethod": "tiktoken_o200k",
+      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
+      "capabilities": { "toolUse": false, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+    },
+    {
+      "id": "o1-mini",
+      "displayName": "o1 Mini",
+      "provider": "openai",
+      "harness": "native",
+      "costTier": "standard",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 3.0,
+        "outputPricePerMillion": 12.0,
+        "cacheWritePricePerMillion": 3.0,
+        "cacheReadPricePerMillion": 1.50
+      },
+      "contextWindowTokens": 128000,
+      "maxOutputTokens": 65536,
+      "tokenCounterMethod": "tiktoken_o200k",
+      "summarization": { "triggerThreshold": 115000, "targetTokens": 100000, "maxSummaryTokens": 2000 },
+      "capabilities": { "toolUse": false, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+    },
+
+    {
+      "$comment": "═══ NATIVE HARNESS — Ollama (local, no cost) ═══"
+    },
+    {
+      "id": "qwen2.5-coder:7b",
+      "displayName": "Qwen 2.5 Coder 7B",
+      "provider": "ollama",
+      "harness": "native",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 0, "outputPricePerMillion": 0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0 },
+      "contextWindowTokens": 32768,
+      "maxOutputTokens": 8192,
+      "tokenCounterMethod": "approximate",
+      "summarization": { "triggerThreshold": 28000, "targetTokens": 24000, "maxSummaryTokens": 1000 },
+      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+    },
+    {
+      "id": "qwen2.5-coder:14b",
+      "displayName": "Qwen 2.5 Coder 14B",
+      "provider": "ollama",
+      "harness": "native",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 0, "outputPricePerMillion": 0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0 },
+      "contextWindowTokens": 32768,
+      "maxOutputTokens": 8192,
+      "tokenCounterMethod": "approximate",
+      "summarization": { "triggerThreshold": 28000, "targetTokens": 24000, "maxSummaryTokens": 1000 },
+      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+    },
+    {
+      "id": "codellama:7b",
+      "displayName": "Code Llama 7B",
+      "provider": "ollama",
+      "harness": "native",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 0, "outputPricePerMillion": 0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0 },
+      "contextWindowTokens": 16384,
+      "maxOutputTokens": 4096,
+      "tokenCounterMethod": "approximate",
+      "summarization": { "triggerThreshold": 14000, "targetTokens": 12000, "maxSummaryTokens": 1000 },
+      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+    },
+    {
+      "id": "codellama:13b",
+      "displayName": "Code Llama 13B",
+      "provider": "ollama",
+      "harness": "native",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 0, "outputPricePerMillion": 0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0 },
+      "contextWindowTokens": 16384,
+      "maxOutputTokens": 4096,
+      "tokenCounterMethod": "approximate",
+      "summarization": { "triggerThreshold": 14000, "targetTokens": 12000, "maxSummaryTokens": 1000 },
+      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+    },
+    {
+      "id": "deepseek-coder-v2:16b",
+      "displayName": "DeepSeek Coder V2 16B",
+      "provider": "ollama",
+      "harness": "native",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 0, "outputPricePerMillion": 0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0 },
+      "contextWindowTokens": 128000,
+      "maxOutputTokens": 8192,
+      "tokenCounterMethod": "approximate",
+      "summarization": { "triggerThreshold": 115000, "targetTokens": 100000, "maxSummaryTokens": 2000 },
+      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+    },
+    {
+      "id": "llama3.2:3b",
+      "displayName": "Llama 3.2 3B",
+      "provider": "ollama",
+      "harness": "native",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 0, "outputPricePerMillion": 0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0 },
+      "contextWindowTokens": 128000,
+      "maxOutputTokens": 8192,
+      "tokenCounterMethod": "approximate",
+      "summarization": { "triggerThreshold": 115000, "targetTokens": 100000, "maxSummaryTokens": 2000 },
+      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+    },
+    {
+      "id": "mistral:7b",
+      "displayName": "Mistral 7B",
+      "provider": "ollama",
+      "harness": "native",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 0, "outputPricePerMillion": 0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0 },
+      "contextWindowTokens": 32768,
+      "maxOutputTokens": 8192,
+      "tokenCounterMethod": "approximate",
+      "summarization": { "triggerThreshold": 28000, "targetTokens": 24000, "maxSummaryTokens": 1000 },
+      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+    },
+
+    {
+      "$comment": "═══ CURSOR HARNESS — Auto pool ═══"
+    },
+    {
+      "id": "default",
+      "displayName": "Auto",
+      "provider": "cursor",
+      "harness": "cursor",
+      "costTier": "standard",
+      "featured": true,
+      "pricing": { "inputPricePerMillion": 1.25, "outputPricePerMillion": 6.0, "cacheWritePricePerMillion": 1.25, "cacheReadPricePerMillion": 0.25 }
+    },
+
+    {
+      "$comment": "═══ CURSOR HARNESS — Cursor own models ═══"
+    },
+    {
+      "id": "composer-2",
+      "displayName": "Composer 2",
+      "provider": "cursor",
+      "harness": "cursor",
+      "costTier": "economy",
+      "featured": true,
+      "pricing": { "inputPricePerMillion": 0.5, "outputPricePerMillion": 2.5, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.2 }
+    },
+    {
+      "id": "composer-1.5",
+      "displayName": "Composer 1.5",
+      "provider": "cursor",
+      "harness": "cursor",
+      "costTier": "standard",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 3.5, "outputPricePerMillion": 17.5, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.35 }
+    },
+
+    {
+      "$comment": "═══ CURSOR HARNESS — Anthropic via Cursor ═══"
+    },
+    {
+      "id": "claude-opus-4-7",
+      "displayName": "Claude 4.7 Opus",
+      "provider": "anthropic",
+      "harness": "cursor",
+      "costTier": "premium",
+      "featured": true,
+      "pricing": { "inputPricePerMillion": 5.0, "outputPricePerMillion": 25.0, "cacheWritePricePerMillion": 6.25, "cacheReadPricePerMillion": 0.5 }
+    },
+    {
+      "id": "claude-sonnet-4-6",
+      "displayName": "Claude 4.6 Sonnet",
+      "provider": "anthropic",
+      "harness": "cursor",
+      "costTier": "standard",
+      "featured": true,
+      "pricing": { "inputPricePerMillion": 3.0, "outputPricePerMillion": 15.0, "cacheWritePricePerMillion": 3.75, "cacheReadPricePerMillion": 0.3 }
+    },
+    {
+      "id": "claude-opus-4-6",
+      "displayName": "Claude 4.6 Opus",
+      "provider": "anthropic",
+      "harness": "cursor",
+      "costTier": "premium",
+      "featured": true,
+      "pricing": { "inputPricePerMillion": 5.0, "outputPricePerMillion": 25.0, "cacheWritePricePerMillion": 6.25, "cacheReadPricePerMillion": 0.5 }
+    },
+    {
+      "id": "claude-opus-4-5",
+      "displayName": "Claude 4.5 Opus",
+      "provider": "anthropic",
+      "harness": "cursor",
+      "costTier": "premium",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 5.0, "outputPricePerMillion": 25.0, "cacheWritePricePerMillion": 6.25, "cacheReadPricePerMillion": 0.5 }
+    },
+    {
+      "id": "claude-sonnet-4-5",
+      "displayName": "Claude 4.5 Sonnet",
+      "provider": "anthropic",
+      "harness": "cursor",
+      "costTier": "standard",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 3.0, "outputPricePerMillion": 15.0, "cacheWritePricePerMillion": 3.75, "cacheReadPricePerMillion": 0.3 }
+    },
+    {
+      "id": "claude-haiku-4-5",
+      "displayName": "Claude 4.5 Haiku",
+      "provider": "anthropic",
+      "harness": "cursor",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 1.0, "outputPricePerMillion": 5.0, "cacheWritePricePerMillion": 1.25, "cacheReadPricePerMillion": 0.1 }
+    },
+    {
+      "id": "claude-sonnet-4",
+      "displayName": "Claude 4 Sonnet",
+      "provider": "anthropic",
+      "harness": "cursor",
+      "costTier": "standard",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 3.0, "outputPricePerMillion": 15.0, "cacheWritePricePerMillion": 3.75, "cacheReadPricePerMillion": 0.3 }
+    },
+
+    {
+      "$comment": "═══ CURSOR HARNESS — OpenAI via Cursor ═══"
+    },
+    {
+      "id": "gpt-5.5",
+      "displayName": "GPT-5.5",
+      "provider": "openai",
+      "harness": "cursor",
+      "costTier": "premium",
+      "featured": true,
+      "pricing": { "inputPricePerMillion": 5.0, "outputPricePerMillion": 30.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.5 }
+    },
+    {
+      "id": "gpt-5.4",
+      "displayName": "GPT-5.4",
+      "provider": "openai",
+      "harness": "cursor",
+      "costTier": "standard",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 2.5, "outputPricePerMillion": 15.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.25 }
+    },
+    {
+      "id": "gpt-5.4-mini",
+      "displayName": "GPT-5.4 Mini",
+      "provider": "openai",
+      "harness": "cursor",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 0.75, "outputPricePerMillion": 4.5, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.075 }
+    },
+    {
+      "id": "gpt-5.4-nano",
+      "displayName": "GPT-5.4 Nano",
+      "provider": "openai",
+      "harness": "cursor",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 0.2, "outputPricePerMillion": 1.25, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.02 }
+    },
+    {
+      "id": "gpt-5.3-codex",
+      "displayName": "GPT-5.3 Codex",
+      "provider": "openai",
+      "harness": "cursor",
+      "costTier": "standard",
+      "featured": true,
+      "pricing": { "inputPricePerMillion": 1.75, "outputPricePerMillion": 14.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.175 }
+    },
+    {
+      "id": "gpt-5.2",
+      "displayName": "GPT-5.2",
+      "provider": "openai",
+      "harness": "cursor",
+      "costTier": "standard",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 1.75, "outputPricePerMillion": 14.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.175 }
+    },
+    {
+      "id": "gpt-5.2-codex",
+      "displayName": "GPT-5.2 Codex",
+      "provider": "openai",
+      "harness": "cursor",
+      "costTier": "standard",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 1.75, "outputPricePerMillion": 14.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.175 }
+    },
+    {
+      "id": "gpt-5.1-codex-max",
+      "displayName": "GPT-5.1 Codex Max",
+      "provider": "openai",
+      "harness": "cursor",
+      "costTier": "standard",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 1.25, "outputPricePerMillion": 10.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.125 }
+    },
+    {
+      "id": "gpt-5.1-codex-mini",
+      "displayName": "GPT-5.1 Codex Mini",
+      "provider": "openai",
+      "harness": "cursor",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 0.25, "outputPricePerMillion": 2.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.025 }
+    },
+    {
+      "id": "gpt-5-mini",
+      "displayName": "GPT-5 Mini",
+      "provider": "openai",
+      "harness": "cursor",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 0.25, "outputPricePerMillion": 2.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.025 }
+    },
+
+    {
+      "$comment": "═══ CURSOR HARNESS — Google via Cursor ═══"
+    },
+    {
+      "id": "gemini-3.1-pro",
+      "displayName": "Gemini 3.1 Pro",
+      "provider": "google",
+      "harness": "cursor",
+      "costTier": "standard",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 2.0, "outputPricePerMillion": 12.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.2 }
+    },
+    {
+      "id": "gemini-3-flash",
+      "displayName": "Gemini 3 Flash",
+      "provider": "google",
+      "harness": "cursor",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 0.5, "outputPricePerMillion": 3.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.05 }
+    },
+    {
+      "id": "gemini-2.5-flash",
+      "displayName": "Gemini 2.5 Flash",
+      "provider": "google",
+      "harness": "cursor",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 0.3, "outputPricePerMillion": 2.5, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.03 }
+    },
+
+    {
+      "$comment": "═══ CURSOR HARNESS — xAI via Cursor ═══"
+    },
+    {
+      "id": "grok-4-20",
+      "displayName": "Grok 4.20",
+      "provider": "xai",
+      "harness": "cursor",
+      "costTier": "standard",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 2.0, "outputPricePerMillion": 6.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.2 }
+    },
+
+    {
+      "$comment": "═══ CURSOR HARNESS — Moonshot via Cursor ═══"
+    },
+    {
+      "id": "kimi-k2.5",
+      "displayName": "Kimi K2.5",
+      "provider": "moonshot",
+      "harness": "cursor",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": { "inputPricePerMillion": 0.6, "outputPricePerMillion": 3.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.1 }
+    }
+  ]
+}

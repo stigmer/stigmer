@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   getCursorModelPricing,
   computeTurnCost,
+  resolveModelId,
   type CursorModelPricing,
 } from "../model-pricing.js";
 
@@ -44,6 +45,26 @@ describe("getCursorModelPricing", () => {
     expect(premium.inputPricePerMillion).toBeGreaterThan(
       economy.inputPricePerMillion,
     );
+  });
+});
+
+describe("resolveModelId", () => {
+  it("returns 'default' for empty input", () => {
+    expect(resolveModelId("")).toBe("default");
+  });
+
+  it("returns 'default' for 'default' input", () => {
+    expect(resolveModelId("default")).toBe("default");
+  });
+
+  it("returns the model when it exists in the pricing registry", () => {
+    expect(resolveModelId("composer-2")).toBe("composer-2");
+    expect(resolveModelId("claude-opus-4-7")).toBe("claude-opus-4-7");
+    expect(resolveModelId("gpt-5.5")).toBe("gpt-5.5");
+  });
+
+  it("falls back to 'default' for unknown models", () => {
+    expect(resolveModelId("nonexistent-model")).toBe("default");
   });
 });
 

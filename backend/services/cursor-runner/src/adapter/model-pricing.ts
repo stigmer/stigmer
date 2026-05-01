@@ -1,11 +1,11 @@
 /**
- * Cursor model pricing lookup and cost computation.
+ * Cursor model pricing lookup, validation, and cost computation.
  *
- * Pricing data lives in the auto-generated model-pricing-data.ts file.
- * Regenerate it with: STIGMER_TOKEN=stg_xxx npm run update-pricing
+ * PRICING_TABLE in model-pricing-data.ts is the single source of truth for
+ * both which models are available and what they cost. Model discovery is
+ * a simple map lookup — no runtime API calls.
  *
- * This module re-exports the CursorModelPricing interface (so existing
- * importers don't need to change) and provides the lookup/compute logic.
+ * Update the data with: @update-cursor-model-pricing
  */
 
 import { PRICING_TABLE } from "./model-pricing-data.js";
@@ -25,6 +25,20 @@ const DEFAULT_PRICING: CursorModelPricing = {
   cacheWritePricePerMillion: 1.25,
   cacheReadPricePerMillion: 0.25,
 };
+
+/**
+ * Validate a requested model ID against the pricing registry.
+ * Returns the model ID if it has a pricing entry, otherwise falls back
+ * to "default". This is the single source of truth for model availability.
+ */
+export function resolveModelId(requestedModel: string): string {
+  if (!requestedModel || requestedModel === "default") return "default";
+  if (pricingByModel.has(requestedModel)) return requestedModel;
+  console.warn(
+    `Model "${requestedModel}" not in pricing registry (${pricingByModel.size} models), falling back to "default"`,
+  );
+  return "default";
+}
 
 /**
  * Look up pricing for a Cursor model. Falls back to Auto-pool rates for

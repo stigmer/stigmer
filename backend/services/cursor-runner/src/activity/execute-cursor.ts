@@ -43,7 +43,7 @@ import { buildEnhancedPrompt, buildReinvocationPrompt } from "../adapter/prompt-
 import { writeHooksToWorkspace } from "../hitl/workspace-setup.js";
 import { buildApprovalState } from "../hitl/approval-state.js";
 import { setInterceptorExecutionId } from "../proxy/fetch-interceptor.js";
-import { discoverModels, resolveModelId } from "../adapter/model-discovery.js";
+import { resolveModelId } from "../adapter/model-pricing.js";
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -146,11 +146,9 @@ async function executeCursor(
     );
     const attachmentPaths = attachmentResults.map((a) => a.relativePath);
 
-    // Phase 6: Discover models and validate selection
-    await reportSetupProgress(client, executionId, "Discovering available models");
-    const availableModels = await discoverModels(config.cursorApiKey);
+    // Phase 6: Validate model selection
     const requestedModel = spec.executionConfig?.modelName || "default";
-    const validatedModel = resolveModelId(availableModels, requestedModel);
+    const validatedModel = resolveModelId(requestedModel);
     if (validatedModel !== requestedModel) {
       console.log(
         `ExecuteCursor model resolved: execution=${executionId}, requested="${requestedModel}", using="${validatedModel}"`,

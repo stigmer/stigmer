@@ -17,8 +17,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "clean": "rm -rf dist",
-    "update-pricing": "tsx scripts/update-pricing.ts"
+    "clean": "rm -rf dist"
   },
   "files": [
     "dist",
