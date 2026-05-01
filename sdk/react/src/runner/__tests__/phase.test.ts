@@ -3,8 +3,11 @@ import { RunnerPhase } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/enum_p
 import { isTransitionalPhase, isActivePhase } from "../phase";
 
 describe("isTransitionalPhase", () => {
-  it("returns true for PENDING", () => {
-    expect(isTransitionalPhase(RunnerPhase.PENDING)).toBe(true);
+  it.each([
+    ["PENDING", RunnerPhase.PENDING],
+    ["STARTING", RunnerPhase.STARTING],
+  ] as const)("returns true for %s", (_label, phase) => {
+    expect(isTransitionalPhase(phase)).toBe(true);
   });
 
   it.each([
@@ -21,6 +24,7 @@ describe("isTransitionalPhase", () => {
     const allPhases = [
       RunnerPhase.READY,
       RunnerPhase.BUSY,
+      RunnerPhase.STARTING,
       RunnerPhase.PENDING,
       RunnerPhase.STOPPED,
       RunnerPhase.FAILED,

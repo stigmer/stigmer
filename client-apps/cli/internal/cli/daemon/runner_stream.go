@@ -40,16 +40,25 @@ type RunnerStreamConfig struct {
 	RunnerID          string
 	ConnectFn         func(ctx context.Context) (CommandStream, error)
 	HeartbeatInterval time.Duration
+	InitialPhase      runnerv1.RunnerPhase // defaults to READY if unset
 }
 
 // RunnerStreamClient maintains a persistent bidi stream to the server,
 // sending heartbeats and handling server-initiated commands. It reconnects
 // automatically with exponential backoff on stream errors.
+//
+// The reported phase can be changed at runtime via SetPhase, which triggers
+// an immediate heartbeat so the server sees the transition without waiting
+// for the next tick.
 type RunnerStreamClient struct {
 	runnerID          string
 	connectFn         func(ctx context.Context) (CommandStream, error)
 	heartbeatInterval time.Duration
 	connectionInfo    *runnerv1.RunnerConnectionInfo
+
+	phaseMu      sync.Mutex
+	currentPhase runnerv1.RunnerPhase
+	phaseChanged chan struct{}
 }
 
 // NewRunnerStreamClient creates a stream client. Call Run to start it.
@@ -59,12 +68,19 @@ func NewRunnerStreamClient(cfg RunnerStreamConfig) *RunnerStreamClient {
 		interval = defaultHeartbeatInterval
 	}
 
+	initialPhase := cfg.InitialPhase
+	if initialPhase == runnerv1.RunnerPhase_RUNNER_PHASE_UNSPECIFIED {
+		initialPhase = runnerv1.RunnerPhase_RUNNER_PHASE_READY
+	}
+
 	hostname, _ := os.Hostname()
 
 	return &RunnerStreamClient{
 		runnerID:          cfg.RunnerID,
 		connectFn:         cfg.ConnectFn,
 		heartbeatInterval: interval,
+		currentPhase:      initialPhase,
+		phaseChanged:      make(chan struct{}, 1),
 		connectionInfo: &runnerv1.RunnerConnectionInfo{
 			Hostname:      hostname,
 			Os:            runtime.GOOS,
@@ -72,6 +88,30 @@ func NewRunnerStreamClient(cfg RunnerStreamConfig) *RunnerStreamClient {
 			RunnerVersion: embedded.GetBuildVersion(),
 		},
 	}
+}
+
+// SetPhase updates the phase reported in subsequent heartbeats and triggers
+// an immediate heartbeat on the active stream so the server sees the
+// transition promptly. Safe to call from any goroutine.
+func (c *RunnerStreamClient) SetPhase(phase runnerv1.RunnerPhase) {
+	c.phaseMu.Lock()
+	if c.currentPhase == phase {
+		c.phaseMu.Unlock()
+		return
+	}
+	c.currentPhase = phase
+	c.phaseMu.Unlock()
+
+	select {
+	case c.phaseChanged <- struct{}{}:
+	default:
+	}
+}
+
+func (c *RunnerStreamClient) getPhase() runnerv1.RunnerPhase {
+	c.phaseMu.Lock()
+	defer c.phaseMu.Unlock()
+	return c.currentPhase
 }
 
 // Run opens the bidi stream and enters the heartbeat/recv loop. It blocks
@@ -150,7 +190,7 @@ func (c *RunnerStreamClient) streamLoop(
 
 	var sendMu sync.Mutex
 
-	if err := c.sendHeartbeat(&sendMu, stream, runnerv1.RunnerPhase_RUNNER_PHASE_READY); err != nil {
+	if err := c.sendHeartbeat(&sendMu, stream, c.getPhase()); err != nil {
 		return err
 	}
 
@@ -174,8 +214,13 @@ func (c *RunnerStreamClient) streamLoop(
 			}
 			return err
 
+		case <-c.phaseChanged:
+			if err := c.sendHeartbeat(&sendMu, stream, c.getPhase()); err != nil {
+				return err
+			}
+
 		case <-ticker.C:
-			if err := c.sendHeartbeat(&sendMu, stream, runnerv1.RunnerPhase_RUNNER_PHASE_READY); err != nil {
+			if err := c.sendHeartbeat(&sendMu, stream, c.getPhase()); err != nil {
 				return err
 			}
 		}
