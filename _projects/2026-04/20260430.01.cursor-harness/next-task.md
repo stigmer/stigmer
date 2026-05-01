@@ -13,62 +13,68 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix
-- **Last Session**: May 1, 2026 — Session 15: Fix Dev-Mode Runner Startup Delay
-- **Active Task**: None — dev-mode startup delay fixed
+- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation
+- **Last Session**: May 1, 2026 — Session 16: Agent Blueprint Propagation
+- **Active Task**: None — blueprint propagation implemented
 - **Branch**: `feat/cursor-harness`
 
-## Session Progress (May 1, 2026 — Session 15)
+## Session Progress (May 1, 2026 — Session 16)
 
-### Fix Dev-Mode Runner Startup Delay
+### Agent Blueprint Propagation
 
-Fixed a 60-120 second delay when starting runners in dev mode. The root cause was that `setup-sidecar-dev.sh` built the CLI without setting `buildVersion`, so `GetBuildVersion()` returned `"dev"`, which triggered unconditional `refreshDevSource()` in both Python and Node.js runtime managers on every startup — re-extracting source and reinstalling dependencies even when nothing had changed.
+Implemented full agent blueprint propagation for the Cursor Harness. Previously, the cursor-runner sent only the bare user message to the Cursor agent — no persona, instructions, MCP servers, skills, sub-agents, or workspace context was carried forward. This session closed that critical gap by replicating the Python agent-runner's full pipeline.
 
-**Fix**: Compute a content hash of the embedded source directories and inject it as `buildVersion` via ldflags (e.g., `dev-a4baea168b83`). The existing version-based caching in both runtime managers now works correctly, skipping expensive bootstrap when source is unchanged.
+**New modules (4 files):**
+- `blueprint-resolver.ts` — resolves agent chain (execution → session → agentInstance → agent), merges MCP + skills
+- `prompt-builder.ts` — assembles enhanced prompt with instructions, skills, sub-agents, workspace context, response rules
+- `skill-resolver.ts` — fetches skills via gRPC, writes to platform-managed `.stigmer/skills/` directory
+- `attachment-resolver.ts` — copies attachments to `.stigmer/inputs/` platform directory
 
-**Changes (1 file, +10 / -2 lines):**
+**Modified files (4 files):**
+- `stigmer-client.ts` — added 7 new gRPC methods (Agent, AgentInstance, McpServer, Skill queries)
+- `mcp-resolver.ts` — added `resolveMcpServers()` with full gRPC resolution pipeline
+- `session-lifecycle.ts` — multi-workspace support (string[])
+- `execute-cursor.ts` — full orchestration rewrite with 12 phases including blueprint resolution
 
-1. **`client-apps/desktop/scripts/setup-sidecar-dev.sh`** — Added content hash computation of `agentrunner/source` and `cursorrunner/source`, injected as `buildVersion` via `-X` ldflags. Dev-mode runner start time reduced from 60-120s to 3-5s.
-
-### Previous Session (April 30, 2026 — Session 14)
-
-Unified Model Selector (Cursor-Style) — merged HarnessSelector and ModelSelector into a single Cursor-style flat model picker. See checkpoint `2026-04-30-session-14.md` for details.
+**Verification:** TypeScript compilation clean (0 errors), 135 tests pass (8 files), no linter errors.
 
 ## Next Steps
 
 1. **Fix ApprovalAction enum bug** — correct `APPROVAL_ACTION_APPROVE`/`REJECT`/`ALWAYS_APPROVE` to `APPROVE`/`REJECT`/`ALWAYS_APPROVE` in `approval-state.ts` and `execute-cursor.ts`
-2. **End-to-end validation**: Verify unified model selector renders correctly in desktop and web apps
-3. Integration testing across the full flow (create session → execution → streaming → billing)
-4. PR review and merge of `feat/cursor-harness` branch (stigmer OSS)
-5. PR review and merge of CursorProxyController changes (stigmer-cloud)
-6. Release
+2. **Implement env var resolution** for MCP server configs (${VAR_NAME} placeholders in stdio args and http headers)
+3. **Implement cloud-mode attachment download** from artifact storage (currently only local mode)
+4. **End-to-end validation**: Full blueprint propagation flow testing
+5. Integration testing across the full flow (create session → execution → streaming → billing)
+6. PR review and merge of `feat/cursor-harness` branch (stigmer OSS)
+7. PR review and merge of CursorProxyController changes (stigmer-cloud)
+8. Release
 
 ## Context for Resume
 
-- All 228 tests pass: `sdk/react` (228 total across 21 files)
-- Verification clean: no linter errors on any modified file
-- The unified model selector replaces the two-control pattern (HarnessSelector + ModelSelector) with a single Cursor-style flat picker
-- `HarnessSelector` is deprecated but still exported for backward compatibility
-- `useNewSessionFlow` continues to work unmodified — it uses `useModelRegistry({ harness })` in single-harness mode
+- All 135 cursor-runner tests pass; typecheck clean
+- Blueprint propagation uses message-based instruction injection (not rules files) to avoid workspace pollution
+- Skills use platform mount pattern: physical at `~/.stigmer/sessions/{id}/platform/`, symlinked from workspace `.stigmer/`
+- MCP merge: session overrides agent by slug; skill refs: union deduplicated by slug
+- Multi-workspace: resolved from `session.spec.workspaceEntries`, passed as `string[]` to Cursor SDK
 - The `openai` native provider remains in `DISABLED_PROVIDERS` (only Cursor-served OpenAI models are visible)
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-04-30-session-14.md
+_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-01-session-16.md
 ```
 
-### 2. Plan
+### 2. Blueprint Propagation Plan
 ```
-.cursor/plans/unified_model_selector_72ce7042.plan.md
+.cursor/plans/blueprint_propagation_gap_analysis_be91e880.plan.md
 ```
 
 ### 3. Previous Checkpoints
 ```
-_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-04-30-session-13.md
+_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-01-session-15.md
+_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-04-30-session-14.md
 _projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-04-30-session-12.md
-_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-04-30-session-11.md
 ```
 
 ### 4. Task Plan

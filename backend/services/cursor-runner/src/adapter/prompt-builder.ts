@@ -1,0 +1,198 @@
+/**
+ * Builds the enhanced prompt for the Cursor agent.
+ *
+ * Replicates prompt_builder.py::enhance_system_prompt() but delivers
+ * the content via the first user message (Cursor SDK has no systemPrompt
+ * parameter). On reinvocation, only the approval decisions are sent.
+ *
+ * Sections (in order):
+ * 1. Agent instructions (persona/character)
+ * 2. Available skills metadata
+ * 3. Sub-agent delegation guidance
+ * 4. Workspace context
+ * 5. Input files / referenced files
+ * 6. Response rules
+ * 7. User's actual message
+ */
+
+import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+
+export interface SkillMetadata {
+  name: string;
+  description: string;
+  path: string;
+}
+
+export interface EnhancedPromptOptions {
+  instructions: string;
+  userMessage: string;
+  skills: SkillMetadata[];
+  subAgents: SubAgent[];
+  workspaceDirs: string[];
+  workspaceFileRefs: string[];
+  attachmentPaths: string[];
+}
+
+/**
+ * Build the enhanced prompt for the first execution in a session.
+ *
+ * Prepends agent blueprint information before the user's message so the
+ * Cursor agent has full context. This avoids writing files to the workspace.
+ */
+export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
+  const sections: string[] = [];
+
+  if (options.instructions) {
+    sections.push(formatInstructions(options.instructions));
+  }
+
+  if (options.skills.length > 0) {
+    sections.push(formatSkillsSection(options.skills));
+  }
+
+  if (options.subAgents.length > 0) {
+    sections.push(formatSubAgentsSection(options.subAgents));
+  }
+
+  if (options.workspaceDirs.length > 0) {
+    sections.push(formatWorkspaceContext(options.workspaceDirs));
+  }
+
+  if (options.attachmentPaths.length > 0) {
+    sections.push(formatInputFiles(options.attachmentPaths));
+  }
+
+  if (options.workspaceFileRefs.length > 0) {
+    sections.push(formatReferencedFiles(options.workspaceFileRefs));
+  }
+
+  sections.push(formatResponseRules());
+
+  sections.push(`<user_request>\n${options.userMessage}\n</user_request>`);
+
+  return sections.join("\n\n---\n\n");
+}
+
+/**
+ * Build the reinvocation prompt after approval decisions.
+ * Only contains approval instructions, no blueprint (it persists in context).
+ */
+export function buildReinvocationPrompt(
+  approvalDecisions: Map<string, ApprovalAction>,
+): string {
+  const approved: string[] = [];
+  const skipped: string[] = [];
+
+  for (const [toolCallId, action] of approvalDecisions) {
+    if (action === ApprovalAction.APPROVE) {
+      approved.push(toolCallId);
+    } else if (action === ApprovalAction.SKIP) {
+      skipped.push(toolCallId);
+    }
+  }
+
+  const parts: string[] = [];
+  if (approved.length) {
+    parts.push(
+      `The user has approved the following tool calls. Please execute them now: ${approved.join(", ")}.`,
+    );
+  }
+  if (skipped.length) {
+    parts.push(
+      `The user has skipped the following tool calls. Do not execute them and continue without them: ${skipped.join(", ")}.`,
+    );
+  }
+
+  return parts.join("\n\n");
+}
+
+function formatInstructions(instructions: string): string {
+  return `<agent_instructions>\n${instructions}\n</agent_instructions>`;
+}
+
+function formatSkillsSection(skills: SkillMetadata[]): string {
+  const entries = skills.map(
+    (s) => `- **${s.name}**: ${s.description}\n  Path: \`${s.path}\``,
+  );
+  return [
+    "<available_skills>",
+    "You have access to the following skills. When a skill is relevant, read its SKILL.md file using the Read tool and follow the instructions within.",
+    "",
+    ...entries,
+    "</available_skills>",
+  ].join("\n");
+}
+
+function formatSubAgentsSection(subAgents: SubAgent[]): string {
+  const entries = subAgents.map((sa) => {
+    const parts = [`- **${sa.name}**: ${sa.description}`];
+    if (sa.mcpAccess.length > 0) {
+      const servers = sa.mcpAccess.map((a) => a.mcpServer).join(", ");
+      parts.push(`  MCP access: ${servers}`);
+    }
+    if (sa.modelOverride) {
+      parts.push(`  Model: ${sa.modelOverride}`);
+    }
+    return parts.join("\n");
+  });
+
+  return [
+    "<sub_agent_delegation>",
+    "You can delegate tasks to specialized sub-agents using the Task tool.",
+    "Available sub-agents:",
+    "",
+    ...entries,
+    "",
+    "Delegation rules:",
+    "- Use sub-agents for tasks that match their specialization",
+    "- Provide clear, detailed task descriptions since sub-agents don't share your conversation context",
+    "- Sub-agents run independently and return results when done",
+    "</sub_agent_delegation>",
+  ].join("\n");
+}
+
+function formatWorkspaceContext(dirs: string[]): string {
+  if (dirs.length === 1) {
+    return `<workspace>\nWorking directory: ${dirs[0]}\n</workspace>`;
+  }
+
+  const entries = dirs.map((d, i) => `${i + 1}. ${d}`);
+  return [
+    "<workspace>",
+    "Multi-root workspace with the following directories:",
+    ...entries,
+    "</workspace>",
+  ].join("\n");
+}
+
+function formatInputFiles(paths: string[]): string {
+  const entries = paths.map((p) => `- \`${p}\``);
+  return [
+    "<input_files>",
+    "The following files have been provided as inputs. Read them when relevant to the task:",
+    ...entries,
+    "</input_files>",
+  ].join("\n");
+}
+
+function formatReferencedFiles(refs: string[]): string {
+  const entries = refs.map((r) => `- \`${r}\``);
+  return [
+    "<referenced_files>",
+    "The user has referenced the following workspace files. Read them when relevant:",
+    ...entries,
+    "</referenced_files>",
+  ].join("\n");
+}
+
+function formatResponseRules(): string {
+  return [
+    "<response_rules>",
+    "- Be concise and direct in your responses",
+    "- When making code changes, explain what you changed and why",
+    "- If a task is unclear, ask for clarification before proceeding",
+    "- Prefer editing existing files over creating new ones",
+    "</response_rules>",
+  ].join("\n");
+}

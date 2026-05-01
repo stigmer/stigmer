@@ -4,6 +4,7 @@
  * Implements the same Slim-Payload Pattern as ExecuteGraphton:
  * - Receives only executionId + threadId (Cursor agentId)
  * - Hydrates execution from DB via gRPC
+ * - Resolves full agent blueprint (instructions, MCP servers, skills, sub-agents)
  * - Runs the Cursor agent, streams events, reports status
  * - Returns slim AgentExecutionStatus to workflow
  *
@@ -17,7 +18,7 @@
  * This is identical to the LangGraph flow from the workflow's perspective.
  */
 
-import { type Context, heartbeat } from "@temporalio/activity";
+import { heartbeat } from "@temporalio/activity";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -34,7 +35,11 @@ import { StigmerClient } from "../client/stigmer-client.js";
 import { resolveAgent } from "../adapter/session-lifecycle.js";
 import { translateEvent, extractDeniedToolCalls, utcTimestamp } from "../adapter/message-translator.js";
 import { UsageTracker } from "../adapter/usage-tracker.js";
-import { toCursorMcpConfig } from "../adapter/mcp-resolver.js";
+import { resolveMcpServers } from "../adapter/mcp-resolver.js";
+import { resolveBlueprint } from "../adapter/blueprint-resolver.js";
+import { resolveSkills } from "../adapter/skill-resolver.js";
+import { resolveAttachments } from "../adapter/attachment-resolver.js";
+import { buildEnhancedPrompt, buildReinvocationPrompt } from "../adapter/prompt-builder.js";
 import { writeHooksToWorkspace } from "../hitl/workspace-setup.js";
 import { buildApprovalState } from "../hitl/approval-state.js";
 
@@ -75,10 +80,11 @@ async function executeCursor(
     const spec = execution.spec!;
     const sessionId = spec.sessionId;
 
-    // Phase 2: Load session for MCP and workspace config
-    await reportSetupProgress(client, executionId, "Loading session");
+    // Phase 2: Load session and resolve full agent blueprint
+    await reportSetupProgress(client, executionId, "Resolving agent blueprint");
     const session = await client.getSession(sessionId);
-    const sessionSpec = session.spec!;
+    const blueprint = await resolveBlueprint(client, session, config.workspaceRootDir);
+    heartbeat();
 
     // Phase 3: Check if this is a reinvocation after approval
     const isReinvocation = !!threadId;
@@ -113,46 +119,75 @@ async function executeCursor(
       }
     }
 
-    // Phase 4: Resolve Cursor Agent (create or resume)
-    await reportSetupProgress(client, executionId, "Initializing Cursor agent");
+    // Phase 4: Resolve MCP servers (merged from agent + session)
+    await reportSetupProgress(client, executionId, "Resolving MCP servers");
+    const mcpConfig = await resolveMcpServers(client, blueprint.mergedMcpServerUsages);
     heartbeat();
 
-    const mcpConfig = toCursorMcpConfig([]); // TODO: resolve MCP servers from session usages
+    // Phase 5: Resolve skills (merged from agent + session)
+    await reportSetupProgress(client, executionId, "Resolving skills");
+    const primaryWorkspaceDir = blueprint.workspaceDirs[0];
+    const skillMetadata = await resolveSkills(client, blueprint.mergedSkillRefs, {
+      sessionId,
+      primaryWorkspaceDir,
+    });
+    heartbeat();
+
+    // Phase 5b: Resolve attachments
+    const attachmentResults = await resolveAttachments(
+      spec.attachments,
+      sessionId,
+      primaryWorkspaceDir,
+      config.mode,
+    );
+    const attachmentPaths = attachmentResults.map((a) => a.relativePath);
+
+    // Phase 6: Resolve Cursor Agent (create or resume)
+    await reportSetupProgress(client, executionId, "Initializing Cursor agent");
     const { agent, isNew } = await resolveAgent(threadId, {
       apiKey: config.cursorApiKey,
       model: spec.executionConfig?.modelName || "composer-2",
-      workspaceCwd: config.workspaceRootDir,
+      workspaceDirs: blueprint.workspaceDirs,
       mcpServers: mcpConfig,
     });
 
-    // Phase 5: Write hooks for HITL
+    // Phase 7: Write hooks for HITL
     const approvalState = buildApprovalState(approvalDecisions);
-    await writeHooksToWorkspace(config.workspaceRootDir, approvalState);
+    await writeHooksToWorkspace(primaryWorkspaceDir, approvalState);
 
-    // Phase 6: Store new agentId as thread_id if this is a new agent
+    // Phase 8: Store new agentId as thread_id if this is a new agent
     if (isNew && agent.agentId) {
       try {
-        sessionSpec.threadId = agent.agentId;
-        await client.updateSession(session);
+        blueprint.sessionSpec.threadId = agent.agentId;
+        await client.updateSession(blueprint.session);
         console.log(`Stored Cursor agentId=${agent.agentId} as thread_id on session ${sessionId}`);
       } catch (err) {
         console.warn("Failed to persist thread_id on session (non-fatal):", err);
       }
     }
 
-    // Phase 7: Build the prompt
-    const prompt = buildPrompt(spec.message, isReinvocation, approvalDecisions);
+    // Phase 9: Build the prompt
+    let prompt: string;
+    if (isReinvocation && approvalDecisions?.size) {
+      prompt = buildReinvocationPrompt(approvalDecisions);
+    } else {
+      prompt = buildEnhancedPrompt({
+        instructions: blueprint.instructions,
+        userMessage: spec.message,
+        skills: skillMetadata,
+        subAgents: blueprint.subAgents,
+        workspaceDirs: blueprint.workspaceDirs,
+        workspaceFileRefs: spec.workspaceFileRefs ?? [],
+        attachmentPaths,
+      });
+    }
 
-    // Phase 8: Send message and stream events
+    // Phase 10: Send message and stream events
     status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
     const modelName = spec.executionConfig?.modelName || "composer-2";
     const usageTracker = new UsageTracker(modelName);
     const collectedEvents: SDKMessage[] = [];
 
-    // pendingMetrics collects LlmCallMetrics from turn-ended events.
-    // The onDelta callback fires synchronously between stream events,
-    // so by the time the next stream() iteration runs the metrics are
-    // available for stamping onto the most recent MESSAGE_AI message.
     const pendingMetrics: LlmCallMetrics[] = [];
 
     const run = await agent.send(prompt, {
@@ -175,9 +210,6 @@ async function executeCursor(
       const messages = translateEvent(event);
       status.messages.push(...messages);
 
-      // Stamp any pending LlmCallMetrics onto the most recent MESSAGE_AI.
-      // turn-ended fires after the turn's assistant/tool events are emitted,
-      // so the target AI message is already in status.messages.
       while (pendingMetrics.length > 0) {
         const metrics = pendingMetrics.shift()!;
         stampMetricsOnLastAiMessage(status.messages, metrics);
@@ -189,14 +221,12 @@ async function executeCursor(
       }
     }
 
-    // Drain any remaining metrics after the stream ends (edge case:
-    // turn-ended fires with no subsequent stream event).
     while (pendingMetrics.length > 0) {
       const metrics = pendingMetrics.shift()!;
       stampMetricsOnLastAiMessage(status.messages, metrics);
     }
 
-    // Phase 9: Check for denied tool calls (HITL)
+    // Phase 11: Check for denied tool calls (HITL)
     const deniedCalls = extractDeniedToolCalls(collectedEvents);
     if (deniedCalls.length > 0) {
       status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
@@ -217,7 +247,7 @@ async function executeCursor(
       return slimStatus(status);
     }
 
-    // Phase 10: Map final result
+    // Phase 12: Map final result
     const result = await run.wait();
     status.completedAt = utcTimestamp();
 
@@ -270,48 +300,6 @@ async function executeCursor(
 
     return slimStatus(status);
   }
-}
-
-/**
- * Build the prompt to send to the Cursor Agent.
- *
- * On first invocation: the user's message from the execution spec.
- * On reinvocation after approval: a structured message telling the agent
- * which tools were approved/skipped so it can proceed.
- */
-function buildPrompt(
-  userMessage: string,
-  isReinvocation: boolean,
-  approvalDecisions?: Map<string, ApprovalAction>,
-): string {
-  if (!isReinvocation || !approvalDecisions?.size) {
-    return userMessage;
-  }
-
-  const approved: string[] = [];
-  const skipped: string[] = [];
-
-  for (const [toolCallId, action] of approvalDecisions) {
-    if (action === ApprovalAction.APPROVE) {
-      approved.push(toolCallId);
-    } else if (action === ApprovalAction.SKIP) {
-      skipped.push(toolCallId);
-    }
-  }
-
-  const parts: string[] = [];
-  if (approved.length) {
-    parts.push(
-      `The user has approved the following tool calls. Please execute them now: ${approved.join(", ")}.`,
-    );
-  }
-  if (skipped.length) {
-    parts.push(
-      `The user has skipped the following tool calls. Do not execute them and continue without them: ${skipped.join(", ")}.`,
-    );
-  }
-
-  return parts.join("\n\n");
 }
 
 /**

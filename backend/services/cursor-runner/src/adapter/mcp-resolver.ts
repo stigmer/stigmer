@@ -11,6 +11,8 @@
  */
 
 import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import type { StigmerClient } from "../client/stigmer-client.js";
 
 /**
  * Cursor SDK MCP server config shape (matches @cursor/sdk McpServerConfig).
@@ -31,9 +33,7 @@ export type CursorMcpServerConfig =
     };
 
 /**
- * Resolved MCP server with its connection config. In a full implementation,
- * this would come from fetching the McpServer resource via gRPC. For now,
- * this interface defines the shape the resolver expects.
+ * Resolved MCP server with its connection config.
  */
 export interface ResolvedMcpServer {
   slug: string;
@@ -44,6 +44,77 @@ export interface ResolvedMcpServer {
   cwd?: string;
   url?: string;
   headers?: Record<string, string>;
+}
+
+/**
+ * Fetch McpServer resources for each merged usage and resolve into
+ * Cursor SDK config format.
+ *
+ * Replicates the Python agent-runner's pattern:
+ * 1. For each McpServerUsage, use the ref to fetch the full McpServer resource
+ * 2. Extract connection config (stdio or http) from McpServerSpec
+ * 3. Transform into Cursor SDK's mcpServers config
+ */
+export async function resolveMcpServers(
+  client: StigmerClient,
+  usages: McpServerUsage[],
+): Promise<Record<string, CursorMcpServerConfig>> {
+  const resolved: ResolvedMcpServer[] = [];
+
+  for (const usage of usages) {
+    const ref = usage.mcpServerRef;
+    if (!ref?.slug) continue;
+
+    try {
+      const mcpServer = await client.getMcpServerByReference(ref);
+      const server = mcpServerToResolved(mcpServer, ref.slug);
+      if (server) resolved.push(server);
+    } catch (err) {
+      console.warn(
+        `Failed to resolve MCP server ${ref.org}/${ref.slug}: ${err instanceof Error ? err.message : err}`,
+      );
+    }
+  }
+
+  return toCursorMcpConfig(resolved);
+}
+
+/**
+ * Convert a fetched McpServer resource into our intermediate format.
+ */
+function mcpServerToResolved(
+  server: McpServer,
+  slug: string,
+): ResolvedMcpServer | null {
+  const spec = server.spec;
+  if (!spec) return null;
+
+  switch (spec.serverType.case) {
+    case "stdio": {
+      const stdio = spec.serverType.value;
+      if (!stdio.command) return null;
+      return {
+        slug,
+        connectionType: "stdio",
+        command: stdio.command,
+        args: stdio.args.length > 0 ? stdio.args : undefined,
+        cwd: stdio.workingDir || undefined,
+      };
+    }
+    case "http": {
+      const http = spec.serverType.value;
+      if (!http.url) return null;
+      const headers = Object.keys(http.headers).length > 0 ? http.headers : undefined;
+      return {
+        slug,
+        connectionType: "http",
+        url: http.url,
+        headers,
+      };
+    }
+    default:
+      return null;
+  }
 }
 
 /**
