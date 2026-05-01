@@ -13,10 +13,16 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation + RUNNER_PHASE_STARTING lifecycle + cursor-runner enum crash fix + parallel bootstrap + **Temporal routing fix**
-- **Last Session**: May 1, 2026 — Session 19: Fix Temporal Activity Routing for Cursor Harness
-- **Active Task**: None — routing fix committed in both OSS and cloud repos
+- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation + RUNNER_PHASE_STARTING lifecycle + cursor-runner enum crash fix + parallel bootstrap + Temporal routing fix + **process resilience + proxy observability**
+- **Last Session**: May 1, 2026 — Session 20: Cursor Runner Process Resilience and Proxy Observability
+- **Active Task**: None — resilience fixes committed in both OSS and cloud repos
 - **Branch**: `feat/cursor-harness`
+
+## Session Progress (May 1, 2026 — Session 20)
+
+### Cursor Runner Process Resilience and Proxy Observability
+
+Diagnosed and fixed a crash where the Cursor SDK's background API key exchange threw an unhandled promise rejection that killed the entire Temporal worker. Ran three diagnostic tests (API key validation, endpoint reachability, direct SDK test) confirming the proxy architecture is correct — the crash was purely a resilience gap. Added process-level error handlers, structured proxy logging, and fixed the CursorProxyController's response header policy.
 
 ## Session Progress (May 1, 2026 — Session 19)
 
@@ -42,7 +48,7 @@ Fixed a critical non-deterministic routing bug: Temporal dispatches activity tas
 
 ## Next Steps
 
-1. **Re-sync embedded cursorrunner** — run `sync.sh` so the CLI embed picks up the derived-queue change
+1. **Re-sync embedded cursorrunner** — run `sync.sh` so the CLI embed picks up the process resilience, observability, and derived-queue changes
 2. **Fix ApprovalAction enum bug** — correct `APPROVAL_ACTION_APPROVE`/`REJECT`/`ALWAYS_APPROVE` to `APPROVE`/`REJECT`/`ALWAYS_APPROVE` in `approval-state.ts` and `execute-cursor.ts`
 3. **Implement env var resolution** for MCP server configs (${VAR_NAME} placeholders in stdio args and http headers)
 4. **Implement cloud-mode attachment download** from artifact storage (currently only local mode)
@@ -69,14 +75,14 @@ Fixed a critical non-deterministic routing bug: Temporal dispatches activity tas
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-01-session-18.md
+_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-01-session-19.md
 ```
 
 ### 2. Previous Checkpoints
 ```
+_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-01-session-18.md
 _projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-01-session-17.md
 _projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-01-session-16.md
-_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-01-session-15.md
 ```
 
 ### 4. Task Plan

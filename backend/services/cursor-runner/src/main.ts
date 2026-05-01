@@ -14,6 +14,37 @@
 import { loadConfig, CURSOR_QUEUE_SUFFIX } from "./config.js";
 import { installFetchInterceptor } from "./proxy/fetch-interceptor.js";
 
+// The Cursor SDK fires background promises (API key exchange, telemetry,
+// heartbeats) that can reject outside any async context our activity code
+// controls. Without these handlers, a single transient network blip inside
+// the SDK kills the entire Temporal worker process — cascading to every
+// queued activity on this runner.
+//
+// Strategy: log aggressively, but keep the process alive. The Temporal
+// worker itself handles activity-level failures via retry policies; the
+// worst outcome of swallowing here is a single activity timeout rather
+// than a full worker crash.
+process.on("unhandledRejection", (reason) => {
+  const err = reason instanceof Error ? reason : new Error(String(reason));
+  console.error(
+    "[cursor-runner] Unhandled promise rejection (process kept alive):",
+    err.message,
+  );
+  if (err.stack) console.error(err.stack);
+  if ("cause" in err && err.cause) console.error("Cause:", err.cause);
+});
+
+process.on("uncaughtException", (err, origin) => {
+  console.error(
+    `[cursor-runner] Uncaught exception (origin: ${origin}):`,
+    err.message,
+  );
+  if (err.stack) console.error(err.stack);
+  // uncaughtException from a throw (not a rejection) may leave the process
+  // in an undefined state. We log but do NOT exit — the Temporal worker's
+  // own health checks will detect a wedged worker and stop polling.
+});
+
 let shutdownRequested = false;
 
 async function main(): Promise<void> {
