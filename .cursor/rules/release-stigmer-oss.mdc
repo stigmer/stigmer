@@ -60,10 +60,18 @@ If there are uncommitted changes, warn the user and ask whether to commit first 
 
 ### 5. Compose Release Notes
 
-Build a Markdown-formatted annotated tag message. Group commits by Conventional Commit type:
+Build a Markdown-formatted annotated tag message. Start with a user-facing highlights summary, then group commits by Conventional Commit type:
 
 ```
 Release v<NEW_VERSION>
+
+## Highlights
+
+<1-3 sentence plain-language summary for end users. Explain what this release
+improves and why users should upgrade. Do NOT repeat commit messages — write a
+narrative. Example: "This release adds real-time shell output streaming during
+agent executions and fixes several codegen edge cases that could produce
+invalid Go code.">
 
 ## What's Changed
 
@@ -86,7 +94,8 @@ Release v<NEW_VERSION>
 ```
 
 Rules for the notes:
-- Omit sections that have no commits (e.g. skip "### Features" if there are no `feat` commits)
+- The **Highlights** section is mandatory — it is the first thing users read on the GitHub release page. Write it in plain language for people who use Stigmer, not for contributors scanning commits
+- Omit Conventional Commit sections that have no commits (e.g. skip "### Features" if there are no `feat` commits)
 - Skip merge commits and project-management docs commits (changelogs, session checkpoints, next-task updates) from the notes — they add noise
 - Use imperative mood and keep each bullet to one line
 - Include scope in bold when available

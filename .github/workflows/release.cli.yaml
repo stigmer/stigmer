@@ -527,14 +527,36 @@ jobs:
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
-          # Get previous tag
           PREVIOUS_TAG=$(git describe --abbrev=0 --tags "$VERSION^" 2>/dev/null || echo "")
-          
-          if [ -z "$PREVIOUS_TAG" ]; then
-            echo "First release"
-            CHANGELOG=$(cat <<EOF
-          First release of Stigmer CLI.
 
+          # Try to extract the annotated tag message (skip the first "Release vX.Y.Z" subject line)
+          TAG_BODY=""
+          if git cat-file -t "$VERSION" 2>/dev/null | grep -q "tag"; then
+            TAG_BODY=$(git tag -l --format='%(contents:body)' "$VERSION" | sed '/^$/d' | head -c 10000)
+          fi
+
+          INSTALL_SECTION=$(cat <<'INST'
+          ## Installation
+
+          ### Homebrew (macOS/Linux)
+          ```bash
+          brew upgrade stigmer
+          ```
+
+          ### Manual Installation
+          Download the appropriate binary for your platform from the assets below.
+          INST
+          )
+
+          if [ -n "$TAG_BODY" ]; then
+            # Use the curated release notes from the annotated tag
+            {
+              echo "$INSTALL_SECTION"
+              echo ""
+              echo "$TAG_BODY"
+            } > /tmp/changelog.txt
+          elif [ -z "$PREVIOUS_TAG" ]; then
+            cat > /tmp/changelog.txt <<FIRST
           ## Installation
 
           ### Homebrew (macOS/Linux)
@@ -543,45 +565,25 @@ jobs:
           \`\`\`
 
           ### Manual Installation
-          Download the appropriate binary for your platform:
-          - macOS (Apple Silicon): stigmer-$VERSION-darwin-arm64.tar.gz
-          - macOS (Intel): stigmer-$VERSION-darwin-amd64.tar.gz
-          - Linux (AMD64): stigmer-$VERSION-linux-amd64.tar.gz
-
-          Extract and install:
-          \`\`\`bash
-          tar -xzf stigmer-$VERSION-<platform>.tar.gz
-          sudo mv stigmer stigmer-server stigmer-workflow-runner /usr/local/bin/
-          \`\`\`
+          Download the appropriate binary for your platform from the assets below.
 
           ## What's New
 
-          Agent-runner runs as a native process — no Docker required.
-          EOF
-          )
+          First release of Stigmer CLI. Agent-runner runs as a native process — no Docker required.
+          FIRST
           else
-            echo "Generating changelog from $PREVIOUS_TAG to $VERSION"
+            # Fallback: generate changelog from git log
+            echo "Falling back to git log changelog ($PREVIOUS_TAG..$VERSION)"
             CHANGES=$(git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG..$VERSION" | grep -v "^- Merge")
-            CHANGELOG=$(cat <<EOF
-          ## Installation
-
-          ### Homebrew (macOS/Linux)
-          \`\`\`bash
-          brew upgrade stigmer
-          \`\`\`
-
-          ### Manual Installation
-          Download the appropriate binary for your platform from the assets below.
-
-          ## Changes
-
-          $CHANGES
-          EOF
-          )
+            {
+              echo "$INSTALL_SECTION"
+              echo ""
+              echo "## Changes"
+              echo ""
+              echo "$CHANGES"
+            } > /tmp/changelog.txt
           fi
-          
-          # Save to file (handle multiline)
-          echo "$CHANGELOG" > /tmp/changelog.txt
+
           echo "changelog_file=/tmp/changelog.txt" >> $GITHUB_OUTPUT
 
       - name: Setup Node.js
