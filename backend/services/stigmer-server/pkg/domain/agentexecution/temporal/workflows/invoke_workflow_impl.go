@@ -409,12 +409,12 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonWithHitl(
 }
 
 // executeCursorFlow executes a Cursor harness agent. Structurally identical to
-// executeGraphtonFlow with three variation points:
+// executeGraphtonFlow with two variation points:
 //   - threadId comes from ReadSessionThreadId (not EnsureThread)
 //   - ExecuteCursor activity (not ExecuteGraphton)
-//   - No GenerateSessionSubject (Cursor generates conversation context natively)
 //
-// Same HITL approval loop, same pause/resume pattern.
+// Same GenerateSessionSubject (fire-and-forget), same HITL approval loop,
+// same pause/resume pattern.
 func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlow(ctx workflow.Context, input *InvokeAgentExecutionWorkflowInput) error {
 	logger := workflow.GetLogger(ctx)
 
@@ -436,8 +436,17 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeCursorFlow(ctx workflow.Contex
 		}
 	}
 
-	// No GenerateSessionSubject for Cursor — Cursor generates conversation
-	// context natively during execution.
+	// Generate session subject (fire-and-forget, non-blocking).
+	// The Cursor SDK does not expose a generated conversation title for local
+	// agents, so we use the same LLM-based title generation as the Graphton flow.
+	workflow.Go(ctx, func(ctx workflow.Context) {
+		subjectActivity := activities.NewGenerateSessionSubjectActivityStub(ctx, activityTaskQueue)
+		if err := subjectActivity.GenerateSessionSubject(executionID); err != nil {
+			logger.Warn("Session subject generation failed (non-critical)",
+				"execution_id", executionID,
+				"error", err.Error())
+		}
+	})
 
 	logger.Info("Executing Cursor agent", "execution_id", executionID, "session_id", sessionID)
 

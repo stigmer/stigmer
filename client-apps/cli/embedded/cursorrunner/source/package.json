@@ -56,5 +56,8 @@
     "@temporalio/client": "^1.11.0",
     "@temporalio/common": "^1.11.0",
     "@temporalio/worker": "^1.11.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
   }
 }

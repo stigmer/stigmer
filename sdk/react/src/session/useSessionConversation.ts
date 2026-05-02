@@ -354,8 +354,11 @@ export function useSessionConversation(
         });
         setPendingExecutionId(result.executionId);
         refetch();
-      } catch {
+      } catch (err) {
         setPendingUserMessage(null);
+        if (process.env.NODE_ENV !== "production") {
+          console.error("[useSessionConversation] sendFollowUp failed:", err);
+        }
       }
     },
     [sessionId, session, org, stigmer, create, updateSession, refetch, refetchSession],
@@ -455,6 +458,8 @@ function buildUpdateInput(
     subject: spec?.subject || undefined,
     threadId: spec?.threadId || undefined,
     sandboxId: spec?.sandboxId || undefined,
+    runnerId: spec?.runnerId || undefined,
+    harness: spec?.harness,
     metadata:
       spec?.metadata && Object.keys(spec.metadata).length > 0
         ? { ...spec.metadata }

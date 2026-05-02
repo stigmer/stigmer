@@ -45,20 +45,22 @@ if [ -f "$CURSOR_RUNNER/package-lock.json" ]; then
     cp "$CURSOR_RUNNER/package-lock.json" "$SOURCE_DIR/"
 fi
 
+# Copy .cursorignore so the extracted app directory is invisible to Cursor
+# agents even if the workspace accidentally resolves to the runner's own dir.
+if [ -f "$CURSOR_RUNNER/.cursorignore" ]; then
+    cp "$CURSOR_RUNNER/.cursorignore" "$SOURCE_DIR/"
+fi
+
+# model-registry.json is bundled inside cursor-runner's data/ directory
+# (data/model-registry.json, imported as ../../data/model-registry.json).
+# It travels with the cursor-runner source copy above — no separate step needed.
+
 # --------------------------------------------------------------------------
-# Step 1b: Copy model-registry.json INSIDE src/ so it stays within tsc's
-# rootDir boundary. All source files must share the same root (src/) to
-# produce a flat dist/ layout (dist/main.js, not dist/src/main.js).
-# Placing the JSON outside src/ causes TypeScript to inflate rootDir to the
-# common ancestor, breaking the "node dist/main.js" start script.
+# Step 1b: Copy data/ directory (contains model-registry.json)
 # --------------------------------------------------------------------------
-MODEL_REGISTRY="$REPO_ROOT/backend/libs/model-registry.json"
-if [ -f "$MODEL_REGISTRY" ]; then
-    echo "Syncing model-registry.json..."
-    cp "$MODEL_REGISTRY" "$SOURCE_DIR/src/"
-    # Rewrite the import path: from src/adapter/ → ../model-registry.json = src/
-    sed -i '' 's|from "../../../../libs/model-registry.json"|from "../model-registry.json"|g' \
-        "$SOURCE_DIR/src/adapter/model-pricing-data.ts"
+if [ -d "$CURSOR_RUNNER/data" ]; then
+    echo "Syncing cursor-runner data..."
+    cp -r "$CURSOR_RUNNER/data" "$SOURCE_DIR/data"
 fi
 
 # --------------------------------------------------------------------------
@@ -103,20 +105,22 @@ fi
 # Step 3: Create the package.json with rewritten protos path
 # --------------------------------------------------------------------------
 echo "Creating package.json with local protos path..."
+cp "$CURSOR_RUNNER/package.json" "$SOURCE_DIR/package.json"
+cd "$SOURCE_DIR"
 node -e "
-const pkg = require('$CURSOR_RUNNER/package.json');
+const pkg = require('./package.json');
 
 // Rewrite @stigmer/protos to point at the local copy
 pkg.dependencies['@stigmer/protos'] = 'file:./libs/stigmer-protos';
 
-// Remove devDependencies — tsx and typescript are build-time only
-delete pkg.devDependencies;
+// Keep only typescript (needed for tsc in Step 5); drop tsx, vitest, etc.
+pkg.devDependencies = { typescript: pkg.devDependencies?.typescript || '^5.7.0' };
 
 // Override the start script to use compiled JS
 pkg.scripts.start = 'node dist/main.js';
 
 process.stdout.write(JSON.stringify(pkg, null, 2) + '\n');
-" > "$SOURCE_DIR/package.json.tmp" && mv "$SOURCE_DIR/package.json.tmp" "$SOURCE_DIR/package.json"
+" > package.json.tmp && mv package.json.tmp package.json
 
 # --------------------------------------------------------------------------
 # Step 4: Install dependencies (needed for tsc to resolve types)
