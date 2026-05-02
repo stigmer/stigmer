@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { join } from "node:path";
+import { homedir } from "node:os";
 import { loadConfig } from "../config.js";
 
 describe("loadConfig", () => {
@@ -77,10 +79,12 @@ describe("loadConfig", () => {
       expect(config.stigmerToken).toBe("tok-local");
     });
 
-    it("defaults workspace root to cwd", () => {
+    it("falls back to isolated workspace instead of process.cwd()", () => {
       process.env.CURSOR_API_KEY = "key-123";
       const config = loadConfig();
-      expect(config.workspaceRootDir).toBe(process.cwd());
+      const expected = join(homedir(), ".stigmer", "workspaces", "cursor-runner");
+      expect(config.workspaceRootDir).toBe(expected);
+      expect(config.workspaceRootDir).not.toBe(process.cwd());
     });
 
     it("defaults max concurrent activities to 5", () => {

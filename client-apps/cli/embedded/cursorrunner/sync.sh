@@ -45,6 +45,12 @@ if [ -f "$CURSOR_RUNNER/package-lock.json" ]; then
     cp "$CURSOR_RUNNER/package-lock.json" "$SOURCE_DIR/"
 fi
 
+# Copy .cursorignore so the extracted app directory is invisible to Cursor
+# agents even if the workspace accidentally resolves to the runner's own dir.
+if [ -f "$CURSOR_RUNNER/.cursorignore" ]; then
+    cp "$CURSOR_RUNNER/.cursorignore" "$SOURCE_DIR/"
+fi
+
 # model-registry.json is bundled inside cursor-runner's data/ directory
 # (data/model-registry.json, imported as ../../data/model-registry.json).
 # It travels with the cursor-runner source copy above — no separate step needed.
