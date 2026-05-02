@@ -73,6 +73,7 @@ export function SessionPageInner({ id }: { id: string }) {
               isSubmitting={conv.isSending}
               disabled={!conv.canSendFollowUp}
               org={org}
+              harness={flow.harness}
               defaultModelId={modelId}
               onModelChange={setModelId}
               workspace={flow.workspace}
