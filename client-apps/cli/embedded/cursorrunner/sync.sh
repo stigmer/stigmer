@@ -105,8 +105,10 @@ fi
 # Step 3: Create the package.json with rewritten protos path
 # --------------------------------------------------------------------------
 echo "Creating package.json with local protos path..."
+cp "$CURSOR_RUNNER/package.json" "$SOURCE_DIR/package.json"
+cd "$SOURCE_DIR"
 node -e "
-const pkg = require('$CURSOR_RUNNER/package.json');
+const pkg = require('./package.json');
 
 // Rewrite @stigmer/protos to point at the local copy
 pkg.dependencies['@stigmer/protos'] = 'file:./libs/stigmer-protos';
@@ -118,7 +120,7 @@ pkg.devDependencies = { typescript: pkg.devDependencies?.typescript || '^5.7.0' 
 pkg.scripts.start = 'node dist/main.js';
 
 process.stdout.write(JSON.stringify(pkg, null, 2) + '\n');
-" > "$SOURCE_DIR/package.json.tmp" && mv "$SOURCE_DIR/package.json.tmp" "$SOURCE_DIR/package.json"
+" > package.json.tmp && mv package.json.tmp package.json
 
 # --------------------------------------------------------------------------
 # Step 4: Install dependencies (needed for tsc to resolve types)
