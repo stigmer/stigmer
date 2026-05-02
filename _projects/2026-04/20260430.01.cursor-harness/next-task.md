@@ -52,6 +52,8 @@ Diagnosed and fixed three layers of data loss in the cursor-runner's SDK-to-UI p
 **Tests**: 160 passed (40 message-translator tests including new tool call attachment, sub-agent tracking, and edge case tests)
 **Deferred**: onDelta enrichment — now completed in Session 22
 
+||||||| f31cdc459
+
 ## Session Progress (May 1, 2026 — Session 20)
 
 ### Cursor Runner Process Resilience and Proxy Observability

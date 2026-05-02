@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { MessageType, ToolCallStatus, SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import {
@@ -73,8 +73,8 @@ describe("translateEvent", () => {
     });
   });
 
-  describe("tool_call events", () => {
-    it("translates a running tool call", () => {
+  describe("tool_call events (stateless)", () => {
+    it("translates a running tool call as standalone MESSAGE_TOOL", () => {
       const event = {
         type: "tool_call" as const,
         call_id: "tc-1",
@@ -87,15 +87,12 @@ describe("translateEvent", () => {
       const messages = translateEvent(event);
       expect(messages).toHaveLength(1);
       expect(messages[0].type).toBe(MessageType.MESSAGE_TOOL);
-      expect(messages[0].content).toBe("Tool: Shell [running]");
       expect(messages[0].toolCalls).toHaveLength(1);
 
       const tc = messages[0].toolCalls[0];
       expect(tc.id).toBe("tc-1");
       expect(tc.name).toBe("Shell");
       expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
-      expect(tc.startedAt).toBeTruthy();
-      expect(tc.completedAt).toBe("");
     });
 
     it("translates a completed tool call", () => {
@@ -128,7 +125,6 @@ describe("translateEvent", () => {
       const tc = messages[0].toolCalls[0];
       expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
       expect(tc.error).toBe("permission denied");
-      expect(tc.completedAt).toBeTruthy();
     });
 
     it("serializes object args to JSON", () => {
@@ -225,6 +221,7 @@ function toolCallEvent(
   callId: string,
   name: string,
   status: "running" | "completed" | "error",
+  opts?: { args?: unknown; result?: unknown },
 ): SDKMessage {
   return {
     type: "tool_call",
@@ -233,7 +230,30 @@ function toolCallEvent(
     call_id: callId,
     name,
     status,
-    result: status === "completed" ? "ok" : null,
+    args: opts?.args ?? null,
+    result: opts?.result ?? (status === "completed" ? "ok" : null),
+  } as SDKMessage;
+}
+
+function taskToolCallEvent(
+  runId: string,
+  callId: string,
+  status: "running" | "completed" | "error",
+  opts?: { description?: string; prompt?: string; subagentType?: string; result?: unknown },
+): SDKMessage {
+  return {
+    type: "tool_call",
+    agent_id: "agent-1",
+    run_id: runId,
+    call_id: callId,
+    name: "task",
+    status,
+    args: {
+      description: opts?.description ?? "Explore codebase",
+      prompt: opts?.prompt ?? "Find the main entry point",
+      subagentType: opts?.subagentType ?? "explore",
+    },
+    result: opts?.result ?? (status === "completed" ? "Sub-agent completed" : null),
   } as SDKMessage;
 }
 
@@ -343,64 +363,152 @@ describe("MessageAccumulator", () => {
     });
   });
 
-  describe("tool call events", () => {
-    it("creates a distinct message for each tool call", () => {
+  describe("tool call attachment to AI messages", () => {
+    it("attaches running tool call to the preceding AI message", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages);
+
+      acc.processEvent(assistantEvent("run-1", "Let me read the file."));
+      acc.processEvent(toolCallEvent("run-1", "tc-1", "Read", "running"));
+      acc.finalize();
+
+      expect(messages).toHaveLength(1);
+      expect(messages[0].type).toBe(MessageType.MESSAGE_AI);
+      expect(messages[0].content).toBe("Let me read the file.");
+      expect(messages[0].toolCalls).toHaveLength(1);
+      expect(messages[0].toolCalls[0].id).toBe("tc-1");
+      expect(messages[0].toolCalls[0].name).toBe("Read");
+      expect(messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
+    });
+
+    it("updates existing tool call on completion", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages);
+
+      acc.processEvent(assistantEvent("run-1", "Running shell."));
+      acc.processEvent(toolCallEvent("run-1", "tc-1", "Shell", "running"));
+      acc.processEvent(toolCallEvent("run-1", "tc-1", "Shell", "completed", { result: "output" }));
+      acc.finalize();
+
+      expect(messages).toHaveLength(1);
+      expect(messages[0].toolCalls).toHaveLength(1);
+      expect(messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+      expect(messages[0].toolCalls[0].result).toBe("output");
+      expect(messages[0].toolCalls[0].completedAt).toBeTruthy();
+    });
+
+    it("attaches multiple tool calls to the same AI message", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages);
+
+      acc.processEvent(assistantEvent("run-1", "I will read two files."));
+      acc.processEvent(toolCallEvent("run-1", "tc-1", "Read", "running"));
+      acc.processEvent(toolCallEvent("run-1", "tc-2", "Glob", "running"));
+      acc.finalize();
+
+      expect(messages).toHaveLength(1);
+      expect(messages[0].toolCalls).toHaveLength(2);
+      expect(messages[0].toolCalls[0].name).toBe("Read");
+      expect(messages[0].toolCalls[1].name).toBe("Glob");
+    });
+
+    it("creates empty AI message when tool call arrives before any assistant text", () => {
       const messages: AgentMessage[] = [];
       const acc = new MessageAccumulator(messages);
 
       acc.processEvent(toolCallEvent("run-1", "tc-1", "Shell", "running"));
-      acc.processEvent(toolCallEvent("run-1", "tc-1", "Shell", "completed"));
+      acc.finalize();
+
+      expect(messages).toHaveLength(1);
+      expect(messages[0].type).toBe(MessageType.MESSAGE_AI);
+      expect(messages[0].content).toBe("");
+      expect(messages[0].toolCalls).toHaveLength(1);
+    });
+
+    it("handles assistant -> tool_call -> assistant sequence", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages);
+
+      acc.processEvent(assistantEvent("run-1", "Reading file."));
+      acc.processEvent(toolCallEvent("run-1", "tc-1", "Read", "running"));
+      acc.processEvent(assistantEvent("run-2", "The file contains data."));
       acc.finalize();
 
       expect(messages).toHaveLength(2);
-      expect(messages[0].type).toBe(MessageType.MESSAGE_TOOL);
-      expect(messages[1].type).toBe(MessageType.MESSAGE_TOOL);
+      expect(messages[0].type).toBe(MessageType.MESSAGE_AI);
+      expect(messages[0].content).toBe("Reading file.");
+      expect(messages[0].toolCalls).toHaveLength(1);
+      expect(messages[0].toolCalls[0].name).toBe("Read");
+      expect(messages[0].isStreaming).toBe(false);
+
+      expect(messages[1].type).toBe(MessageType.MESSAGE_AI);
+      expect(messages[1].content).toBe("The file contains data.");
+      expect(messages[1].toolCalls).toHaveLength(0);
+    });
+
+    it("handles tool error with error message", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages);
+
+      acc.processEvent(assistantEvent("run-1", "Trying shell."));
+      acc.processEvent(toolCallEvent("run-1", "tc-1", "Shell", "running"));
+      acc.processEvent(toolCallEvent("run-1", "tc-1", "Shell", "error", { result: "permission denied" }));
+      acc.finalize();
+
+      const tc = messages[0].toolCalls[0];
+      expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+      expect(tc.error).toBe("permission denied");
     });
   });
 
-  describe("interleaved event types", () => {
-    it("handles assistant -> tool_call -> assistant sequence correctly", () => {
+  describe("sub-agent execution tracking", () => {
+    it("creates a SubAgentExecution for task tool calls", () => {
       const messages: AgentMessage[] = [];
       const acc = new MessageAccumulator(messages);
 
-      // First turn: text
-      acc.processEvent(assistantEvent("run-1", "I'll read "));
-      acc.processEvent(assistantEvent("run-1", "the file."));
-
-      // Tool call finalizes the active AI message
-      acc.processEvent(toolCallEvent("run-1", "tc-1", "Read", "running"));
-      acc.processEvent(toolCallEvent("run-1", "tc-1", "Read", "completed"));
-
-      // Second turn: more text (same run_id but AI was finalized by tool_call)
-      acc.processEvent(assistantEvent("run-2", "The file contains data."));
-
+      acc.processEvent(assistantEvent("run-1", "Delegating work."));
+      acc.processEvent(taskToolCallEvent("run-1", "tc-task-1", "running"));
       acc.finalize();
 
-      expect(messages).toHaveLength(4);
-      expect(messages[0].type).toBe(MessageType.MESSAGE_AI);
-      expect(messages[0].content).toBe("I'll read the file.");
-      expect(messages[0].isStreaming).toBe(false);
-      expect(messages[1].type).toBe(MessageType.MESSAGE_TOOL);
-      expect(messages[2].type).toBe(MessageType.MESSAGE_TOOL);
-      expect(messages[3].type).toBe(MessageType.MESSAGE_AI);
-      expect(messages[3].content).toBe("The file contains data.");
-      expect(messages[3].isStreaming).toBe(false);
+      expect(acc.subAgentExecutions).toHaveLength(1);
+      const sub = acc.subAgentExecutions[0];
+      expect(sub.id).toBe("tc-task-1");
+      expect(sub.name).toBe("explore");
+      expect(sub.subject).toBe("Explore codebase");
+      expect(sub.input).toBe("Find the main entry point");
+      expect(sub.status).toBe(SubAgentStatus.SUB_AGENT_IN_PROGRESS);
+      expect(sub.startedAt).toBeTruthy();
     });
 
-    it("handles thinking -> assistant within same run_id", () => {
+    it("updates SubAgentExecution on task completion", () => {
       const messages: AgentMessage[] = [];
       const acc = new MessageAccumulator(messages);
 
-      acc.processEvent(thinkingEvent("run-1", "Hmm, "));
-      acc.processEvent(thinkingEvent("run-1", "let me check."));
-      acc.processEvent(assistantEvent("run-1", "Here is the answer."));
+      acc.processEvent(assistantEvent("run-1", "Delegating."));
+      acc.processEvent(taskToolCallEvent("run-1", "tc-task-1", "running"));
+      acc.processEvent(taskToolCallEvent("run-1", "tc-task-1", "completed", {
+        result: "Found main.ts at src/main.ts",
+      }));
       acc.finalize();
 
-      expect(messages).toHaveLength(2);
-      expect(messages[0].type).toBe(MessageType.MESSAGE_THINKING);
-      expect(messages[0].content).toBe("Hmm, let me check.");
-      expect(messages[1].type).toBe(MessageType.MESSAGE_AI);
-      expect(messages[1].content).toBe("Here is the answer.");
+      expect(acc.subAgentExecutions).toHaveLength(1);
+      const sub = acc.subAgentExecutions[0];
+      expect(sub.status).toBe(SubAgentStatus.SUB_AGENT_COMPLETED);
+      expect(sub.output).toBe("Found main.ts at src/main.ts");
+      expect(sub.completedAt).toBeTruthy();
+    });
+
+    it("also attaches task tool call to the AI message", () => {
+      const messages: AgentMessage[] = [];
+      const acc = new MessageAccumulator(messages);
+
+      acc.processEvent(assistantEvent("run-1", "Delegating."));
+      acc.processEvent(taskToolCallEvent("run-1", "tc-task-1", "running"));
+      acc.finalize();
+
+      expect(messages[0].toolCalls).toHaveLength(1);
+      expect(messages[0].toolCalls[0].name).toBe("task");
+      expect(messages[0].toolCalls[0].id).toBe("tc-task-1");
     });
   });
 

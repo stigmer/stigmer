@@ -1031,3 +1031,73 @@ class TestGetByApiModelId:
                     f"not found via get_by_api_model_id"
                 )
                 assert result.model_id == model.model_id
+
+
+# =============================================================================
+# TestEmptyRegistrySubjectGenerationBug - Reproduces the production bug where
+# model-registry.json is missing from the embedded runtime, causing
+# generate_session_subject to send "claude-sonnet-4.5" to Anthropic (404).
+# =============================================================================
+
+
+class TestEmptyRegistrySubjectGenerationBug:
+    """Reproduces the session subject generation failure in embedded runtimes.
+
+    When model-registry.json fails to load (e.g., missing from graphton.data
+    in the embedded venv), ModelRegistry._MODELS is empty. This causes:
+    1. get_or_default("claude-sonnet-4.5") → provider="unknown" (not "anthropic")
+    2. get_summarization_model returns the primary model unchanged
+    3. The raw "claude-sonnet-4.5" display name is sent to Anthropic → 404
+    """
+
+    def setup_method(self):
+        """Clear registry to simulate missing model-registry.json."""
+        self._original_models = dict(ModelRegistry._MODELS)
+        self._original_loaded = ModelRegistry._MODELS_LOADED
+        self._original_index = ModelRegistry._API_MODEL_ID_INDEX
+        ModelRegistry._MODELS = {}
+        ModelRegistry._MODELS_LOADED = True
+        ModelRegistry._API_MODEL_ID_INDEX = None
+
+    def teardown_method(self):
+        """Restore registry."""
+        ModelRegistry._MODELS = self._original_models
+        ModelRegistry._MODELS_LOADED = self._original_loaded
+        ModelRegistry._API_MODEL_ID_INDEX = self._original_index
+
+    def test_get_or_default_returns_unknown_provider(self):
+        """With empty registry, get_or_default infers provider as 'unknown'."""
+        metadata = ModelRegistry.get_or_default("claude-sonnet-4.5")
+        assert metadata.provider == "unknown", (
+            f"Expected provider='unknown' for empty registry, got '{metadata.provider}'"
+        )
+
+    def test_summarization_model_returns_primary_model_unchanged(self):
+        """With empty registry, summarization model falls back to the primary model.
+
+        This is the bug: it should return 'claude-haiku-4.5' but instead
+        returns 'claude-sonnet-4.5' because provider is 'unknown' and there
+        is no economy-tier mapping for unknown providers.
+        """
+        summarizer = ModelRegistry.get_summarization_model("claude-sonnet-4.5")
+        assert summarizer == "claude-sonnet-4.5", (
+            "Bug reproduction: empty registry should cause summarization model "
+            f"to fall back to primary model, but got '{summarizer}'"
+        )
+
+    def test_correct_behavior_when_registry_loaded(self):
+        """Contrast: with registry loaded, summarization correctly maps to haiku."""
+        # Restore registry for this test
+        ModelRegistry._MODELS = self._original_models
+        ModelRegistry._MODELS_LOADED = self._original_loaded
+        ModelRegistry._API_MODEL_ID_INDEX = self._original_index
+
+        summarizer = ModelRegistry.get_summarization_model("claude-sonnet-4.5")
+        assert summarizer == "claude-haiku-4.5", (
+            f"With loaded registry, expected 'claude-haiku-4.5', got '{summarizer}'"
+        )
+
+        metadata = ModelRegistry.get_or_default("claude-sonnet-4.5")
+        assert metadata.provider == "anthropic", (
+            f"With loaded registry, expected provider='anthropic', got '{metadata.provider}'"
+        )

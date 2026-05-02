@@ -15,8 +15,21 @@
  * 7. User's actual message
  */
 
+import { resolve } from "node:path";
 import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+
+/**
+ * Marker path segments that identify runner-internal directories. A workspace
+ * dir containing any of these segments is almost certainly the runner's own
+ * app directory, not a user workspace.
+ */
+const RUNNER_PATH_MARKERS = [
+  "/runtimes/cursor-runner/",
+  "/runtimes/agent-runner/",
+  "/node_modules/",
+  "/dist/main.js",
+] as const;
 
 export interface SkillMetadata {
   name: string;
@@ -55,8 +68,9 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
     sections.push(formatSubAgentsSection(options.subAgents));
   }
 
-  if (options.workspaceDirs.length > 0) {
-    sections.push(formatWorkspaceContext(options.workspaceDirs));
+  const safeDirs = sanitizeWorkspaceDirs(options.workspaceDirs);
+  if (safeDirs.length > 0) {
+    sections.push(formatWorkspaceContext(safeDirs));
   }
 
   if (options.attachmentPaths.length > 0) {
@@ -105,6 +119,33 @@ export function buildReinvocationPrompt(
   }
 
   return parts.join("\n\n");
+}
+
+/**
+ * Filters out workspace directories that appear to be runner-internal paths.
+ * This prevents the prompt from exposing implementation details like
+ * ~/.stigmer/runtimes/cursor-runner/... to the AI model.
+ */
+export function sanitizeWorkspaceDirs(dirs: string[]): string[] {
+  const safe: string[] = [];
+
+  for (const dir of dirs) {
+    const resolved = resolve(dir);
+    if (isRunnerInternalPath(resolved)) {
+      console.warn(
+        `Workspace dir "${dir}" appears to be a runner-internal path — ` +
+        "omitting from prompt to prevent implementation detail leakage.",
+      );
+      continue;
+    }
+    safe.push(dir);
+  }
+
+  return safe;
+}
+
+function isRunnerInternalPath(absolutePath: string): boolean {
+  return RUNNER_PATH_MARKERS.some((marker) => absolutePath.includes(marker));
 }
 
 function formatInstructions(instructions: string): string {

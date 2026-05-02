@@ -1,0 +1,4 @@
+# Prevent Cursor agents from seeing cursor-runner internals.
+# If the agent's workspace accidentally resolves to the runner's app
+# directory, this file ensures no implementation files are discoverable.
+*

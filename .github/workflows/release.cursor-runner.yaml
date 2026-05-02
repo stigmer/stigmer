@@ -112,9 +112,9 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > dist/.npmrc
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
           VERSION="${{ needs.determine-version.outputs.version }}"
           TAG="latest"
           if echo "$VERSION" | grep -q '-'; then TAG="next"; fi
           npm publish dist/ --access public --tag "$TAG"
-          rm -f dist/.npmrc
+          rm -f .npmrc

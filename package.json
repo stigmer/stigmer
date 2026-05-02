@@ -12,7 +12,7 @@
     "tools/eslint-plugin-stigmer"
   ],
   "scripts": {
-    "prepare": "husky",
+    "prepare": "husky || true",
     "build:libs": "npm run build -w @stigmer/protos && npm run build -w @stigmer/sdk && npm run build -w @stigmer/theme && npm run build -w @stigmer/react && npm run build -w @stigmer/ink",
     "clean:libs": "npm run clean -w @stigmer/protos && npm run clean -w @stigmer/sdk && npm run clean -w @stigmer/theme && npm run clean -w @stigmer/react && npm run clean -w @stigmer/ink",
     "test": "npm run test -w @stigmer/sdk && npm run test -w @stigmer/react && npm run test -w @stigmer/theme && npm run test -w @stigmer/ink"
