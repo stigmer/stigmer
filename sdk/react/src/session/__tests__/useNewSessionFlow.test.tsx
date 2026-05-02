@@ -190,6 +190,28 @@ describe("useNewSessionFlow", () => {
       // DEFAULT_MODEL_ID (anthropic) is not in cursor registry
       expect(result.current.modelId).not.toBe(DEFAULT_MODEL_ID);
     });
+
+    it("strips compound keys before persisting to localStorage", () => {
+      localStorage.setItem(STORAGE_KEY_HARNESS, "cursor");
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()));
+
+      // Simulate compound key from unified mode ModelSelector
+      act(() => result.current.setModelId("cursor/default"));
+
+      // Should store plain modelId, not compound key
+      expect(localStorage.getItem(STORAGE_KEY_MODEL_CURSOR)).toBe("default");
+    });
+
+    it("restores compound keys from localStorage as plain modelId", () => {
+      localStorage.setItem(STORAGE_KEY_HARNESS, "cursor");
+      // Legacy: compound key was stored before fix
+      localStorage.setItem(STORAGE_KEY_MODEL_CURSOR, "cursor/default");
+
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()));
+
+      // Should extract plain modelId and validate against registry
+      expect(result.current.modelId).toBe(DEFAULT_CURSOR_MODEL_ID);
+    });
   });
 
   describe("submit with harness", () => {

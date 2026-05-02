@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useModelRegistry } from "../models";
+import { parseModelKey } from "../models/registry";
 import type { HarnessOption } from "../models/harness";
 
 /** Options for {@link usePersistedModel}. */
@@ -29,6 +30,16 @@ function storageKey(harness?: HarnessOption): string {
 }
 
 /**
+ * Extract the plain modelId from a value that might be a compound key
+ * (e.g. `"cursor/default"` → `"default"`). Returns the value unchanged
+ * if it's already a plain ID.
+ */
+function extractPlainModelId(value: string): string {
+  const parsed = parseModelKey(value);
+  return parsed ? parsed.modelId : value;
+}
+
+/**
  * Model selection with localStorage persistence.
  *
  * Restores the last selected model on mount and validates it against the
@@ -39,6 +50,9 @@ function storageKey(harness?: HarnessOption): string {
  * When `options.harness` is provided, the stored model is read from a
  * harness-specific key and validated against the harness-filtered registry.
  *
+ * Handles legacy compound keys (`"cursor/default"`) gracefully by
+ * extracting the plain modelId portion before validation.
+ *
  * Used by both the session launcher (new session) and session page
  * (follow-up messages) to maintain a consistent model preference.
  */
@@ -48,11 +62,23 @@ export function usePersistedModel(
   const harness = options?.harness;
   const { getModel } = useModelRegistry({ harness });
   const key = storageKey(harness);
+  const prevKeyRef = useRef(key);
 
   const [modelId, setModelId] = useState<string | undefined>(() => {
     if (typeof window === "undefined") return undefined;
-    return localStorage.getItem(key) ?? undefined;
+    const raw = localStorage.getItem(key);
+    return raw ? extractPlainModelId(raw) : undefined;
   });
+
+  // Re-read from localStorage when the storage key changes (harness transition).
+  useEffect(() => {
+    if (prevKeyRef.current === key) return;
+    prevKeyRef.current = key;
+
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem(key);
+    setModelId(raw ? extractPlainModelId(raw) : undefined);
+  }, [key]);
 
   useEffect(() => {
     if (modelId) {

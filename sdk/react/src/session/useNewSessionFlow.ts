@@ -5,6 +5,7 @@ import { getUserMessage, type McpServerUsageInput, type ResourceRef } from "@sti
 import type { AgentResolution } from "../agent";
 import { useDefaultAgent } from "../agent";
 import { useModelRegistry } from "../models";
+import { parseModelKey } from "../models/registry";
 import { DEFAULT_HARNESS, type HarnessOption } from "../models/harness";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace";
 import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables";
@@ -184,9 +185,9 @@ export function useNewSessionFlow(
   const setHarness = useCallback(
     (h: HarnessOption) => {
       setHarnessRaw(h);
-      // Restore per-harness model preference, or clear if none stored
       const storedModel = localStorage.getItem(modelStorageKey(h));
-      setModelId(storedModel ?? undefined);
+      const plain = storedModel ? (parseModelKey(storedModel)?.modelId ?? storedModel) : undefined;
+      setModelId(plain);
     },
     [],
   );
@@ -194,15 +195,20 @@ export function useNewSessionFlow(
   // Restore persisted model on mount (using current harness key)
   useEffect(() => {
     const stored = localStorage.getItem(modelStorageKey(harness));
-    if (stored && getModel(stored)) {
-      setModelId(stored);
+    if (stored) {
+      const plain = parseModelKey(stored)?.modelId ?? stored;
+      if (getModel(plain)) {
+        setModelId(plain);
+      }
     }
   }, [getModel, harness]);
 
-  // Persist model on change (using current harness key)
+  // Persist model on change (using current harness key).
+  // Strip compound keys (e.g. "cursor/default") to plain modelId before storing.
   useEffect(() => {
     if (modelId) {
-      localStorage.setItem(modelStorageKey(harness), modelId);
+      const plain = parseModelKey(modelId)?.modelId ?? modelId;
+      localStorage.setItem(modelStorageKey(harness), plain);
     }
   }, [modelId, harness]);
 
