@@ -1069,7 +1069,7 @@ func TestEmitNestedToProto(t *testing.T) {
 		emitNestedToProto(&buf, f, "testv1", typeMap, emitted, "TestSpec", make(map[string]bool))
 		got := buf.String()
 
-		mustContain(t, got, `Ref: i.Ref.toProto(),`)
+		mustContain(t, got, `p.Ref = i.Ref.toProto()`)
 	})
 
 	t.Run("api_resource_reference_in_struct_type", func(t *testing.T) {

@@ -271,7 +271,7 @@ class McpServerAuthInput:
             token_lifetime_hint=self.token_lifetime_hint,
             discovery_url=self.discovery_url,
         )
-        if self.oauth_app_ref is not None:
+        if self.oauth_app_ref is not None and (self.oauth_app_ref.org or self.oauth_app_ref.slug):
             _ref = self.oauth_app_ref._to_proto()
             _ref.kind = 22
             msg.oauth_app_ref.CopyFrom(_ref)

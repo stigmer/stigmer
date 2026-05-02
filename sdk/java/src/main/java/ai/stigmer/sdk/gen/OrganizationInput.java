@@ -44,7 +44,7 @@ public final class OrganizationInput {
         if (this.managementMode != null) {
             spec.setManagementMode(this.managementMode);
         }
-        if (this.identityProviderRef != null) {
+        if (this.identityProviderRef != null && this.identityProviderRef.hasIdentifier()) {
             spec.setIdentityProviderRef(this.identityProviderRef.toProto());
         }
         if (this.externalOrgId != null) {
