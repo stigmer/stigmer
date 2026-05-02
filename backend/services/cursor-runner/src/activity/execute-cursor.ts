@@ -35,6 +35,7 @@ import { StigmerClient } from "../client/stigmer-client.js";
 import { resolveAgent } from "../adapter/session-lifecycle.js";
 import { MessageAccumulator, extractDeniedToolCalls, utcTimestamp } from "../adapter/message-translator.js";
 import { DeltaEnricher } from "../adapter/delta-enricher.js";
+import { TodoTracker } from "../adapter/todo-tracker.js";
 import { UsageTracker } from "../adapter/usage-tracker.js";
 import { resolveMcpServers } from "../adapter/mcp-resolver.js";
 import { resolveBlueprint } from "../adapter/blueprint-resolver.js";
@@ -204,6 +205,7 @@ async function executeCursor(
 
     const pendingMetrics: LlmCallMetrics[] = [];
     const deltaEnricher = new DeltaEnricher();
+    const todoTracker = new TodoTracker(status.todos);
 
     const run = await agent.send(prompt, {
       onDelta: ({ update }) => {
@@ -227,6 +229,7 @@ async function executeCursor(
     for await (const event of run.stream()) {
       collectedEvents.push(event);
       accumulator.processEvent(event);
+      todoTracker.processEvent(event);
       deltaEnricher.applyEnrichments(status.messages);
       eventCount++;
 
@@ -241,10 +244,11 @@ async function executeCursor(
         stampMetricsOnLastAiMessage(status.messages, metrics);
       }
 
-      const shouldPersist = eventCount % 20 === 0 || deltaEnricher.isDirty;
+      const shouldPersist = eventCount % 20 === 0 || deltaEnricher.isDirty || todoTracker.isDirty;
       if (shouldPersist) {
         await persistStatus(client, executionId, status);
         deltaEnricher.markPersisted();
+        todoTracker.markPersisted();
         heartbeat();
       }
     }
