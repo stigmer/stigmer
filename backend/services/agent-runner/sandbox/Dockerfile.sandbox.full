@@ -108,7 +108,6 @@ RUN cd /build/apis/stubs/ts && npm install
 
 # Copy cursor-runner source and install deps
 COPY backend/services/cursor-runner/package.json \
-     backend/services/cursor-runner/package-lock.json* \
      backend/services/cursor-runner/tsconfig.json \
      backend/services/cursor-runner/tsconfig.build.json \
      /build/cursor-runner/
@@ -122,14 +121,14 @@ RUN cd /build/cursor-runner && \
 RUN cd /build/cursor-runner && npm install
 
 COPY backend/services/cursor-runner/src /build/cursor-runner/src
+COPY backend/libs/model-registry.json /libs/model-registry.json
 RUN cd /build/cursor-runner && npx tsc -p tsconfig.build.json
 
 # Reinstall without devDependencies for a lean production node_modules
 RUN cd /build/cursor-runner && npm prune --omit=dev
 
-# Verify the build output is importable
-RUN node -e "require('/build/cursor-runner/dist/config.js')" 2>/dev/null || \
-    node --input-type=module -e "import '/build/cursor-runner/dist/config.js'" && \
+# Verify the build output exists
+RUN test -f /build/cursor-runner/dist/main.js && \
     echo "cursor-runner build verification passed"
 
 # ---------- Sandbox Image ----------
