@@ -229,6 +229,9 @@ it survives page reloads and navigation.
 When `options.harness` is provided, the stored model is read from a
 harness-specific key and validated against the harness-filtered registry.
 
+Handles legacy compound keys (`"cursor/default"`) gracefully by
+extracting the plain modelId portion before validation.
+
 Used by both the session launcher (new session) and session page
 (follow-up messages) to maintain a consistent model preference.
 
