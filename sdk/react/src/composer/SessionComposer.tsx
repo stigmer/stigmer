@@ -407,7 +407,22 @@ export function SessionComposer({
   ariaLabel = "Send message",
   className,
 }: SessionComposerProps) {
-  const [modelId, setModelId] = useState<string | undefined>(defaultModelId);
+  const [modelId, setModelIdRaw] = useState<string | undefined>(defaultModelId);
+  const userOverrodeModel = useRef(false);
+
+  // Sync internal modelId when the external defaultModelId prop changes
+  // (e.g., lastExecModelId resolves after executions load). Only sync if the
+  // user hasn't made a local selection in this composer instance.
+  useEffect(() => {
+    if (!userOverrodeModel.current && defaultModelId !== undefined) {
+      setModelIdRaw(defaultModelId);
+    }
+  }, [defaultModelId]);
+
+  const setModelId = useCallback((id: string | undefined) => {
+    userOverrodeModel.current = true;
+    setModelIdRaw(id);
+  }, []);
 
   const [displayNames, setDisplayNames] = useState<Map<string, string>>(
     () => new Map(),
