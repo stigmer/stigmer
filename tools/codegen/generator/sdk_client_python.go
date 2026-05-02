@@ -1114,10 +1114,14 @@ func emitPyToProtoFieldAssign(buf *bytes.Buffer, f *FieldSchema, msgVar, selfVar
 		fmt.Fprintf(buf, "%s    %s.update(%s.%s)\n", indent, protoAccess(msgVar, protoField), selfVar, selfField)
 
 	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference" && f.ReferenceKind != 0:
-		fmt.Fprintf(buf, "%sif %s.%s is not None:\n", indent, selfVar, selfField)
+		fmt.Fprintf(buf, "%sif %s.%s is not None and (%s.%s.org or %s.%s.slug):\n", indent, selfVar, selfField, selfVar, selfField, selfVar, selfField)
 		fmt.Fprintf(buf, "%s    _ref = %s.%s._to_proto()\n", indent, selfVar, selfField)
 		fmt.Fprintf(buf, "%s    _ref.kind = %d\n", indent, f.ReferenceKind)
 		fmt.Fprintf(buf, "%s    %s.CopyFrom(_ref)\n", indent, protoAccess(msgVar, protoField))
+
+	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference":
+		fmt.Fprintf(buf, "%sif %s.%s is not None and (%s.%s.org or %s.%s.slug):\n", indent, selfVar, selfField, selfVar, selfField, selfVar, selfField)
+		fmt.Fprintf(buf, "%s    %s.CopyFrom(%s.%s._to_proto())\n", indent, protoAccess(msgVar, protoField), selfVar, selfField)
 
 	case f.Type.Kind == "message":
 		fmt.Fprintf(buf, "%sif %s.%s is not None:\n", indent, selfVar, selfField)

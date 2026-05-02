@@ -1047,7 +1047,7 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 			needsImperative = true
 			break
 		}
-		if field.ReferenceKind != 0 {
+		if field.Type.Kind == "message" && field.Type.MessageType == "ApiResourceReference" {
 			needsImperative = true
 			break
 		}
@@ -1069,14 +1069,16 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 				buf.WriteString("\t\t}\n\t}\n")
 			} else if field.Type.Kind == "message" {
 				if field.Type.MessageType == "ApiResourceReference" {
+					fmt.Fprintf(buf, "\tif i.%s.Org != \"\" || i.%s.Slug != \"\" {\n", field.Name, field.Name)
 					if field.ReferenceKind != 0 {
 						enumName := apiResourceKindEnumNames[field.ReferenceKind]
-						fmt.Fprintf(buf, "\tref := i.%s.toProto()\n", field.Name)
-						fmt.Fprintf(buf, "\tref.Kind = apiresourcekind.ApiResourceKind_%s\n", enumName)
-						fmt.Fprintf(buf, "\tp.%s = ref\n", pf)
+						fmt.Fprintf(buf, "\t\tref := i.%s.toProto()\n", field.Name)
+						fmt.Fprintf(buf, "\t\tref.Kind = apiresourcekind.ApiResourceKind_%s\n", enumName)
+						fmt.Fprintf(buf, "\t\tp.%s = ref\n", pf)
 					} else {
-						fmt.Fprintf(buf, "\tp.%s = i.%s.toProto()\n", pf, field.Name)
+						fmt.Fprintf(buf, "\t\tp.%s = i.%s.toProto()\n", pf, field.Name)
 					}
+					buf.WriteString("\t}\n")
 				}
 			} else if field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "message" {
 				continue

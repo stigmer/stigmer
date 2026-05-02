@@ -163,7 +163,7 @@ class McpServerUsageInput:
 
     def _to_proto(self) -> spec_pb2.McpServerUsage:
         msg = spec_pb2.McpServerUsage()
-        if self.mcp_server_ref is not None:
+        if self.mcp_server_ref is not None and (self.mcp_server_ref.org or self.mcp_server_ref.slug):
             _ref = self.mcp_server_ref._to_proto()
             _ref.kind = 44
             msg.mcp_server_ref.CopyFrom(_ref)

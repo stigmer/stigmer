@@ -193,7 +193,11 @@ func (m *mcpGen) resolveField(f *FieldSchema) *mcpInputField {
 	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference" && f.ReferenceKind != 0:
 		inputName := m.refInputTypeName(f)
 		m.ensureRefInputType(inputName, f.ReferenceKind)
-		field.goType = inputName
+		if f.Required {
+			field.goType = inputName
+		} else {
+			field.goType = "*" + inputName
+		}
 		field.inputTypeName = inputName
 
 	// Array of messages

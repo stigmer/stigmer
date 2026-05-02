@@ -181,9 +181,11 @@ func (i *AgentInput) toProto() *agentv1.Agent {
 
 func (i *McpServerUsageInput) toProto() *agentv1.McpServerUsage {
 	p := &agentv1.McpServerUsage{}
-	ref := i.McpServerRef.toProto()
-	ref.Kind = apiresourcekind.ApiResourceKind_mcp_server
-	p.McpServerRef = ref
+	if i.McpServerRef.Org != "" || i.McpServerRef.Slug != "" {
+		ref := i.McpServerRef.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_mcp_server
+		p.McpServerRef = ref
+	}
 	p.EnabledTools = i.EnabledTools
 	return p
 }
@@ -197,12 +199,12 @@ func (i *ToolApprovalOverrideInput) toProto() *agentv1.ToolApprovalOverride {
 }
 
 func (i *SubAgentInput) toProto() *agentv1.SubAgent {
-	p := &agentv1.SubAgent{}
-	p.Name = i.Name
-	p.Description = i.Description
-	p.Instructions = i.Instructions
-	p.ModelOverride = i.ModelOverride
-	return p
+	return &agentv1.SubAgent{
+		Name:          i.Name,
+		Description:   i.Description,
+		Instructions:  i.Instructions,
+		ModelOverride: i.ModelOverride,
+	}
 }
 
 func (i *McpAccessInput) toProto() *agentv1.McpAccess {

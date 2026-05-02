@@ -319,7 +319,7 @@ public final class McpServerInput {
 
         McpServerAuth toProto() {
             McpServerAuth.Builder builder = McpServerAuth.newBuilder();
-            if (this.oauthAppRef != null) {
+            if (this.oauthAppRef != null && this.oauthAppRef.hasIdentifier()) {
                 builder.setOauthAppRef(this.oauthAppRef.toProto().toBuilder()
                     .setKind(ApiResourceKind.oauth_app).build());
             }

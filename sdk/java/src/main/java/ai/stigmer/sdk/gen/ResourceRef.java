@@ -39,6 +39,10 @@ public final class ResourceRef {
     public String getVersion() { return version; }
     public ApiResourceKind getKind() { return kind; }
 
+    boolean hasIdentifier() {
+        return (this.org != null && !this.org.isEmpty()) || (this.slug != null && !this.slug.isEmpty());
+    }
+
     ApiResourceReference toProto() {
         ApiResourceReference.Builder builder = ApiResourceReference.newBuilder()
             .setOrg(this.org)
