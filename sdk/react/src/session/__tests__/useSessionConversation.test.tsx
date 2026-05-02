@@ -302,4 +302,57 @@ describe("useSessionConversation", () => {
       expect(result.current.pendingUserMessage).toBeNull();
     });
   });
+
+  it("full follow-up lifecycle: active execution completes → canSendFollowUp → sendFollowUp succeeds", async () => {
+    // Start with one IN_PROGRESS execution (simulates a Cursor execution running)
+    const activeExec = makeExecution("exec-1", ExecutionPhase.EXECUTION_IN_PROGRESS);
+    methods.listBySession.mockResolvedValue({ entries: [activeExec] });
+
+    const execStream = createControllableStream<AgentExecution>();
+    methods.subscribe.mockReturnValue(execStream.generator);
+
+    const { result } = renderHook(
+      () => useSessionConversation("session-1", "org"),
+      { wrapper: createWrapper(mockStigmer) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    // Initially canSendFollowUp should be false (execution is active)
+    expect(result.current.canSendFollowUp).toBe(false);
+
+    // Stream delivers EXECUTION_COMPLETED — simulating Cursor run finishing
+    const completedExec = makeExecution("exec-1", ExecutionPhase.EXECUTION_COMPLETED);
+    act(() => {
+      execStream.push(completedExec);
+    });
+
+    // After stream completes, the hook should refetch executions.
+    // Mock the refetch to return the completed execution.
+    methods.listBySession.mockResolvedValue({ entries: [completedExec] });
+
+    // Wait for canSendFollowUp to become true
+    await waitFor(() => {
+      expect(result.current.canSendFollowUp).toBe(true);
+    });
+
+    // Now send a follow-up message
+    const followUpExec = makeExecution("exec-2", ExecutionPhase.EXECUTION_PENDING);
+    followUpExec.metadata!.id = "exec-2";
+    methods.executionCreate.mockResolvedValue(followUpExec);
+
+    await act(async () => {
+      await result.current.sendFollowUp("Follow-up message", { modelName: "default" });
+    });
+
+    // Verify the create call was made with the correct session and message
+    expect(methods.executionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        org: "org",
+        sessionId: "session-1",
+        message: "Follow-up message",
+        executionConfig: expect.objectContaining({ modelName: "default" }),
+      }),
+    );
+  });
 });

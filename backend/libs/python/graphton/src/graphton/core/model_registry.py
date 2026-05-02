@@ -33,8 +33,10 @@ from __future__ import annotations
 import importlib.resources
 import json
 import logging
+import os
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import ClassVar
 
 logger = logging.getLogger(__name__)
@@ -291,19 +293,72 @@ class ModelRegistry:
     _MODELS_LOADED: ClassVar[bool] = False
 
     @classmethod
+    def _load_registry_text(cls) -> str | None:
+        """Locate and read model-registry.json from available sources.
+
+        Search order:
+        1. Package data (importlib.resources — works in standard pip installs)
+        2. STIGMER_MODEL_REGISTRY_PATH env var (explicit override)
+        3. Sibling of the app directory (embedded runtimes place it at app/model-registry.json)
+
+        Returns the file contents as a string, or None if not found.
+        """
+        # Source 1: Package data (standard Python packaging)
+        try:
+            registry_ref = importlib.resources.files("graphton.data").joinpath(
+                "model-registry.json"
+            )
+            return registry_ref.read_text(encoding="utf-8")
+        except (OSError, ModuleNotFoundError):
+            pass
+
+        # Source 2: Explicit path via environment variable
+        env_path = os.environ.get("STIGMER_MODEL_REGISTRY_PATH")
+        if env_path:
+            path = Path(env_path)
+            if path.is_file():
+                logger.info("Loading model-registry.json from STIGMER_MODEL_REGISTRY_PATH: %s", path)
+                return path.read_text(encoding="utf-8")
+
+        # Source 3: Adjacent to this file's ancestor directories (embedded runtime layout)
+        # Embedded runtimes place the app at {runtime}/app/ and venv at {runtime}/venv/.
+        # Walk up from this module's location looking for model-registry.json.
+        module_dir = Path(__file__).resolve().parent
+        for ancestor in [module_dir, *module_dir.parents]:
+            candidate = ancestor / "model-registry.json"
+            if candidate.is_file():
+                logger.info("Loading model-registry.json from filesystem: %s", candidate)
+                return candidate.read_text(encoding="utf-8")
+            # Also check sibling "app" directory (common in embedded runtimes)
+            app_candidate = ancestor / "app" / "model-registry.json"
+            if app_candidate.is_file():
+                logger.info("Loading model-registry.json from app directory: %s", app_candidate)
+                return app_candidate.read_text(encoding="utf-8")
+            # Stop at filesystem root
+            if ancestor == ancestor.parent:
+                break
+
+        logger.warning(
+            "model-registry.json not found in package data, "
+            "STIGMER_MODEL_REGISTRY_PATH, or filesystem ancestors"
+        )
+        return None
+
+    @classmethod
     def _ensure_loaded(cls) -> None:
         """Build _MODELS entirely from model-registry.json (native harness entries)."""
         if cls._MODELS_LOADED:
             return
 
+        registry_text = cls._load_registry_text()
+        if registry_text is None:
+            cls._MODELS_LOADED = True
+            return
+
         try:
-            registry_ref = importlib.resources.files("graphton.data").joinpath(
-                "model-registry.json"
-            )
-            registry_text = registry_ref.read_text(encoding="utf-8")
             registry = json.loads(registry_text)
-        except (OSError, json.JSONDecodeError, ModuleNotFoundError) as exc:
-            logger.warning("Failed to load model-registry.json: %s", exc)
+        except json.JSONDecodeError as exc:
+            logger.warning("Failed to parse model-registry.json: %s", exc)
             cls._MODELS_LOADED = True
             return
 
