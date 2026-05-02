@@ -109,8 +109,8 @@ const pkg = require('$CURSOR_RUNNER/package.json');
 // Rewrite @stigmer/protos to point at the local copy
 pkg.dependencies['@stigmer/protos'] = 'file:./libs/stigmer-protos';
 
-// Remove devDependencies — tsx and typescript are build-time only
-delete pkg.devDependencies;
+// Keep only typescript (needed for tsc in Step 5); drop tsx, vitest, etc.
+pkg.devDependencies = { typescript: pkg.devDependencies?.typescript || '^5.7.0' };
 
 // Override the start script to use compiled JS
 pkg.scripts.start = 'node dist/main.js';
