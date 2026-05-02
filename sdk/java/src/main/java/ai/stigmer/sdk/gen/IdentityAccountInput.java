@@ -58,7 +58,7 @@ public final class IdentityAccountInput {
         if (this.provisioningMode != null) {
             spec.setProvisioningMode(this.provisioningMode);
         }
-        if (this.identityProviderRef != null) {
+        if (this.identityProviderRef != null && this.identityProviderRef.hasIdentifier()) {
             spec.setIdentityProviderRef(this.identityProviderRef.toProto());
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()

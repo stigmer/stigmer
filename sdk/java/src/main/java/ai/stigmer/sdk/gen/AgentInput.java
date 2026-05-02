@@ -135,7 +135,7 @@ public final class AgentInput {
 
         McpServerUsage toProto() {
             McpServerUsage.Builder builder = McpServerUsage.newBuilder();
-            if (this.mcpServerRef != null) {
+            if (this.mcpServerRef != null && this.mcpServerRef.hasIdentifier()) {
                 builder.setMcpServerRef(this.mcpServerRef.toProto().toBuilder()
                     .setKind(ApiResourceKind.mcp_server).build());
             }

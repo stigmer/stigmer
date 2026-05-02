@@ -97,7 +97,7 @@ class OrganizationInput:
             external_org_id=self.external_org_id,
             is_personal=self.is_personal,
         )
-        if self.identity_provider_ref is not None:
+        if self.identity_provider_ref is not None and (self.identity_provider_ref.org or self.identity_provider_ref.slug):
             spec.identity_provider_ref.CopyFrom(self.identity_provider_ref._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
