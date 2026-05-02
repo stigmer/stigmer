@@ -13,10 +13,24 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation + RUNNER_PHASE_STARTING lifecycle + cursor-runner enum crash fix + parallel bootstrap + Temporal routing fix + process resilience + proxy observability + event visibility (tool calls, sub-agents, thinking) + **delta enrichment (shell output, tool timing)**
-- **Last Session**: May 2, 2026 — Session 22: Delta Enrichment (Real-Time Shell Output & Tool Timing)
-- **Active Task**: None — delta enrichment implemented and tested
+- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation + RUNNER_PHASE_STARTING lifecycle + cursor-runner enum crash fix + parallel bootstrap + Temporal routing fix + process resilience + proxy observability + event visibility (tool calls, sub-agents, thinking) + delta enrichment (shell output, tool timing) + **model selector harness fix**
+- **Last Session**: May 2, 2026 — Session 23: Fix Model Selector Harness Filtering & Follow-Up Auto-Selection
+- **Active Task**: None — model selector fixes implemented and tested
 - **Branch**: `feat/cursor-harness`
+
+## Session Progress (May 2, 2026 — Session 23)
+
+### Fix Model Selector Harness Filtering & Follow-Up Auto-Selection
+
+Fixed two bugs in the model selector dropdown reported from the Tauri desktop app:
+
+1. **Follow-up model not pre-selected**: After executing with "Auto" on Cursor harness, the follow-up composer showed a different model instead of pre-selecting "Auto". Root causes: compound key mismatch in localStorage (`"cursor/default"` vs `"default"`), stale `useState` initializer when harness transitions, and `SessionComposer` not syncing `defaultModelId` prop changes.
+
+2. **Non-Cursor models in Cursor session**: The dropdown sporadically showed native/Stigmer models. Root cause: `harnessLocked` condition used `!showHarnessSelector` which allowed unified mode even when a harness was explicitly set.
+
+**Files modified**: `ComposerToolbar.tsx`, `SessionComposer.tsx`, `usePersistedModel.ts`, `useNewSessionFlow.ts`
+**Files created**: `usePersistedModel.test.tsx`
+**Tests**: 243 passed (13 new tests), TypeScript clean, ESLint clean
 
 ## Session Progress (May 2, 2026 — Session 22)
 
@@ -112,7 +126,7 @@ Fixed a critical non-deterministic routing bug: Temporal dispatches activity tas
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-02-session-22.md
+_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-02-session-23.md
 ```
 
 ### 2. Previous Checkpoints
