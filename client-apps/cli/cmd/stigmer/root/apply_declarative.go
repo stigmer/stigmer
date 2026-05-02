@@ -123,6 +123,7 @@ func executeDeclarativeApply(detectResult *project.DetectResult, opts projectApp
 		dryRun:   false,
 		renderer: renderer,
 		cfg:      cfg,
+		registry: newApplyHandlerRegistry(),
 	}
 
 	for _, item := range items {
@@ -384,6 +385,7 @@ func executeDryRun(items []applyItem, renderer clioutput.Renderer) error {
 	fctx := &fileApplyContext{
 		dryRun:   true,
 		renderer: renderer,
+		registry: newApplyHandlerRegistry(),
 	}
 
 	for _, item := range items {

@@ -16,13 +16,13 @@ spec:
     - work-management
     - collaboration
   http:
-    url: "https://mcp.monday.com/sse"
+    url: "https://mcp.monday.com/mcp"
     headers:
-      Authorization: "Bearer ${MONDAY_ACCESS_TOKEN}"
+      MONDAY_TOKEN: "${MONDAY_ACCESS_TOKEN}"
   env:
     MONDAY_ACCESS_TOKEN:
       is_secret: true
-      description: "monday.com API key or OAuth access token (generate at monday.com/developers)"
+      description: "monday.com personal API token — generate at monday.com > Avatar menu > Developers > My Access Tokens. See developer.monday.com for details."
   auth:
     target_env_var: "MONDAY_ACCESS_TOKEN"
     token_lifetime_hint: "1h"
