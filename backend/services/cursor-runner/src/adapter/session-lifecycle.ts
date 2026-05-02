@@ -23,6 +23,7 @@ export interface CreateAgentOptions {
 export interface ResumeAgentOptions {
   apiKey: string;
   agentId: string;
+  model?: string;
   mcpServers?: Record<string, CursorMcpServerConfig>;
 }
 
@@ -55,6 +56,7 @@ export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent
 export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent> {
   return Agent.resume(options.agentId, {
     apiKey: options.apiKey,
+    model: options.model ? { id: options.model } : undefined,
     mcpServers: options.mcpServers as Record<string, any>,
   });
 }
@@ -78,6 +80,7 @@ export async function resolveAgent(
       const agent = await resumeAgent({
         apiKey: createOptions.apiKey,
         agentId: threadId,
+        model: createOptions.model,
         mcpServers: createOptions.mcpServers,
       });
       return { agent, isNew: false };
