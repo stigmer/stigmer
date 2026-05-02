@@ -13,10 +13,44 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation + RUNNER_PHASE_STARTING lifecycle + cursor-runner enum crash fix + parallel bootstrap + Temporal routing fix + **process resilience + proxy observability**
-- **Last Session**: May 1, 2026 — Session 20: Cursor Runner Process Resilience and Proxy Observability
-- **Active Task**: None — resilience fixes committed in both OSS and cloud repos
+- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation + RUNNER_PHASE_STARTING lifecycle + cursor-runner enum crash fix + parallel bootstrap + Temporal routing fix + process resilience + proxy observability + event visibility (tool calls, sub-agents, thinking) + **delta enrichment (shell output, tool timing)**
+- **Last Session**: May 2, 2026 — Session 22: Delta Enrichment (Real-Time Shell Output & Tool Timing)
+- **Active Task**: None — delta enrichment implemented and tested
 - **Branch**: `feat/cursor-harness`
+
+## Session Progress (May 2, 2026 — Session 22)
+
+### Delta Enrichment: Real-Time Shell Output and Tool Timing
+
+Implemented the `DeltaEnricher` component that processes the Cursor SDK's `onDelta` (InteractionUpdate) channel for real-time enrichments. The stream remains the source of truth; deltas provide supplementary signals the stream cannot.
+
+**Key capabilities added**:
+- Live shell output streaming via `shell-output-delta` events → `ToolCall.result` with `is_streaming=true`, `streaming_source=OUTPUT`
+- Precise tool call timing from `tool-call-started` / `tool-call-completed` delta events
+- Intelligent persist-rate-limiting: dirty-flag + 500ms debounce matching Python's update_scheduler
+- Thinking duration logging from `thinking-completed` events
+
+**Files created**: `delta-enricher.ts`, `delta-enricher.test.ts`
+**Files modified**: `execute-cursor.ts` (8 lines: import, instantiation, processDelta, applyEnrichments, dirty-persist, finalize)
+**Tests**: 172 passed (18 new delta-enricher tests + 154 existing)
+
+## Session Progress (May 2, 2026 — Session 21)
+
+### Cursor Harness Event Visibility
+
+Diagnosed and fixed three layers of data loss in the cursor-runner's SDK-to-UI pipeline. The cursor-runner was capturing 176+ SDK events per execution but persisting only 2 messages (assistant text). Tool calls, sub-agent invocations, and thinking blocks were invisible.
+
+**Live SDK Investigation**: Ran a diagnostic script against the real Cursor SDK (v1.0.11) capturing all three event channels (SDKMessage, InteractionUpdate, ConversationStep). Confirmed tool_call events carry structured args/result objects, run.conversation() works on local runs, and the onDelta channel provides rich typed data.
+
+**Layer 1 — Tool Call Attachment**: Refactored MessageAccumulator to attach tool calls to the parent MESSAGE_AI message instead of creating standalone MESSAGE_TOOL messages. Handles running/completed/error lifecycle, multiple concurrent tool calls, and edge case of tool call before any AI text.
+
+**Layer 2 — Sub-Agent Execution Tracking**: Task tool calls now produce SubAgentExecution protos with id, name, subject, input, status, timestamps, and output. execute-cursor.ts populates status.subAgentExecutions from the accumulator.
+
+**Layer 3 — MESSAGE_THINKING UI**: Added collapsible ThinkingMessage component to MessageEntry.tsx with preview, expand/collapse, streaming support, and accessibility.
+
+**Files changed**: message-translator.ts, execute-cursor.ts, message-translator.test.ts, MessageEntry.tsx
+**Tests**: 160 passed (40 message-translator tests including new tool call attachment, sub-agent tracking, and edge case tests)
+**Deferred**: onDelta enrichment — now completed in Session 22
 
 ## Session Progress (May 1, 2026 — Session 20)
 
@@ -60,7 +94,7 @@ Fixed a critical non-deterministic routing bug: Temporal dispatches activity tas
 
 ## Context for Resume
 
-- All 135 cursor-runner tests pass; typecheck clean
+- All 172 cursor-runner tests pass; typecheck clean
 - Blueprint propagation uses message-based instruction injection (not rules files) to avoid workspace pollution
 - Skills use platform mount pattern: physical at `~/.stigmer/sessions/{id}/platform/`, symlinked from workspace `.stigmer/`
 - MCP merge: session overrides agent by slug; skill refs: union deduplicated by slug
@@ -69,13 +103,14 @@ Fixed a critical non-deterministic routing bug: Temporal dispatches activity tas
 - Node.js 22 strip-only mode cannot handle `export enum` — the embed path now pre-compiles proto stubs to JS via `sync.sh`
 - The April 30 `import_extension=js` fix is a prerequisite for the enum crash fix (ensures correct import paths in compiled output)
 - Daemon path (`daemon_process.go`) bootstrap is still sequential — parallelization deferred as a follow-up
-- **NEW**: Temporal does NOT route activities by type name — it round-robins across pollers. Cursor-runner must poll a separate derived queue (`{baseQueue}:cursor`). Both Go and Java workflows apply the same suffix constant when dispatching `ExecuteCursor`.
+- Temporal does NOT route activities by type name — it round-robins across pollers. Cursor-runner must poll a separate derived queue (`{baseQueue}:cursor`). Both Go and Java workflows apply the same suffix constant when dispatching `ExecuteCursor`.
+- **NEW**: DeltaEnricher processes onDelta events for shell output streaming (ToolCall.result + is_streaming + streaming_source=OUTPUT) and precise tool timing. Buffer-then-apply pattern with 500ms persist debounce. Stream remains source of truth; delta is the liveness signal.
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-01-session-19.md
+_projects/2026-04/20260430.01.cursor-harness/checkpoints/2026-05-02-session-22.md
 ```
 
 ### 2. Previous Checkpoints
