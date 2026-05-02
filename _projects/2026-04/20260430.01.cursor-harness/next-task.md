@@ -13,10 +13,28 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation + RUNNER_PHASE_STARTING lifecycle + cursor-runner enum crash fix + parallel bootstrap + Temporal routing fix + **process resilience + proxy observability**
-- **Last Session**: May 1, 2026 — Session 20: Cursor Runner Process Resilience and Proxy Observability
-- **Active Task**: None — resilience fixes committed in both OSS and cloud repos
+- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation + RUNNER_PHASE_STARTING lifecycle + cursor-runner enum crash fix + parallel bootstrap + Temporal routing fix + process resilience + proxy observability + **event visibility (tool calls, sub-agents, thinking)**
+- **Last Session**: May 2, 2026 — Session 21: Cursor Harness Event Visibility
+- **Active Task**: None — event visibility fixes committed
 - **Branch**: `feat/cursor-harness`
+
+## Session Progress (May 2, 2026 — Session 21)
+
+### Cursor Harness Event Visibility
+
+Diagnosed and fixed three layers of data loss in the cursor-runner's SDK-to-UI pipeline. The cursor-runner was capturing 176+ SDK events per execution but persisting only 2 messages (assistant text). Tool calls, sub-agent invocations, and thinking blocks were invisible.
+
+**Live SDK Investigation**: Ran a diagnostic script against the real Cursor SDK (v1.0.11) capturing all three event channels (SDKMessage, InteractionUpdate, ConversationStep). Confirmed tool_call events carry structured args/result objects, run.conversation() works on local runs, and the onDelta channel provides rich typed data.
+
+**Layer 1 — Tool Call Attachment**: Refactored MessageAccumulator to attach tool calls to the parent MESSAGE_AI message instead of creating standalone MESSAGE_TOOL messages. Handles running/completed/error lifecycle, multiple concurrent tool calls, and edge case of tool call before any AI text.
+
+**Layer 2 — Sub-Agent Execution Tracking**: Task tool calls now produce SubAgentExecution protos with id, name, subject, input, status, timestamps, and output. execute-cursor.ts populates status.subAgentExecutions from the accumulator.
+
+**Layer 3 — MESSAGE_THINKING UI**: Added collapsible ThinkingMessage component to MessageEntry.tsx with preview, expand/collapse, streaming support, and accessibility.
+
+**Files changed**: message-translator.ts, execute-cursor.ts, message-translator.test.ts, MessageEntry.tsx
+**Tests**: 160 passed (40 message-translator tests including new tool call attachment, sub-agent tracking, and edge case tests)
+**Deferred**: onDelta enrichment and streaming enrichment (separate conversation)
 
 ## Session Progress (May 1, 2026 — Session 20)
 
