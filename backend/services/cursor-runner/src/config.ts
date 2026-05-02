@@ -21,7 +21,18 @@
  *
  * Proxy mode is activated when STIGMER_PROXY_ENDPOINT is set, regardless
  * of MODE. This allows testing the proxy locally.
+ *
+ * Workspace isolation:
+ *
+ * WORKSPACE_ROOT_DIR must always resolve to a directory that is NOT the
+ * runner's own app directory. Falling back to process.cwd() would expose
+ * runner internals (dist/, node_modules, data/) to the Cursor agent. The
+ * fallback creates an isolated directory under ~/.stigmer/workspaces/.
  */
+
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { homedir, tmpdir } from "node:os";
 
 /**
  * Suffix appended to the runner's base task queue to form the cursor-specific
@@ -76,7 +87,7 @@ export function loadConfig(): Config {
     ? (process.env.CURSOR_API_KEY ?? "proxy-managed")
     : requireEnv("CURSOR_API_KEY");
 
-  const workspaceRootDir = process.env.WORKSPACE_ROOT_DIR ?? process.cwd();
+  const workspaceRootDir = resolveWorkspaceRootDir();
 
   const maxConcurrentActivities = parseInt(
     process.env.TEMPORAL_MAX_CONCURRENCY ?? "5",
@@ -99,6 +110,40 @@ export function loadConfig(): Config {
     maxConcurrentActivities,
     idleTimeoutSeconds,
   };
+}
+
+/**
+ * Resolves the workspace root directory, ensuring it is never the runner's
+ * own app directory. Falls back to an isolated directory under
+ * ~/.stigmer/workspaces/cursor-runner/ instead of process.cwd().
+ */
+function resolveWorkspaceRootDir(): string {
+  const explicit = process.env.WORKSPACE_ROOT_DIR;
+  if (explicit) {
+    return explicit;
+  }
+
+  console.warn(
+    "WORKSPACE_ROOT_DIR is not set — creating isolated fallback workspace. " +
+    "This likely means the cursor-runner was started outside the CLI daemon.",
+  );
+
+  const fallbackDir = safeWorkspaceFallback();
+  mkdirSync(fallbackDir, { recursive: true });
+  return fallbackDir;
+}
+
+/**
+ * Returns a safe, isolated directory path that cannot overlap with the
+ * runner's app directory. Prefers ~/.stigmer/workspaces/cursor-runner/;
+ * falls back to a tmpdir-based path if the home directory is unavailable.
+ */
+function safeWorkspaceFallback(): string {
+  try {
+    return join(homedir(), ".stigmer", "workspaces", "cursor-runner");
+  } catch {
+    return join(tmpdir(), "stigmer-cursor-workspace");
+  }
 }
 
 function requireEnv(name: string): string {

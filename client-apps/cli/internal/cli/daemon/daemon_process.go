@@ -759,6 +759,19 @@ func buildComponents(cliBin, dataDir, logDir string, grpcPort int, serverOnly bo
 
 	if cursorNodeBin != "" && cursorAppDir != "" && cursorEntryArgsRaw != "" {
 		cursorEntryArgs := strings.Split(cursorEntryArgsRaw, ",")
+
+		// Make entry point args absolute so the process can run from any
+		// cwd — the workspace dir, not the app dir. This prevents
+		// process.cwd() from ever being the runner's own source tree.
+		absoluteEntryArgs := make([]string, len(cursorEntryArgs))
+		for i, arg := range cursorEntryArgs {
+			if !filepath.IsAbs(arg) {
+				absoluteEntryArgs[i] = filepath.Join(cursorAppDir, arg)
+			} else {
+				absoluteEntryArgs[i] = arg
+			}
+		}
+
 		components = append(components, &managedComponent{
 			name:    "cursor-runner",
 			pidFile: filepath.Join(dataDir, CursorRunnerPIDFileName),
@@ -770,7 +783,8 @@ func buildComponents(cliBin, dataDir, logDir string, grpcPort int, serverOnly bo
 					taskQueue = (*embeddedIdentity).TaskQueue
 				}
 				env := buildCursorRunnerEnv(dataDir, grpcPort, runnerID, taskQueue)
-				return startChildProcessWithDir(cursorNodeBin, cursorEntryArgs, cursorAppDir, logDir, "cursor-runner", env)
+				workspaceDir := filepath.Join(dataDir, "workspace")
+				return startChildProcessWithDir(cursorNodeBin, absoluteEntryArgs, workspaceDir, logDir, "cursor-runner", env)
 			},
 		})
 		log.Info().Msg("Cursor harness: enabled (cursor-runner component registered)")
