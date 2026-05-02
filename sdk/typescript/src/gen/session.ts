@@ -176,7 +176,7 @@ function buildToolApprovalOverrideProto(input: ToolApprovalOverrideInput) {
 
 function buildMcpServerUsageProto(input: McpServerUsageInput) {
   const msg = create(McpServerUsageSchema);
-  if (input.mcpServerRef) msg.mcpServerRef = create(ApiResourceReferenceSchema, { ...input.mcpServerRef, kind: 44 });
+  if (input.mcpServerRef?.slug || input.mcpServerRef?.org) msg.mcpServerRef = create(ApiResourceReferenceSchema, { ...input.mcpServerRef, kind: 44 });
   if (input.enabledTools) msg.enabledTools = input.enabledTools;
   if (input.toolApprovalOverrides) msg.toolApprovalOverrides = input.toolApprovalOverrides.map(buildToolApprovalOverrideProto);
   return msg;

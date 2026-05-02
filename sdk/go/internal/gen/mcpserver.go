@@ -239,9 +239,11 @@ func (i *ToolApprovalPolicyInput) toProto() *mcpserverv1.ToolApprovalPolicy {
 
 func (i *McpServerAuthInput) toProto() *mcpserverv1.McpServerAuth {
 	p := &mcpserverv1.McpServerAuth{}
-	ref := i.OauthAppRef.toProto()
-	ref.Kind = apiresourcekind.ApiResourceKind_oauth_app
-	p.OauthAppRef = ref
+	if i.OauthAppRef.Org != "" || i.OauthAppRef.Slug != "" {
+		ref := i.OauthAppRef.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_oauth_app
+		p.OauthAppRef = ref
+	}
 	p.TargetEnvVar = i.TargetEnvVar
 	p.TokenLifetimeHint = i.TokenLifetimeHint
 	p.ScopeHints = i.ScopeHints

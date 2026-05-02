@@ -576,6 +576,10 @@ func generateJavaResourceRef(outputDir string) error {
     public String getVersion() { return version; }
     public ApiResourceKind getKind() { return kind; }
 
+    boolean hasIdentifier() {
+        return (this.org != null && !this.org.isEmpty()) || (this.slug != null && !this.slug.isEmpty());
+    }
+
     ApiResourceReference toProto() {
         ApiResourceReference.Builder builder = ApiResourceReference.newBuilder()
             .setOrg(this.org)
@@ -1518,7 +1522,7 @@ func emitJavaToProtoField(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]
 		fmt.Fprintf(buf, "%s}\n", indent)
 
 	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference":
-		fmt.Fprintf(buf, "%sif (this.%s != null) {\n", indent, fieldName)
+		fmt.Fprintf(buf, "%sif (this.%s != null && this.%s.hasIdentifier()) {\n", indent, fieldName, fieldName)
 		if f.ReferenceKind != 0 {
 			enumName := apiResourceKindEnumNames[f.ReferenceKind]
 			fmt.Fprintf(buf, "%s    spec.%s(this.%s.toProto().toBuilder()\n", indent, javaSetterName(f.ProtoField), fieldName)
@@ -1643,7 +1647,7 @@ func emitJavaNestedToProtoField(buf *bytes.Buffer, f *FieldSchema, typeMap map[s
 		fmt.Fprintf(buf, "%s}\n", indent)
 
 	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference":
-		fmt.Fprintf(buf, "%sif (this.%s != null) {\n", indent, fieldName)
+		fmt.Fprintf(buf, "%sif (this.%s != null && this.%s.hasIdentifier()) {\n", indent, fieldName, fieldName)
 		if f.ReferenceKind != 0 {
 			enumName := apiResourceKindEnumNames[f.ReferenceKind]
 			fmt.Fprintf(buf, "%s    builder.%s(this.%s.toProto().toBuilder()\n", indent, javaSetterName(f.ProtoField), fieldName)

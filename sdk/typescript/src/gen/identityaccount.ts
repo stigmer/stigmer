@@ -122,7 +122,7 @@ export interface IdentityAccountInput {
 }
 
 function buildIdentityAccountProto(input: IdentityAccountInput): IdentityAccount {
-  const identityProviderRef = input.identityProviderRef ? create(ApiResourceReferenceSchema, input.identityProviderRef) : undefined;
+  const identityProviderRef = (input.identityProviderRef?.slug || input.identityProviderRef?.org) ? create(ApiResourceReferenceSchema, input.identityProviderRef) : undefined;
   return Object.assign(create(IdentityAccountSchema), {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "IdentityAccount",

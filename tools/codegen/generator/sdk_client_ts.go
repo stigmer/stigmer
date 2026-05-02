@@ -1081,9 +1081,9 @@ func emitTSPreComputeField(buf *bytes.Buffer, f *FieldSchema, typeMap map[string
 	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference":
 		imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema")
 		if f.ReferenceKind != 0 {
-			fmt.Fprintf(buf, "  const %s = input.%s ? create(ApiResourceReferenceSchema, { ...input.%s, kind: %d }) : undefined;\n", fieldName, fieldName, fieldName, f.ReferenceKind)
+			fmt.Fprintf(buf, "  const %s = (input.%s?.slug || input.%s?.org) ? create(ApiResourceReferenceSchema, { ...input.%s, kind: %d }) : undefined;\n", fieldName, fieldName, fieldName, fieldName, f.ReferenceKind)
 		} else {
-			fmt.Fprintf(buf, "  const %s = input.%s ? create(ApiResourceReferenceSchema, input.%s) : undefined;\n", fieldName, fieldName, fieldName)
+			fmt.Fprintf(buf, "  const %s = (input.%s?.slug || input.%s?.org) ? create(ApiResourceReferenceSchema, input.%s) : undefined;\n", fieldName, fieldName, fieldName, fieldName)
 		}
 
 	case f.Type.Kind == "message":
@@ -1277,11 +1277,11 @@ func emitTSNestedFieldAssign(buf *bytes.Buffer, f *FieldSchema, typeMap map[stri
 	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference":
 		imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema")
 		if f.ReferenceKind != 0 {
-			fmt.Fprintf(buf, "  if (input.%s) msg.%s = create(ApiResourceReferenceSchema, { ...input.%s, kind: %d });\n",
-				fieldName, fieldName, fieldName, f.ReferenceKind)
+			fmt.Fprintf(buf, "  if (input.%s?.slug || input.%s?.org) msg.%s = create(ApiResourceReferenceSchema, { ...input.%s, kind: %d });\n",
+				fieldName, fieldName, fieldName, fieldName, f.ReferenceKind)
 		} else {
-			fmt.Fprintf(buf, "  if (input.%s) msg.%s = create(ApiResourceReferenceSchema, input.%s);\n",
-				fieldName, fieldName, fieldName)
+			fmt.Fprintf(buf, "  if (input.%s?.slug || input.%s?.org) msg.%s = create(ApiResourceReferenceSchema, input.%s);\n",
+				fieldName, fieldName, fieldName, fieldName)
 		}
 
 	case f.Type.Kind == "message":

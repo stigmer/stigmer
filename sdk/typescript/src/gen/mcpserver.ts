@@ -232,7 +232,7 @@ function buildToolApprovalPolicyProto(input: ToolApprovalPolicyInput) {
 
 function buildMcpServerAuthProto(input: McpServerAuthInput) {
   const msg = create(McpServerAuthSchema);
-  if (input.oauthAppRef) msg.oauthAppRef = create(ApiResourceReferenceSchema, { ...input.oauthAppRef, kind: 22 });
+  if (input.oauthAppRef?.slug || input.oauthAppRef?.org) msg.oauthAppRef = create(ApiResourceReferenceSchema, { ...input.oauthAppRef, kind: 22 });
   if (input.targetEnvVar !== undefined) msg.targetEnvVar = input.targetEnvVar;
   if (input.tokenLifetimeHint !== undefined) msg.tokenLifetimeHint = input.tokenLifetimeHint;
   if (input.scopeHints) msg.scopeHints = input.scopeHints;
