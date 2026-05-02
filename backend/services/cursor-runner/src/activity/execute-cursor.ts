@@ -244,8 +244,9 @@ async function executeCursor(
     }
 
     accumulator.finalize();
+    status.subAgentExecutions = accumulator.subAgentExecutions;
     console.log(
-      `ExecuteCursor stream ended: execution=${executionId}, events=${eventCount}, messages=${status.messages.length}`,
+      `ExecuteCursor stream ended: execution=${executionId}, events=${eventCount}, messages=${status.messages.length}, subAgents=${status.subAgentExecutions.length}`,
     );
 
     while (pendingMetrics.length > 0) {

@@ -10,12 +10,23 @@
  * LLM turn produces dozens of events. MessageAccumulator merges them into
  * a single AgentMessage per turn, matching the Python agent-runner's
  * proven pattern (see chat_model.py handle_chat_model_stream).
+ *
+ * Tool calls are attached to the most recent MESSAGE_AI message rather
+ * than emitted as standalone MESSAGE_TOOL messages. This matches:
+ *   - The proto model (AgentMessage.tool_calls repeated field)
+ *   - The Python agent-runner's StatusBuilder pattern
+ *   - The UI's MessageThread expectation (tool calls on AI messages)
+ *
+ * Task (sub-agent) tool calls additionally produce SubAgentExecution
+ * protos accessible via MessageAccumulator.subAgentExecutions.
  */
 
 import { create } from "@bufbuild/protobuf";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { MessageType, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import { MessageType, ToolCallStatus, SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 
 export function utcTimestamp(): string {
@@ -27,6 +38,11 @@ export function utcTimestamp(): string {
  *
  * Most events produce exactly one message. Some (like system init) are
  * informational and produce none.
+ *
+ * Note: for production streaming, use MessageAccumulator instead — it
+ * merges token-level events and attaches tool calls to their parent AI
+ * messages. This stateless function is retained for unit testing and
+ * simple single-event translation.
  */
 export function translateEvent(event: SDKMessage): AgentMessage[] {
   switch (event.type) {
@@ -68,7 +84,28 @@ function translateThinking(event: Extract<SDKMessage, { type: "thinking" }>): Ag
   });
 }
 
+/**
+ * Stateless translation of a tool_call event into a standalone MESSAGE_TOOL
+ * message. Retained for backward compatibility with translateEvent() and
+ * tests that use the stateless API.
+ */
 function translateToolCall(event: Extract<SDKMessage, { type: "tool_call" }>): AgentMessage {
+  const toolCall = buildToolCallProto(event);
+  return create(AgentMessageSchema, {
+    type: MessageType.MESSAGE_TOOL,
+    content: `Tool: ${event.name} [${event.status}]`,
+    timestamp: utcTimestamp(),
+    toolCalls: [toolCall],
+  });
+}
+
+/**
+ * Build a ToolCall proto from a Cursor SDK tool_call event.
+ *
+ * Extracted from translateToolCall so that MessageAccumulator can create
+ * ToolCall protos without wrapping them in a MESSAGE_TOOL message.
+ */
+export function buildToolCallProto(event: Extract<SDKMessage, { type: "tool_call" }>): ToolCall {
   const status = mapToolCallStatus(event.status);
   const toolCall = create(ToolCallSchema, {
     id: event.call_id,
@@ -88,12 +125,7 @@ function translateToolCall(event: Extract<SDKMessage, { type: "tool_call" }>): A
       : JSON.stringify(event.args);
   }
 
-  return create(AgentMessageSchema, {
-    type: MessageType.MESSAGE_TOOL,
-    content: `Tool: ${event.name} [${event.status}]`,
-    timestamp: utcTimestamp(),
-    toolCalls: [toolCall],
-  });
+  return toolCall;
 }
 
 function translateTask(event: Extract<SDKMessage, { type: "task" }>): AgentMessage {
@@ -117,12 +149,36 @@ function mapToolCallStatus(cursorStatus: string): ToolCallStatus {
   }
 }
 
+function mapSubAgentStatus(cursorStatus: string): SubAgentStatus {
+  switch (cursorStatus) {
+    case "running":
+      return SubAgentStatus.SUB_AGENT_IN_PROGRESS;
+    case "completed":
+      return SubAgentStatus.SUB_AGENT_COMPLETED;
+    case "error":
+      return SubAgentStatus.SUB_AGENT_FAILED;
+    default:
+      return SubAgentStatus.SUB_AGENT_PENDING;
+  }
+}
+
 function isTerminalToolStatus(status: ToolCallStatus): boolean {
   return (
     status === ToolCallStatus.TOOL_CALL_COMPLETED ||
     status === ToolCallStatus.TOOL_CALL_FAILED ||
     status === ToolCallStatus.TOOL_CALL_SKIPPED
   );
+}
+
+/**
+ * Safely extract a string field from an unknown args/result object.
+ */
+function safeString(obj: unknown, key: string): string {
+  if (obj != null && typeof obj === "object" && key in obj) {
+    const val = (obj as Record<string, unknown>)[key];
+    return typeof val === "string" ? val : "";
+  }
+  return "";
 }
 
 /**
@@ -138,16 +194,26 @@ function isTerminalToolStatus(status: ToolCallStatus): boolean {
  * run_id. Consecutive assistant events for the same run_id append to
  * the existing message's content instead of creating new ones.
  *
- * Mirrors the Python agent-runner's StatusBuilder pattern where
- * `handle_chat_model_stream` does `ai_message.content += token`.
+ * Tool calls are attached to the most recent MESSAGE_AI message's
+ * toolCalls array — matching the Python agent-runner's StatusBuilder
+ * pattern and the UI's MessageThread expectations.
+ *
+ * Task (sub-agent) tool calls additionally produce SubAgentExecution
+ * protos, accessible via the subAgentExecutions getter.
  */
 export class MessageAccumulator {
   private readonly messages: AgentMessage[];
   private activeAiByRunId = new Map<string, AgentMessage>();
   private activeThinkingByRunId = new Map<string, AgentMessage>();
+  private readonly _subAgentExecutions: SubAgentExecution[] = [];
+  private readonly subAgentMap = new Map<string, SubAgentExecution>();
 
   constructor(messages: AgentMessage[]) {
     this.messages = messages;
+  }
+
+  get subAgentExecutions(): SubAgentExecution[] {
+    return this._subAgentExecutions;
   }
 
   processEvent(event: SDKMessage): void {
@@ -160,7 +226,7 @@ export class MessageAccumulator {
         break;
       case "tool_call":
         this.finalizeStreaming(event.run_id);
-        this.messages.push(translateToolCall(event));
+        this.attachToolCallToLastAi(event);
         break;
       case "task":
         if (event.text) {
@@ -183,6 +249,123 @@ export class MessageAccumulator {
     }
     this.activeAiByRunId.clear();
     this.activeThinkingByRunId.clear();
+  }
+
+  /**
+   * Attach a tool call to the most recent MESSAGE_AI message.
+   *
+   * For "running" events: create a new ToolCall proto and append it.
+   * For "completed"/"error" events: find the existing ToolCall by
+   * call_id and update its status, result, and timestamps.
+   *
+   * If no MESSAGE_AI exists yet (edge case: tool call before any
+   * assistant text), creates an empty AI message as the attachment point.
+   *
+   * When the tool is a "task" (sub-agent), additionally creates or
+   * updates a SubAgentExecution proto.
+   */
+  private attachToolCallToLastAi(
+    event: Extract<SDKMessage, { type: "tool_call" }>,
+  ): void {
+    const aiMsg = this.findOrCreateLastAiMessage();
+    const status = mapToolCallStatus(event.status);
+
+    if (event.status === "running") {
+      const tc = buildToolCallProto(event);
+      aiMsg.toolCalls.push(tc);
+    } else {
+      const existing = aiMsg.toolCalls.find((tc) => tc.id === event.call_id);
+      if (existing) {
+        existing.status = status;
+        if (isTerminalToolStatus(status)) {
+          existing.completedAt = utcTimestamp();
+        }
+        if (event.result != null) {
+          existing.result = typeof event.result === "string"
+            ? event.result
+            : JSON.stringify(event.result);
+        }
+        if (status === ToolCallStatus.TOOL_CALL_FAILED) {
+          existing.error = typeof event.result === "string"
+            ? event.result
+            : "Tool call failed";
+        }
+        if (event.args != null && !existing.argsPreview) {
+          existing.argsPreview = typeof event.args === "string"
+            ? event.args
+            : JSON.stringify(event.args);
+        }
+      } else {
+        const tc = buildToolCallProto(event);
+        aiMsg.toolCalls.push(tc);
+      }
+    }
+
+    if (event.name === "task") {
+      this.trackSubAgentExecution(event);
+    }
+  }
+
+  /**
+   * Find the most recent MESSAGE_AI message scanning backwards.
+   * If none exists, create an empty one as the tool call attachment point.
+   */
+  private findOrCreateLastAiMessage(): AgentMessage {
+    for (let i = this.messages.length - 1; i >= 0; i--) {
+      if (this.messages[i].type === MessageType.MESSAGE_AI) {
+        return this.messages[i];
+      }
+    }
+    const msg = create(AgentMessageSchema, {
+      type: MessageType.MESSAGE_AI,
+      content: "",
+      timestamp: utcTimestamp(),
+    });
+    this.messages.push(msg);
+    return msg;
+  }
+
+  /**
+   * Create or update a SubAgentExecution for a "task" tool call.
+   *
+   * On "running": create a new SubAgentExecution with metadata from args.
+   * On "completed"/"error": update the existing one with result/error.
+   */
+  private trackSubAgentExecution(
+    event: Extract<SDKMessage, { type: "tool_call" }>,
+  ): void {
+    const existing = this.subAgentMap.get(event.call_id);
+
+    if (existing) {
+      existing.status = mapSubAgentStatus(event.status);
+      if (event.status === "completed" || event.status === "error") {
+        existing.completedAt = utcTimestamp();
+      }
+      if (event.status === "completed" && event.result != null) {
+        existing.output = typeof event.result === "string"
+          ? event.result
+          : JSON.stringify(event.result);
+      }
+      if (event.status === "error") {
+        existing.error = typeof event.result === "string"
+          ? event.result
+          : "Sub-agent failed";
+      }
+      return;
+    }
+
+    const sub = create(SubAgentExecutionSchema, {
+      id: event.call_id,
+      name: safeString(event.args, "subagentType")
+        || safeString(event.args, "subagent_type")
+        || "task",
+      subject: safeString(event.args, "description"),
+      input: safeString(event.args, "prompt"),
+      status: mapSubAgentStatus(event.status),
+      startedAt: utcTimestamp(),
+    });
+    this._subAgentExecutions.push(sub);
+    this.subAgentMap.set(event.call_id, sub);
   }
 
   private accumulateAssistant(
