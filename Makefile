@@ -190,7 +190,41 @@ gen-narration: ## Generate narration audio for demo scenarios
 preview-sync: ## Re-scan client-apps/web and update site/.scenar/ view registry
 	npx scenar preview sync --source client-apps/web --output site/.scenar
 
-codegen: protos gen-sdk-docs gen-narration ## Regenerate all derived code (stubs + SDK docs + narration)
+codegen: protos gen-sdk-docs gen-narration sync-model-registry ## Regenerate all derived code (stubs + SDK docs + narration + registry sync)
+
+# ─── Model Registry Sync ─────────────────────
+
+CANONICAL_REGISTRY := backend/libs/model-registry.json
+REGISTRY_TARGETS := \
+	backend/libs/python/graphton/src/graphton/data/model-registry.json \
+	backend/services/cursor-runner/data/model-registry.json \
+	sdk/react/data/model-registry.json
+
+.PHONY: sync-model-registry check-model-registry
+
+sync-model-registry: ## Distribute model-registry.json to all consumer packages
+	@echo "Syncing model-registry.json to all consumers..."
+	@mkdir -p backend/libs/python/graphton/src/graphton/data
+	@mkdir -p backend/services/cursor-runner/data
+	@for target in $(REGISTRY_TARGETS); do \
+		cp $(CANONICAL_REGISTRY) $$target; \
+		echo "  ✓ $$target"; \
+	done
+
+check-model-registry: ## Verify all model-registry.json copies match canonical
+	@echo "Checking model-registry.json consistency..."
+	@fail=0; for target in $(REGISTRY_TARGETS); do \
+		if ! diff -q $(CANONICAL_REGISTRY) $$target >/dev/null 2>&1; then \
+			echo "  ✗ $$target differs from canonical"; fail=1; \
+		else \
+			echo "  ✓ $$target"; \
+		fi; \
+	done; \
+	if [ $$fail -ne 0 ]; then \
+		echo ""; \
+		echo "Run 'make sync-model-registry' to fix."; \
+		exit 1; \
+	fi
 
 # ─── Test ─────────────────────────────────────
 
@@ -283,7 +317,7 @@ tsdoc-check: ## Validate TSDoc quality for all TypeScript SDKs
 test-demos: docs-build ## Run Playwright demo e2e tests — slow (~20 min), run explicitly or in CI
 	$(MAKE) -C site test-demos
 
-check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links libs-build web-build verify-desktop docs-build build test validate-demos ## Run full CI gate locally
+check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links check-model-registry libs-build web-build verify-desktop docs-build build test validate-demos ## Run full CI gate locally
 
 check-all: check test-demos ## Full CI gate including Playwright demo e2e (slow)
 

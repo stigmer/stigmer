@@ -1,14 +1,16 @@
 /**
  * Cursor model pricing data — thin wrapper over the unified model registry.
  *
- * Reads backend/libs/model-registry.json, filters to cursor harness models,
- * and re-exports as PRICING_TABLE for use by model-pricing.ts.
+ * Reads the local copy of model-registry.json (synced from the canonical
+ * backend/libs/model-registry.json by `make sync-model-registry`), filters
+ * to cursor harness models, and re-exports as PRICING_TABLE for use by
+ * model-pricing.ts.
  *
  * The JSON registry is the single source of truth for all model metadata.
  * Update it with: @update-model-registry
  */
 
-import registryData from "../../../../libs/model-registry.json" with { type: "json" };
+import registryData from "../../data/model-registry.json" with { type: "json" };
 
 export interface CursorModelPricing {
   readonly model: string;

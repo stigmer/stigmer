@@ -15,6 +15,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 packages = [{include = "graphton", from = "src"}]
+include = ["src/graphton/data/model-registry.json"]
 
 [tool.poetry.dependencies]
 python = ">=3.11,<4.0"

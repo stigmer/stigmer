@@ -45,20 +45,16 @@ if [ -f "$CURSOR_RUNNER/package-lock.json" ]; then
     cp "$CURSOR_RUNNER/package-lock.json" "$SOURCE_DIR/"
 fi
 
+# model-registry.json is bundled inside cursor-runner's data/ directory
+# (data/model-registry.json, imported as ../../data/model-registry.json).
+# It travels with the cursor-runner source copy above — no separate step needed.
+
 # --------------------------------------------------------------------------
-# Step 1b: Copy model-registry.json INSIDE src/ so it stays within tsc's
-# rootDir boundary. All source files must share the same root (src/) to
-# produce a flat dist/ layout (dist/main.js, not dist/src/main.js).
-# Placing the JSON outside src/ causes TypeScript to inflate rootDir to the
-# common ancestor, breaking the "node dist/main.js" start script.
+# Step 1b: Copy data/ directory (contains model-registry.json)
 # --------------------------------------------------------------------------
-MODEL_REGISTRY="$REPO_ROOT/backend/libs/model-registry.json"
-if [ -f "$MODEL_REGISTRY" ]; then
-    echo "Syncing model-registry.json..."
-    cp "$MODEL_REGISTRY" "$SOURCE_DIR/src/"
-    # Rewrite the import path: from src/adapter/ → ../model-registry.json = src/
-    sed -i '' 's|from "../../../../libs/model-registry.json"|from "../model-registry.json"|g' \
-        "$SOURCE_DIR/src/adapter/model-pricing-data.ts"
+if [ -d "$CURSOR_RUNNER/data" ]; then
+    echo "Syncing cursor-runner data..."
+    cp -r "$CURSOR_RUNNER/data" "$SOURCE_DIR/data"
 fi
 
 # --------------------------------------------------------------------------
