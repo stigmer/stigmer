@@ -151,8 +151,15 @@ export function useSessionPageFlow(
   const harness: HarnessOption = fromProtoHarness(
     conv.session?.spec?.harness ?? Harness.UNSPECIFIED,
   );
-  const model = usePersistedModel({ harness });
-  const [modelId] = model;
+  const [persistedModelId, setPersistedModelId] = usePersistedModel({ harness });
+
+  const lastExecModelId = useMemo(() => {
+    const lastExec = conv.completedExecutions.at(-1);
+    return lastExec?.spec?.executionConfig?.modelName || undefined;
+  }, [conv.completedExecutions]);
+
+  const modelId = persistedModelId ?? lastExecModelId;
+  const model: UsePersistedModelReturn = [modelId, setPersistedModelId] as const;
 
   const workspace = useWorkspaceEntries();
   const sessionVariables = useSessionVariables();
