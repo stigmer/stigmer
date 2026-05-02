@@ -30,11 +30,11 @@ Example:
 
 from __future__ import annotations
 
+import importlib.resources
 import json
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
 from typing import ClassVar
 
 logger = logging.getLogger(__name__)
@@ -274,10 +274,6 @@ class ModelRegistry:
         "ollama": None,  # Use same model - local models have no cost
     }
     
-    _REGISTRY_JSON_PATH: ClassVar[Path] = (
-        Path(__file__).resolve().parents[5] / "model-registry.json"
-    )
-
     _TOKEN_COUNTER_MAP: ClassVar[dict[str, TokenCounterMethod]] = {
         "anthropic_native": TokenCounterMethod.ANTHROPIC_NATIVE,
         "tiktoken_cl100k": TokenCounterMethod.TIKTOKEN_CL100K,
@@ -301,9 +297,12 @@ class ModelRegistry:
             return
 
         try:
-            with open(cls._REGISTRY_JSON_PATH) as f:
-                registry = json.load(f)
-        except (OSError, json.JSONDecodeError) as exc:
+            registry_ref = importlib.resources.files("graphton.data").joinpath(
+                "model-registry.json"
+            )
+            registry_text = registry_ref.read_text(encoding="utf-8")
+            registry = json.loads(registry_text)
+        except (OSError, json.JSONDecodeError, ModuleNotFoundError) as exc:
             logger.warning("Failed to load model-registry.json: %s", exc)
             cls._MODELS_LOADED = True
             return

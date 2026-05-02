@@ -136,6 +136,21 @@ Update `backend/libs/model-registry.json` with the cross-referenced data:
 
 **Present unmatched items** to the developer for guidance before writing.
 
+### Step 5b: Sync to all consumers
+
+After writing the canonical JSON, distribute it to all consumer-local copies:
+
+```bash
+make sync-model-registry
+```
+
+This copies `backend/libs/model-registry.json` to:
+- `backend/libs/python/graphton/src/graphton/data/model-registry.json` (Python package data)
+- `backend/services/cursor-runner/data/model-registry.json` (TypeScript static import)
+- `sdk/react/data/model-registry.json` (React SDK static import)
+
+All consumers load from their local copy. `make check-model-registry` (part of `make check`) verifies no copy has drifted.
+
 ### Step 6: Verify
 
 Run tests to confirm no regressions:
