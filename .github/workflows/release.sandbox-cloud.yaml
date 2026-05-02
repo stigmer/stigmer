@@ -20,6 +20,7 @@ on:
       - 'backend/services/cursor-runner/package.json'
       - 'backend/services/cursor-runner/package-lock.json'
       - 'backend/services/cursor-runner/tsconfig*.json'
+      - 'backend/libs/model-registry.json'
       - 'apis/stubs/ts/**'
   workflow_dispatch:
 
