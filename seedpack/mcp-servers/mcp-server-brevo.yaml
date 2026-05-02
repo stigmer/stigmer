@@ -22,4 +22,4 @@ spec:
   env:
     BREVO_MCP_TOKEN:
       is_secret: true
-      description: "Brevo API key (generate at app.brevo.com > Settings > SMTP & API > API Keys)"
+      description: "Brevo MCP token — go to app.brevo.com > Account > SMTP & API > API Keys, click 'Generate a new API key', and enable the 'Create MCP server API key' toggle. Do NOT use an SMTP key (xsmtpsib-) or a regular API key."
