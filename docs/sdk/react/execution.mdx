@@ -902,9 +902,11 @@ Renders a single message in the conversation thread.
 - `MESSAGE_HUMAN` — plain text with muted background
 - `MESSAGE_AI` — markdown-rendered via `react-markdown` + `remark-gfm`,
   with a blinking cursor while streaming
+- `MESSAGE_THINKING` — collapsible thinking block with subdued styling,
+  collapsed by default showing a brief summary
 - `MESSAGE_SYSTEM` — small muted text
 - `MESSAGE_TOOL` / `UNSPECIFIED` — renders nothing (tool results are
-  consumed by [`ToolCallGroup`](#toolcallgroup) in SP4)
+  consumed by [`ToolCallGroup`](#toolcallgroup))
 
 Purely presentational — no data fetching, no state.
 All visual properties flow through `--stgm-*` tokens.
