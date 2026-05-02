@@ -34,6 +34,7 @@ import type { Config } from "../config.js";
 import { StigmerClient } from "../client/stigmer-client.js";
 import { resolveAgent } from "../adapter/session-lifecycle.js";
 import { MessageAccumulator, extractDeniedToolCalls, utcTimestamp } from "../adapter/message-translator.js";
+import { DeltaEnricher } from "../adapter/delta-enricher.js";
 import { UsageTracker } from "../adapter/usage-tracker.js";
 import { resolveMcpServers } from "../adapter/mcp-resolver.js";
 import { resolveBlueprint } from "../adapter/blueprint-resolver.js";
@@ -202,6 +203,7 @@ async function executeCursor(
     const collectedEvents: SDKMessage[] = [];
 
     const pendingMetrics: LlmCallMetrics[] = [];
+    const deltaEnricher = new DeltaEnricher();
 
     const run = await agent.send(prompt, {
       onDelta: ({ update }) => {
@@ -214,6 +216,7 @@ async function executeCursor(
           });
           pendingMetrics.push(metrics);
         }
+        deltaEnricher.processDelta(update);
         heartbeat();
       },
     });
@@ -224,6 +227,7 @@ async function executeCursor(
     for await (const event of run.stream()) {
       collectedEvents.push(event);
       accumulator.processEvent(event);
+      deltaEnricher.applyEnrichments(status.messages);
       eventCount++;
 
       if (event.type === "status") {
@@ -237,13 +241,16 @@ async function executeCursor(
         stampMetricsOnLastAiMessage(status.messages, metrics);
       }
 
-      if (eventCount % 20 === 0) {
+      const shouldPersist = eventCount % 20 === 0 || deltaEnricher.isDirty;
+      if (shouldPersist) {
         await persistStatus(client, executionId, status);
+        deltaEnricher.markPersisted();
         heartbeat();
       }
     }
 
     accumulator.finalize();
+    deltaEnricher.finalize(status.messages);
     console.log(
       `ExecuteCursor stream ended: execution=${executionId}, events=${eventCount}, messages=${status.messages.length}`,
     );
