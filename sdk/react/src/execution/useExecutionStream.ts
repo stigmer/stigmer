@@ -1,11 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 import { useStreamRate } from "../internal/dev";
+import {
+  StreamController,
+  type StreamControllerSink,
+} from "../internal/stream-controller";
+import { ConversationStore, type StreamState } from "../internal/store";
 import { isTerminalPhase } from "./execution-phases";
 
 /** Return value of {@link useExecutionStream}. */
@@ -15,9 +28,9 @@ export interface UseExecutionStreamReturn {
   /**
    * Convenience extraction of `execution.status.phase`.
    *
-   * Derived from `execution` via `useMemo` — always consistent with the
-   * current snapshot. Returns `EXECUTION_PHASE_UNSPECIFIED` when
-   * `execution` is `null`.
+   * Derived from `execution` — always consistent with the current
+   * snapshot. Returns `EXECUTION_PHASE_UNSPECIFIED` when `execution`
+   * is `null`.
    */
   readonly phase: ExecutionPhase;
   /** `true` while receiving non-terminal updates from the server stream. */
@@ -37,16 +50,41 @@ export interface UseExecutionStreamReturn {
 }
 
 /**
+ * Options for {@link useExecutionStream}.
+ */
+export interface UseExecutionStreamOptions {
+  /**
+   * External `ConversationStore` to ingest snapshots into.
+   *
+   * When provided, the hook writes directly to this store and reads
+   * the execution snapshot back via `useSyncExternalStore`. This
+   * allows `useSessionConversation` to share a single store instance
+   * across the stream hook and the rendering tree.
+   *
+   * When omitted, an internal store is created automatically —
+   * preserving backward compatibility for standalone usage.
+   */
+  readonly store?: ConversationStore;
+}
+
+/**
  * Behavior hook that subscribes to real-time {@link AgentExecution}
  * updates via `stigmer.agentExecution.subscribe()`.
  *
- * Manages the full subscription lifecycle: connection establishment,
- * snapshot streaming, terminal-phase detection, error handling, and
- * manual reconnection. Each server message replaces the previous
- * snapshot atomically — no delta merging.
+ * Manages the full subscription lifecycle through a finite state
+ * machine: connection establishment, rAF-coalesced snapshot streaming,
+ * terminal-phase detection, error handling, and manual reconnection.
  *
- * Pass `null` to skip subscribing (stable no-op). When `executionId`
- * changes, the previous subscription is aborted and a fresh one begins.
+ * **Performance characteristics:**
+ * - Non-terminal snapshots are coalesced via `requestAnimationFrame`
+ *   so React commits at most once per display frame (~60Hz)
+ * - Terminal snapshots (complete/failed/cancelled) flush immediately
+ * - Store updates are wrapped in `startTransition` so thread renders
+ *   don't block urgent interactions (e.g. composer typing)
+ *
+ * Pass `null` as `executionId` to skip subscribing (stable no-op).
+ * When `executionId` changes, the previous subscription is aborted
+ * and a fresh one begins.
  *
  * @example
  * ```tsx
@@ -70,85 +108,118 @@ export interface UseExecutionStreamReturn {
  */
 export function useExecutionStream(
   executionId: string | null,
+  options?: UseExecutionStreamOptions,
 ): UseExecutionStreamReturn {
   const stigmer = useStigmer();
 
-  const [execution, setExecution] = useState<AgentExecution | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  // -- Store setup ----------------------------------------------------------
+  // Use the externally provided store, or create a private one for
+  // standalone usage. The ref ensures the internal store is stable
+  // across re-renders.
+  const internalStoreRef = useRef<ConversationStore | null>(null);
+  if (!options?.store && !internalStoreRef.current) {
+    internalStoreRef.current = new ConversationStore();
+  }
+  const store = options?.store ?? internalStoreRef.current!;
+
+  // -- Controller setup -----------------------------------------------------
+  const controllerRef = useRef<StreamController | null>(null);
+  if (!controllerRef.current) {
+    const sink: StreamControllerSink = {
+      ingestSnapshot(snapshot) {
+        startTransition(() => {
+          store.ingestSnapshot(snapshot);
+        });
+      },
+      setStreamState(state) {
+        startTransition(() => {
+          store.setStreamState(state);
+        });
+      },
+    };
+    controllerRef.current = new StreamController(sink);
+  }
+  const controller = controllerRef.current;
+
+  // -- Reconnect ------------------------------------------------------------
   const [connectKey, setConnectKey] = useState(0);
-
-  const abortRef = useRef<AbortController | null>(null);
-  const streamRate = useStreamRate();
-
   const reconnect = useCallback(() => {
-    setError(null);
     setConnectKey((k) => k + 1);
   }, []);
 
+  // -- Stream rate instrumentation ------------------------------------------
+  const streamRate = useStreamRate();
+  const streamRateRef = useRef(streamRate);
+  streamRateRef.current = streamRate;
+
+  // -- Subscription effect --------------------------------------------------
+  // Note: controller, store, and streamRate are ref-backed stable objects —
+  // they MUST NOT appear in the deps array. Including them would cause
+  // infinite re-renders because useStreamRate returns a new object per render.
   useEffect(() => {
     if (!executionId) {
-      setExecution(null);
-      setIsConnecting(false);
-      setIsStreaming(false);
-      setError(null);
+      controller.reset();
+      store.reset();
       return;
     }
 
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    setExecution(null);
-    setIsConnecting(true);
-    setIsStreaming(false);
-    setError(null);
+    const abortController = new AbortController();
+    controller.start(executionId);
 
     (async () => {
       try {
         for await (const snapshot of stigmer.agentExecution.subscribe(
           executionId,
-          controller.signal,
+          abortController.signal,
         )) {
-          if (controller.signal.aborted) return;
+          if (abortController.signal.aborted) return;
 
-          const currentPhase =
+          controller.handleSnapshot(snapshot);
+          streamRateRef.current.tick(
+            snapshot.status?.messages?.length ?? 0,
+          );
+
+          const phase =
             snapshot.status?.phase ??
             ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
-          const isTerminal = isTerminalPhase(currentPhase);
-
-          setExecution(snapshot);
-          setIsConnecting(false);
-          setIsStreaming(!isTerminal);
-          streamRate.tick(snapshot.status?.messages?.length ?? 0);
-
-          if (isTerminal) break;
+          if (isTerminalPhase(phase)) break;
         }
 
-        if (!controller.signal.aborted) {
-          setIsStreaming(false);
-          streamRate.summary();
+        if (!abortController.signal.aborted) {
+          controller.handleStreamEnd();
+          streamRateRef.current.summary();
         }
       } catch (err) {
-        if (controller.signal.aborted) return;
-
-        setError(toError(err));
-        setIsConnecting(false);
-        setIsStreaming(false);
+        if (abortController.signal.aborted) return;
+        controller.handleError(toError(err));
       }
     })();
 
     return () => {
-      controller.abort();
+      abortController.abort();
+      controller.reset();
+      store.reset();
     };
   }, [executionId, stigmer, connectKey]);
 
+  // -- Read from store via useSyncExternalStore ------------------------------
+  const execution = useSyncExternalStore(store.subscribe, store.getExecution);
+  const streamState = useSyncExternalStore(
+    store.subscribe,
+    store.getStreamState,
+  );
+
+  // -- Derive public return values ------------------------------------------
   const phase = useMemo(
     () =>
       execution?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
     [execution],
   );
+
+  const isStreaming = streamState.stage === "streaming";
+  const isConnecting = streamState.stage === "connecting";
+  const error =
+    streamState.stage === "error" ? streamState.error : null;
 
   return { execution, phase, isStreaming, isConnecting, error, reconnect };
 }
