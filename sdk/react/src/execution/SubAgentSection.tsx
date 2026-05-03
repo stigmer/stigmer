@@ -8,6 +8,7 @@ import {
   MessageType,
   SubAgentStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { useRenderTracer } from "../internal/dev";
 import { cn } from "@stigmer/theme";
 import { formatDuration } from "./ToolCallDetail";
 import { MessageEntry } from "./MessageEntry";
@@ -69,6 +70,8 @@ export function SubAgentSection({
   collapsible = true,
   className,
 }: SubAgentSectionProps) {
+  useRenderTracer("SubAgentSection", { status: sub.status, name: sub.name });
+
   const duration = formatDuration(sub.startedAt, sub.completedAt);
   const statusInfo = SUB_AGENT_STATUS_MAP[sub.status];
   const StatusIcon = statusInfo.icon;

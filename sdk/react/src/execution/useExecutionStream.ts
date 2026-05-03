@@ -5,6 +5,7 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
+import { useStreamRate } from "../internal/dev";
 import { isTerminalPhase } from "./execution-phases";
 
 /** Return value of {@link useExecutionStream}. */
@@ -79,6 +80,7 @@ export function useExecutionStream(
   const [connectKey, setConnectKey] = useState(0);
 
   const abortRef = useRef<AbortController | null>(null);
+  const streamRate = useStreamRate();
 
   const reconnect = useCallback(() => {
     setError(null);
@@ -119,12 +121,14 @@ export function useExecutionStream(
           setExecution(snapshot);
           setIsConnecting(false);
           setIsStreaming(!isTerminal);
+          streamRate.tick(snapshot.status?.messages?.length ?? 0);
 
           if (isTerminal) break;
         }
 
         if (!controller.signal.aborted) {
           setIsStreaming(false);
+          streamRate.summary();
         }
       } catch (err) {
         if (controller.signal.aborted) return;
