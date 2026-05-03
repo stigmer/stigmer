@@ -69,7 +69,7 @@ When starting a new session:
 
 **Created**: 2026-05-03 09:55
 **Current Task**: T01 — Phase 2 (Execution Enforcement MVP)
-**Status**: Phase 2.2 Complete — AuthorizeExecution Handler + Service
+**Status**: Phase 2.3 Complete — ReportLlmCallUsage Handler + Service
 
 ## Session Progress (2026-05-03)
 
@@ -193,17 +193,65 @@ When starting a new session:
 - Reservation is an escrow optimization, NOT a hard gate — Phase 2.3 must handle "no active reservation" gracefully
 - 4-hour expiry is safety net only; normal finalization happens via Temporal finally block
 
-### Open Design Question: HITL + Reservation Expiry
+### HITL + Reservation Expiry — RESOLVED
 - **Scenario**: HITL approval takes 2 days; reservation expires after 4 hours; credits released; execution resumes
-- **Recommendation (discussed with user)**: Option A — Phase 2.3 `ReportLlmCallUsage` falls back to debiting from available balance when reservation is expired. Reservation is a budget optimization, not a hard dependency.
-- **Decision**: Pending final confirmation. Phase 2.3 must be designed to handle expired/missing reservations as a valid state.
+- **Decision (confirmed)**: Option A — `ReportLlmCallUsage` falls back to debiting from available balance when reservation is expired. Reservation is a budget optimization, not a hard dependency. Implemented and tested in Phase 2.3.
+
+### Phase 2.3 Completed (ReportLlmCallUsage Handler + Service)
+- Refactored `CreditLedgerService` to support reservation-aware debits:
+  - Extracted burn-order algorithm into package-private `consumeGrants(orgId, amountMicros)` → `GrantConsumption`
+  - Added `debitUsageCredits(orgId, totalDebit, reservedDebit, availableDebit, source, rating, key)` — unified debit with explicit reservation/available split
+  - Existing `debitCredits()` preserved unchanged (uses `atomicBalanceUpdate` as before)
+  - Added execution-aware `determineSignal(account, reservationHeadroom)` overload
+- Added `atomicUsageDebit()` to `BillingAccountRepo`:
+  - Single atomic `findAndModify` with 5 `$inc` operations (reserved, available, total, promotional, purchased)
+  - Handles all three debit paths: full-reserved, full-available, split
+  - Precondition: `reservedDebit + availableDebit > 0`
+- Created `ExecutionBillingService.reportLlmCallUsage()`:
+  - Full algorithm: idempotency → account status gate → rate → zero-cost short circuit → resolve reservation → compute debit split → @Transactional debit → execution-aware signal
+  - Debit routing: 4 paths based on reservation state (active with headroom, partial headroom, exhausted headroom, expired/missing)
+  - Expired reservation fallback: debits from available balance, no reservation tracking (HITL edge case)
+  - Zero-cost calls: skip debit entirely, return CONTINUE (fully cached responses)
+  - `@Transactional` on `executeUsageDebit()`: `debitUsageCredits` + `atomicIncrementConsumed` (reservation path only)
+  - Execution-aware signal: `effectiveBalance = available + reservationHeadroom`
+- Created `ReportLlmCallUsageHandler` in `ai.stigmer.domain.billing.request.handler`:
+  - `@RequestRoute(controller = BillingCommandControllerGrpc.class, method = reportLlmCallUsage)`
+  - Pipeline: validateFieldConstraints → ReportLlmCallUsageStep → sendResponse
+  - No IAM steps (internal RPC, `is_skip_authorization = true`)
+  - Error mapping: `BillingPolicyNotFoundException` → `FAILED_PRECONDITION`, `IllegalStateException` → `FAILED_PRECONDITION`, generic → `INTERNAL`
+- Added 13 unit tests for `reportLlmCallUsage` in `ExecutionBillingServiceTest` (Mockito + JUnit 5):
+  - Happy path: active reservation, full debit from reserved, CONTINUE
+  - Partial reservation: headroom < billable, split debit verified
+  - Reservation exhausted: zero headroom, full debit from available
+  - Expired reservation (HITL fallback): debit from available, no reservation tracking
+  - Zero-cost call: no debit, CONTINUE
+  - Billing signals: LOW_BALANCE_WARNING, STOP
+  - Idempotency: duplicate (execution_id, sequence) returns existing
+  - Account suspended: immediate STOP, no debit
+  - Account not found: STOP
+  - Rating audit: full BillingUsageRating in response
+  - Ledger source audit: execution_id, llm_call_sequence, reservation_id
+  - No reservation error: IllegalStateException
+- Added 6 unit tests for `debitUsageCredits` in `CreditLedgerServiceTest`:
+  - Full reservation debit, full available debit, split debit
+  - Split validation (mismatched amounts)
+  - Idempotency dedup
+  - Ledger entry audit fields
+- Added 5 unit tests for `atomicUsageDebit` in `BillingAccountRepoTest`:
+  - Full reserved, full available, split, zero debit rejection, account not found
+
+### Key Design Decisions (Phase 2.3)
+- **Unified `atomicUsageDebit`**: One repo method, one MongoDB `findAndModify`, zero branching at the persistence layer. Handles all three debit paths (full-reserved, full-available, split) via caller-provided split parameters.
+- **CreditLedgerService refactor**: Burn-order algorithm extracted into `consumeGrants()` (DRY), `debitCredits()` untouched (backward compatible), `debitUsageCredits()` added for execution path. No test breakage on existing tests.
+- **Execution-aware signal**: `effectiveBalance = available + reservationHeadroom`. When debiting from reserved, available doesn't change, so the old `determineSignal(account)` would give stale signals. The new overload gives the runner an accurate "can I keep going?" answer.
+- **Zero-cost short circuit**: Fully cached responses (provider_cost=0) produce billable_amount=0. No debit, no ledger entry, immediate CONTINUE. Prevents cluttering the ledger with $0 entries.
+- **Org resolution from reservation**: `ReportLlmCallUsageInput` has no `org_id` field. The org is resolved from the execution's reservation document. If no reservation exists, it's a programming error (authorize was never called) → `IllegalStateException` → `FAILED_PRECONDITION`.
 
 ## Next Steps (Phase 2 — Execution Enforcement MVP, continued)
 
 1. ~~Create `execution_reservation` collection + migration~~ ✅
 2. ~~Implement AuthorizeExecutionHandler — check balance, create reservation~~ ✅
-3. Implement ReportLlmCallUsageHandler — rate usage, debit via burn order, return billing signal
-   - **Must handle expired/missing reservation** (HITL edge case from Phase 2.2 discussion)
+3. ~~Implement ReportLlmCallUsageHandler — rate usage, debit via burn order, return billing signal~~ ✅
 4. Implement FinalizeExecutionHandler — release unused reservation, produce billing record
 5. Integrate with agent-runner UsageTracker (Python) — billing reporting hook
 6. Integrate with Temporal workflow — authorize before dispatch, finalize after completion
@@ -217,19 +265,22 @@ When starting a new session:
 - Repos use proto-JSON (JsonFormat) with int64 post-processing for BSON numeric types
 - Billing repos use MongoTemplate directly (non-API-resource pattern)
 - BillingAccount balance is the source of truth, maintained via atomic $inc
-- CreditLedgerService.debitCredits() is ready for Phase 2.3 wiring (burn order tested)
-- MongoTransactionManager is registered and consumed by ExecutionBillingService.executeReservation()
-- ExecutionReservationRepo is fully integrated with the authorize flow
-- Balance model: reserve moves available→reserved, per-call debit reduces reserved+total, finalize releases reserved→available
-- 6 gRPC RPCs are now handler-wired: getOrCreateBillingAccount, adjustCredits, getBillingAccount, getCreditBalance, getCreditLedger, **authorizeExecution**
-- 4 RPCs deferred: reportLlmCallUsage, finalizeExecution (Phase 2.3-2.4), getBillingUsageReport, getCustomerModelPricing (Phase 5)
+- CreditLedgerService has two debit paths: `debitCredits()` (available-only, existing callers), `debitUsageCredits()` (reservation-aware, execution billing)
+- Both debit paths share `consumeGrants()` for burn-order grant consumption (DRY)
+- MongoTransactionManager is consumed by both `executeReservation()` and `executeUsageDebit()` in ExecutionBillingService
+- ExecutionReservationRepo supports `atomicIncrementConsumed()` for per-call reservation tracking
+- Balance model: reserve moves available→reserved, per-call debit reduces reserved+total (or available+total for fallback), finalize releases reserved→available
+- 7 gRPC RPCs are now handler-wired: getOrCreateBillingAccount, adjustCredits, getBillingAccount, getCreditBalance, getCreditLedger, authorizeExecution, **reportLlmCallUsage**
+- 3 RPCs deferred: finalizeExecution (Phase 2.4), getBillingUsageReport, getCustomerModelPricing (Phase 5)
 - `BillingExecutionConfig` provides Spring-configurable reservation defaults ($1.00 reserve, $0.05 minimum, 4h expiry)
-- **Critical for Phase 2.3**: ReportLlmCallUsage must gracefully handle expired reservations (HITL edge case)
+- HITL reservation expiry is handled: expired reservations fall back to available balance debit
+- Zero-cost calls (cached responses) are handled: no debit, no ledger entry, immediate CONTINUE
+- Execution-aware billing signal factors in reservation headroom for accurate runner guidance
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 2.3" - Begin ReportLlmCallUsageHandler implementation
+- "Start Phase 2.4" - Begin FinalizeExecutionHandler implementation
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
