@@ -75,4 +75,16 @@ service BillingCommandController {
     option (ai.stigmer.commons.rpc.config).field_path = "org_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to purchase credits for this organization";
   }
+
+  // Open a Stripe Customer Portal session for payment method management.
+  // Returns a portal URL for the client to redirect the user.
+  //
+  // Requires an existing Stripe Customer (created during first credit purchase).
+  // The portal allows users to add, update, or remove saved payment methods.
+  rpc createBillingPortalSession(CreateBillingPortalSessionInput) returns (CreateBillingPortalSessionResponse) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage billing for this organization";
+  }
 }

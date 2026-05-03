@@ -161,6 +161,25 @@ message CreateCreditCheckoutSessionResponse {
   string checkout_session_id = 3;
 }
 
+// CreateBillingPortalSessionInput opens a Stripe Customer Portal session
+// for payment method management.
+//
+// The portal allows the user to add, update, or remove payment methods
+// without leaving the Stigmer billing flow. The return_url controls where
+// Stripe redirects after the user finishes.
+message CreateBillingPortalSessionInput {
+  string org_id = 1 [(buf.validate.field).required = true];
+
+  // URL to redirect to after the user exits the Stripe Customer Portal.
+  string return_url = 2 [(buf.validate.field).required = true];
+}
+
+// CreateBillingPortalSessionResponse returns the Stripe-hosted Portal URL.
+message CreateBillingPortalSessionResponse {
+  // Stripe Customer Portal URL. Redirect the user here.
+  string portal_url = 1;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Query Inputs & Responses
 // ─────────────────────────────────────────────────────────────────────────────

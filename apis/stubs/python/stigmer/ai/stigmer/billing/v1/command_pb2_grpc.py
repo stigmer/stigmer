@@ -51,6 +51,11 @@ class BillingCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionResponse.FromString,
                 _registered_method=True)
+        self.createBillingPortalSession = channel.unary_unary(
+                '/ai.stigmer.billing.v1.BillingCommandController/createBillingPortalSession',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateBillingPortalSessionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateBillingPortalSessionResponse.FromString,
+                _registered_method=True)
 
 
 class BillingCommandControllerServicer(object):
@@ -127,6 +132,17 @@ class BillingCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def createBillingPortalSession(self, request, context):
+        """Open a Stripe Customer Portal session for payment method management.
+        Returns a portal URL for the client to redirect the user.
+
+        Requires an existing Stripe Customer (created during first credit purchase).
+        The portal allows users to add, update, or remove saved payment methods.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_BillingCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -159,6 +175,11 @@ def add_BillingCommandControllerServicer_to_server(servicer, server):
                     servicer.createCreditCheckoutSession,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionResponse.SerializeToString,
+            ),
+            'createBillingPortalSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.createBillingPortalSession,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateBillingPortalSessionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateBillingPortalSessionResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -328,6 +349,33 @@ class BillingCommandController(object):
             '/ai.stigmer.billing.v1.BillingCommandController/createCreditCheckoutSession',
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def createBillingPortalSession(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.billing.v1.BillingCommandController/createBillingPortalSession',
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateBillingPortalSessionInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateBillingPortalSessionResponse.FromString,
             options,
             channel_credentials,
             insecure,

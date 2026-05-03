@@ -134,6 +134,20 @@ class CreateCreditCheckoutSessionResponse(_message.Message):
     checkout_session_id: str
     def __init__(self, checkout_url: _Optional[str] = ..., purchase_id: _Optional[str] = ..., checkout_session_id: _Optional[str] = ...) -> None: ...
 
+class CreateBillingPortalSessionInput(_message.Message):
+    __slots__ = ("org_id", "return_url")
+    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    RETURN_URL_FIELD_NUMBER: _ClassVar[int]
+    org_id: str
+    return_url: str
+    def __init__(self, org_id: _Optional[str] = ..., return_url: _Optional[str] = ...) -> None: ...
+
+class CreateBillingPortalSessionResponse(_message.Message):
+    __slots__ = ("portal_url",)
+    PORTAL_URL_FIELD_NUMBER: _ClassVar[int]
+    portal_url: str
+    def __init__(self, portal_url: _Optional[str] = ...) -> None: ...
+
 class GetBillingAccountInput(_message.Message):
     __slots__ = ("org_id",)
     ORG_ID_FIELD_NUMBER: _ClassVar[int]

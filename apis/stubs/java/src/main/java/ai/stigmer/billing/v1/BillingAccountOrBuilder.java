@@ -165,6 +165,39 @@ public interface BillingAccountOrBuilder extends
   long getLowBalanceThresholdMicros();
 
   /**
+   * <pre>
+   * Saved payment method for off-session charges and Portal display.
+   * Populated automatically after the first Stripe Checkout purchase or
+   * when the user adds a payment method via the Stripe Customer Portal.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
+   * @return Whether the defaultPaymentMethod field is set.
+   */
+  boolean hasDefaultPaymentMethod();
+  /**
+   * <pre>
+   * Saved payment method for off-session charges and Portal display.
+   * Populated automatically after the first Stripe Checkout purchase or
+   * when the user adds a payment method via the Stripe Customer Portal.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
+   * @return The defaultPaymentMethod.
+   */
+  ai.stigmer.billing.v1.PaymentMethodSummary getDefaultPaymentMethod();
+  /**
+   * <pre>
+   * Saved payment method for off-session charges and Portal display.
+   * Populated automatically after the first Stripe Checkout purchase or
+   * when the user adds a payment method via the Stripe Customer Portal.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
+   */
+  ai.stigmer.billing.v1.PaymentMethodSummaryOrBuilder getDefaultPaymentMethodOrBuilder();
+
+  /**
    * <code>.google.protobuf.Timestamp created_at = 9 [json_name = "createdAt"];</code>
    * @return Whether the createdAt field is set.
    */

@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03 09:55
-**Current Task**: T01 — Phase 3 Complete + Ops Setup Done
-**Status**: Phase 3 Fully Complete — Ready for Phase 4 (Auto-Recharge)
+**Current Task**: T01 — Phase 4.1 Complete (Payment Method Management)
+**Status**: Phase 4.1 Complete — Ready for Phase 4.2 (Auto-Recharge Configuration)
 
 ## Session Progress (2026-05-03)
 
@@ -421,7 +421,7 @@ When starting a new session:
 
 ## Next Steps (Phase 4 — Auto-Recharge)
 
-1. Payment method management (saved via `setup_future_usage=off_session`)
+1. ~~Payment method management (saved via `setup_future_usage=off_session`)~~ ✅
 2. Auto-recharge configuration (SetAutoRechargeConfig RPC, threshold/target/cap)
 3. Recharge trigger (off-session PaymentIntent on balance drop)
 4. Recharge failure handling (retry, disable, notify)
@@ -559,6 +559,74 @@ When starting a new session:
 - Separate Products/Prices per product line, but same account
 - Webhook signing secret per endpoint (one endpoint per service/environment)
 - Secrets stored in Planton secrets group, injected via kustomize as K8s secrets
+
+### Phase 4.1 Completed (Payment Method Management)
+- **Approach**: Stripe Customer Portal for payment method management (add/update/remove)
+- Added `PaymentMethodSummary` proto message to `billing_account.proto`:
+  - `payment_method_id`, `brand`, `last4`, `exp_month`, `exp_year`
+- Added `default_payment_method` field (field 11) to `BillingAccount` proto
+- Added `CreateBillingPortalSessionInput/Response` messages to `io.proto`
+- Added `createBillingPortalSession` RPC to `BillingCommandController` (`can_manage_billing`)
+- Ran `make codegen` (OSS) + `make protos` (cloud) to propagate proto changes
+- Created `StripePortalService` in `ai.stigmer.domain.billing.stripe`:
+  - `createPortalSession(orgId, returnUrl)` — creates Stripe Billing Portal Session
+  - Guards: requires existing Stripe Customer (first purchase must have happened)
+  - `NoStripeCustomerException`, `StripePortalException` for error cases
+- Created `CreateBillingPortalSessionHandler` wired to `BillingCommandControllerGrpc`:
+  - Pipeline: validateFieldConstraints → extractResourceId → authorize → createPortalSession → sendResponse
+- Added `atomicSetDefaultPaymentMethod(orgId, pmId, brand, last4, expMonth, expYear)` to `BillingAccountRepo`:
+  - MongoDB `findAndModify` that sets `default_payment_method` sub-document atomically
+- Added `atomicClearDefaultPaymentMethod(orgId)` to `BillingAccountRepo`
+- Enhanced `StripeWebhookService` with 3 new capabilities:
+  - **PM capture on checkout**: After `checkout.session.completed`, retrieves PaymentIntent → PaymentMethod card details → stores on BillingAccount + sets as Stripe Customer default
+  - **`customer.updated` handler**: Syncs default PM changes from Stripe Portal back to BillingAccount
+  - **`payment_method.attached` handler**: Auto-sets default PM when user adds first PM via Portal
+- Refactored `extractCheckoutSession()` → generic `extractEventData(event, Class<T>)` for type-safe event deserialization
+- All PM capture is best-effort (non-fatal) — credit provisioning continues regardless
+- Created `BillingClient.createBillingPortalSession()` in `@stigmer/sdk` (TypeScript)
+- Created `useCreateBillingPortalSession` hook in `@stigmer/react`:
+  - Behavior hook matching `useCreateCheckoutSession` pattern
+  - On success: `window.location.href = portalUrl` redirect
+- Created `PaymentMethodCard` component in `@stigmer/react`:
+  - Read-only display: card brand, last 4, expiry, "Manage" button
+  - Empty state: "No payment method on file" prompt
+  - Brand formatting: visa → "Visa", mastercard → "Mastercard", etc.
+- Updated `BillingSection` to insert `PaymentMethodCard` between balance and pack grid
+- Updated barrel exports: `sdk/react/src/billing/index.ts` + `sdk/react/src/index.ts`
+- Unit tests: `StripePortalServiceTest` (5 tests) — all pass
+- Existing tests updated and verified: `StripeWebhookServiceTest` (11), `BillingAccountRepoTest` (9), `StripeCheckoutServiceTest` (12) — all pass
+- TypeScript compilation verified: `@stigmer/sdk`, `@stigmer/react`, `client-apps/web` — all clean
+- Build verified: `./bazelw build //backend/services/stigmer-service/...` — clean
+
+### Key Design Decisions (Phase 4.1)
+- **Stripe Customer Portal over custom UI**: Industry standard (Vercel, Linear, Supabase pattern). PCI/SCA/3DS handled by Stripe. Minimal code for maximum compliance.
+- **PaymentMethodSummary on BillingAccount (not AutoRechargeConfig)**: A saved payment method is an account-level concept — it exists after the first purchase regardless of auto-recharge configuration. `AutoRechargeConfig.default_payment_method_id` (field 6) is unused — it was a Phase 0 placeholder.
+- **Best-effort PM capture**: If Stripe PM retrieval fails after checkout, credit provisioning still succeeds. The PM can be synced later via Portal or the next purchase.
+- **`customer.updated` over `setup_intent.succeeded`**: Portal changes sync via `customer.updated` (when default PM changes). More reliable than tracking individual PM lifecycle events.
+- **`payment_method.attached` auto-set**: Only sets default PM if org has none — prevents overwriting an intentional default when adding a backup card.
+
+### Stripe Ops Required (Phase 4.1)
+- Register new webhook events in Stripe Dashboard: `customer.updated`, `payment_method.attached`
+- Configure Billing Portal in Stripe Dashboard:
+  - Enable: Payment method management (add/update/remove)
+  - Disable: Subscription management (no subscriptions in Stigmer)
+  - Disable: Invoice history (revisit in Phase 6)
+  - Set branding: Stigmer logo, brand colors
+
+- **Phase 4.1**: `PaymentMethodSummary` proto message + `default_payment_method` on `BillingAccount` (field 11)
+- 11 gRPC RPCs now handler-wired (10 command + 1 new): `createBillingPortalSession` added
+- New package files: `StripePortalService.java`, `CreateBillingPortalSessionHandler.java`
+- `BillingAccountRepo` has 2 new atomic methods: `atomicSetDefaultPaymentMethod`, `atomicClearDefaultPaymentMethod`
+- `StripeWebhookService` handles 6 event types (was 4): added `customer.updated`, `payment_method.attached`
+- SDK: `BillingClient.createBillingPortalSession()` + `useCreateBillingPortalSession` hook + `PaymentMethodCard` component
+
+## Next Steps (Phase 4 — Auto-Recharge, continued)
+
+1. ~~Payment method management (saved via `setup_future_usage=off_session`)~~ ✅
+2. Auto-recharge configuration (SetAutoRechargeConfig RPC, threshold/target/cap)
+3. Recharge trigger (off-session PaymentIntent on balance drop)
+4. Recharge failure handling (retry, disable, notify)
+5. Webhook handling for recharge PaymentIntents
 
 ## Quick Commands
 

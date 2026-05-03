@@ -8,7 +8,9 @@ import {
   GetCreditBalanceInputSchema,
   GetCreditLedgerInputSchema,
   CreateCreditCheckoutSessionInputSchema,
+  CreateBillingPortalSessionInputSchema,
   type CreateCreditCheckoutSessionResponse,
+  type CreateBillingPortalSessionResponse,
   type CreditLedgerResponse,
 } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
 import type { BillingAccount, CreditBalance } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
@@ -22,6 +24,12 @@ export interface CreateCheckoutSessionParams {
   readonly packId: string;
   readonly successUrl: string;
   readonly cancelUrl: string;
+}
+
+/** Parameters for creating a Stripe Billing Portal session. */
+export interface CreateBillingPortalSessionParams {
+  readonly orgId: string;
+  readonly returnUrl: string;
 }
 
 /** Parameters for querying the credit ledger. */
@@ -126,6 +134,28 @@ export class BillingClient {
           packId: params.packId,
           successUrl: params.successUrl,
           cancelUrl: params.cancelUrl,
+        }),
+      );
+    } catch (e) {
+      throw wrapError(e);
+    }
+  }
+
+  /**
+   * Create a Stripe Billing Portal session for payment method management.
+   *
+   * Returns the Stripe-hosted portal URL. The caller should redirect
+   * the user to `portalUrl` to manage their saved payment methods.
+   * Changes made in the portal are synced back via webhooks.
+   */
+  async createBillingPortalSession(
+    params: CreateBillingPortalSessionParams,
+  ): Promise<CreateBillingPortalSessionResponse> {
+    try {
+      return await this.command.createBillingPortalSession(
+        create(CreateBillingPortalSessionInputSchema, {
+          orgId: params.orgId,
+          returnUrl: params.returnUrl,
         }),
       );
     } catch (e) {

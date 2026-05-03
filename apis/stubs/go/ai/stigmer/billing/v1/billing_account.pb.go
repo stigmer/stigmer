@@ -49,11 +49,15 @@ type BillingAccount struct {
 	// Free orgs: 0. Paid orgs: typically 2_000_000 ($2.00). Enterprise: contract-specific.
 	AllowedNegativeBalanceMicros int64 `protobuf:"varint,7,opt,name=allowed_negative_balance_micros,json=allowedNegativeBalanceMicros,proto3" json:"allowed_negative_balance_micros,omitempty"`
 	// Balance threshold that triggers low-balance warnings and notifications.
-	LowBalanceThresholdMicros int64                  `protobuf:"varint,8,opt,name=low_balance_threshold_micros,json=lowBalanceThresholdMicros,proto3" json:"low_balance_threshold_micros,omitempty"`
-	CreatedAt                 *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt                 *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	LowBalanceThresholdMicros int64 `protobuf:"varint,8,opt,name=low_balance_threshold_micros,json=lowBalanceThresholdMicros,proto3" json:"low_balance_threshold_micros,omitempty"`
+	// Saved payment method for off-session charges and Portal display.
+	// Populated automatically after the first Stripe Checkout purchase or
+	// when the user adds a payment method via the Stripe Customer Portal.
+	DefaultPaymentMethod *PaymentMethodSummary  `protobuf:"bytes,11,opt,name=default_payment_method,json=defaultPaymentMethod,proto3" json:"default_payment_method,omitempty"`
+	CreatedAt            *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt            *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *BillingAccount) Reset() {
@@ -140,6 +144,13 @@ func (x *BillingAccount) GetLowBalanceThresholdMicros() int64 {
 		return x.LowBalanceThresholdMicros
 	}
 	return 0
+}
+
+func (x *BillingAccount) GetDefaultPaymentMethod() *PaymentMethodSummary {
+	if x != nil {
+		return x.DefaultPaymentMethod
+	}
+	return nil
 }
 
 func (x *BillingAccount) GetCreatedAt() *timestamppb.Timestamp {
@@ -241,6 +252,93 @@ func (x *CreditBalance) GetTotalMicros() int64 {
 	return 0
 }
 
+// PaymentMethodSummary holds the display-safe details of a Stripe
+// PaymentMethod so the UI can render card info without a Stripe API call.
+//
+// Populated from Stripe webhook events (checkout.session.completed,
+// customer.updated) and kept in sync with the Stripe Customer's
+// default payment method via the Billing Portal.
+type PaymentMethodSummary struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Stripe PaymentMethod ID (e.g., "pm_1abc...").
+	PaymentMethodId string `protobuf:"bytes,1,opt,name=payment_method_id,json=paymentMethodId,proto3" json:"payment_method_id,omitempty"`
+	// Card network in lowercase (e.g., "visa", "mastercard", "amex").
+	Brand string `protobuf:"bytes,2,opt,name=brand,proto3" json:"brand,omitempty"`
+	// Last four digits of the card number.
+	Last4 string `protobuf:"bytes,3,opt,name=last4,proto3" json:"last4,omitempty"`
+	// Card expiration month (1–12).
+	ExpMonth int32 `protobuf:"varint,4,opt,name=exp_month,json=expMonth,proto3" json:"exp_month,omitempty"`
+	// Card expiration year (4-digit, e.g., 2027).
+	ExpYear       int32 `protobuf:"varint,5,opt,name=exp_year,json=expYear,proto3" json:"exp_year,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PaymentMethodSummary) Reset() {
+	*x = PaymentMethodSummary{}
+	mi := &file_ai_stigmer_billing_v1_billing_account_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PaymentMethodSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PaymentMethodSummary) ProtoMessage() {}
+
+func (x *PaymentMethodSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_billing_v1_billing_account_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PaymentMethodSummary.ProtoReflect.Descriptor instead.
+func (*PaymentMethodSummary) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_v1_billing_account_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *PaymentMethodSummary) GetPaymentMethodId() string {
+	if x != nil {
+		return x.PaymentMethodId
+	}
+	return ""
+}
+
+func (x *PaymentMethodSummary) GetBrand() string {
+	if x != nil {
+		return x.Brand
+	}
+	return ""
+}
+
+func (x *PaymentMethodSummary) GetLast4() string {
+	if x != nil {
+		return x.Last4
+	}
+	return ""
+}
+
+func (x *PaymentMethodSummary) GetExpMonth() int32 {
+	if x != nil {
+		return x.ExpMonth
+	}
+	return 0
+}
+
+func (x *PaymentMethodSummary) GetExpYear() int32 {
+	if x != nil {
+		return x.ExpYear
+	}
+	return 0
+}
+
 // AutoRechargeConfig controls automatic credit top-up behavior.
 //
 // When enabled, the billing system triggers a charge against the saved
@@ -267,7 +365,7 @@ type AutoRechargeConfig struct {
 
 func (x *AutoRechargeConfig) Reset() {
 	*x = AutoRechargeConfig{}
-	mi := &file_ai_stigmer_billing_v1_billing_account_proto_msgTypes[2]
+	mi := &file_ai_stigmer_billing_v1_billing_account_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -279,7 +377,7 @@ func (x *AutoRechargeConfig) String() string {
 func (*AutoRechargeConfig) ProtoMessage() {}
 
 func (x *AutoRechargeConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_billing_account_proto_msgTypes[2]
+	mi := &file_ai_stigmer_billing_v1_billing_account_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -292,7 +390,7 @@ func (x *AutoRechargeConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AutoRechargeConfig.ProtoReflect.Descriptor instead.
 func (*AutoRechargeConfig) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_billing_account_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_billing_v1_billing_account_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *AutoRechargeConfig) GetEnabled() bool {
@@ -341,7 +439,7 @@ var File_ai_stigmer_billing_v1_billing_account_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_v1_billing_account_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/billing/v1/billing_account.proto\x12\x15ai.stigmer.billing.v1\x1a ai/stigmer/billing/v1/enum.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb8\x04\n" +
+	"+ai/stigmer/billing/v1/billing_account.proto\x12\x15ai.stigmer.billing.v1\x1a ai/stigmer/billing/v1/enum.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9b\x05\n" +
 	"\x0eBillingAccount\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
 	"\x06org_id\x18\x02 \x01(\tR\x05orgId\x12C\n" +
@@ -350,7 +448,8 @@ const file_ai_stigmer_billing_v1_billing_account_proto_rawDesc = "" +
 	"\rauto_recharge\x18\x05 \x01(\v2).ai.stigmer.billing.v1.AutoRechargeConfigR\fautoRecharge\x12,\n" +
 	"\x12stripe_customer_id\x18\x06 \x01(\tR\x10stripeCustomerId\x12E\n" +
 	"\x1fallowed_negative_balance_micros\x18\a \x01(\x03R\x1callowedNegativeBalanceMicros\x12?\n" +
-	"\x1clow_balance_threshold_micros\x18\b \x01(\x03R\x19lowBalanceThresholdMicros\x129\n" +
+	"\x1clow_balance_threshold_micros\x18\b \x01(\x03R\x19lowBalanceThresholdMicros\x12a\n" +
+	"\x16default_payment_method\x18\v \x01(\v2+.ai.stigmer.billing.v1.PaymentMethodSummaryR\x14defaultPaymentMethod\x129\n" +
 	"\n" +
 	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
@@ -361,7 +460,13 @@ const file_ai_stigmer_billing_v1_billing_account_proto_rawDesc = "" +
 	"\x0freserved_micros\x18\x02 \x01(\x03R\x0ereservedMicros\x12-\n" +
 	"\x12promotional_micros\x18\x03 \x01(\x03R\x11promotionalMicros\x12)\n" +
 	"\x10purchased_micros\x18\x04 \x01(\x03R\x0fpurchasedMicros\x12!\n" +
-	"\ftotal_micros\x18\x05 \x01(\x03R\vtotalMicros\"\xb9\x02\n" +
+	"\ftotal_micros\x18\x05 \x01(\x03R\vtotalMicros\"\xa6\x01\n" +
+	"\x14PaymentMethodSummary\x12*\n" +
+	"\x11payment_method_id\x18\x01 \x01(\tR\x0fpaymentMethodId\x12\x14\n" +
+	"\x05brand\x18\x02 \x01(\tR\x05brand\x12\x14\n" +
+	"\x05last4\x18\x03 \x01(\tR\x05last4\x12\x1b\n" +
+	"\texp_month\x18\x04 \x01(\x05R\bexpMonth\x12\x19\n" +
+	"\bexp_year\x18\x05 \x01(\x05R\aexpYear\"\xb9\x02\n" +
 	"\x12AutoRechargeConfig\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12)\n" +
 	"\x10threshold_micros\x18\x02 \x01(\x03R\x0fthresholdMicros\x124\n" +
@@ -383,25 +488,27 @@ func file_ai_stigmer_billing_v1_billing_account_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_billing_v1_billing_account_proto_rawDescData
 }
 
-var file_ai_stigmer_billing_v1_billing_account_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_billing_v1_billing_account_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_billing_v1_billing_account_proto_goTypes = []any{
 	(*BillingAccount)(nil),        // 0: ai.stigmer.billing.v1.BillingAccount
 	(*CreditBalance)(nil),         // 1: ai.stigmer.billing.v1.CreditBalance
-	(*AutoRechargeConfig)(nil),    // 2: ai.stigmer.billing.v1.AutoRechargeConfig
-	(BillingAccountStatus)(0),     // 3: ai.stigmer.billing.v1.BillingAccountStatus
-	(*timestamppb.Timestamp)(nil), // 4: google.protobuf.Timestamp
+	(*PaymentMethodSummary)(nil),  // 2: ai.stigmer.billing.v1.PaymentMethodSummary
+	(*AutoRechargeConfig)(nil),    // 3: ai.stigmer.billing.v1.AutoRechargeConfig
+	(BillingAccountStatus)(0),     // 4: ai.stigmer.billing.v1.BillingAccountStatus
+	(*timestamppb.Timestamp)(nil), // 5: google.protobuf.Timestamp
 }
 var file_ai_stigmer_billing_v1_billing_account_proto_depIdxs = []int32{
-	3, // 0: ai.stigmer.billing.v1.BillingAccount.status:type_name -> ai.stigmer.billing.v1.BillingAccountStatus
+	4, // 0: ai.stigmer.billing.v1.BillingAccount.status:type_name -> ai.stigmer.billing.v1.BillingAccountStatus
 	1, // 1: ai.stigmer.billing.v1.BillingAccount.balance:type_name -> ai.stigmer.billing.v1.CreditBalance
-	2, // 2: ai.stigmer.billing.v1.BillingAccount.auto_recharge:type_name -> ai.stigmer.billing.v1.AutoRechargeConfig
-	4, // 3: ai.stigmer.billing.v1.BillingAccount.created_at:type_name -> google.protobuf.Timestamp
-	4, // 4: ai.stigmer.billing.v1.BillingAccount.updated_at:type_name -> google.protobuf.Timestamp
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	3, // 2: ai.stigmer.billing.v1.BillingAccount.auto_recharge:type_name -> ai.stigmer.billing.v1.AutoRechargeConfig
+	2, // 3: ai.stigmer.billing.v1.BillingAccount.default_payment_method:type_name -> ai.stigmer.billing.v1.PaymentMethodSummary
+	5, // 4: ai.stigmer.billing.v1.BillingAccount.created_at:type_name -> google.protobuf.Timestamp
+	5, // 5: ai.stigmer.billing.v1.BillingAccount.updated_at:type_name -> google.protobuf.Timestamp
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_billing_v1_billing_account_proto_init() }
@@ -416,7 +523,7 @@ func file_ai_stigmer_billing_v1_billing_account_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_billing_v1_billing_account_proto_rawDesc), len(file_ai_stigmer_billing_v1_billing_account_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
