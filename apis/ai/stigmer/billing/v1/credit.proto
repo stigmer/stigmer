@@ -161,3 +161,43 @@ message ExecutionReservation {
   // Safety timeout: reservation auto-expires if not finalized.
   google.protobuf.Timestamp expires_at = 8;
 }
+
+// CreditPurchase tracks a credit pack purchase through Stripe Checkout.
+//
+// Created with status PENDING when the Checkout Session is initiated.
+// Transitions to COMPLETED when the webhook confirms payment and credits
+// are provisioned, or to FAILED/EXPIRED if payment does not succeed.
+//
+// The checkout_session_id is set after the Stripe API call returns,
+// and payment_intent_id is populated by the webhook handler.
+message CreditPurchase {
+  // Unique identifier for this purchase.
+  string purchase_id = 1;
+
+  // Organization purchasing credits.
+  string org_id = 2;
+
+  // Credit pack being purchased (e.g., "starter", "growth", "team").
+  string pack_id = 3;
+
+  // Price paid in micro-USD.
+  int64 amount_paid_micros = 4;
+
+  // Credits to be provisioned in micro-USD upon successful payment.
+  int64 credits_granted_micros = 5;
+
+  // Current lifecycle status.
+  CreditPurchaseStatus status = 6;
+
+  // Stripe Customer ID used for this purchase.
+  string stripe_customer_id = 7;
+
+  // Stripe Checkout Session ID. Set after session creation.
+  string checkout_session_id = 8;
+
+  // Stripe PaymentIntent ID. Set by webhook on payment completion.
+  string payment_intent_id = 9;
+
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}

@@ -129,6 +129,38 @@ message FinalizeExecutionResponse {
   int32 billed_call_count = 4;
 }
 
+// CreateCreditCheckoutSessionInput initiates a Stripe Checkout purchase
+// for a credit pack.
+//
+// The server creates a Stripe Checkout Session and returns the URL for
+// the client to redirect the user. The caller's email is resolved from
+// their identity account for Stripe Customer creation.
+message CreateCreditCheckoutSessionInput {
+  string org_id = 1 [(buf.validate.field).required = true];
+
+  // Credit pack to purchase (e.g., "starter", "growth", "team").
+  string pack_id = 2 [(buf.validate.field).required = true];
+
+  // URL to redirect to after successful payment.
+  string success_url = 3 [(buf.validate.field).required = true];
+
+  // URL to redirect to if the user cancels checkout.
+  string cancel_url = 4 [(buf.validate.field).required = true];
+}
+
+// CreateCreditCheckoutSessionResponse returns the Stripe Checkout URL
+// and purchase tracking identifiers.
+message CreateCreditCheckoutSessionResponse {
+  // Stripe-hosted checkout page URL. Redirect the user here.
+  string checkout_url = 1;
+
+  // Internal purchase ID for tracking this transaction.
+  string purchase_id = 2;
+
+  // Stripe Checkout Session ID.
+  string checkout_session_id = 3;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Query Inputs & Responses
 // ─────────────────────────────────────────────────────────────────────────────

@@ -67,6 +67,16 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_billing_v1_FinalizeExecutionResponse_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_billing_v1_CreateCreditCheckoutSessionInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_billing_v1_CreateCreditCheckoutSessionInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_billing_v1_CreateCreditCheckoutSessionResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_billing_v1_CreateCreditCheckoutSessionResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_billing_v1_GetBillingAccountInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -174,61 +184,69 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "lableAmountMicros\022>\n\033released_reservatio" +
       "n_micros\030\003 \001(\003R\031releasedReservationMicro" +
       "s\022*\n\021billed_call_count\030\004 \001(\005R\017billedCall" +
-      "Count\"7\n\026GetBillingAccountInput\022\035\n\006org_i" +
-      "d\030\001 \001(\tB\006\272H\003\310\001\001R\005orgId\"6\n\025GetCreditBalan" +
-      "ceInput\022\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001R\005orgId\"\246" +
-      "\002\n\024GetCreditLedgerInput\022\035\n\006org_id\030\001 \001(\tB" +
-      "\006\272H\003\310\001\001R\005orgId\0224\n\004page\030\002 \001(\0132 .ai.stigme" +
-      "r.commons.rpc.PageInfoR\004page\022G\n\013type_fil" +
-      "ter\030\003 \003(\0162&.ai.stigmer.billing.v1.Ledger" +
-      "EntryTypeR\ntypeFilter\0229\n\nstart_time\030\004 \001(" +
-      "\0132\032.google.protobuf.TimestampR\tstartTime" +
-      "\0225\n\010end_time\030\005 \001(\0132\032.google.protobuf.Tim" +
-      "estampR\007endTime\"{\n\024CreditLedgerResponse\022" +
-      "B\n\007entries\030\001 \003(\0132(.ai.stigmer.billing.v1" +
-      ".CreditLedgerEntryR\007entries\022\037\n\013total_pag" +
-      "es\030\002 \001(\005R\ntotalPages\"\275\001\n\032GetBillingUsage" +
-      "ReportInput\022\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001R\005org" +
-      "Id\022A\n\nstart_time\030\002 \001(\0132\032.google.protobuf" +
-      ".TimestampB\006\272H\003\310\001\001R\tstartTime\022=\n\010end_tim" +
-      "e\030\003 \001(\0132\032.google.protobuf.TimestampB\006\272H\003" +
-      "\310\001\001R\007endTime\"\300\002\n\032BillingUsageReportRespo" +
-      "nse\022;\n\032total_provider_cost_micros\030\001 \001(\003R" +
-      "\027totalProviderCostMicros\022?\n\034total_billab" +
-      "le_amount_micros\030\002 \001(\003R\031totalBillableAmo" +
-      "untMicros\022\'\n\017execution_count\030\003 \001(\005R\016exec" +
-      "utionCount\022$\n\016llm_call_count\030\004 \001(\005R\014llmC" +
-      "allCount\022U\n\017model_breakdown\030\005 \003(\0132,.ai.s" +
-      "tigmer.billing.v1.ModelBillingBreakdownR" +
-      "\016modelBreakdown\"\353\001\n\025ModelBillingBreakdow" +
-      "n\022\024\n\005model\030\001 \001(\tR\005model\022\030\n\007harness\030\002 \001(\t" +
-      "R\007harness\022\033\n\tcost_tier\030\003 \001(\tR\010costTier\0220" +
-      "\n\024provider_cost_micros\030\004 \001(\003R\022providerCo" +
-      "stMicros\0224\n\026billable_amount_micros\030\005 \001(\003" +
-      "R\024billableAmountMicros\022\035\n\ncall_count\030\006 \001" +
-      "(\005R\tcallCount\"5\n\034GetCustomerModelPricing" +
-      "Input\022\025\n\006org_id\030\001 \001(\tR\005orgId\"j\n\034Customer" +
-      "ModelPricingResponse\022J\n\007entries\030\001 \003(\01320." +
-      "ai.stigmer.billing.v1.CustomerModelPrici" +
-      "ngEntryR\007entries\"\264\004\n\031CustomerModelPricin" +
-      "gEntry\022\031\n\010model_id\030\001 \001(\tR\007modelId\022!\n\014dis" +
-      "play_name\030\002 \001(\tR\013displayName\022\032\n\010provider" +
-      "\030\003 \001(\tR\010provider\022\030\n\007harness\030\004 \001(\tR\007harne" +
-      "ss\022\033\n\tcost_tier\030\005 \001(\tR\010costTier\022B\n\036input" +
-      "_price_micros_per_million\030\006 \001(\003R\032inputPr" +
-      "iceMicrosPerMillion\022D\n\037output_price_micr" +
-      "os_per_million\030\007 \001(\003R\033outputPriceMicrosP" +
-      "erMillion\022S\n\'cache_creation_price_micros" +
-      "_per_million\030\010 \001(\003R\"cacheCreationPriceMi" +
-      "crosPerMillion\022K\n#cache_read_price_micro" +
-      "s_per_million\030\t \001(\003R\036cacheReadPriceMicro" +
-      "sPerMillion\022*\n\021pricing_policy_id\030\n \001(\tR\017" +
-      "pricingPolicyId\022.\n\023markup_basis_points\030\013" +
-      " \001(\005R\021markupBasisPointsB\200\001B\007IoProtoP\001\242\002\003" +
-      "ASB\252\002\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Stigmer" +
-      "\\Billing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\GPBM" +
-      "etadata\352\002\030Ai::Stigmer::Billing::V1b\006prot" +
-      "o3"
+      "Count\"\262\001\n CreateCreditCheckoutSessionInp" +
+      "ut\022\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001R\005orgId\022\037\n\007pac" +
+      "k_id\030\002 \001(\tB\006\272H\003\310\001\001R\006packId\022\'\n\013success_ur" +
+      "l\030\003 \001(\tB\006\272H\003\310\001\001R\nsuccessUrl\022%\n\ncancel_ur" +
+      "l\030\004 \001(\tB\006\272H\003\310\001\001R\tcancelUrl\"\231\001\n#CreateCre" +
+      "ditCheckoutSessionResponse\022!\n\014checkout_u" +
+      "rl\030\001 \001(\tR\013checkoutUrl\022\037\n\013purchase_id\030\002 \001" +
+      "(\tR\npurchaseId\022.\n\023checkout_session_id\030\003 " +
+      "\001(\tR\021checkoutSessionId\"7\n\026GetBillingAcco" +
+      "untInput\022\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001R\005orgId\"" +
+      "6\n\025GetCreditBalanceInput\022\035\n\006org_id\030\001 \001(\t" +
+      "B\006\272H\003\310\001\001R\005orgId\"\246\002\n\024GetCreditLedgerInput" +
+      "\022\035\n\006org_id\030\001 \001(\tB\006\272H\003\310\001\001R\005orgId\0224\n\004page\030" +
+      "\002 \001(\0132 .ai.stigmer.commons.rpc.PageInfoR" +
+      "\004page\022G\n\013type_filter\030\003 \003(\0162&.ai.stigmer." +
+      "billing.v1.LedgerEntryTypeR\ntypeFilter\0229" +
+      "\n\nstart_time\030\004 \001(\0132\032.google.protobuf.Tim" +
+      "estampR\tstartTime\0225\n\010end_time\030\005 \001(\0132\032.go" +
+      "ogle.protobuf.TimestampR\007endTime\"{\n\024Cred" +
+      "itLedgerResponse\022B\n\007entries\030\001 \003(\0132(.ai.s" +
+      "tigmer.billing.v1.CreditLedgerEntryR\007ent" +
+      "ries\022\037\n\013total_pages\030\002 \001(\005R\ntotalPages\"\275\001" +
+      "\n\032GetBillingUsageReportInput\022\035\n\006org_id\030\001" +
+      " \001(\tB\006\272H\003\310\001\001R\005orgId\022A\n\nstart_time\030\002 \001(\0132" +
+      "\032.google.protobuf.TimestampB\006\272H\003\310\001\001R\tsta" +
+      "rtTime\022=\n\010end_time\030\003 \001(\0132\032.google.protob" +
+      "uf.TimestampB\006\272H\003\310\001\001R\007endTime\"\300\002\n\032Billin" +
+      "gUsageReportResponse\022;\n\032total_provider_c" +
+      "ost_micros\030\001 \001(\003R\027totalProviderCostMicro" +
+      "s\022?\n\034total_billable_amount_micros\030\002 \001(\003R" +
+      "\031totalBillableAmountMicros\022\'\n\017execution_" +
+      "count\030\003 \001(\005R\016executionCount\022$\n\016llm_call_" +
+      "count\030\004 \001(\005R\014llmCallCount\022U\n\017model_break" +
+      "down\030\005 \003(\0132,.ai.stigmer.billing.v1.Model" +
+      "BillingBreakdownR\016modelBreakdown\"\353\001\n\025Mod" +
+      "elBillingBreakdown\022\024\n\005model\030\001 \001(\tR\005model" +
+      "\022\030\n\007harness\030\002 \001(\tR\007harness\022\033\n\tcost_tier\030" +
+      "\003 \001(\tR\010costTier\0220\n\024provider_cost_micros\030" +
+      "\004 \001(\003R\022providerCostMicros\0224\n\026billable_am" +
+      "ount_micros\030\005 \001(\003R\024billableAmountMicros\022" +
+      "\035\n\ncall_count\030\006 \001(\005R\tcallCount\"5\n\034GetCus" +
+      "tomerModelPricingInput\022\025\n\006org_id\030\001 \001(\tR\005" +
+      "orgId\"j\n\034CustomerModelPricingResponse\022J\n" +
+      "\007entries\030\001 \003(\01320.ai.stigmer.billing.v1.C" +
+      "ustomerModelPricingEntryR\007entries\"\264\004\n\031Cu" +
+      "stomerModelPricingEntry\022\031\n\010model_id\030\001 \001(" +
+      "\tR\007modelId\022!\n\014display_name\030\002 \001(\tR\013displa" +
+      "yName\022\032\n\010provider\030\003 \001(\tR\010provider\022\030\n\007har" +
+      "ness\030\004 \001(\tR\007harness\022\033\n\tcost_tier\030\005 \001(\tR\010" +
+      "costTier\022B\n\036input_price_micros_per_milli" +
+      "on\030\006 \001(\003R\032inputPriceMicrosPerMillion\022D\n\037" +
+      "output_price_micros_per_million\030\007 \001(\003R\033o" +
+      "utputPriceMicrosPerMillion\022S\n\'cache_crea" +
+      "tion_price_micros_per_million\030\010 \001(\003R\"cac" +
+      "heCreationPriceMicrosPerMillion\022K\n#cache" +
+      "_read_price_micros_per_million\030\t \001(\003R\036ca" +
+      "cheReadPriceMicrosPerMillion\022*\n\021pricing_" +
+      "policy_id\030\n \001(\tR\017pricingPolicyId\022.\n\023mark" +
+      "up_basis_points\030\013 \001(\005R\021markupBasisPoints" +
+      "B\200\001B\007IoProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.Billin" +
+      "g.V1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\Stigme" +
+      "r\\Billing\\V1\\GPBMetadata\352\002\030Ai::Stigmer::" +
+      "Billing::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -288,62 +306,74 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_FinalizeExecutionResponse_descriptor,
         new java.lang.String[] { "TotalProviderCostMicros", "TotalBillableAmountMicros", "ReleasedReservationMicros", "BilledCallCount", });
-    internal_static_ai_stigmer_billing_v1_GetBillingAccountInput_descriptor =
+    internal_static_ai_stigmer_billing_v1_CreateCreditCheckoutSessionInput_descriptor =
       getDescriptor().getMessageType(8);
+    internal_static_ai_stigmer_billing_v1_CreateCreditCheckoutSessionInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_billing_v1_CreateCreditCheckoutSessionInput_descriptor,
+        new java.lang.String[] { "OrgId", "PackId", "SuccessUrl", "CancelUrl", });
+    internal_static_ai_stigmer_billing_v1_CreateCreditCheckoutSessionResponse_descriptor =
+      getDescriptor().getMessageType(9);
+    internal_static_ai_stigmer_billing_v1_CreateCreditCheckoutSessionResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_billing_v1_CreateCreditCheckoutSessionResponse_descriptor,
+        new java.lang.String[] { "CheckoutUrl", "PurchaseId", "CheckoutSessionId", });
+    internal_static_ai_stigmer_billing_v1_GetBillingAccountInput_descriptor =
+      getDescriptor().getMessageType(10);
     internal_static_ai_stigmer_billing_v1_GetBillingAccountInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_GetBillingAccountInput_descriptor,
         new java.lang.String[] { "OrgId", });
     internal_static_ai_stigmer_billing_v1_GetCreditBalanceInput_descriptor =
-      getDescriptor().getMessageType(9);
+      getDescriptor().getMessageType(11);
     internal_static_ai_stigmer_billing_v1_GetCreditBalanceInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_GetCreditBalanceInput_descriptor,
         new java.lang.String[] { "OrgId", });
     internal_static_ai_stigmer_billing_v1_GetCreditLedgerInput_descriptor =
-      getDescriptor().getMessageType(10);
+      getDescriptor().getMessageType(12);
     internal_static_ai_stigmer_billing_v1_GetCreditLedgerInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_GetCreditLedgerInput_descriptor,
         new java.lang.String[] { "OrgId", "Page", "TypeFilter", "StartTime", "EndTime", });
     internal_static_ai_stigmer_billing_v1_CreditLedgerResponse_descriptor =
-      getDescriptor().getMessageType(11);
+      getDescriptor().getMessageType(13);
     internal_static_ai_stigmer_billing_v1_CreditLedgerResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_CreditLedgerResponse_descriptor,
         new java.lang.String[] { "Entries", "TotalPages", });
     internal_static_ai_stigmer_billing_v1_GetBillingUsageReportInput_descriptor =
-      getDescriptor().getMessageType(12);
+      getDescriptor().getMessageType(14);
     internal_static_ai_stigmer_billing_v1_GetBillingUsageReportInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_GetBillingUsageReportInput_descriptor,
         new java.lang.String[] { "OrgId", "StartTime", "EndTime", });
     internal_static_ai_stigmer_billing_v1_BillingUsageReportResponse_descriptor =
-      getDescriptor().getMessageType(13);
+      getDescriptor().getMessageType(15);
     internal_static_ai_stigmer_billing_v1_BillingUsageReportResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_BillingUsageReportResponse_descriptor,
         new java.lang.String[] { "TotalProviderCostMicros", "TotalBillableAmountMicros", "ExecutionCount", "LlmCallCount", "ModelBreakdown", });
     internal_static_ai_stigmer_billing_v1_ModelBillingBreakdown_descriptor =
-      getDescriptor().getMessageType(14);
+      getDescriptor().getMessageType(16);
     internal_static_ai_stigmer_billing_v1_ModelBillingBreakdown_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_ModelBillingBreakdown_descriptor,
         new java.lang.String[] { "Model", "Harness", "CostTier", "ProviderCostMicros", "BillableAmountMicros", "CallCount", });
     internal_static_ai_stigmer_billing_v1_GetCustomerModelPricingInput_descriptor =
-      getDescriptor().getMessageType(15);
+      getDescriptor().getMessageType(17);
     internal_static_ai_stigmer_billing_v1_GetCustomerModelPricingInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_GetCustomerModelPricingInput_descriptor,
         new java.lang.String[] { "OrgId", });
     internal_static_ai_stigmer_billing_v1_CustomerModelPricingResponse_descriptor =
-      getDescriptor().getMessageType(16);
+      getDescriptor().getMessageType(18);
     internal_static_ai_stigmer_billing_v1_CustomerModelPricingResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_CustomerModelPricingResponse_descriptor,
         new java.lang.String[] { "Entries", });
     internal_static_ai_stigmer_billing_v1_CustomerModelPricingEntry_descriptor =
-      getDescriptor().getMessageType(17);
+      getDescriptor().getMessageType(19);
     internal_static_ai_stigmer_billing_v1_CustomerModelPricingEntry_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_CustomerModelPricingEntry_descriptor,

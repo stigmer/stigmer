@@ -19,11 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	BillingCommandController_GetOrCreateBillingAccount_FullMethodName = "/ai.stigmer.billing.v1.BillingCommandController/getOrCreateBillingAccount"
-	BillingCommandController_AdjustCredits_FullMethodName             = "/ai.stigmer.billing.v1.BillingCommandController/adjustCredits"
-	BillingCommandController_AuthorizeExecution_FullMethodName        = "/ai.stigmer.billing.v1.BillingCommandController/authorizeExecution"
-	BillingCommandController_ReportLlmCallUsage_FullMethodName        = "/ai.stigmer.billing.v1.BillingCommandController/reportLlmCallUsage"
-	BillingCommandController_FinalizeExecution_FullMethodName         = "/ai.stigmer.billing.v1.BillingCommandController/finalizeExecution"
+	BillingCommandController_GetOrCreateBillingAccount_FullMethodName   = "/ai.stigmer.billing.v1.BillingCommandController/getOrCreateBillingAccount"
+	BillingCommandController_AdjustCredits_FullMethodName               = "/ai.stigmer.billing.v1.BillingCommandController/adjustCredits"
+	BillingCommandController_AuthorizeExecution_FullMethodName          = "/ai.stigmer.billing.v1.BillingCommandController/authorizeExecution"
+	BillingCommandController_ReportLlmCallUsage_FullMethodName          = "/ai.stigmer.billing.v1.BillingCommandController/reportLlmCallUsage"
+	BillingCommandController_FinalizeExecution_FullMethodName           = "/ai.stigmer.billing.v1.BillingCommandController/finalizeExecution"
+	BillingCommandController_CreateCreditCheckoutSession_FullMethodName = "/ai.stigmer.billing.v1.BillingCommandController/createCreditCheckoutSession"
 )
 
 // BillingCommandControllerClient is the client API for BillingCommandController service.
@@ -34,10 +35,6 @@ const (
 //
 // Billing is not a standard API Resource — there is no api_resource_kind annotation.
 // RPCs authorize against the organization resource kind.
-//
-// Phase 0-2 RPCs are defined here. Stripe checkout (Phase 3),
-// auto-recharge configuration (Phase 4), and other write operations
-// are added in their respective phases.
 type BillingCommandControllerClient interface {
 	// Provision or retrieve the billing account for an organization.
 	// Idempotent: creates the account on first call, returns existing on subsequent calls.
@@ -69,6 +66,12 @@ type BillingCommandControllerClient interface {
 	// @internal
 	// Called by the Temporal workflow after the agent runner completes.
 	FinalizeExecution(ctx context.Context, in *FinalizeExecutionInput, opts ...grpc.CallOption) (*FinalizeExecutionResponse, error)
+	// Create a Stripe Checkout Session to purchase a credit pack.
+	// Returns a checkout URL for the client to redirect the user.
+	//
+	// The caller's email is resolved server-side for Stripe Customer creation.
+	// Credits are provisioned asynchronously via the checkout.session.completed webhook.
+	CreateCreditCheckoutSession(ctx context.Context, in *CreateCreditCheckoutSessionInput, opts ...grpc.CallOption) (*CreateCreditCheckoutSessionResponse, error)
 }
 
 type billingCommandControllerClient struct {
@@ -129,6 +132,16 @@ func (c *billingCommandControllerClient) FinalizeExecution(ctx context.Context, 
 	return out, nil
 }
 
+func (c *billingCommandControllerClient) CreateCreditCheckoutSession(ctx context.Context, in *CreateCreditCheckoutSessionInput, opts ...grpc.CallOption) (*CreateCreditCheckoutSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateCreditCheckoutSessionResponse)
+	err := c.cc.Invoke(ctx, BillingCommandController_CreateCreditCheckoutSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BillingCommandControllerServer is the server API for BillingCommandController service.
 // All implementations should embed UnimplementedBillingCommandControllerServer
 // for forward compatibility.
@@ -137,10 +150,6 @@ func (c *billingCommandControllerClient) FinalizeExecution(ctx context.Context, 
 //
 // Billing is not a standard API Resource — there is no api_resource_kind annotation.
 // RPCs authorize against the organization resource kind.
-//
-// Phase 0-2 RPCs are defined here. Stripe checkout (Phase 3),
-// auto-recharge configuration (Phase 4), and other write operations
-// are added in their respective phases.
 type BillingCommandControllerServer interface {
 	// Provision or retrieve the billing account for an organization.
 	// Idempotent: creates the account on first call, returns existing on subsequent calls.
@@ -172,6 +181,12 @@ type BillingCommandControllerServer interface {
 	// @internal
 	// Called by the Temporal workflow after the agent runner completes.
 	FinalizeExecution(context.Context, *FinalizeExecutionInput) (*FinalizeExecutionResponse, error)
+	// Create a Stripe Checkout Session to purchase a credit pack.
+	// Returns a checkout URL for the client to redirect the user.
+	//
+	// The caller's email is resolved server-side for Stripe Customer creation.
+	// Credits are provisioned asynchronously via the checkout.session.completed webhook.
+	CreateCreditCheckoutSession(context.Context, *CreateCreditCheckoutSessionInput) (*CreateCreditCheckoutSessionResponse, error)
 }
 
 // UnimplementedBillingCommandControllerServer should be embedded to have
@@ -195,6 +210,9 @@ func (UnimplementedBillingCommandControllerServer) ReportLlmCallUsage(context.Co
 }
 func (UnimplementedBillingCommandControllerServer) FinalizeExecution(context.Context, *FinalizeExecutionInput) (*FinalizeExecutionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FinalizeExecution not implemented")
+}
+func (UnimplementedBillingCommandControllerServer) CreateCreditCheckoutSession(context.Context, *CreateCreditCheckoutSessionInput) (*CreateCreditCheckoutSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateCreditCheckoutSession not implemented")
 }
 func (UnimplementedBillingCommandControllerServer) testEmbeddedByValue() {}
 
@@ -306,6 +324,24 @@ func _BillingCommandController_FinalizeExecution_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BillingCommandController_CreateCreditCheckoutSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateCreditCheckoutSessionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingCommandControllerServer).CreateCreditCheckoutSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingCommandController_CreateCreditCheckoutSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingCommandControllerServer).CreateCreditCheckoutSession(ctx, req.(*CreateCreditCheckoutSessionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BillingCommandController_ServiceDesc is the grpc.ServiceDesc for BillingCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -332,6 +368,10 @@ var BillingCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "finalizeExecution",
 			Handler:    _BillingCommandController_FinalizeExecution_Handler,
+		},
+		{
+			MethodName: "createCreditCheckoutSession",
+			Handler:    _BillingCommandController_CreateCreditCheckoutSession_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

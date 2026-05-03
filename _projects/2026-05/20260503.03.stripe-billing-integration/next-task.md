@@ -69,7 +69,7 @@ When starting a new session:
 
 **Created**: 2026-05-03 09:55
 **Current Task**: T01 — Phase 3 (Stripe Credit Purchases)
-**Status**: Phase 3.1 Complete — Stripe Customer Management
+**Status**: Phase 3.2 Complete — Stripe Checkout Integration
 
 ## Session Progress (2026-05-03)
 
@@ -261,6 +261,46 @@ When starting a new session:
 - Unit tests: 8 tests (StripeCustomerServiceTest) + 3 tests (BillingAccountRepoTest CAS)
 - Registered 2 new Bazel test targets
 
+### Phase 3.2 Completed (Stripe Checkout Integration)
+- Added `CreditPurchaseStatus` enum (PENDING, COMPLETED, FAILED, EXPIRED) to enum.proto
+- Added `CreditPurchase` message to credit.proto (purchase lifecycle tracking)
+- Added `CreateCreditCheckoutSessionInput/Response` to io.proto
+- Added `createCreditCheckoutSession` RPC to BillingCommandController (can_manage_billing authorization)
+- Ran `make codegen` (OSS) + `make protos` (cloud) to propagate proto changes
+- Created `CreditPackCatalog` in `ai.stigmer.domain.billing.catalog`:
+  - Java constants class with 3 static packs (Starter $10, Growth $50, Team $200)
+  - `getPack(packId)` returns `Optional<CreditPack>`, `getActivePacks()` for listing
+  - No DB dependency — packs are static product catalog entries
+- Created `credit_purchase` collection via Mongock migration (order 025):
+  - `purchase_id` unique, `checkout_session_id` unique sparse
+  - `(org_id, created_at desc)` for history, `(org_id, status)` for pending lookups
+- Created `CreditPurchaseRepo` in `ai.stigmer.domain.billing.repo`:
+  - Proto-JSON pattern with `ensureNumericFields` for int64 fields
+  - `insert`, `findByPurchaseId`, `findByCheckoutSessionId`
+  - `atomicSetCheckoutSessionId` (CAS guard), `atomicSetPaymentIntentId`, `updateStatus`
+- Created `StripeCheckoutService` in `ai.stigmer.domain.billing.stripe`:
+  - `createCheckoutSession(orgId, packId, callerEmail, successUrl, cancelUrl)` → `CheckoutSessionResult`
+  - Algorithm: validate pack → verify account active → ensure Stripe Customer → insert PENDING purchase → create Stripe Checkout Session → link checkout_session_id
+  - PENDING record inserted BEFORE Stripe call (safer: orphan vs untracked payment)
+  - Stripe Checkout Session: mode=payment, PriceData (not pre-created Price), automatic_tax, setup_future_usage=off_session
+  - Metadata on session: stigmer_org_id, stigmer_purchase_id, stigmer_pack_id, stigmer_credits_micros
+  - Custom exceptions: InvalidPackException, StripeCheckoutException
+- Created `CreateCreditCheckoutSessionHandler` in `ai.stigmer.domain.billing.request.handler`:
+  - Pipeline: validateFieldConstraints → extractResourceId → authorize → CreateCheckoutSessionStep → sendResponse
+  - Resolves caller email from IdentityAccount (server-side, not in RPC input)
+  - Error mapping: InvalidPackException→INVALID_ARGUMENT, BillingAccountNotFoundException→NOT_FOUND, suspended/closed→FAILED_PRECONDITION, Stripe failure→INTERNAL
+- Unit tests: CreditPackCatalogTest (8 tests) + CreditPurchaseRepoTest (9 tests) + StripeCheckoutServiceTest (12 tests)
+- Registered 3 new Bazel test targets
+- Fixed pre-existing build issue: GetCreditLedgerHandler.java (PageInfo field name mismatch: getNum/getSize)
+- Fixed pre-existing build issue: StripeCustomerServiceTest (Stripe SDK getMetadata() type cast)
+
+### Key Design Decisions (Phase 3.2)
+- CreditPack catalog as Java constants (not DB-seeded): packs are static, never user-editable, no DB round-trip on checkout. Move to DB-backed later if admin pack management needed.
+- Caller email resolved server-side from IdentityAccount: simpler client API, avoids consistency risk, matches existing pattern (adjustedBy from caller context).
+- PENDING-before-Stripe ordering: safer failure mode — orphaned PENDING records are cleaned by Phase 3.5 reconciliation. The alternative (Stripe succeeds, DB fails) leaves a paid session with no tracking.
+- setup_future_usage=off_session: saves payment method for auto-recharge (Phase 4), customer informed on Stripe checkout page.
+- Micro-USD to Stripe cents conversion: price_micros / 10,000 = Stripe amount (1 USD = 100 cents = 1,000,000 micros).
+
 ### Key Design Decisions (Phase 3.1)
 - Lazy creation: Stripe Customer NOT provisioned during getOrCreateBillingAccount — avoids external I/O, Stripe dashboard clutter, and Stripe availability dependency on account lifecycle
 - CAS over save(): atomicSetStripeCustomerId uses findAndModify with $set on a single field — avoids overwriting concurrent balance changes that save() (full document replace) would cause
@@ -343,7 +383,7 @@ When starting a new session:
 ## Next Steps (Phase 3 — Stripe Credit Purchases)
 
 1. ~~Create Stripe Customer per org on first billing interaction~~ ✅
-2. Implement Stripe Checkout integration (CreateCreditCheckoutSession RPC)
+2. ~~Implement Stripe Checkout integration (CreateCreditCheckoutSession RPC)~~ ✅
 3. Webhook handler for checkout.session.completed → credit provisioning
 4. Billing page UI (React, replace "Coming Soon" placeholder)
 5. Reconciliation job for missed webhooks
@@ -376,6 +416,15 @@ When starting a new session:
 - `BillingAccountService.getByStripeCustomerId()` enables webhook reverse-lookup (Phase 3.3)
 - Stripe config: `stigmer.stripe.secret-key` (env: STIGMER_STRIPE_SECRET_KEY), `stigmer.stripe.webhook-secret` (env: STIGMER_STRIPE_WEBHOOK_SECRET)
 - New package: `ai.stigmer.domain.billing.stripe` — StripeConfig, StripeClientProvider, StripeCustomerService
+- **Phase 3.2**: `CreditPackCatalog` in `ai.stigmer.domain.billing.catalog` — 3 static packs (starter/growth/team), Java constants, no DB
+- `CreditPurchaseRepo` in `ai.stigmer.domain.billing.repo` — proto-JSON, CAS for checkout_session_id, lifecycle status transitions
+- `StripeCheckoutService.createCheckoutSession()` is the entry point for Stripe Checkout purchases
+- `CreateCreditCheckoutSessionHandler` wired to `BillingCommandController.createCreditCheckoutSession` RPC
+- `credit_purchase` collection (Mongock order 025) with 4 indexes: purchase_id unique, checkout_session_id unique sparse, (org_id, created_at desc), (org_id, status)
+- CreditPurchase lifecycle: PENDING (checkout created) → COMPLETED (webhook, Phase 3.3) or FAILED/EXPIRED
+- Stripe Checkout Session metadata carries `stigmer_org_id`, `stigmer_purchase_id`, `stigmer_pack_id`, `stigmer_credits_micros` for webhook reverse-lookup
+- Credits are NOT provisioned by Phase 3.2 — provisioning happens in Phase 3.3 webhook handler
+- 9 gRPC RPCs now handler-wired: getOrCreateBillingAccount, adjustCredits, getBillingAccount, getCreditBalance, getCreditLedger, authorizeExecution, reportLlmCallUsage, finalizeExecution, **createCreditCheckoutSession**
 
 ## Quick Commands
 

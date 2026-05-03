@@ -40,7 +40,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "/v1/billing_account.proto\032\"ai/stigmer/bi" +
       "lling/v1/credit.proto\032\036ai/stigmer/billin" +
       "g/v1/io.proto\032+ai/stigmer/commons/rpc/me" +
-      "thod_options.proto2\207\006\n\030BillingCommandCon" +
+      "thod_options.proto2\346\007\n\030BillingCommandCon" +
       "troller\022\301\001\n\031getOrCreateBillingAccount\0225." +
       "ai.stigmer.billing.v1.GetOrCreateBilling" +
       "AccountInput\032%.ai.stigmer.billing.v1.Bil" +
@@ -59,11 +59,17 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "ReportLlmCallUsageResponse\"\004\320\270\030\001\022z\n\021fina" +
       "lizeExecution\022-.ai.stigmer.billing.v1.Fi" +
       "nalizeExecutionInput\0320.ai.stigmer.billin" +
-      "g.v1.FinalizeExecutionResponse\"\004\320\270\030\001B\205\001B" +
-      "\014CommandProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.Billi" +
-      "ng.V1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\Stigm" +
-      "er\\Billing\\V1\\GPBMetadata\352\002\030Ai::Stigmer:" +
-      ":Billing::V1b\006proto3"
+      "g.v1.FinalizeExecutionResponse\"\004\320\270\030\001\022\334\001\n" +
+      "\033createCreditCheckoutSession\0227.ai.stigme" +
+      "r.billing.v1.CreateCreditCheckoutSession" +
+      "Input\032:.ai.stigmer.billing.v1.CreateCred" +
+      "itCheckoutSessionResponse\"H\302\270\030D\010\034\020\036\"\006org" +
+      "_id*6unauthorized to purchase credits fo" +
+      "r this organizationB\205\001B\014CommandProtoP\001\242\002" +
+      "\003ASB\252\002\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Stigme" +
+      "r\\Billing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\GPB" +
+      "Metadata\352\002\030Ai::Stigmer::Billing::V1b\006pro" +
+      "to3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

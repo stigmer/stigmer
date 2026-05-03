@@ -13,9 +13,6 @@ class BillingCommandControllerStub(object):
     Billing is not a standard API Resource — there is no api_resource_kind annotation.
     RPCs authorize against the organization resource kind.
 
-    Phase 0-2 RPCs are defined here. Stripe checkout (Phase 3),
-    auto-recharge configuration (Phase 4), and other write operations
-    are added in their respective phases.
     """
 
     def __init__(self, channel):
@@ -49,6 +46,11 @@ class BillingCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionResponse.FromString,
                 _registered_method=True)
+        self.createCreditCheckoutSession = channel.unary_unary(
+                '/ai.stigmer.billing.v1.BillingCommandController/createCreditCheckoutSession',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionResponse.FromString,
+                _registered_method=True)
 
 
 class BillingCommandControllerServicer(object):
@@ -57,9 +59,6 @@ class BillingCommandControllerServicer(object):
     Billing is not a standard API Resource — there is no api_resource_kind annotation.
     RPCs authorize against the organization resource kind.
 
-    Phase 0-2 RPCs are defined here. Stripe checkout (Phase 3),
-    auto-recharge configuration (Phase 4), and other write operations
-    are added in their respective phases.
     """
 
     def getOrCreateBillingAccount(self, request, context):
@@ -117,6 +116,17 @@ class BillingCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def createCreditCheckoutSession(self, request, context):
+        """Create a Stripe Checkout Session to purchase a credit pack.
+        Returns a checkout URL for the client to redirect the user.
+
+        The caller's email is resolved server-side for Stripe Customer creation.
+        Credits are provisioned asynchronously via the checkout.session.completed webhook.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_BillingCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -145,6 +155,11 @@ def add_BillingCommandControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionResponse.SerializeToString,
             ),
+            'createCreditCheckoutSession': grpc.unary_unary_rpc_method_handler(
+                    servicer.createCreditCheckoutSession,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionResponse.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
             'ai.stigmer.billing.v1.BillingCommandController', rpc_method_handlers)
@@ -159,9 +174,6 @@ class BillingCommandController(object):
     Billing is not a standard API Resource — there is no api_resource_kind annotation.
     RPCs authorize against the organization resource kind.
 
-    Phase 0-2 RPCs are defined here. Stripe checkout (Phase 3),
-    auto-recharge configuration (Phase 4), and other write operations
-    are added in their respective phases.
     """
 
     @staticmethod
@@ -289,6 +301,33 @@ class BillingCommandController(object):
             '/ai.stigmer.billing.v1.BillingCommandController/finalizeExecution',
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.FinalizeExecutionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def createCreditCheckoutSession(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.billing.v1.BillingCommandController/createCreditCheckoutSession',
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CreateCreditCheckoutSessionResponse.FromString,
             options,
             channel_credentials,
             insecure,

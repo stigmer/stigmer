@@ -347,6 +347,70 @@ func (ExecutionBillingSignal) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{4}
 }
 
+// CreditPurchaseStatus tracks the lifecycle of a credit pack purchase.
+//
+// A purchase begins as PENDING when the Checkout Session is created,
+// transitions to COMPLETED when payment succeeds (via webhook), or
+// to FAILED/EXPIRED if payment fails or the session expires.
+type CreditPurchaseStatus int32
+
+const (
+	CreditPurchaseStatus_credit_purchase_status_unspecified CreditPurchaseStatus = 0
+	// Checkout session created; awaiting customer payment.
+	CreditPurchaseStatus_credit_purchase_pending CreditPurchaseStatus = 1
+	// Payment succeeded; credits have been provisioned.
+	CreditPurchaseStatus_credit_purchase_completed CreditPurchaseStatus = 2
+	// Payment failed (card declined, insufficient funds, etc.).
+	CreditPurchaseStatus_credit_purchase_failed CreditPurchaseStatus = 3
+	// Checkout session expired without payment completion.
+	CreditPurchaseStatus_credit_purchase_expired CreditPurchaseStatus = 4
+)
+
+// Enum value maps for CreditPurchaseStatus.
+var (
+	CreditPurchaseStatus_name = map[int32]string{
+		0: "credit_purchase_status_unspecified",
+		1: "credit_purchase_pending",
+		2: "credit_purchase_completed",
+		3: "credit_purchase_failed",
+		4: "credit_purchase_expired",
+	}
+	CreditPurchaseStatus_value = map[string]int32{
+		"credit_purchase_status_unspecified": 0,
+		"credit_purchase_pending":            1,
+		"credit_purchase_completed":          2,
+		"credit_purchase_failed":             3,
+		"credit_purchase_expired":            4,
+	}
+)
+
+func (x CreditPurchaseStatus) Enum() *CreditPurchaseStatus {
+	p := new(CreditPurchaseStatus)
+	*p = x
+	return p
+}
+
+func (x CreditPurchaseStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CreditPurchaseStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_billing_v1_enum_proto_enumTypes[5].Descriptor()
+}
+
+func (CreditPurchaseStatus) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_billing_v1_enum_proto_enumTypes[5]
+}
+
+func (x CreditPurchaseStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use CreditPurchaseStatus.Descriptor instead.
+func (CreditPurchaseStatus) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{5}
+}
+
 var File_ai_stigmer_billing_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_v1_enum_proto_rawDesc = "" +
@@ -388,7 +452,13 @@ const file_ai_stigmer_billing_v1_enum_proto_rawDesc = "" +
 	"$execution_billing_signal_unspecified\x10\x00\x12\x16\n" +
 	"\x12continue_execution\x10\x01\x12\x17\n" +
 	"\x13low_balance_warning\x10\x02\x12\x12\n" +
-	"\x0estop_execution\x10\x03B\xea\x01\n" +
+	"\x0estop_execution\x10\x03*\xb3\x01\n" +
+	"\x14CreditPurchaseStatus\x12&\n" +
+	"\"credit_purchase_status_unspecified\x10\x00\x12\x1b\n" +
+	"\x17credit_purchase_pending\x10\x01\x12\x1d\n" +
+	"\x19credit_purchase_completed\x10\x02\x12\x1a\n" +
+	"\x16credit_purchase_failed\x10\x03\x12\x1b\n" +
+	"\x17credit_purchase_expired\x10\x04B\xea\x01\n" +
 	"\x19com.ai.stigmer.billing.v1B\tEnumProtoP\x01ZKgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
 
 var (
@@ -403,13 +473,14 @@ func file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_billing_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_billing_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_ai_stigmer_billing_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
 var file_ai_stigmer_billing_v1_enum_proto_goTypes = []any{
 	(LedgerEntryType)(0),        // 0: ai.stigmer.billing.v1.LedgerEntryType
 	(CreditGrantKind)(0),        // 1: ai.stigmer.billing.v1.CreditGrantKind
 	(BillingAccountStatus)(0),   // 2: ai.stigmer.billing.v1.BillingAccountStatus
 	(ReservationStatus)(0),      // 3: ai.stigmer.billing.v1.ReservationStatus
 	(ExecutionBillingSignal)(0), // 4: ai.stigmer.billing.v1.ExecutionBillingSignal
+	(CreditPurchaseStatus)(0),   // 5: ai.stigmer.billing.v1.CreditPurchaseStatus
 }
 var file_ai_stigmer_billing_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -429,7 +500,7 @@ func file_ai_stigmer_billing_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_billing_v1_enum_proto_rawDesc), len(file_ai_stigmer_billing_v1_enum_proto_rawDesc)),
-			NumEnums:      5,
+			NumEnums:      6,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,
