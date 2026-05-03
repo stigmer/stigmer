@@ -489,6 +489,40 @@ export type {
   OrgSwitcherProps,
 } from "./organization";
 
+// Billing — data hooks, behavior hooks, styled components, catalog, and formatting utilities
+export {
+  useBillingAccount,
+  useCreditLedger,
+  useCreateCheckoutSession,
+  BillingSection,
+  CreditBalanceCard,
+  CreditPackGrid,
+  CreditLedgerTable,
+  LowBalanceBanner,
+  CREDIT_PACKS,
+  formatPackPrice,
+  formatCreditCount,
+  formatCreditBalance,
+  formatLedgerAmount,
+  ledgerEntryLabel,
+  isCredit,
+  isHold,
+  formatLedgerDate,
+} from "./billing";
+export type {
+  UseBillingAccountReturn,
+  UseCreditLedgerReturn,
+  UseCreditLedgerOptions,
+  CreateCheckoutSessionInput,
+  UseCreateCheckoutSessionReturn,
+  BillingSectionProps,
+  CreditBalanceCardProps,
+  CreditPackGridProps,
+  CreditLedgerTableProps,
+  LowBalanceBannerProps,
+  CreditPackInfo,
+} from "./billing";
+
 // Settings — navigation structure + section components shared across app shells
 export { SETTINGS_NAV_GROUPS } from "./settings";
 export type { SettingsNavItem, SettingsNavGroup } from "./settings";
