@@ -105,11 +105,10 @@ const AUTO_SCROLL_THRESHOLD_PX = 80;
  * type narrowing gymnastics.
  */
 type ThreadItem =
-  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string }
+  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean }
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentExecutions: readonly SubAgentExecution[]; readonly key: string }
   | { readonly kind: "sub-agent"; readonly subAgentExecution: SubAgentExecution; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
-  | { readonly kind: "pending-message"; readonly content: string; readonly key: string }
   | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
   | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly key: string };
 
@@ -122,7 +121,15 @@ function hasAiMessages(execution: AgentExecution): boolean {
   );
 }
 
-function buildThreadItems(
+/**
+ * Builds a flat list of renderable thread items from execution data.
+ *
+ * Keys use stable execution IDs (not array indices) so React can
+ * reconcile items across renders without unnecessary remounts.
+ *
+ * @internal Exported for testing — not part of the public API.
+ */
+export function buildThreadItems(
   executions: readonly AgentExecution[],
   activeStreamExecution: AgentExecution | null | undefined,
   pendingUserMessage: string | null | undefined,
@@ -133,9 +140,14 @@ function buildThreadItems(
   const allExecutions = activeStreamExecution
     ? [...executions, activeStreamExecution]
     : executions;
+  const activeStreamIndex = activeStreamExecution
+    ? allExecutions.length - 1
+    : -1;
 
   for (let ei = 0; ei < allExecutions.length; ei++) {
     const exec = allExecutions[ei];
+    const execId = exec.metadata?.id ?? `_e${ei}`;
+    const isActiveStreamExec = ei === activeStreamIndex;
     const messages = exec.status?.messages ?? [];
     const subAgents = exec.status?.subAgentExecutions ?? [];
 
@@ -144,10 +156,19 @@ function buildThreadItems(
       const syntheticHumanMsg = create(AgentMessageSchema);
       syntheticHumanMsg.type = MessageType.MESSAGE_HUMAN;
       syntheticHumanMsg.content = specMessage;
+
+      // When the active stream execution's spec message matches the
+      // pending user message, use a shared bridging key so React
+      // updates the pending bubble in place instead of remounting.
+      const bridgePending =
+        isActiveStreamExec &&
+        pendingUserMessage != null &&
+        specMessage === pendingUserMessage;
+
       items.push({
         kind: "message",
         message: syntheticHumanMsg,
-        key: `e${ei}-spec-msg`,
+        key: bridgePending ? "pending-user-turn" : `${execId}-spec`,
       });
     }
 
@@ -165,7 +186,7 @@ function buildThreadItems(
         items.push({
           kind: "message",
           message: msg,
-          key: `e${ei}-m${mi}`,
+          key: `${execId}-m${mi}`,
         });
       }
 
@@ -188,17 +209,17 @@ function buildThreadItems(
             kind: "tool-group",
             toolCalls: regularTools,
             subAgentExecutions: subAgents,
-            key: `e${ei}-m${mi}-tc`,
+            key: `${execId}-m${mi}-tc`,
           });
         }
 
-        for (let ti = 0; ti < taskTools.length; ti++) {
-          const matched = subAgents.find((sa) => sa.id === taskTools[ti].id);
+        for (const taskTool of taskTools) {
+          const matched = subAgents.find((sa) => sa.id === taskTool.id);
           if (matched) {
             items.push({
               kind: "sub-agent",
               subAgentExecution: matched,
-              key: `e${ei}-m${mi}-sa${ti}`,
+              key: `sa-${matched.id}`,
             });
           }
         }
@@ -253,10 +274,14 @@ function buildThreadItems(
     const alreadySynthesized =
       lastExec?.spec?.message === pendingUserMessage;
     if (!alreadySynthesized) {
+      const syntheticPending = create(AgentMessageSchema);
+      syntheticPending.type = MessageType.MESSAGE_HUMAN;
+      syntheticPending.content = pendingUserMessage;
       items.push({
-        kind: "pending-message",
-        content: pendingUserMessage,
-        key: "pending-user-message",
+        kind: "message",
+        message: syntheticPending,
+        key: "pending-user-turn",
+        isPending: true,
       });
     }
   }
@@ -362,7 +387,13 @@ export function MessageThread({
         {items.map((item) => {
           switch (item.kind) {
             case "message":
-              return <MessageEntry key={item.key} message={item.message} />;
+              return (
+                <MessageEntry
+                  key={item.key}
+                  message={item.message}
+                  className={item.isPending ? "opacity-70" : undefined}
+                />
+              );
             case "tool-group":
               return (
                 <ToolCallGroup
@@ -406,19 +437,6 @@ export function MessageThread({
                   workspaceEntries={item.workspaceEntries}
                   serverPhase={item.serverPhase}
                 />
-              );
-            case "pending-message":
-              return (
-                <div
-                  key={item.key}
-                  role="article"
-                  aria-label="Sending message"
-                  className="ms-[20%] rounded-lg bg-muted-subtle px-4 py-3 opacity-70"
-                >
-                  <p className="text-sm text-foreground whitespace-pre-wrap">
-                    {item.content}
-                  </p>
-                </div>
               );
           }
         })}

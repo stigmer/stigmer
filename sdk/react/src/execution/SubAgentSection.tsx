@@ -76,7 +76,7 @@ export function SubAgentSection({
   const statusInfo = SUB_AGENT_STATUS_MAP[sub.status];
   const StatusIcon = statusInfo.icon;
   const isFailed = sub.status === SubAgentStatus.SUB_AGENT_FAILED;
-  const threadItems = buildSubAgentThreadItems(sub.messages);
+  const threadItems = buildSubAgentThreadItems(sub.id, sub.messages);
 
   const displayLabel = sub.subject || sub.name;
 
@@ -370,6 +370,7 @@ type SubAgentThreadItem =
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly key: string };
 
 function buildSubAgentThreadItems(
+  subAgentId: string,
   messages: readonly AgentMessage[],
 ): SubAgentThreadItem[] {
   const items: SubAgentThreadItem[] = [];
@@ -379,13 +380,13 @@ function buildSubAgentThreadItems(
 
     if (msg.type === MessageType.MESSAGE_TOOL) continue;
 
-    items.push({ kind: "message", message: msg, key: `sa-m${i}` });
+    items.push({ kind: "message", message: msg, key: `${subAgentId}-m${i}` });
 
     if (msg.type === MessageType.MESSAGE_AI && msg.toolCalls.length > 0) {
       items.push({
         kind: "tool-group",
         toolCalls: msg.toolCalls,
-        key: `sa-m${i}-tc`,
+        key: `${subAgentId}-m${i}-tc`,
       });
     }
   }
