@@ -68,9 +68,19 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03
-**Current Task**: ALL PHASES COMPLETE (T02–T12)
-**Status**: Project complete — all 11 phases shipped, 453/453 tests pass
+**Current Task**: ALL PHASES COMPLETE (T02–T12) + Principles Codified
+**Status**: Project complete — all 11 phases shipped, 453/453 tests pass, learnings codified into roles/rules
 **Research Report**: `_projects/2026-05/research.react-sdk-streaming-ux-quality/04.report.gpt.md`
+
+## Session Progress (2026-05-03, Session 12 — Post-Completion)
+
+- Codified project learnings into the three files that guide all future web/frontend work
+- Added DD-009 through DD-015 to `sdk-console-architecture.mdc` — streaming pipeline, reference stability, opt-in behavior, license policy, React.lazy, FetchCache, animation a11y
+- Added 3 new Dont-Dos (#6-8) — no useState(snapshot), no full-object deps, no @starting-style in virtualized contexts
+- Added "Streaming & Real-Time View Standards" sub-section to `004_web_ux_ui.md`
+- Added "Real-Time Data Flow Is a UX Concern" mandate item to `006_ux_designer.md`
+- Added streaming data flow mapping guidance to UX Designer journey mapping process
+- Future web/frontend sessions will automatically inherit these standards without needing this project's next-task.md
 
 ## Session Progress (2026-05-03, Session 11)
 
