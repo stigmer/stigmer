@@ -7,9 +7,6 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
  * BillingCommandController handles write operations for the billing bounded context.
  * Billing is not a standard API Resource — there is no api_resource_kind annotation.
  * RPCs authorize against the organization resource kind.
- * Phase 0-2 RPCs are defined here. Stripe checkout (Phase 3),
- * auto-recharge configuration (Phase 4), and other write operations
- * are added in their respective phases.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -175,6 +172,37 @@ public final class BillingCommandControllerGrpc {
     return getFinalizeExecutionMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput,
+      ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse> getCreateCreditCheckoutSessionMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "createCreditCheckoutSession",
+      requestType = ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput.class,
+      responseType = ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput,
+      ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse> getCreateCreditCheckoutSessionMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput, ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse> getCreateCreditCheckoutSessionMethod;
+    if ((getCreateCreditCheckoutSessionMethod = BillingCommandControllerGrpc.getCreateCreditCheckoutSessionMethod) == null) {
+      synchronized (BillingCommandControllerGrpc.class) {
+        if ((getCreateCreditCheckoutSessionMethod = BillingCommandControllerGrpc.getCreateCreditCheckoutSessionMethod) == null) {
+          BillingCommandControllerGrpc.getCreateCreditCheckoutSessionMethod = getCreateCreditCheckoutSessionMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput, ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "createCreditCheckoutSession"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("createCreditCheckoutSession"))
+              .build();
+        }
+      }
+    }
+    return getCreateCreditCheckoutSessionMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -239,9 +267,6 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * RPCs authorize against the organization resource kind.
-   * Phase 0-2 RPCs are defined here. Stripe checkout (Phase 3),
-   * auto-recharge configuration (Phase 4), and other write operations
-   * are added in their respective phases.
    * </pre>
    */
   public interface AsyncService {
@@ -311,6 +336,19 @@ public final class BillingCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.FinalizeExecutionResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getFinalizeExecutionMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Create a Stripe Checkout Session to purchase a credit pack.
+     * Returns a checkout URL for the client to redirect the user.
+     * The caller's email is resolved server-side for Stripe Customer creation.
+     * Credits are provisioned asynchronously via the checkout.session.completed webhook.
+     * </pre>
+     */
+    default void createCreditCheckoutSession(ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateCreditCheckoutSessionMethod(), responseObserver);
+    }
   }
 
   /**
@@ -319,9 +357,6 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * RPCs authorize against the organization resource kind.
-   * Phase 0-2 RPCs are defined here. Stripe checkout (Phase 3),
-   * auto-recharge configuration (Phase 4), and other write operations
-   * are added in their respective phases.
    * </pre>
    */
   public static abstract class BillingCommandControllerImplBase
@@ -338,9 +373,6 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * RPCs authorize against the organization resource kind.
-   * Phase 0-2 RPCs are defined here. Stripe checkout (Phase 3),
-   * auto-recharge configuration (Phase 4), and other write operations
-   * are added in their respective phases.
    * </pre>
    */
   public static final class BillingCommandControllerStub
@@ -426,6 +458,20 @@ public final class BillingCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getFinalizeExecutionMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Create a Stripe Checkout Session to purchase a credit pack.
+     * Returns a checkout URL for the client to redirect the user.
+     * The caller's email is resolved server-side for Stripe Customer creation.
+     * Credits are provisioned asynchronously via the checkout.session.completed webhook.
+     * </pre>
+     */
+    public void createCreditCheckoutSession(ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCreateCreditCheckoutSessionMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -434,9 +480,6 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * RPCs authorize against the organization resource kind.
-   * Phase 0-2 RPCs are defined here. Stripe checkout (Phase 3),
-   * auto-recharge configuration (Phase 4), and other write operations
-   * are added in their respective phases.
    * </pre>
    */
   public static final class BillingCommandControllerBlockingV2Stub
@@ -517,6 +560,19 @@ public final class BillingCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getFinalizeExecutionMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Create a Stripe Checkout Session to purchase a credit pack.
+     * Returns a checkout URL for the client to redirect the user.
+     * The caller's email is resolved server-side for Stripe Customer creation.
+     * Credits are provisioned asynchronously via the checkout.session.completed webhook.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse createCreditCheckoutSession(ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getCreateCreditCheckoutSessionMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -525,9 +581,6 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * RPCs authorize against the organization resource kind.
-   * Phase 0-2 RPCs are defined here. Stripe checkout (Phase 3),
-   * auto-recharge configuration (Phase 4), and other write operations
-   * are added in their respective phases.
    * </pre>
    */
   public static final class BillingCommandControllerBlockingStub
@@ -608,6 +661,19 @@ public final class BillingCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getFinalizeExecutionMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Create a Stripe Checkout Session to purchase a credit pack.
+     * Returns a checkout URL for the client to redirect the user.
+     * The caller's email is resolved server-side for Stripe Customer creation.
+     * Credits are provisioned asynchronously via the checkout.session.completed webhook.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse createCreditCheckoutSession(ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCreateCreditCheckoutSessionMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -616,9 +682,6 @@ public final class BillingCommandControllerGrpc {
    * BillingCommandController handles write operations for the billing bounded context.
    * Billing is not a standard API Resource — there is no api_resource_kind annotation.
    * RPCs authorize against the organization resource kind.
-   * Phase 0-2 RPCs are defined here. Stripe checkout (Phase 3),
-   * auto-recharge configuration (Phase 4), and other write operations
-   * are added in their respective phases.
    * </pre>
    */
   public static final class BillingCommandControllerFutureStub
@@ -704,6 +767,20 @@ public final class BillingCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getFinalizeExecutionMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Create a Stripe Checkout Session to purchase a credit pack.
+     * Returns a checkout URL for the client to redirect the user.
+     * The caller's email is resolved server-side for Stripe Customer creation.
+     * Credits are provisioned asynchronously via the checkout.session.completed webhook.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse> createCreditCheckoutSession(
+        ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCreateCreditCheckoutSessionMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET_OR_CREATE_BILLING_ACCOUNT = 0;
@@ -711,6 +788,7 @@ public final class BillingCommandControllerGrpc {
   private static final int METHODID_AUTHORIZE_EXECUTION = 2;
   private static final int METHODID_REPORT_LLM_CALL_USAGE = 3;
   private static final int METHODID_FINALIZE_EXECUTION = 4;
+  private static final int METHODID_CREATE_CREDIT_CHECKOUT_SESSION = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -748,6 +826,10 @@ public final class BillingCommandControllerGrpc {
         case METHODID_FINALIZE_EXECUTION:
           serviceImpl.finalizeExecution((ai.stigmer.billing.v1.FinalizeExecutionInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.FinalizeExecutionResponse>) responseObserver);
+          break;
+        case METHODID_CREATE_CREDIT_CHECKOUT_SESSION:
+          serviceImpl.createCreditCheckoutSession((ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -802,6 +884,13 @@ public final class BillingCommandControllerGrpc {
               ai.stigmer.billing.v1.FinalizeExecutionInput,
               ai.stigmer.billing.v1.FinalizeExecutionResponse>(
                 service, METHODID_FINALIZE_EXECUTION)))
+        .addMethod(
+          getCreateCreditCheckoutSessionMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput,
+              ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse>(
+                service, METHODID_CREATE_CREDIT_CHECKOUT_SESSION)))
         .build();
   }
 
@@ -855,6 +944,7 @@ public final class BillingCommandControllerGrpc {
               .addMethod(getAuthorizeExecutionMethod())
               .addMethod(getReportLlmCallUsageMethod())
               .addMethod(getFinalizeExecutionMethod())
+              .addMethod(getCreateCreditCheckoutSessionMethod())
               .build();
         }
       }

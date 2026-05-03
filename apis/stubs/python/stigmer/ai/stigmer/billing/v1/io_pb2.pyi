@@ -112,6 +112,28 @@ class FinalizeExecutionResponse(_message.Message):
     billed_call_count: int
     def __init__(self, total_provider_cost_micros: _Optional[int] = ..., total_billable_amount_micros: _Optional[int] = ..., released_reservation_micros: _Optional[int] = ..., billed_call_count: _Optional[int] = ...) -> None: ...
 
+class CreateCreditCheckoutSessionInput(_message.Message):
+    __slots__ = ("org_id", "pack_id", "success_url", "cancel_url")
+    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    PACK_ID_FIELD_NUMBER: _ClassVar[int]
+    SUCCESS_URL_FIELD_NUMBER: _ClassVar[int]
+    CANCEL_URL_FIELD_NUMBER: _ClassVar[int]
+    org_id: str
+    pack_id: str
+    success_url: str
+    cancel_url: str
+    def __init__(self, org_id: _Optional[str] = ..., pack_id: _Optional[str] = ..., success_url: _Optional[str] = ..., cancel_url: _Optional[str] = ...) -> None: ...
+
+class CreateCreditCheckoutSessionResponse(_message.Message):
+    __slots__ = ("checkout_url", "purchase_id", "checkout_session_id")
+    CHECKOUT_URL_FIELD_NUMBER: _ClassVar[int]
+    PURCHASE_ID_FIELD_NUMBER: _ClassVar[int]
+    CHECKOUT_SESSION_ID_FIELD_NUMBER: _ClassVar[int]
+    checkout_url: str
+    purchase_id: str
+    checkout_session_id: str
+    def __init__(self, checkout_url: _Optional[str] = ..., purchase_id: _Optional[str] = ..., checkout_session_id: _Optional[str] = ...) -> None: ...
+
 class GetBillingAccountInput(_message.Message):
     __slots__ = ("org_id",)
     ORG_ID_FIELD_NUMBER: _ClassVar[int]

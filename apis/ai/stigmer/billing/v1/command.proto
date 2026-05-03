@@ -12,9 +12,6 @@ import "ai/stigmer/commons/rpc/method_options.proto";
 // Billing is not a standard API Resource — there is no api_resource_kind annotation.
 // RPCs authorize against the organization resource kind.
 //
-// Phase 0-2 RPCs are defined here. Stripe checkout (Phase 3),
-// auto-recharge configuration (Phase 4), and other write operations
-// are added in their respective phases.
 service BillingCommandController {
   // Provision or retrieve the billing account for an organization.
   // Idempotent: creates the account on first call, returns existing on subsequent calls.
@@ -65,5 +62,17 @@ service BillingCommandController {
   // Called by the Temporal workflow after the agent runner completes.
   rpc finalizeExecution(FinalizeExecutionInput) returns (FinalizeExecutionResponse) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Create a Stripe Checkout Session to purchase a credit pack.
+  // Returns a checkout URL for the client to redirect the user.
+  //
+  // The caller's email is resolved server-side for Stripe Customer creation.
+  // Credits are provisioned asynchronously via the checkout.session.completed webhook.
+  rpc createCreditCheckoutSession(CreateCreditCheckoutSessionInput) returns (CreateCreditCheckoutSessionResponse) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to purchase credits for this organization";
   }
 }

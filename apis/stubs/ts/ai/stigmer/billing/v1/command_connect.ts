@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, ReportLlmCallUsageInput, ReportLlmCallUsageResponse } from "./io_pbjs";
+import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, ReportLlmCallUsageInput, ReportLlmCallUsageResponse } from "./io_pbjs";
 import { BillingAccount } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { CreditLedgerEntry } from "./credit_pbjs";
@@ -14,9 +14,6 @@ import { CreditLedgerEntry } from "./credit_pbjs";
  * Billing is not a standard API Resource — there is no api_resource_kind annotation.
  * RPCs authorize against the organization resource kind.
  *
- * Phase 0-2 RPCs are defined here. Stripe checkout (Phase 3),
- * auto-recharge configuration (Phase 4), and other write operations
- * are added in their respective phases.
  *
  * @generated from service ai.stigmer.billing.v1.BillingCommandController
  */
@@ -96,6 +93,21 @@ export const BillingCommandController = {
       name: "finalizeExecution",
       I: FinalizeExecutionInput,
       O: FinalizeExecutionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Create a Stripe Checkout Session to purchase a credit pack.
+     * Returns a checkout URL for the client to redirect the user.
+     *
+     * The caller's email is resolved server-side for Stripe Customer creation.
+     * Credits are provisioned asynchronously via the checkout.session.completed webhook.
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.createCreditCheckoutSession
+     */
+    createCreditCheckoutSession: {
+      name: "createCreditCheckoutSession",
+      I: CreateCreditCheckoutSessionInput,
+      O: CreateCreditCheckoutSessionResponse,
       kind: MethodKind.Unary,
     },
   }

@@ -48,6 +48,14 @@ class ExecutionBillingSignal(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     continue_execution: _ClassVar[ExecutionBillingSignal]
     low_balance_warning: _ClassVar[ExecutionBillingSignal]
     stop_execution: _ClassVar[ExecutionBillingSignal]
+
+class CreditPurchaseStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    credit_purchase_status_unspecified: _ClassVar[CreditPurchaseStatus]
+    credit_purchase_pending: _ClassVar[CreditPurchaseStatus]
+    credit_purchase_completed: _ClassVar[CreditPurchaseStatus]
+    credit_purchase_failed: _ClassVar[CreditPurchaseStatus]
+    credit_purchase_expired: _ClassVar[CreditPurchaseStatus]
 ledger_entry_type_unspecified: LedgerEntryType
 purchase_credit: LedgerEntryType
 promotional_credit: LedgerEntryType
@@ -78,3 +86,8 @@ execution_billing_signal_unspecified: ExecutionBillingSignal
 continue_execution: ExecutionBillingSignal
 low_balance_warning: ExecutionBillingSignal
 stop_execution: ExecutionBillingSignal
+credit_purchase_status_unspecified: CreditPurchaseStatus
+credit_purchase_pending: CreditPurchaseStatus
+credit_purchase_completed: CreditPurchaseStatus
+credit_purchase_failed: CreditPurchaseStatus
+credit_purchase_expired: CreditPurchaseStatus

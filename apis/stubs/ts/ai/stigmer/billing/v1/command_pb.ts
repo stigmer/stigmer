@@ -8,7 +8,7 @@ import type { BillingAccountSchema } from "./billing_account_pb.js";
 import { file_ai_stigmer_billing_v1_billing_account } from "./billing_account_pb.js";
 import type { CreditLedgerEntrySchema } from "./credit_pb.js";
 import { file_ai_stigmer_billing_v1_credit } from "./credit_pb.js";
-import type { AdjustCreditsInputSchema, AuthorizeExecutionInputSchema, AuthorizeExecutionResponseSchema, FinalizeExecutionInputSchema, FinalizeExecutionResponseSchema, GetOrCreateBillingAccountInputSchema, ReportLlmCallUsageInputSchema, ReportLlmCallUsageResponseSchema } from "./io_pb.js";
+import type { AdjustCreditsInputSchema, AuthorizeExecutionInputSchema, AuthorizeExecutionResponseSchema, CreateCreditCheckoutSessionInputSchema, CreateCreditCheckoutSessionResponseSchema, FinalizeExecutionInputSchema, FinalizeExecutionResponseSchema, GetOrCreateBillingAccountInputSchema, ReportLlmCallUsageInputSchema, ReportLlmCallUsageResponseSchema } from "./io_pb.js";
 import { file_ai_stigmer_billing_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../commons/rpc/method_options_pb.js";
 
@@ -16,7 +16,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../commons/rpc/me
  * Describes the file ai/stigmer/billing/v1/command.proto.
  */
 export const file_ai_stigmer_billing_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CiNhaS9zdGlnbWVyL2JpbGxpbmcvdjEvY29tbWFuZC5wcm90bxIVYWkuc3RpZ21lci5iaWxsaW5nLnYxMocGChhCaWxsaW5nQ29tbWFuZENvbnRyb2xsZXISwQEKGWdldE9yQ3JlYXRlQmlsbGluZ0FjY291bnQSNS5haS5zdGlnbWVyLmJpbGxpbmcudjEuR2V0T3JDcmVhdGVCaWxsaW5nQWNjb3VudElucHV0GiUuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkJpbGxpbmdBY2NvdW50IkbCuBhCCBwQHiIGb3JnX2lkKjR1bmF1dGhvcml6ZWQgdG8gbWFuYWdlIGJpbGxpbmcgZm9yIHRoaXMgb3JnYW5pemF0aW9uEqwBCg1hZGp1c3RDcmVkaXRzEikuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkFkanVzdENyZWRpdHNJbnB1dBooLmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVkaXRMZWRnZXJFbnRyeSJGwrgYQggcEB4iBm9yZ19pZCo0dW5hdXRob3JpemVkIHRvIGFkanVzdCBjcmVkaXRzIGZvciB0aGlzIG9yZ2FuaXphdGlvbhJ9ChJhdXRob3JpemVFeGVjdXRpb24SLi5haS5zdGlnbWVyLmJpbGxpbmcudjEuQXV0aG9yaXplRXhlY3V0aW9uSW5wdXQaMS5haS5zdGlnbWVyLmJpbGxpbmcudjEuQXV0aG9yaXplRXhlY3V0aW9uUmVzcG9uc2UiBNC4GAESfQoScmVwb3J0TGxtQ2FsbFVzYWdlEi4uYWkuc3RpZ21lci5iaWxsaW5nLnYxLlJlcG9ydExsbUNhbGxVc2FnZUlucHV0GjEuYWkuc3RpZ21lci5iaWxsaW5nLnYxLlJlcG9ydExsbUNhbGxVc2FnZVJlc3BvbnNlIgTQuBgBEnoKEWZpbmFsaXplRXhlY3V0aW9uEi0uYWkuc3RpZ21lci5iaWxsaW5nLnYxLkZpbmFsaXplRXhlY3V0aW9uSW5wdXQaMC5haS5zdGlnbWVyLmJpbGxpbmcudjEuRmluYWxpemVFeGVjdXRpb25SZXNwb25zZSIE0LgYAWIGcHJvdG8z", [file_ai_stigmer_billing_v1_billing_account, file_ai_stigmer_billing_v1_credit, file_ai_stigmer_billing_v1_io, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CiNhaS9zdGlnbWVyL2JpbGxpbmcvdjEvY29tbWFuZC5wcm90bxIVYWkuc3RpZ21lci5iaWxsaW5nLnYxMuYHChhCaWxsaW5nQ29tbWFuZENvbnRyb2xsZXISwQEKGWdldE9yQ3JlYXRlQmlsbGluZ0FjY291bnQSNS5haS5zdGlnbWVyLmJpbGxpbmcudjEuR2V0T3JDcmVhdGVCaWxsaW5nQWNjb3VudElucHV0GiUuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkJpbGxpbmdBY2NvdW50IkbCuBhCCBwQHiIGb3JnX2lkKjR1bmF1dGhvcml6ZWQgdG8gbWFuYWdlIGJpbGxpbmcgZm9yIHRoaXMgb3JnYW5pemF0aW9uEqwBCg1hZGp1c3RDcmVkaXRzEikuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkFkanVzdENyZWRpdHNJbnB1dBooLmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVkaXRMZWRnZXJFbnRyeSJGwrgYQggcEB4iBm9yZ19pZCo0dW5hdXRob3JpemVkIHRvIGFkanVzdCBjcmVkaXRzIGZvciB0aGlzIG9yZ2FuaXphdGlvbhJ9ChJhdXRob3JpemVFeGVjdXRpb24SLi5haS5zdGlnbWVyLmJpbGxpbmcudjEuQXV0aG9yaXplRXhlY3V0aW9uSW5wdXQaMS5haS5zdGlnbWVyLmJpbGxpbmcudjEuQXV0aG9yaXplRXhlY3V0aW9uUmVzcG9uc2UiBNC4GAESfQoScmVwb3J0TGxtQ2FsbFVzYWdlEi4uYWkuc3RpZ21lci5iaWxsaW5nLnYxLlJlcG9ydExsbUNhbGxVc2FnZUlucHV0GjEuYWkuc3RpZ21lci5iaWxsaW5nLnYxLlJlcG9ydExsbUNhbGxVc2FnZVJlc3BvbnNlIgTQuBgBEnoKEWZpbmFsaXplRXhlY3V0aW9uEi0uYWkuc3RpZ21lci5iaWxsaW5nLnYxLkZpbmFsaXplRXhlY3V0aW9uSW5wdXQaMC5haS5zdGlnbWVyLmJpbGxpbmcudjEuRmluYWxpemVFeGVjdXRpb25SZXNwb25zZSIE0LgYARLcAQobY3JlYXRlQ3JlZGl0Q2hlY2tvdXRTZXNzaW9uEjcuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkNyZWF0ZUNyZWRpdENoZWNrb3V0U2Vzc2lvbklucHV0GjouYWkuc3RpZ21lci5iaWxsaW5nLnYxLkNyZWF0ZUNyZWRpdENoZWNrb3V0U2Vzc2lvblJlc3BvbnNlIkjCuBhECBwQHiIGb3JnX2lkKjZ1bmF1dGhvcml6ZWQgdG8gcHVyY2hhc2UgY3JlZGl0cyBmb3IgdGhpcyBvcmdhbml6YXRpb25iBnByb3RvMw", [file_ai_stigmer_billing_v1_billing_account, file_ai_stigmer_billing_v1_credit, file_ai_stigmer_billing_v1_io, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * BillingCommandController handles write operations for the billing bounded context.
@@ -24,9 +24,6 @@ export const file_ai_stigmer_billing_v1_command: GenFile = /*@__PURE__*/
  * Billing is not a standard API Resource — there is no api_resource_kind annotation.
  * RPCs authorize against the organization resource kind.
  *
- * Phase 0-2 RPCs are defined here. Stripe checkout (Phase 3),
- * auto-recharge configuration (Phase 4), and other write operations
- * are added in their respective phases.
  *
  * @generated from service ai.stigmer.billing.v1.BillingCommandController
  */
@@ -100,6 +97,20 @@ export const BillingCommandController: GenService<{
     methodKind: "unary";
     input: typeof FinalizeExecutionInputSchema;
     output: typeof FinalizeExecutionResponseSchema;
+  },
+  /**
+   * Create a Stripe Checkout Session to purchase a credit pack.
+   * Returns a checkout URL for the client to redirect the user.
+   *
+   * The caller's email is resolved server-side for Stripe Customer creation.
+   * Credits are provisioned asynchronously via the checkout.session.completed webhook.
+   *
+   * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.createCreditCheckoutSession
+   */
+  createCreditCheckoutSession: {
+    methodKind: "unary";
+    input: typeof CreateCreditCheckoutSessionInputSchema;
+    output: typeof CreateCreditCheckoutSessionResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_billing_v1_command, 0);

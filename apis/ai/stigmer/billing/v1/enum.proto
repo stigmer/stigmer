@@ -107,3 +107,24 @@ enum ExecutionBillingSignal {
   // Balance is exhausted; execution must stop gracefully.
   stop_execution = 3;
 }
+
+// CreditPurchaseStatus tracks the lifecycle of a credit pack purchase.
+//
+// A purchase begins as PENDING when the Checkout Session is created,
+// transitions to COMPLETED when payment succeeds (via webhook), or
+// to FAILED/EXPIRED if payment fails or the session expires.
+enum CreditPurchaseStatus {
+  credit_purchase_status_unspecified = 0;
+
+  // Checkout session created; awaiting customer payment.
+  credit_purchase_pending = 1;
+
+  // Payment succeeded; credits have been provisioned.
+  credit_purchase_completed = 2;
+
+  // Payment failed (card declined, insufficient funds, etc.).
+  credit_purchase_failed = 3;
+
+  // Checkout session expired without payment completion.
+  credit_purchase_expired = 4;
+}
