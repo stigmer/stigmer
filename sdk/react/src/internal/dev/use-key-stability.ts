@@ -14,6 +14,7 @@ interface KeyedItem {
  * Compares the current render's key set against the previous render's
  * and warns when:
  *
+ * - Duplicate keys exist in the current render (collision bug).
  * - A key disappears and a new key appears at the same list index
  *   (suggests a remount caused by key change, not a logical add/remove).
  * - The total number of key replacements in a single render exceeds a
@@ -26,6 +27,20 @@ export function useKeyStability(items: readonly KeyedItem[]): void {
 
   if (!DEV) return;
 
+  // Detect duplicate keys within the current render.
+  const seen = new Map<string, number>();
+  for (let i = 0; i < items.length; i++) {
+    const prevIdx = seen.get(items[i].key);
+    if (prevIdx !== undefined) {
+      console.warn(
+        `[stgm:perf:keys] Duplicate key "${items[i].key}" at indices ${prevIdx} and ${i} ` +
+          `(${items[prevIdx].kind}, ${items[i].kind}). React will silently drop one.`,
+      );
+    } else {
+      seen.set(items[i].key, i);
+    }
+  }
+
   const prev = prevRef.current;
   prevRef.current = items;
 
@@ -36,10 +51,7 @@ export function useKeyStability(items: readonly KeyedItem[]): void {
     prevKeys.set(prev[i].key, i);
   }
 
-  const curKeys = new Set<string>();
-  for (const item of items) {
-    curKeys.add(item.key);
-  }
+  const curKeys = new Set<string>(seen.keys());
 
   const removed: string[] = [];
   for (const key of prevKeys.keys()) {
