@@ -27,6 +27,7 @@ import { SandboxContext, type SandboxContextValue } from "./SandboxContext";
 import { useRenderTracer, useKeyStability, useDomNodeCount, DevProfiler } from "../internal/dev";
 import { useAutoScroll } from "../internal/useAutoScroll";
 import { JumpToLatestButton } from "../internal/JumpToLatestButton";
+import { ThreadItemWrapper } from "../internal/ThreadItemWrapper";
 
 const LazyVirtualizedThread = lazy(() =>
   import("../internal/VirtualizedThread").then((m) => ({
@@ -455,13 +456,14 @@ function NonVirtualizedThread({
         <DevProfiler id="MessageThread">
           <div ref={contentRef} className="flex flex-col gap-4">
             {items.map((item) => (
-              <ThreadItemRenderer
-                key={item.key}
-                item={item}
-                formatToolCallSummary={formatToolCallSummary}
-                onApprovalSubmit={onApprovalSubmit}
-                submittingApprovalIds={submittingApprovalIds}
-              />
+              <ThreadItemWrapper key={item.key} animate>
+                <ThreadItemRenderer
+                  item={item}
+                  formatToolCallSummary={formatToolCallSummary}
+                  onApprovalSubmit={onApprovalSubmit}
+                  submittingApprovalIds={submittingApprovalIds}
+                />
+              </ThreadItemWrapper>
             ))}
           </div>
         </DevProfiler>
@@ -469,7 +471,7 @@ function NonVirtualizedThread({
         </SandboxContext.Provider>
         <div ref={sentinelRef} aria-hidden="true" />
       </div>
-      {!isFollowing && <JumpToLatestButton onClick={jumpToLatest} />}
+      <JumpToLatestButton onClick={jumpToLatest} visible={!isFollowing} />
     </div>
   );
 }

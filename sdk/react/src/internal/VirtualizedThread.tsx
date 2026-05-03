@@ -20,6 +20,7 @@ import { FilePathContext, type FilePathContextValue } from "../execution/FilePat
 import { SandboxContext, type SandboxContextValue } from "../execution/SandboxContext";
 import { DevProfiler, useDomNodeCount } from "./dev";
 import { JumpToLatestButton } from "./JumpToLatestButton";
+import { ThreadItemWrapper } from "./ThreadItemWrapper";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -141,19 +142,21 @@ export function VirtualizedThread({
           scrollerRef={handleScrollerRef}
           className="h-full"
           components={{ Scroller: ScrollerWithA11y }}
-          itemContent={(_index, item) => (
+          itemContent={(index, item) => (
             <div className="pb-4 pt-0 first:pt-6">
-              <ThreadItemRenderer
-                item={item}
-                {...renderProps}
-              />
+              <ThreadItemWrapper animate={index >= items.length - 2}>
+                <ThreadItemRenderer
+                  item={item}
+                  {...renderProps}
+                />
+              </ThreadItemWrapper>
             </div>
           )}
         />
       </DevProfiler>
       </FilePathContext.Provider>
       </SandboxContext.Provider>
-      {!isAtBottom && <JumpToLatestButton onClick={jumpToLatest} />}
+      <JumpToLatestButton onClick={jumpToLatest} visible={!isAtBottom} />
     </>
   );
 }

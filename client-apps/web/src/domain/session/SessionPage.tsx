@@ -11,6 +11,7 @@ import {
   useSessionPageFlow,
   useGitHubConnection,
   MessageThread,
+  ThreadSkeleton,
   SessionComposer,
   ExecutionProgress,
   UsageWidget,
@@ -120,25 +121,8 @@ export function SessionPageInner({ id }: { id: string }) {
 
 export function SessionSkeleton() {
   return (
-    <div className="flex h-full flex-col gap-4 p-4" aria-busy="true">
-      <div className="animate-pulse space-y-4">
-        <div className="rounded-lg bg-muted-subtle px-4 py-3">
-          <div className="h-4 w-3/5 rounded bg-muted" />
-        </div>
-
-        <div className="space-y-2 px-4">
-          <div className="h-4 w-4/5 rounded bg-muted" />
-          <div className="h-4 w-3/5 rounded bg-muted" />
-          <div className="h-4 w-2/5 rounded bg-muted" />
-        </div>
-
-        <div className="mx-4 h-8 w-2/5 rounded-md border border-border bg-muted-subtle" />
-
-        <div className="space-y-2 px-4">
-          <div className="h-4 w-3/4 rounded bg-muted" />
-          <div className="h-4 w-1/2 rounded bg-muted" />
-        </div>
-      </div>
+    <div className="flex h-full w-full flex-col pl-[220px]">
+      <ThreadSkeleton className="flex-1 px-0" />
     </div>
   );
 }

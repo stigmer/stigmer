@@ -356,4 +356,46 @@ describe("MessageThread (virtualized)", () => {
       expect(data.map((d) => d.key)).toEqual(items.map((i) => i.key));
     });
   });
+
+  it("applies entry animation only to tail items (last 2)", async () => {
+    const execs = [
+      makeExecution("e1", "First", "Response 1"),
+      makeExecution("e2", "Second", "Response 2"),
+      makeExecution("e3", "Third", "Response 3"),
+    ];
+
+    const MessageThread = await importMessageThread();
+    render(<MessageThread executions={execs} virtualized />);
+
+    await vi.waitFor(() => {
+      const data = capturedVirtuosoProps.data as ThreadItem[];
+      expect(data.length).toBeGreaterThan(2);
+    });
+
+    const data = capturedVirtuosoProps.data as ThreadItem[];
+    const itemContent = capturedVirtuosoProps.itemContent as (
+      index: number,
+      item: ThreadItem,
+    ) => React.ReactNode;
+    const tailThreshold = data.length - 2;
+
+    // Non-tail item: no animation wrapper
+    const earlyResult = render(
+      <div data-testid="early">{itemContent(0, data[0])}</div>,
+    );
+    expect(
+      earlyResult.container.querySelector(".stgm-thread-item-enter"),
+    ).toBeNull();
+    earlyResult.unmount();
+
+    // Tail item: has animation wrapper
+    const lastIdx = data.length - 1;
+    const tailResult = render(
+      <div data-testid="tail">{itemContent(lastIdx, data[lastIdx])}</div>,
+    );
+    expect(
+      tailResult.container.querySelector(".stgm-thread-item-enter"),
+    ).toBeTruthy();
+    tailResult.unmount();
+  });
 });

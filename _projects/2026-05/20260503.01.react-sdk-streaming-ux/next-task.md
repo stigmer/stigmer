@@ -68,9 +68,30 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03
-**Current Task**: T12 (Animation & Polish — NEXT)
-**Status**: T11 complete, ready for T12
+**Current Task**: ALL PHASES COMPLETE (T02–T12)
+**Status**: Project complete — all 11 phases shipped, 453/453 tests pass
 **Research Report**: `_projects/2026-05/research.react-sdk-streaming-ux-quality/04.report.gpt.md`
+
+## Session Progress (2026-05-03, Session 11)
+
+- Implemented T12: Animation & Polish — the final phase
+- Added animation infrastructure to `sdk/react/src/styles.css`: `@keyframes stgm-fade-in-up`, `--stgm-motion-duration`/`--stgm-motion-easing` custom properties, `.stgm-thread-item-enter` utility class, all inside `@layer stgm`
+- Built `ThreadItemWrapper` (`sdk/react/src/internal/ThreadItemWrapper.tsx`) — lightweight wrapper that applies CSS entry animation on mount, removes class on `animationEnd` (300ms fallback timeout), renders children directly when `animate=false` or after animation completes (no residual wrapper div)
+- Wired entry animations into both rendering paths: non-virtualized (always animate — items mount once) and virtualized (tail-only guard: `index >= items.length - 2` — prevents Virtuoso recycled mounts from getting spurious animations)
+- Built `ThreadSkeleton` (`sdk/react/src/execution/ThreadSkeleton.tsx`) — SDK-level chat-shaped pulse skeleton (2 human bubbles + 2 AI response silhouettes), exported from SDK barrel
+- Integrated `ThreadSkeleton` into web app's `SessionSkeleton` (replaced generic pulse bars with chat-shaped placeholders)
+- Refactored `JumpToLatestButton` to always-mounted with `visible` prop — opacity/translate-y/pointer-events CSS transitions, proper `aria-hidden` and `tabIndex` toggling
+- Added `prefers-reduced-motion` global support: `@media` block zeroes all motion (`animation-duration: 0.01ms`, `transition-duration: 0.01ms`, custom properties set to `0ms`). 0.01ms (not 0ms) ensures JS event callbacks still fire
+- 14 new tests (8 ThreadItemWrapper + JumpToLatestButton, 5 ThreadSkeleton, 1 virtualized tail guard), full suite 453/453 pass, typecheck clean, lint clean
+
+### Key Design Decision: Class-Based Animation over @starting-style
+- `@starting-style` fires on every DOM insertion — correct for non-virtualized (items mount once) but wrong for virtualized (Virtuoso recycles DOM nodes on scroll)
+- Class-based approach via `ThreadItemWrapper` gives explicit control: non-virtualized always animates, virtualized only animates tail items
+
+### Key Design Decision: Skip content-visibility: auto
+- Non-virtualized path: `content-visibility: auto` collapses off-screen items to 0px height, causing scroll position jumps with variable-height chat messages
+- Virtualized path: react-virtuoso already removes off-screen items from the DOM
+- Risk/benefit ratio not justified — scroll stability is paramount
 
 ## Session Progress (2026-05-03, Session 10)
 
@@ -317,7 +338,7 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T12**: Animation & Polish — CSS row entry transitions, skeletons, `content-visibility`, `@starting-style`, `prefers-reduced-motion`
+All 11 phases (T02–T12) are complete. This project is done.
 
 ## Context for Resume
 
@@ -334,7 +355,11 @@ When starting a new session:
 - **MessageThread has a wrapper div**: Root element is now `<div className="relative min-h-0">` (positioning context). Scroll container is the child with `h-full overflow-y-auto [overflow-anchor:none]`. Consumer `className` goes on the wrapper. This is important for T11 — virtuoso will likely replace the scroll container but keep the wrapper.
 - **Virtualization is opt-in**: `MessageThread` accepts `virtualized?: boolean` (default `false`). When `true`, renders via `react-virtuoso` Virtuoso component with `alignToBottom`, `followOutput`, `computeItemKey`. `react-virtuoso` is an optional peer dep — not bundled when not used (lazy import via `React.lazy`).
 - **Two rendering paths, shared data**: `buildThreadItems` → `ThreadItem[]` is shared. `ThreadItemRenderer` is the shared rendering component. `NonVirtualizedThread` uses `useAutoScroll`. `VirtualizedThread` uses Virtuoso's scroll management.
-- **Only additive public API change**: `virtualized?: boolean` on `MessageThreadProps`. All other props unchanged. `FetchCacheProvider` remains the only non-prop public export added in this project.
+- **Only additive public API changes**: `virtualized?: boolean` on `MessageThreadProps`, `ThreadSkeleton` component export. All other props unchanged. `FetchCacheProvider` remains the only non-prop public export added before T12.
+- **Entry animations are live**: `ThreadItemWrapper` applies `.stgm-thread-item-enter` (fade-in-up, 150ms) on mount. Non-virtualized: always animate. Virtualized: only tail items (last 2) animate. Animation class removed on `animationEnd` or 300ms timeout.
+- **JumpToLatestButton is always-mounted**: Uses `visible` prop for opacity/translate transitions instead of conditional rendering. Proper `aria-hidden`/`tabIndex` toggling.
+- **`prefers-reduced-motion` is live**: Global `@media` block in `styles.css` zeroes all motion (animation-duration, transition-duration, custom properties). 0.01ms ensures JS callbacks fire.
+- **ThreadSkeleton available**: Chat-shaped pulse skeleton component for loading states. Used by web app `SessionSkeleton`.
 - **startTransition in place**: Thread renders are non-urgent.
 - **Instrumentation is live**: `[stgm:perf:stream]` console logs still fire during streaming.
 
@@ -352,12 +377,11 @@ When starting a new session:
 | 7 | T09 | Composer Isolation | High | **Done** |
 | 8 | T10 | Auto-Scroll State Machine | High | **Done** |
 | 9 | T11 | Virtualization (react-virtuoso) | High | **Done** |
-| 10 | T12 | Animation & Polish | Medium | Pending |
+| 10 | T12 | Animation & Polish | Medium | **Done** |
 
 ## Quick Commands
 
 After loading context:
-- "Start T12" - Begin animation & polish
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
