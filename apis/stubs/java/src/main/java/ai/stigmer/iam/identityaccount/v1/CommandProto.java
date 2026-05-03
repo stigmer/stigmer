@@ -41,46 +41,42 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "_service_options.proto\032+ai/stigmer/commo" +
       "ns/rpc/method_options.proto\032+ai/stigmer/" +
       "iam/identityaccount/v1/api.proto\032*ai/sti" +
-      "gmer/iam/identityaccount/v1/io.proto\032\033go" +
-      "ogle/protobuf/empty.proto2\223\n\n IdentityAc" +
-      "countCommandController\022v\n\006create\0222.ai.st" +
-      "igmer.iam.identityaccount.v1.IdentityAcc" +
-      "ount\0322.ai.stigmer.iam.identityaccount.v1" +
-      ".IdentityAccount\"\004\320\270\030\001\022\260\001\n\006update\0222.ai.s" +
-      "tigmer.iam.identityaccount.v1.IdentityAc" +
-      "count\0322.ai.stigmer.iam.identityaccount.v" +
-      "1.IdentityAccount\">\302\270\030:\010\002\020\013\"\013metadata.id" +
-      "*\'unauthorized to update identity accoun" +
-      "t\022\254\001\n\006delete\0224.ai.stigmer.iam.identityac" +
-      "count.v1.IdentityAccountId\0322.ai.stigmer." +
-      "iam.identityaccount.v1.IdentityAccount\"8" +
-      "\302\270\0304\010\003\020\013\"\005value*\'unauthorized to delete " +
-      "identity account\022\332\001\n\026createFederatedAcco" +
-      "unt\022>.ai.stigmer.iam.identityaccount.v1." +
-      "CreateFederatedAccountInput\0322.ai.stigmer" +
-      ".iam.identityaccount.v1.IdentityAccount\"" +
-      "L\302\270\030H\010\025\020\036\"\003org*=unauthorized to create i" +
-      "dentity accounts in this organization\022\332\001" +
-      "\n\026updateFederatedAccount\022>.ai.stigmer.ia" +
-      "m.identityaccount.v1.UpdateFederatedAcco" +
-      "untInput\0322.ai.stigmer.iam.identityaccoun" +
-      "t.v1.IdentityAccount\"L\302\270\030H\010\025\020\036\"\003org*=una" +
-      "uthorized to manage identity accounts in" +
-      " this organization\022\344\001\n\033deprovisionFedera" +
-      "tedAccount\022C.ai.stigmer.iam.identityacco" +
-      "unt.v1.DeprovisionFederatedAccountInput\032" +
-      "2.ai.stigmer.iam.identityaccount.v1.Iden" +
-      "tityAccount\"L\302\270\030H\010\025\020\036\"\003org*=unauthorized" +
-      " to manage identity accounts in this org" +
-      "anization\022n\n\025simulateSignupWebhook\0227.ai." +
-      "stigmer.iam.identityaccount.v1.IdentityA" +
-      "ccountEmail\032\026.google.protobuf.Empty\"\004\320\270\030" +
-      "\001\032\004\240\377+\013B\267\001B\014CommandProtoP\001\242\002\004ASII\252\002!Ai.S" +
-      "tigmer.Iam.Identityaccount.V1\312\002!Ai\\Stigm" +
-      "er\\Iam\\Identityaccount\\V1\342\002-Ai\\Stigmer\\I" +
-      "am\\Identityaccount\\V1\\GPBMetadata\352\002%Ai::" +
-      "Stigmer::Iam::Identityaccount::V1b\006proto" +
-      "3"
+      "gmer/iam/identityaccount/v1/io.proto2\243\t\n" +
+      " IdentityAccountCommandController\022v\n\006cre" +
+      "ate\0222.ai.stigmer.iam.identityaccount.v1." +
+      "IdentityAccount\0322.ai.stigmer.iam.identit" +
+      "yaccount.v1.IdentityAccount\"\004\320\270\030\001\022\260\001\n\006up" +
+      "date\0222.ai.stigmer.iam.identityaccount.v1" +
+      ".IdentityAccount\0322.ai.stigmer.iam.identi" +
+      "tyaccount.v1.IdentityAccount\">\302\270\030:\010\002\020\013\"\013" +
+      "metadata.id*\'unauthorized to update iden" +
+      "tity account\022\254\001\n\006delete\0224.ai.stigmer.iam" +
+      ".identityaccount.v1.IdentityAccountId\0322." +
+      "ai.stigmer.iam.identityaccount.v1.Identi" +
+      "tyAccount\"8\302\270\0304\010\003\020\013\"\005value*\'unauthorized" +
+      " to delete identity account\022\332\001\n\026createFe" +
+      "deratedAccount\022>.ai.stigmer.iam.identity" +
+      "account.v1.CreateFederatedAccountInput\0322" +
+      ".ai.stigmer.iam.identityaccount.v1.Ident" +
+      "ityAccount\"L\302\270\030H\010\025\020\036\"\003org*=unauthorized " +
+      "to create identity accounts in this orga" +
+      "nization\022\332\001\n\026updateFederatedAccount\022>.ai" +
+      ".stigmer.iam.identityaccount.v1.UpdateFe" +
+      "deratedAccountInput\0322.ai.stigmer.iam.ide" +
+      "ntityaccount.v1.IdentityAccount\"L\302\270\030H\010\025\020" +
+      "\036\"\003org*=unauthorized to manage identity " +
+      "accounts in this organization\022\344\001\n\033deprov" +
+      "isionFederatedAccount\022C.ai.stigmer.iam.i" +
+      "dentityaccount.v1.DeprovisionFederatedAc" +
+      "countInput\0322.ai.stigmer.iam.identityacco" +
+      "unt.v1.IdentityAccount\"L\302\270\030H\010\025\020\036\"\003org*=u" +
+      "nauthorized to manage identity accounts " +
+      "in this organization\032\004\240\377+\013B\267\001B\014CommandPr" +
+      "otoP\001\242\002\004ASII\252\002!Ai.Stigmer.Iam.Identityac" +
+      "count.V1\312\002!Ai\\Stigmer\\Iam\\Identityaccoun" +
+      "t\\V1\342\002-Ai\\Stigmer\\Iam\\Identityaccount\\V1" +
+      "\\GPBMetadata\352\002%Ai::Stigmer::Iam::Identit" +
+      "yaccount::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -89,14 +85,12 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
           ai.stigmer.iam.identityaccount.v1.ApiProto.getDescriptor(),
           ai.stigmer.iam.identityaccount.v1.IoProto.getDescriptor(),
-          com.google.protobuf.EmptyProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     ai.stigmer.iam.identityaccount.v1.ApiProto.getDescriptor();
     ai.stigmer.iam.identityaccount.v1.IoProto.getDescriptor();
-    com.google.protobuf.EmptyProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);

@@ -4,7 +4,6 @@ import grpc
 
 from ai.stigmer.iam.identityaccount.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2
 from ai.stigmer.iam.identityaccount.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2
-from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
 class IdentityAccountCommandControllerStub(object):
@@ -47,11 +46,6 @@ class IdentityAccountCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.DeprovisionFederatedAccountInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
                 _registered_method=True)
-        self.simulateSignupWebhook = channel.unary_unary(
-                '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/simulateSignupWebhook',
-                request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdentityAccountEmail.SerializeToString,
-                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-                _registered_method=True)
 
 
 class IdentityAccountCommandControllerServicer(object):
@@ -62,7 +56,7 @@ class IdentityAccountCommandControllerServicer(object):
         """Create a new identity account.
 
         @internal
-        System-level RPC used by Auth0 webhook flow and federated account creation.
+        System-level RPC used by federated account creation and bootstrap migrations.
         No FGA authorization — called via inProcessChannelAsSystem (machine account).
         The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
         """
@@ -138,18 +132,6 @@ class IdentityAccountCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def simulateSignupWebhook(self, request, context):
-        """Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
-
-        @internal
-        Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
-        to Stigmer with the Auth0 payload format to trigger account provisioning.
-        Authorization is skipped — this is a system-level operation.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
 
 def add_IdentityAccountCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -182,11 +164,6 @@ def add_IdentityAccountCommandControllerServicer_to_server(servicer, server):
                     servicer.deprovisionFederatedAccount,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.DeprovisionFederatedAccountInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
-            ),
-            'simulateSignupWebhook': grpc.unary_unary_rpc_method_handler(
-                    servicer.simulateSignupWebhook,
-                    request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdentityAccountEmail.FromString,
-                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -352,33 +329,6 @@ class IdentityAccountCommandController(object):
             '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/deprovisionFederatedAccount',
             ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.DeprovisionFederatedAccountInput.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def simulateSignupWebhook(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/simulateSignupWebhook',
-            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.IdentityAccountEmail.SerializeToString,
-            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
             options,
             channel_credentials,
             insecure,

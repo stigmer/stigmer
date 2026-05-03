@@ -201,37 +201,6 @@ public final class IdentityAccountCommandControllerGrpc {
     return getDeprovisionFederatedAccountMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail,
-      com.google.protobuf.Empty> getSimulateSignupWebhookMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "simulateSignupWebhook",
-      requestType = ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail.class,
-      responseType = com.google.protobuf.Empty.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail,
-      com.google.protobuf.Empty> getSimulateSignupWebhookMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail, com.google.protobuf.Empty> getSimulateSignupWebhookMethod;
-    if ((getSimulateSignupWebhookMethod = IdentityAccountCommandControllerGrpc.getSimulateSignupWebhookMethod) == null) {
-      synchronized (IdentityAccountCommandControllerGrpc.class) {
-        if ((getSimulateSignupWebhookMethod = IdentityAccountCommandControllerGrpc.getSimulateSignupWebhookMethod) == null) {
-          IdentityAccountCommandControllerGrpc.getSimulateSignupWebhookMethod = getSimulateSignupWebhookMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail, com.google.protobuf.Empty>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "simulateSignupWebhook"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.google.protobuf.Empty.getDefaultInstance()))
-              .setSchemaDescriptor(new IdentityAccountCommandControllerMethodDescriptorSupplier("simulateSignupWebhook"))
-              .build();
-        }
-      }
-    }
-    return getSimulateSignupWebhookMethod;
-  }
-
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -302,7 +271,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * <pre>
      * Create a new identity account.
      * &#64;internal
-     * System-level RPC used by Auth0 webhook flow and federated account creation.
+     * System-level RPC used by federated account creation and bootstrap migrations.
      * No FGA authorization — called via inProcessChannelAsSystem (machine account).
      * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      * </pre>
@@ -383,20 +352,6 @@ public final class IdentityAccountCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDeprovisionFederatedAccountMethod(), responseObserver);
     }
-
-    /**
-     * <pre>
-     * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
-     * &#64;internal
-     * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
-     * to Stigmer with the Auth0 payload format to trigger account provisioning.
-     * Authorization is skipped — this is a system-level operation.
-     * </pre>
-     */
-    default void simulateSignupWebhook(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request,
-        io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSimulateSignupWebhookMethod(), responseObserver);
-    }
   }
 
   /**
@@ -436,7 +391,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * <pre>
      * Create a new identity account.
      * &#64;internal
-     * System-level RPC used by Auth0 webhook flow and federated account creation.
+     * System-level RPC used by federated account creation and bootstrap migrations.
      * No FGA authorization — called via inProcessChannelAsSystem (machine account).
      * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      * </pre>
@@ -523,21 +478,6 @@ public final class IdentityAccountCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getDeprovisionFederatedAccountMethod(), getCallOptions()), request, responseObserver);
     }
-
-    /**
-     * <pre>
-     * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
-     * &#64;internal
-     * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
-     * to Stigmer with the Auth0 payload format to trigger account provisioning.
-     * Authorization is skipped — this is a system-level operation.
-     * </pre>
-     */
-    public void simulateSignupWebhook(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request,
-        io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getSimulateSignupWebhookMethod(), getCallOptions()), request, responseObserver);
-    }
   }
 
   /**
@@ -563,7 +503,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * <pre>
      * Create a new identity account.
      * &#64;internal
-     * System-level RPC used by Auth0 webhook flow and federated account creation.
+     * System-level RPC used by federated account creation and bootstrap migrations.
      * No FGA authorization — called via inProcessChannelAsSystem (machine account).
      * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      * </pre>
@@ -644,20 +584,6 @@ public final class IdentityAccountCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getDeprovisionFederatedAccountMethod(), getCallOptions(), request);
     }
-
-    /**
-     * <pre>
-     * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
-     * &#64;internal
-     * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
-     * to Stigmer with the Auth0 payload format to trigger account provisioning.
-     * Authorization is skipped — this is a system-level operation.
-     * </pre>
-     */
-    public com.google.protobuf.Empty simulateSignupWebhook(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getSimulateSignupWebhookMethod(), getCallOptions(), request);
-    }
   }
 
   /**
@@ -683,7 +609,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * <pre>
      * Create a new identity account.
      * &#64;internal
-     * System-level RPC used by Auth0 webhook flow and federated account creation.
+     * System-level RPC used by federated account creation and bootstrap migrations.
      * No FGA authorization — called via inProcessChannelAsSystem (machine account).
      * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      * </pre>
@@ -764,20 +690,6 @@ public final class IdentityAccountCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getDeprovisionFederatedAccountMethod(), getCallOptions(), request);
     }
-
-    /**
-     * <pre>
-     * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
-     * &#64;internal
-     * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
-     * to Stigmer with the Auth0 payload format to trigger account provisioning.
-     * Authorization is skipped — this is a system-level operation.
-     * </pre>
-     */
-    public com.google.protobuf.Empty simulateSignupWebhook(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getSimulateSignupWebhookMethod(), getCallOptions(), request);
-    }
   }
 
   /**
@@ -803,7 +715,7 @@ public final class IdentityAccountCommandControllerGrpc {
      * <pre>
      * Create a new identity account.
      * &#64;internal
-     * System-level RPC used by Auth0 webhook flow and federated account creation.
+     * System-level RPC used by federated account creation and bootstrap migrations.
      * No FGA authorization — called via inProcessChannelAsSystem (machine account).
      * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      * </pre>
@@ -890,21 +802,6 @@ public final class IdentityAccountCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getDeprovisionFederatedAccountMethod(), getCallOptions()), request);
     }
-
-    /**
-     * <pre>
-     * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
-     * &#64;internal
-     * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
-     * to Stigmer with the Auth0 payload format to trigger account provisioning.
-     * Authorization is skipped — this is a system-level operation.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<com.google.protobuf.Empty> simulateSignupWebhook(
-        ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getSimulateSignupWebhookMethod(), getCallOptions()), request);
-    }
   }
 
   private static final int METHODID_CREATE = 0;
@@ -913,7 +810,6 @@ public final class IdentityAccountCommandControllerGrpc {
   private static final int METHODID_CREATE_FEDERATED_ACCOUNT = 3;
   private static final int METHODID_UPDATE_FEDERATED_ACCOUNT = 4;
   private static final int METHODID_DEPROVISION_FEDERATED_ACCOUNT = 5;
-  private static final int METHODID_SIMULATE_SIGNUP_WEBHOOK = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -955,10 +851,6 @@ public final class IdentityAccountCommandControllerGrpc {
         case METHODID_DEPROVISION_FEDERATED_ACCOUNT:
           serviceImpl.deprovisionFederatedAccount((ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount>) responseObserver);
-          break;
-        case METHODID_SIMULATE_SIGNUP_WEBHOOK:
-          serviceImpl.simulateSignupWebhook((ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail) request,
-              (io.grpc.stub.StreamObserver<com.google.protobuf.Empty>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -1020,13 +912,6 @@ public final class IdentityAccountCommandControllerGrpc {
               ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput,
               ai.stigmer.iam.identityaccount.v1.IdentityAccount>(
                 service, METHODID_DEPROVISION_FEDERATED_ACCOUNT)))
-        .addMethod(
-          getSimulateSignupWebhookMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail,
-              com.google.protobuf.Empty>(
-                service, METHODID_SIMULATE_SIGNUP_WEBHOOK)))
         .build();
   }
 
@@ -1081,7 +966,6 @@ public final class IdentityAccountCommandControllerGrpc {
               .addMethod(getCreateFederatedAccountMethod())
               .addMethod(getUpdateFederatedAccountMethod())
               .addMethod(getDeprovisionFederatedAccountMethod())
-              .addMethod(getSimulateSignupWebhookMethod())
               .build();
         }
       }

@@ -63,12 +63,6 @@ public final class IdentityAccountClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public void simulateSignupWebhook(IdentityAccountEmail input) {
-        try {
-            command.simulateSignupWebhook(input);
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
     public IdentityAccount get(String id) {
         try {
             return query.get(IdentityAccountId.newBuilder().setValue(id).build());

@@ -4,8 +4,8 @@
 // @ts-nocheck
 
 import { IdentityAccount } from "./api_pbjs";
-import { Empty, MethodKind } from "@bufbuild/protobuf";
-import { CreateFederatedAccountInput, DeprovisionFederatedAccountInput, IdentityAccountEmail, IdentityAccountId, UpdateFederatedAccountInput } from "./io_pbjs";
+import { MethodKind } from "@bufbuild/protobuf";
+import { CreateFederatedAccountInput, DeprovisionFederatedAccountInput, IdentityAccountId, UpdateFederatedAccountInput } from "./io_pbjs";
 
 /**
  * IdentityAccountCommandController handles write operations for identity accounts.
@@ -19,7 +19,7 @@ export const IdentityAccountCommandController = {
      * Create a new identity account.
      *
      * @internal
-     * System-level RPC used by Auth0 webhook flow and federated account creation.
+     * System-level RPC used by federated account creation and bootstrap migrations.
      * No FGA authorization — called via inProcessChannelAsSystem (machine account).
      * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      *
@@ -117,22 +117,6 @@ export const IdentityAccountCommandController = {
       name: "deprovisionFederatedAccount",
       I: DeprovisionFederatedAccountInput,
       O: IdentityAccount,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
-     *
-     * @internal
-     * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
-     * to Stigmer with the Auth0 payload format to trigger account provisioning.
-     * Authorization is skipped — this is a system-level operation.
-     *
-     * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.simulateSignupWebhook
-     */
-    simulateSignupWebhook: {
-      name: "simulateSignupWebhook",
-      I: IdentityAccountEmail,
-      O: Empty,
       kind: MethodKind.Unary,
     },
   }
