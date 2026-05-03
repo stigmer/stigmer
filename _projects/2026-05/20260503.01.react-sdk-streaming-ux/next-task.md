@@ -68,9 +68,33 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03
-**Current Task**: T05 (Row-Level Subscriptions & Memoization — NEXT)
-**Status**: T04 complete, ready for T05
+**Current Task**: T06 (Stream Controller State Machine — NEXT)
+**Status**: T05 complete, ready for T06
 **Research Report**: `_projects/2026-05/research.react-sdk-streaming-ux-quality/04.report.gpt.md`
+
+## Session Progress (2026-05-03, Session 4)
+
+- Implemented T05: Row-Level Memoization via React.memo + Structural Sharing
+- Architecture decision: chose `React.memo` on leaf components over store-backed `ThreadRow` subscriptions (deferred to T11 for virtualization)
+- Wrapped 6 components in `React.memo`: `MessageEntry`, `ToolCallGroup` (custom `areEqual`), `SubAgentSection`, `ApprovalCard`, `SetupProgress`, `ExecutionPhaseBadge`
+- Extracted `ApprovalCardRow` wrapper in `MessageThread` to stabilize the `onSubmit` callback (inline closure was defeating memo on every render)
+- Optimized `buildThreadItems` to reuse `msg.toolCalls` array directly when no `task` tool calls are present (common case), preserving the structurally shared reference
+- Exported `toolCallGroupPropsEqual` from `ToolCallGroup` for direct testing
+- 13 new tests in `thread-memoization.test.ts` (areEqual unit tests + structural sharing integration)
+- Full suite 313/313 pass, typecheck clean, lint clean
+
+### Key Design Decision: React.memo vs Store-Backed Subscriptions
+- Original T05 plan proposed `ThreadRow` subscribing to `ConversationStore` independently (selector pattern)
+- Rejected because: (1) `ConversationStore` holds domain state (`AgentExecution`), thread items are presentation — conflates layers, (2) adding a `ThreadItemStore` is significant complexity without proportional benefit at this stage
+- Chose `React.memo` on leaf components relying on T04's structural sharing for reference stability
+- Same optimization outcome: during streaming, only the actively changing row re-renders
+- Store-backed subscriptions deferred to T11 where virtualization demands independent data access per row
+
+### Key Design Decision: Custom areEqual for ToolCallGroup
+- `buildThreadItems` creates a new `regularTools` subset array (filtering out `task` calls)
+- Even with structural sharing, the array container is new — default `React.memo` comparison fails
+- Custom `toolCallGroupPropsEqual` compares array elements by reference (O(k), k typically 1-5)
+- Optimization: when no `task` tools exist (common case), `msg.toolCalls` is passed directly, making even the custom comparison unnecessary
 
 ## Session Progress (2026-05-03, Session 3)
 
@@ -127,20 +151,19 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T05**: Row-Level Subscriptions & Memoization — `MessageThread` subscribes to `threadItemIds`, `ThreadRow` subscribes by item ID, `React.memo` on leaf components
-2. **T06**: Stream Controller State Machine — rewrite `useExecutionStream` with rAF coalescing, `startTransition`, finite state machine
-3. **T07**: Streaming Markdown (Streamdown) — split-path rendering for active vs completed messages
+1. **T06**: Stream Controller State Machine — rewrite `useExecutionStream` with rAF coalescing, `startTransition`, finite state machine
+2. **T07**: Streaming Markdown (Streamdown) — split-path rendering for active vs completed messages
+3. **T08**: Data Fetching / Cache Fix — TanStack Query or keyed cache for session navigation
 
 ## Context for Resume
 
-- **Store infrastructure is ready**: `ConversationStore` + `structuralShare` + React hooks exist in `sdk/react/src/internal/store/`
-- **Structural sharing is live**: `useSessionConversation` applies it to `stream.execution` before passing to `MessageThread`
-- **No public API changes**: All new code is internal to the SDK. `UseSessionConversationReturn`, `UseExecutionStreamReturn`, `MessageThreadProps` unchanged.
-- **Store is ready for T05**: `ConversationStoreContext` and selector hooks exist for `MessageThread` rows to subscribe to in T05
-- **rAF coalescing deferred**: `useExecutionStream` is untouched. T06 will rewrite it with store-backed ingestion, rAF coalescing, and `startTransition`
-- Instrumentation is live: browser console shows `[stgm:perf:*]` during streaming
-- Key stability warnings from `useKeyStability` should now be SILENT during normal streaming (T03 fixed the instability)
-- `buildThreadItems` is now exported (for testing) — not in public API barrel
+- **Memoization is live**: All leaf thread components (`MessageEntry`, `ToolCallGroup`, `SubAgentSection`, `ApprovalCard`, `SetupProgress`, `ExecutionPhaseBadge`) are wrapped in `React.memo`
+- **Structural sharing + memo = render optimization**: During streaming, completed rows skip re-render entirely. Only the actively changing row (streaming AI message) re-renders.
+- **Store infrastructure ready but unused for rendering**: `ConversationStore` exists but rendering still flows through props. Store-backed `ThreadRow` subscriptions deferred to T11 (virtualization).
+- **No public API changes**: All changes are internal. `MessageThreadProps`, `MessageEntryProps`, `ToolCallGroupProps`, etc. unchanged.
+- **rAF coalescing deferred**: `useExecutionStream` is untouched. T06 will rewrite it with rAF coalescing and `startTransition`
+- **`toolCallGroupPropsEqual` exported for testing**: Not in public API barrel, but available for direct unit testing
+- Instrumentation is live: browser console shows `[stgm:perf:*]` during streaming. `useRenderTracer` inside memoized components now only fires when the component actually re-renders.
 
 ## Phase Overview (11 Phases)
 
@@ -149,7 +172,7 @@ When starting a new session:
 | 0 | T02 | Instrument & Baseline | High | **Done** |
 | 1 | T03 | Fix Keys & Pending Reconciliation | Very High | **Done** |
 | 2 | T04 | Structural-Sharing Store (ConversationStore) | **Highest** | **Done** |
-| 3 | T05 | Row-Level Subscriptions & Memoization | High | Pending |
+| 3 | T05 | Row-Level Memoization (React.memo) | High | **Done** |
 | 4 | T06 | Stream Controller State Machine | High | Pending |
 | 5 | T07 | Streaming Markdown (Streamdown) | High | Pending |
 | 6 | T08 | Data Fetching / Cache Fix | Very High | Pending |
@@ -161,7 +184,7 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Start T05" - Begin row-level subscriptions and memoization
+- "Start T06" - Begin stream controller state machine
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import Markdown from "react-markdown";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -28,6 +28,10 @@ export interface MessageEntryProps {
  * - `MESSAGE_TOOL` / `UNSPECIFIED` — renders nothing (tool results are
  *   consumed by {@link ToolCallGroup})
  *
+ * Wrapped in `React.memo` — structural sharing (T04) guarantees that
+ * unchanged messages keep the same object reference, so completed
+ * messages skip re-renders entirely during streaming.
+ *
  * Purely presentational — no data fetching, no state.
  * All visual properties flow through `--stgm-*` tokens.
  *
@@ -36,7 +40,10 @@ export interface MessageEntryProps {
  * <MessageEntry message={agentMessage} />
  * ```
  */
-export function MessageEntry({ message, className }: MessageEntryProps) {
+export const MessageEntry = memo(function MessageEntry({
+  message,
+  className,
+}: MessageEntryProps) {
   useRenderTracer("MessageEntry", {
     messageType: message.type,
     contentLength: message.content.length,
@@ -67,7 +74,7 @@ export function MessageEntry({ message, className }: MessageEntryProps) {
     default:
       return null;
   }
-}
+});
 
 function HumanMessage({
   content,

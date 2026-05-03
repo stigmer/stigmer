@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -56,6 +56,10 @@ export interface SubAgentSectionProps {
  * the sub-agent's internal messages and tool calls — the same
  * building blocks used by the top-level {@link MessageThread}.
  *
+ * Wrapped in `React.memo` — structural sharing (T04) preserves the
+ * `SubAgentExecution` reference when the sub-agent's state is
+ * unchanged, so completed sub-agents skip re-renders entirely.
+ *
  * @example
  * ```tsx
  * // Standalone collapsible card (default)
@@ -65,7 +69,7 @@ export interface SubAgentSectionProps {
  * <SubAgentSection subAgentExecution={sub} collapsible={false} />
  * ```
  */
-export function SubAgentSection({
+export const SubAgentSection = memo(function SubAgentSection({
   subAgentExecution: sub,
   collapsible = true,
   className,
@@ -105,7 +109,7 @@ export function SubAgentSection({
       className={className}
     />
   );
-}
+});
 
 // ---------------------------------------------------------------------------
 // Collapsible card — progressive disclosure (default mode)

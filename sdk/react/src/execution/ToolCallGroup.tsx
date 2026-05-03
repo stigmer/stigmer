@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import {
@@ -133,6 +133,32 @@ const STATUS_COLOR: Record<AggregateStatus, string> = {
 };
 
 /**
+ * Shallow comparison for `ToolCallGroupProps`.
+ *
+ * The `toolCalls` array may be a newly allocated subset (e.g.
+ * `buildThreadItems` filters out `task` calls). Structural sharing
+ * (T04) keeps individual `ToolCall` objects stable, so we compare
+ * array elements by reference rather than the array itself.
+ *
+ * @internal Exported for testing — not part of the public API.
+ */
+export function toolCallGroupPropsEqual(
+  prev: Readonly<ToolCallGroupProps>,
+  next: Readonly<ToolCallGroupProps>,
+): boolean {
+  if (prev.toolCalls.length !== next.toolCalls.length) return false;
+  for (let i = 0; i < prev.toolCalls.length; i++) {
+    if (prev.toolCalls[i] !== next.toolCalls[i]) return false;
+  }
+  return (
+    prev.subAgentExecutions === next.subAgentExecutions &&
+    prev.formatSummary === next.formatSummary &&
+    prev.defaultExpanded === next.defaultExpanded &&
+    prev.className === next.className
+  );
+}
+
+/**
  * Renders a summary line for a group of tool calls from a single
  * AI turn. Click to expand and see individual tool calls.
  *
@@ -147,12 +173,16 @@ const STATUS_COLOR: Record<AggregateStatus, string> = {
  * (e.g., "Shell: ls -la /tmp"). Platform builders can override
  * via the `formatSummary` prop.
  *
+ * Wrapped in `React.memo` with a custom comparator that checks
+ * `toolCalls` elements by reference (structural sharing keeps
+ * individual `ToolCall` objects stable for unchanged calls).
+ *
  * @example
  * ```tsx
  * <ToolCallGroup toolCalls={message.toolCalls} />
  * ```
  */
-export function ToolCallGroup({
+export const ToolCallGroup = memo(function ToolCallGroup({
   toolCalls,
   subAgentExecutions,
   formatSummary,
@@ -248,7 +278,7 @@ export function ToolCallGroup({
       </div>
     </div>
   );
-}
+}, toolCallGroupPropsEqual);
 
 // ---------------------------------------------------------------------------
 // Inline SVG icons — same as SP1, kept inline for SDK independence
