@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03 09:55
-**Current Task**: T01 — Phase 3 Complete (Stripe Credit Purchases)
-**Status**: Phase 3.5 Complete — Reconciliation Job
+**Current Task**: T01 — Phase 3 Complete + Ops Setup Done
+**Status**: Phase 3 Fully Complete — Ready for Phase 4 (Auto-Recharge)
 
 ## Session Progress (2026-05-03)
 
@@ -544,6 +544,21 @@ When starting a new session:
 - Reconciliation logic: DB scan → per-purchase Stripe session retrieve → route by session status → provision/expire/fail/skip
 - Double-idempotent: purchase status guard + CreditLedgerService idempotency_key dedup
 - All Phase 3 (Stripe Credit Purchases) is now complete — 5/5 sub-phases done
+
+### Stripe Ops Setup Completed (Session 2)
+- Created Stripe account "Stigmer, Inc." in Stripe Dashboard (Live mode)
+- Configured Stripe Tax: head office US (Indiana), product category "Digital products > Business and web services", automatic tax determination
+- Created webhook endpoint in Stripe Dashboard for `checkout.session.completed`, `async_payment_succeeded`, `async_payment_failed`, `checkout.session.expired`
+- Created `stripe` secrets group in Planton (`secgrp_01kqpvrhxr1y0dw04pzwbr3n2z`) with `prod.secret-key` and `prod.webhook-secret`
+- Added `STIGMER_STRIPE_SECRET_KEY` and `STIGMER_STRIPE_WEBHOOK_SECRET` to kustomize base service.yaml for pod injection
+- Committed to stigmer-cloud: `443a2f4d chore(billing): add Stripe secrets group and wire env vars to deployment`
+- **Manual ops for Phase 3 are now fully complete** — next deployment will have Stripe credentials
+
+### Key Ops Decisions
+- Single Stripe account "Stigmer, Inc." covers all future products (shared API keys, Stripe Customers, tax config)
+- Separate Products/Prices per product line, but same account
+- Webhook signing secret per endpoint (one endpoint per service/environment)
+- Secrets stored in Planton secrets group, injected via kustomize as K8s secrets
 
 ## Quick Commands
 
