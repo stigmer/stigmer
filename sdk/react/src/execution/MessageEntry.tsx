@@ -1,11 +1,11 @@
 "use client";
 
 import { memo, useState } from "react";
-import Markdown from "react-markdown";
+import { Streamdown } from "streamdown";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-components";
+import { MARKDOWN_COMPONENTS } from "../internal/markdown-components";
 import { useRenderTracer } from "../internal/dev";
 
 /** Props for {@link MessageEntry}. */
@@ -20,8 +20,8 @@ export interface MessageEntryProps {
  * Renders a single message in the conversation thread.
  *
  * - `MESSAGE_HUMAN` — plain text with muted background
- * - `MESSAGE_AI` — markdown-rendered via `react-markdown` + `remark-gfm`,
- *   with a blinking cursor while streaming
+ * - `MESSAGE_AI` — markdown-rendered via Streamdown with block-level
+ *   memoization and streaming-aware incomplete-syntax healing
  * - `MESSAGE_THINKING` — collapsible thinking block with subdued styling,
  *   collapsed by default showing a brief summary
  * - `MESSAGE_SYSTEM` — small muted text
@@ -113,18 +113,13 @@ function AiMessage({
       className={cn("px-4 py-3", className)}
     >
       <div className="stgm-prose">
-        <Markdown
-          remarkPlugins={REMARK_PLUGINS}
+        <Streamdown
           components={MARKDOWN_COMPONENTS}
+          isAnimating={isStreaming}
+          caret="block"
         >
           {content}
-        </Markdown>
-        {isStreaming && (
-          <span
-            className="inline-block w-[2px] h-[1em] bg-foreground align-text-bottom animate-pulse ml-0.5"
-            aria-hidden="true"
-          />
-        )}
+        </Streamdown>
       </div>
     </div>
   );

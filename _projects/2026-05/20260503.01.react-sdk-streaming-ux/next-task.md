@@ -68,9 +68,30 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03
-**Current Task**: T07 (Streaming Markdown — NEXT)
-**Status**: T06 complete, ready for T07
+**Current Task**: T08 (Data Fetching / Cache Fix — NEXT)
+**Status**: T07 complete, ready for T08
 **Research Report**: `_projects/2026-05/research.react-sdk-streaming-ux-quality/04.report.gpt.md`
+
+## Session Progress (2026-05-03, Session 6)
+
+- Implemented T07: Streaming Markdown (Streamdown)
+- Replaced `react-markdown` with Vercel's `Streamdown` in `AiMessage` — block-level memoization, incomplete-syntax healing via `remend`, built-in caret
+- Added `streamdown ^2.5.0` dependency, Tailwind `@source` directive
+- `MARKDOWN_COMPONENTS` (typed as `Components` from `react-markdown`) accepted by Streamdown without type errors
+- Removed manual pulsing caret — Streamdown renders `▋` via CSS `::after` when `isAnimating` is true
+- Kept `react-markdown` + `remark-gfm` for static consumers (`SkillDetailView`, `ArtifactContentRenderer`)
+- 17 new MessageEntry tests, full suite 364/364 pass, typecheck clean, lint clean
+
+### Key Design Decision: Streamdown for AiMessage Only
+- `SkillDetailView` and `ArtifactContentRenderer` render static, complete markdown — `react-markdown` is the right tool
+- Streamdown is only needed where content streams incrementally (the `AiMessage` path)
+- Keeps blast radius minimal; future migration to Streamdown `mode="static"` possible but not T07 scope
+
+### Key Design Decision: Built-in Block Caret
+- Old caret: 2px `<span>` with `animate-pulse` appended after `<Markdown>` output
+- New caret: Streamdown `caret="block"` renders `▋` (U+258B) as CSS `::after` on the last block
+- Standard AI chat pattern (ChatGPT, Claude) — no extra DOM element, no animation spans
+- Appears only when `isAnimating={true}`, removed entirely when streaming ends
 
 ## Session Progress (2026-05-03, Session 5)
 
@@ -178,18 +199,19 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T07**: Streaming Markdown (Streamdown) — split-path rendering for active vs completed messages
-2. **T08**: Data Fetching / Cache Fix — TanStack Query or keyed cache for session navigation
-3. **T09**: Composer Isolation — move composer out of stream-rendering path
+1. **T08**: Data Fetching / Cache Fix — TanStack Query or keyed cache for session navigation
+2. **T09**: Composer Isolation — move composer out of stream-rendering path
+3. **T10**: Auto-Scroll State Machine — IntersectionObserver + follow mode
 
 ## Context for Resume
 
-- **Stream controller is live**: `useExecutionStream` now uses `StreamController` (FSM) + rAF coalescing + `startTransition`. React commits at most once per display frame during streaming.
-- **ConversationStore is the source of truth**: `useExecutionStream` feeds the store directly. `useSessionConversation` shares its store via the `store` option. No more duplicate structural sharing.
-- **Memoization is live**: All leaf thread components wrapped in `React.memo` (T05). Combined with rAF coalescing, completed rows skip re-render entirely during streaming.
-- **No public API changes**: `UseExecutionStreamReturn` shape is unchanged. Standalone usage (without `store` option) works via internal fallback store.
-- **startTransition in place**: Thread renders are non-urgent. This is the foundation for T09 (Composer Isolation) — composer input already won't be blocked by stream renders.
-- **`toolCallGroupPropsEqual` exported for testing**: Not in public API barrel, but available for direct unit testing.
+- **Streamdown is live**: `AiMessage` renders via `Streamdown` with `isAnimating={isStreaming}` and `caret="block"`. Block-level memoization and `remend` incomplete-syntax healing are active during streaming.
+- **`react-markdown` still used for static consumers**: `SkillDetailView`, `ArtifactContentRenderer` use `react-markdown` + `REMARK_PLUGINS`. Both dependencies remain in `package.json`.
+- **Stream controller is live**: `useExecutionStream` uses `StreamController` (FSM) + rAF coalescing + `startTransition`. React commits at most once per display frame during streaming.
+- **ConversationStore is the source of truth**: `useExecutionStream` feeds the store directly. `useSessionConversation` shares its store via the `store` option.
+- **Memoization is live**: All leaf thread components wrapped in `React.memo` (T05). Combined with rAF coalescing and Streamdown's block-level memoization, completed rows skip re-render entirely during streaming.
+- **No public API changes**: `UseExecutionStreamReturn` shape is unchanged. `MessageEntry` props unchanged.
+- **startTransition in place**: Thread renders are non-urgent. Foundation for T09 (Composer Isolation).
 - **Instrumentation is live**: `[stgm:perf:stream]` console logs still fire during streaming.
 
 ## Phase Overview (11 Phases)
@@ -201,7 +223,7 @@ When starting a new session:
 | 2 | T04 | Structural-Sharing Store (ConversationStore) | **Highest** | **Done** |
 | 3 | T05 | Row-Level Memoization (React.memo) | High | **Done** |
 | 4 | T06 | Stream Controller State Machine | High | **Done** |
-| 5 | T07 | Streaming Markdown (Streamdown) | High | Pending |
+| 5 | T07 | Streaming Markdown (Streamdown) | High | **Done** |
 | 6 | T08 | Data Fetching / Cache Fix | Very High | Pending |
 | 7 | T09 | Composer Isolation | High | Pending |
 | 8 | T10 | Auto-Scroll State Machine | High | Pending |
@@ -211,7 +233,7 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Start T06" - Begin stream controller state machine
+- "Start T08" - Begin data fetching / cache fix
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
