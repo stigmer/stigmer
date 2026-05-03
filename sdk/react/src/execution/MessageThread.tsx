@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -25,6 +25,8 @@ import { FilePathContext, type FilePathContextValue } from "./FilePathContext";
 import type { ResolvedPathAction } from "./file-path-resolver";
 import { SandboxContext, type SandboxContextValue } from "./SandboxContext";
 import { useRenderTracer, useKeyStability, useDomNodeCount, DevProfiler } from "../internal/dev";
+import { useAutoScroll } from "../internal/useAutoScroll";
+import { JumpToLatestButton } from "../internal/JumpToLatestButton";
 
 /** Props for {@link MessageThread}. */
 export interface MessageThreadProps {
@@ -95,8 +97,6 @@ export interface MessageThreadProps {
    */
   readonly sandboxWorkspaceRoot?: string;
 }
-
-const AUTO_SCROLL_THRESHOLD_PX = 80;
 
 /**
  * Flattened representation of one renderable item in the thread.
@@ -331,8 +331,8 @@ export function MessageThread({
   onFilePathClick,
   sandboxWorkspaceRoot,
 }: MessageThreadProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const isNearBottomRef = useRef(true);
+  const { scrollRef, sentinelRef, contentRef, isFollowing, jumpToLatest } =
+    useAutoScroll();
 
   useRenderTracer("MessageThread", { executions, activeStreamExecution });
 
@@ -344,20 +344,6 @@ export function MessageThread({
 
   useKeyStability(items);
   useDomNodeCount(scrollRef, "MessageThread");
-
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    isNearBottomRef.current =
-      el.scrollHeight - el.scrollTop - el.clientHeight < AUTO_SCROLL_THRESHOLD_PX;
-  }, []);
-
-  useEffect(() => {
-    if (!isNearBottomRef.current) return;
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
-  }, [items]);
 
   const filePathCtx = useMemo<FilePathContextValue>(
     () => ({
@@ -373,80 +359,84 @@ export function MessageThread({
   );
 
   return (
-    <div
-      ref={scrollRef}
-      role="log"
-      aria-live="polite"
-      aria-relevant="additions"
-      onScroll={handleScroll}
-      className={cn(
-        "flex flex-col gap-4 overflow-y-auto pt-6 pb-4",
-        "[scrollbar-width:thin] [scrollbar-color:var(--color-border)_transparent]",
-        "[&::-webkit-scrollbar]:w-1.5",
-        "[&::-webkit-scrollbar-track]:bg-transparent",
-        "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/40",
-        className,
-      )}
-    >
-      <SandboxContext.Provider value={sandboxCtx}>
-      <FilePathContext.Provider value={filePathCtx}>
-      <DevProfiler id="MessageThread">
-        {items.map((item) => {
-          switch (item.kind) {
-            case "message":
-              return (
-                <MessageEntry
-                  key={item.key}
-                  message={item.message}
-                  className={item.isPending ? "opacity-70" : undefined}
-                />
-              );
-            case "tool-group":
-              return (
-                <ToolCallGroup
-                  key={item.key}
-                  toolCalls={item.toolCalls}
-                  subAgentExecutions={item.subAgentExecutions}
-                  formatSummary={formatToolCallSummary}
-                  className="mx-4"
-                />
-              );
-            case "sub-agent":
-              return (
-                <SubAgentSection
-                  key={item.key}
-                  subAgentExecution={item.subAgentExecution}
-                  className="mx-4"
-                />
-              );
-            case "phase-badge":
-              return (
-                <div key={item.key} className="flex justify-center py-3">
-                  <ExecutionPhaseBadge phase={item.phase} />
-                </div>
-              );
-            case "approval-request":
-              return (
-                <ApprovalCardRow
-                  key={item.key}
-                  pendingApproval={item.pendingApproval}
-                  onApprovalSubmit={onApprovalSubmit!}
-                  isSubmitting={submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false}
-                />
-              );
-            case "setup-progress":
-              return (
-                <SetupProgress
-                  key={item.key}
-                  workspaceEntries={item.workspaceEntries}
-                  serverPhase={item.serverPhase}
-                />
-              );
-          }
-        })}
-      </DevProfiler>
-      </FilePathContext.Provider>
-      </SandboxContext.Provider>
+    <div className={cn("relative min-h-0", className)}>
+      <div
+        ref={scrollRef}
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+        className={cn(
+          "h-full overflow-y-auto pt-6 pb-4 [overflow-anchor:none]",
+          "[scrollbar-width:thin] [scrollbar-color:var(--color-border)_transparent]",
+          "[&::-webkit-scrollbar]:w-1.5",
+          "[&::-webkit-scrollbar-track]:bg-transparent",
+          "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/40",
+        )}
+      >
+        <SandboxContext.Provider value={sandboxCtx}>
+        <FilePathContext.Provider value={filePathCtx}>
+        <DevProfiler id="MessageThread">
+          <div ref={contentRef} className="flex flex-col gap-4">
+            {items.map((item) => {
+              switch (item.kind) {
+                case "message":
+                  return (
+                    <MessageEntry
+                      key={item.key}
+                      message={item.message}
+                      className={item.isPending ? "opacity-70" : undefined}
+                    />
+                  );
+                case "tool-group":
+                  return (
+                    <ToolCallGroup
+                      key={item.key}
+                      toolCalls={item.toolCalls}
+                      subAgentExecutions={item.subAgentExecutions}
+                      formatSummary={formatToolCallSummary}
+                      className="mx-4"
+                    />
+                  );
+                case "sub-agent":
+                  return (
+                    <SubAgentSection
+                      key={item.key}
+                      subAgentExecution={item.subAgentExecution}
+                      className="mx-4"
+                    />
+                  );
+                case "phase-badge":
+                  return (
+                    <div key={item.key} className="flex justify-center py-3">
+                      <ExecutionPhaseBadge phase={item.phase} />
+                    </div>
+                  );
+                case "approval-request":
+                  return (
+                    <ApprovalCardRow
+                      key={item.key}
+                      pendingApproval={item.pendingApproval}
+                      onApprovalSubmit={onApprovalSubmit!}
+                      isSubmitting={submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false}
+                    />
+                  );
+                case "setup-progress":
+                  return (
+                    <SetupProgress
+                      key={item.key}
+                      workspaceEntries={item.workspaceEntries}
+                      serverPhase={item.serverPhase}
+                    />
+                  );
+              }
+            })}
+          </div>
+        </DevProfiler>
+        </FilePathContext.Provider>
+        </SandboxContext.Provider>
+        <div ref={sentinelRef} aria-hidden="true" />
+      </div>
+      {!isFollowing && <JumpToLatestButton onClick={jumpToLatest} />}
     </div>
   );
 }
