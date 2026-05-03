@@ -69,7 +69,7 @@ When starting a new session:
 
 **Created**: 2026-05-03 09:55
 **Current Task**: T01 — Phase 3 (Stripe Credit Purchases)
-**Status**: Phase 3.2 Complete — Stripe Checkout Integration
+**Status**: Phase 3.3 Complete — Stripe Webhook Handler
 
 ## Session Progress (2026-05-03)
 
@@ -294,6 +294,37 @@ When starting a new session:
 - Fixed pre-existing build issue: GetCreditLedgerHandler.java (PageInfo field name mismatch: getNum/getSize)
 - Fixed pre-existing build issue: StripeCustomerServiceTest (Stripe SDK getMetadata() type cast)
 
+### Phase 3.3 Completed (Stripe Webhook Handler)
+- Added `/webhook/stripe` to `permitAll()` in `HttpSecurityConfig` — Stripe webhooks use signature verification, not Bearer auth
+- Created `stripe_webhook_event` collection via Mongock migration (order 026):
+  - `event_id` unique index (Stripe event ID dedup)
+  - `(event_type, created_at desc)` compound index
+- Created `StripeWebhookEventRepo` in `ai.stigmer.domain.billing.repo`:
+  - `insertIfAbsent(eventId, eventType)` — returns true if new, false if duplicate (unique index guard)
+  - `markProcessed(eventId)`, `markFailed(eventId, error)` — lifecycle tracking
+- Created `StripeWebhookController` in `ai.stigmer.domain.billing.stripe`:
+  - Spring `@RestController` with `@PostMapping("/webhook/stripe")`
+  - Accepts raw `String` body + `Stripe-Signature` header
+  - Verifies signature via `Webhook.constructEvent()` with webhook secret from `StripeConfig`
+  - Returns 200 fast, 400 on bad signature, 500 on processing failure
+- Created `StripeWebhookService` in `ai.stigmer.domain.billing.stripe`:
+  - `handleEvent(event)` — routes by event type via switch expression
+  - `checkout.session.completed` + `async_payment_succeeded` → dedup → resolve purchase → guard → set payment_intent_id → provision credits via `CreditLedgerService.adjustCredits()` → transition to COMPLETED
+  - `checkout.session.async_payment_failed` → transition PENDING to FAILED
+  - `checkout.session.expired` → transition PENDING to EXPIRED
+  - Double idempotency: event_id dedup (stripe_webhook_event) + purchase status guard
+- Unit tests: StripeWebhookServiceTest (11 tests), StripeWebhookControllerTest (4 tests), StripeWebhookEventRepoTest (5 tests)
+- Registered 3 new Bazel test targets — all pass
+- Build verified: `./bazelw build //backend/services/stigmer-service/...` and `./bazelw test` — clean
+
+### Key Design Decisions (Phase 3.3)
+- **Webhook in stigmer-service**: No separate service or Cloudflare Worker — webhook endpoint lives on the existing HTTP server (port 8081) alongside proxy controllers. Same process, same MongoDB, same domain services.
+- **Synchronous processing**: Credit provisioning is 2 MongoDB writes — no async queue needed. Return 200 after processing. If latency becomes an issue, extract to `@Async`.
+- **Double idempotency**: Event-level dedup (stripe_webhook_event unique index on event_id) AND business-level guard (purchase status check). Protects against duplicate events AND manual replays.
+- **Stripe-Signature verification replaces Spring Security auth**: The `/webhook/stripe` path is `permitAll()` in the security config. Authenticity is verified cryptographically via Stripe's HMAC-SHA256 signing secret — more secure than IP allowlisting.
+- **Dashboard registration, not API**: Webhook endpoint URL is registered manually in Stripe Dashboard per environment. One-time setup yields the `whsec_...` signing secret stored as `STIGMER_STRIPE_WEBHOOK_SECRET`.
+- **4 event types handled**: `checkout.session.completed`, `async_payment_succeeded` (ACH), `async_payment_failed`, `expired`. Future phases add `payment_intent.succeeded/failed` (auto-recharge) and `charge.refunded/dispute.*` (reversals).
+
 ### Key Design Decisions (Phase 3.2)
 - CreditPack catalog as Java constants (not DB-seeded): packs are static, never user-editable, no DB round-trip on checkout. Move to DB-backed later if admin pack management needed.
 - Caller email resolved server-side from IdentityAccount: simpler client API, avoids consistency risk, matches existing pattern (adjustedBy from caller context).
@@ -384,7 +415,7 @@ When starting a new session:
 
 1. ~~Create Stripe Customer per org on first billing interaction~~ ✅
 2. ~~Implement Stripe Checkout integration (CreateCreditCheckoutSession RPC)~~ ✅
-3. Webhook handler for checkout.session.completed → credit provisioning
+3. ~~Webhook handler for checkout.session.completed → credit provisioning~~ ✅
 4. Billing page UI (React, replace "Coming Soon" placeholder)
 5. Reconciliation job for missed webhooks
 
@@ -424,7 +455,14 @@ When starting a new session:
 - CreditPurchase lifecycle: PENDING (checkout created) → COMPLETED (webhook, Phase 3.3) or FAILED/EXPIRED
 - Stripe Checkout Session metadata carries `stigmer_org_id`, `stigmer_purchase_id`, `stigmer_pack_id`, `stigmer_credits_micros` for webhook reverse-lookup
 - Credits are NOT provisioned by Phase 3.2 — provisioning happens in Phase 3.3 webhook handler
-- 9 gRPC RPCs now handler-wired: getOrCreateBillingAccount, adjustCredits, getBillingAccount, getCreditBalance, getCreditLedger, authorizeExecution, reportLlmCallUsage, finalizeExecution, **createCreditCheckoutSession**
+- 9 gRPC RPCs now handler-wired: getOrCreateBillingAccount, adjustCredits, getBillingAccount, getCreditBalance, getCreditLedger, authorizeExecution, reportLlmCallUsage, finalizeExecution, createCreditCheckoutSession
+- **Phase 3.3**: `StripeWebhookController` at `/webhook/stripe` on port 8081 — signature-verified, 4 event types, double-idempotent
+- `StripeWebhookService` provisions credits via `CreditLedgerService.adjustCredits()` on `checkout.session.completed`
+- `StripeWebhookEventRepo` provides event-level dedup via unique `event_id` index on `stripe_webhook_event` collection
+- Webhook path is `permitAll()` in `HttpSecurityConfig` — uses Stripe signature verification, not JWT
+- Credit purchase lifecycle is now end-to-end: PENDING (checkout created) → COMPLETED (webhook, credits provisioned) or FAILED/EXPIRED
+- Stripe config: `stigmer.stripe.webhook-secret` (env: `STIGMER_STRIPE_WEBHOOK_SECRET`) — set from Stripe Dashboard webhook endpoint registration
+- Manual ops required: Register webhook endpoint URL in Stripe Dashboard (test + live) and store `whsec_...` secret
 
 ## Quick Commands
 
