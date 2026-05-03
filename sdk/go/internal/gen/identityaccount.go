@@ -54,6 +54,11 @@ func (i *IdentityAccountClient) DeprovisionFederatedAccount(ctx context.Context,
 	return resp, wrapErr(err)
 }
 
+func (i *IdentityAccountClient) ProvisionMyAccount(ctx context.Context) (*identityaccountv1.IdentityAccount, error) {
+	resp, err := i.command.ProvisionMyAccount(ctx, &emptypb.Empty{})
+	return resp, wrapErr(err)
+}
+
 func (i *IdentityAccountClient) Get(ctx context.Context, id string) (*identityaccountv1.IdentityAccount, error) {
 	resp, err := i.query.Get(ctx, &identityaccountv1.IdentityAccountId{Value: id})
 	return resp, wrapErr(err)

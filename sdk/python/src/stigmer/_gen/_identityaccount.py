@@ -61,6 +61,12 @@ class IdentityAccountClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def provision_my_account(self) -> api_pb2.IdentityAccount:
+        try:
+            return self._command.provisionMyAccount(empty_pb2.Empty())
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get(self, id: str) -> api_pb2.IdentityAccount:
         try:
             return self._query.get(io_pb2.IdentityAccountId(value=id))

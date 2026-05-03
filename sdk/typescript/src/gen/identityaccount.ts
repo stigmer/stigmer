@@ -62,6 +62,12 @@ export class IdentityAccountClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async provisionMyAccount(): Promise<IdentityAccount> {
+    try {
+      return await this.command.provisionMyAccount(create(EmptySchema, {}));
+    } catch (e) { throw wrapError(e); }
+  }
+
   async get(id: string): Promise<IdentityAccount> {
     try {
       return await this.query.get(create(IdentityAccountIdSchema, { value: id }));

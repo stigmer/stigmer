@@ -6,20 +6,20 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Project: 20260503.04.auth0-webhook-pipeline-cleanup
 
-**Description**: Remove the obsolete Auth0 webhook-based identity provisioning pipeline from Stigmer Cloud. The system already has synchronous JIT/SSO auto-provisioning via FederatedAutoProvisioner, making the entire webhook pipeline dead code.
-**Goal**: Delete the auth0-webhooks-receiver Cloudflare Worker, the Temporal workflow/activities for identity account creation from Auth0, the SimulateSignupWebhook RPC, Auth0 Management API code, and all associated config/credentials. Clean delete with no deprecation.
+**Description**: Remove the obsolete Auth0 webhook-based identity provisioning pipeline from Stigmer Cloud and replace it with a synchronous `provisionMyAccount` RPC following the Planton pattern.
+**Goal**: Delete the old webhook pipeline AND add the replacement provisioning path for new direct Auth0 signups.
 **Tech Stack**: Java/Spring (stigmer-service), TypeScript (Cloudflare Worker), Protobuf, Kustomize/YAML
-**Components**: stigmer-cloud: backend/services/auth0-webhooks-receiver, backend/services/stigmer-service (IAM identity account domain, config/auth0), _ops/planton configs, kustomize overlays. stigmer OSS: apis/ai/stigmer/iam/identityaccount/v1/command.proto (remove simulateSignupWebhook RPC)
+**Components**: stigmer-cloud: backend/services/stigmer-service (IAM identity account domain, organization repo), apis stubs. stigmer OSS: apis/ai/stigmer/iam/identityaccount/v1/command.proto, all SDK stubs.
 
 ## Current State
 
 - **Status**: Complete — pending commit and PR
 - **Last Session**: 2026-05-03
-- **Active Task**: T01 — all 6 phases executed successfully
+- **Active Task**: T01 (cleanup) complete + provisionMyAccount RPC implemented
 
 ## Session Progress (2026-05-03)
 
-### Accomplished
+### Session 1: Webhook Pipeline Cleanup
 - Phase 1: Deleted auth0-webhooks-receiver worker (19 files), Temporal workflow/activities (12 files), SimulateSignupWebhookHandler, Auth0 Management API code (7 files)
 - Phase 2: Simplified bootstrap migration — removed operator creation + Auth0 Management API, kept machine + system accounts
 - Phase 3: Cleaned application-auth0.yaml, kustomize entries, ops config
@@ -27,22 +27,35 @@ Drop this file into your conversation to quickly resume work on this project.
 - Phase 5: Removed simulateSignupWebhook RPC from proto, updated codegen schema, ran make codegen, updated docs
 - Phase 6: Verified no residual references, regenerated stigmer-cloud stubs, cleaned bonus dead config (Temporal identity_account task queue)
 
+### Session 2: provisionMyAccount RPC (replacement)
+- Added `provisionMyAccount` RPC to command.proto (stigmer OSS), ran codegen across all SDKs
+- Created `ProvisionMyAccountHandler.java` with 4-step pipeline: CheckExisting → FetchUserInfo → CreateAccount → EnsurePersonalOrg
+- Added `findPersonalOrgByOwner` query to OrganizationRepo
+- Reused existing `UserInfoClient`, `PersonalOrgSlugGenerator`, `OrganizationGrpcRepo.createOnBehalfOf`
+- Regenerated stubs in stigmer-cloud
+- Build verified: stigmer-cloud (89 Java targets), stigmer OSS (CLI + server + workflow-runner), proto lint
+
 ### Key Decisions
 - Migration rewritten (not deleted) — machine + system accounts are runtime dependencies
 - Operator account creation removed from migration — documented in setup guide as manual step
 - Auth0Config deleted entirely — JWT validation uses separate security.authentication.* properties
 - Mongock change unit ID kept same — prevents re-execution on existing environments
+- Synchronous handler (no Temporal) for provisionMyAccount — we just deleted the task queue, dev-stage product, steps are idempotent
+- Personal orgs separate from FederatedAutoProvisioner — only in provisionMyAccount path
+- OIDC /userinfo over Auth0 Management API — standard, IDP-agnostic, no SDK
 
 ### Surprises Discovered
 - U20250102_InsertBootstrapIdentityAccounts.java depended on Auth0Config + Auth0 Management SDK
 - Machine account identity record is a HARD runtime dependency — IdpIdToIdentityAccountIdCacheProxy throws IdentityAccountNotFoundException for @clients subjects if MongoDB record missing
 - TEMPORAL_IDENTITY_ACCOUNT_TASK_QUEUE env var was dead config (only consumer was deleted temporal workflow)
+- IdpIdToIdentityAccountIdCacheProxy.proxyGet() returns raw IDP ID as fallback for non-machine accounts — this is what makes provisionMyAccount work without auth pipeline changes
 
 ## Next Steps
 1. Commit changes in both repos
 2. Create PRs for both repos
-3. Manual ops: Disable/delete Auth0 Log Stream "Stigmer User Signup Events" in Auth0 dashboard
-4. Manual ops: Delete the Cloudflare Worker deployment from Cloudflare dashboard
+3. Frontend follow-up: Update console auth guard to call provisionMyAccount when whoAmI returns NOT_FOUND
+4. Manual ops: Disable/delete Auth0 Log Stream "Stigmer User Signup Events" in Auth0 dashboard
+5. Manual ops: Delete the Cloudflare Worker deployment from Cloudflare dashboard
 
 ## Essential Files to Review
 

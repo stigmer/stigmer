@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -25,6 +26,7 @@ const (
 	IdentityAccountCommandController_CreateFederatedAccount_FullMethodName      = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/createFederatedAccount"
 	IdentityAccountCommandController_UpdateFederatedAccount_FullMethodName      = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/updateFederatedAccount"
 	IdentityAccountCommandController_DeprovisionFederatedAccount_FullMethodName = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/deprovisionFederatedAccount"
+	IdentityAccountCommandController_ProvisionMyAccount_FullMethodName          = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/provisionMyAccount"
 )
 
 // IdentityAccountCommandControllerClient is the client API for IdentityAccountCommandController service.
@@ -83,6 +85,13 @@ type IdentityAccountCommandControllerClient interface {
 	// Authorization: Requires can_create_identity_account on the organization
 	// that owns the identity provider.
 	DeprovisionFederatedAccount(ctx context.Context, in *DeprovisionFederatedAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error)
+	// Provision the caller's own identity account.
+	//
+	// Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
+	// Derives all identity information from the caller's JWT and the OIDC /userinfo
+	// endpoint. Creates the IdentityAccount and a personal Organization owned by the
+	// caller. Idempotent: returns the existing account on retry.
+	ProvisionMyAccount(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IdentityAccount, error)
 }
 
 type identityAccountCommandControllerClient struct {
@@ -153,6 +162,16 @@ func (c *identityAccountCommandControllerClient) DeprovisionFederatedAccount(ctx
 	return out, nil
 }
 
+func (c *identityAccountCommandControllerClient) ProvisionMyAccount(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IdentityAccount, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IdentityAccount)
+	err := c.cc.Invoke(ctx, IdentityAccountCommandController_ProvisionMyAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IdentityAccountCommandControllerServer is the server API for IdentityAccountCommandController service.
 // All implementations should embed UnimplementedIdentityAccountCommandControllerServer
 // for forward compatibility.
@@ -209,6 +228,13 @@ type IdentityAccountCommandControllerServer interface {
 	// Authorization: Requires can_create_identity_account on the organization
 	// that owns the identity provider.
 	DeprovisionFederatedAccount(context.Context, *DeprovisionFederatedAccountInput) (*IdentityAccount, error)
+	// Provision the caller's own identity account.
+	//
+	// Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
+	// Derives all identity information from the caller's JWT and the OIDC /userinfo
+	// endpoint. Creates the IdentityAccount and a personal Organization owned by the
+	// caller. Idempotent: returns the existing account on retry.
+	ProvisionMyAccount(context.Context, *emptypb.Empty) (*IdentityAccount, error)
 }
 
 // UnimplementedIdentityAccountCommandControllerServer should be embedded to have
@@ -235,6 +261,9 @@ func (UnimplementedIdentityAccountCommandControllerServer) UpdateFederatedAccoun
 }
 func (UnimplementedIdentityAccountCommandControllerServer) DeprovisionFederatedAccount(context.Context, *DeprovisionFederatedAccountInput) (*IdentityAccount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeprovisionFederatedAccount not implemented")
+}
+func (UnimplementedIdentityAccountCommandControllerServer) ProvisionMyAccount(context.Context, *emptypb.Empty) (*IdentityAccount, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProvisionMyAccount not implemented")
 }
 func (UnimplementedIdentityAccountCommandControllerServer) testEmbeddedByValue() {}
 
@@ -364,6 +393,24 @@ func _IdentityAccountCommandController_DeprovisionFederatedAccount_Handler(srv i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IdentityAccountCommandController_ProvisionMyAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityAccountCommandControllerServer).ProvisionMyAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IdentityAccountCommandController_ProvisionMyAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityAccountCommandControllerServer).ProvisionMyAccount(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IdentityAccountCommandController_ServiceDesc is the grpc.ServiceDesc for IdentityAccountCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -394,6 +441,10 @@ var IdentityAccountCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "deprovisionFederatedAccount",
 			Handler:    _IdentityAccountCommandController_DeprovisionFederatedAccount_Handler,
+		},
+		{
+			MethodName: "provisionMyAccount",
+			Handler:    _IdentityAccountCommandController_ProvisionMyAccount_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

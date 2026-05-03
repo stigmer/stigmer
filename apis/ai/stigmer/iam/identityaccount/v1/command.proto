@@ -6,6 +6,7 @@ import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/iam/identityaccount/v1/api.proto";
 import "ai/stigmer/iam/identityaccount/v1/io.proto";
+import "google/protobuf/empty.proto";
 
 // IdentityAccountCommandController handles write operations for identity accounts.
 service IdentityAccountCommandController {
@@ -92,5 +93,15 @@ service IdentityAccountCommandController {
     option (ai.stigmer.commons.rpc.config).permission = can_create_identity_account;
     option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage identity accounts in this organization";
+  }
+
+  // Provision the caller's own identity account.
+  //
+  // Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
+  // Derives all identity information from the caller's JWT and the OIDC /userinfo
+  // endpoint. Creates the IdentityAccount and a personal Organization owned by the
+  // caller. Idempotent: returns the existing account on retry.
+  rpc provisionMyAccount(google.protobuf.Empty) returns (IdentityAccount) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }

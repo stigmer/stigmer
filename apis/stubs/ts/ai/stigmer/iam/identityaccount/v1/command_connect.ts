@@ -4,7 +4,7 @@
 // @ts-nocheck
 
 import { IdentityAccount } from "./api_pbjs";
-import { MethodKind } from "@bufbuild/protobuf";
+import { Empty, MethodKind } from "@bufbuild/protobuf";
 import { CreateFederatedAccountInput, DeprovisionFederatedAccountInput, IdentityAccountId, UpdateFederatedAccountInput } from "./io_pbjs";
 
 /**
@@ -116,6 +116,22 @@ export const IdentityAccountCommandController = {
     deprovisionFederatedAccount: {
       name: "deprovisionFederatedAccount",
       I: DeprovisionFederatedAccountInput,
+      O: IdentityAccount,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Provision the caller's own identity account.
+     *
+     * Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
+     * Derives all identity information from the caller's JWT and the OIDC /userinfo
+     * endpoint. Creates the IdentityAccount and a personal Organization owned by the
+     * caller. Idempotent: returns the existing account on retry.
+     *
+     * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.provisionMyAccount
+     */
+    provisionMyAccount: {
+      name: "provisionMyAccount",
+      I: Empty,
       O: IdentityAccount,
       kind: MethodKind.Unary,
     },

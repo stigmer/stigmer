@@ -63,6 +63,12 @@ public final class IdentityAccountClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public IdentityAccount provisionMyAccount() {
+        try {
+            return command.provisionMyAccount(Empty.getDefaultInstance());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
     public IdentityAccount get(String id) {
         try {
             return query.get(IdentityAccountId.newBuilder().setValue(id).build());

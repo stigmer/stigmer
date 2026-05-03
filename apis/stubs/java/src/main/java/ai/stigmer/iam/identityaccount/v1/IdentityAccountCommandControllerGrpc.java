@@ -201,6 +201,37 @@ public final class IdentityAccountCommandControllerGrpc {
     return getDeprovisionFederatedAccountMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<com.google.protobuf.Empty,
+      ai.stigmer.iam.identityaccount.v1.IdentityAccount> getProvisionMyAccountMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "provisionMyAccount",
+      requestType = com.google.protobuf.Empty.class,
+      responseType = ai.stigmer.iam.identityaccount.v1.IdentityAccount.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<com.google.protobuf.Empty,
+      ai.stigmer.iam.identityaccount.v1.IdentityAccount> getProvisionMyAccountMethod() {
+    io.grpc.MethodDescriptor<com.google.protobuf.Empty, ai.stigmer.iam.identityaccount.v1.IdentityAccount> getProvisionMyAccountMethod;
+    if ((getProvisionMyAccountMethod = IdentityAccountCommandControllerGrpc.getProvisionMyAccountMethod) == null) {
+      synchronized (IdentityAccountCommandControllerGrpc.class) {
+        if ((getProvisionMyAccountMethod = IdentityAccountCommandControllerGrpc.getProvisionMyAccountMethod) == null) {
+          IdentityAccountCommandControllerGrpc.getProvisionMyAccountMethod = getProvisionMyAccountMethod =
+              io.grpc.MethodDescriptor.<com.google.protobuf.Empty, ai.stigmer.iam.identityaccount.v1.IdentityAccount>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "provisionMyAccount"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  com.google.protobuf.Empty.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.iam.identityaccount.v1.IdentityAccount.getDefaultInstance()))
+              .setSchemaDescriptor(new IdentityAccountCommandControllerMethodDescriptorSupplier("provisionMyAccount"))
+              .build();
+        }
+      }
+    }
+    return getProvisionMyAccountMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -352,6 +383,20 @@ public final class IdentityAccountCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDeprovisionFederatedAccountMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Provision the caller's own identity account.
+     * Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
+     * Derives all identity information from the caller's JWT and the OIDC /userinfo
+     * endpoint. Creates the IdentityAccount and a personal Organization owned by the
+     * caller. Idempotent: returns the existing account on retry.
+     * </pre>
+     */
+    default void provisionMyAccount(com.google.protobuf.Empty request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getProvisionMyAccountMethod(), responseObserver);
+    }
   }
 
   /**
@@ -478,6 +523,21 @@ public final class IdentityAccountCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getDeprovisionFederatedAccountMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Provision the caller's own identity account.
+     * Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
+     * Derives all identity information from the caller's JWT and the OIDC /userinfo
+     * endpoint. Creates the IdentityAccount and a personal Organization owned by the
+     * caller. Idempotent: returns the existing account on retry.
+     * </pre>
+     */
+    public void provisionMyAccount(com.google.protobuf.Empty request,
+        io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getProvisionMyAccountMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -584,6 +644,20 @@ public final class IdentityAccountCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getDeprovisionFederatedAccountMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Provision the caller's own identity account.
+     * Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
+     * Derives all identity information from the caller's JWT and the OIDC /userinfo
+     * endpoint. Creates the IdentityAccount and a personal Organization owned by the
+     * caller. Idempotent: returns the existing account on retry.
+     * </pre>
+     */
+    public ai.stigmer.iam.identityaccount.v1.IdentityAccount provisionMyAccount(com.google.protobuf.Empty request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getProvisionMyAccountMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -689,6 +763,20 @@ public final class IdentityAccountCommandControllerGrpc {
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount deprovisionFederatedAccount(ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getDeprovisionFederatedAccountMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Provision the caller's own identity account.
+     * Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
+     * Derives all identity information from the caller's JWT and the OIDC /userinfo
+     * endpoint. Creates the IdentityAccount and a personal Organization owned by the
+     * caller. Idempotent: returns the existing account on retry.
+     * </pre>
+     */
+    public ai.stigmer.iam.identityaccount.v1.IdentityAccount provisionMyAccount(com.google.protobuf.Empty request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getProvisionMyAccountMethod(), getCallOptions(), request);
     }
   }
 
@@ -802,6 +890,21 @@ public final class IdentityAccountCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getDeprovisionFederatedAccountMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Provision the caller's own identity account.
+     * Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
+     * Derives all identity information from the caller's JWT and the OIDC /userinfo
+     * endpoint. Creates the IdentityAccount and a personal Organization owned by the
+     * caller. Idempotent: returns the existing account on retry.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> provisionMyAccount(
+        com.google.protobuf.Empty request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getProvisionMyAccountMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_CREATE = 0;
@@ -810,6 +913,7 @@ public final class IdentityAccountCommandControllerGrpc {
   private static final int METHODID_CREATE_FEDERATED_ACCOUNT = 3;
   private static final int METHODID_UPDATE_FEDERATED_ACCOUNT = 4;
   private static final int METHODID_DEPROVISION_FEDERATED_ACCOUNT = 5;
+  private static final int METHODID_PROVISION_MY_ACCOUNT = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -850,6 +954,10 @@ public final class IdentityAccountCommandControllerGrpc {
           break;
         case METHODID_DEPROVISION_FEDERATED_ACCOUNT:
           serviceImpl.deprovisionFederatedAccount((ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount>) responseObserver);
+          break;
+        case METHODID_PROVISION_MY_ACCOUNT:
+          serviceImpl.provisionMyAccount((com.google.protobuf.Empty) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.identityaccount.v1.IdentityAccount>) responseObserver);
           break;
         default:
@@ -912,6 +1020,13 @@ public final class IdentityAccountCommandControllerGrpc {
               ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput,
               ai.stigmer.iam.identityaccount.v1.IdentityAccount>(
                 service, METHODID_DEPROVISION_FEDERATED_ACCOUNT)))
+        .addMethod(
+          getProvisionMyAccountMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              com.google.protobuf.Empty,
+              ai.stigmer.iam.identityaccount.v1.IdentityAccount>(
+                service, METHODID_PROVISION_MY_ACCOUNT)))
         .build();
   }
 
@@ -966,6 +1081,7 @@ public final class IdentityAccountCommandControllerGrpc {
               .addMethod(getCreateFederatedAccountMethod())
               .addMethod(getUpdateFederatedAccountMethod())
               .addMethod(getDeprovisionFederatedAccountMethod())
+              .addMethod(getProvisionMyAccountMethod())
               .build();
         }
       }
