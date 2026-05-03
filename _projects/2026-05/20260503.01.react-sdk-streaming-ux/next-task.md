@@ -68,9 +68,44 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03
-**Current Task**: T11 (Virtualization — NEXT)
-**Status**: T10 complete, ready for T11
+**Current Task**: T12 (Animation & Polish — NEXT)
+**Status**: T11 complete, ready for T12
 **Research Report**: `_projects/2026-05/research.react-sdk-streaming-ux-quality/04.report.gpt.md`
+
+## Session Progress (2026-05-03, Session 10)
+
+- Implemented T11: Virtualization (react-virtuoso)
+- Extracted `ThreadItemRenderer` from `MessageThread`'s inline switch block — shared by both virtualized and non-virtualized paths
+- Added `react-virtuoso ^4.0.0` as optional peer dependency (MIT license, installed `^4.18.6` as devDep)
+- Built `VirtualizedThread` (`sdk/react/src/internal/VirtualizedThread.tsx`) — internal component wrapping Virtuoso with `alignToBottom`, `followOutput`, `computeItemKey`, `atBottomStateChange`, `increaseViewportBy`, a11y attributes via custom `ScrollerWithA11y` scroller, context providers (`FilePathContext`, `SandboxContext`), `DevProfiler`, `useDomNodeCount`
+- Added `virtualized?: boolean` prop to `MessageThreadProps` (default: `false`)
+- Wired conditional rendering in `MessageThread`: virtualized path uses `React.lazy` + `Suspense` for tree-shaking (react-virtuoso is zero-cost when `virtualized` is never used), non-virtualized path extracted into `NonVirtualizedThread` internal component
+- `useAutoScroll` + `JumpToLatestButton` used only in non-virtualized path; `VirtualizedThread` uses Virtuoso's `followOutput`/`atBottomStateChange` + `VirtuosoHandle.scrollToIndex` for its own `JumpToLatestButton`
+- Styling audit: horizontal `mx-4` margins on leaf components are safe (don't affect Virtuoso height measurement); vertical spacing replicated with `pb-4` on each item wrapper in `itemContent`
+- Dev instrumentation preserved: `useRenderTracer` and `useKeyStability` called before the branch; `useDomNodeCount` wired via `scrollerRef` in `VirtualizedThread`
+- 15 new tests (4 ThreadItemRenderer, 2 non-virtualized regression, 9 virtualized behavior), full suite 439/439 pass, typecheck clean, lint clean
+
+### Key Design Decision: Standard Virtuoso (MIT) over VirtuosoMessageList (commercial)
+- Our rAF coalescing + structural sharing + `startTransition` already solve streaming performance; virtualization just bounds DOM count for long threads
+- MIT license is critical for an Apache-2.0 SDK — commercial dependency would impose license obligations on all consumers
+- Upgrade path to `VirtuosoMessageList` at the Console level remains clean if needed later
+
+### Key Design Decision: Opt-in via prop (default false) over always-on or auto-threshold
+- Backward compatibility is non-negotiable for an SDK; changing DOM structure/scroll behavior silently breaks consumer CSS and integration tests
+- Auto-threshold switching mid-session causes full remount (collapse state loss, scroll reset) — the exact class of UX problem this project eliminates
+- Non-virtualized path is already performant for typical conversations after T02-T10
+- `react-virtuoso` as optional peer dep keeps SDK dependency footprint lean for consumers who don't need it
+
+### Key Design Decision: React.lazy for tree-shaking
+- `VirtualizedThread` is lazily imported via `React.lazy` + `Suspense fallback={null}`
+- Ensures react-virtuoso is never bundled when `virtualized` is not used
+- Brief delay on first virtualized render is acceptable — consumer is explicitly opting in
+
+### Architecture: Two rendering paths, shared data
+- `buildThreadItems` → `ThreadItem[]` is computed once, shared by both paths
+- `ThreadItemRenderer` is a shared component — no rendering logic duplication
+- `NonVirtualizedThread` wraps the original scroll container + `useAutoScroll`
+- `VirtualizedThread` wraps Virtuoso with chat-optimized configuration
 
 ## Session Progress (2026-05-03, Session 9)
 
@@ -282,8 +317,7 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T11**: Virtualization (react-virtuoso) — optional `virtualized` prop, `alignToBottom` + `followOutput`, variable-height items
-2. **T12**: Animation & Polish — CSS row entry transitions, skeletons, `content-visibility`, `@starting-style`, `prefers-reduced-motion`
+1. **T12**: Animation & Polish — CSS row entry transitions, skeletons, `content-visibility`, `@starting-style`, `prefers-reduced-motion`
 
 ## Context for Resume
 
@@ -298,7 +332,9 @@ When starting a new session:
 - **Memoization is live**: All leaf thread components wrapped in `React.memo` (T05). Combined with rAF coalescing and Streamdown's block-level memoization, completed rows skip re-render entirely during streaming.
 - **Auto-scroll is IO-driven**: `useAutoScroll` hook in `MessageThread` uses `IntersectionObserver` on a bottom sentinel + `ResizeObserver` on content wrapper. No `onScroll` event handler. rAF-batched scroll writes. "Jump to latest" button when disengaged.
 - **MessageThread has a wrapper div**: Root element is now `<div className="relative min-h-0">` (positioning context). Scroll container is the child with `h-full overflow-y-auto [overflow-anchor:none]`. Consumer `className` goes on the wrapper. This is important for T11 — virtuoso will likely replace the scroll container but keep the wrapper.
-- **No public API changes**: `UseExecutionStreamReturn` shape is unchanged. `MessageEntry` props unchanged. `MessageThreadProps` unchanged. `FetchCacheProvider` is the only new public export.
+- **Virtualization is opt-in**: `MessageThread` accepts `virtualized?: boolean` (default `false`). When `true`, renders via `react-virtuoso` Virtuoso component with `alignToBottom`, `followOutput`, `computeItemKey`. `react-virtuoso` is an optional peer dep — not bundled when not used (lazy import via `React.lazy`).
+- **Two rendering paths, shared data**: `buildThreadItems` → `ThreadItem[]` is shared. `ThreadItemRenderer` is the shared rendering component. `NonVirtualizedThread` uses `useAutoScroll`. `VirtualizedThread` uses Virtuoso's scroll management.
+- **Only additive public API change**: `virtualized?: boolean` on `MessageThreadProps`. All other props unchanged. `FetchCacheProvider` remains the only non-prop public export added in this project.
 - **startTransition in place**: Thread renders are non-urgent.
 - **Instrumentation is live**: `[stgm:perf:stream]` console logs still fire during streaming.
 
@@ -315,13 +351,13 @@ When starting a new session:
 | 6 | T08 | Data Fetching / Cache Fix | Very High | **Done** |
 | 7 | T09 | Composer Isolation | High | **Done** |
 | 8 | T10 | Auto-Scroll State Machine | High | **Done** |
-| 9 | T11 | Virtualization (react-virtuoso) | High | Pending |
+| 9 | T11 | Virtualization (react-virtuoso) | High | **Done** |
 | 10 | T12 | Animation & Polish | Medium | Pending |
 
 ## Quick Commands
 
 After loading context:
-- "Start T11" - Begin virtualization with react-virtuoso
+- "Start T12" - Begin animation & polish
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
