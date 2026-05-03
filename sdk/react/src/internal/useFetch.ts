@@ -1,6 +1,7 @@
 "use client";
 
 import { type DependencyList, useCallback, useEffect, useRef, useState } from "react";
+import { useFetchCache } from "./FetchCacheProvider";
 import { toError } from "./toError";
 
 /** Options for {@link useFetch}. */
@@ -13,6 +14,21 @@ export interface UseFetchOptions {
    * request piling on slow connections.
    */
   readonly refetchInterval?: number | false;
+
+  /**
+   * Stable string key for cross-mount caching.
+   *
+   * When provided (and a {@link FetchCacheProvider} is mounted above
+   * this component), the hook reads cached data on mount to avoid a
+   * loading skeleton, and writes fresh data to the cache on every
+   * successful fetch.
+   *
+   * Pass `undefined` to opt out of caching for a given call.
+   *
+   * @example `session:${id}`
+   * @example `session-executions:${sessionId}`
+   */
+  readonly cacheKey?: string;
 }
 
 /** Return value of {@link useFetch}. */
@@ -59,13 +75,32 @@ export function useFetch<T>(
   initialData: T,
   options?: UseFetchOptions,
 ): UseFetchReturn<T> {
-  const [data, setData] = useState<T>(initialData);
+  const cache = useFetchCache();
+  const cacheKey = options?.cacheKey;
+
+  // Resolve initial state from cache when available. The initializer
+  // function runs once on mount — exactly the right time to seed state
+  // from a previous mount's result and skip the loading skeleton.
+  const [data, setData] = useState<T>(() => {
+    if (cacheKey && cache) {
+      const cached = cache.get<T>(cacheKey);
+      if (cached !== undefined) return cached;
+    }
+    return initialData;
+  });
   const [error, setError] = useState<Error | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
 
-  const hasDataRef = useRef(false);
+  const hasDataRef = useRef(
+    cacheKey && cache ? cache.has(cacheKey) : false,
+  );
   const isFetchingRef = useRef(false);
   const [isFetching, setIsFetching] = useState(false);
+
+  // Stable ref for cache — avoids adding cache to effect deps while
+  // still letting the effect body access the current instance.
+  const cacheRef = useRef(cache);
+  cacheRef.current = cache;
 
   const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
 
@@ -77,6 +112,17 @@ export function useFetch<T>(
       setError(null);
       hasDataRef.current = false;
       return;
+    }
+
+    // On dep change (without remount), check cache for the new key so
+    // we can show cached data immediately rather than stale data from
+    // a different identity (e.g. session A's data while session B loads).
+    if (cacheKey && cacheRef.current) {
+      const cached = cacheRef.current.get<T>(cacheKey);
+      if (cached !== undefined) {
+        setData(cached);
+        hasDataRef.current = true;
+      }
     }
 
     const cancelled = { current: false };
@@ -91,6 +137,9 @@ export function useFetch<T>(
         hasDataRef.current = true;
         setIsFetching(false);
         isFetchingRef.current = false;
+        if (cacheKey && cacheRef.current) {
+          cacheRef.current.set(cacheKey, result);
+        }
       },
       (err) => {
         if (cancelled.current) return;
