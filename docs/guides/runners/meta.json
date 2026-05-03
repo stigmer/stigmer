@@ -6,6 +6,7 @@
     "local-mode",
     "sandbox-mode",
     "cloud-mode",
+    "cursor-harness",
     "stop-and-cleanup"
   ]
 }
