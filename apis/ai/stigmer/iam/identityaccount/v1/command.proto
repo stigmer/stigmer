@@ -6,7 +6,6 @@ import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 import "ai/stigmer/iam/identityaccount/v1/api.proto";
 import "ai/stigmer/iam/identityaccount/v1/io.proto";
-import "google/protobuf/empty.proto";
 
 // IdentityAccountCommandController handles write operations for identity accounts.
 service IdentityAccountCommandController {
@@ -15,7 +14,7 @@ service IdentityAccountCommandController {
   // Create a new identity account.
   //
   // @internal
-  // System-level RPC used by Auth0 webhook flow and federated account creation.
+  // System-level RPC used by federated account creation and bootstrap migrations.
   // No FGA authorization — called via inProcessChannelAsSystem (machine account).
   // The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
   rpc create(IdentityAccount) returns (IdentityAccount) {
@@ -93,15 +92,5 @@ service IdentityAccountCommandController {
     option (ai.stigmer.commons.rpc.config).permission = can_create_identity_account;
     option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage identity accounts in this organization";
-  }
-
-  // Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
-  //
-  // @internal
-  // Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
-  // to Stigmer with the Auth0 payload format to trigger account provisioning.
-  // Authorization is skipped — this is a system-level operation.
-  rpc simulateSignupWebhook(IdentityAccountEmail) returns (google.protobuf.Empty) {
-    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }

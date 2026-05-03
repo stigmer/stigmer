@@ -8,7 +8,7 @@ Every IdentityAccount is created in one of three provisioning modes. The mode is
 
 | Mode | `provisioning_mode` value | Who creates it | `idp_id` format |
 |---|---|---|---|
-| Direct | `direct` | Auth0 signup webhook | `auth0\|{subject}` |
+| Direct | `direct` | Auth0 authentication (JIT on first login) | `auth0\|{subject}` |
 | Federated | `federated` | Explicit creation by the platform via API | Raw OIDC sub (e.g., `google-oauth2\|109876543210`) |
 | Machine | `machine` | Platform bootstrap / M2M setup | `{client_id}@clients` |
 | Legacy | `identity_account_provisioning_mode_unspecified` | Pre-dates the provisioning_mode field | Varies |
@@ -21,11 +21,10 @@ A direct account is created when a user signs up through Stigmer's own Auth0 ten
 
 ```
 1. User signs up at Stigmer via Auth0
-2. Auth0 fires a signup webhook to Stigmer
-3. Stigmer's webhook handler calls IdentityAccountCommandController.create
-4. A direct IdentityAccount is created with idp_id = Auth0 subject ID
-5. A self-ownership FGA tuple is written
-6. The user can now authenticate to Stigmer using their Auth0 credentials
+2. On first login, the authentication pipeline resolves the Auth0 subject ID
+3. If no IdentityAccount exists, the account is provisioned through the standard auth flow
+4. A self-ownership FGA tuple is written
+5. The user can now authenticate to Stigmer using their Auth0 credentials
 ```
 
 ### Characteristics
@@ -93,20 +92,6 @@ A machine account represents an Auth0 M2M client credential. It is used for inte
 - `is_machine_account`: `true` (computed)
 - `email`, `first_name`, `last_name`: typically empty — machine accounts have no human profile
 - The account authenticates via client credentials, not user login
-
-## Simulate Signup Webhook
-
-The `simulateSignupWebhook` RPC is a recovery tool for users who created an account in Auth0 (e.g., by accepting an invitation link) but whose account was not created in Stigmer due to a missed or failed webhook.
-
-```bash
-# Trigger account creation for an email that exists in Auth0 but not in Stigmer
-stigmer identity-account simulate-signup-webhook --email alice@example.com
-```
-
-The handler:
-1. Looks up the email in Auth0
-2. If found, fires a synthetic signup webhook payload to Stigmer's webhook endpoint
-3. The standard webhook flow creates the IdentityAccount
 
 ## Related Documentation
 

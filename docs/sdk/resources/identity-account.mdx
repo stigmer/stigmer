@@ -61,7 +61,6 @@ IdentityAccount identityAccount = client.identityAccounts().get("ida_01j5q3k7m8r
 | [`delete`](#delete) | Delete an identity account. |
 | [`createFederatedAccount`](#createfederatedaccount) | Create a federated identity account for an external platform user. |
 | [`deprovisionFederatedAccount`](#deprovisionfederatedaccount) | Deprovision a federated identity account by revoking access or deleting it. |
-| [`simulateSignupWebhook`](#simulatesignupwebhook) | Trigger account provisioning for a user who exists in Auth0 but not in Stigmer. |
 | [`whoAmI`](#whoami) | Get the identity account of the currently authenticated user. |
 
 ### get
@@ -658,45 +657,6 @@ IdentityAccount identityAccount = client.identityAccounts().deprovisionFederated
 **Parameters**: [`DeprovisionFederatedAccountInput`](#deprovisionfederatedaccountinput)
 
 **Returns**: [`IdentityAccount`](#identityaccount)
-
-### simulateSignupWebhook
-
-Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const empty = await stigmer.identityAccount.simulateSignupWebhook({
-  value: "...",
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-empty, err := client.IdentityAccount.SimulateSignupWebhook(ctx, &stigmer.IdentityAccountEmail{
-  Value: "...",
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-empty = client.identity_accounts.simulate_signup_webhook(IdentityAccountEmail(
-    value="...",
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-Empty empty = client.identityAccounts().simulateSignupWebhook(IdentityAccountEmail.builder()
-    .value("...")
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`IdentityAccountEmail`](#identityaccountemail)
-
-**Returns**: `void`
 
 ### whoAmI
 
