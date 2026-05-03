@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { EnvironmentSecretValueInputSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import { useStigmer } from "../hooks";
@@ -526,16 +526,21 @@ export function useGitHubConnection(
     }
   }, []);
 
-  return {
-    isConnected: token !== null,
-    isLoading,
-    isConnecting,
-    popupBlocked,
-    user,
-    token,
-    connect,
-    handleCallback,
-    reconcile,
-    disconnect,
-  };
+  const isConnected = token !== null;
+
+  return useMemo(
+    () => ({
+      isConnected,
+      isLoading,
+      isConnecting,
+      popupBlocked,
+      user,
+      token,
+      connect,
+      handleCallback,
+      reconcile,
+      disconnect,
+    }),
+    [isConnected, isLoading, isConnecting, popupBlocked, user, token, connect, handleCallback, reconcile, disconnect],
+  );
 }
