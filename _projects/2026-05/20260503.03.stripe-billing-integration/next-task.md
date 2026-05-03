@@ -69,7 +69,7 @@ When starting a new session:
 
 **Created**: 2026-05-03 09:55
 **Current Task**: T01 — Phase 2 (Execution Enforcement MVP)
-**Status**: Phase 2.3 Complete — ReportLlmCallUsage Handler + Service
+**Status**: Phase 2.4 Complete — FinalizeExecution Handler + Service
 
 ## Session Progress (2026-05-03)
 
@@ -240,6 +240,39 @@ When starting a new session:
 - Added 5 unit tests for `atomicUsageDebit` in `BillingAccountRepoTest`:
   - Full reserved, full available, split, zero debit rejection, account not found
 
+### Phase 2.4 Completed (FinalizeExecution Handler + Service)
+- Added `findByOrgIdAndExecutionId(orgId, executionId, type)` to `CreditLedgerEntryRepo`:
+  - Queries by `(org_id, type, source.execution_id)` using existing compound index
+  - Used at finalization time to aggregate usage across an execution
+- Created `ExecutionBillingService.finalizeExecution()`:
+  - Full algorithm: find reservation → idempotency (FINALIZED → return summary) → status routing (CANCELLED/EXPIRED → summary only) → ACTIVE → @Transactional finalization → aggregate from ledger
+  - No account status gate: finalization always proceeds (execution already ran, credits must be released)
+  - `expires_at` irrelevant: only `status` field matters (consistent with `reportLlmCallUsage`)
+  - `@Transactional` on `executeFinalization()`: `atomicReservationTransfer` (reserved→available) + `reservation_release` ledger entry + `updateStatus(FINALIZED)`
+  - When unused == 0 (fully consumed): only status transition, no balance transfer or ledger entry
+  - Aggregation via `aggregateExecutionUsage()`: queries `usage_debit` entries for totals, checks for `reservation_release` entry for released amount
+- Created `FinalizeExecutionHandler` in `ai.stigmer.domain.billing.request.handler`:
+  - `@RequestRoute(controller = BillingCommandControllerGrpc.class, method = finalizeExecution)`
+  - Pipeline: validateFieldConstraints → FinalizeExecutionStep → sendResponse
+  - No IAM steps (internal RPC, `is_skip_authorization = true`)
+  - Error mapping: `IllegalStateException` → `FAILED_PRECONDITION`, generic → `INTERNAL`
+- Added 9 unit tests for `finalizeExecution` in `ExecutionBillingServiceTest` (Mockito + JUnit 5):
+  - Happy path: active reservation, releases unused credits, correct summary
+  - Fully consumed: zero release, marks FINALIZED, correct call count
+  - Zero-cost execution: releases full reservation
+  - Idempotent: already FINALIZED, returns summary without writes
+  - Cancelled reservation: returns zero summary
+  - Expired reservation: returns ledger summary, no release
+  - No reservation: IllegalStateException
+  - Release ledger entry audit: type, positive amount, source, idempotency key
+  - No release entry when fully consumed
+
+### Key Design Decisions (Phase 2.4)
+- **Skip `usage_billing_records` collection**: Aggregating from immutable ledger entries at finalization time is clean, consistent, and avoids duplicate data. A materialized summary collection can be introduced in Phase 5 if dashboard query performance demands it.
+- **No account status gate on finalization**: Unlike authorize/report, the execution already ran. Holding credits in the reserved bucket indefinitely for a suspended account would be incorrect. The reservation lifecycle is about the execution, not the account.
+- **Ledger-based aggregation**: `total_provider_cost` and `total_billable_amount` are computed from `usage_debit` entries with `source.execution_id`. `released_reservation_micros` comes from the `reservation_release` entry (if any). Both paths use the immutable ledger as the single source of truth.
+- **Zero-release optimization**: When `consumed == reserved`, no balance transfer or ledger entry is written — only the status transition to FINALIZED. Avoids cluttering the ledger with $0 release entries.
+
 ### Key Design Decisions (Phase 2.3)
 - **Unified `atomicUsageDebit`**: One repo method, one MongoDB `findAndModify`, zero branching at the persistence layer. Handles all three debit paths (full-reserved, full-available, split) via caller-provided split parameters.
 - **CreditLedgerService refactor**: Burn-order algorithm extracted into `consumeGrants()` (DRY), `debitCredits()` untouched (backward compatible), `debitUsageCredits()` added for execution path. No test breakage on existing tests.
@@ -252,7 +285,7 @@ When starting a new session:
 1. ~~Create `execution_reservation` collection + migration~~ ✅
 2. ~~Implement AuthorizeExecutionHandler — check balance, create reservation~~ ✅
 3. ~~Implement ReportLlmCallUsageHandler — rate usage, debit via burn order, return billing signal~~ ✅
-4. Implement FinalizeExecutionHandler — release unused reservation, produce billing record
+4. ~~Implement FinalizeExecutionHandler — release unused reservation, produce billing record~~ ✅
 5. Integrate with agent-runner UsageTracker (Python) — billing reporting hook
 6. Integrate with Temporal workflow — authorize before dispatch, finalize after completion
 7. ~~Add MongoTransactionManager for atomic multi-document debit path~~ ✅
@@ -267,20 +300,24 @@ When starting a new session:
 - BillingAccount balance is the source of truth, maintained via atomic $inc
 - CreditLedgerService has two debit paths: `debitCredits()` (available-only, existing callers), `debitUsageCredits()` (reservation-aware, execution billing)
 - Both debit paths share `consumeGrants()` for burn-order grant consumption (DRY)
-- MongoTransactionManager is consumed by both `executeReservation()` and `executeUsageDebit()` in ExecutionBillingService
-- ExecutionReservationRepo supports `atomicIncrementConsumed()` for per-call reservation tracking
+- MongoTransactionManager is consumed by `executeReservation()`, `executeUsageDebit()`, and `executeFinalization()` in ExecutionBillingService
+- ExecutionReservationRepo supports `atomicIncrementConsumed()` for per-call reservation tracking and `updateStatus()` for lifecycle transitions
 - Balance model: reserve moves available→reserved, per-call debit reduces reserved+total (or available+total for fallback), finalize releases reserved→available
-- 7 gRPC RPCs are now handler-wired: getOrCreateBillingAccount, adjustCredits, getBillingAccount, getCreditBalance, getCreditLedger, authorizeExecution, **reportLlmCallUsage**
-- 3 RPCs deferred: finalizeExecution (Phase 2.4), getBillingUsageReport, getCustomerModelPricing (Phase 5)
+- 8 gRPC RPCs are now handler-wired: getOrCreateBillingAccount, adjustCredits, getBillingAccount, getCreditBalance, getCreditLedger, authorizeExecution, reportLlmCallUsage, **finalizeExecution**
+- 2 RPCs deferred: getBillingUsageReport, getCustomerModelPricing (Phase 5)
 - `BillingExecutionConfig` provides Spring-configurable reservation defaults ($1.00 reserve, $0.05 minimum, 4h expiry)
 - HITL reservation expiry is handled: expired reservations fall back to available balance debit
 - Zero-cost calls (cached responses) are handled: no debit, no ledger entry, immediate CONTINUE
 - Execution-aware billing signal factors in reservation headroom for accurate runner guidance
+- FinalizeExecution aggregates billing summary from ledger entries (no separate `usage_billing_records` collection — deferred to Phase 5 if dashboard query performance needs it)
+- Finalization has no account status gate — the execution already ran, credits must be released regardless of account state
+- `CreditLedgerEntryRepo.findByOrgIdAndExecutionId()` enables per-execution ledger aggregation using existing `(org_id, type)` index
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 2.4" - Begin FinalizeExecutionHandler implementation
+- "Start Phase 2.5" - Begin agent-runner UsageTracker integration (Python)
+- "Start Phase 2.6" - Begin Temporal workflow integration
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
