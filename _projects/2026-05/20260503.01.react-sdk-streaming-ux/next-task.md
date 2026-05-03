@@ -68,9 +68,40 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03
-**Current Task**: T10 (Auto-Scroll State Machine — NEXT)
-**Status**: T09 complete, ready for T10
+**Current Task**: T11 (Virtualization — NEXT)
+**Status**: T10 complete, ready for T11
 **Research Report**: `_projects/2026-05/research.react-sdk-streaming-ux-quality/04.report.gpt.md`
+
+## Session Progress (2026-05-03, Session 9)
+
+- Implemented T10: Auto-Scroll State Machine
+- Replaced naive `useEffect([items])` + `onScroll` arithmetic with a two-state machine (Following/Disengaged) driven by `IntersectionObserver` + `ResizeObserver`
+- Built `useAutoScroll` hook (`sdk/react/src/internal/useAutoScroll.ts`) — IO on bottom sentinel with 80px rootMargin, RO on content wrapper, rAF-batched scroll writes, `jumpToLatest()` re-engage
+- Built `JumpToLatestButton` (`sdk/react/src/internal/JumpToLatestButton.tsx`) — compact pill button with chevron-down SVG, absolutely positioned at bottom-center of scroll container wrapper
+- Restructured `MessageThread` DOM: added positioning wrapper `<div>` (receives consumer `className`), content wrapper `<div ref={contentRef}>` for RO, sentinel `<div ref={sentinelRef}>` as last scroll child, `overflow-anchor: none` on scroll container
+- Removed: `scrollRef`, `isNearBottomRef`, `handleScroll`, `AUTO_SCROLL_THRESHOLD_PX`, `useEffect([items])`, `onScroll` handler, unused imports (`useRef`, `useEffect`)
+- Lint warning fixed: replaced `bg-background/90` with `bg-card` to comply with `stigmer/no-token-opacity-modifiers` rule
+- 16 new tests, full suite 424/424 pass, typecheck clean, lint clean
+- Committed as `b249976ce`
+
+### Key Design Decision: Content-Agnostic State Machine
+- The auto-scroll hook has no `isStreaming` prop or streaming awareness
+- The sentinel/IO pattern handles ALL content growth uniformly — streaming tokens, new messages, tool panel expansion, code block rendering
+- This is simpler, more correct, and naturally handles edge cases the old approach missed
+
+### Key Design Decision: IO over Scroll Events
+- `IntersectionObserver` is passive (no main-thread cost), fires on resize/layout shifts automatically
+- Handles programmatic scrolls, tool panel expansion, window resize without extra listeners
+- `rootMargin: "0px 0px 80px 0px"` provides the same 80px near-bottom tolerance as the old arithmetic approach
+
+### Key Design Decision: Wrapper Div for JumpToLatestButton Positioning
+- Evaluated `position: sticky` inside the scroll container — doesn't work because sticky-bottom only activates when the element is scrolled past going UP, but the button is at the end of content (below viewport when user scrolls up)
+- Chose a `position: relative` wrapper with the button `position: absolute` — standard pattern for floating elements over a scroll viewport
+- The wrapper receives the consumer's `className` (e.g. `flex-1`) for layout, scroll container fills it with `h-full`
+
+### Key Design Decision: T11-Compatible Architecture
+- `useAutoScroll` is internal — when react-virtuoso is introduced in T11, its `followOutput`/`atBottomStateChange` APIs will replace this hook
+- Zero public API impact since `MessageThreadProps` is unchanged
 
 ## Session Progress (2026-05-03, Session 8)
 
@@ -251,9 +282,8 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T10**: Auto-Scroll State Machine — IntersectionObserver + follow mode
-2. **T11**: Virtualization (react-virtuoso)
-3. **T12**: Animation & Polish
+1. **T11**: Virtualization (react-virtuoso) — optional `virtualized` prop, `alignToBottom` + `followOutput`, variable-height items
+2. **T12**: Animation & Polish — CSS row entry transitions, skeletons, `content-visibility`, `@starting-style`, `prefers-reduced-motion`
 
 ## Context for Resume
 
@@ -266,7 +296,9 @@ When starting a new session:
 - **Stream controller is live**: `useExecutionStream` uses `StreamController` (FSM) + rAF coalescing + `startTransition`. React commits at most once per display frame during streaming.
 - **ConversationStore is the source of truth**: `useExecutionStream` feeds the store directly. `useSessionConversation` shares its store via the `store` option.
 - **Memoization is live**: All leaf thread components wrapped in `React.memo` (T05). Combined with rAF coalescing and Streamdown's block-level memoization, completed rows skip re-render entirely during streaming.
-- **No public API changes**: `UseExecutionStreamReturn` shape is unchanged. `MessageEntry` props unchanged. `FetchCacheProvider` is the only new public export.
+- **Auto-scroll is IO-driven**: `useAutoScroll` hook in `MessageThread` uses `IntersectionObserver` on a bottom sentinel + `ResizeObserver` on content wrapper. No `onScroll` event handler. rAF-batched scroll writes. "Jump to latest" button when disengaged.
+- **MessageThread has a wrapper div**: Root element is now `<div className="relative min-h-0">` (positioning context). Scroll container is the child with `h-full overflow-y-auto [overflow-anchor:none]`. Consumer `className` goes on the wrapper. This is important for T11 — virtuoso will likely replace the scroll container but keep the wrapper.
+- **No public API changes**: `UseExecutionStreamReturn` shape is unchanged. `MessageEntry` props unchanged. `MessageThreadProps` unchanged. `FetchCacheProvider` is the only new public export.
 - **startTransition in place**: Thread renders are non-urgent.
 - **Instrumentation is live**: `[stgm:perf:stream]` console logs still fire during streaming.
 
@@ -282,14 +314,14 @@ When starting a new session:
 | 5 | T07 | Streaming Markdown (Streamdown) | High | **Done** |
 | 6 | T08 | Data Fetching / Cache Fix | Very High | **Done** |
 | 7 | T09 | Composer Isolation | High | **Done** |
-| 8 | T10 | Auto-Scroll State Machine | High | Pending |
+| 8 | T10 | Auto-Scroll State Machine | High | **Done** |
 | 9 | T11 | Virtualization (react-virtuoso) | High | Pending |
 | 10 | T12 | Animation & Polish | Medium | Pending |
 
 ## Quick Commands
 
 After loading context:
-- "Start T10" - Begin auto-scroll state machine
+- "Start T11" - Begin virtualization with react-virtuoso
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
