@@ -40,7 +40,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "/v1/billing_account.proto\032\"ai/stigmer/bi" +
       "lling/v1/credit.proto\032\036ai/stigmer/billin" +
       "g/v1/io.proto\032+ai/stigmer/commons/rpc/me" +
-      "thod_options.proto2\346\007\n\030BillingCommandCon" +
+      "thod_options.proto2\300\t\n\030BillingCommandCon" +
       "troller\022\301\001\n\031getOrCreateBillingAccount\0225." +
       "ai.stigmer.billing.v1.GetOrCreateBilling" +
       "AccountInput\032%.ai.stigmer.billing.v1.Bil" +
@@ -65,11 +65,16 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "Input\032:.ai.stigmer.billing.v1.CreateCred" +
       "itCheckoutSessionResponse\"H\302\270\030D\010\034\020\036\"\006org" +
       "_id*6unauthorized to purchase credits fo" +
-      "r this organizationB\205\001B\014CommandProtoP\001\242\002" +
-      "\003ASB\252\002\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Stigme" +
-      "r\\Billing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\GPB" +
-      "Metadata\352\002\030Ai::Stigmer::Billing::V1b\006pro" +
-      "to3"
+      "r this organization\022\327\001\n\032createBillingPor" +
+      "talSession\0226.ai.stigmer.billing.v1.Creat" +
+      "eBillingPortalSessionInput\0329.ai.stigmer." +
+      "billing.v1.CreateBillingPortalSessionRes" +
+      "ponse\"F\302\270\030B\010\034\020\036\"\006org_id*4unauthorized to" +
+      " manage billing for this organizationB\205\001" +
+      "B\014CommandProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.Bill" +
+      "ing.V1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\Stig" +
+      "mer\\Billing\\V1\\GPBMetadata\352\002\030Ai::Stigmer" +
+      "::Billing::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

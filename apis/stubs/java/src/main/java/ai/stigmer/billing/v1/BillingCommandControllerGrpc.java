@@ -203,6 +203,37 @@ public final class BillingCommandControllerGrpc {
     return getCreateCreditCheckoutSessionMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.CreateBillingPortalSessionInput,
+      ai.stigmer.billing.v1.CreateBillingPortalSessionResponse> getCreateBillingPortalSessionMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "createBillingPortalSession",
+      requestType = ai.stigmer.billing.v1.CreateBillingPortalSessionInput.class,
+      responseType = ai.stigmer.billing.v1.CreateBillingPortalSessionResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.CreateBillingPortalSessionInput,
+      ai.stigmer.billing.v1.CreateBillingPortalSessionResponse> getCreateBillingPortalSessionMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.CreateBillingPortalSessionInput, ai.stigmer.billing.v1.CreateBillingPortalSessionResponse> getCreateBillingPortalSessionMethod;
+    if ((getCreateBillingPortalSessionMethod = BillingCommandControllerGrpc.getCreateBillingPortalSessionMethod) == null) {
+      synchronized (BillingCommandControllerGrpc.class) {
+        if ((getCreateBillingPortalSessionMethod = BillingCommandControllerGrpc.getCreateBillingPortalSessionMethod) == null) {
+          BillingCommandControllerGrpc.getCreateBillingPortalSessionMethod = getCreateBillingPortalSessionMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.CreateBillingPortalSessionInput, ai.stigmer.billing.v1.CreateBillingPortalSessionResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "createBillingPortalSession"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.CreateBillingPortalSessionInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.CreateBillingPortalSessionResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("createBillingPortalSession"))
+              .build();
+        }
+      }
+    }
+    return getCreateBillingPortalSessionMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -349,6 +380,19 @@ public final class BillingCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateCreditCheckoutSessionMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Open a Stripe Customer Portal session for payment method management.
+     * Returns a portal URL for the client to redirect the user.
+     * Requires an existing Stripe Customer (created during first credit purchase).
+     * The portal allows users to add, update, or remove saved payment methods.
+     * </pre>
+     */
+    default void createBillingPortalSession(ai.stigmer.billing.v1.CreateBillingPortalSessionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreateBillingPortalSessionResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateBillingPortalSessionMethod(), responseObserver);
+    }
   }
 
   /**
@@ -472,6 +516,20 @@ public final class BillingCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getCreateCreditCheckoutSessionMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Open a Stripe Customer Portal session for payment method management.
+     * Returns a portal URL for the client to redirect the user.
+     * Requires an existing Stripe Customer (created during first credit purchase).
+     * The portal allows users to add, update, or remove saved payment methods.
+     * </pre>
+     */
+    public void createBillingPortalSession(ai.stigmer.billing.v1.CreateBillingPortalSessionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreateBillingPortalSessionResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getCreateBillingPortalSessionMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -573,6 +631,19 @@ public final class BillingCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getCreateCreditCheckoutSessionMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Open a Stripe Customer Portal session for payment method management.
+     * Returns a portal URL for the client to redirect the user.
+     * Requires an existing Stripe Customer (created during first credit purchase).
+     * The portal allows users to add, update, or remove saved payment methods.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.CreateBillingPortalSessionResponse createBillingPortalSession(ai.stigmer.billing.v1.CreateBillingPortalSessionInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getCreateBillingPortalSessionMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -673,6 +744,19 @@ public final class BillingCommandControllerGrpc {
     public ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse createCreditCheckoutSession(ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getCreateCreditCheckoutSessionMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Open a Stripe Customer Portal session for payment method management.
+     * Returns a portal URL for the client to redirect the user.
+     * Requires an existing Stripe Customer (created during first credit purchase).
+     * The portal allows users to add, update, or remove saved payment methods.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.CreateBillingPortalSessionResponse createBillingPortalSession(ai.stigmer.billing.v1.CreateBillingPortalSessionInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getCreateBillingPortalSessionMethod(), getCallOptions(), request);
     }
   }
 
@@ -781,6 +865,20 @@ public final class BillingCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getCreateCreditCheckoutSessionMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Open a Stripe Customer Portal session for payment method management.
+     * Returns a portal URL for the client to redirect the user.
+     * Requires an existing Stripe Customer (created during first credit purchase).
+     * The portal allows users to add, update, or remove saved payment methods.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.CreateBillingPortalSessionResponse> createBillingPortalSession(
+        ai.stigmer.billing.v1.CreateBillingPortalSessionInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getCreateBillingPortalSessionMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET_OR_CREATE_BILLING_ACCOUNT = 0;
@@ -789,6 +887,7 @@ public final class BillingCommandControllerGrpc {
   private static final int METHODID_REPORT_LLM_CALL_USAGE = 3;
   private static final int METHODID_FINALIZE_EXECUTION = 4;
   private static final int METHODID_CREATE_CREDIT_CHECKOUT_SESSION = 5;
+  private static final int METHODID_CREATE_BILLING_PORTAL_SESSION = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -830,6 +929,10 @@ public final class BillingCommandControllerGrpc {
         case METHODID_CREATE_CREDIT_CHECKOUT_SESSION:
           serviceImpl.createCreditCheckoutSession((ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse>) responseObserver);
+          break;
+        case METHODID_CREATE_BILLING_PORTAL_SESSION:
+          serviceImpl.createBillingPortalSession((ai.stigmer.billing.v1.CreateBillingPortalSessionInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CreateBillingPortalSessionResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -891,6 +994,13 @@ public final class BillingCommandControllerGrpc {
               ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput,
               ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse>(
                 service, METHODID_CREATE_CREDIT_CHECKOUT_SESSION)))
+        .addMethod(
+          getCreateBillingPortalSessionMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.billing.v1.CreateBillingPortalSessionInput,
+              ai.stigmer.billing.v1.CreateBillingPortalSessionResponse>(
+                service, METHODID_CREATE_BILLING_PORTAL_SESSION)))
         .build();
   }
 
@@ -945,6 +1055,7 @@ public final class BillingCommandControllerGrpc {
               .addMethod(getReportLlmCallUsageMethod())
               .addMethod(getFinalizeExecutionMethod())
               .addMethod(getCreateCreditCheckoutSessionMethod())
+              .addMethod(getCreateBillingPortalSessionMethod())
               .build();
         }
       }

@@ -339,6 +339,50 @@ private static final long serialVersionUID = 0L;
     return lowBalanceThresholdMicros_;
   }
 
+  public static final int DEFAULT_PAYMENT_METHOD_FIELD_NUMBER = 11;
+  private ai.stigmer.billing.v1.PaymentMethodSummary defaultPaymentMethod_;
+  /**
+   * <pre>
+   * Saved payment method for off-session charges and Portal display.
+   * Populated automatically after the first Stripe Checkout purchase or
+   * when the user adds a payment method via the Stripe Customer Portal.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
+   * @return Whether the defaultPaymentMethod field is set.
+   */
+  @java.lang.Override
+  public boolean hasDefaultPaymentMethod() {
+    return ((bitField0_ & 0x00000004) != 0);
+  }
+  /**
+   * <pre>
+   * Saved payment method for off-session charges and Portal display.
+   * Populated automatically after the first Stripe Checkout purchase or
+   * when the user adds a payment method via the Stripe Customer Portal.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
+   * @return The defaultPaymentMethod.
+   */
+  @java.lang.Override
+  public ai.stigmer.billing.v1.PaymentMethodSummary getDefaultPaymentMethod() {
+    return defaultPaymentMethod_ == null ? ai.stigmer.billing.v1.PaymentMethodSummary.getDefaultInstance() : defaultPaymentMethod_;
+  }
+  /**
+   * <pre>
+   * Saved payment method for off-session charges and Portal display.
+   * Populated automatically after the first Stripe Checkout purchase or
+   * when the user adds a payment method via the Stripe Customer Portal.
+   * </pre>
+   *
+   * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.billing.v1.PaymentMethodSummaryOrBuilder getDefaultPaymentMethodOrBuilder() {
+    return defaultPaymentMethod_ == null ? ai.stigmer.billing.v1.PaymentMethodSummary.getDefaultInstance() : defaultPaymentMethod_;
+  }
+
   public static final int CREATED_AT_FIELD_NUMBER = 9;
   private com.google.protobuf.Timestamp createdAt_;
   /**
@@ -347,7 +391,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public boolean hasCreatedAt() {
-    return ((bitField0_ & 0x00000004) != 0);
+    return ((bitField0_ & 0x00000008) != 0);
   }
   /**
    * <code>.google.protobuf.Timestamp created_at = 9 [json_name = "createdAt"];</code>
@@ -373,7 +417,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public boolean hasUpdatedAt() {
-    return ((bitField0_ & 0x00000008) != 0);
+    return ((bitField0_ & 0x00000010) != 0);
   }
   /**
    * <code>.google.protobuf.Timestamp updated_at = 10 [json_name = "updatedAt"];</code>
@@ -429,11 +473,14 @@ private static final long serialVersionUID = 0L;
     if (lowBalanceThresholdMicros_ != 0L) {
       output.writeInt64(8, lowBalanceThresholdMicros_);
     }
-    if (((bitField0_ & 0x00000004) != 0)) {
+    if (((bitField0_ & 0x00000008) != 0)) {
       output.writeMessage(9, getCreatedAt());
     }
-    if (((bitField0_ & 0x00000008) != 0)) {
+    if (((bitField0_ & 0x00000010) != 0)) {
       output.writeMessage(10, getUpdatedAt());
+    }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      output.writeMessage(11, getDefaultPaymentMethod());
     }
     getUnknownFields().writeTo(output);
   }
@@ -473,13 +520,17 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(8, lowBalanceThresholdMicros_);
     }
-    if (((bitField0_ & 0x00000004) != 0)) {
+    if (((bitField0_ & 0x00000008) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(9, getCreatedAt());
     }
-    if (((bitField0_ & 0x00000008) != 0)) {
+    if (((bitField0_ & 0x00000010) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(10, getUpdatedAt());
+    }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(11, getDefaultPaymentMethod());
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -517,6 +568,11 @@ private static final long serialVersionUID = 0L;
         != other.getAllowedNegativeBalanceMicros()) return false;
     if (getLowBalanceThresholdMicros()
         != other.getLowBalanceThresholdMicros()) return false;
+    if (hasDefaultPaymentMethod() != other.hasDefaultPaymentMethod()) return false;
+    if (hasDefaultPaymentMethod()) {
+      if (!getDefaultPaymentMethod()
+          .equals(other.getDefaultPaymentMethod())) return false;
+    }
     if (hasCreatedAt() != other.hasCreatedAt()) return false;
     if (hasCreatedAt()) {
       if (!getCreatedAt()
@@ -560,6 +616,10 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + LOW_BALANCE_THRESHOLD_MICROS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getLowBalanceThresholdMicros());
+    if (hasDefaultPaymentMethod()) {
+      hash = (37 * hash) + DEFAULT_PAYMENT_METHOD_FIELD_NUMBER;
+      hash = (53 * hash) + getDefaultPaymentMethod().hashCode();
+    }
     if (hasCreatedAt()) {
       hash = (37 * hash) + CREATED_AT_FIELD_NUMBER;
       hash = (53 * hash) + getCreatedAt().hashCode();
@@ -712,6 +772,7 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetBalanceFieldBuilder();
         internalGetAutoRechargeFieldBuilder();
+        internalGetDefaultPaymentMethodFieldBuilder();
         internalGetCreatedAtFieldBuilder();
         internalGetUpdatedAtFieldBuilder();
       }
@@ -736,6 +797,11 @@ private static final long serialVersionUID = 0L;
       stripeCustomerId_ = "";
       allowedNegativeBalanceMicros_ = 0L;
       lowBalanceThresholdMicros_ = 0L;
+      defaultPaymentMethod_ = null;
+      if (defaultPaymentMethodBuilder_ != null) {
+        defaultPaymentMethodBuilder_.dispose();
+        defaultPaymentMethodBuilder_ = null;
+      }
       createdAt_ = null;
       if (createdAtBuilder_ != null) {
         createdAtBuilder_.dispose();
@@ -811,16 +877,22 @@ private static final long serialVersionUID = 0L;
         result.lowBalanceThresholdMicros_ = lowBalanceThresholdMicros_;
       }
       if (((from_bitField0_ & 0x00000100) != 0)) {
-        result.createdAt_ = createdAtBuilder_ == null
-            ? createdAt_
-            : createdAtBuilder_.build();
+        result.defaultPaymentMethod_ = defaultPaymentMethodBuilder_ == null
+            ? defaultPaymentMethod_
+            : defaultPaymentMethodBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
       if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.createdAt_ = createdAtBuilder_ == null
+            ? createdAt_
+            : createdAtBuilder_.build();
+        to_bitField0_ |= 0x00000008;
+      }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         result.updatedAt_ = updatedAtBuilder_ == null
             ? updatedAt_
             : updatedAtBuilder_.build();
-        to_bitField0_ |= 0x00000008;
+        to_bitField0_ |= 0x00000010;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -866,6 +938,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getLowBalanceThresholdMicros() != 0L) {
         setLowBalanceThresholdMicros(other.getLowBalanceThresholdMicros());
+      }
+      if (other.hasDefaultPaymentMethod()) {
+        mergeDefaultPaymentMethod(other.getDefaultPaymentMethod());
       }
       if (other.hasCreatedAt()) {
         mergeCreatedAt(other.getCreatedAt());
@@ -947,16 +1022,23 @@ private static final long serialVersionUID = 0L;
               input.readMessage(
                   internalGetCreatedAtFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000200;
               break;
             } // case 74
             case 82: {
               input.readMessage(
                   internalGetUpdatedAtFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000400;
               break;
             } // case 82
+            case 90: {
+              input.readMessage(
+                  internalGetDefaultPaymentMethodFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000100;
+              break;
+            } // case 90
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1727,6 +1809,181 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
+    private ai.stigmer.billing.v1.PaymentMethodSummary defaultPaymentMethod_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.billing.v1.PaymentMethodSummary, ai.stigmer.billing.v1.PaymentMethodSummary.Builder, ai.stigmer.billing.v1.PaymentMethodSummaryOrBuilder> defaultPaymentMethodBuilder_;
+    /**
+     * <pre>
+     * Saved payment method for off-session charges and Portal display.
+     * Populated automatically after the first Stripe Checkout purchase or
+     * when the user adds a payment method via the Stripe Customer Portal.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
+     * @return Whether the defaultPaymentMethod field is set.
+     */
+    public boolean hasDefaultPaymentMethod() {
+      return ((bitField0_ & 0x00000100) != 0);
+    }
+    /**
+     * <pre>
+     * Saved payment method for off-session charges and Portal display.
+     * Populated automatically after the first Stripe Checkout purchase or
+     * when the user adds a payment method via the Stripe Customer Portal.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
+     * @return The defaultPaymentMethod.
+     */
+    public ai.stigmer.billing.v1.PaymentMethodSummary getDefaultPaymentMethod() {
+      if (defaultPaymentMethodBuilder_ == null) {
+        return defaultPaymentMethod_ == null ? ai.stigmer.billing.v1.PaymentMethodSummary.getDefaultInstance() : defaultPaymentMethod_;
+      } else {
+        return defaultPaymentMethodBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Saved payment method for off-session charges and Portal display.
+     * Populated automatically after the first Stripe Checkout purchase or
+     * when the user adds a payment method via the Stripe Customer Portal.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
+     */
+    public Builder setDefaultPaymentMethod(ai.stigmer.billing.v1.PaymentMethodSummary value) {
+      if (defaultPaymentMethodBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        defaultPaymentMethod_ = value;
+      } else {
+        defaultPaymentMethodBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Saved payment method for off-session charges and Portal display.
+     * Populated automatically after the first Stripe Checkout purchase or
+     * when the user adds a payment method via the Stripe Customer Portal.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
+     */
+    public Builder setDefaultPaymentMethod(
+        ai.stigmer.billing.v1.PaymentMethodSummary.Builder builderForValue) {
+      if (defaultPaymentMethodBuilder_ == null) {
+        defaultPaymentMethod_ = builderForValue.build();
+      } else {
+        defaultPaymentMethodBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Saved payment method for off-session charges and Portal display.
+     * Populated automatically after the first Stripe Checkout purchase or
+     * when the user adds a payment method via the Stripe Customer Portal.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
+     */
+    public Builder mergeDefaultPaymentMethod(ai.stigmer.billing.v1.PaymentMethodSummary value) {
+      if (defaultPaymentMethodBuilder_ == null) {
+        if (((bitField0_ & 0x00000100) != 0) &&
+          defaultPaymentMethod_ != null &&
+          defaultPaymentMethod_ != ai.stigmer.billing.v1.PaymentMethodSummary.getDefaultInstance()) {
+          getDefaultPaymentMethodBuilder().mergeFrom(value);
+        } else {
+          defaultPaymentMethod_ = value;
+        }
+      } else {
+        defaultPaymentMethodBuilder_.mergeFrom(value);
+      }
+      if (defaultPaymentMethod_ != null) {
+        bitField0_ |= 0x00000100;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Saved payment method for off-session charges and Portal display.
+     * Populated automatically after the first Stripe Checkout purchase or
+     * when the user adds a payment method via the Stripe Customer Portal.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
+     */
+    public Builder clearDefaultPaymentMethod() {
+      bitField0_ = (bitField0_ & ~0x00000100);
+      defaultPaymentMethod_ = null;
+      if (defaultPaymentMethodBuilder_ != null) {
+        defaultPaymentMethodBuilder_.dispose();
+        defaultPaymentMethodBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Saved payment method for off-session charges and Portal display.
+     * Populated automatically after the first Stripe Checkout purchase or
+     * when the user adds a payment method via the Stripe Customer Portal.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
+     */
+    public ai.stigmer.billing.v1.PaymentMethodSummary.Builder getDefaultPaymentMethodBuilder() {
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return internalGetDefaultPaymentMethodFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Saved payment method for off-session charges and Portal display.
+     * Populated automatically after the first Stripe Checkout purchase or
+     * when the user adds a payment method via the Stripe Customer Portal.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
+     */
+    public ai.stigmer.billing.v1.PaymentMethodSummaryOrBuilder getDefaultPaymentMethodOrBuilder() {
+      if (defaultPaymentMethodBuilder_ != null) {
+        return defaultPaymentMethodBuilder_.getMessageOrBuilder();
+      } else {
+        return defaultPaymentMethod_ == null ?
+            ai.stigmer.billing.v1.PaymentMethodSummary.getDefaultInstance() : defaultPaymentMethod_;
+      }
+    }
+    /**
+     * <pre>
+     * Saved payment method for off-session charges and Portal display.
+     * Populated automatically after the first Stripe Checkout purchase or
+     * when the user adds a payment method via the Stripe Customer Portal.
+     * </pre>
+     *
+     * <code>.ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11 [json_name = "defaultPaymentMethod"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.billing.v1.PaymentMethodSummary, ai.stigmer.billing.v1.PaymentMethodSummary.Builder, ai.stigmer.billing.v1.PaymentMethodSummaryOrBuilder> 
+        internalGetDefaultPaymentMethodFieldBuilder() {
+      if (defaultPaymentMethodBuilder_ == null) {
+        defaultPaymentMethodBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.billing.v1.PaymentMethodSummary, ai.stigmer.billing.v1.PaymentMethodSummary.Builder, ai.stigmer.billing.v1.PaymentMethodSummaryOrBuilder>(
+                getDefaultPaymentMethod(),
+                getParentForChildren(),
+                isClean());
+        defaultPaymentMethod_ = null;
+      }
+      return defaultPaymentMethodBuilder_;
+    }
+
     private com.google.protobuf.Timestamp createdAt_;
     private com.google.protobuf.SingleFieldBuilder<
         com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> createdAtBuilder_;
@@ -1735,7 +1992,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the createdAt field is set.
      */
     public boolean hasCreatedAt() {
-      return ((bitField0_ & 0x00000100) != 0);
+      return ((bitField0_ & 0x00000200) != 0);
     }
     /**
      * <code>.google.protobuf.Timestamp created_at = 9 [json_name = "createdAt"];</code>
@@ -1760,7 +2017,7 @@ private static final long serialVersionUID = 0L;
       } else {
         createdAtBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -1774,7 +2031,7 @@ private static final long serialVersionUID = 0L;
       } else {
         createdAtBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -1783,7 +2040,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeCreatedAt(com.google.protobuf.Timestamp value) {
       if (createdAtBuilder_ == null) {
-        if (((bitField0_ & 0x00000100) != 0) &&
+        if (((bitField0_ & 0x00000200) != 0) &&
           createdAt_ != null &&
           createdAt_ != com.google.protobuf.Timestamp.getDefaultInstance()) {
           getCreatedAtBuilder().mergeFrom(value);
@@ -1794,7 +2051,7 @@ private static final long serialVersionUID = 0L;
         createdAtBuilder_.mergeFrom(value);
       }
       if (createdAt_ != null) {
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000200;
         onChanged();
       }
       return this;
@@ -1803,7 +2060,7 @@ private static final long serialVersionUID = 0L;
      * <code>.google.protobuf.Timestamp created_at = 9 [json_name = "createdAt"];</code>
      */
     public Builder clearCreatedAt() {
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000200);
       createdAt_ = null;
       if (createdAtBuilder_ != null) {
         createdAtBuilder_.dispose();
@@ -1816,7 +2073,7 @@ private static final long serialVersionUID = 0L;
      * <code>.google.protobuf.Timestamp created_at = 9 [json_name = "createdAt"];</code>
      */
     public com.google.protobuf.Timestamp.Builder getCreatedAtBuilder() {
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000200;
       onChanged();
       return internalGetCreatedAtFieldBuilder().getBuilder();
     }
@@ -1856,7 +2113,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the updatedAt field is set.
      */
     public boolean hasUpdatedAt() {
-      return ((bitField0_ & 0x00000200) != 0);
+      return ((bitField0_ & 0x00000400) != 0);
     }
     /**
      * <code>.google.protobuf.Timestamp updated_at = 10 [json_name = "updatedAt"];</code>
@@ -1881,7 +2138,7 @@ private static final long serialVersionUID = 0L;
       } else {
         updatedAtBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -1895,7 +2152,7 @@ private static final long serialVersionUID = 0L;
       } else {
         updatedAtBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -1904,7 +2161,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeUpdatedAt(com.google.protobuf.Timestamp value) {
       if (updatedAtBuilder_ == null) {
-        if (((bitField0_ & 0x00000200) != 0) &&
+        if (((bitField0_ & 0x00000400) != 0) &&
           updatedAt_ != null &&
           updatedAt_ != com.google.protobuf.Timestamp.getDefaultInstance()) {
           getUpdatedAtBuilder().mergeFrom(value);
@@ -1915,7 +2172,7 @@ private static final long serialVersionUID = 0L;
         updatedAtBuilder_.mergeFrom(value);
       }
       if (updatedAt_ != null) {
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000400;
         onChanged();
       }
       return this;
@@ -1924,7 +2181,7 @@ private static final long serialVersionUID = 0L;
      * <code>.google.protobuf.Timestamp updated_at = 10 [json_name = "updatedAt"];</code>
      */
     public Builder clearUpdatedAt() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000400);
       updatedAt_ = null;
       if (updatedAtBuilder_ != null) {
         updatedAtBuilder_.dispose();
@@ -1937,7 +2194,7 @@ private static final long serialVersionUID = 0L;
      * <code>.google.protobuf.Timestamp updated_at = 10 [json_name = "updatedAt"];</code>
      */
     public com.google.protobuf.Timestamp.Builder getUpdatedAtBuilder() {
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000400;
       onChanged();
       return internalGetUpdatedAtFieldBuilder().getBuilder();
     }

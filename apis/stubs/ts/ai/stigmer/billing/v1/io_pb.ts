@@ -21,7 +21,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/v1/io.proto.
  */
 export const file_ai_stigmer_billing_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("Ch5haS9zdGlnbWVyL2JpbGxpbmcvdjEvaW8ucHJvdG8SFWFpLnN0aWdtZXIuYmlsbGluZy52MSI4Ch5HZXRPckNyZWF0ZUJpbGxpbmdBY2NvdW50SW5wdXQSFgoGb3JnX2lkGAEgASgJQga6SAPIAQEifAoSQWRqdXN0Q3JlZGl0c0lucHV0EhYKBm9yZ19pZBgBIAEoCUIGukgDyAEBEhUKDWFtb3VudF9taWNyb3MYAiABKAMSFgoGcmVhc29uGAMgASgJQga6SAPIAQESHwoPaWRlbXBvdGVuY3lfa2V5GAQgASgJQga6SAPIAQEiigEKF0F1dGhvcml6ZUV4ZWN1dGlvbklucHV0EhYKBm9yZ19pZBgBIAEoCUIGukgDyAEBEhwKDGV4ZWN1dGlvbl9pZBgCIAEoCUIGukgDyAEBEhcKB2hhcm5lc3MYAyABKAlCBrpIA8gBARIgChhleHBlY3RlZF9jb3N0X2NhcF9taWNyb3MYBCABKAMimgEKGkF1dGhvcml6ZUV4ZWN1dGlvblJlc3BvbnNlEhIKCmF1dGhvcml6ZWQYASABKAgSFgoOcmVzZXJ2YXRpb25faWQYAiABKAkSFwoPcmVzZXJ2ZWRfbWljcm9zGAMgASgDEiAKGGF2YWlsYWJsZV9iYWxhbmNlX21pY3JvcxgEIAEoAxIVCg1kZW5pYWxfcmVhc29uGAUgASgJIqICChdSZXBvcnRMbG1DYWxsVXNhZ2VJbnB1dBIcCgxleGVjdXRpb25faWQYASABKAlCBrpIA8gBARIZCghzZXF1ZW5jZRgCIAEoBUIHukgEGgIgABIVCgVtb2RlbBgDIAEoCUIGukgDyAEBEhcKB2hhcm5lc3MYBCABKAlCBrpIA8gBARIZCgljb3N0X3RpZXIYBSABKAlCBrpIA8gBARIcChRwcm92aWRlcl9jb3N0X21pY3JvcxgGIAEoAxIUCgxpbnB1dF90b2tlbnMYByABKAUSFQoNb3V0cHV0X3Rva2VucxgIIAEoBRIdChVjYWNoZV9jcmVhdGlvbl90b2tlbnMYCSABKAUSGQoRY2FjaGVfcmVhZF90b2tlbnMYCiABKAUi1AEKGlJlcG9ydExsbUNhbGxVc2FnZVJlc3BvbnNlEj0KBnNpZ25hbBgBIAEoDjItLmFpLnN0aWdtZXIuYmlsbGluZy52MS5FeGVjdXRpb25CaWxsaW5nU2lnbmFsEhwKFGJhbGFuY2VfYWZ0ZXJfbWljcm9zGAIgASgDEh4KFmJpbGxhYmxlX2Ftb3VudF9taWNyb3MYAyABKAMSOQoGcmF0aW5nGAQgASgLMikuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkJpbGxpbmdVc2FnZVJhdGluZyI2ChZGaW5hbGl6ZUV4ZWN1dGlvbklucHV0EhwKDGV4ZWN1dGlvbl9pZBgBIAEoCUIGukgDyAEBIqUBChlGaW5hbGl6ZUV4ZWN1dGlvblJlc3BvbnNlEiIKGnRvdGFsX3Byb3ZpZGVyX2Nvc3RfbWljcm9zGAEgASgDEiQKHHRvdGFsX2JpbGxhYmxlX2Ftb3VudF9taWNyb3MYAiABKAMSIwobcmVsZWFzZWRfcmVzZXJ2YXRpb25fbWljcm9zGAMgASgDEhkKEWJpbGxlZF9jYWxsX2NvdW50GAQgASgFIowBCiBDcmVhdGVDcmVkaXRDaGVja291dFNlc3Npb25JbnB1dBIWCgZvcmdfaWQYASABKAlCBrpIA8gBARIXCgdwYWNrX2lkGAIgASgJQga6SAPIAQESGwoLc3VjY2Vzc191cmwYAyABKAlCBrpIA8gBARIaCgpjYW5jZWxfdXJsGAQgASgJQga6SAPIAQEibQojQ3JlYXRlQ3JlZGl0Q2hlY2tvdXRTZXNzaW9uUmVzcG9uc2USFAoMY2hlY2tvdXRfdXJsGAEgASgJEhMKC3B1cmNoYXNlX2lkGAIgASgJEhsKE2NoZWNrb3V0X3Nlc3Npb25faWQYAyABKAkiMAoWR2V0QmlsbGluZ0FjY291bnRJbnB1dBIWCgZvcmdfaWQYASABKAlCBrpIA8gBASIvChVHZXRDcmVkaXRCYWxhbmNlSW5wdXQSFgoGb3JnX2lkGAEgASgJQga6SAPIAQEi+QEKFEdldENyZWRpdExlZGdlcklucHV0EhYKBm9yZ19pZBgBIAEoCUIGukgDyAEBEi4KBHBhZ2UYAiABKAsyIC5haS5zdGlnbWVyLmNvbW1vbnMucnBjLlBhZ2VJbmZvEjsKC3R5cGVfZmlsdGVyGAMgAygOMiYuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkxlZGdlckVudHJ5VHlwZRIuCgpzdGFydF90aW1lGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIsCghlbmRfdGltZRgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiZgoUQ3JlZGl0TGVkZ2VyUmVzcG9uc2USOQoHZW50cmllcxgBIAMoCzIoLmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVkaXRMZWRnZXJFbnRyeRITCgt0b3RhbF9wYWdlcxgCIAEoBSKiAQoaR2V0QmlsbGluZ1VzYWdlUmVwb3J0SW5wdXQSFgoGb3JnX2lkGAEgASgJQga6SAPIAQESNgoKc3RhcnRfdGltZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBrpIA8gBARI0CghlbmRfdGltZRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBrpIA8gBASLeAQoaQmlsbGluZ1VzYWdlUmVwb3J0UmVzcG9uc2USIgoadG90YWxfcHJvdmlkZXJfY29zdF9taWNyb3MYASABKAMSJAocdG90YWxfYmlsbGFibGVfYW1vdW50X21pY3JvcxgCIAEoAxIXCg9leGVjdXRpb25fY291bnQYAyABKAUSFgoObGxtX2NhbGxfY291bnQYBCABKAUSRQoPbW9kZWxfYnJlYWtkb3duGAUgAygLMiwuYWkuc3RpZ21lci5iaWxsaW5nLnYxLk1vZGVsQmlsbGluZ0JyZWFrZG93biKcAQoVTW9kZWxCaWxsaW5nQnJlYWtkb3duEg0KBW1vZGVsGAEgASgJEg8KB2hhcm5lc3MYAiABKAkSEQoJY29zdF90aWVyGAMgASgJEhwKFHByb3ZpZGVyX2Nvc3RfbWljcm9zGAQgASgDEh4KFmJpbGxhYmxlX2Ftb3VudF9taWNyb3MYBSABKAMSEgoKY2FsbF9jb3VudBgGIAEoBSIuChxHZXRDdXN0b21lck1vZGVsUHJpY2luZ0lucHV0Eg4KBm9yZ19pZBgBIAEoCSJhChxDdXN0b21lck1vZGVsUHJpY2luZ1Jlc3BvbnNlEkEKB2VudHJpZXMYASADKAsyMC5haS5zdGlnbWVyLmJpbGxpbmcudjEuQ3VzdG9tZXJNb2RlbFByaWNpbmdFbnRyeSLgAgoZQ3VzdG9tZXJNb2RlbFByaWNpbmdFbnRyeRIQCghtb2RlbF9pZBgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSEAoIcHJvdmlkZXIYAyABKAkSDwoHaGFybmVzcxgEIAEoCRIRCgljb3N0X3RpZXIYBSABKAkSJgoeaW5wdXRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAYgASgDEicKH291dHB1dF9wcmljZV9taWNyb3NfcGVyX21pbGxpb24YByABKAMSLwonY2FjaGVfY3JlYXRpb25fcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAggASgDEisKI2NhY2hlX3JlYWRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAkgASgDEhkKEXByaWNpbmdfcG9saWN5X2lkGAogASgJEhsKE21hcmt1cF9iYXNpc19wb2ludHMYCyABKAViBnByb3RvMw", [file_ai_stigmer_billing_v1_credit, file_ai_stigmer_billing_v1_enum, file_ai_stigmer_billing_v1_policy, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("Ch5haS9zdGlnbWVyL2JpbGxpbmcvdjEvaW8ucHJvdG8SFWFpLnN0aWdtZXIuYmlsbGluZy52MSI4Ch5HZXRPckNyZWF0ZUJpbGxpbmdBY2NvdW50SW5wdXQSFgoGb3JnX2lkGAEgASgJQga6SAPIAQEifAoSQWRqdXN0Q3JlZGl0c0lucHV0EhYKBm9yZ19pZBgBIAEoCUIGukgDyAEBEhUKDWFtb3VudF9taWNyb3MYAiABKAMSFgoGcmVhc29uGAMgASgJQga6SAPIAQESHwoPaWRlbXBvdGVuY3lfa2V5GAQgASgJQga6SAPIAQEiigEKF0F1dGhvcml6ZUV4ZWN1dGlvbklucHV0EhYKBm9yZ19pZBgBIAEoCUIGukgDyAEBEhwKDGV4ZWN1dGlvbl9pZBgCIAEoCUIGukgDyAEBEhcKB2hhcm5lc3MYAyABKAlCBrpIA8gBARIgChhleHBlY3RlZF9jb3N0X2NhcF9taWNyb3MYBCABKAMimgEKGkF1dGhvcml6ZUV4ZWN1dGlvblJlc3BvbnNlEhIKCmF1dGhvcml6ZWQYASABKAgSFgoOcmVzZXJ2YXRpb25faWQYAiABKAkSFwoPcmVzZXJ2ZWRfbWljcm9zGAMgASgDEiAKGGF2YWlsYWJsZV9iYWxhbmNlX21pY3JvcxgEIAEoAxIVCg1kZW5pYWxfcmVhc29uGAUgASgJIqICChdSZXBvcnRMbG1DYWxsVXNhZ2VJbnB1dBIcCgxleGVjdXRpb25faWQYASABKAlCBrpIA8gBARIZCghzZXF1ZW5jZRgCIAEoBUIHukgEGgIgABIVCgVtb2RlbBgDIAEoCUIGukgDyAEBEhcKB2hhcm5lc3MYBCABKAlCBrpIA8gBARIZCgljb3N0X3RpZXIYBSABKAlCBrpIA8gBARIcChRwcm92aWRlcl9jb3N0X21pY3JvcxgGIAEoAxIUCgxpbnB1dF90b2tlbnMYByABKAUSFQoNb3V0cHV0X3Rva2VucxgIIAEoBRIdChVjYWNoZV9jcmVhdGlvbl90b2tlbnMYCSABKAUSGQoRY2FjaGVfcmVhZF90b2tlbnMYCiABKAUi1AEKGlJlcG9ydExsbUNhbGxVc2FnZVJlc3BvbnNlEj0KBnNpZ25hbBgBIAEoDjItLmFpLnN0aWdtZXIuYmlsbGluZy52MS5FeGVjdXRpb25CaWxsaW5nU2lnbmFsEhwKFGJhbGFuY2VfYWZ0ZXJfbWljcm9zGAIgASgDEh4KFmJpbGxhYmxlX2Ftb3VudF9taWNyb3MYAyABKAMSOQoGcmF0aW5nGAQgASgLMikuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkJpbGxpbmdVc2FnZVJhdGluZyI2ChZGaW5hbGl6ZUV4ZWN1dGlvbklucHV0EhwKDGV4ZWN1dGlvbl9pZBgBIAEoCUIGukgDyAEBIqUBChlGaW5hbGl6ZUV4ZWN1dGlvblJlc3BvbnNlEiIKGnRvdGFsX3Byb3ZpZGVyX2Nvc3RfbWljcm9zGAEgASgDEiQKHHRvdGFsX2JpbGxhYmxlX2Ftb3VudF9taWNyb3MYAiABKAMSIwobcmVsZWFzZWRfcmVzZXJ2YXRpb25fbWljcm9zGAMgASgDEhkKEWJpbGxlZF9jYWxsX2NvdW50GAQgASgFIowBCiBDcmVhdGVDcmVkaXRDaGVja291dFNlc3Npb25JbnB1dBIWCgZvcmdfaWQYASABKAlCBrpIA8gBARIXCgdwYWNrX2lkGAIgASgJQga6SAPIAQESGwoLc3VjY2Vzc191cmwYAyABKAlCBrpIA8gBARIaCgpjYW5jZWxfdXJsGAQgASgJQga6SAPIAQEibQojQ3JlYXRlQ3JlZGl0Q2hlY2tvdXRTZXNzaW9uUmVzcG9uc2USFAoMY2hlY2tvdXRfdXJsGAEgASgJEhMKC3B1cmNoYXNlX2lkGAIgASgJEhsKE2NoZWNrb3V0X3Nlc3Npb25faWQYAyABKAkiVQofQ3JlYXRlQmlsbGluZ1BvcnRhbFNlc3Npb25JbnB1dBIWCgZvcmdfaWQYASABKAlCBrpIA8gBARIaCgpyZXR1cm5fdXJsGAIgASgJQga6SAPIAQEiOAoiQ3JlYXRlQmlsbGluZ1BvcnRhbFNlc3Npb25SZXNwb25zZRISCgpwb3J0YWxfdXJsGAEgASgJIjAKFkdldEJpbGxpbmdBY2NvdW50SW5wdXQSFgoGb3JnX2lkGAEgASgJQga6SAPIAQEiLwoVR2V0Q3JlZGl0QmFsYW5jZUlucHV0EhYKBm9yZ19pZBgBIAEoCUIGukgDyAEBIvkBChRHZXRDcmVkaXRMZWRnZXJJbnB1dBIWCgZvcmdfaWQYASABKAlCBrpIA8gBARIuCgRwYWdlGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxI7Cgt0eXBlX2ZpbHRlchgDIAMoDjImLmFpLnN0aWdtZXIuYmlsbGluZy52MS5MZWRnZXJFbnRyeVR5cGUSLgoKc3RhcnRfdGltZRgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLAoIZW5kX3RpbWUYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wImYKFENyZWRpdExlZGdlclJlc3BvbnNlEjkKB2VudHJpZXMYASADKAsyKC5haS5zdGlnbWVyLmJpbGxpbmcudjEuQ3JlZGl0TGVkZ2VyRW50cnkSEwoLdG90YWxfcGFnZXMYAiABKAUiogEKGkdldEJpbGxpbmdVc2FnZVJlcG9ydElucHV0EhYKBm9yZ19pZBgBIAEoCUIGukgDyAEBEjYKCnN0YXJ0X3RpbWUYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQga6SAPIAQESNAoIZW5kX3RpbWUYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQga6SAPIAQEi3gEKGkJpbGxpbmdVc2FnZVJlcG9ydFJlc3BvbnNlEiIKGnRvdGFsX3Byb3ZpZGVyX2Nvc3RfbWljcm9zGAEgASgDEiQKHHRvdGFsX2JpbGxhYmxlX2Ftb3VudF9taWNyb3MYAiABKAMSFwoPZXhlY3V0aW9uX2NvdW50GAMgASgFEhYKDmxsbV9jYWxsX2NvdW50GAQgASgFEkUKD21vZGVsX2JyZWFrZG93bhgFIAMoCzIsLmFpLnN0aWdtZXIuYmlsbGluZy52MS5Nb2RlbEJpbGxpbmdCcmVha2Rvd24inAEKFU1vZGVsQmlsbGluZ0JyZWFrZG93bhINCgVtb2RlbBgBIAEoCRIPCgdoYXJuZXNzGAIgASgJEhEKCWNvc3RfdGllchgDIAEoCRIcChRwcm92aWRlcl9jb3N0X21pY3JvcxgEIAEoAxIeChZiaWxsYWJsZV9hbW91bnRfbWljcm9zGAUgASgDEhIKCmNhbGxfY291bnQYBiABKAUiLgocR2V0Q3VzdG9tZXJNb2RlbFByaWNpbmdJbnB1dBIOCgZvcmdfaWQYASABKAkiYQocQ3VzdG9tZXJNb2RlbFByaWNpbmdSZXNwb25zZRJBCgdlbnRyaWVzGAEgAygLMjAuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkN1c3RvbWVyTW9kZWxQcmljaW5nRW50cnki4AIKGUN1c3RvbWVyTW9kZWxQcmljaW5nRW50cnkSEAoIbW9kZWxfaWQYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEhAKCHByb3ZpZGVyGAMgASgJEg8KB2hhcm5lc3MYBCABKAkSEQoJY29zdF90aWVyGAUgASgJEiYKHmlucHV0X3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgGIAEoAxInCh9vdXRwdXRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAcgASgDEi8KJ2NhY2hlX2NyZWF0aW9uX3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgIIAEoAxIrCiNjYWNoZV9yZWFkX3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgJIAEoAxIZChFwcmljaW5nX3BvbGljeV9pZBgKIAEoCRIbChNtYXJrdXBfYmFzaXNfcG9pbnRzGAsgASgFYgZwcm90bzM", [file_ai_stigmer_billing_v1_credit, file_ai_stigmer_billing_v1_enum, file_ai_stigmer_billing_v1_policy, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * GetOrCreateBillingAccountInput initiates billing for an organization.
@@ -436,6 +436,58 @@ export const CreateCreditCheckoutSessionResponseSchema: GenMessage<CreateCreditC
   messageDesc(file_ai_stigmer_billing_v1_io, 9);
 
 /**
+ * CreateBillingPortalSessionInput opens a Stripe Customer Portal session
+ * for payment method management.
+ *
+ * The portal allows the user to add, update, or remove payment methods
+ * without leaving the Stigmer billing flow. The return_url controls where
+ * Stripe redirects after the user finishes.
+ *
+ * @generated from message ai.stigmer.billing.v1.CreateBillingPortalSessionInput
+ */
+export type CreateBillingPortalSessionInput = Message<"ai.stigmer.billing.v1.CreateBillingPortalSessionInput"> & {
+  /**
+   * @generated from field: string org_id = 1;
+   */
+  orgId: string;
+
+  /**
+   * URL to redirect to after the user exits the Stripe Customer Portal.
+   *
+   * @generated from field: string return_url = 2;
+   */
+  returnUrl: string;
+};
+
+/**
+ * Describes the message ai.stigmer.billing.v1.CreateBillingPortalSessionInput.
+ * Use `create(CreateBillingPortalSessionInputSchema)` to create a new message.
+ */
+export const CreateBillingPortalSessionInputSchema: GenMessage<CreateBillingPortalSessionInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_billing_v1_io, 10);
+
+/**
+ * CreateBillingPortalSessionResponse returns the Stripe-hosted Portal URL.
+ *
+ * @generated from message ai.stigmer.billing.v1.CreateBillingPortalSessionResponse
+ */
+export type CreateBillingPortalSessionResponse = Message<"ai.stigmer.billing.v1.CreateBillingPortalSessionResponse"> & {
+  /**
+   * Stripe Customer Portal URL. Redirect the user here.
+   *
+   * @generated from field: string portal_url = 1;
+   */
+  portalUrl: string;
+};
+
+/**
+ * Describes the message ai.stigmer.billing.v1.CreateBillingPortalSessionResponse.
+ * Use `create(CreateBillingPortalSessionResponseSchema)` to create a new message.
+ */
+export const CreateBillingPortalSessionResponseSchema: GenMessage<CreateBillingPortalSessionResponse> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_billing_v1_io, 11);
+
+/**
  * GetBillingAccountInput retrieves the billing account for an organization.
  *
  * @generated from message ai.stigmer.billing.v1.GetBillingAccountInput
@@ -452,7 +504,7 @@ export type GetBillingAccountInput = Message<"ai.stigmer.billing.v1.GetBillingAc
  * Use `create(GetBillingAccountInputSchema)` to create a new message.
  */
 export const GetBillingAccountInputSchema: GenMessage<GetBillingAccountInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 10);
+  messageDesc(file_ai_stigmer_billing_v1_io, 12);
 
 /**
  * GetCreditBalanceInput retrieves just the balance breakdown.
@@ -471,7 +523,7 @@ export type GetCreditBalanceInput = Message<"ai.stigmer.billing.v1.GetCreditBala
  * Use `create(GetCreditBalanceInputSchema)` to create a new message.
  */
 export const GetCreditBalanceInputSchema: GenMessage<GetCreditBalanceInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 11);
+  messageDesc(file_ai_stigmer_billing_v1_io, 13);
 
 /**
  * GetCreditLedgerInput retrieves paginated ledger entries with optional filters.
@@ -518,7 +570,7 @@ export type GetCreditLedgerInput = Message<"ai.stigmer.billing.v1.GetCreditLedge
  * Use `create(GetCreditLedgerInputSchema)` to create a new message.
  */
 export const GetCreditLedgerInputSchema: GenMessage<GetCreditLedgerInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 12);
+  messageDesc(file_ai_stigmer_billing_v1_io, 14);
 
 /**
  * CreditLedgerResponse is a paginated list of ledger entries.
@@ -542,7 +594,7 @@ export type CreditLedgerResponse = Message<"ai.stigmer.billing.v1.CreditLedgerRe
  * Use `create(CreditLedgerResponseSchema)` to create a new message.
  */
 export const CreditLedgerResponseSchema: GenMessage<CreditLedgerResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 13);
+  messageDesc(file_ai_stigmer_billing_v1_io, 15);
 
 /**
  * GetBillingUsageReportInput requests an aggregated billing usage report.
@@ -575,7 +627,7 @@ export type GetBillingUsageReportInput = Message<"ai.stigmer.billing.v1.GetBilli
  * Use `create(GetBillingUsageReportInputSchema)` to create a new message.
  */
 export const GetBillingUsageReportInputSchema: GenMessage<GetBillingUsageReportInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 14);
+  messageDesc(file_ai_stigmer_billing_v1_io, 16);
 
 /**
  * BillingUsageReportResponse provides aggregated spend data for the period.
@@ -624,7 +676,7 @@ export type BillingUsageReportResponse = Message<"ai.stigmer.billing.v1.BillingU
  * Use `create(BillingUsageReportResponseSchema)` to create a new message.
  */
 export const BillingUsageReportResponseSchema: GenMessage<BillingUsageReportResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 15);
+  messageDesc(file_ai_stigmer_billing_v1_io, 17);
 
 /**
  * ModelBillingBreakdown aggregates billing data for a single model.
@@ -668,7 +720,7 @@ export type ModelBillingBreakdown = Message<"ai.stigmer.billing.v1.ModelBillingB
  * Use `create(ModelBillingBreakdownSchema)` to create a new message.
  */
 export const ModelBillingBreakdownSchema: GenMessage<ModelBillingBreakdown> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 16);
+  messageDesc(file_ai_stigmer_billing_v1_io, 18);
 
 /**
  * GetCustomerModelPricingInput requests the customer-facing price list.
@@ -690,7 +742,7 @@ export type GetCustomerModelPricingInput = Message<"ai.stigmer.billing.v1.GetCus
  * Use `create(GetCustomerModelPricingInputSchema)` to create a new message.
  */
 export const GetCustomerModelPricingInputSchema: GenMessage<GetCustomerModelPricingInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 17);
+  messageDesc(file_ai_stigmer_billing_v1_io, 19);
 
 /**
  * CustomerModelPricingResponse returns the customer-visible price for each model.
@@ -709,7 +761,7 @@ export type CustomerModelPricingResponse = Message<"ai.stigmer.billing.v1.Custom
  * Use `create(CustomerModelPricingResponseSchema)` to create a new message.
  */
 export const CustomerModelPricingResponseSchema: GenMessage<CustomerModelPricingResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 18);
+  messageDesc(file_ai_stigmer_billing_v1_io, 20);
 
 /**
  * CustomerModelPricingEntry is the customer-facing price for one model.
@@ -803,5 +855,5 @@ export type CustomerModelPricingEntry = Message<"ai.stigmer.billing.v1.CustomerM
  * Use `create(CustomerModelPricingEntrySchema)` to create a new message.
  */
 export const CustomerModelPricingEntrySchema: GenMessage<CustomerModelPricingEntry> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_io, 19);
+  messageDesc(file_ai_stigmer_billing_v1_io, 21);
 

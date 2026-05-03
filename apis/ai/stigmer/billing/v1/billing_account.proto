@@ -40,6 +40,11 @@ message BillingAccount {
   // Balance threshold that triggers low-balance warnings and notifications.
   int64 low_balance_threshold_micros = 8;
 
+  // Saved payment method for off-session charges and Portal display.
+  // Populated automatically after the first Stripe Checkout purchase or
+  // when the user adds a payment method via the Stripe Customer Portal.
+  PaymentMethodSummary default_payment_method = 11;
+
   google.protobuf.Timestamp created_at = 9;
   google.protobuf.Timestamp updated_at = 10;
 }
@@ -63,6 +68,29 @@ message CreditBalance {
 
   // Total credits (available + reserved).
   int64 total_micros = 5;
+}
+
+// PaymentMethodSummary holds the display-safe details of a Stripe
+// PaymentMethod so the UI can render card info without a Stripe API call.
+//
+// Populated from Stripe webhook events (checkout.session.completed,
+// customer.updated) and kept in sync with the Stripe Customer's
+// default payment method via the Billing Portal.
+message PaymentMethodSummary {
+  // Stripe PaymentMethod ID (e.g., "pm_1abc...").
+  string payment_method_id = 1;
+
+  // Card network in lowercase (e.g., "visa", "mastercard", "amex").
+  string brand = 2;
+
+  // Last four digits of the card number.
+  string last4 = 3;
+
+  // Card expiration month (1–12).
+  int32 exp_month = 4;
+
+  // Card expiration year (4-digit, e.g., 2027).
+  int32 exp_year = 5;
 }
 
 // AutoRechargeConfig controls automatic credit top-up behavior.

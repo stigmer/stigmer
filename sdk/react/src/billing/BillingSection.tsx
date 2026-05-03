@@ -9,7 +9,9 @@ import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
 import { useOrg } from "../organization/OrgProvider";
 import { useBillingAccount } from "./useBillingAccount";
 import { useCreateCheckoutSession } from "./useCreateCheckoutSession";
+import { useCreateBillingPortalSession } from "./useCreateBillingPortalSession";
 import { CreditBalanceCard } from "./CreditBalanceCard";
+import { PaymentMethodCard } from "./PaymentMethodCard";
 import { CreditPackGrid } from "./CreditPackGrid";
 import { CreditLedgerTable } from "./CreditLedgerTable";
 import { LowBalanceBanner } from "./LowBalanceBanner";
@@ -101,6 +103,7 @@ function BillingContent({
 }) {
   const { account, isLoading, error, refetch } = useBillingAccount(orgId);
   const { createSession, isSubmitting, error: checkoutError, clearError } = useCreateCheckoutSession();
+  const { openPortal, isLoading: isPortalLoading } = useCreateBillingPortalSession();
   const [purchasingPackId, setPurchasingPackId] = useState<string | null>(null);
 
   const handlePurchase = useCallback(
@@ -168,6 +171,13 @@ function BillingContent({
       />
 
       <CreditBalanceCard balance={balance} isLowBalance={isLowBalance} />
+
+      <PaymentMethodCard
+        paymentMethod={account.defaultPaymentMethod}
+        accountStatus={account.status}
+        isPortalLoading={isPortalLoading}
+        onManage={() => openPortal(orgId)}
+      />
 
       <CreditPackGrid
         accountStatus={account.status}

@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/v1/billing_account.proto.
  */
 export const file_ai_stigmer_billing_v1_billing_account: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvdjEvYmlsbGluZ19hY2NvdW50LnByb3RvEhVhaS5zdGlnbWVyLmJpbGxpbmcudjEirQMKDkJpbGxpbmdBY2NvdW50EgoKAmlkGAEgASgJEg4KBm9yZ19pZBgCIAEoCRI7CgZzdGF0dXMYAyABKA4yKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuQmlsbGluZ0FjY291bnRTdGF0dXMSNQoHYmFsYW5jZRgEIAEoCzIkLmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVkaXRCYWxhbmNlEkAKDWF1dG9fcmVjaGFyZ2UYBSABKAsyKS5haS5zdGlnbWVyLmJpbGxpbmcudjEuQXV0b1JlY2hhcmdlQ29uZmlnEhoKEnN0cmlwZV9jdXN0b21lcl9pZBgGIAEoCRInCh9hbGxvd2VkX25lZ2F0aXZlX2JhbGFuY2VfbWljcm9zGAcgASgDEiQKHGxvd19iYWxhbmNlX3RocmVzaG9sZF9taWNyb3MYCCABKAMSLgoKY3JlYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAijgEKDUNyZWRpdEJhbGFuY2USGAoQYXZhaWxhYmxlX21pY3JvcxgBIAEoAxIXCg9yZXNlcnZlZF9taWNyb3MYAiABKAMSGgoScHJvbW90aW9uYWxfbWljcm9zGAMgASgDEhgKEHB1cmNoYXNlZF9taWNyb3MYBCABKAMSFAoMdG90YWxfbWljcm9zGAUgASgDIsQBChJBdXRvUmVjaGFyZ2VDb25maWcSDwoHZW5hYmxlZBgBIAEoCBIYChB0aHJlc2hvbGRfbWljcm9zGAIgASgDEh4KFnJlY2hhcmdlX2Ftb3VudF9taWNyb3MYAyABKAMSGgoSbW9udGhseV9jYXBfbWljcm9zGAQgASgDEiQKHGN1cnJlbnRfbW9udGhfY2hhcmdlZF9taWNyb3MYBSABKAMSIQoZZGVmYXVsdF9wYXltZW50X21ldGhvZF9pZBgGIAEoCWIGcHJvdG8z", [file_ai_stigmer_billing_v1_enum, file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvdjEvYmlsbGluZ19hY2NvdW50LnByb3RvEhVhaS5zdGlnbWVyLmJpbGxpbmcudjEi+gMKDkJpbGxpbmdBY2NvdW50EgoKAmlkGAEgASgJEg4KBm9yZ19pZBgCIAEoCRI7CgZzdGF0dXMYAyABKA4yKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuQmlsbGluZ0FjY291bnRTdGF0dXMSNQoHYmFsYW5jZRgEIAEoCzIkLmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVkaXRCYWxhbmNlEkAKDWF1dG9fcmVjaGFyZ2UYBSABKAsyKS5haS5zdGlnbWVyLmJpbGxpbmcudjEuQXV0b1JlY2hhcmdlQ29uZmlnEhoKEnN0cmlwZV9jdXN0b21lcl9pZBgGIAEoCRInCh9hbGxvd2VkX25lZ2F0aXZlX2JhbGFuY2VfbWljcm9zGAcgASgDEiQKHGxvd19iYWxhbmNlX3RocmVzaG9sZF9taWNyb3MYCCABKAMSSwoWZGVmYXVsdF9wYXltZW50X21ldGhvZBgLIAEoCzIrLmFpLnN0aWdtZXIuYmlsbGluZy52MS5QYXltZW50TWV0aG9kU3VtbWFyeRIuCgpjcmVhdGVkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKOAQoNQ3JlZGl0QmFsYW5jZRIYChBhdmFpbGFibGVfbWljcm9zGAEgASgDEhcKD3Jlc2VydmVkX21pY3JvcxgCIAEoAxIaChJwcm9tb3Rpb25hbF9taWNyb3MYAyABKAMSGAoQcHVyY2hhc2VkX21pY3JvcxgEIAEoAxIUCgx0b3RhbF9taWNyb3MYBSABKAMidAoUUGF5bWVudE1ldGhvZFN1bW1hcnkSGQoRcGF5bWVudF9tZXRob2RfaWQYASABKAkSDQoFYnJhbmQYAiABKAkSDQoFbGFzdDQYAyABKAkSEQoJZXhwX21vbnRoGAQgASgFEhAKCGV4cF95ZWFyGAUgASgFIsQBChJBdXRvUmVjaGFyZ2VDb25maWcSDwoHZW5hYmxlZBgBIAEoCBIYChB0aHJlc2hvbGRfbWljcm9zGAIgASgDEh4KFnJlY2hhcmdlX2Ftb3VudF9taWNyb3MYAyABKAMSGgoSbW9udGhseV9jYXBfbWljcm9zGAQgASgDEiQKHGN1cnJlbnRfbW9udGhfY2hhcmdlZF9taWNyb3MYBSABKAMSIQoZZGVmYXVsdF9wYXltZW50X21ldGhvZF9pZBgGIAEoCWIGcHJvdG8z", [file_ai_stigmer_billing_v1_enum, file_google_protobuf_timestamp]);
 
 /**
  * BillingAccount is the billing aggregate for an organization.
@@ -88,6 +88,15 @@ export type BillingAccount = Message<"ai.stigmer.billing.v1.BillingAccount"> & {
   lowBalanceThresholdMicros: bigint;
 
   /**
+   * Saved payment method for off-session charges and Portal display.
+   * Populated automatically after the first Stripe Checkout purchase or
+   * when the user adds a payment method via the Stripe Customer Portal.
+   *
+   * @generated from field: ai.stigmer.billing.v1.PaymentMethodSummary default_payment_method = 11;
+   */
+  defaultPaymentMethod?: PaymentMethodSummary;
+
+  /**
    * @generated from field: google.protobuf.Timestamp created_at = 9;
    */
   createdAt?: Timestamp;
@@ -158,6 +167,60 @@ export const CreditBalanceSchema: GenMessage<CreditBalance> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_billing_v1_billing_account, 1);
 
 /**
+ * PaymentMethodSummary holds the display-safe details of a Stripe
+ * PaymentMethod so the UI can render card info without a Stripe API call.
+ *
+ * Populated from Stripe webhook events (checkout.session.completed,
+ * customer.updated) and kept in sync with the Stripe Customer's
+ * default payment method via the Billing Portal.
+ *
+ * @generated from message ai.stigmer.billing.v1.PaymentMethodSummary
+ */
+export type PaymentMethodSummary = Message<"ai.stigmer.billing.v1.PaymentMethodSummary"> & {
+  /**
+   * Stripe PaymentMethod ID (e.g., "pm_1abc...").
+   *
+   * @generated from field: string payment_method_id = 1;
+   */
+  paymentMethodId: string;
+
+  /**
+   * Card network in lowercase (e.g., "visa", "mastercard", "amex").
+   *
+   * @generated from field: string brand = 2;
+   */
+  brand: string;
+
+  /**
+   * Last four digits of the card number.
+   *
+   * @generated from field: string last4 = 3;
+   */
+  last4: string;
+
+  /**
+   * Card expiration month (1–12).
+   *
+   * @generated from field: int32 exp_month = 4;
+   */
+  expMonth: number;
+
+  /**
+   * Card expiration year (4-digit, e.g., 2027).
+   *
+   * @generated from field: int32 exp_year = 5;
+   */
+  expYear: number;
+};
+
+/**
+ * Describes the message ai.stigmer.billing.v1.PaymentMethodSummary.
+ * Use `create(PaymentMethodSummarySchema)` to create a new message.
+ */
+export const PaymentMethodSummarySchema: GenMessage<PaymentMethodSummary> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_billing_v1_billing_account, 2);
+
+/**
  * AutoRechargeConfig controls automatic credit top-up behavior.
  *
  * When enabled, the billing system triggers a charge against the saved
@@ -216,5 +279,5 @@ export type AutoRechargeConfig = Message<"ai.stigmer.billing.v1.AutoRechargeConf
  * Use `create(AutoRechargeConfigSchema)` to create a new message.
  */
 export const AutoRechargeConfigSchema: GenMessage<AutoRechargeConfig> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_billing_v1_billing_account, 2);
+  messageDesc(file_ai_stigmer_billing_v1_billing_account, 3);
 

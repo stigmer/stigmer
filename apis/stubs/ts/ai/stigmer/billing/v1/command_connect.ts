@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, ReportLlmCallUsageInput, ReportLlmCallUsageResponse } from "./io_pbjs";
+import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, ReportLlmCallUsageInput, ReportLlmCallUsageResponse } from "./io_pbjs";
 import { BillingAccount } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { CreditLedgerEntry } from "./credit_pbjs";
@@ -108,6 +108,21 @@ export const BillingCommandController = {
       name: "createCreditCheckoutSession",
       I: CreateCreditCheckoutSessionInput,
       O: CreateCreditCheckoutSessionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Open a Stripe Customer Portal session for payment method management.
+     * Returns a portal URL for the client to redirect the user.
+     *
+     * Requires an existing Stripe Customer (created during first credit purchase).
+     * The portal allows users to add, update, or remove saved payment methods.
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.createBillingPortalSession
+     */
+    createBillingPortalSession: {
+      name: "createBillingPortalSession",
+      I: CreateBillingPortalSessionInput,
+      O: CreateBillingPortalSessionResponse,
       kind: MethodKind.Unary,
     },
   }
