@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03 09:55
-**Current Task**: T01 — Phase 3 (Stripe Credit Purchases)
-**Status**: Phase 3.4 Complete — Billing Page UI
+**Current Task**: T01 — Phase 3 Complete (Stripe Credit Purchases)
+**Status**: Phase 3.5 Complete — Reconciliation Job
 
 ## Session Progress (2026-05-03)
 
@@ -411,13 +411,21 @@ When starting a new session:
 6. ~~Integrate with Temporal workflow — authorize before dispatch, finalize after completion~~ ✅
 7. ~~Add MongoTransactionManager for atomic multi-document debit path~~ ✅
 
-## Next Steps (Phase 3 — Stripe Credit Purchases)
+## Next Steps (Phase 3 — Stripe Credit Purchases) ✅ COMPLETE
 
 1. ~~Create Stripe Customer per org on first billing interaction~~ ✅
 2. ~~Implement Stripe Checkout integration (CreateCreditCheckoutSession RPC)~~ ✅
 3. ~~Webhook handler for checkout.session.completed → credit provisioning~~ ✅
 4. ~~Billing page UI (React, replace "Coming Soon" placeholder)~~ ✅
-5. Reconciliation job for missed webhooks
+5. ~~Reconciliation job for missed webhooks~~ ✅
+
+## Next Steps (Phase 4 — Auto-Recharge)
+
+1. Payment method management (saved via `setup_future_usage=off_session`)
+2. Auto-recharge configuration (SetAutoRechargeConfig RPC, threshold/target/cap)
+3. Recharge trigger (off-session PaymentIntent on balance drop)
+4. Recharge failure handling (retry, disable, notify)
+5. Webhook handling for recharge PaymentIntents
 
 ## Context for Resume
 - Proto contracts are stable — all downstream code can build against them
@@ -504,10 +512,43 @@ When starting a new session:
 - Settings nav description updated to "Credit management and usage metrics"
 - 10 gRPC RPCs now handler-wired (9 server + 1 query): getOrCreateBillingAccount, adjustCredits, getBillingAccount, getCreditBalance, getCreditLedger, authorizeExecution, reportLlmCallUsage, finalizeExecution, createCreditCheckoutSession + getBillingAccount (query)
 
+### Phase 3.5 Completed (Billing Reconciliation Cron Workflow)
+- Created the **first Temporal cron workflow** in the codebase — establishes the pattern for future scheduled jobs
+- Created `BillingReconciliationWorkflow` — `@WorkflowInterface` with cron schedule (every 5 min configurable)
+- Created `ReconciliationActivities` interface + impl with two activities:
+  - `findStalePendingPurchases()` — queries PENDING purchases older than stale threshold (10 min default)
+  - `reconcilePurchase(StalePurchaseRef)` — retrieves Stripe session, routes by status, provisions or marks terminal
+- Created `BillingReconciliationWorkerConfig` — dedicated `billing_reconciliation` task queue (isolated from agent execution)
+- Created `BillingReconciliationStarter` (`ApplicationRunner`) — starts cron workflow on boot, idempotent via `WorkflowExecutionAlreadyStarted`
+- Created `BillingReconciliationConfig` + `BillingReconciliationTemporalConfig` — Spring config properties with env-var overrides
+- Added `findPendingOlderThan(Instant)` to `CreditPurchaseRepo` — ordered by created_at ASC
+- Added `io.temporal:temporal-testing:1.31.0` to MODULE.bazel for workflow integration testing
+- Unit tests: `ReconciliationActivitiesImplTest` (11 tests) + `BillingReconciliationWorkflowTest` (4 Temporal integration tests) — all pass
+- Build verified: `./bazelw build` + `./bazelw test` — clean
+
+### Key Design Decisions (Phase 3.5)
+- **Temporal cron workflow (not @Scheduled)**: Guarantees exactly-one execution globally via fixed workflow ID. No distributed lock needed. Full visibility in Temporal UI.
+- **Dedicated task queue (`billing_reconciliation`)**: Isolates reconciliation Stripe API calls from agent execution path. Rate limiting in one cannot starve the other.
+- **Activity-per-purchase granularity**: Each Stripe API call is an independent activity. Temporal retries individual failures without blocking others.
+- **Same idempotency key (`purchase_{id}`)**: Reconciliation and webhook handler use identical key — CreditLedgerService's unique index prevents double-crediting regardless of race order.
+- **`adjustedBy = "stripe_reconciliation"`**: Distinguishes reconciliation-provisioned credits from webhook-provisioned in audit trail.
+- **Feature-flagged (`enabled`)**: Disable reconciliation without redeployment (for environments without Stripe or during maintenance).
+- **Orphan handling**: PENDING purchases without checkout_session_id older than 60 min are marked FAILED (Stripe API call never returned).
+- **Concrete test activity impl (not Mockito mock)**: Temporal SDK rejects `@ActivityMethod` annotations on mock proxy classes. Used static inner class in workflow test.
+
+- **Phase 3.5**: First Temporal cron workflow in the codebase
+- New package: `ai.stigmer.domain.billing.temporal.reconciliation` — 9 source files
+- Workflow ID: `billing/reconciliation` (global singleton, cron)
+- Task queue: `billing_reconciliation` (env: `TEMPORAL_BILLING_RECONCILIATION_TASK_QUEUE`)
+- Config: `stigmer.billing.reconciliation.enabled/cron-schedule/stale-threshold-minutes/orphan-threshold-minutes`
+- Reconciliation logic: DB scan → per-purchase Stripe session retrieve → route by session status → provision/expire/fail/skip
+- Double-idempotent: purchase status guard + CreditLedgerService idempotency_key dedup
+- All Phase 3 (Stripe Credit Purchases) is now complete — 5/5 sub-phases done
+
 ## Quick Commands
 
 After loading context:
-- "Start Phase 3.5" - Begin reconciliation job
+- "Start Phase 4" - Begin auto-recharge implementation
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
