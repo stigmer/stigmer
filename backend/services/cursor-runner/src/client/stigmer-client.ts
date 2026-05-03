@@ -42,7 +42,7 @@ export interface StigmerClientOptions {
  * execution. The client handles transport setup and auth header injection.
  */
 export class StigmerClient {
-  private readonly transport: Transport;
+  readonly transport: Transport;
   private readonly executionQuery: Client<typeof AgentExecutionQueryController>;
   private readonly executionCommand: Client<typeof AgentExecutionCommandController>;
   private readonly sessionQuery: Client<typeof SessionQueryController>;

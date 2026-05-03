@@ -15,6 +15,7 @@ import registryData from "../../data/model-registry.json" with { type: "json" };
 export interface CursorModelPricing {
   readonly model: string;
   readonly displayName: string;
+  readonly costTier: string;
   readonly inputPricePerMillion: number;
   readonly outputPricePerMillion: number;
   readonly cacheWritePricePerMillion: number;
@@ -26,6 +27,7 @@ interface RegistryEntry {
   displayName: string;
   provider: string;
   harness: string;
+  costTier?: string;
   pricing?: {
     inputPricePerMillion: number;
     outputPricePerMillion: number;
@@ -41,6 +43,7 @@ export const PRICING_TABLE: readonly CursorModelPricing[] = (
   .map((m) => ({
     model: m.id,
     displayName: m.displayName,
+    costTier: m.costTier ?? "standard",
     inputPricePerMillion: m.pricing!.inputPricePerMillion,
     outputPricePerMillion: m.pricing!.outputPricePerMillion,
     cacheWritePricePerMillion: m.pricing!.cacheWritePricePerMillion,

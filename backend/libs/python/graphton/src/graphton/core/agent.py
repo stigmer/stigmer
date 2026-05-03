@@ -18,6 +18,7 @@ from langchain_core.tools import BaseTool
 from langgraph.graph.state import CompiledStateGraph
 from pydantic import ValidationError
 
+from graphton.core.billing_stop import BillingStopMiddleware
 from graphton.core.cost_cap import CostCapMiddleware
 from graphton.core.execution_budget import ExecutionBudgetMiddleware
 from graphton.core.loop_detection import LoopDetectionMiddleware
@@ -514,6 +515,13 @@ def create_deep_agent(
         effective_max_chars,
         " (platform default)" if max_tool_result_chars == 0 else "",
     )
+
+    # Auto-inject billing stop middleware (always present).
+    # Inert until activated by the billing signal handler when the platform
+    # returns a STOP signal due to credit exhaustion. Provides the same
+    # graceful stop as CostCapMiddleware but for platform-level enforcement.
+    _billing_stop = BillingStopMiddleware()
+    middleware_list.append(_billing_stop)
 
     # Auto-inject cost cap middleware when max_cost_usd is configured (Phase 3B).
     # Only injected when a positive cost cap is set.  Warns at 80% of the
@@ -1084,6 +1092,10 @@ def create_deep_agent(
     # cancels an activity (e.g. worker SIGTERM) that hook is skipped and
     # the exit stack leaks.  See MCP SDK issue #577.
     configured_agent._graphton_mcp_middleware = mcp_middleware_ref  # type: ignore[attr-defined]
+
+    # Expose billing stop middleware so the runner's billing signal handler
+    # can activate it when the platform returns STOP (credit exhaustion).
+    configured_agent._graphton_billing_stop = _billing_stop  # type: ignore[attr-defined]
 
     return configured_agent  # type: ignore[no-any-return]
 

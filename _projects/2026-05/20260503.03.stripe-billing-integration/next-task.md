@@ -69,7 +69,7 @@ When starting a new session:
 
 **Created**: 2026-05-03 09:55
 **Current Task**: T01 — Phase 2 (Execution Enforcement MVP)
-**Status**: Phase 2.4 Complete — FinalizeExecution Handler + Service
+**Status**: Phase 2.5+2.6 Complete — Runner + Workflow Billing Integration
 
 ## Session Progress (2026-05-03)
 
@@ -240,6 +240,29 @@ When starting a new session:
 - Added 5 unit tests for `atomicUsageDebit` in `BillingAccountRepoTest`:
   - Full reserved, full available, split, zero debit rejection, account not found
 
+### Phase 2.5+2.6 Completed (Runner + Workflow Billing Integration)
+- Added `orgId` to `InvokeAgentExecutionWorkflowInput` (populated from `execution.metadata.org`)
+- Created `BillingActivities` interface + `BillingActivitiesImpl` in stigmer-cloud:
+  - `authorizeExecution(orgId, executionId, harness, costCapMicros)` — called before runner dispatch
+  - `finalizeExecution(executionId)` — called in detached finally scope (always runs)
+- Wired billing authorization gate into `InvokeAgentExecutionWorkflowImpl`:
+  - If denied: EXECUTION_FAILED with denial reason, no runner resources consumed
+  - If billing service unreachable: fail-safe (deny execution)
+  - Finalization runs on all paths (success, failure, cancellation)
+- Created `BillingReporter` gRPC client in Python agent-runner:
+  - Wraps `reportLlmCallUsage` RPC, async-safe, graceful degradation on failure
+  - Integrated into `StatusBuilder.process_event()` after `on_chat_model_end`
+  - Global sequence counter across all scopes (main + sub-agents)
+- Created `BillingStopMiddleware` in graphton library:
+  - Always injected into every agent graph (inert until activated)
+  - On STOP signal: blocks all tools + injects "summarize" SystemMessage
+  - Sub-agent view shares activation state with parent
+- Created `BillingClient` (Connect-RPC) in TypeScript cursor-runner:
+  - Reports per-turn usage in the streaming loop (after `turn-ended` events)
+  - On STOP: breaks stream loop early, marks execution as billing-exhausted
+- Added `costTier` field to cursor model pricing data (read from model-registry.json)
+- Unit tests: Java (5 tests), Python (12 tests), TypeScript (5 tests)
+
 ### Phase 2.4 Completed (FinalizeExecution Handler + Service)
 - Added `findByOrgIdAndExecutionId(orgId, executionId, type)` to `CreditLedgerEntryRepo`:
   - Queries by `(org_id, type, source.execution_id)` using existing compound index
@@ -286,9 +309,17 @@ When starting a new session:
 2. ~~Implement AuthorizeExecutionHandler — check balance, create reservation~~ ✅
 3. ~~Implement ReportLlmCallUsageHandler — rate usage, debit via burn order, return billing signal~~ ✅
 4. ~~Implement FinalizeExecutionHandler — release unused reservation, produce billing record~~ ✅
-5. Integrate with agent-runner UsageTracker (Python) — billing reporting hook
-6. Integrate with Temporal workflow — authorize before dispatch, finalize after completion
+5. ~~Integrate with agent-runner UsageTracker (Python) — billing reporting hook~~ ✅
+6. ~~Integrate with Temporal workflow — authorize before dispatch, finalize after completion~~ ✅
 7. ~~Add MongoTransactionManager for atomic multi-document debit path~~ ✅
+
+## Next Steps (Phase 3 — Stripe Credit Purchases)
+
+1. Create Stripe Customer per org on first billing interaction
+2. Implement Stripe Checkout integration (CreateCreditCheckoutSession RPC)
+3. Webhook handler for checkout.session.completed → credit provisioning
+4. Billing page UI (React, replace "Coming Soon" placeholder)
+5. Reconciliation job for missed webhooks
 
 ## Context for Resume
 - Proto contracts are stable — all downstream code can build against them
@@ -316,8 +347,7 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Start Phase 2.5" - Begin agent-runner UsageTracker integration (Python)
-- "Start Phase 2.6" - Begin Temporal workflow integration
+- "Start Phase 3" - Begin Stripe credit purchase integration
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
