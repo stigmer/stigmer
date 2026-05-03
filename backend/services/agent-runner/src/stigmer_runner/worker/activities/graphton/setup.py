@@ -1233,6 +1233,23 @@ async def _perform_setup_core(
 
     logger.info("Graphton agent created successfully")
 
+    # Wire billing reporter onto StatusBuilder if a shared channel is available.
+    # The billing_stop middleware was injected into the agent by create_deep_agent
+    # and is accessible via the _graphton_billing_stop attribute.
+    billing_stop = getattr(agent_graph, "_graphton_billing_stop", None)
+    if billing_stop is not None and grpc_provider is not None:
+        from stigmer_runner.grpc_client.billing_client import BillingReporter
+
+        billing_channel = grpc_provider.channel
+        billing_reporter = BillingReporter(
+            billing_channel,
+            execution_id=execution_id,
+            harness="native",
+        )
+        status_builder._billing_reporter = billing_reporter
+        status_builder._billing_stop = billing_stop
+        logger.info("Billing reporter wired: execution=%s", execution_id)
+
     heartbeat_during_setup("agent_created", {
         "model": api_model_id,
         "has_subagents": (

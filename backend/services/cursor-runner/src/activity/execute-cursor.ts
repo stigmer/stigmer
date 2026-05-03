@@ -45,7 +45,8 @@ import { buildEnhancedPrompt, buildReinvocationPrompt } from "../adapter/prompt-
 import { writeHooksToWorkspace } from "../hitl/workspace-setup.js";
 import { buildApprovalState } from "../hitl/approval-state.js";
 import { setInterceptorExecutionId } from "../proxy/fetch-interceptor.js";
-import { resolveModelId } from "../adapter/model-pricing.js";
+import { resolveModelId, getCursorModelPricing } from "../adapter/model-pricing.js";
+import { BillingClient } from "../client/billing-client.js";
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -207,6 +208,15 @@ async function executeCursor(
     const deltaEnricher = new DeltaEnricher();
     const todoTracker = new TodoTracker(status.todos);
 
+    // Billing: report per-turn usage to billing service
+    const billingClient = new BillingClient(
+      client.transport,
+      executionId,
+      "cursor",
+    );
+    const pricing = getCursorModelPricing(validatedModel);
+    let billingExhausted = false;
+
     const run = await agent.send(prompt, {
       onDelta: ({ update }) => {
         if (update.type === "turn-ended" && update.usage) {
@@ -242,6 +252,25 @@ async function executeCursor(
       while (pendingMetrics.length > 0) {
         const metrics = pendingMetrics.shift()!;
         stampMetricsOnLastAiMessage(status.messages, metrics);
+
+        // Report each turn's usage to billing service
+        if (!billingExhausted) {
+          const billingReport = await billingClient.reportUsage({
+            model: validatedModel,
+            costTier: pricing.costTier,
+            providerCostMicros: Math.round(metrics.estimatedCostUsd * 1_000_000),
+            inputTokens: metrics.inputTokens,
+            outputTokens: metrics.outputTokens,
+            cacheCreationTokens: metrics.cacheCreationTokens,
+            cacheReadTokens: metrics.cacheReadTokens,
+          });
+          if (BillingClient.shouldStop(billingReport)) {
+            billingExhausted = true;
+            console.warn(
+              `ExecuteCursor billing exhausted: execution=${executionId}, will stop after current stream`,
+            );
+          }
+        }
       }
 
       const shouldPersist = eventCount % 20 === 0 || deltaEnricher.isDirty || todoTracker.isDirty;
@@ -250,6 +279,14 @@ async function executeCursor(
         deltaEnricher.markPersisted();
         todoTracker.markPersisted();
         heartbeat();
+      }
+
+      // Billing exhaustion: stop consuming the stream after current events are processed.
+      // The agent's current turn will complete (bounded over-consumption), but we won't
+      // wait for additional turns. The workflow will finalize the reservation.
+      if (billingExhausted) {
+        console.log(`ExecuteCursor stopping stream due to billing exhaustion: execution=${executionId}`);
+        break;
       }
     }
 
@@ -263,6 +300,21 @@ async function executeCursor(
     while (pendingMetrics.length > 0) {
       const metrics = pendingMetrics.shift()!;
       stampMetricsOnLastAiMessage(status.messages, metrics);
+    }
+
+    // Phase 11b: Handle billing exhaustion early exit
+    if (billingExhausted) {
+      status.phase = ExecutionPhase.EXECUTION_COMPLETED;
+      status.completedAt = utcTimestamp();
+      status.messages.push(create(AgentMessageSchema, {
+        type: MessageType.MESSAGE_SYSTEM,
+        content: "Execution stopped: your credit balance has been exhausted. " +
+                 "Please purchase more credits to continue.",
+        timestamp: utcTimestamp(),
+      }));
+      await persistStatus(client, executionId, status);
+      console.log(`ExecuteCursor completed (billing exhausted): execution=${executionId}`);
+      return slimStatus(status);
     }
 
     // Phase 12: Check for denied tool calls (HITL)

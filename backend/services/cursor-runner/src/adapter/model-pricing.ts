@@ -20,6 +20,7 @@ const pricingByModel = new Map<string, CursorModelPricing>(
 const DEFAULT_PRICING: CursorModelPricing = {
   model: "unknown",
   displayName: "Unknown",
+  costTier: "standard",
   inputPricePerMillion: 1.25,
   outputPricePerMillion: 6.00,
   cacheWritePricePerMillion: 1.25,
