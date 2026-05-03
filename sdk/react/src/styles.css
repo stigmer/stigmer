@@ -1,4 +1,5 @@
 @source "./**/*.{ts,tsx}";
+@source "../node_modules/streamdown/dist/*.js";
 
 @layer stgm;
 

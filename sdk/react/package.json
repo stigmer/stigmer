@@ -65,6 +65,7 @@
     "@stigmer/theme": "*",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
+    "streamdown": "^2.5.0",
     "yaml": "^2.8.2"
   },
   "peerDependencies": {
