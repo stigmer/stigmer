@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03 09:55
-**Current Task**: T01 — Phase 1 (Ledger MVP)
-**Status**: Phase 1.2 + 1.3 Complete — Domain Services, Repos, Handlers Done
+**Current Task**: T01 — Phase 2 (Execution Enforcement MVP)
+**Status**: Phase 2.1 + 2.7 Complete — Reservation Collection + Transaction Infrastructure
 
 ## Session Progress (2026-05-03)
 
@@ -126,33 +126,65 @@ When starting a new session:
 - Int64 proto-JSON fix: repos post-process Documents to convert int64 strings to BSON longs for $inc and numeric query support
 - Burn order algorithm implemented and tested but NOT wired to runtime (Phase 2)
 
-## Next Steps (Phase 2 — Execution Enforcement MVP)
+### Phase 2.1 + 2.7 Completed (Reservation Collection + Transaction Infrastructure)
+- Created `execution_reservation` collection via Mongock migration (order 024):
+  - `reservation_id` unique index (primary key lookup)
+  - `execution_id` unique index (one reservation per execution invariant)
+  - `(org_id, status)` compound index (active reservations per org)
+  - `(status, expires_at)` compound index (expiry cleanup job)
+- Created `ExecutionReservationRepo` in `ai.stigmer.domain.billing.repo`:
+  - insert, findByExecutionId, findByReservationId, findActiveByOrgId
+  - `atomicIncrementConsumed` — $inc on consumed_micros with active-status guard
+  - `updateStatus` — lifecycle state transitions
+  - Proto-JSON pattern with int64 post-processing for reserved_micros + consumed_micros
+- Added `MongoTransactionConfig` in `ai.stigmer.infra.mongostarter`:
+  - `MongoTransactionManager` bean with `@ConditionalOnProperty(spring.data.mongodb.transactions.enabled)`
+  - Enables `@Transactional` support for multi-document operations
+  - Gated to allow environments without replica set to boot cleanly
+- Added `application-mongo.yaml` property: `transactions.enabled: ${MONGO_TRANSACTIONS_ENABLED:true}`
+- Added 2 new methods to `BillingAccountRepo`:
+  - `atomicReservationDebit(orgId, debitMicros, promoConsumed, purchasedConsumed)` — debits from reserved bucket (does NOT touch available)
+  - `atomicReservationTransfer(orgId, availableDelta, reservedDelta)` — moves funds between available and reserved (authorize/release)
+- Created 2 new test files (Mockito, JUnit 5):
+  - `ExecutionReservationRepoTest` — 14 tests covering insert/find/increment/status operations
+  - `BillingAccountRepoTest` — 9 tests verifying $inc field correctness, invariants, error cases
 
-1. Create `execution_reservation` collection + migration
+### Key Design Decisions (Phase 2 Infrastructure)
+- `atomicReservationDebit` is a targeted method (not generalized) — clear intent, less risk of misuse
+- `atomicReservationTransfer` is symmetric for authorize (available→reserved) and finalize (reserved→available)
+- `@Transactional` will be used on Phase 2.2-2.4 service methods (transaction manager registered but not yet consumed)
+- No TTL index on expires_at — expired reservations kept for audit, status updated by cleanup job
+- Reservation status stored as proto enum name string (same pattern as existing billing repos)
+
+## Next Steps (Phase 2 — Execution Enforcement MVP, continued)
+
+1. ~~Create `execution_reservation` collection + migration~~ ✅
 2. Implement AuthorizeExecutionHandler — check balance, create reservation
 3. Implement ReportLlmCallUsageHandler — rate usage, debit via burn order, return billing signal
 4. Implement FinalizeExecutionHandler — release unused reservation, produce billing record
 5. Integrate with agent-runner UsageTracker (Python) — billing reporting hook
 6. Integrate with Temporal workflow — authorize before dispatch, finalize after completion
-7. Add MongoTransactionManager for atomic multi-document debit path
+7. ~~Add MongoTransactionManager for atomic multi-document debit path~~ ✅
 
 ## Context for Resume
 - Proto contracts are stable — all downstream code can build against them
 - All Phase 1 domain services, repos, and handlers are implemented and unit-tested
 - `BillingMicros` handles all micro-USD arithmetic
-- Phase 1 work is entirely in stigmer-cloud (Java domain handlers + MongoDB)
+- Phase 1+2 infrastructure work is entirely in stigmer-cloud (Java domain handlers + MongoDB)
 - Repos use proto-JSON (JsonFormat) with int64 post-processing for BSON numeric types
 - Billing repos use MongoTemplate directly (non-API-resource pattern)
 - BillingAccount balance is the source of truth, maintained via atomic $inc
 - CreditLedgerService.debitCredits() is ready for Phase 2 wiring (burn order tested)
-- No MongoDB transactions yet — Phase 2 will need MongoTransactionManager for the debit path
+- MongoTransactionManager is now registered — Phase 2.2-2.4 handlers can use `@Transactional`
+- ExecutionReservationRepo is ready for handler integration
+- Balance model: reserve moves available→reserved, per-call debit reduces reserved+total, finalize releases reserved→available
 - 5 gRPC RPCs are handler-wired: getOrCreateBillingAccount, adjustCredits, getBillingAccount, getCreditBalance, getCreditLedger
-- 5 RPCs deferred: authorizeExecution, reportLlmCallUsage, finalizeExecution (Phase 2), getBillingUsageReport, getCustomerModelPricing (Phase 5)
+- 5 RPCs deferred: authorizeExecution, reportLlmCallUsage, finalizeExecution (Phase 2.2-2.4), getBillingUsageReport, getCustomerModelPricing (Phase 5)
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 1" - Begin Ledger MVP implementation
+- "Start Phase 2.2" - Begin AuthorizeExecutionHandler implementation
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
