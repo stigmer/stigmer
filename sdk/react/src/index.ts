@@ -417,6 +417,15 @@ export type {
   UseSessionEnvPoolReturn,
 } from "./environment";
 
+// Identity Account — gate hook for ensuring the caller's identity account exists before app render
+export {
+  useIdentityAccountGate,
+} from "./identity-account";
+export type {
+  IdentityAccountGateState,
+  UseIdentityAccountGateReturn,
+} from "./identity-account";
+
 // IAM Policy — data hooks, behavior hooks, headless hook, and styled components for access management
 export {
   useGrantableRoles,

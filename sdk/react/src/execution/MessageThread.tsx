@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -194,34 +194,41 @@ export function buildThreadItems(
         msg.type === MessageType.MESSAGE_AI &&
         msg.toolCalls.length > 0
       ) {
-        const regularTools: ToolCall[] = [];
-        const taskTools: ToolCall[] = [];
-        for (const tc of msg.toolCalls) {
-          if (tc.name === "task") {
-            taskTools.push(tc);
-          } else {
-            regularTools.push(tc);
-          }
-        }
+        const hasTaskTools = msg.toolCalls.some((tc) => tc.name === "task");
 
-        if (regularTools.length > 0) {
+        if (hasTaskTools) {
+          const regularTools: ToolCall[] = [];
+          const matchedSubAgents: SubAgentExecution[] = [];
+          for (const tc of msg.toolCalls) {
+            if (tc.name === "task") {
+              const matched = subAgents.find((sa) => sa.id === tc.id);
+              if (matched) matchedSubAgents.push(matched);
+            } else {
+              regularTools.push(tc);
+            }
+          }
+          if (regularTools.length > 0) {
+            items.push({
+              kind: "tool-group",
+              toolCalls: regularTools,
+              subAgentExecutions: subAgents,
+              key: `${execId}-m${mi}-tc`,
+            });
+          }
+          for (const sa of matchedSubAgents) {
+            items.push({
+              kind: "sub-agent",
+              subAgentExecution: sa,
+              key: `sa-${sa.id}`,
+            });
+          }
+        } else {
           items.push({
             kind: "tool-group",
-            toolCalls: regularTools,
+            toolCalls: msg.toolCalls,
             subAgentExecutions: subAgents,
             key: `${execId}-m${mi}-tc`,
           });
-        }
-
-        for (const taskTool of taskTools) {
-          const matched = subAgents.find((sa) => sa.id === taskTool.id);
-          if (matched) {
-            items.push({
-              kind: "sub-agent",
-              subAgentExecution: matched,
-              key: `sa-${matched.id}`,
-            });
-          }
         }
       }
     }
@@ -420,14 +427,11 @@ export function MessageThread({
               );
             case "approval-request":
               return (
-                <ApprovalCard
+                <ApprovalCardRow
                   key={item.key}
                   pendingApproval={item.pendingApproval}
-                  onSubmit={(action, comment) =>
-                    onApprovalSubmit!(item.pendingApproval.toolCallId, action, comment)
-                  }
+                  onApprovalSubmit={onApprovalSubmit!}
                   isSubmitting={submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false}
-                  className="mx-4"
                 />
               );
             case "setup-progress":
@@ -446,3 +450,39 @@ export function MessageThread({
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// ApprovalCardRow — stabilizes the onSubmit callback for React.memo
+// ---------------------------------------------------------------------------
+
+interface ApprovalCardRowProps {
+  readonly pendingApproval: PendingApproval;
+  readonly onApprovalSubmit: (
+    toolCallId: string,
+    action: ApprovalAction,
+    comment?: string,
+  ) => void;
+  readonly isSubmitting: boolean;
+}
+
+const ApprovalCardRow = memo(function ApprovalCardRow({
+  pendingApproval,
+  onApprovalSubmit,
+  isSubmitting,
+}: ApprovalCardRowProps) {
+  const handleSubmit = useCallback(
+    (action: ApprovalAction, comment?: string) => {
+      onApprovalSubmit(pendingApproval.toolCallId, action, comment);
+    },
+    [onApprovalSubmit, pendingApproval.toolCallId],
+  );
+
+  return (
+    <ApprovalCard
+      pendingApproval={pendingApproval}
+      onSubmit={handleSubmit}
+      isSubmitting={isSubmitting}
+      className="mx-4"
+    />
+  );
+});

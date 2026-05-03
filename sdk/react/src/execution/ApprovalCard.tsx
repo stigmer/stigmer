@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
@@ -39,6 +39,10 @@ export interface ApprovalCardProps {
  * dispatch, ensuring pixel-level parity between the approval
  * preview and the post-execution detail view.
  *
+ * Wrapped in `React.memo` — structural sharing (T04) preserves the
+ * `PendingApproval` reference when unchanged, so approval cards
+ * skip re-renders during unrelated stream updates.
+ *
  * @example
  * ```tsx
  * <ApprovalCard
@@ -48,7 +52,7 @@ export interface ApprovalCardProps {
  * />
  * ```
  */
-export function ApprovalCard({
+export const ApprovalCard = memo(function ApprovalCard({
   pendingApproval,
   onSubmit,
   isSubmitting = false,
@@ -198,7 +202,7 @@ export function ApprovalCard({
       </div>
     </div>
   );
-}
+});
 
 // ---------------------------------------------------------------------------
 // Internal sub-components
