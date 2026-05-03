@@ -6,6 +6,7 @@ import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecu
 import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-components";
+import { useRenderTracer } from "../internal/dev";
 
 /** Props for {@link MessageEntry}. */
 export interface MessageEntryProps {
@@ -36,6 +37,12 @@ export interface MessageEntryProps {
  * ```
  */
 export function MessageEntry({ message, className }: MessageEntryProps) {
+  useRenderTracer("MessageEntry", {
+    messageType: message.type,
+    contentLength: message.content.length,
+    isStreaming: message.isStreaming,
+  });
+
   switch (message.type) {
     case MessageType.MESSAGE_HUMAN:
       return <HumanMessage content={message.content} className={className} />;
@@ -89,6 +96,8 @@ function AiMessage({
   isStreaming: boolean;
   className?: string;
 }) {
+  useRenderTracer("AiMessage", { contentLength: content.length, isStreaming });
+
   return (
     <div
       role="article"

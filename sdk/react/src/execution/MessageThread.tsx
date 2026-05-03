@@ -24,6 +24,7 @@ import { ApprovalCard } from "./ApprovalCard";
 import { FilePathContext, type FilePathContextValue } from "./FilePathContext";
 import type { ResolvedPathAction } from "./file-path-resolver";
 import { SandboxContext, type SandboxContextValue } from "./SandboxContext";
+import { useRenderTracer, useKeyStability, useDomNodeCount, DevProfiler } from "../internal/dev";
 
 /** Props for {@link MessageThread}. */
 export interface MessageThreadProps {
@@ -301,11 +302,16 @@ export function MessageThread({
   const scrollRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
 
+  useRenderTracer("MessageThread", { executions, activeStreamExecution });
+
   const includeApprovals = onApprovalSubmit != null;
   const items = useMemo(
     () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries),
     [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries],
   );
+
+  useKeyStability(items);
+  useDomNodeCount(scrollRef, "MessageThread");
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -352,6 +358,7 @@ export function MessageThread({
     >
       <SandboxContext.Provider value={sandboxCtx}>
       <FilePathContext.Provider value={filePathCtx}>
+      <DevProfiler id="MessageThread">
         {items.map((item) => {
           switch (item.kind) {
             case "message":
@@ -415,6 +422,7 @@ export function MessageThread({
               );
           }
         })}
+      </DevProfiler>
       </FilePathContext.Provider>
       </SandboxContext.Provider>
     </div>

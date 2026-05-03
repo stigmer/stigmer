@@ -8,6 +8,7 @@ import {
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
+import { useRenderTracer } from "../internal/dev";
 import { ToolCallItem } from "./ToolCallItem";
 import { resolveToolCategory, extractPrimaryArg } from "./tool-categories";
 
@@ -158,6 +159,8 @@ export function ToolCallGroup({
   defaultExpanded = false,
   className,
 }: ToolCallGroupProps) {
+  useRenderTracer("ToolCallGroup", { toolCallCount: toolCalls.length });
+
   const status = deriveAggregateStatus(toolCalls);
   const isActive = status === "running" || status === "pending" || status === "waiting";
 
