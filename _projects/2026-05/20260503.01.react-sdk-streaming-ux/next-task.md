@@ -68,9 +68,36 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03
-**Current Task**: T06 (Stream Controller State Machine — NEXT)
-**Status**: T05 complete, ready for T06
+**Current Task**: T07 (Streaming Markdown — NEXT)
+**Status**: T06 complete, ready for T07
 **Research Report**: `_projects/2026-05/research.react-sdk-streaming-ux-quality/04.report.gpt.md`
+
+## Session Progress (2026-05-03, Session 5)
+
+- Implemented T06: Stream Controller State Machine
+- Created `StreamController` class — framework-agnostic FSM with rAF coalescing (idle → connecting → streaming → complete → error)
+- Rewrote `useExecutionStream` to feed `ConversationStore` directly via the controller, wrapped in `startTransition`
+- Removed duplicate structural sharing from `useSessionConversation` (13 lines deleted)
+- Hook now accepts optional `ConversationStore` param — backward compatible standalone usage preserved
+- Discovered `useStreamRate` referential instability causing infinite render loops — fixed with ref indirection
+- 31 new StreamController tests, 12 rewritten hook tests, full suite 347/347 pass, typecheck clean, lint clean
+
+### Key Design Decision: startTransition Wrapping Store Mutations
+- The rAF callback calls `startTransition(() => store.ingestSnapshot(buffered))` 
+- This marks the resulting `useSyncExternalStore` re-render as non-urgent
+- React can interrupt thread renders if the user types in the composer
+- Safe because the store holds the truth — next frame's flush delivers latest data regardless
+
+### Key Design Decision: Optional Store Parameter
+- `useExecutionStream(id, { store })` accepts an external store for shared usage
+- When omitted, creates an internal fallback store automatically
+- This preserves backward compatibility while enabling `useSessionConversation` to share its store
+- Same pattern as dependency injection — keeps the hook testable without React context
+
+### Surprise: useStreamRate Creates New Object Per Render
+- `useStreamRate()` returns a new tracker object every render (ref-backed state but referentially unstable container)
+- Including it in effect deps caused an infinite loop: re-render → new ref → effect re-runs → store mutation → re-render → ∞
+- Fixed by storing tracker in a stable `useRef` and reading `streamRateRef.current` inside the effect
 
 ## Session Progress (2026-05-03, Session 4)
 
@@ -151,19 +178,19 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T06**: Stream Controller State Machine — rewrite `useExecutionStream` with rAF coalescing, `startTransition`, finite state machine
-2. **T07**: Streaming Markdown (Streamdown) — split-path rendering for active vs completed messages
-3. **T08**: Data Fetching / Cache Fix — TanStack Query or keyed cache for session navigation
+1. **T07**: Streaming Markdown (Streamdown) — split-path rendering for active vs completed messages
+2. **T08**: Data Fetching / Cache Fix — TanStack Query or keyed cache for session navigation
+3. **T09**: Composer Isolation — move composer out of stream-rendering path
 
 ## Context for Resume
 
-- **Memoization is live**: All leaf thread components (`MessageEntry`, `ToolCallGroup`, `SubAgentSection`, `ApprovalCard`, `SetupProgress`, `ExecutionPhaseBadge`) are wrapped in `React.memo`
-- **Structural sharing + memo = render optimization**: During streaming, completed rows skip re-render entirely. Only the actively changing row (streaming AI message) re-renders.
-- **Store infrastructure ready but unused for rendering**: `ConversationStore` exists but rendering still flows through props. Store-backed `ThreadRow` subscriptions deferred to T11 (virtualization).
-- **No public API changes**: All changes are internal. `MessageThreadProps`, `MessageEntryProps`, `ToolCallGroupProps`, etc. unchanged.
-- **rAF coalescing deferred**: `useExecutionStream` is untouched. T06 will rewrite it with rAF coalescing and `startTransition`
-- **`toolCallGroupPropsEqual` exported for testing**: Not in public API barrel, but available for direct unit testing
-- Instrumentation is live: browser console shows `[stgm:perf:*]` during streaming. `useRenderTracer` inside memoized components now only fires when the component actually re-renders.
+- **Stream controller is live**: `useExecutionStream` now uses `StreamController` (FSM) + rAF coalescing + `startTransition`. React commits at most once per display frame during streaming.
+- **ConversationStore is the source of truth**: `useExecutionStream` feeds the store directly. `useSessionConversation` shares its store via the `store` option. No more duplicate structural sharing.
+- **Memoization is live**: All leaf thread components wrapped in `React.memo` (T05). Combined with rAF coalescing, completed rows skip re-render entirely during streaming.
+- **No public API changes**: `UseExecutionStreamReturn` shape is unchanged. Standalone usage (without `store` option) works via internal fallback store.
+- **startTransition in place**: Thread renders are non-urgent. This is the foundation for T09 (Composer Isolation) — composer input already won't be blocked by stream renders.
+- **`toolCallGroupPropsEqual` exported for testing**: Not in public API barrel, but available for direct unit testing.
+- **Instrumentation is live**: `[stgm:perf:stream]` console logs still fire during streaming.
 
 ## Phase Overview (11 Phases)
 
@@ -173,7 +200,7 @@ When starting a new session:
 | 1 | T03 | Fix Keys & Pending Reconciliation | Very High | **Done** |
 | 2 | T04 | Structural-Sharing Store (ConversationStore) | **Highest** | **Done** |
 | 3 | T05 | Row-Level Memoization (React.memo) | High | **Done** |
-| 4 | T06 | Stream Controller State Machine | High | Pending |
+| 4 | T06 | Stream Controller State Machine | High | **Done** |
 | 5 | T07 | Streaming Markdown (Streamdown) | High | Pending |
 | 6 | T08 | Data Fetching / Cache Fix | Very High | Pending |
 | 7 | T09 | Composer Isolation | High | Pending |
