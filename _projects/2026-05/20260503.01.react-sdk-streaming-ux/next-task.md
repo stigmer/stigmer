@@ -68,9 +68,37 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03
-**Current Task**: T08 (Data Fetching / Cache Fix — NEXT)
-**Status**: T07 complete, ready for T08
+**Current Task**: T09 (Composer Isolation — NEXT)
+**Status**: T08 complete, ready for T09
 **Research Report**: `_projects/2026-05/research.react-sdk-streaming-ux-quality/04.report.gpt.md`
+
+## Session Progress (2026-05-03, Session 7)
+
+- Implemented T08: Data Fetching / Cache Fix
+- Challenged original T08 plan — rejected TanStack Query in Console (deep SDK composition makes it impractical), rejected cache in ConversationStore (wrong responsibility), rejected TanStack Query adapter export (premature)
+- Built `FetchCache` class — lightweight keyed in-memory cache with TTL (5 min default), LRU eviction (100 entries default), `prefetch`, `invalidatePrefix`
+- Built `FetchCacheProvider` + `useFetchCache` — React context provider, graceful null fallback when no provider mounted
+- Integrated cache into `useFetch` — reads on mount (skip skeleton), reads on dep change, writes on success; new optional `cacheKey` in `UseFetchOptions`
+- Added `cacheKey` to `useSession` (`session:${id}`) and `useSessionExecutions` (`session-executions:${sessionId}`)
+- Wired `FetchCacheProvider` in `AppShell` above `key={activeSessionId}` remount boundary
+- Exported `FetchCacheProvider` and `FetchCacheOptions` from SDK barrel (`index.ts`)
+- 31 new tests (18 FetchCache unit, 8 useFetch cache integration, 5 useSession cache behavior)
+- Full suite 395/395 pass, typecheck clean, lint clean
+
+### Key Design Decision: SDK-level FetchCache vs TanStack Query
+- Data fetching is deeply composed inside SDK hooks: `SessionPageInner → useSessionPageFlow → useSessionConversation → useSession → useFetch`
+- Replacing useFetch with TanStack Query at the Console level would require duplicating SDK composition, threading TanStack Query through SDK hooks, or doubling the API surface — none proportional to the problem
+- FetchCache is ~120 lines, no new dependencies, benefits all 27+ useFetch consumers, clean upgrade path to TanStack Query keys
+
+### Key Design Decision: Keep `key={activeSessionId}` Pattern
+- The `key` prop is the correct React pattern for cleanly resetting all hook state (stream controller, pending execution, approval state)
+- The problem was not `key` — it was `useFetch` having no memory across mounts
+- FetchCache gives useFetch memory; `key` continues to provide clean state resets
+
+### Surprise: renderHook Creates Independent React Trees
+- Each `renderHook` call creates an independent React tree — `useRef`-based providers don't share state across trees
+- Tests needed direct `FetchCacheContext.Provider` injection with a shared `FetchCache` instance to simulate cross-mount behavior
+- Exported `FetchCacheContext` for test-level injection (not public API, internal)
 
 ## Session Progress (2026-05-03, Session 6)
 
@@ -199,18 +227,19 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T08**: Data Fetching / Cache Fix — TanStack Query or keyed cache for session navigation
-2. **T09**: Composer Isolation — move composer out of stream-rendering path
-3. **T10**: Auto-Scroll State Machine — IntersectionObserver + follow mode
+1. **T09**: Composer Isolation — move composer out of stream-rendering path
+2. **T10**: Auto-Scroll State Machine — IntersectionObserver + follow mode
+3. **T11**: Virtualization (react-virtuoso)
 
 ## Context for Resume
 
+- **FetchCache is live**: `FetchCacheProvider` wraps `AppShell`; `useSession` and `useSessionExecutions` use `cacheKey` for cross-mount caching. Previously visited sessions render instantly, background refetch for freshness.
 - **Streamdown is live**: `AiMessage` renders via `Streamdown` with `isAnimating={isStreaming}` and `caret="block"`. Block-level memoization and `remend` incomplete-syntax healing are active during streaming.
 - **`react-markdown` still used for static consumers**: `SkillDetailView`, `ArtifactContentRenderer` use `react-markdown` + `REMARK_PLUGINS`. Both dependencies remain in `package.json`.
 - **Stream controller is live**: `useExecutionStream` uses `StreamController` (FSM) + rAF coalescing + `startTransition`. React commits at most once per display frame during streaming.
 - **ConversationStore is the source of truth**: `useExecutionStream` feeds the store directly. `useSessionConversation` shares its store via the `store` option.
 - **Memoization is live**: All leaf thread components wrapped in `React.memo` (T05). Combined with rAF coalescing and Streamdown's block-level memoization, completed rows skip re-render entirely during streaming.
-- **No public API changes**: `UseExecutionStreamReturn` shape is unchanged. `MessageEntry` props unchanged.
+- **No public API changes**: `UseExecutionStreamReturn` shape is unchanged. `MessageEntry` props unchanged. `FetchCacheProvider` is the only new public export.
 - **startTransition in place**: Thread renders are non-urgent. Foundation for T09 (Composer Isolation).
 - **Instrumentation is live**: `[stgm:perf:stream]` console logs still fire during streaming.
 
@@ -224,7 +253,7 @@ When starting a new session:
 | 3 | T05 | Row-Level Memoization (React.memo) | High | **Done** |
 | 4 | T06 | Stream Controller State Machine | High | **Done** |
 | 5 | T07 | Streaming Markdown (Streamdown) | High | **Done** |
-| 6 | T08 | Data Fetching / Cache Fix | Very High | Pending |
+| 6 | T08 | Data Fetching / Cache Fix | Very High | **Done** |
 | 7 | T09 | Composer Isolation | High | Pending |
 | 8 | T10 | Auto-Scroll State Machine | High | Pending |
 | 9 | T11 | Virtualization (react-virtuoso) | High | Pending |
@@ -233,7 +262,7 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Start T08" - Begin data fetching / cache fix
+- "Start T09" - Begin composer isolation
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

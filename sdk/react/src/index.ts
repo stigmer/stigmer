@@ -2,6 +2,10 @@
 export { StigmerProvider, type StigmerProviderProps } from "./provider";
 export { StigmerContext } from "./context";
 
+// Fetch cache
+export { FetchCacheProvider } from "./internal/FetchCacheProvider";
+export type { FetchCacheOptions } from "./internal/fetch-cache";
+
 // Hooks
 export { useStigmer } from "./hooks";
 
