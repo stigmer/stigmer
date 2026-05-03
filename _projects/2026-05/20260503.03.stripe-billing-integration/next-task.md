@@ -69,7 +69,7 @@ When starting a new session:
 
 **Created**: 2026-05-03 09:55
 **Current Task**: T01 — Phase 2 (Execution Enforcement MVP)
-**Status**: Phase 2.1 + 2.7 Complete — Reservation Collection + Transaction Infrastructure
+**Status**: Phase 2.2 Complete — AuthorizeExecution Handler + Service
 
 ## Session Progress (2026-05-03)
 
@@ -156,11 +156,54 @@ When starting a new session:
 - No TTL index on expires_at — expired reservations kept for audit, status updated by cleanup job
 - Reservation status stored as proto enum name string (same pattern as existing billing repos)
 
+### Phase 2.2 Completed (AuthorizeExecution Handler + Service)
+- Created `BillingExecutionConfig` in `ai.stigmer.domain.billing.config`:
+  - Spring `@ConfigurationProperties(prefix = "stigmer.billing.execution")`
+  - `defaultReservationMicros` = 1,000,000 ($1.00) — research-backed
+  - `minimumStartThresholdMicros` = 50,000 ($0.05) — deny below this
+  - `reservationExpiryHours` = 4 — safety net for orphaned reservations
+- Created `ExecutionBillingService` in `ai.stigmer.domain.billing.service`:
+  - `authorizeExecution(orgId, executionId, harness, expectedCostCapMicros)` → `AuthorizeExecutionResponse`
+  - Full algorithm: idempotency check → account status gate → reservation sizing → @Transactional atomic write
+  - Reservation amount: `min(effectiveCap, available + allowedNegative)`, deny if < $0.05
+  - Partial reservation: users with $0.30 can start (reduced headroom, per-call signals handle degradation)
+  - Idempotency: existing active reservation returned on Temporal retry; finalized/expired → denied
+  - `DuplicateKeyException` caught for concurrent insert race → reads back winner
+  - `@Transactional` on `executeReservation()`: balance transfer + reservation insert + ledger hold entry
+  - Writes `reservation_hold` ledger entry (type, negative amount, idempotency key `reserve_{executionId}`)
+- Created `AuthorizeExecutionHandler` in `ai.stigmer.domain.billing.request.handler`:
+  - `@RequestRoute(controller = BillingCommandControllerGrpc.class, method = authorizeExecution)`
+  - Simplified pipeline: validateFieldConstraints → AuthorizeExecutionStep → sendResponse
+  - No extractResourceId or authorize (RPC has `is_skip_authorization = true`)
+  - Error mapping: `IllegalStateException` → `FAILED_PRECONDITION`, generic → `INTERNAL`
+- Created `ExecutionBillingServiceTest` (14 tests, Mockito + JUnit 5):
+  - Happy path: $10 available, reserves $1.00, verifies reservation + ledger entry fields
+  - Partial reservation: $0.30 available, reserves $0.30
+  - expected_cost_cap: respects caller-provided cap
+  - Denials: insufficient ($0.03), suspended account, closed account, not found, zero balance
+  - Idempotency: active reservation returned, finalized denied, expired denied, concurrent race
+  - Allowed negative balance: extends headroom, edge cases around $0.05 threshold
+  - Integrity: expiry timing (4h ± 5s), no writes on denial
+- Added `stigmer.billing.execution.*` properties to `application.yaml` with env-var overrides
+
+### Key Design Decisions (Phase 2.2)
+- Default $1.00 reservation (research: OpenAI/Anthropic/Replicate "small upfront reserve" pattern)
+- $0.05 minimum start threshold (not enough for even one cheap LLM call → deny)
+- Partial reservation is UX-optimal: per-call debit system (Phase 2.3) handles graceful degradation
+- Reservation is an escrow optimization, NOT a hard gate — Phase 2.3 must handle "no active reservation" gracefully
+- 4-hour expiry is safety net only; normal finalization happens via Temporal finally block
+
+### Open Design Question: HITL + Reservation Expiry
+- **Scenario**: HITL approval takes 2 days; reservation expires after 4 hours; credits released; execution resumes
+- **Recommendation (discussed with user)**: Option A — Phase 2.3 `ReportLlmCallUsage` falls back to debiting from available balance when reservation is expired. Reservation is a budget optimization, not a hard dependency.
+- **Decision**: Pending final confirmation. Phase 2.3 must be designed to handle expired/missing reservations as a valid state.
+
 ## Next Steps (Phase 2 — Execution Enforcement MVP, continued)
 
 1. ~~Create `execution_reservation` collection + migration~~ ✅
-2. Implement AuthorizeExecutionHandler — check balance, create reservation
+2. ~~Implement AuthorizeExecutionHandler — check balance, create reservation~~ ✅
 3. Implement ReportLlmCallUsageHandler — rate usage, debit via burn order, return billing signal
+   - **Must handle expired/missing reservation** (HITL edge case from Phase 2.2 discussion)
 4. Implement FinalizeExecutionHandler — release unused reservation, produce billing record
 5. Integrate with agent-runner UsageTracker (Python) — billing reporting hook
 6. Integrate with Temporal workflow — authorize before dispatch, finalize after completion
@@ -174,17 +217,19 @@ When starting a new session:
 - Repos use proto-JSON (JsonFormat) with int64 post-processing for BSON numeric types
 - Billing repos use MongoTemplate directly (non-API-resource pattern)
 - BillingAccount balance is the source of truth, maintained via atomic $inc
-- CreditLedgerService.debitCredits() is ready for Phase 2 wiring (burn order tested)
-- MongoTransactionManager is now registered — Phase 2.2-2.4 handlers can use `@Transactional`
-- ExecutionReservationRepo is ready for handler integration
+- CreditLedgerService.debitCredits() is ready for Phase 2.3 wiring (burn order tested)
+- MongoTransactionManager is registered and consumed by ExecutionBillingService.executeReservation()
+- ExecutionReservationRepo is fully integrated with the authorize flow
 - Balance model: reserve moves available→reserved, per-call debit reduces reserved+total, finalize releases reserved→available
-- 5 gRPC RPCs are handler-wired: getOrCreateBillingAccount, adjustCredits, getBillingAccount, getCreditBalance, getCreditLedger
-- 5 RPCs deferred: authorizeExecution, reportLlmCallUsage, finalizeExecution (Phase 2.2-2.4), getBillingUsageReport, getCustomerModelPricing (Phase 5)
+- 6 gRPC RPCs are now handler-wired: getOrCreateBillingAccount, adjustCredits, getBillingAccount, getCreditBalance, getCreditLedger, **authorizeExecution**
+- 4 RPCs deferred: reportLlmCallUsage, finalizeExecution (Phase 2.3-2.4), getBillingUsageReport, getCustomerModelPricing (Phase 5)
+- `BillingExecutionConfig` provides Spring-configurable reservation defaults ($1.00 reserve, $0.05 minimum, 4h expiry)
+- **Critical for Phase 2.3**: ReportLlmCallUsage must gracefully handle expired reservations (HITL edge case)
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 2.2" - Begin AuthorizeExecutionHandler implementation
+- "Start Phase 2.3" - Begin ReportLlmCallUsageHandler implementation
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
