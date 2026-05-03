@@ -87,6 +87,9 @@ export type { MessageEntryProps } from "./MessageEntry";
 export { MessageThread } from "./MessageThread";
 export type { MessageThreadProps } from "./MessageThread";
 
+export { ThreadSkeleton } from "./ThreadSkeleton";
+export type { ThreadSkeletonProps } from "./ThreadSkeleton";
+
 export { FollowUpInput } from "./FollowUpInput";
 export type { FollowUpInputProps } from "./FollowUpInput";
 
