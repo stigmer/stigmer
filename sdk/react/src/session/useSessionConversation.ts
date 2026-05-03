@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -17,6 +17,7 @@ import type {
 } from "@stigmer/sdk";
 import { isTerminalPhase } from "../execution/execution-phases";
 import { useStigmer } from "../hooks";
+import { structuralShare } from "../internal/store";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
 import { useExecutionStream } from "../execution/useExecutionStream";
 import { useSubmitApproval } from "../execution/useSubmitApproval";
@@ -250,6 +251,23 @@ export function useSessionConversation(
 
   const stream = useExecutionStream(activeExecutionId);
 
+  // Structural sharing: preserve references for unchanged nested
+  // entities (messages, tool calls, sub-agents) so downstream
+  // React.memo boundaries (T05) can skip re-renders.
+  const prevStreamExecRef = useRef<AgentExecution | null>(null);
+  const sharedStreamExecution = useMemo(() => {
+    if (!stream.execution) {
+      prevStreamExecRef.current = null;
+      return null;
+    }
+    const shared = structuralShare(
+      prevStreamExecRef.current,
+      stream.execution,
+    );
+    prevStreamExecRef.current = shared;
+    return shared;
+  }, [stream.execution]);
+
   // Clear pendingExecutionId once the execution appears in the fetched list
   useEffect(() => {
     if (
@@ -262,10 +280,10 @@ export function useSessionConversation(
 
   // Clear optimistic message once the stream delivers its first snapshot
   useEffect(() => {
-    if (pendingUserMessage && stream.execution) {
+    if (pendingUserMessage && sharedStreamExecution) {
       setPendingUserMessage(null);
     }
-  }, [pendingUserMessage, stream.execution]);
+  }, [pendingUserMessage, sharedStreamExecution]);
 
   // Refetch executions when stream reaches a terminal phase so the
   // fetched list reflects the completed status and listActiveId clears.
@@ -291,7 +309,8 @@ export function useSessionConversation(
     );
   }, [executions, activeExecutionId]);
 
-  const activeStreamExecution = stream.execution ?? fetchedActiveExecution;
+  const activeStreamExecution =
+    sharedStreamExecution ?? fetchedActiveExecution;
 
   const activePhase = useMemo<ExecutionPhase | null>(() => {
     if (!activeExecutionId) return null;
