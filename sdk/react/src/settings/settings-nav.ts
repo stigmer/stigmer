@@ -69,7 +69,7 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
   },
   {
     label: "Billing & Usage",
-    description: "Subscription management and usage metrics.",
+    description: "Credit management and usage metrics.",
     items: [
       { href: "/settings/billing", label: "Billing", icon: CreditCard },
       { href: "/settings/usage", label: "Usage", icon: BarChart3 },

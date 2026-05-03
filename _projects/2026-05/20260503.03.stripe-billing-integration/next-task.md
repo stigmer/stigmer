@@ -69,7 +69,7 @@ When starting a new session:
 
 **Created**: 2026-05-03 09:55
 **Current Task**: T01 — Phase 3 (Stripe Credit Purchases)
-**Status**: Phase 3.3 Complete — Stripe Webhook Handler
+**Status**: Phase 3.4 Complete — Billing Page UI
 
 ## Session Progress (2026-05-03)
 
@@ -416,7 +416,7 @@ When starting a new session:
 1. ~~Create Stripe Customer per org on first billing interaction~~ ✅
 2. ~~Implement Stripe Checkout integration (CreateCreditCheckoutSession RPC)~~ ✅
 3. ~~Webhook handler for checkout.session.completed → credit provisioning~~ ✅
-4. Billing page UI (React, replace "Coming Soon" placeholder)
+4. ~~Billing page UI (React, replace "Coming Soon" placeholder)~~ ✅
 5. Reconciliation job for missed webhooks
 
 ## Context for Resume
@@ -464,10 +464,50 @@ When starting a new session:
 - Stripe config: `stigmer.stripe.webhook-secret` (env: `STIGMER_STRIPE_WEBHOOK_SECRET`) — set from Stripe Dashboard webhook endpoint registration
 - Manual ops required: Register webhook endpoint URL in Stripe Dashboard (test + live) and store `whsec_...` secret
 
+### Phase 3.4 Completed (Billing Page UI)
+- Created `BillingClient` in `@stigmer/sdk` (hand-written, `GitHubClient` pattern):
+  - 5 methods: `getOrCreateBillingAccount`, `getBillingAccount`, `getCreditBalance`, `getCreditLedger`, `createCreditCheckoutSession`
+  - Wired into `Stigmer` class as `readonly billing: BillingClient`
+  - Exported from SDK public API with `CreateCheckoutSessionParams` and `GetCreditLedgerParams` types
+- Created `sdk/react/src/billing/` domain folder with 12 files:
+  - **Data hooks**: `useBillingAccount(orgId)` — full account with balance; `useCreditLedger(orgId, options?)` — paginated ledger
+  - **Behavior hook**: `useCreateCheckoutSession()` — mutation hook, redirects to Stripe Checkout URL on success
+  - **Styled components**: `CreditBalanceCard`, `CreditPackGrid`, `CreditLedgerTable`, `LowBalanceBanner`, `BillingSection`
+  - **Utilities**: `format.ts` (6 formatters: `formatCreditBalance`, `formatLedgerAmount`, `ledgerEntryLabel`, `isCredit`, `isHold`, `formatLedgerDate`)
+  - **Catalog**: `credit-packs.ts` (`CREDIT_PACKS` constant, `formatPackPrice`, `formatCreditCount`)
+- Created `sdk/react/src/settings/BillingSection.tsx` — re-export wrapper (follows `UsageSection` pattern)
+- Updated `sdk/react/src/index.ts` — added billing barrel exports (3 hooks, 5 components, 8 utilities, 11 types)
+- Updated `sdk/react/src/settings/index.ts` — added `BillingSection` export
+- Updated `sdk/react/src/settings/settings-nav.ts` — changed description to "Credit management and usage metrics"
+- Replaced `client-apps/web/src/app/settings/billing/page.tsx` — `ComingSoon` → `BillingSection` with checkout return handling (`?checkout=success` query param → optimistic banner)
+- All three packages pass `tsc --noEmit`: `@stigmer/sdk`, `@stigmer/react`, `client-apps/web`
+- BigInt literal (`0n`) not available at current target — used `BigInt(0)` pattern instead
+
+### Key Design Decisions (Phase 3.4)
+- **SDK-first**: All components in `@stigmer/react`, zero Console dependencies. Platform builders can embed `<CreditBalanceCard>`, `<CreditPackGrid>`, or use hooks directly.
+- **Hand-written BillingClient**: Billing is not a standard API resource — no apply/create/update/delete pattern. Follows `GitHubClient`/`SearchClient` precedent for manual clients.
+- **Checkout redirect, not embedded**: Stripe Checkout is a redirect flow. `useCreateCheckoutSession` sets `window.location.href` — no embedded Stripe Elements complexity.
+- **Optimistic checkout return**: `?checkout=success` shows "Payment received — credits will appear shortly" banner. No polling. Webhook may not have processed yet — honest and simple.
+- **Static credit pack catalog**: `CREDIT_PACKS` array mirrors backend `CreditPackCatalog.java`. No RPC call needed to render pack cards.
+- **`BigInt(0)` over `0n`**: Web console's tsconfig targets below ES2020. Used `BigInt(0)` constructor for zero-comparisons in balance/format code.
+- **Nav description update**: "Subscription management" → "Credit management" — accurate to the credit-based model, no subscriptions.
+
+- **Phase 3.4**: `BillingClient` in `@stigmer/sdk` — hand-written, 5 methods, wired into `Stigmer` class
+- New domain folder `sdk/react/src/billing/` — 3 hooks, 5 components, 8 utilities
+- `BillingSection` is a settings section component (follows `UsageSection` pattern) with deployment mode gate, checkout success banner
+- `CreditBalanceCard` uses semantic colors: green (healthy), amber (low), red (zero/negative) — driven by `lowBalanceThresholdMicros`
+- `CreditPackGrid` renders 3 static packs, disables on suspended/closed accounts, shows loading during checkout
+- `CreditLedgerTable` is self-contained: fetches its own data via `useCreditLedger`, handles pagination internally
+- Checkout flow: `useCreateCheckoutSession` → RPC → `window.location.href = checkoutUrl` → Stripe → redirect back with `?checkout=success`
+- Console page (`settings/billing/page.tsx`) reads `?checkout=success` from `useSearchParams()` and passes to `BillingSection`
+- Format utilities handle `bigint` micro-USD → display string conversion (used across all billing components)
+- Settings nav description updated to "Credit management and usage metrics"
+- 10 gRPC RPCs now handler-wired (9 server + 1 query): getOrCreateBillingAccount, adjustCredits, getBillingAccount, getCreditBalance, getCreditLedger, authorizeExecution, reportLlmCallUsage, finalizeExecution, createCreditCheckoutSession + getBillingAccount (query)
+
 ## Quick Commands
 
 After loading context:
-- "Start Phase 3.2" - Begin Stripe Checkout integration
+- "Start Phase 3.5" - Begin reconciliation job
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
