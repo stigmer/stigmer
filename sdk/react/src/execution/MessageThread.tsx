@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useMemo } from "react";
+import { lazy, memo, Suspense, useCallback, useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -27,6 +27,12 @@ import { SandboxContext, type SandboxContextValue } from "./SandboxContext";
 import { useRenderTracer, useKeyStability, useDomNodeCount, DevProfiler } from "../internal/dev";
 import { useAutoScroll } from "../internal/useAutoScroll";
 import { JumpToLatestButton } from "../internal/JumpToLatestButton";
+
+const LazyVirtualizedThread = lazy(() =>
+  import("../internal/VirtualizedThread").then((m) => ({
+    default: m.VirtualizedThread,
+  })),
+);
 
 /** Props for {@link MessageThread}. */
 export interface MessageThreadProps {
@@ -96,6 +102,15 @@ export interface MessageThreadProps {
    * the user's own filesystem (no normalization needed).
    */
   readonly sandboxWorkspaceRoot?: string;
+  /**
+   * Enable virtualized rendering for long conversations. Requires
+   * `react-virtuoso` to be installed as a peer dependency. When
+   * enabled, only visible items are rendered in the DOM, improving
+   * performance for threads with 100+ items.
+   *
+   * @default false
+   */
+  readonly virtualized?: boolean;
 }
 
 /**
@@ -103,8 +118,11 @@ export interface MessageThreadProps {
  *
  * Discriminated union keeps the render loop a simple switch with no
  * type narrowing gymnastics.
+ *
+ * @internal Exported for internal use by `VirtualizedThread` — not
+ * part of the public API.
  */
-type ThreadItem =
+export type ThreadItem =
   | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean }
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentExecutions: readonly SubAgentExecution[]; readonly key: string }
   | { readonly kind: "sub-agent"; readonly subAgentExecution: SubAgentExecution; readonly key: string }
@@ -330,10 +348,8 @@ export function MessageThread({
   workspaceEntries,
   onFilePathClick,
   sandboxWorkspaceRoot,
+  virtualized = false,
 }: MessageThreadProps) {
-  const { scrollRef, sentinelRef, contentRef, isFollowing, jumpToLatest } =
-    useAutoScroll();
-
   useRenderTracer("MessageThread", { executions, activeStreamExecution });
 
   const includeApprovals = onApprovalSubmit != null;
@@ -343,7 +359,6 @@ export function MessageThread({
   );
 
   useKeyStability(items);
-  useDomNodeCount(scrollRef, "MessageThread");
 
   const filePathCtx = useMemo<FilePathContextValue>(
     () => ({
@@ -357,6 +372,68 @@ export function MessageThread({
     () => ({ sandboxWorkspaceRoot: sandboxWorkspaceRoot ?? "" }),
     [sandboxWorkspaceRoot],
   );
+
+  if (virtualized) {
+    return (
+      <div className={cn("relative min-h-0", className)}>
+        <Suspense fallback={null}>
+          <LazyVirtualizedThread
+            items={items}
+            formatToolCallSummary={formatToolCallSummary}
+            onApprovalSubmit={onApprovalSubmit}
+            submittingApprovalIds={submittingApprovalIds}
+            filePathCtx={filePathCtx}
+            sandboxCtx={sandboxCtx}
+          />
+        </Suspense>
+      </div>
+    );
+  }
+
+  return (
+    <NonVirtualizedThread
+      items={items}
+      className={className}
+      formatToolCallSummary={formatToolCallSummary}
+      onApprovalSubmit={onApprovalSubmit}
+      submittingApprovalIds={submittingApprovalIds}
+      filePathCtx={filePathCtx}
+      sandboxCtx={sandboxCtx}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// NonVirtualizedThread — original scroll-container rendering path
+// ---------------------------------------------------------------------------
+
+interface NonVirtualizedThreadProps {
+  readonly items: readonly ThreadItem[];
+  readonly className?: string;
+  readonly formatToolCallSummary?: (toolCalls: readonly ToolCall[]) => string;
+  readonly onApprovalSubmit?: (
+    toolCallId: string,
+    action: ApprovalAction,
+    comment?: string,
+  ) => void;
+  readonly submittingApprovalIds?: ReadonlySet<string>;
+  readonly filePathCtx: FilePathContextValue;
+  readonly sandboxCtx: SandboxContextValue;
+}
+
+function NonVirtualizedThread({
+  items,
+  className,
+  formatToolCallSummary,
+  onApprovalSubmit,
+  submittingApprovalIds,
+  filePathCtx,
+  sandboxCtx,
+}: NonVirtualizedThreadProps) {
+  const { scrollRef, sentinelRef, contentRef, isFollowing, jumpToLatest } =
+    useAutoScroll();
+
+  useDomNodeCount(scrollRef, "MessageThread");
 
   return (
     <div className={cn("relative min-h-0", className)}>
@@ -377,59 +454,15 @@ export function MessageThread({
         <FilePathContext.Provider value={filePathCtx}>
         <DevProfiler id="MessageThread">
           <div ref={contentRef} className="flex flex-col gap-4">
-            {items.map((item) => {
-              switch (item.kind) {
-                case "message":
-                  return (
-                    <MessageEntry
-                      key={item.key}
-                      message={item.message}
-                      className={item.isPending ? "opacity-70" : undefined}
-                    />
-                  );
-                case "tool-group":
-                  return (
-                    <ToolCallGroup
-                      key={item.key}
-                      toolCalls={item.toolCalls}
-                      subAgentExecutions={item.subAgentExecutions}
-                      formatSummary={formatToolCallSummary}
-                      className="mx-4"
-                    />
-                  );
-                case "sub-agent":
-                  return (
-                    <SubAgentSection
-                      key={item.key}
-                      subAgentExecution={item.subAgentExecution}
-                      className="mx-4"
-                    />
-                  );
-                case "phase-badge":
-                  return (
-                    <div key={item.key} className="flex justify-center py-3">
-                      <ExecutionPhaseBadge phase={item.phase} />
-                    </div>
-                  );
-                case "approval-request":
-                  return (
-                    <ApprovalCardRow
-                      key={item.key}
-                      pendingApproval={item.pendingApproval}
-                      onApprovalSubmit={onApprovalSubmit!}
-                      isSubmitting={submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false}
-                    />
-                  );
-                case "setup-progress":
-                  return (
-                    <SetupProgress
-                      key={item.key}
-                      workspaceEntries={item.workspaceEntries}
-                      serverPhase={item.serverPhase}
-                    />
-                  );
-              }
-            })}
+            {items.map((item) => (
+              <ThreadItemRenderer
+                key={item.key}
+                item={item}
+                formatToolCallSummary={formatToolCallSummary}
+                onApprovalSubmit={onApprovalSubmit}
+                submittingApprovalIds={submittingApprovalIds}
+              />
+            ))}
           </div>
         </DevProfiler>
         </FilePathContext.Provider>
@@ -439,6 +472,92 @@ export function MessageThread({
       {!isFollowing && <JumpToLatestButton onClick={jumpToLatest} />}
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// ThreadItemRenderer — renders a single ThreadItem by kind
+// ---------------------------------------------------------------------------
+
+/**
+ * Props for {@link ThreadItemRenderer}.
+ *
+ * @internal Exported for internal use by `VirtualizedThread` — not
+ * part of the public API.
+ */
+export interface ThreadItemRendererProps {
+  readonly item: ThreadItem;
+  readonly formatToolCallSummary?: (toolCalls: readonly ToolCall[]) => string;
+  readonly onApprovalSubmit?: (
+    toolCallId: string,
+    action: ApprovalAction,
+    comment?: string,
+  ) => void;
+  readonly submittingApprovalIds?: ReadonlySet<string>;
+}
+
+/**
+ * Renders a single thread item by discriminated `kind`. Used by both
+ * the non-virtualized `items.map()` path and the virtualized
+ * `Virtuoso.itemContent` callback.
+ *
+ * Does not receive a `key` prop — the caller is responsible for
+ * keying (either via `items.map` or `computeItemKey`).
+ *
+ * @internal Exported for internal use by `VirtualizedThread` — not
+ * part of the public API.
+ */
+export function ThreadItemRenderer({
+  item,
+  formatToolCallSummary,
+  onApprovalSubmit,
+  submittingApprovalIds,
+}: ThreadItemRendererProps) {
+  switch (item.kind) {
+    case "message":
+      return (
+        <MessageEntry
+          message={item.message}
+          className={item.isPending ? "opacity-70" : undefined}
+        />
+      );
+    case "tool-group":
+      return (
+        <ToolCallGroup
+          toolCalls={item.toolCalls}
+          subAgentExecutions={item.subAgentExecutions}
+          formatSummary={formatToolCallSummary}
+          className="mx-4"
+        />
+      );
+    case "sub-agent":
+      return (
+        <SubAgentSection
+          subAgentExecution={item.subAgentExecution}
+          className="mx-4"
+        />
+      );
+    case "phase-badge":
+      return (
+        <div className="flex justify-center py-3">
+          <ExecutionPhaseBadge phase={item.phase} />
+        </div>
+      );
+    case "approval-request":
+      return (
+        <ApprovalCardRow
+          pendingApproval={item.pendingApproval}
+          onApprovalSubmit={onApprovalSubmit!}
+          isSubmitting={submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false}
+        />
+      );
+    case "setup-progress":
+      return (
+        <SetupProgress
+          workspaceEntries={item.workspaceEntries}
+          serverPhase={item.serverPhase}
+        />
+      );
+  }
 }
 
 // ---------------------------------------------------------------------------
