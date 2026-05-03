@@ -78,6 +78,23 @@ session, err := client.Session.Create(ctx, &sessionv1.CreateInput{
 If you don't specify an `agentInstanceId`, Stigmer uses the default Agent — the
 same `assistant` from the [Quickstart](/docs/getting-started/quickstart).
 
+## Harness
+
+Every Session runs on a [Harness](/docs/concepts/harnesses) — the execution
+engine that processes the Agent's turns. Stigmer supports two: **Native** (the
+default) and **Cursor** (for Cursor SDK-powered execution with access to
+Cursor-specific models and coding tools).
+
+You set the Harness when creating a Session. Once the first execution runs, the
+Harness is locked for that Session.
+
+```yaml
+spec:
+  harness: HARNESS_CURSOR
+```
+
+See [Harnesses](/docs/concepts/harnesses) for a full comparison.
+
 ## Session-level overrides
 
 Sessions can customize an Agent's behavior for a specific conversation without

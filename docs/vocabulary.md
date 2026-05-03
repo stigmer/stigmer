@@ -62,6 +62,7 @@ definitions, API names, and examples follow below.
 | **Session**       | conversation          | Session ("conversation")         | Session             | Session, `kind: Session`               | Session        |
 | **Runner**        | compute               | runner ("where your Agent runs") | Runner              | Runner, `kind: Runner`                 | runner         |
 | **Workflow**      | multi-step automation | Workflow                         | Workflow            | Workflow, `kind: Workflow`             | Workflow       |
+| **Harness**       | execution engine      | harness ("execution engine")     | Harness             | Harness, `SessionSpec.harness`         | harness        |
 | **Approval flow** | approval flow         | approval flow                    | approval flow, HITL | `ToolApprovalPolicy`, `submitApproval` | HITL, approval |
 | **Organization**  | Organization          | Organization                     | Organization        | Organization, `kind: organization`     | Organization   |
 | **Project**       | Project               | Project                          | Project             | Project, `kind: project`               | Project        |
@@ -283,6 +284,47 @@ A process that connects to Stigmer and executes your Agents.
 
 ---
 
+#### Harness
+
+The execution engine that processes agent activities for a Session.
+
+- **User-facing alternative**: "execution engine" on the sales site and in
+  introductory copy. Once the reader knows what a Harness is, use the canonical
+  name.
+- **Capitalize**: Yes, when referring to the Stigmer concept.
+- **API surface**: `SessionSpec.harness`, enum `Harness` (values: `NATIVE`,
+  `CURSOR`). proto: `session/v1/spec.proto`.
+- **Two values**:
+  1. **Native** --- Stigmer's built-in engine. Default for all Sessions. Full
+     control over model selection from all supported providers. Deep integration
+     with Stigmer's checkpoint, pause/resume, and sandbox features.
+  2. **Cursor** --- Uses the Cursor SDK as the execution engine. Access to
+     Cursor-specific models and tooling. Ideal for developer-facing agents that
+     need code-level capabilities.
+- **Immutability**: A Session's Harness cannot change after the first execution
+  runs. It determines which models are available and which runtime processes the
+  agent's turns.
+- **Related terms**: Sessions bind to a Harness via `SessionSpec.harness`.
+  Runners host workers for each Harness type on separate task queues.
+
+**Good examples**:
+
+| Context    | Copy                                                                                                                                                        |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Choose an execution engine that fits your workload---Stigmer's built-in engine or Cursor for coding-focused capabilities."                                 |
+| Quickstart | "Pick a harness---the execution engine that powers your Agent's Session."                                                                                   |
+| Concepts   | "A Harness determines which runtime processes your Agent's turns. Stigmer supports two: Native and Cursor."                                                 |
+| Reference  | "`Harness`---enum on `SessionSpec`. `HARNESS_NATIVE` for the built-in engine, `HARNESS_CURSOR` for the Cursor SDK engine. Immutable after first execution." |
+
+**Bad examples**:
+
+| Context    | Copy                                                    | Problem                                                            |
+| ---------- | ------------------------------------------------------- | ------------------------------------------------------------------ |
+| Sales site | "Configure the SessionSpec.harness field."              | API-level detail in a business context.                            |
+| Quickstart | "The Cursor harness uses a TypeScript Temporal worker." | Internal architecture. The quickstart should say "pick a harness." |
+
+---
+
 #### Workflow
 
 A step-by-step automation that runs tasks in a defined order.
@@ -501,6 +543,22 @@ covers PlatformClient setup. In concepts and how-to, capitalize as
 
 ---
 
+#### Cursor harness
+
+The Cursor SDK-backed Harness that uses Cursor's agent runtime as the execution
+engine.
+
+- **Capitalize**: No special capitalization beyond "Cursor" (the product name).
+  Write "Cursor harness" in lowercase "h" in prose.
+- **Context rule**: Concepts and reference only. Do not use "Cursor harness" in
+  sales copy---say "Cursor-powered execution" or "Cursor execution engine." In
+  quickstart, refer to it as "the Cursor harness" after the Harness concept has
+  been introduced.
+- **Related terms**: Harness (the parent concept), cursor-runner (the Temporal
+  worker that implements it, architecture only).
+
+---
+
 #### Agent Instance
 
 A deployed copy of an Agent running in a specific Environment with its own
@@ -669,6 +727,22 @@ The Python Temporal worker that executes AI Agent tasks.
 - **Capitalize**: Yes.
 - **Context rule**: Architecture docs only. Customers do not start or configure
   the Agent Runner directly---it is embedded in `stigmer server`.
+
+---
+
+#### cursor-runner
+
+The TypeScript Temporal worker that executes agent activities for the Cursor
+harness via the `@cursor/sdk`.
+
+- **Capitalize**: No. Use lowercase hyphenated form `cursor-runner` in all
+  contexts.
+- **Context rule**: Architecture docs and contributor guides only. Never in
+  customer-facing documentation. Customers interact with the Cursor harness
+  through the Session's `harness` field, not by configuring `cursor-runner`
+  directly.
+- **Related terms**: Harness (user-facing concept), Cursor harness (Tier 2),
+  Agent Runner (the native equivalent).
 
 ---
 
