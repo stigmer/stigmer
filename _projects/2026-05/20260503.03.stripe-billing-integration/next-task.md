@@ -69,17 +69,27 @@ When starting a new session:
 
 **Created**: 2026-05-03 09:55
 **Current Task**: T01 — Phase 1 (Ledger MVP)
-**Status**: Phase 0 Complete — Ready for Phase 1
+**Status**: Phase 1.1 + 1.4 Complete — Collections & Migrations Done
 
 ## Session Progress (2026-05-03)
 
 ### Phase 0 Completed
 - Defined 7 billing proto files in `apis/ai/stigmer/billing/v1/`
-- 5 enums, 20+ messages, 2 services (10 RPCs total)
+- 5 enums, 28 messages, 2 services (10 RPCs total)
 - Added `can_view_billing` / `can_manage_billing` to IamPermission
 - Enhanced model-registry.json with provider cost source metadata (48 models)
 - Generated stubs in both repos (Go, Java, Python, TS, Dart)
 - Created `BillingMicros` Java utility class with 30 unit tests in stigmer-cloud
+
+### Phase 1.1 + 1.4 Completed (Collections & Migrations)
+- Created 4 MongoDB collections via Mongock migrations in stigmer-cloud:
+  - `billing_account` — org_id unique, stripe_customer_id sparse unique
+  - `credit_ledger_entry` — idempotency_key unique, (org_id, created_at desc), (org_id, type)
+  - `credit_grant` — (org_id, priority, expires_at) burn-order, (org_id, remaining_amount_micros)
+  - `billing_policy` — policy_id unique, (harness, cost_tier, active) resolution
+- Seeded 5 initial billing policies (native-economy/standard/premium, cursor-standard/max)
+- Collection names follow platform convention: singular snake_case matching proto message names
+- Deferred: `credit_purchase` (Phase 3), `execution_reservation` (Phase 2)
 
 ### Key Design Decisions
 - BillingAccount is NOT a standard API Resource (authorizes via organization)
@@ -87,20 +97,23 @@ When starting a new session:
 - Markup as int32 basis points (10000 = 1.0x), not doubles
 - Billing domain does NOT import from agentic domain
 - Credit packs simplified to 3 (Starter $10, Growth $50, Team $200) + auto-granted trial
+- Collection names: singular snake_case (billing_account, not billing_accounts)
+- Billing documents stored as proto-JSON (via JsonFormat), not hand-mapped POJOs
 
-## Next Steps (Phase 1 — Ledger MVP)
+## Next Steps (Phase 1.2 — Domain Services)
 
-1. Create MongoDB collections in stigmer-cloud (billing_accounts, credit_ledger_entries, credit_grants, credit_purchases, billing_policies)
-2. Implement Java domain services (BillingAccountService, CreditLedgerService, BillingPolicyService, UsageRatingService)
-3. Implement gRPC handlers for getOrCreateBillingAccount, adjustCredits, getCreditLedger, getBillingAccount
-4. Create Mongock migrations to seed initial billing policies and collections
-5. Write unit tests for ledger operations (append-only invariant, burn order, balance computation)
+1. Implement Java domain services (BillingAccountService, CreditLedgerService, BillingPolicyService, UsageRatingService)
+2. Implement gRPC handlers for getOrCreateBillingAccount, adjustCredits, getCreditLedger, getBillingAccount
+3. Write unit tests for ledger operations (append-only invariant, burn order, balance computation)
 
 ## Context for Resume
 - Proto contracts are stable — all downstream code can build against them
 - The model catalog migration to a proper API service is deferred (separate future task)
 - `BillingMicros` is ready to use for all micro-USD arithmetic in domain services
 - Phase 1 work is entirely in stigmer-cloud (Java domain handlers + MongoDB)
+- Collections and indexes are ready — domain services can be built immediately
+- Billing repos will use MongoTemplate directly (non-API-resource pattern, like OAuthGrantRepo)
+- Proto-JSON serialization (JsonFormat.printer/parser) for document storage
 
 ## Quick Commands
 
