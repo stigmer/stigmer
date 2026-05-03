@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03 09:55
-**Current Task**: T01 — Phase 2 (Execution Enforcement MVP)
-**Status**: Phase 2.5+2.6 Complete — Runner + Workflow Billing Integration
+**Current Task**: T01 — Phase 3 (Stripe Credit Purchases)
+**Status**: Phase 3.1 Complete — Stripe Customer Management
 
 ## Session Progress (2026-05-03)
 
@@ -240,6 +240,33 @@ When starting a new session:
 - Added 5 unit tests for `atomicUsageDebit` in `BillingAccountRepoTest`:
   - Full reserved, full available, split, zero debit rejection, account not found
 
+### Phase 3.1 Completed (Stripe Customer Management)
+- Added Stripe Java SDK v32.1.0 to stigmer-cloud (MODULE.bazel + BUILD.bazel)
+- Created `StripeConfig` (@ConfigurationProperties) and `StripeClientProvider` (@Configuration):
+  - Conditional bean: service boots without Stripe credentials (dev/test)
+  - Modern StripeClient pattern (no global Stripe.apiKey, thread-safe, mockable)
+- Created `StripeCustomerService.ensureStripeCustomer(orgId, billingEmail)`:
+  - Lazy provisioning: Stripe Customer created on first payment interaction, not during getOrCreate
+  - Fast path: returns existing stripe_customer_id without Stripe API call
+  - CAS write: atomicSetStripeCustomerId prevents race conditions
+  - Race recovery: CAS loser reads back winner's customer ID
+  - Metadata: sets `stigmer_org_id` on Stripe Customer for dashboard search
+  - Email: uses requesting user's email (from IdentityAccount)
+- Added `atomicSetStripeCustomerId(orgId, stripeCustomerId)` to `BillingAccountRepo`:
+  - MongoDB findAndModify with guard (stripe_customer_id is null/empty/absent)
+  - Returns Optional.empty() if another request already set the field
+- Added `getByStripeCustomerId(stripeCustomerId)` to `BillingAccountService`:
+  - Reverse lookup for Phase 3.3 webhook handling
+- Added `application.yaml` configuration: `stigmer.stripe.secret-key`, `stigmer.stripe.webhook-secret`
+- Unit tests: 8 tests (StripeCustomerServiceTest) + 3 tests (BillingAccountRepoTest CAS)
+- Registered 2 new Bazel test targets
+
+### Key Design Decisions (Phase 3.1)
+- Lazy creation: Stripe Customer NOT provisioned during getOrCreateBillingAccount — avoids external I/O, Stripe dashboard clutter, and Stripe availability dependency on account lifecycle
+- CAS over save(): atomicSetStripeCustomerId uses findAndModify with $set on a single field — avoids overwriting concurrent balance changes that save() (full document replace) would cause
+- @Autowired(required=false) for StripeClient: StripeCustomerService handles missing bean gracefully with StripeNotConfiguredException
+- Package: `ai.stigmer.domain.billing.stripe` sub-package clearly signals external service integration
+
 ### Phase 2.5+2.6 Completed (Runner + Workflow Billing Integration)
 - Added `orgId` to `InvokeAgentExecutionWorkflowInput` (populated from `execution.metadata.org`)
 - Created `BillingActivities` interface + `BillingActivitiesImpl` in stigmer-cloud:
@@ -315,7 +342,7 @@ When starting a new session:
 
 ## Next Steps (Phase 3 — Stripe Credit Purchases)
 
-1. Create Stripe Customer per org on first billing interaction
+1. ~~Create Stripe Customer per org on first billing interaction~~ ✅
 2. Implement Stripe Checkout integration (CreateCreditCheckoutSession RPC)
 3. Webhook handler for checkout.session.completed → credit provisioning
 4. Billing page UI (React, replace "Coming Soon" placeholder)
@@ -343,11 +370,17 @@ When starting a new session:
 - FinalizeExecution aggregates billing summary from ledger entries (no separate `usage_billing_records` collection — deferred to Phase 5 if dashboard query performance needs it)
 - Finalization has no account status gate — the execution already ran, credits must be released regardless of account state
 - `CreditLedgerEntryRepo.findByOrgIdAndExecutionId()` enables per-execution ledger aggregation using existing `(org_id, type)` index
+- **Phase 3.1**: Stripe Java SDK v32.1.0 added to stigmer-cloud, StripeClient bean is conditional on `stigmer.stripe.secret-key`
+- `StripeCustomerService.ensureStripeCustomer(orgId, billingEmail)` is the entry point for lazy Stripe Customer provisioning
+- `BillingAccountRepo.atomicSetStripeCustomerId()` provides CAS for concurrent-safe stripe_customer_id writes
+- `BillingAccountService.getByStripeCustomerId()` enables webhook reverse-lookup (Phase 3.3)
+- Stripe config: `stigmer.stripe.secret-key` (env: STIGMER_STRIPE_SECRET_KEY), `stigmer.stripe.webhook-secret` (env: STIGMER_STRIPE_WEBHOOK_SECRET)
+- New package: `ai.stigmer.domain.billing.stripe` — StripeConfig, StripeClientProvider, StripeCustomerService
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 3" - Begin Stripe credit purchase integration
+- "Start Phase 3.2" - Begin Stripe Checkout integration
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
