@@ -4,6 +4,7 @@ import grpc
 
 from ai.stigmer.iam.identityaccount.v1 import api_pb2 as ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2
 from ai.stigmer.iam.identityaccount.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2
+from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
 class IdentityAccountCommandControllerStub(object):
@@ -44,6 +45,11 @@ class IdentityAccountCommandControllerStub(object):
         self.deprovisionFederatedAccount = channel.unary_unary(
                 '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/deprovisionFederatedAccount',
                 request_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.DeprovisionFederatedAccountInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
+                _registered_method=True)
+        self.provisionMyAccount = channel.unary_unary(
+                '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/provisionMyAccount',
+                request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
                 _registered_method=True)
 
@@ -132,6 +138,18 @@ class IdentityAccountCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def provisionMyAccount(self, request, context):
+        """Provision the caller's own identity account.
+
+        Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
+        Derives all identity information from the caller's JWT and the OIDC /userinfo
+        endpoint. Creates the IdentityAccount and a personal Organization owned by the
+        caller. Idempotent: returns the existing account on retry.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_IdentityAccountCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -163,6 +181,11 @@ def add_IdentityAccountCommandControllerServicer_to_server(servicer, server):
             'deprovisionFederatedAccount': grpc.unary_unary_rpc_method_handler(
                     servicer.deprovisionFederatedAccount,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.DeprovisionFederatedAccountInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
+            ),
+            'provisionMyAccount': grpc.unary_unary_rpc_method_handler(
+                    servicer.provisionMyAccount,
+                    request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.SerializeToString,
             ),
     }
@@ -328,6 +351,33 @@ class IdentityAccountCommandController(object):
             target,
             '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/deprovisionFederatedAccount',
             ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_io__pb2.DeprovisionFederatedAccountInput.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def provisionMyAccount(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/provisionMyAccount',
+            google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_identityaccount_dot_v1_dot_api__pb2.IdentityAccount.FromString,
             options,
             channel_credentials,
