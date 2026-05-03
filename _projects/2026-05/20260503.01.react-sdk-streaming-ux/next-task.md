@@ -68,9 +68,33 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03
-**Current Task**: T09 (Composer Isolation — NEXT)
-**Status**: T08 complete, ready for T09
+**Current Task**: T10 (Auto-Scroll State Machine — NEXT)
+**Status**: T09 complete, ready for T10
 **Research Report**: `_projects/2026-05/research.react-sdk-streaming-ux-quality/04.report.gpt.md`
+
+## Session Progress (2026-05-03, Session 8)
+
+- Implemented T09: Composer Isolation
+- Challenged original T09 plan — "stabilize all callback props with useCallback" was necessary but NOT sufficient. Discovered three object-typed props (`workspace`, `gitHubConnection`, `sessionVariables`) were new references every render despite unchanged internal values. These hooks returned plain object literals without memoization.
+- Narrowed `handleSubmit` deps from `conv` (entire conversation object, new every frame) to `conv.sendFollowUp` (stable `useCallback` reference) + `sessionVariables.clear`
+- Stabilized `useWorkspaceEntries` return — wrapped in `useMemo`, all callbacks already `useCallback`'d
+- Stabilized `useSessionVariables` return — same pattern, hoisted inline `isEmpty` to local for memo deps
+- Stabilized `useGitHubConnection` return — same pattern, hoisted inline `isConnected` to local
+- Wrapped `SessionComposer` in `React.memo` — no custom comparator needed once all props stable
+- `useRenderTracer` was already present from T02 — provides dev-time verification
+- 13 new tests (5 workspace stability, 6 session variables stability, 2 composer memo structure)
+- Full suite 408/408 pass, typecheck clean, lint clean
+
+### Key Design Decision: Fix at the Source vs. Custom areEqual
+- Could have written a custom `areEqual` comparator for React.memo that deep-compares workspace/sessionVariables/gitHubConnection
+- Rejected: couples the comparator to internal structure of those types, fragile, benefits only this one consumer
+- Chose: stabilize each hook's return value with `useMemo` — principled, benefits ALL consumers, standard React performance practice
+
+### Surprise: handleSubmit Depends on Full `conv` Object
+- `handleSubmit` in `useSessionPageFlow` had `conv` in its `useCallback` dep array
+- `conv` is the return of `useSessionConversation` — a plain object literal, new reference every render
+- The function body only calls `conv.sendFollowUp(...)` — narrowed dep to `conv.sendFollowUp` (which is a stable `useCallback`)
+- Same for `sessionVariables` → `sessionVariables.clear`
 
 ## Session Progress (2026-05-03, Session 7)
 
@@ -227,12 +251,15 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T09**: Composer Isolation — move composer out of stream-rendering path
-2. **T10**: Auto-Scroll State Machine — IntersectionObserver + follow mode
-3. **T11**: Virtualization (react-virtuoso)
+1. **T10**: Auto-Scroll State Machine — IntersectionObserver + follow mode
+2. **T11**: Virtualization (react-virtuoso)
+3. **T12**: Animation & Polish
 
 ## Context for Resume
 
+- **Composer is isolated**: `SessionComposer` wrapped in `React.memo`. Does NOT re-render during streaming. `useRenderTracer` from T02 provides dev-time verification.
+- **Hook returns are stable**: `useWorkspaceEntries`, `useSessionVariables`, `useGitHubConnection` all return memoized objects. Safe as deps in `useEffect`/`useMemo`/`useCallback`.
+- **`handleSubmit` is stable during streaming**: Depends on `conv.sendFollowUp` (stable `useCallback`) not `conv` (new object every frame).
 - **FetchCache is live**: `FetchCacheProvider` wraps `AppShell`; `useSession` and `useSessionExecutions` use `cacheKey` for cross-mount caching. Previously visited sessions render instantly, background refetch for freshness.
 - **Streamdown is live**: `AiMessage` renders via `Streamdown` with `isAnimating={isStreaming}` and `caret="block"`. Block-level memoization and `remend` incomplete-syntax healing are active during streaming.
 - **`react-markdown` still used for static consumers**: `SkillDetailView`, `ArtifactContentRenderer` use `react-markdown` + `REMARK_PLUGINS`. Both dependencies remain in `package.json`.
@@ -240,7 +267,7 @@ When starting a new session:
 - **ConversationStore is the source of truth**: `useExecutionStream` feeds the store directly. `useSessionConversation` shares its store via the `store` option.
 - **Memoization is live**: All leaf thread components wrapped in `React.memo` (T05). Combined with rAF coalescing and Streamdown's block-level memoization, completed rows skip re-render entirely during streaming.
 - **No public API changes**: `UseExecutionStreamReturn` shape is unchanged. `MessageEntry` props unchanged. `FetchCacheProvider` is the only new public export.
-- **startTransition in place**: Thread renders are non-urgent. Foundation for T09 (Composer Isolation).
+- **startTransition in place**: Thread renders are non-urgent.
 - **Instrumentation is live**: `[stgm:perf:stream]` console logs still fire during streaming.
 
 ## Phase Overview (11 Phases)
@@ -254,7 +281,7 @@ When starting a new session:
 | 4 | T06 | Stream Controller State Machine | High | **Done** |
 | 5 | T07 | Streaming Markdown (Streamdown) | High | **Done** |
 | 6 | T08 | Data Fetching / Cache Fix | Very High | **Done** |
-| 7 | T09 | Composer Isolation | High | Pending |
+| 7 | T09 | Composer Isolation | High | **Done** |
 | 8 | T10 | Auto-Scroll State Machine | High | Pending |
 | 9 | T11 | Virtualization (react-virtuoso) | High | Pending |
 | 10 | T12 | Animation & Polish | Medium | Pending |
@@ -262,7 +289,7 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Start T09" - Begin composer isolation
+- "Start T10" - Begin auto-scroll state machine
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

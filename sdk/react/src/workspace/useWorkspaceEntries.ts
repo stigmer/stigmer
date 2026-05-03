@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { WorkspaceEntryInput, WorkspaceSourceInput } from "@stigmer/sdk";
 
 /**
@@ -156,14 +156,19 @@ export function useWorkspaceEntries(): UseWorkspaceEntriesReturn {
     });
   }, [entries]);
 
-  return {
-    entries,
-    addGitRepo,
-    addLocalPath,
-    remove,
-    clear,
-    clearLocal,
-    toInput,
-    hasEntries: entries.length > 0,
-  };
+  const hasEntries = entries.length > 0;
+
+  return useMemo(
+    () => ({
+      entries,
+      addGitRepo,
+      addLocalPath,
+      remove,
+      clear,
+      clearLocal,
+      toInput,
+      hasEntries,
+    }),
+    [entries, addGitRepo, addLocalPath, remove, clear, clearLocal, toInput, hasEntries],
+  );
 }
