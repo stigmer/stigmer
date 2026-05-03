@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.v1;
+
+import "ai/stigmer/billing/v1/billing_account.proto";
+import "ai/stigmer/billing/v1/io.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// BillingQueryController handles read operations for the billing bounded context.
+//
+// All RPCs authorize against the organization resource kind with can_view_billing.
+service BillingQueryController {
+  // Retrieve the billing account for an organization.
+  rpc getBillingAccount(GetBillingAccountInput) returns (BillingAccount) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view billing for this organization";
+  }
+
+  // Retrieve the credit balance breakdown for an organization.
+  rpc getCreditBalance(GetCreditBalanceInput) returns (CreditBalance) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view billing for this organization";
+  }
+
+  // Retrieve paginated credit ledger entries with optional filters.
+  rpc getCreditLedger(GetCreditLedgerInput) returns (CreditLedgerResponse) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view billing for this organization";
+  }
+
+  // Retrieve an aggregated billing usage report for a date range.
+  rpc getBillingUsageReport(GetBillingUsageReportInput) returns (BillingUsageReportResponse) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view billing for this organization";
+  }
+
+  // Retrieve the customer-facing model price list with markup applied.
+  // Returns prices for all models, organized by harness and cost tier.
+  rpc getCustomerModelPricing(GetCustomerModelPricingInput) returns (CustomerModelPricingResponse) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view billing for this organization";
+  }
+}

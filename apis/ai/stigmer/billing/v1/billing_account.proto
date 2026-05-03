@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.v1;
+
+import "ai/stigmer/billing/v1/enum.proto";
+import "google/protobuf/timestamp.proto";
+
+// BillingAccount is the billing aggregate for an organization.
+//
+// Exactly one BillingAccount exists per org, auto-provisioned on first
+// billing interaction. It tracks credit balances, Stripe customer mapping,
+// and auto-recharge configuration.
+//
+// This is not a standard Stigmer API Resource — it has no api_version/kind
+// envelope, no slug, and no blueprint/runtime split. Authorization is scoped
+// to the parent organization via can_view_billing / can_manage_billing.
+message BillingAccount {
+  // Unique identifier for the billing account.
+  string id = 1;
+
+  // Organization that owns this billing account.
+  string org_id = 2;
+
+  // Current lifecycle status.
+  BillingAccountStatus status = 3;
+
+  // Real-time credit balance breakdown.
+  CreditBalance balance = 4;
+
+  // User-configurable automatic recharge settings.
+  AutoRechargeConfig auto_recharge = 5;
+
+  // Stripe Customer ID. Empty until the org's first Stripe interaction.
+  string stripe_customer_id = 6;
+
+  // Maximum negative balance allowed before hard-stopping executions.
+  // Free orgs: 0. Paid orgs: typically 2_000_000 ($2.00). Enterprise: contract-specific.
+  int64 allowed_negative_balance_micros = 7;
+
+  // Balance threshold that triggers low-balance warnings and notifications.
+  int64 low_balance_threshold_micros = 8;
+
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+// CreditBalance provides the real-time breakdown of an org's credit position.
+//
+// Invariant: total_micros = available_micros + reserved_micros
+// Invariant: total_micros = promotional_micros + purchased_micros
+message CreditBalance {
+  // Credits available for new reservations and immediate use.
+  int64 available_micros = 1;
+
+  // Credits held by active execution reservations.
+  int64 reserved_micros = 2;
+
+  // Subset of total from promotional grants (free trial, campaigns).
+  int64 promotional_micros = 3;
+
+  // Subset of total from purchased credits (Stripe payments, auto-recharge).
+  int64 purchased_micros = 4;
+
+  // Total credits (available + reserved).
+  int64 total_micros = 5;
+}
+
+// AutoRechargeConfig controls automatic credit top-up behavior.
+//
+// When enabled, the billing system triggers a charge against the saved
+// payment method whenever the available balance drops below threshold_micros.
+message AutoRechargeConfig {
+  // Whether auto-recharge is enabled.
+  bool enabled = 1;
+
+  // Trigger recharge when available balance drops below this amount.
+  int64 threshold_micros = 2;
+
+  // Amount to charge per recharge event.
+  int64 recharge_amount_micros = 3;
+
+  // Maximum total auto-recharge spend per calendar month.
+  // Prevents runaway charges from aggressive usage patterns.
+  int64 monthly_cap_micros = 4;
+
+  // Running total of auto-recharge charges in the current month.
+  // Reset to 0 at the start of each calendar month.
+  int64 current_month_charged_micros = 5;
+
+  // Stripe PaymentMethod ID for off-session charges. Empty until configured.
+  string default_payment_method_id = 6;
+}

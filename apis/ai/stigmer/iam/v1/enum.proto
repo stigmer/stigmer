@@ -62,6 +62,10 @@ enum IamPermission {
   // Platform-level permission to delete sessions.
   // Session deletion is restricted to operators to preserve billing audit trail.
   can_delete_session = 26;
+
+  // Billing permissions (org-scoped).
+  can_view_billing = 27;
+  can_manage_billing = 28;
 }
 
 // IamRole defines the roles that can be assigned to principals on resources

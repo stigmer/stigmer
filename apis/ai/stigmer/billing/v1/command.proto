@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.v1;
+
+import "ai/stigmer/billing/v1/billing_account.proto";
+import "ai/stigmer/billing/v1/credit.proto";
+import "ai/stigmer/billing/v1/io.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// BillingCommandController handles write operations for the billing bounded context.
+//
+// Billing is not a standard API Resource — there is no api_resource_kind annotation.
+// RPCs authorize against the organization resource kind.
+//
+// Phase 0-2 RPCs are defined here. Stripe checkout (Phase 3),
+// auto-recharge configuration (Phase 4), and other write operations
+// are added in their respective phases.
+service BillingCommandController {
+  // Provision or retrieve the billing account for an organization.
+  // Idempotent: creates the account on first call, returns existing on subsequent calls.
+  //
+  // @internal
+  // Called during org creation or first billing interaction.
+  // Initializes balance to zero with default thresholds.
+  rpc getOrCreateBillingAccount(GetOrCreateBillingAccountInput) returns (BillingAccount) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage billing for this organization";
+  }
+
+  // Manually adjust an org's credit balance.
+  // Produces an immutable ledger entry for audit. Requires admin privileges.
+  rpc adjustCredits(AdjustCreditsInput) returns (CreditLedgerEntry) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to adjust credits for this organization";
+  }
+
+  // Reserve credits before starting an agent execution.
+  // Returns authorization status and reservation details.
+  //
+  // @internal
+  // Called by the Temporal workflow before dispatching to the agent runner.
+  // The runner must not start if authorized is false.
+  rpc authorizeExecution(AuthorizeExecutionInput) returns (AuthorizeExecutionResponse) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Report a single LLM call's usage for billing.
+  // Applies the billing policy, debits credits, and returns a signal.
+  //
+  // @internal
+  // Called by the agent runner after each LLM call completes.
+  // Deduplicated by (execution_id, sequence).
+  rpc reportLlmCallUsage(ReportLlmCallUsageInput) returns (ReportLlmCallUsageResponse) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Settle billing for a completed execution.
+  // Releases unused reservation credits and produces the final billing record.
+  //
+  // @internal
+  // Called by the Temporal workflow after the agent runner completes.
+  rpc finalizeExecution(FinalizeExecutionInput) returns (FinalizeExecutionResponse) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+}
