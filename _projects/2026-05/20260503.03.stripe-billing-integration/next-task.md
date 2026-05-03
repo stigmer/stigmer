@@ -69,7 +69,7 @@ When starting a new session:
 
 **Created**: 2026-05-03 09:55
 **Current Task**: T01 — Phase 1 (Ledger MVP)
-**Status**: Phase 1.1 + 1.4 Complete — Collections & Migrations Done
+**Status**: Phase 1.2 + 1.3 Complete — Domain Services, Repos, Handlers Done
 
 ## Session Progress (2026-05-03)
 
@@ -100,20 +100,54 @@ When starting a new session:
 - Collection names: singular snake_case (billing_account, not billing_accounts)
 - Billing documents stored as proto-JSON (via JsonFormat), not hand-mapped POJOs
 
-## Next Steps (Phase 1.2 — Domain Services)
+### Phase 1.2 + 1.3 Completed (Domain Services, Repos, Handlers)
+- Created 4 proto-JSON MongoDB repositories in `ai.stigmer.domain.billing.repo`:
+  - `BillingPolicyRepo` — read-only policy resolution by (harness, cost_tier, active)
+  - `BillingAccountRepo` — getOrCreate (idempotent with DuplicateKeyException), atomicBalanceAdjust via $inc, atomicBalanceUpdate for mixed promotional/purchased debits
+  - `CreditLedgerEntryRepo` — append-only insert with idempotency_key dedup, paginated query with type/time filters
+  - `CreditGrantRepo` — insert, findActive sorted by burn order, decrementRemaining with atomic guard
+- Created 4 domain services in `ai.stigmer.domain.billing.service`:
+  - `BillingPolicyService` — resolvePolicy(harness, costTier), custom BillingPolicyNotFoundException
+  - `UsageRatingService` — rate(providerCost, harness, costTier, model) with markup + minimum charge floor
+  - `BillingAccountService` — getOrCreate, get, getBalance with BillingAccountNotFoundException
+  - `CreditLedgerService` — adjustCredits (admin), debitCredits (burn-order algorithm), getLedger, DebitResult/LedgerPage records
+- Created gRPC auto-controller + 5 handlers in `ai.stigmer.domain.billing.request`:
+  - `BillingGrpcAutoController` — wires BillingCommandControllerGrpc + BillingQueryControllerGrpc
+  - `GetOrCreateBillingAccountHandler` — idempotent account provisioning
+  - `GetBillingAccountHandler` — retrieve account with balance
+  - `GetCreditBalanceHandler` — balance breakdown only
+  - `AdjustCreditsHandler` — admin credit adjustment with idempotency
+  - `GetCreditLedgerHandler` — paginated ledger query with filters
+- Created 4 unit test files (Mockito, JUnit 5):
+  - `BillingPolicyServiceTest` — policy resolution, missing policy
+  - `UsageRatingServiceTest` — all 5 markup tiers, minimum charge floor, edge cases
+  - `BillingAccountServiceTest` — getOrCreate, get, getBalance, not-found
+  - `CreditLedgerServiceTest` — append-only invariant, burn order (promotional first, split across grants, concurrent skip), idempotency dedup, billing signals (continue/warning/stop), negative balance enforcement
+- Int64 proto-JSON fix: repos post-process Documents to convert int64 strings to BSON longs for $inc and numeric query support
+- Burn order algorithm implemented and tested but NOT wired to runtime (Phase 2)
 
-1. Implement Java domain services (BillingAccountService, CreditLedgerService, BillingPolicyService, UsageRatingService)
-2. Implement gRPC handlers for getOrCreateBillingAccount, adjustCredits, getCreditLedger, getBillingAccount
-3. Write unit tests for ledger operations (append-only invariant, burn order, balance computation)
+## Next Steps (Phase 2 — Execution Enforcement MVP)
+
+1. Create `execution_reservation` collection + migration
+2. Implement AuthorizeExecutionHandler — check balance, create reservation
+3. Implement ReportLlmCallUsageHandler — rate usage, debit via burn order, return billing signal
+4. Implement FinalizeExecutionHandler — release unused reservation, produce billing record
+5. Integrate with agent-runner UsageTracker (Python) — billing reporting hook
+6. Integrate with Temporal workflow — authorize before dispatch, finalize after completion
+7. Add MongoTransactionManager for atomic multi-document debit path
 
 ## Context for Resume
 - Proto contracts are stable — all downstream code can build against them
-- The model catalog migration to a proper API service is deferred (separate future task)
-- `BillingMicros` is ready to use for all micro-USD arithmetic in domain services
+- All Phase 1 domain services, repos, and handlers are implemented and unit-tested
+- `BillingMicros` handles all micro-USD arithmetic
 - Phase 1 work is entirely in stigmer-cloud (Java domain handlers + MongoDB)
-- Collections and indexes are ready — domain services can be built immediately
-- Billing repos will use MongoTemplate directly (non-API-resource pattern, like OAuthGrantRepo)
-- Proto-JSON serialization (JsonFormat.printer/parser) for document storage
+- Repos use proto-JSON (JsonFormat) with int64 post-processing for BSON numeric types
+- Billing repos use MongoTemplate directly (non-API-resource pattern)
+- BillingAccount balance is the source of truth, maintained via atomic $inc
+- CreditLedgerService.debitCredits() is ready for Phase 2 wiring (burn order tested)
+- No MongoDB transactions yet — Phase 2 will need MongoTransactionManager for the debit path
+- 5 gRPC RPCs are handler-wired: getOrCreateBillingAccount, adjustCredits, getBillingAccount, getCreditBalance, getCreditLedger
+- 5 RPCs deferred: authorizeExecution, reportLlmCallUsage, finalizeExecution (Phase 2), getBillingUsageReport, getCustomerModelPricing (Phase 5)
 
 ## Quick Commands
 
