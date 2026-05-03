@@ -173,6 +173,18 @@ public enum IamPermission
    * <code>can_delete_session = 26;</code>
    */
   can_delete_session(26),
+  /**
+   * <pre>
+   * Billing permissions (org-scoped).
+   * </pre>
+   *
+   * <code>can_view_billing = 27;</code>
+   */
+  can_view_billing(27),
+  /**
+   * <code>can_manage_billing = 28;</code>
+   */
+  can_manage_billing(28),
   UNRECOGNIZED(-1),
   ;
 
@@ -334,6 +346,18 @@ public enum IamPermission
    * <code>can_delete_session = 26;</code>
    */
   public static final int can_delete_session_VALUE = 26;
+  /**
+   * <pre>
+   * Billing permissions (org-scoped).
+   * </pre>
+   *
+   * <code>can_view_billing = 27;</code>
+   */
+  public static final int can_view_billing_VALUE = 27;
+  /**
+   * <code>can_manage_billing = 28;</code>
+   */
+  public static final int can_manage_billing_VALUE = 28;
 
 
   public final int getNumber() {
@@ -386,6 +410,8 @@ public enum IamPermission
       case 22: return can_connect;
       case 25: return can_create_runner;
       case 26: return can_delete_session;
+      case 27: return can_view_billing;
+      case 28: return can_manage_billing;
       default: return null;
     }
   }

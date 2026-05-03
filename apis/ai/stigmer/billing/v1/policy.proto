@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// BillingPolicy defines the markup rules for converting provider cost
+// to customer-facing billable amounts.
+//
+// Policies are versioned and immutable once active. To change pricing,
+// create a new policy version — never mutate an active policy.
+// This ensures historical ledger entries always reference the exact
+// policy that was in effect when the charge was computed.
+//
+// Resolution order: model-specific override > org-specific override >
+// harness + cost_tier default policy.
+message BillingPolicy {
+  // Unique versioned identifier (e.g., "native-standard-v1").
+  string policy_id = 1;
+
+  // Execution harness this policy applies to ("native" or "cursor").
+  string harness = 2;
+
+  // Model cost tier this policy applies to ("economy", "standard", "premium").
+  string cost_tier = 3;
+
+  // Markup expressed as basis points (10000 = 1.0x, no markup).
+  // Examples: 13500 = 1.35x, 12500 = 1.25x, 10500 = 1.05x.
+  int32 markup_basis_points = 4;
+
+  // Floor charge in micro-USD. Billable amount is at least this value
+  // even if the raw markup would produce less.
+  int64 minimum_charge_micros = 5;
+
+  // Rounding strategy applied after markup multiplication.
+  string rounding_mode = 6;
+
+  // When this policy version became effective.
+  google.protobuf.Timestamp effective_at = 7;
+
+  // Whether this policy is currently active for new charges.
+  bool active = 8;
+}
+
+// BillingUsageRating captures the result of applying a billing policy
+// to a single provider cost event.
+//
+// Attached to every usage_debit ledger entry and usage billing record
+// for full audit trail of how the customer charge was computed.
+message BillingUsageRating {
+  // Policy that was applied to compute the billable amount.
+  string pricing_policy_id = 1;
+
+  // Raw cost that Stigmer pays the LLM provider, in micro-USD.
+  int64 provider_cost_micros = 2;
+
+  // Amount charged to the customer after markup, in micro-USD.
+  // Computed as: provider_cost_micros * markup_basis_points / 10000,
+  // clamped to minimum_charge_micros, rounded per rounding_mode.
+  int64 billable_amount_micros = 3;
+
+  // Markup that was applied, in basis points.
+  int32 markup_basis_points = 4;
+
+  // Model that incurred the cost.
+  string model = 5;
+
+  // Execution harness ("native" or "cursor").
+  string harness = 6;
+
+  // Model cost tier ("economy", "standard", "premium").
+  string cost_tier = 7;
+}
