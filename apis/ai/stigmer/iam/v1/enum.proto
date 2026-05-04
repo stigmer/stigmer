@@ -66,6 +66,11 @@ enum IamPermission {
   // Billing permissions (org-scoped).
   can_view_billing = 27;
   can_manage_billing = 28;
+
+  // Platform-level permission to update execution usage from the proxy.
+  // Restricted to operators to ensure only the trusted proxy (not a tampered
+  // runner) can write billing-authoritative usage data.
+  can_update_usage = 29;
 }
 
 // IamRole defines the roles that can be assigned to principals on resources

@@ -11,69 +11,35 @@ public interface UsageMetricsOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <pre>
-   * Total input tokens (prompts) consumed across all LLM calls in this context.
-   * Includes all input token types: regular, cache writes, and cache reads.
-   * Accumulated from each on_chat_model_end event's usage_metadata.input_tokens.
-   * </pre>
-   *
    * <code>int32 prompt_tokens = 1 [json_name = "promptTokens"];</code>
    * @return The promptTokens.
    */
   int getPromptTokens();
 
   /**
-   * <pre>
-   * Total output tokens (completions) generated across all LLM calls in this context.
-   * Accumulated from each on_chat_model_end event's usage_metadata.output_tokens.
-   * </pre>
-   *
    * <code>int32 completion_tokens = 2 [json_name = "completionTokens"];</code>
    * @return The completionTokens.
    */
   int getCompletionTokens();
 
   /**
-   * <pre>
-   * Total tokens (prompt + completion). Convenience field for quick reference.
-   * Equals: prompt_tokens + completion_tokens
-   * </pre>
-   *
    * <code>int32 total_tokens = 3 [json_name = "totalTokens"];</code>
    * @return The totalTokens.
    */
   int getTotalTokens();
 
   /**
-   * <pre>
-   * Number of LLM API calls made in this context.
-   * Incremented for each on_chat_model_end event.
-   * Useful for: average tokens per call, call frequency analysis.
-   * </pre>
-   *
    * <code>int32 llm_call_count = 4 [json_name = "llmCallCount"];</code>
    * @return The llmCallCount.
    */
   int getLlmCallCount();
 
   /**
-   * <pre>
-   * Primary model used for this execution.
-   * Typically matches ExecutionConfig.model_name or the first model detected.
-   * Examples: "claude-sonnet-4-20250514", "gpt-4o", "gemini-1.5-pro"
-   * </pre>
-   *
    * <code>string primary_model = 5 [json_name = "primaryModel"];</code>
    * @return The primaryModel.
    */
   java.lang.String getPrimaryModel();
   /**
-   * <pre>
-   * Primary model used for this execution.
-   * Typically matches ExecutionConfig.model_name or the first model detected.
-   * Examples: "claude-sonnet-4-20250514", "gpt-4o", "gemini-1.5-pro"
-   * </pre>
-   *
    * <code>string primary_model = 5 [json_name = "primaryModel"];</code>
    * @return The bytes for primaryModel.
    */
@@ -81,257 +47,107 @@ public interface UsageMetricsOrBuilder extends
       getPrimaryModelBytes();
 
   /**
-   * <pre>
-   * Tokens written to provider prompt cache across all LLM calls.
-   * Anthropic: cache_creation_input_tokens (billed at 1.25x input rate)
-   * OpenAI: N/A (caching is automatic, no separate write metric)
-   * Zero if prompt caching is not active or not supported by provider.
-   * </pre>
-   *
    * <code>int32 cache_creation_tokens = 6 [json_name = "cacheCreationTokens"];</code>
    * @return The cacheCreationTokens.
    */
   int getCacheCreationTokens();
 
   /**
-   * <pre>
-   * Tokens read from provider prompt cache (cache hits) across all LLM calls.
-   * Anthropic: cache_read_input_tokens (billed at 0.1x input rate)
-   * OpenAI: prompt_tokens_details.cached_tokens (billed at 0.5x input rate)
-   * Zero if no cache hits occurred.
-   * </pre>
-   *
    * <code>int32 cache_read_tokens = 7 [json_name = "cacheReadTokens"];</code>
    * @return The cacheReadTokens.
    */
   int getCacheReadTokens();
 
   /**
-   * <pre>
-   * Breakdown of token usage and cost per model.
-   * Each entry aggregates all LLM calls for a specific model within this context.
-   * Used for cost reports: "claude-sonnet-4 used 50K input tokens = $0.15."
-   * </pre>
-   *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ModelUsage model_breakdown = 8 [json_name = "modelBreakdown"];</code>
    */
   java.util.List<ai.stigmer.agentic.agentexecution.v1.ModelUsage> 
       getModelBreakdownList();
   /**
-   * <pre>
-   * Breakdown of token usage and cost per model.
-   * Each entry aggregates all LLM calls for a specific model within this context.
-   * Used for cost reports: "claude-sonnet-4 used 50K input tokens = $0.15."
-   * </pre>
-   *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ModelUsage model_breakdown = 8 [json_name = "modelBreakdown"];</code>
    */
   ai.stigmer.agentic.agentexecution.v1.ModelUsage getModelBreakdown(int index);
   /**
-   * <pre>
-   * Breakdown of token usage and cost per model.
-   * Each entry aggregates all LLM calls for a specific model within this context.
-   * Used for cost reports: "claude-sonnet-4 used 50K input tokens = $0.15."
-   * </pre>
-   *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ModelUsage model_breakdown = 8 [json_name = "modelBreakdown"];</code>
    */
   int getModelBreakdownCount();
   /**
-   * <pre>
-   * Breakdown of token usage and cost per model.
-   * Each entry aggregates all LLM calls for a specific model within this context.
-   * Used for cost reports: "claude-sonnet-4 used 50K input tokens = $0.15."
-   * </pre>
-   *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ModelUsage model_breakdown = 8 [json_name = "modelBreakdown"];</code>
    */
   java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.ModelUsageOrBuilder> 
       getModelBreakdownOrBuilderList();
   /**
-   * <pre>
-   * Breakdown of token usage and cost per model.
-   * Each entry aggregates all LLM calls for a specific model within this context.
-   * Used for cost reports: "claude-sonnet-4 used 50K input tokens = $0.15."
-   * </pre>
-   *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ModelUsage model_breakdown = 8 [json_name = "modelBreakdown"];</code>
    */
   ai.stigmer.agentic.agentexecution.v1.ModelUsageOrBuilder getModelBreakdownOrBuilder(
       int index);
 
   /**
-   * <pre>
-   * Total estimated cost in USD for this execution context.
-   * Computed at execution time using the pricing rates stamped on each ModelUsage.
-   * Equals: sum(model_breakdown[].estimated_cost_usd)
-   *
-   * Captured at write time because pricing changes over time — storing the
-   * computed cost makes historical data self-contained and accurate without
-   * needing a pricing history table.
-   * </pre>
-   *
    * <code>double estimated_cost_usd = 9 [json_name = "estimatedCostUsd"];</code>
    * @return The estimatedCostUsd.
    */
   double getEstimatedCostUsd();
 
   /**
-   * <pre>
-   * Total characters truncated from tool results during this execution.
-   * Non-zero indicates the agent received tool outputs that exceeded the
-   * configured max_tool_result_chars limit.
-   * Useful for: tuning truncation limits, identifying verbose tools.
-   * </pre>
-   *
    * <code>int64 tool_result_chars_truncated = 10 [json_name = "toolResultCharsTruncated"];</code>
    * @return The toolResultCharsTruncated.
    */
   long getToolResultCharsTruncated();
 
   /**
-   * <pre>
-   * Per-call breakdown of every LLM API call in this context.
-   * Ordered chronologically (call 1, call 2, ...).
-   * Enables debugging expensive calls, tracking token growth across calls,
-   * and verifying cache hit patterns.
-   *
-   * This is the detailed view — model_breakdown is the per-model aggregate.
-   * Both are populated: model_breakdown for reports, llm_calls for debugging.
-   * </pre>
-   *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
    */
   java.util.List<ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics> 
       getLlmCallsList();
   /**
-   * <pre>
-   * Per-call breakdown of every LLM API call in this context.
-   * Ordered chronologically (call 1, call 2, ...).
-   * Enables debugging expensive calls, tracking token growth across calls,
-   * and verifying cache hit patterns.
-   *
-   * This is the detailed view — model_breakdown is the per-model aggregate.
-   * Both are populated: model_breakdown for reports, llm_calls for debugging.
-   * </pre>
-   *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
    */
   ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics getLlmCalls(int index);
   /**
-   * <pre>
-   * Per-call breakdown of every LLM API call in this context.
-   * Ordered chronologically (call 1, call 2, ...).
-   * Enables debugging expensive calls, tracking token growth across calls,
-   * and verifying cache hit patterns.
-   *
-   * This is the detailed view — model_breakdown is the per-model aggregate.
-   * Both are populated: model_breakdown for reports, llm_calls for debugging.
-   * </pre>
-   *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
    */
   int getLlmCallsCount();
   /**
-   * <pre>
-   * Per-call breakdown of every LLM API call in this context.
-   * Ordered chronologically (call 1, call 2, ...).
-   * Enables debugging expensive calls, tracking token growth across calls,
-   * and verifying cache hit patterns.
-   *
-   * This is the detailed view — model_breakdown is the per-model aggregate.
-   * Both are populated: model_breakdown for reports, llm_calls for debugging.
-   * </pre>
-   *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
    */
   java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder> 
       getLlmCallsOrBuilderList();
   /**
-   * <pre>
-   * Per-call breakdown of every LLM API call in this context.
-   * Ordered chronologically (call 1, call 2, ...).
-   * Enables debugging expensive calls, tracking token growth across calls,
-   * and verifying cache hit patterns.
-   *
-   * This is the detailed view — model_breakdown is the per-model aggregate.
-   * Both are populated: model_breakdown for reports, llm_calls for debugging.
-   * </pre>
-   *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
    */
   ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder getLlmCallsOrBuilder(
       int index);
 
   /**
-   * <pre>
-   * Total wall-clock duration of the execution in milliseconds.
-   * Convenience field equivalent to (completed_at - started_at).
-   * Includes all time: LLM calls, tool execution, approval waits, overhead.
-   * </pre>
-   *
    * <code>int32 total_duration_ms = 12 [json_name = "totalDurationMs"];</code>
    * @return The totalDurationMs.
    */
   int getTotalDurationMs();
 
   /**
-   * <pre>
-   * Time spent waiting for LLM responses in milliseconds.
-   * Sum of all LLM call durations (llm_calls[].duration_ms).
-   * Directly correlates with token generation cost.
-   * </pre>
-   *
    * <code>int32 llm_duration_ms = 13 [json_name = "llmDurationMs"];</code>
    * @return The llmDurationMs.
    */
   int getLlmDurationMs();
 
   /**
-   * <pre>
-   * Time spent executing tools in milliseconds.
-   * Sum of all tool execution durations (tool start to tool complete).
-   * Represents compute resource usage in the sandbox.
-   * </pre>
-   *
    * <code>int32 tool_duration_ms = 14 [json_name = "toolDurationMs"];</code>
    * @return The toolDurationMs.
    */
   int getToolDurationMs();
 
   /**
-   * <pre>
-   * Time spent waiting for user approval in milliseconds.
-   * Sum of all approval wait times (approval_requested_at to approval_decided_at).
-   * This is idle time — no LLM or compute resources consumed.
-   * Useful for excluding from "active execution cost" calculations.
-   * </pre>
-   *
    * <code>int32 approval_wait_duration_ms = 15 [json_name = "approvalWaitDurationMs"];</code>
    * @return The approvalWaitDurationMs.
    */
   int getApprovalWaitDurationMs();
 
   /**
-   * <pre>
-   * Provider that served the primary model.
-   * Examples: "anthropic", "openai", "google", "ollama", "aws-bedrock"
-   * Matches the provider field in model_breakdown for the primary model.
-   * Useful for quick display without diving into model_breakdown.
-   * </pre>
-   *
    * <code>string primary_provider = 16 [json_name = "primaryProvider"];</code>
    * @return The primaryProvider.
    */
   java.lang.String getPrimaryProvider();
   /**
-   * <pre>
-   * Provider that served the primary model.
-   * Examples: "anthropic", "openai", "google", "ollama", "aws-bedrock"
-   * Matches the provider field in model_breakdown for the primary model.
-   * Useful for quick display without diving into model_breakdown.
-   * </pre>
-   *
    * <code>string primary_provider = 16 [json_name = "primaryProvider"];</code>
    * @return The bytes for primaryProvider.
    */

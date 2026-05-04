@@ -27,6 +27,8 @@ import ai.stigmer.agentic.agentexecution.v1.ResumeAgentExecutionInput;
 import ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput;
 import ai.stigmer.agentic.agentexecution.v1.TerminateAgentExecutionInput;
 import ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse;
+import ai.stigmer.agentic.agentexecution.v1.UpdateUsageInput;
+import ai.stigmer.agentic.agentexecution.v1.UpdateUsageResponse;
 import ai.stigmer.agentic.agentexecution.v1.UploadAttachmentRequest;
 import ai.stigmer.agentic.agentexecution.v1.UploadAttachmentResponse;
 import ai.stigmer.commons.apiresource.ApiResourceId;
@@ -58,6 +60,12 @@ public final class AgentExecutionClient {
     public UpdateStatusResponse updateStatus(AgentExecutionUpdateStatusInput input) {
         try {
             return command.updateStatus(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public UpdateUsageResponse updateUsage(UpdateUsageInput input) {
+        try {
+            return command.updateUsage(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

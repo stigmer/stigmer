@@ -868,4 +868,64 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    */
   com.google.protobuf.ByteString
       getRunnerIdBytes();
+
+  /**
+   * <pre>
+   * Aggregated usage and cost for this execution, derived from billing-authoritative
+   * per-call records. Updated incrementally as LLM calls complete.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate usage_summary = 20 [json_name = "usageSummary"];</code>
+   * @return Whether the usageSummary field is set.
+   */
+  boolean hasUsageSummary();
+  /**
+   * <pre>
+   * Aggregated usage and cost for this execution, derived from billing-authoritative
+   * per-call records. Updated incrementally as LLM calls complete.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate usage_summary = 20 [json_name = "usageSummary"];</code>
+   * @return The usageSummary.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate getUsageSummary();
+  /**
+   * <pre>
+   * Aggregated usage and cost for this execution, derived from billing-authoritative
+   * per-call records. Updated incrementally as LLM calls complete.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate usage_summary = 20 [json_name = "usageSummary"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregateOrBuilder getUsageSummaryOrBuilder();
+
+  /**
+   * <pre>
+   * Runner-reported execution timing and context metrics.
+   * Display-only in cloud mode; never billing-authoritative.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics observability = 21 [json_name = "observability"];</code>
+   * @return Whether the observability field is set.
+   */
+  boolean hasObservability();
+  /**
+   * <pre>
+   * Runner-reported execution timing and context metrics.
+   * Display-only in cloud mode; never billing-authoritative.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics observability = 21 [json_name = "observability"];</code>
+   * @return The observability.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics getObservability();
+  /**
+   * <pre>
+   * Runner-reported execution timing and context metrics.
+   * Display-only in cloud mode; never billing-authoritative.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics observability = 21 [json_name = "observability"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetricsOrBuilder getObservabilityOrBuilder();
 }

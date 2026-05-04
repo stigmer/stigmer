@@ -32,8 +32,8 @@
       "slug": "billing",
       "title": "billing",
       "description": "",
-      "hooks": 4,
-      "components": 6
+      "hooks": 5,
+      "components": 7
     },
     {
       "slug": "composer",

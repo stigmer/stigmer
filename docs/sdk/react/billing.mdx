@@ -88,44 +88,6 @@ const { openPortal, isLoading } = useCreateBillingPortalSession();
 ```
 
 
-### useSetAutoRechargeConfig
-
-Behavior hook for configuring auto-recharge settings.
-
-Wraps `billing.setAutoRechargeConfig` with loading and error state
-management. Returns the updated `BillingAccount` on success so the
-parent can refresh its cached data.
-
-**Signature**
-
-```tsx
-function useSetAutoRechargeConfig(): UseSetAutoRechargeConfigReturn
-```
-
-**Returns** — `UseSetAutoRechargeConfigReturn`
-
-<TypeTable
-  type={{
-    clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
-    isSubmitting: { type: "boolean", description: "`true` while the configuration is being saved." },
-    setConfig: { type: "(input: SetAutoRechargeConfigInput) => Promise<BillingAccount>", description: "Save auto-recharge configuration. Returns the updated BillingAccount on success." },
-  }}
-/>
-
-```tsx
-const { setConfig, isSubmitting, error } = useSetAutoRechargeConfig();
-
-await setConfig({
-  orgId,
-  enabled: true,
-  thresholdMicros: BigInt(5_000_000),
-  rechargeAmountMicros: BigInt(50_000_000),
-  monthlyCapMicros: BigInt(200_000_000),
-});
-```
-
-
 ### useCreateCheckoutSession
 
 Behavior hook that creates a Stripe Checkout Session for credit
@@ -212,7 +174,78 @@ return ledger.entries.map(entry => <LedgerRow key={entry.entryId} entry={entry} 
 ```
 
 
+### useSetAutoRechargeConfig
+
+Behavior hook for configuring auto-recharge settings.
+
+Wraps `billing.setAutoRechargeConfig` with loading and error state
+management. Returns the updated `BillingAccount` on success so the
+parent can refresh its cached data.
+
+**Signature**
+
+```tsx
+function useSetAutoRechargeConfig(): UseSetAutoRechargeConfigReturn
+```
+
+**Returns** — `UseSetAutoRechargeConfigReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
+    isSubmitting: { type: "boolean", description: "`true` while the configuration is being saved." },
+    setConfig: { type: "(input: SetAutoRechargeConfigInput) => Promise<BillingAccount>", description: "Save auto-recharge configuration. Returns the updated BillingAccount on success." },
+  }}
+/>
+
+```tsx
+const { setConfig, isSubmitting, error } = useSetAutoRechargeConfig();
+
+await setConfig({
+  orgId,
+  enabled: true,
+  thresholdMicros: BigInt(5_000_000),
+  rechargeAmountMicros: BigInt(50_000_000),
+  monthlyCapMicros: BigInt(200_000_000),
+});
+```
+
+
 ## Components
+
+### AutoRechargeCard
+
+Auto-recharge configuration card for the billing settings page.
+
+Shows a toggle to enable/disable auto-recharge, with input fields
+for threshold, recharge amount, and monthly cap. Displays a
+disabled state with an explanatory message when no payment method
+is on file. Validates inputs client-side before submitting.
+
+**Props** — `AutoRechargeCardProps`
+
+<TypeTable
+  type={{
+    accountStatus: { type: "BillingAccountStatus", description: "Account status — config disabled when suspended or closed.", required: true },
+    autoRecharge: { type: "AutoRechargeConfig", description: "Current auto-recharge configuration from the billing account." },
+    className: { type: "string", description: "Additional CSS class names." },
+    hasPaymentMethod: { type: "boolean", description: "Whether the account has a saved payment method.", required: true },
+    onSaved: { type: "() => void", description: "Called after a successful save so the parent can refresh account data." },
+    orgId: { type: "string", description: "Organization ID.", required: true },
+  }}
+/>
+
+```tsx
+<AutoRechargeCard
+  orgId={orgId}
+  autoRecharge={account.autoRecharge}
+  hasPaymentMethod={!!account.defaultPaymentMethod?.paymentMethodId}
+  accountStatus={account.status}
+  onSaved={refetch}
+/>
+```
+
 
 ### BillingSection
 
@@ -261,39 +294,6 @@ health: green for healthy, amber for low, red for zero/negative.
 
 ```tsx
 <CreditBalanceCard balance={account.balance} isLowBalance={isLow} />
-```
-
-
-### AutoRechargeCard
-
-Auto-recharge configuration card for the billing settings page.
-
-Shows a toggle to enable/disable auto-recharge, with input fields
-for threshold, recharge amount, and monthly cap. Displays a
-disabled state with an explanatory message when no payment method
-is on file. Validates inputs client-side before submitting.
-
-**Props** — `AutoRechargeCardProps`
-
-<TypeTable
-  type={{
-    orgId: { type: "string", description: "Organization ID.", required: true },
-    autoRecharge: { type: "AutoRechargeConfig", description: "Current auto-recharge configuration from the billing account." },
-    hasPaymentMethod: { type: "boolean", description: "Whether the account has a saved payment method.", required: true },
-    accountStatus: { type: "BillingAccountStatus", description: "Account status \u2014 config disabled when suspended or closed.", required: true },
-    onSaved: { type: "() => void", description: "Called after a successful save so the parent can refresh account data." },
-    className: { type: "string", description: "Additional CSS class names." },
-  }}
-/>
-
-```tsx
-<AutoRechargeCard
-  orgId={orgId}
-  autoRecharge={account.autoRecharge}
-  hasPaymentMethod={!!account.defaultPaymentMethod?.paymentMethodId}
-  accountStatus={account.status}
-  onSaved={refetch}
-/>
 ```
 
 
@@ -422,21 +422,6 @@ Parameters for [`useCreateCheckoutSession`](#usecreatecheckoutsession)'s `create
 />
 
 
-### SetAutoRechargeConfigInput
-
-Parameters for [`useSetAutoRechargeConfig`](#usesetautorechargeconfig)'s `setConfig` callback.
-
-<TypeTable
-  type={{
-    orgId: { type: "string", description: "Organization ID.", required: true },
-    enabled: { type: "boolean", description: "Whether to enable auto-recharge.", required: true },
-    thresholdMicros: { type: "bigint", description: "Trigger threshold in micro-USD.", required: true },
-    rechargeAmountMicros: { type: "bigint", description: "Fixed charge per recharge event in micro-USD.", required: true },
-    monthlyCapMicros: { type: "bigint", description: "Maximum monthly auto-recharge spend in micro-USD.", required: true },
-  }}
-/>
-
-
 ### CREDIT_PACKS
 
 Static credit pack catalog matching the backend `CreditPackCatalog`.
@@ -545,6 +530,21 @@ Human-readable label for a ledger entry type.
 ```tsx
 function ledgerEntryLabel(type: LedgerEntryType): string
 ```
+
+
+### SetAutoRechargeConfigInput
+
+Input for [`useSetAutoRechargeConfig`](#usesetautorechargeconfig).
+
+<TypeTable
+  type={{
+    enabled: { type: "boolean", description: "", required: true },
+    monthlyCapMicros: { type: "bigint", description: "Maximum monthly auto-recharge spend in micro-USD.", required: true },
+    orgId: { type: "string", description: "", required: true },
+    rechargeAmountMicros: { type: "bigint", description: "Fixed charge per recharge event in micro-USD.", required: true },
+    thresholdMicros: { type: "bigint", description: "Trigger threshold in micro-USD.", required: true },
+  }}
+/>
 
 
 ### UseCreditLedgerOptions
