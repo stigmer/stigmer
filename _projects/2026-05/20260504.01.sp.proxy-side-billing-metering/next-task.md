@@ -101,8 +101,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-04 13:29
-**Current Task**: T02 (updateUsage RPC + Per-Call Usage Records) — IN PROGRESS
-**Status**: T02 Implementation complete, pending commit. Deep research drove architecture revision mid-session.
+**Current Task**: T03 (Wire SSE parser into LlmProxyController) — COMPLETED
+**Status**: T01 audit + T02 fixes + T03 proxy wiring all committed.
 
 ## Session Progress (2026-05-04)
 
@@ -169,13 +169,46 @@ When starting a new session:
 - Deleted `atomicAppendUsage` from `AgentExecutionRepo` (was embedding in execution doc)
 - "Atomic persist refactor" plan no longer needed (race condition eliminated by separate collection)
 
+## Session Progress (2026-05-04 Session 3)
+
+### T03 Completed: LlmProxyController Wiring
+
+**Pre-T03 audit**: Identified and fixed T01/T02 compatibility gaps before wiring.
+
+**T01 Parser Upgrade**:
+- Expanded `ParsedLlmUsage`: 6 fields (int) → 11 fields (long)
+- Added: `totalTokens`, `reasoningTokens`, `finishReason`, `complete`, `providerUsageJson`
+- Renamed: `cacheCreationTokens`/`cacheReadTokens` → `cacheCreationInputTokens`/`cacheReadInputTokens`
+- OpenAI extractor: now captures `total_tokens`, `reasoning_tokens` (o-series), `cached_tokens`, `finish_reason` (tracked across events), raw usage JSON
+- Anthropic extractor: now captures `stop_reason`, raw usage JSON, `complete` flag
+- New fixtures: `openai-reasoning-tokens.txt`, `openai-cached-tokens.txt`
+
+**T02 Fixes**:
+- Widened `BillingMicros.tokenCost()`, `ModelPricingService`, `ExecutionBillingService` from `int` to `long`
+- Added `requested_model` to `UpdateUsageInput` proto and handler
+- Removed `(int)` casts in handler
+
+**LlmProxyController wiring**:
+- Replaced `transferTo` with tee stream loop (read/write/onBytes)
+- Inject `stream_options.include_usage` for OpenAI requests
+- Parse request body to extract `requested_model` for audit trail
+- Capture `ProxyTiming` (5 timestamps + derived durations)
+- Extract provider request-id from response headers
+- `ProxyUsageReporter` (new): bridges parser to billing pipeline in-process
+- `ProxyCallSequencer` (new): per-execution atomic sequence counter with TTL eviction
+- Cardinal rule: all usage/billing work in try-catch, never breaks LLM response stream
+
+**Commits**:
+- OSS: `82ee8f939` on `feat/react-sdk-streaming-ux` — `requested_model` proto field
+- Cloud: `47f7538c` on `feat/stripe-billing-integration` — full T03 wiring (18 files, +1127 -111)
+
 ## Next Steps
 
-1. **Commit this work** on `feat/stripe-billing-integration` branch (both repos)
-2. **T03**: Wire SSE parser + updateUsage into `LlmProxyController` (TeeOutputStream, stream_options injection)
-3. **T04**: Same for `CursorProxyController`
-4. **T05**: Strip runner `llm_metrics` in cloud mode + wire billing signal in `BuildUpdateStatusResponseStep`
-5. **T06**: Dual-header proxy access control (independent)
+1. **T04**: Wire SSE parser into `CursorProxyController` (research Cursor response format first)
+2. **T05**: Strip runner `llm_metrics` in cloud mode + wire billing signal in `BuildUpdateStatusResponseStep`
+3. **T06**: Dual-header proxy access control (independent — `execution_id` + `mcp_server_id`)
+4. **T07**: Pass `mcp_server_id` through classify workflow + caching
+5. **T08**: Deprecate runner-side billing calls
 
 ## Context for Resume
 - Per-call usage goes to `llm_call_usage_record` collection (billing source of truth)
@@ -184,15 +217,18 @@ When starting a new session:
 - Legacy `UsageMetrics`/`ModelUsage`/`LlmCallMetrics` kept as deprecated (wire compat with runner's `AgentMessage.llm_metrics`)
 - `updateUsage` RPC is operator-only (FGA `can_update_usage` on `platform:stigmer`)
 - Response is empty — signals flow through `updateStatus`
+- T03 introduced `ProxyUsageReporter` and `ProxyCallSequencer` in `ai.stigmer.proxy.usage`
+- `LlmProxyController` now: tee stream, inject stream_options, capture timing, report usage
 - Research reference: `research.llm-usage-capture-model/04.report.gpt.md`
+- Proto stubs need regeneration (`make protos`) after OSS proto lands
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T03" - Wire updateUsage into LlmProxyController
+- "Continue with T04" - Wire CursorProxyController
+- "Continue with T05" - Strip llm_metrics + billing signal
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
-- "Check parent status" - Review parent project state
 
 ---
 
