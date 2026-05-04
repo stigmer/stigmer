@@ -691,7 +691,7 @@ Update an agent execution's status.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const agentExecution = await stigmer.agentExecution.updateStatus({
+const updateStatusResponse = await stigmer.agentExecution.updateStatus({
   executionId: "...",
   status: {},
 });
@@ -699,7 +699,7 @@ const agentExecution = await stigmer.agentExecution.updateStatus({
 </Tab>
 <Tab value="Go">
 ```go
-agentExecution, err := client.AgentExecution.UpdateStatus(ctx, &stigmer.AgentExecutionUpdateStatusInput{
+updateStatusResponse, err := client.AgentExecution.UpdateStatus(ctx, &stigmer.AgentExecutionUpdateStatusInput{
   ExecutionId: "...",
   Status:      &stigmer.AgentExecutionStatusInput{},
 })
@@ -707,7 +707,7 @@ agentExecution, err := client.AgentExecution.UpdateStatus(ctx, &stigmer.AgentExe
 </Tab>
 <Tab value="Python">
 ```python
-agent_execution = client.agent_executions.update_status(AgentExecutionUpdateStatusInput(
+update_status_response = client.agent_executions.update_status(AgentExecutionUpdateStatusInput(
     execution_id="...",
     status=None,
 ))
@@ -715,7 +715,7 @@ agent_execution = client.agent_executions.update_status(AgentExecutionUpdateStat
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecutions().updateStatus(AgentExecutionUpdateStatusInput.builder()
+UpdateStatusResponse updateStatusResponse = client.agentExecutions().updateStatus(AgentExecutionUpdateStatusInput.builder()
     .executionId("...")
     .status(null)
     .build());
@@ -725,7 +725,7 @@ AgentExecution agentExecution = client.agentExecutions().updateStatus(AgentExecu
 
 **Parameters**: [`AgentExecutionUpdateStatusInput`](#agentexecutionupdatestatusinput)
 
-**Returns**: [`AgentExecution`](#agentexecution)
+**Returns**: [`UpdateStatusResponse`](#updatestatusresponse)
 
 ### delete
 
@@ -1164,6 +1164,17 @@ Input message for updateStatus RPC.
   type={{
     executionId: { type: "string", description: "ID of the agent execution to update (required)." },
     status: { type: "AgentExecutionStatusInput", description: "Status fields to update.", required: true },
+  }}
+/>
+
+### UpdateStatusResponse
+
+UpdateStatusResponse is the lightweight response returned by the updateStatus RPC.
+
+<TypeTable
+  type={{
+    signal: { type: "ExecutionControlSignal", description: "Platform-to-runner directive.", typeDescriptionLink: "#executioncontrolsignal" },
+    signalReason: { type: "string", description: "Human-readable reason for the signal (optional)." },
   }}
 />
 
@@ -1690,6 +1701,15 @@ WorkspaceWriteBack captures the outcome of the platform-owned git write-back wor
     error: { type: "string", description: "Error message if the write-back failed at any step." },
   }}
 />
+
+### ExecutionControlSignal
+
+ExecutionControlSignal is a platform-to-runner directive returned by the updateStatus RPC.
+
+| Value | Description |
+|-------|-------------|
+| `EXECUTION_CONTROL_SIGNAL_STOP` | Execution must stop gracefully. |
+| `EXECUTION_CONTROL_SIGNAL_WARNING` | Informational warning (e.g. low credit balance). |
 
 ### ApprovalAction
 

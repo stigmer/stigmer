@@ -29,7 +29,7 @@ import (
 // - Authorize step (no multi-tenant auth in OSS)
 // - PublishToRedis step (no Redis in OSS - uses in-memory Go channels instead per ADR 011)
 // - Publish step (no event publishing in OSS)
-func (c *AgentExecutionController) UpdateStatus(ctx context.Context, input *agentexecutionv1.AgentExecutionUpdateStatusInput) (*agentexecutionv1.AgentExecution, error) {
+func (c *AgentExecutionController) UpdateStatus(ctx context.Context, input *agentexecutionv1.AgentExecutionUpdateStatusInput) (*agentexecutionv1.UpdateStatusResponse, error) {
 	// Create request context with input
 	reqCtx := pipeline.NewRequestContext(ctx, input)
 
@@ -47,13 +47,9 @@ func (c *AgentExecutionController) UpdateStatus(ctx context.Context, input *agen
 		return nil, err
 	}
 
-	// Return updated execution from context
-	execution, ok := reqCtx.Get("execution").(*agentexecutionv1.AgentExecution)
-	if !ok {
-		return nil, grpclib.InternalError(nil, "execution not found in context after pipeline")
-	}
-
-	return execution, nil
+	return &agentexecutionv1.UpdateStatusResponse{
+		Signal: agentexecutionv1.ExecutionControlSignal_EXECUTION_CONTROL_SIGNAL_UNSPECIFIED,
+	}, nil
 }
 
 // ValidateUpdateStatusInputStep validates the input for UpdateStatus

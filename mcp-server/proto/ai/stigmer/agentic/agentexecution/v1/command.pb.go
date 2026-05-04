@@ -26,11 +26,11 @@ var File_ai_stigmer_agentic_agentexecution_v1_command_proto protoreflect.FileDes
 
 const file_ai_stigmer_agentic_agentexecution_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"2ai/stigmer/agentic/agentexecution/v1/command.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a-ai/stigmer/agentic/agentexecution/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xe9\x0f\n" +
+	"2ai/stigmer/agentic/agentexecution/v1/command.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a-ai/stigmer/agentic/agentexecution/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xef\x0f\n" +
 	"\x1fAgentExecutionCommandController\x12z\n" +
 	"\x06create\x124.ai.stigmer.agentic.agentexecution.v1.AgentExecution\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"\x04и\x18\x01\x12\xb3\x01\n" +
-	"\x06update\x124.ai.stigmer.agentic.agentexecution.v1.AgentExecution\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"=¸\x189\b\x02\x10)\"\vmetadata.id*&unauthorized to update agent execution\x12\xd2\x01\n" +
-	"\fupdateStatus\x12E.ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"E¸\x18A\b\x02\x10)\"\fexecution_id*-unauthorized to update agent execution status\x12\xa6\x01\n" +
+	"\x06update\x124.ai.stigmer.agentic.agentexecution.v1.AgentExecution\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"=¸\x189\b\x02\x10)\"\vmetadata.id*&unauthorized to update agent execution\x12\xd8\x01\n" +
+	"\fupdateStatus\x12E.ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput\x1a:.ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse\"E¸\x18A\b\x02\x10)\"\fexecution_id*-unauthorized to update agent execution status\x12\xa6\x01\n" +
 	"\x06delete\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"7¸\x183\b\x02\x10)\"\x05value*&unauthorized to delete agent execution\x12\xd4\x01\n" +
 	"\x0esubmitApproval\x129.ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"Q¸\x18M\b\x02\x10)\"\x12agent_execution_id*3unauthorized to submit approval for agent execution\x12\xb5\x01\n" +
 	"\x06cancel\x12?.ai.stigmer.agentic.agentexecution.v1.CancelAgentExecutionInput\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"4¸\x180\b\x02\x10)\"\x02id*&unauthorized to cancel agent execution\x12\xbe\x01\n" +
@@ -52,7 +52,8 @@ var file_ai_stigmer_agentic_agentexecution_v1_command_proto_goTypes = []any{
 	(*PauseAgentExecutionInput)(nil),        // 7: ai.stigmer.agentic.agentexecution.v1.PauseAgentExecutionInput
 	(*ResumeAgentExecutionInput)(nil),       // 8: ai.stigmer.agentic.agentexecution.v1.ResumeAgentExecutionInput
 	(*UploadAttachmentRequest)(nil),         // 9: ai.stigmer.agentic.agentexecution.v1.UploadAttachmentRequest
-	(*UploadAttachmentResponse)(nil),        // 10: ai.stigmer.agentic.agentexecution.v1.UploadAttachmentResponse
+	(*UpdateStatusResponse)(nil),            // 10: ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse
+	(*UploadAttachmentResponse)(nil),        // 11: ai.stigmer.agentic.agentexecution.v1.UploadAttachmentResponse
 }
 var file_ai_stigmer_agentic_agentexecution_v1_command_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.create:input_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
@@ -68,7 +69,7 @@ var file_ai_stigmer_agentic_agentexecution_v1_command_proto_depIdxs = []int32{
 	9,  // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.uploadAttachment:input_type -> ai.stigmer.agentic.agentexecution.v1.UploadAttachmentRequest
 	0,  // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.create:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
 	0,  // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.update:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
-	0,  // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.updateStatus:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
+	10, // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.updateStatus:output_type -> ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse
 	0,  // 14: ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.delete:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
 	0,  // 15: ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.submitApproval:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
 	0,  // 16: ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.cancel:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
@@ -76,7 +77,7 @@ var file_ai_stigmer_agentic_agentexecution_v1_command_proto_depIdxs = []int32{
 	0,  // 18: ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.recover:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
 	0,  // 19: ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.pause:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
 	0,  // 20: ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.resume:output_type -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
-	10, // 21: ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.uploadAttachment:output_type -> ai.stigmer.agentic.agentexecution.v1.UploadAttachmentResponse
+	11, // 21: ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.uploadAttachment:output_type -> ai.stigmer.agentic.agentexecution.v1.UploadAttachmentResponse
 	11, // [11:22] is the sub-list for method output_type
 	0,  // [0:11] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name

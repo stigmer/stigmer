@@ -79,28 +79,28 @@ public final class AgentExecutionCommandControllerGrpc {
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput,
-      ai.stigmer.agentic.agentexecution.v1.AgentExecution> getUpdateStatusMethod;
+      ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse> getUpdateStatusMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "updateStatus",
       requestType = ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput.class,
-      responseType = ai.stigmer.agentic.agentexecution.v1.AgentExecution.class,
+      responseType = ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
   public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput,
-      ai.stigmer.agentic.agentexecution.v1.AgentExecution> getUpdateStatusMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput, ai.stigmer.agentic.agentexecution.v1.AgentExecution> getUpdateStatusMethod;
+      ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse> getUpdateStatusMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput, ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse> getUpdateStatusMethod;
     if ((getUpdateStatusMethod = AgentExecutionCommandControllerGrpc.getUpdateStatusMethod) == null) {
       synchronized (AgentExecutionCommandControllerGrpc.class) {
         if ((getUpdateStatusMethod = AgentExecutionCommandControllerGrpc.getUpdateStatusMethod) == null) {
           AgentExecutionCommandControllerGrpc.getUpdateStatusMethod = getUpdateStatusMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput, ai.stigmer.agentic.agentexecution.v1.AgentExecution>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput, ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateStatus"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.agentexecution.v1.AgentExecution.getDefaultInstance()))
+                  ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse.getDefaultInstance()))
               .setSchemaDescriptor(new AgentExecutionCommandControllerMethodDescriptorSupplier("updateStatus"))
               .build();
         }
@@ -464,7 +464,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * </pre>
      */
     default void updateStatus(ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecution> responseObserver) {
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateStatusMethod(), responseObserver);
     }
 
@@ -819,7 +819,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * </pre>
      */
     public void updateStatus(ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecution> responseObserver) {
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getUpdateStatusMethod(), getCallOptions()), request, responseObserver);
     }
@@ -1165,7 +1165,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * existing state.
      * </pre>
      */
-    public ai.stigmer.agentic.agentexecution.v1.AgentExecution updateStatus(ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse updateStatus(ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getUpdateStatusMethod(), getCallOptions(), request);
     }
@@ -1503,7 +1503,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * existing state.
      * </pre>
      */
-    public ai.stigmer.agentic.agentexecution.v1.AgentExecution updateStatus(ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput request) {
+    public ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse updateStatus(ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateStatusMethod(), getCallOptions(), request);
     }
@@ -1843,7 +1843,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * existing state.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.AgentExecution> updateStatus(
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse> updateStatus(
         ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getUpdateStatusMethod(), getCallOptions()), request);
@@ -2170,7 +2170,7 @@ public final class AgentExecutionCommandControllerGrpc {
           break;
         case METHODID_UPDATE_STATUS:
           serviceImpl.updateStatus((ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecution>) responseObserver);
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse>) responseObserver);
           break;
         case METHODID_DELETE:
           serviceImpl.delete((ai.stigmer.commons.apiresource.ApiResourceId) request,
@@ -2241,7 +2241,7 @@ public final class AgentExecutionCommandControllerGrpc {
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
               ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput,
-              ai.stigmer.agentic.agentexecution.v1.AgentExecution>(
+              ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse>(
                 service, METHODID_UPDATE_STATUS)))
         .addMethod(
           getDeleteMethod(),

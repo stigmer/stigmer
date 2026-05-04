@@ -64,7 +64,7 @@ function CustomInput({ onSend }: { onSend: (msg: string) => void }) {
 ```
 
 
-## Components
+## Types
 
 ### SessionComposer
 
@@ -87,47 +87,6 @@ Uses `<div role="form">` instead of `<form>` so it can be embedded
 inside host application forms without nesting violations.
 
 All visual properties flow through `--stgm-*` tokens.
-
-**Props** — `SessionComposerProps`
-
-<TypeTable
-  type={{
-    agentRef: { type: "ResourceRef | null", description: "Currently selected agent reference, or null if none. When `onAgentRefChange` is provided, an agent trigger appears in the toolbar (single-select)." },
-    ariaLabel: { type: "string", description: "ARIA label for the composer region." },
-    autoFocus: { type: "boolean", description: "Auto-focus the textarea on mount." },
-    className: { type: "string", description: "Additional CSS class names for the root container." },
-    defaultModelId: { type: "string", description: "Initial model ID for the model selector." },
-    disabled: { type: "boolean", description: "Disables the entire composer (e.g., while an execution streams)." },
-    enableAttachments: { type: "boolean", description: "Enable file attachment support in the composer.  When `true`, renders an attach button in the toolbar and enables drag-and-drop file upload on the textarea. Attachments are uploaded immediately via `agentExecution.uploadAttachment()` and included in `context.attachments` on submit." },
-    enableGitHub: { type: "boolean", description: "Show the GitHub Repo source button." },
-    enableLocal: { type: "boolean", description: "Show the Local Folder source button." },
-    gitHubConnection: { type: "UseGitHubConnectionReturn", description: "GitHub connection state for the repo picker.", typeDescriptionLink: "/docs/sdk/react/github#usegithubconnectionreturn" },
-    harness: { type: "HarnessOption", description: "Currently selected execution harness.  Controls which models appear in the model selector and flows through to session creation. When omitted, defaults to `\"native\"`.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
-    initialAgentRef: { type: "ResourceRef", description: "Agent to auto-select when the composer mounts.  When provided, the composer runs the full agent resolution flow on mount — exactly as if the user had picked this agent in the AgentPicker. If the agent requires credentials, the environment form appears automatically.  One-time: consumed on mount; subsequent changes are ignored. To change the agent after mount, use the picker or `onAgentRefChange` externally.  Requires `org` and `onAgentRefChange` to be set (same prerequisites as the agent picker)." },
-    initialAttachments: { type: "File[]", description: "Files to attach programmatically when the composer mounts.  When provided, the composer uploads these files via the same attachment pipeline as user-selected files. Attachment chips appear in the UI so the user sees what is attached.  One-time: consumed when the value first becomes truthy. Subsequent changes are ignored. This allows async resource fetching — the effect waits for the files to be ready.  Requires `enableAttachments` to be `true` (default)." },
-    initialRows: { type: "number", description: "Initial number of visible rows." },
-    isSubmitting: { type: "boolean", description: "Shows loading indicator on the send button." },
-    mcpServerUsages: { type: "McpServerUsageInput[]", description: "Currently selected MCP server usages. When `onMcpServerUsagesChange` is provided, a MCP server trigger appears in the toolbar." },
-    onAgentRefChange: { type: "(ref: ResourceRef | null) => void", description: "Called when the agent selection changes. Providing this enables the agent trigger." },
-    onAgentResolutionChange: { type: "(resolution: AgentResolution | null) => void", description: "Called when the agent setup flow resolves how the agent should be used for session creation.  The AgentResolution discriminated union tells the caller which session creation path to use: - `\"saved\"` — use `agentInstanceId` - `\"oneTime\"` — use `agentRef` + pass `runtimeEnv` to execution - `\"direct\"` — use `agentRef` (no secrets needed)  Set to `null` when the agent is deselected." },
-    onAttachmentValidationError: { type: "(message: string) => void", description: "Called when a file is rejected (e.g., exceeds the 10 MB limit). Consumers can use this for toast notifications." },
-    onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback passed through to WorkspaceEditor. When provided, clicking \"Local Folder\" opens a native dialog instead of the inline text input. See WorkspaceEditorProps.onBrowseLocalFolder." },
-    onHarnessChange: { type: "(harness: HarnessOption) => void", description: "Called when the user switches the harness.  Providing this callback enables the harness selector in the toolbar." },
-    onMcpServerUsagesChange: { type: "(usages: McpServerUsageInput[]) => void", description: "Called when the MCP server selection changes. Providing this enables the MCP trigger." },
-    onModelChange: { type: "(modelId: string) => void", description: "Called when the user changes the selected model." },
-    onRunnerIdChange: { type: "(runnerId: string | null) => void", description: "Called when the user selects a different runner. `null` = \"Auto\".  Providing this callback enables the runner picker in the toolbar. Requires `org` to be set (same prerequisite as agent/MCP pickers)." },
-    onSkillRefsChange: { type: "(refs: ResourceRef[]) => void", description: "Called when the skill selection changes. Providing this enables the skill trigger." },
-    onSubmit: { type: "(message: string, modelName?: string, context?: SessionComposerSubmitContext) => void", description: "Called when the user submits a message.  The optional `context` parameter carries aggregated runtime data collected by the composer's setup flows. When present, `context.runtimeEnv` should be passed to execution creation.", required: true },
-    org: { type: "string", description: "Organization slug for agent, MCP server, and skill searches. Required when agent, MCP, or skill pickers are enabled." },
-    placeholder: { type: "string", description: "Placeholder text for the textarea." },
-    runnerId: { type: "string | null", description: "Currently selected runner ID, or `null` for \"Auto\" (backend decides).  When `onRunnerIdChange` is provided and `org` is set, renders a runner picker in the toolbar's Tier 1 (alongside Model Selector).  The selected runner ID flows through to `session.create({ runnerId })` so the session is bound to that runner's task queue." },
-    sessionVariables: { type: "UseSessionVariablesReturn", description: "Session variables state managed by useSessionVariables. When provided, renders a \"Session Variables\" trigger in the toolbar that opens a key-value editor for environment variables.  Variables are ephemeral by default (single execution). Individual entries can be marked `saveForFuture: true` to persist them to the user's personal environment. The consumer should call `sessionVariables.clear()` after submission.", typeDescriptionLink: "/docs/sdk/react/execution#usesessionvariablesreturn" },
-    showHarnessSelector: { type: "boolean", description: "Show the harness selector in the toolbar." },
-    showModelSelector: { type: "boolean", description: "Show the model selector." },
-    skillRefs: { type: "ResourceRef[]", description: "Currently selected skill references. When `onSkillRefsChange` is provided, a skill trigger appears in the toolbar." },
-    workspace: { type: "UseWorkspaceEntriesReturn", description: "Workspace state managed by useWorkspaceEntries. When provided, renders a workspace trigger in the toolbar that opens a popover with the workspace editor.", typeDescriptionLink: "/docs/sdk/react/workspace#useworkspaceentriesreturn" },
-  }}
-/>
 
 ```tsx
 // Launcher with all context types
@@ -171,7 +130,49 @@ All visual properties flow through `--stgm-*` tokens.
 ```
 
 
-## Types
+### SessionComposerProps
+
+Props for [`SessionComposer`](#sessioncomposer).
+
+<TypeTable
+  type={{
+    agentRef: { type: "ResourceRef | null", description: "Currently selected agent reference, or null if none. When `onAgentRefChange` is provided, an agent trigger appears in the toolbar (single-select)." },
+    ariaLabel: { type: "string", description: "ARIA label for the composer region." },
+    autoFocus: { type: "boolean", description: "Auto-focus the textarea on mount." },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    defaultModelId: { type: "string", description: "Initial model ID for the model selector." },
+    disabled: { type: "boolean", description: "Disables the entire composer (e.g., while an execution streams)." },
+    enableAttachments: { type: "boolean", description: "Enable file attachment support in the composer.  When `true`, renders an attach button in the toolbar and enables drag-and-drop file upload on the textarea. Attachments are uploaded immediately via `agentExecution.uploadAttachment()` and included in `context.attachments` on submit." },
+    enableGitHub: { type: "boolean", description: "Show the GitHub Repo source button." },
+    enableLocal: { type: "boolean", description: "Show the Local Folder source button." },
+    gitHubConnection: { type: "UseGitHubConnectionReturn", description: "GitHub connection state for the repo picker.", typeDescriptionLink: "/docs/sdk/react/github#usegithubconnectionreturn" },
+    harness: { type: "HarnessOption", description: "Currently selected execution harness.  Controls which models appear in the model selector and flows through to session creation. When omitted, defaults to `\"native\"`.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
+    initialAgentRef: { type: "ResourceRef", description: "Agent to auto-select when the composer mounts.  When provided, the composer runs the full agent resolution flow on mount — exactly as if the user had picked this agent in the AgentPicker. If the agent requires credentials, the environment form appears automatically.  One-time: consumed on mount; subsequent changes are ignored. To change the agent after mount, use the picker or `onAgentRefChange` externally.  Requires `org` and `onAgentRefChange` to be set (same prerequisites as the agent picker)." },
+    initialAttachments: { type: "File[]", description: "Files to attach programmatically when the composer mounts.  When provided, the composer uploads these files via the same attachment pipeline as user-selected files. Attachment chips appear in the UI so the user sees what is attached.  One-time: consumed when the value first becomes truthy. Subsequent changes are ignored. This allows async resource fetching — the effect waits for the files to be ready.  Requires `enableAttachments` to be `true` (default)." },
+    initialRows: { type: "number", description: "Initial number of visible rows." },
+    isSubmitting: { type: "boolean", description: "Shows loading indicator on the send button." },
+    mcpServerUsages: { type: "McpServerUsageInput[]", description: "Currently selected MCP server usages. When `onMcpServerUsagesChange` is provided, a MCP server trigger appears in the toolbar." },
+    onAgentRefChange: { type: "(ref: ResourceRef | null) => void", description: "Called when the agent selection changes. Providing this enables the agent trigger." },
+    onAgentResolutionChange: { type: "(resolution: AgentResolution | null) => void", description: "Called when the agent setup flow resolves how the agent should be used for session creation.  The AgentResolution discriminated union tells the caller which session creation path to use: - `\"saved\"` — use `agentInstanceId` - `\"oneTime\"` — use `agentRef` + pass `runtimeEnv` to execution - `\"direct\"` — use `agentRef` (no secrets needed)  Set to `null` when the agent is deselected." },
+    onAttachmentValidationError: { type: "(message: string) => void", description: "Called when a file is rejected (e.g., exceeds the 10 MB limit). Consumers can use this for toast notifications." },
+    onBrowseLocalFolder: { type: "() => Promise<string | null>", description: "Native folder picker callback passed through to WorkspaceEditor. When provided, clicking \"Local Folder\" opens a native dialog instead of the inline text input. See WorkspaceEditorProps.onBrowseLocalFolder." },
+    onHarnessChange: { type: "(harness: HarnessOption) => void", description: "Called when the user switches the harness.  Providing this callback enables the harness selector in the toolbar." },
+    onMcpServerUsagesChange: { type: "(usages: McpServerUsageInput[]) => void", description: "Called when the MCP server selection changes. Providing this enables the MCP trigger." },
+    onModelChange: { type: "(modelId: string) => void", description: "Called when the user changes the selected model." },
+    onRunnerIdChange: { type: "(runnerId: string | null) => void", description: "Called when the user selects a different runner. `null` = \"Auto\".  Providing this callback enables the runner picker in the toolbar. Requires `org` to be set (same prerequisite as agent/MCP pickers)." },
+    onSkillRefsChange: { type: "(refs: ResourceRef[]) => void", description: "Called when the skill selection changes. Providing this enables the skill trigger." },
+    onSubmit: { type: "(message: string, modelName?: string, context?: SessionComposerSubmitContext) => void", description: "Called when the user submits a message.  The optional `context` parameter carries aggregated runtime data collected by the composer's setup flows. When present, `context.runtimeEnv` should be passed to execution creation.", required: true },
+    org: { type: "string", description: "Organization slug for agent, MCP server, and skill searches. Required when agent, MCP, or skill pickers are enabled." },
+    placeholder: { type: "string", description: "Placeholder text for the textarea." },
+    runnerId: { type: "string | null", description: "Currently selected runner ID, or `null` for \"Auto\" (backend decides).  When `onRunnerIdChange` is provided and `org` is set, renders a runner picker in the toolbar's Tier 1 (alongside Model Selector).  The selected runner ID flows through to `session.create({ runnerId })` so the session is bound to that runner's task queue." },
+    sessionVariables: { type: "UseSessionVariablesReturn", description: "Session variables state managed by useSessionVariables. When provided, renders a \"Session Variables\" trigger in the toolbar that opens a key-value editor for environment variables.  Variables are ephemeral by default (single execution). Individual entries can be marked `saveForFuture: true` to persist them to the user's personal environment. The consumer should call `sessionVariables.clear()` after submission.", typeDescriptionLink: "/docs/sdk/react/execution#usesessionvariablesreturn" },
+    showHarnessSelector: { type: "boolean", description: "Show the harness selector in the toolbar." },
+    showModelSelector: { type: "boolean", description: "Show the model selector." },
+    skillRefs: { type: "ResourceRef[]", description: "Currently selected skill references. When `onSkillRefsChange` is provided, a skill trigger appears in the toolbar." },
+    workspace: { type: "UseWorkspaceEntriesReturn", description: "Workspace state managed by useWorkspaceEntries. When provided, renders a workspace trigger in the toolbar that opens a popover with the workspace editor.", typeDescriptionLink: "/docs/sdk/react/workspace#useworkspaceentriesreturn" },
+  }}
+/>
+
 
 ### SessionComposerSubmitContext
 

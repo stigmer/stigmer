@@ -60,6 +60,14 @@ class AgentExecutionUpdateStatusInput(_message.Message):
     status: _api_pb2.AgentExecutionStatus
     def __init__(self, execution_id: _Optional[str] = ..., status: _Optional[_Union[_api_pb2.AgentExecutionStatus, _Mapping]] = ...) -> None: ...
 
+class UpdateStatusResponse(_message.Message):
+    __slots__ = ("signal", "signal_reason")
+    SIGNAL_FIELD_NUMBER: _ClassVar[int]
+    SIGNAL_REASON_FIELD_NUMBER: _ClassVar[int]
+    signal: _enum_pb2.ExecutionControlSignal
+    signal_reason: str
+    def __init__(self, signal: _Optional[_Union[_enum_pb2.ExecutionControlSignal, str]] = ..., signal_reason: _Optional[str] = ...) -> None: ...
+
 class SubmitApprovalInput(_message.Message):
     __slots__ = ("agent_execution_id", "tool_call_id", "action", "comment")
     AGENT_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]

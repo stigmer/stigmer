@@ -1,4 +1,4 @@
-"""Tests for BillingStopMiddleware."""
+"""Tests for GracefulStopMiddleware."""
 
 from __future__ import annotations
 
@@ -6,15 +6,15 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from graphton.core.billing_stop import BillingStopMiddleware
+from graphton.core.graceful_stop import GracefulStopMiddleware
 
 
 @pytest.fixture
 def middleware():
-    return BillingStopMiddleware()
+    return GracefulStopMiddleware()
 
 
-class TestBillingStopMiddleware:
+class TestGracefulStopMiddleware:
     def test_initially_inactive(self, middleware):
         assert middleware.activated is False
 
@@ -41,7 +41,16 @@ class TestBillingStopMiddleware:
         assert "messages" in result
         assert len(result["messages"]) == 1
         msg = result["messages"][0]
-        assert "credit balance has been exhausted" in msg.content
+        assert "platform has requested" in msg.content
+
+    @pytest.mark.asyncio
+    async def test_aafter_model_uses_custom_reason(self, middleware):
+        middleware.activate(reason="Credits exhausted")
+        result = await middleware.aafter_model({"messages": []}, {})
+
+        assert result is not None
+        msg = result["messages"][0]
+        assert msg.content == "Credits exhausted"
 
     @pytest.mark.asyncio
     async def test_aafter_model_only_injects_once(self, middleware):
@@ -71,15 +80,15 @@ class TestBillingStopMiddleware:
         result = await middleware.awrap_tool_call(request, handler)
 
         handler.assert_not_called()
-        assert "Credits exhausted" in result.content
+        assert "Execution stopped by platform" in result.content
         assert result.tool_call_id == "tc-1"
         assert result.name == "write"
 
 
-class TestBillingStopSubAgentView:
+class TestGracefulStopSubAgentView:
     @pytest.mark.asyncio
     async def test_shares_activation_state(self):
-        parent = BillingStopMiddleware()
+        parent = GracefulStopMiddleware()
         view = parent.for_sub_agent()
 
         assert not parent.activated
@@ -91,4 +100,4 @@ class TestBillingStopSubAgentView:
         result = await view.awrap_tool_call(request, handler)
 
         handler.assert_not_called()
-        assert "Credits exhausted" in result.content
+        assert "Execution stopped by platform" in result.content

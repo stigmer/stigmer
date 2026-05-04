@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import grpc
 import pytest
-
 from ai.stigmer.billing.v1.enum_pb2 import ExecutionBillingSignal
 from ai.stigmer.billing.v1.io_pb2 import ReportLlmCallUsageResponse
 

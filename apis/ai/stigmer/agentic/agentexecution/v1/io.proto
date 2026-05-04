@@ -67,6 +67,23 @@ message AgentExecutionUpdateStatusInput {
   AgentExecutionStatus status = 2 [(buf.validate.field).required = true];
 }
 
+// UpdateStatusResponse is the lightweight response returned by the
+// updateStatus RPC. It replaces the previous AgentExecution return type
+// to avoid serializing the full resource on every progressive update
+// (~every 2-3 seconds during streaming).
+//
+// The response carries an optional execution control signal from the
+// platform back to the runner. The signal is generic — the runner acts
+// on STOP / WARNING without knowing the source (billing, admin, budget).
+message UpdateStatusResponse {
+  // Platform-to-runner directive. UNSPECIFIED means continue normally.
+  ExecutionControlSignal signal = 1;
+
+  // Human-readable reason for the signal (optional).
+  // Logged by the runner and may be surfaced to the user in the stop summary.
+  string signal_reason = 2;
+}
+
 // Input for submitting an approval decision (HITL Phase 1).
 //
 // All required fields must be provided. The handler validates:

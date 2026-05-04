@@ -62,7 +62,7 @@ type AgentExecutionCommandControllerClient interface {
 	// who owns the execution through the session ownership chain.
 	// Optimized for frequent status updates and merges status fields with
 	// existing state.
-	UpdateStatus(ctx context.Context, in *AgentExecutionUpdateStatusInput, opts ...grpc.CallOption) (*AgentExecution, error)
+	UpdateStatus(ctx context.Context, in *AgentExecutionUpdateStatusInput, opts ...grpc.CallOption) (*UpdateStatusResponse, error)
 	// Delete an agent execution by ID.
 	Delete(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*AgentExecution, error)
 	// Submit an approval decision for a pending tool call.
@@ -393,9 +393,9 @@ func (c *agentExecutionCommandControllerClient) Update(ctx context.Context, in *
 	return out, nil
 }
 
-func (c *agentExecutionCommandControllerClient) UpdateStatus(ctx context.Context, in *AgentExecutionUpdateStatusInput, opts ...grpc.CallOption) (*AgentExecution, error) {
+func (c *agentExecutionCommandControllerClient) UpdateStatus(ctx context.Context, in *AgentExecutionUpdateStatusInput, opts ...grpc.CallOption) (*UpdateStatusResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AgentExecution)
+	out := new(UpdateStatusResponse)
 	err := c.cc.Invoke(ctx, AgentExecutionCommandController_UpdateStatus_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -512,7 +512,7 @@ type AgentExecutionCommandControllerServer interface {
 	// who owns the execution through the session ownership chain.
 	// Optimized for frequent status updates and merges status fields with
 	// existing state.
-	UpdateStatus(context.Context, *AgentExecutionUpdateStatusInput) (*AgentExecution, error)
+	UpdateStatus(context.Context, *AgentExecutionUpdateStatusInput) (*UpdateStatusResponse, error)
 	// Delete an agent execution by ID.
 	Delete(context.Context, *apiresource.ApiResourceId) (*AgentExecution, error)
 	// Submit an approval decision for a pending tool call.
@@ -828,7 +828,7 @@ func (UnimplementedAgentExecutionCommandControllerServer) Create(context.Context
 func (UnimplementedAgentExecutionCommandControllerServer) Update(context.Context, *AgentExecution) (*AgentExecution, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
-func (UnimplementedAgentExecutionCommandControllerServer) UpdateStatus(context.Context, *AgentExecutionUpdateStatusInput) (*AgentExecution, error) {
+func (UnimplementedAgentExecutionCommandControllerServer) UpdateStatus(context.Context, *AgentExecutionUpdateStatusInput) (*UpdateStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateStatus not implemented")
 }
 func (UnimplementedAgentExecutionCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceId) (*AgentExecution, error) {
