@@ -148,6 +148,20 @@ class CreateBillingPortalSessionResponse(_message.Message):
     portal_url: str
     def __init__(self, portal_url: _Optional[str] = ...) -> None: ...
 
+class SetAutoRechargeConfigInput(_message.Message):
+    __slots__ = ("org_id", "enabled", "threshold_micros", "recharge_amount_micros", "monthly_cap_micros")
+    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    ENABLED_FIELD_NUMBER: _ClassVar[int]
+    THRESHOLD_MICROS_FIELD_NUMBER: _ClassVar[int]
+    RECHARGE_AMOUNT_MICROS_FIELD_NUMBER: _ClassVar[int]
+    MONTHLY_CAP_MICROS_FIELD_NUMBER: _ClassVar[int]
+    org_id: str
+    enabled: bool
+    threshold_micros: int
+    recharge_amount_micros: int
+    monthly_cap_micros: int
+    def __init__(self, org_id: _Optional[str] = ..., enabled: bool = ..., threshold_micros: _Optional[int] = ..., recharge_amount_micros: _Optional[int] = ..., monthly_cap_micros: _Optional[int] = ...) -> None: ...
+
 class GetBillingAccountInput(_message.Message):
     __slots__ = ("org_id",)
     ORG_ID_FIELD_NUMBER: _ClassVar[int]

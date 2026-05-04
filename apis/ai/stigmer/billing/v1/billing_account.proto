@@ -95,8 +95,12 @@ message PaymentMethodSummary {
 
 // AutoRechargeConfig controls automatic credit top-up behavior.
 //
-// When enabled, the billing system triggers a charge against the saved
-// payment method whenever the available balance drops below threshold_micros.
+// When enabled, the billing system triggers a charge against the account's
+// saved payment method (BillingAccount.default_payment_method) whenever
+// the available balance drops below threshold_micros.
+//
+// Fields 1–4 are user-configurable via SetAutoRechargeConfig.
+// Fields 5 and 7 are system-managed (updated by the recharge trigger).
 message AutoRechargeConfig {
   // Whether auto-recharge is enabled.
   bool enabled = 1;
@@ -104,7 +108,7 @@ message AutoRechargeConfig {
   // Trigger recharge when available balance drops below this amount.
   int64 threshold_micros = 2;
 
-  // Amount to charge per recharge event.
+  // Fixed amount to charge per recharge event.
   int64 recharge_amount_micros = 3;
 
   // Maximum total auto-recharge spend per calendar month.
@@ -112,9 +116,12 @@ message AutoRechargeConfig {
   int64 monthly_cap_micros = 4;
 
   // Running total of auto-recharge charges in the current month.
-  // Reset to 0 at the start of each calendar month.
+  // System-managed: incremented on each recharge, lazily reset when
+  // current_month rolls over.
   int64 current_month_charged_micros = 5;
 
-  // Stripe PaymentMethod ID for off-session charges. Empty until configured.
-  string default_payment_method_id = 6;
+  // Calendar month the current_month_charged_micros counter belongs to.
+  // Format: "YYYY-MM" in UTC (e.g., "2026-05"). System-managed: set by
+  // the recharge trigger on the first charge of a new month.
+  string current_month = 7;
 }

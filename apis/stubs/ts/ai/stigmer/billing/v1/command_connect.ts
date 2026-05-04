@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, ReportLlmCallUsageInput, ReportLlmCallUsageResponse } from "./io_pbjs";
+import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, ReportLlmCallUsageInput, ReportLlmCallUsageResponse, SetAutoRechargeConfigInput } from "./io_pbjs";
 import { BillingAccount } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { CreditLedgerEntry } from "./credit_pbjs";
@@ -123,6 +123,21 @@ export const BillingCommandController = {
       name: "createBillingPortalSession",
       I: CreateBillingPortalSessionInput,
       O: CreateBillingPortalSessionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Configure automatic credit recharge for an organization.
+     * Returns the updated BillingAccount with the new config applied.
+     *
+     * Enabling requires an active account with a saved payment method.
+     * Disabling preserves the threshold/amount/cap for easy re-enablement.
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.setAutoRechargeConfig
+     */
+    setAutoRechargeConfig: {
+      name: "setAutoRechargeConfig",
+      I: SetAutoRechargeConfigInput,
+      O: BillingAccount,
       kind: MethodKind.Unary,
     },
   }

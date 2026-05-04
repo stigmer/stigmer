@@ -9,6 +9,7 @@ import {
   GetCreditLedgerInputSchema,
   CreateCreditCheckoutSessionInputSchema,
   CreateBillingPortalSessionInputSchema,
+  SetAutoRechargeConfigInputSchema,
   type CreateCreditCheckoutSessionResponse,
   type CreateBillingPortalSessionResponse,
   type CreditLedgerResponse,
@@ -30,6 +31,15 @@ export interface CreateCheckoutSessionParams {
 export interface CreateBillingPortalSessionParams {
   readonly orgId: string;
   readonly returnUrl: string;
+}
+
+/** Parameters for configuring auto-recharge. */
+export interface SetAutoRechargeConfigParams {
+  readonly orgId: string;
+  readonly enabled: boolean;
+  readonly thresholdMicros: bigint;
+  readonly rechargeAmountMicros: bigint;
+  readonly monthlyCapMicros: bigint;
 }
 
 /** Parameters for querying the credit ledger. */
@@ -156,6 +166,31 @@ export class BillingClient {
         create(CreateBillingPortalSessionInputSchema, {
           orgId: params.orgId,
           returnUrl: params.returnUrl,
+        }),
+      );
+    } catch (e) {
+      throw wrapError(e);
+    }
+  }
+
+  /**
+   * Configure automatic credit recharge for an organization.
+   *
+   * When enabled, the billing system charges the account's saved
+   * payment method whenever the available balance drops below the
+   * configured threshold. Returns the updated BillingAccount.
+   */
+  async setAutoRechargeConfig(
+    params: SetAutoRechargeConfigParams,
+  ): Promise<BillingAccount> {
+    try {
+      return await this.command.setAutoRechargeConfig(
+        create(SetAutoRechargeConfigInputSchema, {
+          orgId: params.orgId,
+          enabled: params.enabled,
+          thresholdMicros: params.thresholdMicros,
+          rechargeAmountMicros: params.rechargeAmountMicros,
+          monthlyCapMicros: params.monthlyCapMicros,
         }),
       );
     } catch (e) {

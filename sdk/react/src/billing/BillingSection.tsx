@@ -12,6 +12,7 @@ import { useCreateCheckoutSession } from "./useCreateCheckoutSession";
 import { useCreateBillingPortalSession } from "./useCreateBillingPortalSession";
 import { CreditBalanceCard } from "./CreditBalanceCard";
 import { PaymentMethodCard } from "./PaymentMethodCard";
+import { AutoRechargeCard } from "./AutoRechargeCard";
 import { CreditPackGrid } from "./CreditPackGrid";
 import { CreditLedgerTable } from "./CreditLedgerTable";
 import { LowBalanceBanner } from "./LowBalanceBanner";
@@ -177,6 +178,17 @@ function BillingContent({
         accountStatus={account.status}
         isPortalLoading={isPortalLoading}
         onManage={() => openPortal(orgId)}
+      />
+
+      <AutoRechargeCard
+        orgId={orgId}
+        autoRecharge={account.autoRecharge}
+        hasPaymentMethod={
+          account.defaultPaymentMethod != null &&
+          account.defaultPaymentMethod.paymentMethodId !== ""
+        }
+        accountStatus={account.status}
+        onSaved={refetch}
       />
 
       <CreditPackGrid

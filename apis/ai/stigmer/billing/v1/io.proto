@@ -180,6 +180,31 @@ message CreateBillingPortalSessionResponse {
   string portal_url = 1;
 }
 
+// SetAutoRechargeConfigInput configures automatic credit top-up for an org.
+//
+// When enabled, the billing system charges the account's saved payment
+// method whenever the available balance drops below threshold_micros.
+// The charge amount is fixed per event (recharge_amount_micros), capped
+// at monthly_cap_micros per calendar month.
+//
+// Enabling requires an active account with a saved payment method.
+// Disabling preserves the configuration for easy re-enablement.
+message SetAutoRechargeConfigInput {
+  string org_id = 1 [(buf.validate.field).required = true];
+
+  // Whether to enable auto-recharge.
+  bool enabled = 2;
+
+  // Trigger recharge when available balance drops below this amount.
+  int64 threshold_micros = 3;
+
+  // Fixed amount to charge per recharge event.
+  int64 recharge_amount_micros = 4;
+
+  // Maximum total auto-recharge spend per calendar month.
+  int64 monthly_cap_micros = 5;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Query Inputs & Responses
 // ─────────────────────────────────────────────────────────────────────────────

@@ -40,7 +40,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "/v1/billing_account.proto\032\"ai/stigmer/bi" +
       "lling/v1/credit.proto\032\036ai/stigmer/billin" +
       "g/v1/io.proto\032+ai/stigmer/commons/rpc/me" +
-      "thod_options.proto2\300\t\n\030BillingCommandCon" +
+      "thod_options.proto2\202\013\n\030BillingCommandCon" +
       "troller\022\301\001\n\031getOrCreateBillingAccount\0225." +
       "ai.stigmer.billing.v1.GetOrCreateBilling" +
       "AccountInput\032%.ai.stigmer.billing.v1.Bil" +
@@ -70,11 +70,16 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "eBillingPortalSessionInput\0329.ai.stigmer." +
       "billing.v1.CreateBillingPortalSessionRes" +
       "ponse\"F\302\270\030B\010\034\020\036\"\006org_id*4unauthorized to" +
-      " manage billing for this organizationB\205\001" +
-      "B\014CommandProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.Bill" +
-      "ing.V1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\Stig" +
-      "mer\\Billing\\V1\\GPBMetadata\352\002\030Ai::Stigmer" +
-      "::Billing::V1b\006proto3"
+      " manage billing for this organization\022\277\001" +
+      "\n\025setAutoRechargeConfig\0221.ai.stigmer.bil" +
+      "ling.v1.SetAutoRechargeConfigInput\032%.ai." +
+      "stigmer.billing.v1.BillingAccount\"L\302\270\030H\010" +
+      "\034\020\036\"\006org_id*:unauthorized to manage auto" +
+      "-recharge for this organizationB\205\001B\014Comm" +
+      "andProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.Billing.V1" +
+      "\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\Stigmer\\Bi" +
+      "lling\\V1\\GPBMetadata\352\002\030Ai::Stigmer::Bill" +
+      "ing::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

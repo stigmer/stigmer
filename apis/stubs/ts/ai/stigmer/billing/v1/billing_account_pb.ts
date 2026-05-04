@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/v1/billing_account.proto.
  */
 export const file_ai_stigmer_billing_v1_billing_account: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvdjEvYmlsbGluZ19hY2NvdW50LnByb3RvEhVhaS5zdGlnbWVyLmJpbGxpbmcudjEi+gMKDkJpbGxpbmdBY2NvdW50EgoKAmlkGAEgASgJEg4KBm9yZ19pZBgCIAEoCRI7CgZzdGF0dXMYAyABKA4yKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuQmlsbGluZ0FjY291bnRTdGF0dXMSNQoHYmFsYW5jZRgEIAEoCzIkLmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVkaXRCYWxhbmNlEkAKDWF1dG9fcmVjaGFyZ2UYBSABKAsyKS5haS5zdGlnbWVyLmJpbGxpbmcudjEuQXV0b1JlY2hhcmdlQ29uZmlnEhoKEnN0cmlwZV9jdXN0b21lcl9pZBgGIAEoCRInCh9hbGxvd2VkX25lZ2F0aXZlX2JhbGFuY2VfbWljcm9zGAcgASgDEiQKHGxvd19iYWxhbmNlX3RocmVzaG9sZF9taWNyb3MYCCABKAMSSwoWZGVmYXVsdF9wYXltZW50X21ldGhvZBgLIAEoCzIrLmFpLnN0aWdtZXIuYmlsbGluZy52MS5QYXltZW50TWV0aG9kU3VtbWFyeRIuCgpjcmVhdGVkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKOAQoNQ3JlZGl0QmFsYW5jZRIYChBhdmFpbGFibGVfbWljcm9zGAEgASgDEhcKD3Jlc2VydmVkX21pY3JvcxgCIAEoAxIaChJwcm9tb3Rpb25hbF9taWNyb3MYAyABKAMSGAoQcHVyY2hhc2VkX21pY3JvcxgEIAEoAxIUCgx0b3RhbF9taWNyb3MYBSABKAMidAoUUGF5bWVudE1ldGhvZFN1bW1hcnkSGQoRcGF5bWVudF9tZXRob2RfaWQYASABKAkSDQoFYnJhbmQYAiABKAkSDQoFbGFzdDQYAyABKAkSEQoJZXhwX21vbnRoGAQgASgFEhAKCGV4cF95ZWFyGAUgASgFIsQBChJBdXRvUmVjaGFyZ2VDb25maWcSDwoHZW5hYmxlZBgBIAEoCBIYChB0aHJlc2hvbGRfbWljcm9zGAIgASgDEh4KFnJlY2hhcmdlX2Ftb3VudF9taWNyb3MYAyABKAMSGgoSbW9udGhseV9jYXBfbWljcm9zGAQgASgDEiQKHGN1cnJlbnRfbW9udGhfY2hhcmdlZF9taWNyb3MYBSABKAMSIQoZZGVmYXVsdF9wYXltZW50X21ldGhvZF9pZBgGIAEoCWIGcHJvdG8z", [file_ai_stigmer_billing_v1_enum, file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2JpbGxpbmcvdjEvYmlsbGluZ19hY2NvdW50LnByb3RvEhVhaS5zdGlnbWVyLmJpbGxpbmcudjEi+gMKDkJpbGxpbmdBY2NvdW50EgoKAmlkGAEgASgJEg4KBm9yZ19pZBgCIAEoCRI7CgZzdGF0dXMYAyABKA4yKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuQmlsbGluZ0FjY291bnRTdGF0dXMSNQoHYmFsYW5jZRgEIAEoCzIkLmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVkaXRCYWxhbmNlEkAKDWF1dG9fcmVjaGFyZ2UYBSABKAsyKS5haS5zdGlnbWVyLmJpbGxpbmcudjEuQXV0b1JlY2hhcmdlQ29uZmlnEhoKEnN0cmlwZV9jdXN0b21lcl9pZBgGIAEoCRInCh9hbGxvd2VkX25lZ2F0aXZlX2JhbGFuY2VfbWljcm9zGAcgASgDEiQKHGxvd19iYWxhbmNlX3RocmVzaG9sZF9taWNyb3MYCCABKAMSSwoWZGVmYXVsdF9wYXltZW50X21ldGhvZBgLIAEoCzIrLmFpLnN0aWdtZXIuYmlsbGluZy52MS5QYXltZW50TWV0aG9kU3VtbWFyeRIuCgpjcmVhdGVkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKOAQoNQ3JlZGl0QmFsYW5jZRIYChBhdmFpbGFibGVfbWljcm9zGAEgASgDEhcKD3Jlc2VydmVkX21pY3JvcxgCIAEoAxIaChJwcm9tb3Rpb25hbF9taWNyb3MYAyABKAMSGAoQcHVyY2hhc2VkX21pY3JvcxgEIAEoAxIUCgx0b3RhbF9taWNyb3MYBSABKAMidAoUUGF5bWVudE1ldGhvZFN1bW1hcnkSGQoRcGF5bWVudF9tZXRob2RfaWQYASABKAkSDQoFYnJhbmQYAiABKAkSDQoFbGFzdDQYAyABKAkSEQoJZXhwX21vbnRoGAQgASgFEhAKCGV4cF95ZWFyGAUgASgFIrgBChJBdXRvUmVjaGFyZ2VDb25maWcSDwoHZW5hYmxlZBgBIAEoCBIYChB0aHJlc2hvbGRfbWljcm9zGAIgASgDEh4KFnJlY2hhcmdlX2Ftb3VudF9taWNyb3MYAyABKAMSGgoSbW9udGhseV9jYXBfbWljcm9zGAQgASgDEiQKHGN1cnJlbnRfbW9udGhfY2hhcmdlZF9taWNyb3MYBSABKAMSFQoNY3VycmVudF9tb250aBgHIAEoCWIGcHJvdG8z", [file_ai_stigmer_billing_v1_enum, file_google_protobuf_timestamp]);
 
 /**
  * BillingAccount is the billing aggregate for an organization.
@@ -223,8 +223,12 @@ export const PaymentMethodSummarySchema: GenMessage<PaymentMethodSummary> = /*@_
 /**
  * AutoRechargeConfig controls automatic credit top-up behavior.
  *
- * When enabled, the billing system triggers a charge against the saved
- * payment method whenever the available balance drops below threshold_micros.
+ * When enabled, the billing system triggers a charge against the account's
+ * saved payment method (BillingAccount.default_payment_method) whenever
+ * the available balance drops below threshold_micros.
+ *
+ * Fields 1–4 are user-configurable via SetAutoRechargeConfig.
+ * Fields 5 and 7 are system-managed (updated by the recharge trigger).
  *
  * @generated from message ai.stigmer.billing.v1.AutoRechargeConfig
  */
@@ -244,7 +248,7 @@ export type AutoRechargeConfig = Message<"ai.stigmer.billing.v1.AutoRechargeConf
   thresholdMicros: bigint;
 
   /**
-   * Amount to charge per recharge event.
+   * Fixed amount to charge per recharge event.
    *
    * @generated from field: int64 recharge_amount_micros = 3;
    */
@@ -260,18 +264,21 @@ export type AutoRechargeConfig = Message<"ai.stigmer.billing.v1.AutoRechargeConf
 
   /**
    * Running total of auto-recharge charges in the current month.
-   * Reset to 0 at the start of each calendar month.
+   * System-managed: incremented on each recharge, lazily reset when
+   * current_month rolls over.
    *
    * @generated from field: int64 current_month_charged_micros = 5;
    */
   currentMonthChargedMicros: bigint;
 
   /**
-   * Stripe PaymentMethod ID for off-session charges. Empty until configured.
+   * Calendar month the current_month_charged_micros counter belongs to.
+   * Format: "YYYY-MM" in UTC (e.g., "2026-05"). System-managed: set by
+   * the recharge trigger on the first charge of a new month.
    *
-   * @generated from field: string default_payment_method_id = 6;
+   * @generated from field: string current_month = 7;
    */
-  defaultPaymentMethodId: string;
+  currentMonth: string;
 };
 
 /**

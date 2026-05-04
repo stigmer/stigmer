@@ -32,7 +32,7 @@ public interface AutoRechargeConfigOrBuilder extends
 
   /**
    * <pre>
-   * Amount to charge per recharge event.
+   * Fixed amount to charge per recharge event.
    * </pre>
    *
    * <code>int64 recharge_amount_micros = 3 [json_name = "rechargeAmountMicros"];</code>
@@ -54,7 +54,8 @@ public interface AutoRechargeConfigOrBuilder extends
   /**
    * <pre>
    * Running total of auto-recharge charges in the current month.
-   * Reset to 0 at the start of each calendar month.
+   * System-managed: incremented on each recharge, lazily reset when
+   * current_month rolls over.
    * </pre>
    *
    * <code>int64 current_month_charged_micros = 5 [json_name = "currentMonthChargedMicros"];</code>
@@ -64,21 +65,25 @@ public interface AutoRechargeConfigOrBuilder extends
 
   /**
    * <pre>
-   * Stripe PaymentMethod ID for off-session charges. Empty until configured.
+   * Calendar month the current_month_charged_micros counter belongs to.
+   * Format: "YYYY-MM" in UTC (e.g., "2026-05"). System-managed: set by
+   * the recharge trigger on the first charge of a new month.
    * </pre>
    *
-   * <code>string default_payment_method_id = 6 [json_name = "defaultPaymentMethodId"];</code>
-   * @return The defaultPaymentMethodId.
+   * <code>string current_month = 7 [json_name = "currentMonth"];</code>
+   * @return The currentMonth.
    */
-  java.lang.String getDefaultPaymentMethodId();
+  java.lang.String getCurrentMonth();
   /**
    * <pre>
-   * Stripe PaymentMethod ID for off-session charges. Empty until configured.
+   * Calendar month the current_month_charged_micros counter belongs to.
+   * Format: "YYYY-MM" in UTC (e.g., "2026-05"). System-managed: set by
+   * the recharge trigger on the first charge of a new month.
    * </pre>
    *
-   * <code>string default_payment_method_id = 6 [json_name = "defaultPaymentMethodId"];</code>
-   * @return The bytes for defaultPaymentMethodId.
+   * <code>string current_month = 7 [json_name = "currentMonth"];</code>
+   * @return The bytes for currentMonth.
    */
   com.google.protobuf.ByteString
-      getDefaultPaymentMethodIdBytes();
+      getCurrentMonthBytes();
 }

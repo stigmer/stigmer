@@ -85,18 +85,18 @@ public final class BillingAccountProto extends com.google.protobuf.GeneratedFile
       " \001(\tR\017paymentMethodId\022\024\n\005brand\030\002 \001(\tR\005br" +
       "and\022\024\n\005last4\030\003 \001(\tR\005last4\022\033\n\texp_month\030\004" +
       " \001(\005R\010expMonth\022\031\n\010exp_year\030\005 \001(\005R\007expYea" +
-      "r\"\271\002\n\022AutoRechargeConfig\022\030\n\007enabled\030\001 \001(" +
+      "r\"\243\002\n\022AutoRechargeConfig\022\030\n\007enabled\030\001 \001(" +
       "\010R\007enabled\022)\n\020threshold_micros\030\002 \001(\003R\017th" +
       "resholdMicros\0224\n\026recharge_amount_micros\030" +
       "\003 \001(\003R\024rechargeAmountMicros\022,\n\022monthly_c" +
       "ap_micros\030\004 \001(\003R\020monthlyCapMicros\022?\n\034cur" +
       "rent_month_charged_micros\030\005 \001(\003R\031current" +
-      "MonthChargedMicros\0229\n\031default_payment_me" +
-      "thod_id\030\006 \001(\tR\026defaultPaymentMethodIdB\214\001" +
-      "B\023BillingAccountProtoP\001\242\002\003ASB\252\002\025Ai.Stigm" +
-      "er.Billing.V1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!" +
-      "Ai\\Stigmer\\Billing\\V1\\GPBMetadata\352\002\030Ai::" +
-      "Stigmer::Billing::V1b\006proto3"
+      "MonthChargedMicros\022#\n\rcurrent_month\030\007 \001(" +
+      "\tR\014currentMonthB\214\001B\023BillingAccountProtoP" +
+      "\001\242\002\003ASB\252\002\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Sti" +
+      "gmer\\Billing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\" +
+      "GPBMetadata\352\002\030Ai::Stigmer::Billing::V1b\006" +
+      "proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -127,7 +127,7 @@ public final class BillingAccountProto extends com.google.protobuf.GeneratedFile
     internal_static_ai_stigmer_billing_v1_AutoRechargeConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_AutoRechargeConfig_descriptor,
-        new java.lang.String[] { "Enabled", "ThresholdMicros", "RechargeAmountMicros", "MonthlyCapMicros", "CurrentMonthChargedMicros", "DefaultPaymentMethodId", });
+        new java.lang.String[] { "Enabled", "ThresholdMicros", "RechargeAmountMicros", "MonthlyCapMicros", "CurrentMonthChargedMicros", "CurrentMonth", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.billing.v1.EnumProto.getDescriptor();
     com.google.protobuf.TimestampProto.getDescriptor();

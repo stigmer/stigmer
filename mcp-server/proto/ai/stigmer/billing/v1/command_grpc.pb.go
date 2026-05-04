@@ -26,6 +26,7 @@ const (
 	BillingCommandController_FinalizeExecution_FullMethodName           = "/ai.stigmer.billing.v1.BillingCommandController/finalizeExecution"
 	BillingCommandController_CreateCreditCheckoutSession_FullMethodName = "/ai.stigmer.billing.v1.BillingCommandController/createCreditCheckoutSession"
 	BillingCommandController_CreateBillingPortalSession_FullMethodName  = "/ai.stigmer.billing.v1.BillingCommandController/createBillingPortalSession"
+	BillingCommandController_SetAutoRechargeConfig_FullMethodName       = "/ai.stigmer.billing.v1.BillingCommandController/setAutoRechargeConfig"
 )
 
 // BillingCommandControllerClient is the client API for BillingCommandController service.
@@ -79,6 +80,12 @@ type BillingCommandControllerClient interface {
 	// Requires an existing Stripe Customer (created during first credit purchase).
 	// The portal allows users to add, update, or remove saved payment methods.
 	CreateBillingPortalSession(ctx context.Context, in *CreateBillingPortalSessionInput, opts ...grpc.CallOption) (*CreateBillingPortalSessionResponse, error)
+	// Configure automatic credit recharge for an organization.
+	// Returns the updated BillingAccount with the new config applied.
+	//
+	// Enabling requires an active account with a saved payment method.
+	// Disabling preserves the threshold/amount/cap for easy re-enablement.
+	SetAutoRechargeConfig(ctx context.Context, in *SetAutoRechargeConfigInput, opts ...grpc.CallOption) (*BillingAccount, error)
 }
 
 type billingCommandControllerClient struct {
@@ -159,6 +166,16 @@ func (c *billingCommandControllerClient) CreateBillingPortalSession(ctx context.
 	return out, nil
 }
 
+func (c *billingCommandControllerClient) SetAutoRechargeConfig(ctx context.Context, in *SetAutoRechargeConfigInput, opts ...grpc.CallOption) (*BillingAccount, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BillingAccount)
+	err := c.cc.Invoke(ctx, BillingCommandController_SetAutoRechargeConfig_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BillingCommandControllerServer is the server API for BillingCommandController service.
 // All implementations should embed UnimplementedBillingCommandControllerServer
 // for forward compatibility.
@@ -210,6 +227,12 @@ type BillingCommandControllerServer interface {
 	// Requires an existing Stripe Customer (created during first credit purchase).
 	// The portal allows users to add, update, or remove saved payment methods.
 	CreateBillingPortalSession(context.Context, *CreateBillingPortalSessionInput) (*CreateBillingPortalSessionResponse, error)
+	// Configure automatic credit recharge for an organization.
+	// Returns the updated BillingAccount with the new config applied.
+	//
+	// Enabling requires an active account with a saved payment method.
+	// Disabling preserves the threshold/amount/cap for easy re-enablement.
+	SetAutoRechargeConfig(context.Context, *SetAutoRechargeConfigInput) (*BillingAccount, error)
 }
 
 // UnimplementedBillingCommandControllerServer should be embedded to have
@@ -239,6 +262,9 @@ func (UnimplementedBillingCommandControllerServer) CreateCreditCheckoutSession(c
 }
 func (UnimplementedBillingCommandControllerServer) CreateBillingPortalSession(context.Context, *CreateBillingPortalSessionInput) (*CreateBillingPortalSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateBillingPortalSession not implemented")
+}
+func (UnimplementedBillingCommandControllerServer) SetAutoRechargeConfig(context.Context, *SetAutoRechargeConfigInput) (*BillingAccount, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetAutoRechargeConfig not implemented")
 }
 func (UnimplementedBillingCommandControllerServer) testEmbeddedByValue() {}
 
@@ -386,6 +412,24 @@ func _BillingCommandController_CreateBillingPortalSession_Handler(srv interface{
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BillingCommandController_SetAutoRechargeConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetAutoRechargeConfigInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingCommandControllerServer).SetAutoRechargeConfig(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingCommandController_SetAutoRechargeConfig_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingCommandControllerServer).SetAutoRechargeConfig(ctx, req.(*SetAutoRechargeConfigInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BillingCommandController_ServiceDesc is the grpc.ServiceDesc for BillingCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -420,6 +464,10 @@ var BillingCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "createBillingPortalSession",
 			Handler:    _BillingCommandController_CreateBillingPortalSession_Handler,
+		},
+		{
+			MethodName: "setAutoRechargeConfig",
+			Handler:    _BillingCommandController_SetAutoRechargeConfig_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
