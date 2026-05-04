@@ -101,8 +101,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-04 13:29
-**Current Task**: T04 (Wire SSE parser into CursorProxyController) — COMPLETED
-**Status**: T01–T04 all implemented. T01–T03 committed. T04 ready to commit.
+**Current Task**: T05 (Wire billing signal in BuildUpdateStatusResponseStep) — COMPLETED
+**Status**: T01–T05 all implemented. T01–T03 committed. T04–T05 ready to commit.
 
 ## Session Progress (2026-05-04)
 
@@ -233,34 +233,70 @@ When starting a new session:
 
 **Hypothesis test**: Created `CursorApiWireFormatTest` (live API calls) — H1 confirmed (API key works, `api.cursor.com/v1/models` returns JSON). H2-H7 blocked by missing GitHub integration on the service-account API key. Test deleted after findings captured.
 
+## Session Progress (2026-05-04 Session 5)
+
+### T05 Completed: Wire Billing Signal in BuildUpdateStatusResponseStep
+
+**Design Decision: Don't strip `llm_metrics`**:
+The research report established the trust boundary at the collection level — `LlmCallUsageRecord` (dedicated collection) is the billing authority. `AgentMessage.llm_metrics` is legacy runner-reported display data. No billing code reads `llm_metrics`. Stripping would break `UsageAggregationService` (used by three report RPCs) without adding billing trust value. Migration of those reports to `LlmCallUsageRecord`-based queries is tracked as a follow-up in the parent project's next-task.md.
+
+**Note on "DEPRECATED" proto comments**: The `UsageMetrics`, `ModelUsage`, and `LlmCallMetrics` types in `usage.proto` are labeled "DEPRECATED" but are actually legacy types that were never published to external consumers. They should be labeled "LEGACY — to be removed" and cleaned up after `UsageAggregationService` is migrated. This is tracked in the parent project's follow-up work items.
+
+**New: `ExecutionBillingService.querySignal(executionId)`**:
+- Read-only billing state check (no writes)
+- Looks up reservation → billing account → `CreditLedgerService.determineSignal(account, headroom)`
+- No reservation (OSS/billing not configured) → `continue_execution` (never blocks)
+- Account not found or suspended → `stop_execution`
+- Returns `BillingSignalResult` record (signal + human-readable reason)
+
+**New: `BillingSignalMapper`**:
+- Static mapper: `ExecutionBillingSignal` (billing domain) → `ExecutionControlSignal` (agentic domain)
+- Keeps bounded context boundary clean
+
+**`BuildUpdateStatusResponseStep` rewrite**:
+- Replaced TODO with full billing signal wiring
+- Injects `ExecutionBillingService`, calls `querySignal()` in try-catch
+- Maps via `BillingSignalMapper.toControlSignal()`
+- Logs STOP/WARNING signals at INFO level
+- Billing check failure → UNSPECIFIED (never breaks status updates)
+
+**Tests**: 3 new test files (15 tests total)
+- `BillingSignalMapperTest` — 4 enum mapping tests
+- `ExecutionBillingServiceQuerySignalTest` — 6 scenario tests (no reservation, account issues, healthy/low/exhausted balance, finalized reservation)
+- `BuildUpdateStatusResponseStepTest` — 5 tests (signal passthrough, graceful degradation, criticality)
+
+**BUILD.bazel**: 3 new test targets registered in T05 section
+
 ## Next Steps
 
-1. **T05**: Strip runner `llm_metrics` in cloud mode + wire billing signal in `BuildUpdateStatusResponseStep`
-2. **T06**: Dual-header proxy access control (independent — `execution_id` + `mcp_server_id`)
-3. **T07**: Pass `mcp_server_id` through classify workflow + caching
-4. **T08**: Deprecate runner-side billing calls
+1. **T06**: Dual-header proxy access control (independent — `execution_id` + `mcp_server_id`)
+2. **T07**: Pass `mcp_server_id` through classify workflow + caching
+3. **T08**: Deprecate runner-side billing calls
 
 ## Context for Resume
 - Per-call usage goes to `llm_call_usage_record` collection (billing source of truth)
 - Lightweight aggregate on execution doc: `status.usage_summary` (via $inc after each insert)
 - Runner observability: `status.observability` (timing/context data, display-only)
-- Legacy `UsageMetrics`/`ModelUsage`/`LlmCallMetrics` kept as deprecated (wire compat with runner's `AgentMessage.llm_metrics`)
+- Legacy `UsageMetrics`/`ModelUsage`/`LlmCallMetrics` kept for now (wire compat with runner's `AgentMessage.llm_metrics`). NOT deprecated — they are legacy types to be removed after `UsageAggregationService` migration. Tracked in parent project follow-up items.
 - `updateUsage` RPC is operator-only (FGA `can_update_usage` on `platform:stigmer`)
-- Response is empty — signals flow through `updateStatus`
+- Response is empty — billing signals flow through `updateStatus` → `ExecutionControlSignal`
 - T03 introduced `ProxyUsageReporter` and `ProxyCallSequencer` in `ai.stigmer.proxy.usage`
 - `LlmProxyController` now: tee stream, inject stream_options, capture timing, report usage
 - `CursorProxyController` now: conditional tee (SSE only), CursorUsageExtractor, report usage
 - Both proxy controllers share: `ProxyUsageReporter`, `ProxyCallSequencer`, `ProxyTiming`, `ParsedLlmUsage`
 - Cursor API uses `api.cursor.com` for REST + SSE, `api2.cursor.sh` for Connect RPC analytics
 - Cursor SDK `turn-ended` events provide per-turn usage; extractor accumulates across turns
+- T05: `BuildUpdateStatusResponseStep` now queries `ExecutionBillingService.querySignal()` on every runner heartbeat
+- T05: `BillingSignalMapper` bridges `ExecutionBillingSignal` (billing) → `ExecutionControlSignal` (agentic)
+- T05: No reservation = continue (OSS mode safe), account issues = stop, balance-based = delegated to `CreditLedgerService.determineSignal()`
 - Research reference: `research.llm-usage-capture-model/04.report.gpt.md`
 - Proto stubs need regeneration (`make protos`) after OSS proto lands
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T05" - Strip llm_metrics + billing signal
 - "Continue with T06" - Dual-header proxy access control
+- "Continue with T07" - Pass mcp_server_id through classify workflow + caching
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 
