@@ -214,23 +214,31 @@ if (hasArtifacts) {
 Behavior hook that subscribes to real-time `AgentExecution`
 updates via `stigmer.agentExecution.subscribe()`.
 
-Manages the full subscription lifecycle: connection establishment,
-snapshot streaming, terminal-phase detection, error handling, and
-manual reconnection. Each server message replaces the previous
-snapshot atomically — no delta merging.
+Manages the full subscription lifecycle through a finite state
+machine: connection establishment, rAF-coalesced snapshot streaming,
+terminal-phase detection, error handling, and manual reconnection.
 
-Pass `null` to skip subscribing (stable no-op). When `executionId`
-changes, the previous subscription is aborted and a fresh one begins.
+**Performance characteristics:**
+- Non-terminal snapshots are coalesced via `requestAnimationFrame`
+  so React commits at most once per display frame (~60Hz)
+- Terminal snapshots (complete/failed/cancelled) flush immediately
+- Store updates are wrapped in `startTransition` so thread renders
+  don't block urgent interactions (e.g. composer typing)
+
+Pass `null` as `executionId` to skip subscribing (stable no-op).
+When `executionId` changes, the previous subscription is aborted
+and a fresh one begins.
 
 **Signature**
 
 ```tsx
-function useExecutionStream(executionId: string | null): UseExecutionStreamReturn
+function useExecutionStream(executionId: string | null, options?: UseExecutionStreamOptions): UseExecutionStreamReturn
 ```
 
 <TypeTable
   type={{
     executionId: { type: "string | null", description: "", required: true },
+    options: { type: "UseExecutionStreamOptions", description: "" },
   }}
 />
 
@@ -242,7 +250,7 @@ function useExecutionStream(executionId: string | null): UseExecutionStreamRetur
     execution: { type: "AgentExecution | null", description: "Latest full execution snapshot from the stream, or `null` before the first update arrives." },
     isConnecting: { type: "boolean", description: "`true` after subscription starts but before the first snapshot arrives." },
     isStreaming: { type: "boolean", description: "`true` while receiving non-terminal updates from the server stream." },
-    phase: { type: "ExecutionPhase", description: "Convenience extraction of `execution.status.phase`.  Derived from `execution` via `useMemo` — always consistent with the current snapshot. Returns `EXECUTION_PHASE_UNSPECIFIED` when `execution` is `null`." },
+    phase: { type: "ExecutionPhase", description: "Convenience extraction of `execution.status.phase`.  Derived from `execution` — always consistent with the current snapshot. Returns `EXECUTION_PHASE_UNSPECIFIED` when `execution` is `null`." },
     reconnect: { type: "() => void", description: "Reset error state and re-establish the stream subscription.  Works in any lifecycle state — error, complete, or mid-stream. Uses the `connectKey` counter pattern consistent with `refetch()` in other SDK hooks." },
   }}
 />
@@ -418,38 +426,6 @@ if (hasWriteBacks) {
 
 
 ## Components
-
-### ApprovalCard
-
-Renders a pending tool-call approval request with the same visual
-structure as an expanded [`ToolCallItem`](#toolcallitem) in the history list.
-
-The compact header row matches the ToolCallItem layout:
-  [CategoryIcon] Label  primaryArg  [⏳ waiting Xm]
-
-Arguments are rendered through the shared [`ToolArgsView`](#toolargsview)
-dispatch, ensuring pixel-level parity between the approval
-preview and the post-execution detail view.
-
-**Props** — `ApprovalCardProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names for the root container." },
-    isSubmitting: { type: "boolean", description: "True while the RPC for this specific tool call is in flight." },
-    onSubmit: { type: "(action: ApprovalAction, comment?: string) => void", description: "Called when the user clicks Approve, Skip, or Reject. The consumer (typically MessageThread or a platform builder's custom thread) handles the RPC via useSubmitApproval.", required: true },
-    pendingApproval: { type: "PendingApproval", description: "The pending approval request to render.", required: true },
-  }}
-/>
-
-```tsx
-<ApprovalCard
-  pendingApproval={approval}
-  onSubmit={(action) => submitApproval(executionId, approval.toolCallId, action)}
-  isSubmitting={submittingIds.has(approval.toolCallId)}
-/>
-```
-
 
 ### ArtifactCard
 
@@ -701,29 +677,6 @@ const conv = useSessionConversation(sessionId, org);
 ```
 
 
-### ExecutionPhaseBadge
-
-Displays the lifecycle phase of an `AgentExecution` as an
-inline badge with a status icon and label.
-
-Renders nothing for `EXECUTION_PHASE_UNSPECIFIED`.
-
-All visual properties flow through `--stgm-*` tokens.
-
-**Props** — `ExecutionPhaseBadgeProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names for the root container." },
-    phase: { type: "ExecutionPhase", description: "The execution phase to display.", required: true },
-  }}
-/>
-
-```tsx
-<ExecutionPhaseBadge phase={ExecutionPhase.EXECUTION_COMPLETED} />
-```
-
-
 ### ExecutionProgress
 
 Displays execution lifecycle phase and, when present, the agent's
@@ -895,36 +848,6 @@ with structured formatting:
 ```
 
 
-### MessageEntry
-
-Renders a single message in the conversation thread.
-
-- `MESSAGE_HUMAN` — plain text with muted background
-- `MESSAGE_AI` — markdown-rendered via `react-markdown` + `remark-gfm`,
-  with a blinking cursor while streaming
-- `MESSAGE_THINKING` — collapsible thinking block with subdued styling,
-  collapsed by default showing a brief summary
-- `MESSAGE_SYSTEM` — small muted text
-- `MESSAGE_TOOL` / `UNSPECIFIED` — renders nothing (tool results are
-  consumed by [`ToolCallGroup`](#toolcallgroup))
-
-Purely presentational — no data fetching, no state.
-All visual properties flow through `--stgm-*` tokens.
-
-**Props** — `MessageEntryProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names for the root container." },
-    message: { type: "AgentMessage", description: "The agent message to render.", required: true },
-  }}
-/>
-
-```tsx
-<MessageEntry message={agentMessage} />
-```
-
-
 ### MessageThread
 
 Renders a continuous conversation thread from one or more
@@ -951,6 +874,7 @@ All visual properties flow through `--stgm-*` tokens.
     pendingUserMessage: { type: "string | null", description: "Optimistic user message shown at the end of the thread before the stream delivers the real message. Rendered as a human message with a sending indicator. Clear this prop once the stream delivers its first snapshot." },
     sandboxWorkspaceRoot: { type: "string", description: "Absolute sandbox workspace root (e.g. `/home/daytona/workspace`). When provided, shell commands and tool output normalize absolute sandbox paths to workspace-relative display paths.  Pass an empty string or omit for local sessions where paths are the user's own filesystem (no normalization needed)." },
     submittingApprovalIds: { type: "ReadonlySet<string>", description: "Set of tool call IDs currently being submitted for approval. Drives per-card loading state. Only meaningful when `onApprovalSubmit` is provided." },
+    virtualized: { type: "boolean", description: "Enable virtualized rendering for long conversations. Requires `react-virtuoso` to be installed as a peer dependency. When enabled, only visible items are rendered in the DOM, improving performance for threads with 100+ items." },
     workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries from the session spec. When provided, file paths in tool call rendering become interactive — git-sourced paths open on GitHub, local paths offer copy-to-clipboard.  Passed to FilePathContext for consumption by FilePathLink components deep in the tree." },
   }}
 />
@@ -1000,77 +924,27 @@ const sessionVariables = useSessionVariables();
 ```
 
 
-### SetupProgress
+### ThreadSkeleton
 
-Animated inline indicator shown in the message thread while an
-execution is in the `PENDING` phase and no AI messages have arrived.
+Pulse-animated skeleton that mimics the shape of a conversation
+thread. Renders alternating human-bubble and AI-response
+silhouettes so the loading state feels purposeful.
 
-**Server-driven mode** — when the backend reports
-`setup_progress.current_phase` through the execution stream, the
-component renders the server-reported label directly.
-
-**Timer-based fallback** — when `serverPhase` is absent (older
-backends), the component cycles through contextual status messages
-derived from the session configuration on a fixed interval.
+Intended as an opt-in building block for consumers to show while
+session data loads. Not auto-rendered by [`MessageThread`](#messagethread).
 
 All visual properties flow through `--stgm-*` tokens.
 
-**Props** — `SetupProgressProps`
+**Props** — `ThreadSkeletonProps`
 
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    serverPhase: { type: "string", description: "Server-reported setup phase label from `AgentExecutionStatus.setup_progress.current_phase`.  When non-empty, rendered directly — the timer-based fallback is bypassed.  When absent or empty (older backends that don't emit setup progress), the component falls back to the time-based step sequence derived from `workspaceEntries`." },
-    workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries from the session spec. When git-sourced entries are present, the fallback indicator shows workspace-specific messaging (e.g. \"Setting up workspace...\")." },
   }}
 />
 
 ```tsx
-// Server-driven (preferred)
-<SetupProgress serverPhase={execution.status?.setupProgress?.currentPhase} />
-
-// Fallback (no server phase available)
-<SetupProgress workspaceEntries={session.spec?.workspaceEntries} />
-```
-
-
-### SubAgentSection
-
-Renders a sub-agent execution as a nested mini-thread inside the
-parent conversation.
-
-When `collapsible` is `true` (default), the component renders as a
-bordered card with a clickable summary row. Cards start collapsed
-— the summary row shows status, subject, and duration at a glance.
-Users click to expand and see the nested messages and tool calls.
-
-Visually distinguished from [`ToolCallGroup`](#toolcallgroup) via a left
-accent border and bot icon, signaling delegated sub-agent work.
-
-When `collapsible` is `false`, the component renders flat content
-without a toggle — suitable for embedding inside a parent that
-already provides expand/collapse (e.g. [`ToolCallItem`](#toolcallitem)).
-
-Composes [`MessageEntry`](#messageentry) and [`ToolCallGroup`](#toolcallgroup) to display
-the sub-agent's internal messages and tool calls — the same
-building blocks used by the top-level [`MessageThread`](#messagethread).
-
-**Props** — `SubAgentSectionProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names for the root container." },
-    collapsible: { type: "boolean", description: "Whether to render as a collapsible card with expand/collapse toggle. Defaults to `true`.  Set to `false` when rendered inside a parent that already provides its own expand/collapse (e.g. ToolCallItem)." },
-    subAgentExecution: { type: "SubAgentExecution", description: "The sub-agent execution to render.", required: true },
-  }}
-/>
-
-```tsx
-// Standalone collapsible card (default)
-<SubAgentSection subAgentExecution={sub} />
-
-// Flat layout inside a parent expand/collapse
-<SubAgentSection subAgentExecution={sub} collapsible={false} />
+if (isLoading) return <ThreadSkeleton className="flex-1" />;
 ```
 
 
@@ -1178,39 +1052,6 @@ their own tool call UI.
 
 ```tsx
 <ToolCallDetail toolCall={toolCall} />
-```
-
-
-### ToolCallGroup
-
-Renders a summary line for a group of tool calls from a single
-AI turn. Click to expand and see individual tool calls.
-
-Two-level progressive disclosure:
-1. **Collapsed** — aggregate status icon + summary label.
-2. **Expanded** — list of [`ToolCallItem`](#toolcallitem) rows, each
-   expandable to show detail (args, result, error, timing) or
-   a nested sub-agent thread.
-
-Default summaries use active-voice phrasing ("Ran 3 tools",
-"Running 2 tools") with category-aware labels for single tools
-(e.g., "Shell: ls -la /tmp"). Platform builders can override
-via the `formatSummary` prop.
-
-**Props** — `ToolCallGroupProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names for the root container." },
-    defaultExpanded: { type: "boolean", description: "Initial expansion state. Defaults to `false`." },
-    formatSummary: { type: "(toolCalls: readonly ToolCall[]) => string", description: "Custom summary formatter. Receives the tool calls and returns a display string. When omitted, the component uses a default that shows the tool name for single calls and a count for multiple." },
-    subAgentExecutions: { type: "readonly SubAgentExecution[]", description: "Sub-agent executions from the parent `AgentExecutionStatus`. When provided, tool calls whose `id` matches a `SubAgentExecution.id` are rendered with a nested sub-agent thread instead of a standard detail panel." },
-    toolCalls: { type: "readonly ToolCall[]", description: "Tool calls in this group, ordered by invocation time.", required: true },
-  }}
-/>
-
-```tsx
-<ToolCallGroup toolCalls={message.toolCalls} />
 ```
 
 
@@ -1356,6 +1197,45 @@ const conv = useSessionConversation(sessionId, org);
 
 ## Types
 
+### ApprovalCard
+
+Renders a pending tool-call approval request with the same visual
+structure as an expanded [`ToolCallItem`](#toolcallitem) in the history list.
+
+The compact header row matches the ToolCallItem layout:
+  [CategoryIcon] Label  primaryArg  [⏳ waiting Xm]
+
+Arguments are rendered through the shared [`ToolArgsView`](#toolargsview)
+dispatch, ensuring pixel-level parity between the approval
+preview and the post-execution detail view.
+
+Wrapped in `React.memo` — structural sharing (T04) preserves the
+`PendingApproval` reference when unchanged, so approval cards
+skip re-renders during unrelated stream updates.
+
+```tsx
+<ApprovalCard
+  pendingApproval={approval}
+  onSubmit={(action) => submitApproval(executionId, approval.toolCallId, action)}
+  isSubmitting={submittingIds.has(approval.toolCallId)}
+/>
+```
+
+
+### ApprovalCardProps
+
+Props for [`ApprovalCard`](#approvalcard).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    isSubmitting: { type: "boolean", description: "True while the RPC for this specific tool call is in flight." },
+    onSubmit: { type: "(action: ApprovalAction, comment?: string) => void", description: "Called when the user clicks Approve, Skip, or Reject. The consumer (typically MessageThread or a platform builder's custom thread) handles the RPC via useSubmitApproval.", required: true },
+    pendingApproval: { type: "PendingApproval", description: "The pending approval request to render.", required: true },
+  }}
+/>
+
+
 ### ArtifactRenderMode
 
 Content rendering strategy for artifact file preview.
@@ -1409,6 +1289,32 @@ Resolved output of `UseCreateAgentExecutionReturn.create`.
   type={{
     executionId: { type: "string", description: "Server-assigned identifier for the newly created execution.", required: true },
     sessionId: { type: "string", description: "Session the execution belongs to (echoed from input).", required: true },
+  }}
+/>
+
+
+### ExecutionPhaseBadge
+
+Displays the lifecycle phase of an `AgentExecution` as an
+inline badge with a status icon and label.
+
+Renders nothing for `EXECUTION_PHASE_UNSPECIFIED`.
+
+All visual properties flow through `--stgm-*` tokens.
+
+```tsx
+<ExecutionPhaseBadge phase={ExecutionPhase.EXECUTION_COMPLETED} />
+```
+
+
+### ExecutionPhaseBadgeProps
+
+Props for [`ExecutionPhaseBadge`](#executionphasebadge).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    phase: { type: "ExecutionPhase", description: "The execution phase to display.", required: true },
   }}
 />
 
@@ -1619,6 +1525,43 @@ const shouldFetch = isTextArtifact(artifact) && Number(artifact.sizeBytes) < MAX
 ```
 
 
+### MessageEntry
+
+Renders a single message in the conversation thread.
+
+- `MESSAGE_HUMAN` — plain text with muted background
+- `MESSAGE_AI` — markdown-rendered via Streamdown with block-level
+  memoization and streaming-aware incomplete-syntax healing
+- `MESSAGE_THINKING` — collapsible thinking block with subdued styling,
+  collapsed by default showing a brief summary
+- `MESSAGE_SYSTEM` — small muted text
+- `MESSAGE_TOOL` / `UNSPECIFIED` — renders nothing (tool results are
+  consumed by [`ToolCallGroup`](#toolcallgroup))
+
+Wrapped in `React.memo` — structural sharing (T04) guarantees that
+unchanged messages keep the same object reference, so completed
+messages skip re-renders entirely during streaming.
+
+Purely presentational — no data fetching, no state.
+All visual properties flow through `--stgm-*` tokens.
+
+```tsx
+<MessageEntry message={agentMessage} />
+```
+
+
+### MessageEntryProps
+
+Props for [`MessageEntry`](#messageentry).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    message: { type: "AgentMessage", description: "The agent message to render.", required: true },
+  }}
+/>
+
+
 ### parseMcpResult
 
 Extracts human-readable content from an MCP tool result string.
@@ -1703,6 +1646,90 @@ to the user's personal environment for reuse across sessions.
 />
 
 
+### SetupProgress
+
+Animated inline indicator shown in the message thread while an
+execution is in the `PENDING` phase and no AI messages have arrived.
+
+**Server-driven mode** — when the backend reports
+`setup_progress.current_phase` through the execution stream, the
+component renders the server-reported label directly.
+
+**Timer-based fallback** — when `serverPhase` is absent (older
+backends), the component cycles through contextual status messages
+derived from the session configuration on a fixed interval.
+
+All visual properties flow through `--stgm-*` tokens.
+
+```tsx
+// Server-driven (preferred)
+<SetupProgress serverPhase={execution.status?.setupProgress?.currentPhase} />
+
+// Fallback (no server phase available)
+<SetupProgress workspaceEntries={session.spec?.workspaceEntries} />
+```
+
+
+### SetupProgressProps
+
+Props for [`SetupProgress`](#setupprogress).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    serverPhase: { type: "string", description: "Server-reported setup phase label from `AgentExecutionStatus.setup_progress.current_phase`.  When non-empty, rendered directly — the timer-based fallback is bypassed.  When absent or empty (older backends that don't emit setup progress), the component falls back to the time-based step sequence derived from `workspaceEntries`." },
+    workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries from the session spec. When git-sourced entries are present, the fallback indicator shows workspace-specific messaging (e.g. \"Setting up workspace...\")." },
+  }}
+/>
+
+
+### SubAgentSection
+
+Renders a sub-agent execution as a nested mini-thread inside the
+parent conversation.
+
+When `collapsible` is `true` (default), the component renders as a
+bordered card with a clickable summary row. Cards start collapsed
+— the summary row shows status, subject, and duration at a glance.
+Users click to expand and see the nested messages and tool calls.
+
+Visually distinguished from [`ToolCallGroup`](#toolcallgroup) via a left
+accent border and bot icon, signaling delegated sub-agent work.
+
+When `collapsible` is `false`, the component renders flat content
+without a toggle — suitable for embedding inside a parent that
+already provides expand/collapse (e.g. [`ToolCallItem`](#toolcallitem)).
+
+Composes [`MessageEntry`](#messageentry) and [`ToolCallGroup`](#toolcallgroup) to display
+the sub-agent's internal messages and tool calls — the same
+building blocks used by the top-level [`MessageThread`](#messagethread).
+
+Wrapped in `React.memo` — structural sharing (T04) preserves the
+`SubAgentExecution` reference when the sub-agent's state is
+unchanged, so completed sub-agents skip re-renders entirely.
+
+```tsx
+// Standalone collapsible card (default)
+<SubAgentSection subAgentExecution={sub} />
+
+// Flat layout inside a parent expand/collapse
+<SubAgentSection subAgentExecution={sub} collapsible={false} />
+```
+
+
+### SubAgentSectionProps
+
+Props for [`SubAgentSection`](#subagentsection).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    collapsible: { type: "boolean", description: "Whether to render as a collapsible card with expand/collapse toggle. Defaults to `true`.  Set to `false` when rendered inside a parent that already provides its own expand/collapse (e.g. ToolCallItem)." },
+    subAgentExecution: { type: "SubAgentExecution", description: "The sub-agent execution to render.", required: true },
+  }}
+/>
+
+
 ### todoCompletionSummary
 
 Builds a compact completion summary string (e.g. "3/5 completed").
@@ -1711,4 +1738,44 @@ Returns `null` when there are no todos.
 ```tsx
 function todoCompletionSummary(todos: object | undefined): string | null
 ```
+
+
+### ToolCallGroup
+
+Renders a summary line for a group of tool calls from a single
+AI turn. Click to expand and see individual tool calls.
+
+Two-level progressive disclosure:
+1. **Collapsed** — aggregate status icon + summary label.
+2. **Expanded** — list of [`ToolCallItem`](#toolcallitem) rows, each
+   expandable to show detail (args, result, error, timing) or
+   a nested sub-agent thread.
+
+Default summaries use active-voice phrasing ("Ran 3 tools",
+"Running 2 tools") with category-aware labels for single tools
+(e.g., "Shell: ls -la /tmp"). Platform builders can override
+via the `formatSummary` prop.
+
+Wrapped in `React.memo` with a custom comparator that checks
+`toolCalls` elements by reference (structural sharing keeps
+individual `ToolCall` objects stable for unchanged calls).
+
+```tsx
+<ToolCallGroup toolCalls={message.toolCalls} />
+```
+
+
+### ToolCallGroupProps
+
+Props for [`ToolCallGroup`](#toolcallgroup).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    defaultExpanded: { type: "boolean", description: "Initial expansion state. Defaults to `false`." },
+    formatSummary: { type: "(toolCalls: readonly ToolCall[]) => string", description: "Custom summary formatter. Receives the tool calls and returns a display string. When omitted, the component uses a default that shows the tool name for single calls and a count for multiple." },
+    subAgentExecutions: { type: "readonly SubAgentExecution[]", description: "Sub-agent executions from the parent `AgentExecutionStatus`. When provided, tool calls whose `id` matches a `SubAgentExecution.id` are rendered with a nested sub-agent thread instead of a standard detail panel." },
+    toolCalls: { type: "readonly ToolCall[]", description: "Tool calls in this group, ordered by invocation time.", required: true },
+  }}
+/>
 

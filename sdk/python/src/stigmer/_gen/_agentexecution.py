@@ -39,7 +39,7 @@ class AgentExecutionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def update_status(self, input: io_pb2.AgentExecutionUpdateStatusInput) -> api_pb2.AgentExecution:
+    def update_status(self, input: io_pb2.AgentExecutionUpdateStatusInput) -> io_pb2.UpdateStatusResponse:
         try:
             return self._command.updateStatus(input)
         except grpc.RpcError as e:

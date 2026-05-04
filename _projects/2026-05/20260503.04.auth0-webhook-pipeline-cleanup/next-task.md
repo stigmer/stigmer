@@ -71,7 +71,7 @@ Drop this file into your conversation to quickly resume work on this project.
 2. Create PRs for both repos
 3. Manual ops: Disable/delete Auth0 Log Stream "Stigmer User Signup Events" in Auth0 dashboard
 4. Manual ops: Delete the Cloudflare Worker deployment from Cloudflare dashboard
-5. Future: Planton console can migrate `useIdentityAccountGuard` to use `useIdentityAccountGate` from `@stigmer/react`
+5. Note: `useIdentityAccountGate` is for direct Auth0 signups on the Stigmer console only — Planton uses federated provisioning (`createFederatedAccount`) and should NOT use this hook
 
 ## Essential Files to Review
 

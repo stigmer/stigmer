@@ -92,13 +92,6 @@ class StatusBuilder:
         self._secret_keys: set[str] | None = None
         self._workspace_root: str = ""
 
-        # Billing: set externally by execute_graphton when billing is active.
-        # The billing_reporter fires reportLlmCallUsage after each model call.
-        # The billing_stop middleware is activated on STOP signal.
-        self._billing_reporter: Any | None = None
-        self._billing_stop: Any | None = None
-        self._billing_sequence: int = 0
-
     @property
     def current_status(self) -> Any:
         return self.state.proto
@@ -195,9 +188,6 @@ class StatusBuilder:
                     f"run_id={event.get('run_id', '')}"
                 )
 
-            # Billing: report usage after each on_chat_model_end
-            if event_type == "on_chat_model_end" and self._billing_reporter is not None:
-                await self._report_billing_usage()
 
     # ── Handler Delegations ───────────────────────────────────────────────
 
@@ -217,44 +207,6 @@ class StatusBuilder:
         chat_model_handlers.handle_chat_model_end(self, event, namespace)
 
     # ── Billing Usage Reporting ───────────────────────────────────────────
-
-    async def _report_billing_usage(self) -> None:
-        """Report the most recent LLM call to the billing service.
-
-        Uses a global sequence counter across all scopes (main + sub-agents)
-        since the billing reservation is per-execution, not per-scope.
-        The most recent call's metrics are read from the UsageTracker.
-        """
-        from graphton.core.model_registry import ModelRegistry
-
-        tracker = self._usage_tracker
-        all_calls = []
-        for scope_state in tracker._scopes.values():
-            all_calls.extend(scope_state.llm_calls)
-
-        if not all_calls:
-            return
-
-        latest_call = all_calls[-1]
-        self._billing_sequence += 1
-
-        metadata = ModelRegistry.get_or_default(latest_call.model)
-        cost_tier = metadata.cost_tier.value if hasattr(metadata.cost_tier, "value") else "economy"
-        provider_cost_micros = int(latest_call.estimated_cost_usd * 1_000_000)
-
-        result = await self._billing_reporter.report_usage(
-            sequence=self._billing_sequence,
-            model=latest_call.model,
-            cost_tier=cost_tier,
-            provider_cost_micros=provider_cost_micros,
-            input_tokens=latest_call.input_tokens,
-            output_tokens=latest_call.output_tokens,
-            cache_creation_tokens=latest_call.cache_creation_tokens,
-            cache_read_tokens=latest_call.cache_read_tokens,
-        )
-
-        if result is not None and result.should_stop and self._billing_stop is not None:
-            self._billing_stop.activate()
 
     # ── Streaming Buffer Delegations ──────────────────────────────────────
 

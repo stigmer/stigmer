@@ -386,6 +386,7 @@ async def _execute_graphton_impl(
             is_cancelled_fn=activity.is_cancelled,
             slim_status_fn=_slim_status_for_temporal,
             logger=activity_logger,
+            graceful_stop=getattr(setup.agent_graph, "_graphton_graceful_stop", None),
             on_file_written=setup.inline_publisher.publish,
             on_git_file_modified=(
                 setup.writeback_coordinator.on_file_modified

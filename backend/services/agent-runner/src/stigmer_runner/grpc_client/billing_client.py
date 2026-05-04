@@ -19,7 +19,6 @@ import logging
 from dataclasses import dataclass
 
 import grpc
-
 from ai.stigmer.billing.v1 import command_pb2_grpc
 from ai.stigmer.billing.v1.enum_pb2 import ExecutionBillingSignal
 from ai.stigmer.billing.v1.io_pb2 import (

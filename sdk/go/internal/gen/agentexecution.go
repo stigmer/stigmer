@@ -35,7 +35,7 @@ func (a *AgentExecutionClient) Update(ctx context.Context, input *AgentExecution
 	return resp, wrapErr(err)
 }
 
-func (a *AgentExecutionClient) UpdateStatus(ctx context.Context, input *agentexecutionv1.AgentExecutionUpdateStatusInput) (*agentexecutionv1.AgentExecution, error) {
+func (a *AgentExecutionClient) UpdateStatus(ctx context.Context, input *agentexecutionv1.AgentExecutionUpdateStatusInput) (*agentexecutionv1.UpdateStatusResponse, error) {
 	resp, err := a.command.UpdateStatus(ctx, input)
 	return resp, wrapErr(err)
 }

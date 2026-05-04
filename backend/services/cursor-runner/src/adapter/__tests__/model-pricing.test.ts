@@ -72,6 +72,7 @@ describe("computeTurnCost", () => {
   const pricing: CursorModelPricing = {
     model: "test-model",
     displayName: "Test Model",
+    costTier: "standard",
     inputPricePerMillion: 1.0,
     outputPricePerMillion: 2.0,
     cacheWritePricePerMillion: 3.0,

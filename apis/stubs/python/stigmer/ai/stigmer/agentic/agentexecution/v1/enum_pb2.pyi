@@ -70,6 +70,12 @@ class ToolCallStreamingSource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper)
     TOOL_CALL_STREAMING_SOURCE_INPUT: _ClassVar[ToolCallStreamingSource]
     TOOL_CALL_STREAMING_SOURCE_OUTPUT: _ClassVar[ToolCallStreamingSource]
 
+class ExecutionControlSignal(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    EXECUTION_CONTROL_SIGNAL_UNSPECIFIED: _ClassVar[ExecutionControlSignal]
+    EXECUTION_CONTROL_SIGNAL_STOP: _ClassVar[ExecutionControlSignal]
+    EXECUTION_CONTROL_SIGNAL_WARNING: _ClassVar[ExecutionControlSignal]
+
 class ApprovalAction(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     APPROVAL_ACTION_UNSPECIFIED: _ClassVar[ApprovalAction]
@@ -118,6 +124,9 @@ mid_execution: SummarizationSource
 TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED: ToolCallStreamingSource
 TOOL_CALL_STREAMING_SOURCE_INPUT: ToolCallStreamingSource
 TOOL_CALL_STREAMING_SOURCE_OUTPUT: ToolCallStreamingSource
+EXECUTION_CONTROL_SIGNAL_UNSPECIFIED: ExecutionControlSignal
+EXECUTION_CONTROL_SIGNAL_STOP: ExecutionControlSignal
+EXECUTION_CONTROL_SIGNAL_WARNING: ExecutionControlSignal
 APPROVAL_ACTION_UNSPECIFIED: ApprovalAction
 APPROVAL_ACTION_APPROVE: ApprovalAction
 APPROVAL_ACTION_SKIP: ApprovalAction

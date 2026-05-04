@@ -44,7 +44,7 @@ service AgentExecutionCommandController {
   // who owns the execution through the session ownership chain.
   // Optimized for frequent status updates and merges status fields with
   // existing state.
-  rpc updateStatus(AgentExecutionUpdateStatusInput) returns (AgentExecution) {
+  rpc updateStatus(AgentExecutionUpdateStatusInput) returns (UpdateStatusResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
     option (ai.stigmer.commons.rpc.config).field_path = "execution_id";

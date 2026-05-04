@@ -26,7 +26,7 @@ import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agente
 import { SetupProgressSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ExecutionPhase, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionControlSignal, ExecutionPhase, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { LlmCallMetrics } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import type { SDKMessage } from "@cursor/sdk";
 
@@ -45,8 +45,7 @@ import { buildEnhancedPrompt, buildReinvocationPrompt } from "../adapter/prompt-
 import { writeHooksToWorkspace } from "../hitl/workspace-setup.js";
 import { buildApprovalState } from "../hitl/approval-state.js";
 import { setInterceptorExecutionId } from "../proxy/fetch-interceptor.js";
-import { resolveModelId, getCursorModelPricing } from "../adapter/model-pricing.js";
-import { BillingClient } from "../client/billing-client.js";
+import { resolveModelId } from "../adapter/model-pricing.js";
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -208,14 +207,7 @@ async function executeCursor(
     const deltaEnricher = new DeltaEnricher();
     const todoTracker = new TodoTracker(status.todos);
 
-    // Billing: report per-turn usage to billing service
-    const billingClient = new BillingClient(
-      client.transport,
-      executionId,
-      "cursor",
-    );
-    const pricing = getCursorModelPricing(validatedModel);
-    let billingExhausted = false;
+    let platformStopSignaled = false;
 
     const run = await agent.send(prompt, {
       onDelta: ({ update }) => {
@@ -253,39 +245,25 @@ async function executeCursor(
         const metrics = pendingMetrics.shift()!;
         stampMetricsOnLastAiMessage(status.messages, metrics);
 
-        // Report each turn's usage to billing service
-        if (!billingExhausted) {
-          const billingReport = await billingClient.reportUsage({
-            model: validatedModel,
-            costTier: pricing.costTier,
-            providerCostMicros: Math.round(metrics.estimatedCostUsd * 1_000_000),
-            inputTokens: metrics.inputTokens,
-            outputTokens: metrics.outputTokens,
-            cacheCreationTokens: metrics.cacheCreationTokens,
-            cacheReadTokens: metrics.cacheReadTokens,
-          });
-          if (BillingClient.shouldStop(billingReport)) {
-            billingExhausted = true;
-            console.warn(
-              `ExecuteCursor billing exhausted: execution=${executionId}, will stop after current stream`,
-            );
-          }
-        }
+
       }
 
       const shouldPersist = eventCount % 20 === 0 || deltaEnricher.isDirty || todoTracker.isDirty;
       if (shouldPersist) {
-        await persistStatus(client, executionId, status);
+        const signal = await persistStatus(client, executionId, status);
         deltaEnricher.markPersisted();
         todoTracker.markPersisted();
         heartbeat();
+        if (signal === ExecutionControlSignal.STOP) {
+          platformStopSignaled = true;
+          console.warn(
+            `ExecuteCursor platform stop signal received: execution=${executionId}`,
+          );
+        }
       }
 
-      // Billing exhaustion: stop consuming the stream after current events are processed.
-      // The agent's current turn will complete (bounded over-consumption), but we won't
-      // wait for additional turns. The workflow will finalize the reservation.
-      if (billingExhausted) {
-        console.log(`ExecuteCursor stopping stream due to billing exhaustion: execution=${executionId}`);
+      if (platformStopSignaled) {
+        console.log(`ExecuteCursor stopping stream due to platform stop signal: execution=${executionId}`);
         break;
       }
     }
@@ -302,18 +280,17 @@ async function executeCursor(
       stampMetricsOnLastAiMessage(status.messages, metrics);
     }
 
-    // Phase 11b: Handle billing exhaustion early exit
-    if (billingExhausted) {
+    // Phase 11b: Handle platform stop signal early exit
+    if (platformStopSignaled) {
       status.phase = ExecutionPhase.EXECUTION_COMPLETED;
       status.completedAt = utcTimestamp();
       status.messages.push(create(AgentMessageSchema, {
         type: MessageType.MESSAGE_SYSTEM,
-        content: "Execution stopped: your credit balance has been exhausted. " +
-                 "Please purchase more credits to continue.",
+        content: "Execution stopped by the platform.",
         timestamp: utcTimestamp(),
       }));
       await persistStatus(client, executionId, status);
-      console.log(`ExecuteCursor completed (billing exhausted): execution=${executionId}`);
+      console.log(`ExecuteCursor completed (platform stop): execution=${executionId}`);
       return slimStatus(status);
     }
 
@@ -427,11 +404,13 @@ async function persistStatus(
   client: StigmerClient,
   executionId: string,
   status: AgentExecutionStatus,
-): Promise<void> {
+): Promise<ExecutionControlSignal> {
   try {
-    await client.updateStatus(executionId, status);
+    const response = await client.updateStatus(executionId, status);
+    return response.signal;
   } catch (err) {
     console.error(`Failed to persist status for ${executionId}:`, err);
+    return ExecutionControlSignal.UNSPECIFIED;
   }
 }
 

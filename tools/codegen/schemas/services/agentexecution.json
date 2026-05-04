@@ -27,8 +27,8 @@
           "name": "UpdateStatus",
           "inputType": "AgentExecutionUpdateStatusInput",
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput",
-          "outputType": "AgentExecution",
-          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
+          "outputType": "UpdateStatusResponse",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse",
           "description": "Update an agent execution's status.\n\n @internal\n Used by agent-runner to send progressive status updates (messages,\n tool_calls, phase, etc.). The runner authenticates as the triggering user,\n who owns the execution through the session ownership chain.\n Optimized for frequent status updates and merges status fields with\n existing state."
         },
         {
@@ -210,6 +210,39 @@
           "validation": {
             "required": true
           }
+        }
+      ]
+    },
+    {
+      "name": "UpdateStatusResponse",
+      "description": "UpdateStatusResponse is the lightweight response returned by the\n updateStatus RPC. It replaces the previous AgentExecution return type\n to avoid serializing the full resource on every progressive update\n (~every 2-3 seconds during streaming).\n\n The response carries an optional execution control signal from the\n platform back to the runner. The signal is generic — the runner acts\n on STOP / WARNING without knowing the source (billing, admin, budget).",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Signal",
+          "jsonName": "signal",
+          "protoField": "signal",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal",
+            "enumValues": [
+              "EXECUTION_CONTROL_SIGNAL_STOP",
+              "EXECUTION_CONTROL_SIGNAL_WARNING"
+            ]
+          },
+          "description": "Platform-to-runner directive. UNSPECIFIED means continue normally.",
+          "required": false
+        },
+        {
+          "name": "SignalReason",
+          "jsonName": "signalReason",
+          "protoField": "signal_reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable reason for the signal (optional).\n Logged by the runner and may be surfaced to the user in the stop summary.",
+          "required": false
         }
       ]
     },
@@ -1204,6 +1237,23 @@
     }
   ],
   "enumTypes": [
+    {
+      "name": "ExecutionControlSignal",
+      "description": "ExecutionControlSignal is a platform-to-runner directive returned by the\n updateStatus RPC. The runner inspects this signal after every status\n update and acts accordingly.\n\n Signal sources are opaque to the runner — the platform may set STOP due\n to credit exhaustion, an admin kill, a user-configured budget cap, or any\n future enforcement mechanism. The runner does not know or care about the\n source; it only reacts to the signal value.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal",
+      "values": [
+        {
+          "name": "EXECUTION_CONTROL_SIGNAL_STOP",
+          "number": 1,
+          "description": "Execution must stop gracefully. The runner should block further tool\n calls and give the model one final turn to produce a summary."
+        },
+        {
+          "name": "EXECUTION_CONTROL_SIGNAL_WARNING",
+          "number": 2,
+          "description": "Informational warning (e.g. low credit balance). The runner logs the\n warning and continues execution."
+        }
+      ]
+    },
     {
       "name": "ApprovalAction",
       "description": "ApprovalAction represents the user's decision on an approval request.\n\n ## Action Semantics\n\n - APPROVE: Execute the tool normally, continue execution\n - SKIP: Return \"skipped by user\" message to LLM, continue execution\n - REJECT: Fail the execution immediately with rejection error\n\n ## LLM Behavior on Skip\n\n When a tool is skipped, the LLM receives a message like:\n \"Tool 'delete_repository' was skipped by user. Please proceed without this operation.\"\n This allows the LLM to adapt its plan while preserving execution continuity.\n\n ## Usage\n\n Used in:\n - ToolCall.approval_action: Records the decision made\n - SubmitApprovalInput.action: User's submitted decision",
