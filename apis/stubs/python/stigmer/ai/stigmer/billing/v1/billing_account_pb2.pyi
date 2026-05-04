@@ -64,17 +64,17 @@ class PaymentMethodSummary(_message.Message):
     def __init__(self, payment_method_id: _Optional[str] = ..., brand: _Optional[str] = ..., last4: _Optional[str] = ..., exp_month: _Optional[int] = ..., exp_year: _Optional[int] = ...) -> None: ...
 
 class AutoRechargeConfig(_message.Message):
-    __slots__ = ("enabled", "threshold_micros", "recharge_amount_micros", "monthly_cap_micros", "current_month_charged_micros", "default_payment_method_id")
+    __slots__ = ("enabled", "threshold_micros", "recharge_amount_micros", "monthly_cap_micros", "current_month_charged_micros", "current_month")
     ENABLED_FIELD_NUMBER: _ClassVar[int]
     THRESHOLD_MICROS_FIELD_NUMBER: _ClassVar[int]
     RECHARGE_AMOUNT_MICROS_FIELD_NUMBER: _ClassVar[int]
     MONTHLY_CAP_MICROS_FIELD_NUMBER: _ClassVar[int]
     CURRENT_MONTH_CHARGED_MICROS_FIELD_NUMBER: _ClassVar[int]
-    DEFAULT_PAYMENT_METHOD_ID_FIELD_NUMBER: _ClassVar[int]
+    CURRENT_MONTH_FIELD_NUMBER: _ClassVar[int]
     enabled: bool
     threshold_micros: int
     recharge_amount_micros: int
     monthly_cap_micros: int
     current_month_charged_micros: int
-    default_payment_method_id: str
-    def __init__(self, enabled: bool = ..., threshold_micros: _Optional[int] = ..., recharge_amount_micros: _Optional[int] = ..., monthly_cap_micros: _Optional[int] = ..., current_month_charged_micros: _Optional[int] = ..., default_payment_method_id: _Optional[str] = ...) -> None: ...
+    current_month: str
+    def __init__(self, enabled: bool = ..., threshold_micros: _Optional[int] = ..., recharge_amount_micros: _Optional[int] = ..., monthly_cap_micros: _Optional[int] = ..., current_month_charged_micros: _Optional[int] = ..., current_month: _Optional[str] = ...) -> None: ...

@@ -49,6 +49,7 @@ export {
   BillingClient,
   type CreateCheckoutSessionParams,
   type CreateBillingPortalSessionParams,
+  type SetAutoRechargeConfigParams,
   type GetCreditLedgerParams,
 } from "./billing";
 

@@ -87,4 +87,16 @@ service BillingCommandController {
     option (ai.stigmer.commons.rpc.config).field_path = "org_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage billing for this organization";
   }
+
+  // Configure automatic credit recharge for an organization.
+  // Returns the updated BillingAccount with the new config applied.
+  //
+  // Enabling requires an active account with a saved payment method.
+  // Disabling preserves the threshold/amount/cap for easy re-enablement.
+  rpc setAutoRechargeConfig(SetAutoRechargeConfigInput) returns (BillingAccount) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
+    option (ai.stigmer.commons.rpc.config).field_path = "org_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage auto-recharge for this organization";
+  }
 }

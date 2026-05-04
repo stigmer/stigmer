@@ -341,26 +341,33 @@ func (x *PaymentMethodSummary) GetExpYear() int32 {
 
 // AutoRechargeConfig controls automatic credit top-up behavior.
 //
-// When enabled, the billing system triggers a charge against the saved
-// payment method whenever the available balance drops below threshold_micros.
+// When enabled, the billing system triggers a charge against the account's
+// saved payment method (BillingAccount.default_payment_method) whenever
+// the available balance drops below threshold_micros.
+//
+// Fields 1–4 are user-configurable via SetAutoRechargeConfig.
+// Fields 5 and 7 are system-managed (updated by the recharge trigger).
 type AutoRechargeConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Whether auto-recharge is enabled.
 	Enabled bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Trigger recharge when available balance drops below this amount.
 	ThresholdMicros int64 `protobuf:"varint,2,opt,name=threshold_micros,json=thresholdMicros,proto3" json:"threshold_micros,omitempty"`
-	// Amount to charge per recharge event.
+	// Fixed amount to charge per recharge event.
 	RechargeAmountMicros int64 `protobuf:"varint,3,opt,name=recharge_amount_micros,json=rechargeAmountMicros,proto3" json:"recharge_amount_micros,omitempty"`
 	// Maximum total auto-recharge spend per calendar month.
 	// Prevents runaway charges from aggressive usage patterns.
 	MonthlyCapMicros int64 `protobuf:"varint,4,opt,name=monthly_cap_micros,json=monthlyCapMicros,proto3" json:"monthly_cap_micros,omitempty"`
 	// Running total of auto-recharge charges in the current month.
-	// Reset to 0 at the start of each calendar month.
+	// System-managed: incremented on each recharge, lazily reset when
+	// current_month rolls over.
 	CurrentMonthChargedMicros int64 `protobuf:"varint,5,opt,name=current_month_charged_micros,json=currentMonthChargedMicros,proto3" json:"current_month_charged_micros,omitempty"`
-	// Stripe PaymentMethod ID for off-session charges. Empty until configured.
-	DefaultPaymentMethodId string `protobuf:"bytes,6,opt,name=default_payment_method_id,json=defaultPaymentMethodId,proto3" json:"default_payment_method_id,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	// Calendar month the current_month_charged_micros counter belongs to.
+	// Format: "YYYY-MM" in UTC (e.g., "2026-05"). System-managed: set by
+	// the recharge trigger on the first charge of a new month.
+	CurrentMonth  string `protobuf:"bytes,7,opt,name=current_month,json=currentMonth,proto3" json:"current_month,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AutoRechargeConfig) Reset() {
@@ -428,9 +435,9 @@ func (x *AutoRechargeConfig) GetCurrentMonthChargedMicros() int64 {
 	return 0
 }
 
-func (x *AutoRechargeConfig) GetDefaultPaymentMethodId() string {
+func (x *AutoRechargeConfig) GetCurrentMonth() string {
 	if x != nil {
-		return x.DefaultPaymentMethodId
+		return x.CurrentMonth
 	}
 	return ""
 }
@@ -466,14 +473,14 @@ const file_ai_stigmer_billing_v1_billing_account_proto_rawDesc = "" +
 	"\x05brand\x18\x02 \x01(\tR\x05brand\x12\x14\n" +
 	"\x05last4\x18\x03 \x01(\tR\x05last4\x12\x1b\n" +
 	"\texp_month\x18\x04 \x01(\x05R\bexpMonth\x12\x19\n" +
-	"\bexp_year\x18\x05 \x01(\x05R\aexpYear\"\xb9\x02\n" +
+	"\bexp_year\x18\x05 \x01(\x05R\aexpYear\"\xa3\x02\n" +
 	"\x12AutoRechargeConfig\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12)\n" +
 	"\x10threshold_micros\x18\x02 \x01(\x03R\x0fthresholdMicros\x124\n" +
 	"\x16recharge_amount_micros\x18\x03 \x01(\x03R\x14rechargeAmountMicros\x12,\n" +
 	"\x12monthly_cap_micros\x18\x04 \x01(\x03R\x10monthlyCapMicros\x12?\n" +
-	"\x1ccurrent_month_charged_micros\x18\x05 \x01(\x03R\x19currentMonthChargedMicros\x129\n" +
-	"\x19default_payment_method_id\x18\x06 \x01(\tR\x16defaultPaymentMethodIdB\xf4\x01\n" +
+	"\x1ccurrent_month_charged_micros\x18\x05 \x01(\x03R\x19currentMonthChargedMicros\x12#\n" +
+	"\rcurrent_month\x18\a \x01(\tR\fcurrentMonthB\xf4\x01\n" +
 	"\x19com.ai.stigmer.billing.v1B\x13BillingAccountProtoP\x01ZKgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
 
 var (

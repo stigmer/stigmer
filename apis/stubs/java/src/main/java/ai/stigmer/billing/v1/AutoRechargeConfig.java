@@ -9,8 +9,12 @@ package ai.stigmer.billing.v1;
  * <pre>
  * AutoRechargeConfig controls automatic credit top-up behavior.
  *
- * When enabled, the billing system triggers a charge against the saved
- * payment method whenever the available balance drops below threshold_micros.
+ * When enabled, the billing system triggers a charge against the account's
+ * saved payment method (BillingAccount.default_payment_method) whenever
+ * the available balance drops below threshold_micros.
+ *
+ * Fields 1–4 are user-configurable via SetAutoRechargeConfig.
+ * Fields 5 and 7 are system-managed (updated by the recharge trigger).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.AutoRechargeConfig}
@@ -35,7 +39,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private AutoRechargeConfig() {
-    defaultPaymentMethodId_ = "";
+    currentMonth_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -90,7 +94,7 @@ private static final long serialVersionUID = 0L;
   private long rechargeAmountMicros_ = 0L;
   /**
    * <pre>
-   * Amount to charge per recharge event.
+   * Fixed amount to charge per recharge event.
    * </pre>
    *
    * <code>int64 recharge_amount_micros = 3 [json_name = "rechargeAmountMicros"];</code>
@@ -122,7 +126,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Running total of auto-recharge charges in the current month.
-   * Reset to 0 at the start of each calendar month.
+   * System-managed: incremented on each recharge, lazily reset when
+   * current_month rolls over.
    * </pre>
    *
    * <code>int64 current_month_charged_micros = 5 [json_name = "currentMonthChargedMicros"];</code>
@@ -133,47 +138,51 @@ private static final long serialVersionUID = 0L;
     return currentMonthChargedMicros_;
   }
 
-  public static final int DEFAULT_PAYMENT_METHOD_ID_FIELD_NUMBER = 6;
+  public static final int CURRENT_MONTH_FIELD_NUMBER = 7;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object defaultPaymentMethodId_ = "";
+  private volatile java.lang.Object currentMonth_ = "";
   /**
    * <pre>
-   * Stripe PaymentMethod ID for off-session charges. Empty until configured.
+   * Calendar month the current_month_charged_micros counter belongs to.
+   * Format: "YYYY-MM" in UTC (e.g., "2026-05"). System-managed: set by
+   * the recharge trigger on the first charge of a new month.
    * </pre>
    *
-   * <code>string default_payment_method_id = 6 [json_name = "defaultPaymentMethodId"];</code>
-   * @return The defaultPaymentMethodId.
+   * <code>string current_month = 7 [json_name = "currentMonth"];</code>
+   * @return The currentMonth.
    */
   @java.lang.Override
-  public java.lang.String getDefaultPaymentMethodId() {
-    java.lang.Object ref = defaultPaymentMethodId_;
+  public java.lang.String getCurrentMonth() {
+    java.lang.Object ref = currentMonth_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      defaultPaymentMethodId_ = s;
+      currentMonth_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * Stripe PaymentMethod ID for off-session charges. Empty until configured.
+   * Calendar month the current_month_charged_micros counter belongs to.
+   * Format: "YYYY-MM" in UTC (e.g., "2026-05"). System-managed: set by
+   * the recharge trigger on the first charge of a new month.
    * </pre>
    *
-   * <code>string default_payment_method_id = 6 [json_name = "defaultPaymentMethodId"];</code>
-   * @return The bytes for defaultPaymentMethodId.
+   * <code>string current_month = 7 [json_name = "currentMonth"];</code>
+   * @return The bytes for currentMonth.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getDefaultPaymentMethodIdBytes() {
-    java.lang.Object ref = defaultPaymentMethodId_;
+      getCurrentMonthBytes() {
+    java.lang.Object ref = currentMonth_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      defaultPaymentMethodId_ = b;
+      currentMonth_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -209,8 +218,8 @@ private static final long serialVersionUID = 0L;
     if (currentMonthChargedMicros_ != 0L) {
       output.writeInt64(5, currentMonthChargedMicros_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultPaymentMethodId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 6, defaultPaymentMethodId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(currentMonth_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 7, currentMonth_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -241,8 +250,8 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(5, currentMonthChargedMicros_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultPaymentMethodId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(6, defaultPaymentMethodId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(currentMonth_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(7, currentMonth_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -269,8 +278,8 @@ private static final long serialVersionUID = 0L;
         != other.getMonthlyCapMicros()) return false;
     if (getCurrentMonthChargedMicros()
         != other.getCurrentMonthChargedMicros()) return false;
-    if (!getDefaultPaymentMethodId()
-        .equals(other.getDefaultPaymentMethodId())) return false;
+    if (!getCurrentMonth()
+        .equals(other.getCurrentMonth())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -297,8 +306,8 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + CURRENT_MONTH_CHARGED_MICROS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getCurrentMonthChargedMicros());
-    hash = (37 * hash) + DEFAULT_PAYMENT_METHOD_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getDefaultPaymentMethodId().hashCode();
+    hash = (37 * hash) + CURRENT_MONTH_FIELD_NUMBER;
+    hash = (53 * hash) + getCurrentMonth().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -400,8 +409,12 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * AutoRechargeConfig controls automatic credit top-up behavior.
    *
-   * When enabled, the billing system triggers a charge against the saved
-   * payment method whenever the available balance drops below threshold_micros.
+   * When enabled, the billing system triggers a charge against the account's
+   * saved payment method (BillingAccount.default_payment_method) whenever
+   * the available balance drops below threshold_micros.
+   *
+   * Fields 1–4 are user-configurable via SetAutoRechargeConfig.
+   * Fields 5 and 7 are system-managed (updated by the recharge trigger).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.AutoRechargeConfig}
@@ -442,7 +455,7 @@ private static final long serialVersionUID = 0L;
       rechargeAmountMicros_ = 0L;
       monthlyCapMicros_ = 0L;
       currentMonthChargedMicros_ = 0L;
-      defaultPaymentMethodId_ = "";
+      currentMonth_ = "";
       return this;
     }
 
@@ -492,7 +505,7 @@ private static final long serialVersionUID = 0L;
         result.currentMonthChargedMicros_ = currentMonthChargedMicros_;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.defaultPaymentMethodId_ = defaultPaymentMethodId_;
+        result.currentMonth_ = currentMonth_;
       }
     }
 
@@ -523,8 +536,8 @@ private static final long serialVersionUID = 0L;
       if (other.getCurrentMonthChargedMicros() != 0L) {
         setCurrentMonthChargedMicros(other.getCurrentMonthChargedMicros());
       }
-      if (!other.getDefaultPaymentMethodId().isEmpty()) {
-        defaultPaymentMethodId_ = other.defaultPaymentMethodId_;
+      if (!other.getCurrentMonth().isEmpty()) {
+        currentMonth_ = other.currentMonth_;
         bitField0_ |= 0x00000020;
         onChanged();
       }
@@ -579,11 +592,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 40
-            case 50: {
-              defaultPaymentMethodId_ = input.readStringRequireUtf8();
+            case 58: {
+              currentMonth_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000020;
               break;
-            } // case 50
+            } // case 58
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -692,7 +705,7 @@ private static final long serialVersionUID = 0L;
     private long rechargeAmountMicros_ ;
     /**
      * <pre>
-     * Amount to charge per recharge event.
+     * Fixed amount to charge per recharge event.
      * </pre>
      *
      * <code>int64 recharge_amount_micros = 3 [json_name = "rechargeAmountMicros"];</code>
@@ -704,7 +717,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Amount to charge per recharge event.
+     * Fixed amount to charge per recharge event.
      * </pre>
      *
      * <code>int64 recharge_amount_micros = 3 [json_name = "rechargeAmountMicros"];</code>
@@ -720,7 +733,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Amount to charge per recharge event.
+     * Fixed amount to charge per recharge event.
      * </pre>
      *
      * <code>int64 recharge_amount_micros = 3 [json_name = "rechargeAmountMicros"];</code>
@@ -784,7 +797,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Running total of auto-recharge charges in the current month.
-     * Reset to 0 at the start of each calendar month.
+     * System-managed: incremented on each recharge, lazily reset when
+     * current_month rolls over.
      * </pre>
      *
      * <code>int64 current_month_charged_micros = 5 [json_name = "currentMonthChargedMicros"];</code>
@@ -797,7 +811,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Running total of auto-recharge charges in the current month.
-     * Reset to 0 at the start of each calendar month.
+     * System-managed: incremented on each recharge, lazily reset when
+     * current_month rolls over.
      * </pre>
      *
      * <code>int64 current_month_charged_micros = 5 [json_name = "currentMonthChargedMicros"];</code>
@@ -814,7 +829,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Running total of auto-recharge charges in the current month.
-     * Reset to 0 at the start of each calendar month.
+     * System-managed: incremented on each recharge, lazily reset when
+     * current_month rolls over.
      * </pre>
      *
      * <code>int64 current_month_charged_micros = 5 [json_name = "currentMonthChargedMicros"];</code>
@@ -827,22 +843,24 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object defaultPaymentMethodId_ = "";
+    private java.lang.Object currentMonth_ = "";
     /**
      * <pre>
-     * Stripe PaymentMethod ID for off-session charges. Empty until configured.
+     * Calendar month the current_month_charged_micros counter belongs to.
+     * Format: "YYYY-MM" in UTC (e.g., "2026-05"). System-managed: set by
+     * the recharge trigger on the first charge of a new month.
      * </pre>
      *
-     * <code>string default_payment_method_id = 6 [json_name = "defaultPaymentMethodId"];</code>
-     * @return The defaultPaymentMethodId.
+     * <code>string current_month = 7 [json_name = "currentMonth"];</code>
+     * @return The currentMonth.
      */
-    public java.lang.String getDefaultPaymentMethodId() {
-      java.lang.Object ref = defaultPaymentMethodId_;
+    public java.lang.String getCurrentMonth() {
+      java.lang.Object ref = currentMonth_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        defaultPaymentMethodId_ = s;
+        currentMonth_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -850,20 +868,22 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stripe PaymentMethod ID for off-session charges. Empty until configured.
+     * Calendar month the current_month_charged_micros counter belongs to.
+     * Format: "YYYY-MM" in UTC (e.g., "2026-05"). System-managed: set by
+     * the recharge trigger on the first charge of a new month.
      * </pre>
      *
-     * <code>string default_payment_method_id = 6 [json_name = "defaultPaymentMethodId"];</code>
-     * @return The bytes for defaultPaymentMethodId.
+     * <code>string current_month = 7 [json_name = "currentMonth"];</code>
+     * @return The bytes for currentMonth.
      */
     public com.google.protobuf.ByteString
-        getDefaultPaymentMethodIdBytes() {
-      java.lang.Object ref = defaultPaymentMethodId_;
+        getCurrentMonthBytes() {
+      java.lang.Object ref = currentMonth_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        defaultPaymentMethodId_ = b;
+        currentMonth_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -871,49 +891,55 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stripe PaymentMethod ID for off-session charges. Empty until configured.
+     * Calendar month the current_month_charged_micros counter belongs to.
+     * Format: "YYYY-MM" in UTC (e.g., "2026-05"). System-managed: set by
+     * the recharge trigger on the first charge of a new month.
      * </pre>
      *
-     * <code>string default_payment_method_id = 6 [json_name = "defaultPaymentMethodId"];</code>
-     * @param value The defaultPaymentMethodId to set.
+     * <code>string current_month = 7 [json_name = "currentMonth"];</code>
+     * @param value The currentMonth to set.
      * @return This builder for chaining.
      */
-    public Builder setDefaultPaymentMethodId(
+    public Builder setCurrentMonth(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      defaultPaymentMethodId_ = value;
+      currentMonth_ = value;
       bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Stripe PaymentMethod ID for off-session charges. Empty until configured.
+     * Calendar month the current_month_charged_micros counter belongs to.
+     * Format: "YYYY-MM" in UTC (e.g., "2026-05"). System-managed: set by
+     * the recharge trigger on the first charge of a new month.
      * </pre>
      *
-     * <code>string default_payment_method_id = 6 [json_name = "defaultPaymentMethodId"];</code>
+     * <code>string current_month = 7 [json_name = "currentMonth"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearDefaultPaymentMethodId() {
-      defaultPaymentMethodId_ = getDefaultInstance().getDefaultPaymentMethodId();
+    public Builder clearCurrentMonth() {
+      currentMonth_ = getDefaultInstance().getCurrentMonth();
       bitField0_ = (bitField0_ & ~0x00000020);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Stripe PaymentMethod ID for off-session charges. Empty until configured.
+     * Calendar month the current_month_charged_micros counter belongs to.
+     * Format: "YYYY-MM" in UTC (e.g., "2026-05"). System-managed: set by
+     * the recharge trigger on the first charge of a new month.
      * </pre>
      *
-     * <code>string default_payment_method_id = 6 [json_name = "defaultPaymentMethodId"];</code>
-     * @param value The bytes for defaultPaymentMethodId to set.
+     * <code>string current_month = 7 [json_name = "currentMonth"];</code>
+     * @param value The bytes for currentMonth to set.
      * @return This builder for chaining.
      */
-    public Builder setDefaultPaymentMethodIdBytes(
+    public Builder setCurrentMonthBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      defaultPaymentMethodId_ = value;
+      currentMonth_ = value;
       bitField0_ |= 0x00000020;
       onChanged();
       return this;
