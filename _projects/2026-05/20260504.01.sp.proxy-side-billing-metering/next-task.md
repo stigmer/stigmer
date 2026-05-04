@@ -101,8 +101,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-04 13:29
-**Current Task**: T05 (Wire billing signal in BuildUpdateStatusResponseStep) — COMPLETED
-**Status**: T01–T05 all implemented. T01–T03 committed. T04–T05 ready to commit.
+**Current Task**: T06 (Dual-header proxy access control) — COMPLETED
+**Status**: T01–T06 all implemented. T01–T03 committed. T04–T06 ready to commit.
 
 ## Session Progress (2026-05-04)
 
@@ -267,11 +267,67 @@ The research report established the trust boundary at the collection level — `
 
 **BUILD.bazel**: 3 new test targets registered in T05 section
 
+## Session Progress (2026-05-04 Session 6)
+
+### T06 Completed: Dual-Header Proxy Access Control
+
+**Design Decision: Keep soft enforcement (defer hard-require to after T07)**:
+The original T06 plan called for removing `require-execution-id` and hard-requiring at least one scope header. This was deferred because T07 is what makes the runner send `X-Stigmer-Mcp-Server-Id` for MCP connect classifier calls. If T06 hard-requires a scope header before T07 deploys, MCP connect LLM calls would get 403. Safer to add server-side support first (T06), then client-side header (T07), then flip enforcement.
+
+**New: `ProxyScopeResult` record**:
+- Captures which scope headers were present and authorized
+- `executionId` (non-null if `X-Stigmer-Execution-Id` authorized), `mcpServerId` (non-null if `X-Stigmer-Mcp-Server-Id` authorized), `metered` (true when execution scope present)
+- Static `UNSCOPED` sentinel for soft-enforcement fallback
+
+**New: `ProxyAuthorizationService.authorizeProxyScopes()`**:
+- Shared dual-header authorization logic (eliminates duplication between controllers)
+- `X-Stigmer-Execution-Id` → FGA `can_edit` on `agent_execution` (existing, metered)
+- `X-Stigmer-Mcp-Server-Id` → FGA `can_connect` on `mcp_server` (new, not metered)
+- Both present → both FGA checks, metering uses execution scope
+- Neither present + soft enforcement → warn and allow (current default)
+- Neither present + hard enforcement → 403
+- Also added `authorizeMcpServerAccess()` for direct use by other callers
+
+**`LlmProxyController` refactored**:
+- Added `MCP_SERVER_ID_HEADER = "X-Stigmer-Mcp-Server-Id"` constant
+- Replaced `authorizeExecution()` with `authorizeProxyScopes()` call
+- `reportUsageQuietly` gates on `scope.metered()` instead of null-checking executionId
+- Logs `mcp_server_id` at INFO level when present (observability)
+
+**`CursorProxyController` refactored**:
+- Same pattern as LlmProxyController
+- Metadata paths (`/v1/models`, `/v1/me`) bypass scope authorization entirely
+- Added `x-stigmer-mcp-server-id` to non-forwardable headers set
+- Metering gate: `isSseResponse && scope.metered()` (replaces `executionId != null`)
+
+**Config property renamed**: `stigmer.proxy.require-execution-id` → `stigmer.proxy.require-scope-header` (env: `STIGMER_PROXY_REQUIRE_SCOPE_HEADER`). Default remains `false`.
+
+**Tests**: `ProxyScopeAuthorizationTest` — 15 unit tests across 5 nested groups:
+- execution_id only (3): authorized, denied, correct permission/resource check
+- mcp_server_id only (3): authorized, denied, correct permission/resource check
+- both headers (3): both authorized, both FGA checks invoked, execution denied throws
+- no headers (4): soft enforcement, blank strings, hard enforcement, hard with blank
+- FGA caching (3): cache hit, per-resource independence, cached denial
+
+**FGA infrastructure — already existed (no changes needed)**:
+- `IamPermission.can_connect` (value 22) in `enum.proto`
+- `ApiResourceKind.mcp_server` (value 44) in `api_resource_kind.proto`
+- `mcp_server.fga`: `can_connect: viewer`
+
+**Files changed (stigmer-cloud)**: 5 modified, 2 new (+188/-79 lines)
+- `ProxyScopeResult.java` (new)
+- `ProxyScopeAuthorizationTest.java` (new)
+- `ProxyAuthorizationService.java` — added 3 methods
+- `LlmProxyController.java` — refactored auth + metering
+- `CursorProxyController.java` — refactored auth + metering
+- `application.yaml` — config property rename
+- `BUILD.bazel` — new test target
+
 ## Next Steps
 
-1. **T06**: Dual-header proxy access control (independent — `execution_id` + `mcp_server_id`)
-2. **T07**: Pass `mcp_server_id` through classify workflow + caching
-3. **T08**: Deprecate runner-side billing calls
+1. **T07**: Pass `mcp_server_id` through classify workflow + caching
+2. **T08**: Deprecate runner-side billing calls
+3. **Follow-up**: Flip `require-scope-header` to `true` after T07 is deployed
 
 ## Context for Resume
 - Per-call usage goes to `llm_call_usage_record` collection (billing source of truth)
@@ -281,22 +337,27 @@ The research report established the trust boundary at the collection level — `
 - `updateUsage` RPC is operator-only (FGA `can_update_usage` on `platform:stigmer`)
 - Response is empty — billing signals flow through `updateStatus` → `ExecutionControlSignal`
 - T03 introduced `ProxyUsageReporter` and `ProxyCallSequencer` in `ai.stigmer.proxy.usage`
-- `LlmProxyController` now: tee stream, inject stream_options, capture timing, report usage
-- `CursorProxyController` now: conditional tee (SSE only), CursorUsageExtractor, report usage
+- `LlmProxyController` now: tee stream, inject stream_options, capture timing, report usage, dual-header auth
+- `CursorProxyController` now: conditional tee (SSE only), CursorUsageExtractor, report usage, dual-header auth
 - Both proxy controllers share: `ProxyUsageReporter`, `ProxyCallSequencer`, `ProxyTiming`, `ParsedLlmUsage`
 - Cursor API uses `api.cursor.com` for REST + SSE, `api2.cursor.sh` for Connect RPC analytics
 - Cursor SDK `turn-ended` events provide per-turn usage; extractor accumulates across turns
 - T05: `BuildUpdateStatusResponseStep` now queries `ExecutionBillingService.querySignal()` on every runner heartbeat
 - T05: `BillingSignalMapper` bridges `ExecutionBillingSignal` (billing) → `ExecutionControlSignal` (agentic)
 - T05: No reservation = continue (OSS mode safe), account issues = stop, balance-based = delegated to `CreditLedgerService.determineSignal()`
+- T06: `ProxyAuthorizationService.authorizeProxyScopes()` handles dual-header logic in one place
+- T06: `ProxyScopeResult` encapsulates scope state (executionId, mcpServerId, metered flag)
+- T06: `X-Stigmer-Mcp-Server-Id` recognized but no caller sends it yet (T07 adds that)
+- T06: Config `stigmer.proxy.require-scope-header` (env `STIGMER_PROXY_REQUIRE_SCOPE_HEADER`) — defaults `false`, flip to `true` after T07
+- T06: FGA infrastructure ready: `can_connect` (22), `mcp_server` ApiResourceKind (44), `mcp_server.fga` has `can_connect: viewer`
 - Research reference: `research.llm-usage-capture-model/04.report.gpt.md`
 - Proto stubs need regeneration (`make protos`) after OSS proto lands
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T06" - Dual-header proxy access control
 - "Continue with T07" - Pass mcp_server_id through classify workflow + caching
+- "Continue with T08" - Deprecate runner-side billing calls
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 
