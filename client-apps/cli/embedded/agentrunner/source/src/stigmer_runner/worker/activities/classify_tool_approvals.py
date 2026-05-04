@@ -120,6 +120,7 @@ async def classify_tools(
     tools: list[dict[str, Any]],
     server_name: str,
     server_description: str,
+    mcp_server_id: str | None = None,
 ) -> ClassifyToolApprovalsOutput:
     """Classify tool approval policies using a structured-output LLM call.
 
@@ -132,6 +133,9 @@ async def classify_tools(
             optional ``input_schema``.
         server_name: MCP server name (provides context for classification).
         server_description: MCP server description.
+        mcp_server_id: MCP server ID passed as ``X-Stigmer-Mcp-Server-Id``
+            proxy scope header.  When set, the proxy authorizes via FGA
+            ``can_connect`` instead of requiring an agent execution scope.
 
     Returns:
         ClassifyToolApprovalsOutput with one classification per tool.
@@ -147,6 +151,7 @@ async def classify_tools(
     llm_kwargs = worker_config.llm.build_llm_kwargs(
         proxy_endpoint=worker_config.stigmer_proxy_endpoint,
         proxy_auth_token=worker_config.stigmer_token,
+        mcp_server_id=mcp_server_id,
     )
 
     model = parse_model_string(
@@ -226,6 +231,7 @@ class ClassifyToolApprovalsInput:
     tools: list[dict[str, Any]]
     server_name: str
     server_description: str
+    mcp_server_id: str | None = None
 
 
 @activity.defn(name=ACTIVITY_NAME)
@@ -249,6 +255,7 @@ async def classify_tool_approvals(
             tools=input.tools,
             server_name=input.server_name,
             server_description=input.server_description,
+            mcp_server_id=input.mcp_server_id,
         )
 
         approved = [a for a in result.approvals if a.requires_approval]
