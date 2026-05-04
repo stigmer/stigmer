@@ -110,6 +110,11 @@ message UpdateUsageInput {
   // Example: "claude-sonnet-4-20250514", "gpt-4o-2024-08-06"
   string resolved_model = 4 [(buf.validate.field).string.min_len = 1];
 
+  // Model identifier as requested by the caller in the request body (optional).
+  // May differ from resolved_model when using aliases (e.g., "gpt-4o" resolves
+  // to "gpt-4o-2024-08-06"). Preserved for audit trail.
+  string requested_model = 13;
+
   // Token usage extracted from the provider's SSE stream.
   TokenUsage tokens = 5;
 
