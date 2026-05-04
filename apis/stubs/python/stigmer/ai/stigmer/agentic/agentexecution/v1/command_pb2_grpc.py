@@ -33,6 +33,11 @@ class AgentExecutionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.AgentExecutionUpdateStatusInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UpdateStatusResponse.FromString,
                 _registered_method=True)
+        self.updateUsage = channel.unary_unary(
+                '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/updateUsage',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UpdateUsageInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UpdateUsageResponse.FromString,
+                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceId.SerializeToString,
@@ -113,6 +118,35 @@ class AgentExecutionCommandControllerServicer(object):
         who owns the execution through the session ownership chain.
         Optimized for frequent status updates and merges status fields with
         existing state.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def updateUsage(self, request, context):
+        """Record proxy-observed LLM usage for an agent execution.
+
+        @internal
+        Called by the LLM/Cursor proxy after each streaming response completes.
+        The proxy extracts token counts from the provider's SSE stream and reports
+        them here. The handler computes provider cost server-side from the model
+        registry (never trusts caller-supplied cost), writes trusted usage to the
+        execution, and debits billing credits as a side effect.
+
+        ## Authorization
+
+        Operator-only. The proxy authenticates as the platform operator identity.
+        Regular users and runners cannot call this RPC.
+
+        ## Idempotency
+
+        Deduplicated by (execution_id, sequence). Safe to retry on transient failures.
+
+        ## Signal Delivery
+
+        This RPC does NOT return a billing signal. The proxy is a transparent byte
+        pipe and cannot act on STOP/WARNING. Billing signals are delivered to the
+        runner through the updateStatus response.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -492,6 +526,11 @@ def add_AgentExecutionCommandControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.AgentExecutionUpdateStatusInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UpdateStatusResponse.SerializeToString,
             ),
+            'updateUsage': grpc.unary_unary_rpc_method_handler(
+                    servicer.updateUsage,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UpdateUsageInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UpdateUsageResponse.SerializeToString,
+            ),
             'delete': grpc.unary_unary_rpc_method_handler(
                     servicer.delete,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceId.FromString,
@@ -616,6 +655,33 @@ class AgentExecutionCommandController(object):
             '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/updateStatus',
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.AgentExecutionUpdateStatusInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UpdateStatusResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def updateUsage(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/updateUsage',
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UpdateUsageInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UpdateUsageResponse.FromString,
             options,
             channel_credentials,
             insecure,

@@ -672,3 +672,9 @@ After loading context:
 ---
 
 *This file provides direct paths to all project resources for quick context loading.*
+
+## Sub-Projects
+
+Active sub-projects spawned from this project:
+
+- `~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260504.01.sp.proxy-side-billing-metering/next-task.md` - Secure LLM billing by adding server-side usage metering in the proxy layer. The LLM and Cursor proxy controllers parse SSE responses to extract token usage, then call ExecutionBillingService in-process to debit credits — replacing the current runner-attested billing data with tamper-proof proxy-observed usage. Includes stripping runner llm_metrics in cloud mode, dual-header proxy access control (execution_id + mcp_server_id), and caching for classify_tool_approvals.

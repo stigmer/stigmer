@@ -109,6 +109,37 @@ public final class AgentExecutionCommandControllerGrpc {
     return getUpdateStatusMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.UpdateUsageInput,
+      ai.stigmer.agentic.agentexecution.v1.UpdateUsageResponse> getUpdateUsageMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateUsage",
+      requestType = ai.stigmer.agentic.agentexecution.v1.UpdateUsageInput.class,
+      responseType = ai.stigmer.agentic.agentexecution.v1.UpdateUsageResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.UpdateUsageInput,
+      ai.stigmer.agentic.agentexecution.v1.UpdateUsageResponse> getUpdateUsageMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.UpdateUsageInput, ai.stigmer.agentic.agentexecution.v1.UpdateUsageResponse> getUpdateUsageMethod;
+    if ((getUpdateUsageMethod = AgentExecutionCommandControllerGrpc.getUpdateUsageMethod) == null) {
+      synchronized (AgentExecutionCommandControllerGrpc.class) {
+        if ((getUpdateUsageMethod = AgentExecutionCommandControllerGrpc.getUpdateUsageMethod) == null) {
+          AgentExecutionCommandControllerGrpc.getUpdateUsageMethod = getUpdateUsageMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentexecution.v1.UpdateUsageInput, ai.stigmer.agentic.agentexecution.v1.UpdateUsageResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateUsage"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.UpdateUsageInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.UpdateUsageResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentExecutionCommandControllerMethodDescriptorSupplier("updateUsage"))
+              .build();
+        }
+      }
+    }
+    return getUpdateUsageMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.ApiResourceId,
       ai.stigmer.agentic.agentexecution.v1.AgentExecution> getDeleteMethod;
 
@@ -470,6 +501,31 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Record proxy-observed LLM usage for an agent execution.
+     * &#64;internal
+     * Called by the LLM/Cursor proxy after each streaming response completes.
+     * The proxy extracts token counts from the provider's SSE stream and reports
+     * them here. The handler computes provider cost server-side from the model
+     * registry (never trusts caller-supplied cost), writes trusted usage to the
+     * execution, and debits billing credits as a side effect.
+     * ## Authorization
+     * Operator-only. The proxy authenticates as the platform operator identity.
+     * Regular users and runners cannot call this RPC.
+     * ## Idempotency
+     * Deduplicated by (execution_id, sequence). Safe to retry on transient failures.
+     * ## Signal Delivery
+     * This RPC does NOT return a billing signal. The proxy is a transparent byte
+     * pipe and cannot act on STOP/WARNING. Billing signals are delivered to the
+     * runner through the updateStatus response.
+     * </pre>
+     */
+    default void updateUsage(ai.stigmer.agentic.agentexecution.v1.UpdateUsageInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.UpdateUsageResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateUsageMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete an agent execution by ID.
      * </pre>
      */
@@ -826,6 +882,32 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Record proxy-observed LLM usage for an agent execution.
+     * &#64;internal
+     * Called by the LLM/Cursor proxy after each streaming response completes.
+     * The proxy extracts token counts from the provider's SSE stream and reports
+     * them here. The handler computes provider cost server-side from the model
+     * registry (never trusts caller-supplied cost), writes trusted usage to the
+     * execution, and debits billing credits as a side effect.
+     * ## Authorization
+     * Operator-only. The proxy authenticates as the platform operator identity.
+     * Regular users and runners cannot call this RPC.
+     * ## Idempotency
+     * Deduplicated by (execution_id, sequence). Safe to retry on transient failures.
+     * ## Signal Delivery
+     * This RPC does NOT return a billing signal. The proxy is a transparent byte
+     * pipe and cannot act on STOP/WARNING. Billing signals are delivered to the
+     * runner through the updateStatus response.
+     * </pre>
+     */
+    public void updateUsage(ai.stigmer.agentic.agentexecution.v1.UpdateUsageInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.UpdateUsageResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateUsageMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete an agent execution by ID.
      * </pre>
      */
@@ -1172,6 +1254,31 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Record proxy-observed LLM usage for an agent execution.
+     * &#64;internal
+     * Called by the LLM/Cursor proxy after each streaming response completes.
+     * The proxy extracts token counts from the provider's SSE stream and reports
+     * them here. The handler computes provider cost server-side from the model
+     * registry (never trusts caller-supplied cost), writes trusted usage to the
+     * execution, and debits billing credits as a side effect.
+     * ## Authorization
+     * Operator-only. The proxy authenticates as the platform operator identity.
+     * Regular users and runners cannot call this RPC.
+     * ## Idempotency
+     * Deduplicated by (execution_id, sequence). Safe to retry on transient failures.
+     * ## Signal Delivery
+     * This RPC does NOT return a billing signal. The proxy is a transparent byte
+     * pipe and cannot act on STOP/WARNING. Billing signals are delivered to the
+     * runner through the updateStatus response.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.UpdateUsageResponse updateUsage(ai.stigmer.agentic.agentexecution.v1.UpdateUsageInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateUsageMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete an agent execution by ID.
      * </pre>
      */
@@ -1506,6 +1613,31 @@ public final class AgentExecutionCommandControllerGrpc {
     public ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse updateStatus(ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateStatusMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Record proxy-observed LLM usage for an agent execution.
+     * &#64;internal
+     * Called by the LLM/Cursor proxy after each streaming response completes.
+     * The proxy extracts token counts from the provider's SSE stream and reports
+     * them here. The handler computes provider cost server-side from the model
+     * registry (never trusts caller-supplied cost), writes trusted usage to the
+     * execution, and debits billing credits as a side effect.
+     * ## Authorization
+     * Operator-only. The proxy authenticates as the platform operator identity.
+     * Regular users and runners cannot call this RPC.
+     * ## Idempotency
+     * Deduplicated by (execution_id, sequence). Safe to retry on transient failures.
+     * ## Signal Delivery
+     * This RPC does NOT return a billing signal. The proxy is a transparent byte
+     * pipe and cannot act on STOP/WARNING. Billing signals are delivered to the
+     * runner through the updateStatus response.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.UpdateUsageResponse updateUsage(ai.stigmer.agentic.agentexecution.v1.UpdateUsageInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateUsageMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1851,6 +1983,32 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Record proxy-observed LLM usage for an agent execution.
+     * &#64;internal
+     * Called by the LLM/Cursor proxy after each streaming response completes.
+     * The proxy extracts token counts from the provider's SSE stream and reports
+     * them here. The handler computes provider cost server-side from the model
+     * registry (never trusts caller-supplied cost), writes trusted usage to the
+     * execution, and debits billing credits as a side effect.
+     * ## Authorization
+     * Operator-only. The proxy authenticates as the platform operator identity.
+     * Regular users and runners cannot call this RPC.
+     * ## Idempotency
+     * Deduplicated by (execution_id, sequence). Safe to retry on transient failures.
+     * ## Signal Delivery
+     * This RPC does NOT return a billing signal. The proxy is a transparent byte
+     * pipe and cannot act on STOP/WARNING. Billing signals are delivered to the
+     * runner through the updateStatus response.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.UpdateUsageResponse> updateUsage(
+        ai.stigmer.agentic.agentexecution.v1.UpdateUsageInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateUsageMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Delete an agent execution by ID.
      * </pre>
      */
@@ -2134,14 +2292,15 @@ public final class AgentExecutionCommandControllerGrpc {
   private static final int METHODID_CREATE = 0;
   private static final int METHODID_UPDATE = 1;
   private static final int METHODID_UPDATE_STATUS = 2;
-  private static final int METHODID_DELETE = 3;
-  private static final int METHODID_SUBMIT_APPROVAL = 4;
-  private static final int METHODID_CANCEL = 5;
-  private static final int METHODID_TERMINATE = 6;
-  private static final int METHODID_RECOVER = 7;
-  private static final int METHODID_PAUSE = 8;
-  private static final int METHODID_RESUME = 9;
-  private static final int METHODID_UPLOAD_ATTACHMENT = 10;
+  private static final int METHODID_UPDATE_USAGE = 3;
+  private static final int METHODID_DELETE = 4;
+  private static final int METHODID_SUBMIT_APPROVAL = 5;
+  private static final int METHODID_CANCEL = 6;
+  private static final int METHODID_TERMINATE = 7;
+  private static final int METHODID_RECOVER = 8;
+  private static final int METHODID_PAUSE = 9;
+  private static final int METHODID_RESUME = 10;
+  private static final int METHODID_UPLOAD_ATTACHMENT = 11;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -2171,6 +2330,10 @@ public final class AgentExecutionCommandControllerGrpc {
         case METHODID_UPDATE_STATUS:
           serviceImpl.updateStatus((ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse>) responseObserver);
+          break;
+        case METHODID_UPDATE_USAGE:
+          serviceImpl.updateUsage((ai.stigmer.agentic.agentexecution.v1.UpdateUsageInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.UpdateUsageResponse>) responseObserver);
           break;
         case METHODID_DELETE:
           serviceImpl.delete((ai.stigmer.commons.apiresource.ApiResourceId) request,
@@ -2243,6 +2406,13 @@ public final class AgentExecutionCommandControllerGrpc {
               ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput,
               ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse>(
                 service, METHODID_UPDATE_STATUS)))
+        .addMethod(
+          getUpdateUsageMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentexecution.v1.UpdateUsageInput,
+              ai.stigmer.agentic.agentexecution.v1.UpdateUsageResponse>(
+                service, METHODID_UPDATE_USAGE)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -2350,6 +2520,7 @@ public final class AgentExecutionCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getUpdateStatusMethod())
+              .addMethod(getUpdateUsageMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getSubmitApprovalMethod())
               .addMethod(getCancelMethod())

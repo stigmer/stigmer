@@ -2,213 +2,877 @@
 // @generated from file ai/stigmer/agentic/agentexecution/v1/usage.proto (package ai.stigmer.agentic.agentexecution.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/agentexecution/v1/usage.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_usage: GenFile = /*@__PURE__*/
-  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvdXNhZ2UucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKfBAoMVXNhZ2VNZXRyaWNzEhUKDXByb21wdF90b2tlbnMYASABKAUSGQoRY29tcGxldGlvbl90b2tlbnMYAiABKAUSFAoMdG90YWxfdG9rZW5zGAMgASgFEhYKDmxsbV9jYWxsX2NvdW50GAQgASgFEhUKDXByaW1hcnlfbW9kZWwYBSABKAkSHQoVY2FjaGVfY3JlYXRpb25fdG9rZW5zGAYgASgFEhkKEWNhY2hlX3JlYWRfdG9rZW5zGAcgASgFEkkKD21vZGVsX2JyZWFrZG93bhgIIAMoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Nb2RlbFVzYWdlEhoKEmVzdGltYXRlZF9jb3N0X3VzZBgJIAEoARIjCht0b29sX3Jlc3VsdF9jaGFyc190cnVuY2F0ZWQYCiABKAMSRwoJbGxtX2NhbGxzGAsgAygLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkxsbUNhbGxNZXRyaWNzEhkKEXRvdGFsX2R1cmF0aW9uX21zGAwgASgFEhcKD2xsbV9kdXJhdGlvbl9tcxgNIAEoBRIYChB0b29sX2R1cmF0aW9uX21zGA4gASgFEiEKGWFwcHJvdmFsX3dhaXRfZHVyYXRpb25fbXMYDyABKAUSGAoQcHJpbWFyeV9wcm92aWRlchgQIAEoCSLXAgoKTW9kZWxVc2FnZRINCgVtb2RlbBgBIAEoCRIQCghwcm92aWRlchgCIAEoCRIUCgxpbnB1dF90b2tlbnMYAyABKAUSFQoNb3V0cHV0X3Rva2VucxgEIAEoBRIdChVjYWNoZV9jcmVhdGlvbl90b2tlbnMYBSABKAUSGQoRY2FjaGVfcmVhZF90b2tlbnMYBiABKAUSEgoKY2FsbF9jb3VudBgHIAEoBRIfChdpbnB1dF9wcmljZV9wZXJfbWlsbGlvbhgIIAEoARIgChhvdXRwdXRfcHJpY2VfcGVyX21pbGxpb24YCSABKAESKAogY2FjaGVfY3JlYXRpb25fcHJpY2VfcGVyX21pbGxpb24YCiABKAESJAocY2FjaGVfcmVhZF9wcmljZV9wZXJfbWlsbGlvbhgLIAEoARIaChJlc3RpbWF0ZWRfY29zdF91c2QYDCABKAEihAIKDkxsbUNhbGxNZXRyaWNzEhAKCHNlcXVlbmNlGAEgASgFEg0KBW1vZGVsGAIgASgJEhAKCHByb3ZpZGVyGAMgASgJEhQKDGlucHV0X3Rva2VucxgEIAEoBRIVCg1vdXRwdXRfdG9rZW5zGAUgASgFEh0KFWNhY2hlX2NyZWF0aW9uX3Rva2VucxgGIAEoBRIZChFjYWNoZV9yZWFkX3Rva2VucxgHIAEoBRIaChJlc3RpbWF0ZWRfY29zdF91c2QYCCABKAESEwoLZHVyYXRpb25fbXMYCSABKAUSEQoJdGltZXN0YW1wGAogASgJEhQKDHRvdGFsX3Rva2VucxgLIAEoBWIGcHJvdG8z");
+  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvdXNhZ2UucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKxAwoKVG9rZW5Vc2FnZRIUCgxpbnB1dF90b2tlbnMYASABKAMSFQoNb3V0cHV0X3Rva2VucxgCIAEoAxIUCgx0b3RhbF90b2tlbnMYAyABKAMSIwobY2FjaGVfY3JlYXRpb25faW5wdXRfdG9rZW5zGAQgASgDEh8KF2NhY2hlX3JlYWRfaW5wdXRfdG9rZW5zGAUgASgDEhgKEHJlYXNvbmluZ190b2tlbnMYBiABKAMSHgoWdG9vbF91c2VfcHJvbXB0X3Rva2VucxgHIAEoAxIaChJhdWRpb19pbnB1dF90b2tlbnMYCCABKAMSGwoTYXVkaW9fb3V0cHV0X3Rva2VucxgJIAEoAxJqChZwcm92aWRlcl90b2tlbl9kZXRhaWxzGBQgAygLMkouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRva2VuVXNhZ2UuUHJvdmlkZXJUb2tlbkRldGFpbHNFbnRyeRo7ChlQcm92aWRlclRva2VuRGV0YWlsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoAzoCOAEijAMKD1ByaWNpbmdTbmFwc2hvdBIgChhwcmljaW5nX3JlZ2lzdHJ5X3ZlcnNpb24YASABKAkSOAoUcHJpY2luZ19lZmZlY3RpdmVfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhAKCGN1cnJlbmN5GAMgASgJEiYKHmlucHV0X3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgKIAEoAxInCh9vdXRwdXRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAsgASgDEi8KJ2NhY2hlX2NyZWF0aW9uX3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgMIAEoAxIrCiNjYWNoZV9yZWFkX3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgNIAEoAxIqCiJyZWFzb25pbmdfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGA4gASgDEh0KFW1hcmt1cF9wb2xpY3lfdmVyc2lvbhgeIAEoCRIRCgljb3N0X3RpZXIYHyABKAkihQIKCUNvc3RTdGFtcBIQCghjdXJyZW5jeRgBIAEoCRIcChRwcm92aWRlcl9jb3N0X21pY3JvcxgCIAEoAxInCh9jdXN0b21lcl9iaWxsYWJsZV9hbW91bnRfbWljcm9zGAMgASgDElcKEmNhbGN1bGF0aW9uX3N0YXR1cxgEIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Db3N0Q2FsY3VsYXRpb25TdGF0dXMSRgoHcHJpY2luZxgFIAEoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5QcmljaW5nU25hcHNob3Qi1AMKC1Byb3h5VGltaW5nEjUKEXByb3h5X3JlY2VpdmVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI/Cht1cHN0cmVhbV9yZXF1ZXN0X3N0YXJ0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjoKFmZpcnN0X3Jlc3BvbnNlX2J5dGVfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjkKFWxhc3RfcmVzcG9uc2VfYnl0ZV9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASNgoScHJveHlfY29tcGxldGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIYChB1cHN0cmVhbV90dGZiX21zGAogASgDEhgKEHVwc3RyZWFtX3R0bGJfbXMYCyABKAMSGgoSc3RyZWFtX2R1cmF0aW9uX21zGAwgASgDEh8KF3Byb3h5X3RvdGFsX2R1cmF0aW9uX21zGA0gASgDEhUKDXJlcXVlc3RfYnl0ZXMYFCABKAMSFgoOcmVzcG9uc2VfYnl0ZXMYFSABKAMi+gEKC0JpbGxpbmdMaW5rEk4KDGRlYml0X3N0YXR1cxgBIAEoDjI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5CaWxsaW5nRGViaXRTdGF0dXMSFgoOcmVzZXJ2YXRpb25faWQYAiABKAkSGAoQYmlsbGluZ19kZWJpdF9pZBgDIAEoCRIuCgpkZWJpdGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIdChViaWxsaW5nX2F0dGVtcHRfY291bnQYBSABKAUSGgoSbGFzdF9iaWxsaW5nX2Vycm9yGAYgASgJIrMJChJMbG1DYWxsVXNhZ2VSZWNvcmQSFwoPdXNhZ2VfcmVjb3JkX2lkGAEgASgJEhQKDGV4ZWN1dGlvbl9pZBgCIAEoCRIZChFyb290X2V4ZWN1dGlvbl9pZBgDIAEoCRIQCghzZXF1ZW5jZRgEIAEoBRIXCg9pZGVtcG90ZW5jeV9rZXkYBSABKAkSHgoWY2Fub25pY2FsX3BheWxvYWRfaGFzaBgGIAEoCRIvCgtvYnNlcnZlZF9hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKY3JlYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASUgoPbWV0ZXJpbmdfc291cmNlGBQgASgOMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlVzYWdlTWV0ZXJpbmdTb3VyY2USSgoLdHJ1c3RfbGV2ZWwYFSABKA4yNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVXNhZ2VUcnVzdExldmVsElEKDHVzYWdlX3N0YXR1cxgWIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Vc2FnZUNvbXBsZXRpb25TdGF0dXMSEwoLaXNfYmlsbGFibGUYFyABKAgSEAoIcHJvdmlkZXIYHiABKAkSFwoPcmVxdWVzdGVkX21vZGVsGB8gASgJEhYKDnJlc29sdmVkX21vZGVsGCAgASgJEhAKCGVuZHBvaW50GCEgASgJEhEKCXN0cmVhbWluZxgiIAEoCBIUCgxzZXJ2aWNlX3RpZXIYIyABKAkSGwoTcHJvdmlkZXJfcmVxdWVzdF9pZBgkIAEoCRIPCgdoYXJuZXNzGCUgASgJEhgKEGh0dHBfc3RhdHVzX2NvZGUYKCABKAUSFQoNZmluaXNoX3JlYXNvbhgpIAEoCRISCgplcnJvcl9jb2RlGCogASgJEkAKBnRva2VucxgyIAEoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub2tlblVzYWdlEj0KBGNvc3QYMyABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ29zdFN0YW1wEkcKDHByb3h5X3RpbWluZxg8IAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Qcm94eVRpbWluZxIbChNwcm92aWRlcl91c2FnZV9qc29uGEYgASgJEkIKB2JpbGxpbmcYUCABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQmlsbGluZ0xpbmsSVAoGbGFiZWxzGFogAygLMkQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkxsbUNhbGxVc2FnZVJlY29yZC5MYWJlbHNFbnRyeRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIrwCChNNb2RlbFVzYWdlQnJlYWtkb3duEhAKCHByb3ZpZGVyGAEgASgJEhYKDnJlc29sdmVkX21vZGVsGAIgASgJEhQKDHNlcnZpY2VfdGllchgDIAEoCRISCgpjYWxsX2NvdW50GAogASgFEhsKE2JpbGxhYmxlX2NhbGxfY291bnQYCyABKAUSGQoRZmFpbGVkX2NhbGxfY291bnQYDCABKAUSQAoGdG9rZW5zGBQgASgLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRva2VuVXNhZ2USEAoIY3VycmVuY3kYHiABKAkSHAoUcHJvdmlkZXJfY29zdF9taWNyb3MYHyABKAMSJwofY3VzdG9tZXJfYmlsbGFibGVfYW1vdW50X21pY3JvcxggIAEoAyKrBAoXRXhlY3V0aW9uVXNhZ2VBZ2dyZWdhdGUSFgoObGxtX2NhbGxfY291bnQYASABKAUSGwoTYmlsbGFibGVfY2FsbF9jb3VudBgCIAEoBRIZChFmYWlsZWRfY2FsbF9jb3VudBgDIAEoBRJGCgx0b3RhbF90b2tlbnMYCiABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9rZW5Vc2FnZRIQCghjdXJyZW5jeRgUIAEoCRIcChRwcm92aWRlcl9jb3N0X21pY3JvcxgVIAEoAxInCh9jdXN0b21lcl9iaWxsYWJsZV9hbW91bnRfbWljcm9zGBYgASgDElIKD21vZGVsX2JyZWFrZG93bhgeIAMoCzI5LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Nb2RlbFVzYWdlQnJlYWtkb3duEhgKEHByaW1hcnlfcHJvdmlkZXIYKCABKAkSFQoNcHJpbWFyeV9tb2RlbBgpIAEoCRJKCgZzdGF0dXMYMiABKA4yOi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVXNhZ2VBZ2dyZWdhdGVTdGF0dXMSMQoNbGFzdF91c2FnZV9hdBgzIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASGwoTc291cmNlX3JlY29yZF9jb3VudBg0IAEoBSLEAgodRXhlY3V0aW9uT2JzZXJ2YWJpbGl0eU1ldHJpY3MSIAoYcnVubmVyX3RvdGFsX2R1cmF0aW9uX21zGAEgASgDEiMKG3J1bm5lcl9sbG1fd2FpdF9kdXJhdGlvbl9tcxgCIAEoAxIYChB0b29sX2R1cmF0aW9uX21zGAMgASgDEiEKGWFwcHJvdmFsX3dhaXRfZHVyYXRpb25fbXMYBCABKAMSIwobdG9vbF9yZXN1bHRfY2hhcnNfdHJ1bmNhdGVkGAogASgDEiYKHm1heF9jb250ZXh0X3dpbmRvd191c2VkX3Rva2VucxgLIAEoAxIiChpjb250ZXh0X3dpbmRvd19zaXplX3Rva2VucxgMIAEoAxIuCgp1cGRhdGVkX2F0GBQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKfBAoMVXNhZ2VNZXRyaWNzEhUKDXByb21wdF90b2tlbnMYASABKAUSGQoRY29tcGxldGlvbl90b2tlbnMYAiABKAUSFAoMdG90YWxfdG9rZW5zGAMgASgFEhYKDmxsbV9jYWxsX2NvdW50GAQgASgFEhUKDXByaW1hcnlfbW9kZWwYBSABKAkSHQoVY2FjaGVfY3JlYXRpb25fdG9rZW5zGAYgASgFEhkKEWNhY2hlX3JlYWRfdG9rZW5zGAcgASgFEkkKD21vZGVsX2JyZWFrZG93bhgIIAMoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Nb2RlbFVzYWdlEhoKEmVzdGltYXRlZF9jb3N0X3VzZBgJIAEoARIjCht0b29sX3Jlc3VsdF9jaGFyc190cnVuY2F0ZWQYCiABKAMSRwoJbGxtX2NhbGxzGAsgAygLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkxsbUNhbGxNZXRyaWNzEhkKEXRvdGFsX2R1cmF0aW9uX21zGAwgASgFEhcKD2xsbV9kdXJhdGlvbl9tcxgNIAEoBRIYChB0b29sX2R1cmF0aW9uX21zGA4gASgFEiEKGWFwcHJvdmFsX3dhaXRfZHVyYXRpb25fbXMYDyABKAUSGAoQcHJpbWFyeV9wcm92aWRlchgQIAEoCSLXAgoKTW9kZWxVc2FnZRINCgVtb2RlbBgBIAEoCRIQCghwcm92aWRlchgCIAEoCRIUCgxpbnB1dF90b2tlbnMYAyABKAUSFQoNb3V0cHV0X3Rva2VucxgEIAEoBRIdChVjYWNoZV9jcmVhdGlvbl90b2tlbnMYBSABKAUSGQoRY2FjaGVfcmVhZF90b2tlbnMYBiABKAUSEgoKY2FsbF9jb3VudBgHIAEoBRIfChdpbnB1dF9wcmljZV9wZXJfbWlsbGlvbhgIIAEoARIgChhvdXRwdXRfcHJpY2VfcGVyX21pbGxpb24YCSABKAESKAogY2FjaGVfY3JlYXRpb25fcHJpY2VfcGVyX21pbGxpb24YCiABKAESJAocY2FjaGVfcmVhZF9wcmljZV9wZXJfbWlsbGlvbhgLIAEoARIaChJlc3RpbWF0ZWRfY29zdF91c2QYDCABKAEihAIKDkxsbUNhbGxNZXRyaWNzEhAKCHNlcXVlbmNlGAEgASgFEg0KBW1vZGVsGAIgASgJEhAKCHByb3ZpZGVyGAMgASgJEhQKDGlucHV0X3Rva2VucxgEIAEoBRIVCg1vdXRwdXRfdG9rZW5zGAUgASgFEh0KFWNhY2hlX2NyZWF0aW9uX3Rva2VucxgGIAEoBRIZChFjYWNoZV9yZWFkX3Rva2VucxgHIAEoBRIaChJlc3RpbWF0ZWRfY29zdF91c2QYCCABKAESEwoLZHVyYXRpb25fbXMYCSABKAUSEQoJdGltZXN0YW1wGAogASgJEhQKDHRvdGFsX3Rva2VucxgLIAEoBSquAgoTVXNhZ2VNZXRlcmluZ1NvdXJjZRIlCiFVU0FHRV9NRVRFUklOR19TT1VSQ0VfVU5TUEVDSUZJRUQQABIxCi1VU0FHRV9NRVRFUklOR19TT1VSQ0VfUFJPWFlfUFJPVklERVJfUkVQT1JURUQQARI2CjJVU0FHRV9NRVRFUklOR19TT1VSQ0VfUlVOTkVSX1BST1ZJREVSX1JFUE9SVEVEX09TUxACEiMKH1VTQUdFX01FVEVSSU5HX1NPVVJDRV9FU1RJTUFURUQQAxIzCi9VU0FHRV9NRVRFUklOR19TT1VSQ0VfUFJPVklERVJfQURNSU5fUkVDT05DSUxFRBAEEisKJ1VTQUdFX01FVEVSSU5HX1NPVVJDRV9NQU5VQUxfQURKVVNUTUVOVBAFKqgBCg9Vc2FnZVRydXN0TGV2ZWwSIQodVVNBR0VfVFJVU1RfTEVWRUxfVU5TUEVDSUZJRUQQABInCiNVU0FHRV9UUlVTVF9MRVZFTF9CSUxMSU5HX0FVVEhPUklUWRABEiUKIVVTQUdFX1RSVVNUX0xFVkVMX1NFUlZFUl9PQlNFUlZFRBACEiIKHlVTQUdFX1RSVVNUX0xFVkVMX0RJU1BMQVlfT05MWRADKvwCChVVc2FnZUNvbXBsZXRpb25TdGF0dXMSJwojVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfVU5TUEVDSUZJRUQQABIkCiBVU0FHRV9DT01QTEVUSU9OX1NUQVRVU19DT01QTEVURRABEi4KKlVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX1NUUkVBTV9JTlRFUlJVUFRFRBACEjUKMVVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX1BST1ZJREVSX0VSUk9SX1dJVEhfVVNBR0UQAxIzCi9VU0FHRV9DT01QTEVUSU9OX1NUQVRVU19QUk9WSURFUl9FUlJPUl9OT19VU0FHRRAEEioKJlVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX0VTVElNQVRFRF9PTkxZEAUSJgoiVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfUkVDT05DSUxFRBAGEiQKIFVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX0NPTkZMSUNUEAcqnwIKEkJpbGxpbmdEZWJpdFN0YXR1cxIkCiBCSUxMSU5HX0RFQklUX1NUQVRVU19VTlNQRUNJRklFRBAAEicKI0JJTExJTkdfREVCSVRfU1RBVFVTX05PVF9BUFBMSUNBQkxFEAESIAocQklMTElOR19ERUJJVF9TVEFUVVNfUEVORElORxACEiAKHEJJTExJTkdfREVCSVRfU1RBVFVTX0RFQklURUQQAxIpCiVCSUxMSU5HX0RFQklUX1NUQVRVU19GQUlMRURfUkVUUllBQkxFEAQSKAokQklMTElOR19ERUJJVF9TVEFUVVNfRkFJTEVEX1RFUk1JTkFMEAUSIQodQklMTElOR19ERUJJVF9TVEFUVVNfQ09ORkxJQ1QQBiqPAgoVQ29zdENhbGN1bGF0aW9uU3RhdHVzEicKI0NPU1RfQ0FMQ1VMQVRJT05fU1RBVFVTX1VOU1BFQ0lGSUVEEAASJAogQ09TVF9DQUxDVUxBVElPTl9TVEFUVVNfQ09NUFVURUQQARIlCiFDT1NUX0NBTENVTEFUSU9OX1NUQVRVU19FU1RJTUFURUQQAhIrCidDT1NUX0NBTENVTEFUSU9OX1NUQVRVU19QUklDRV9OT1RfRk9VTkQQAxImCiJDT1NUX0NBTENVTEFUSU9OX1NUQVRVU19SRUNPTkNJTEVEEAQSKwonQ09TVF9DQUxDVUxBVElPTl9TVEFUVVNfTUFOVUFMX0FESlVTVEVEEAUqrgIKFFVzYWdlQWdncmVnYXRlU3RhdHVzEiYKIlVTQUdFX0FHR1JFR0FURV9TVEFUVVNfVU5TUEVDSUZJRUQQABIjCh9VU0FHRV9BR0dSRUdBVEVfU1RBVFVTX0NPTVBMRVRFEAESIgoeVVNBR0VfQUdHUkVHQVRFX1NUQVRVU19QQVJUSUFMEAISKgomVVNBR0VfQUdHUkVHQVRFX1NUQVRVU19QRU5ESU5HX0JJTExJTkcQAxIoCiRVU0FHRV9BR0dSRUdBVEVfU1RBVFVTX0hBU19FU1RJTUFURVMQBBIoCiRVU0FHRV9BR0dSRUdBVEVfU1RBVFVTX0hBU19DT05GTElDVFMQBRIlCiFVU0FHRV9BR0dSRUdBVEVfU1RBVFVTX1JFQ09OQ0lMRUQQBmIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
- * UsageMetrics tracks token consumption, cost, and LLM resource usage.
- * Provides execution-level aggregation for cost tracking, billing, and analytics.
+ * Normalized token usage from a single LLM call.
+ * Disjoint buckets: every token falls into exactly one category for cost calculation.
  *
- * ## Scope
- *
- * Each UsageMetrics instance represents direct LLM usage within its context:
- * - AgentExecutionStatus.usage: Main agent's LLM calls (excludes sub-agents)
- * - SubAgentExecution.usage: That sub-agent's LLM calls
- *
- * To calculate total execution cost, sum: status.usage + sum(sub_agent.usage)
- *
- * ## Token Counting
- *
- * - prompt_tokens: Total input tokens sent to the LLM (includes cached tokens)
- * - completion_tokens: Output tokens generated by the LLM (response)
- * - cache_creation_tokens / cache_read_tokens: Cache-aware breakdown
- * - Extracted from on_chat_model_end events via LangChain usage_metadata
- *
- * ## Relationship Between Token Fields
- *
- * prompt_tokens is the total across all input token types:
- *   prompt_tokens = sum(model_breakdown[].input_tokens
- *                       + model_breakdown[].cache_creation_tokens
- *                       + model_breakdown[].cache_read_tokens)
- *
- * At the aggregate level, cache_creation_tokens and cache_read_tokens are the
- * sums of their respective fields across all model breakdowns. The "fresh"
- * (non-cached) input portion equals:
- *   prompt_tokens - cache_creation_tokens - cache_read_tokens
- *
- * ## Cost Computation
- *
- * estimated_cost_usd is computed at execution time using pricing rates stamped
- * on each ModelUsage entry. This makes historical data self-contained — an
- * execution from January 2026 carries January 2026 rates even if prices change.
- *
- * ## Model Tracking
- *
- * primary_model reflects the configured model from ExecutionConfig.model_name.
- * When model is auto-selected or varies per call, this captures the first/main model used.
- * model_breakdown provides per-model detail when multiple models are used.
- *
- * @generated from message ai.stigmer.agentic.agentexecution.v1.UsageMetrics
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.TokenUsage
  */
-export type UsageMetrics = Message<"ai.stigmer.agentic.agentexecution.v1.UsageMetrics"> & {
+export type TokenUsage = Message<"ai.stigmer.agentic.agentexecution.v1.TokenUsage"> & {
   /**
-   * Total input tokens (prompts) consumed across all LLM calls in this context.
-   * Includes all input token types: regular, cache writes, and cache reads.
-   * Accumulated from each on_chat_model_end event's usage_metadata.input_tokens.
+   * Regular input tokens (non-cached, non-tool, billed at standard input rate).
    *
-   * @generated from field: int32 prompt_tokens = 1;
+   * @generated from field: int64 input_tokens = 1;
    */
-  promptTokens: number;
+  inputTokens: bigint;
 
   /**
-   * Total output tokens (completions) generated across all LLM calls in this context.
-   * Accumulated from each on_chat_model_end event's usage_metadata.output_tokens.
+   * Output/completion tokens generated by the model.
    *
-   * @generated from field: int32 completion_tokens = 2;
+   * @generated from field: int64 output_tokens = 2;
    */
-  completionTokens: number;
+  outputTokens: bigint;
 
   /**
-   * Total tokens (prompt + completion). Convenience field for quick reference.
-   * Equals: prompt_tokens + completion_tokens
+   * Provider-reported total tokens. May differ from sum of other fields
+   * because providers include reasoning/overhead differently.
    *
-   * @generated from field: int32 total_tokens = 3;
+   * @generated from field: int64 total_tokens = 3;
    */
-  totalTokens: number;
+  totalTokens: bigint;
 
   /**
-   * Number of LLM API calls made in this context.
-   * Incremented for each on_chat_model_end event.
-   * Useful for: average tokens per call, call frequency analysis.
+   * Tokens written to prompt cache (Anthropic cache_creation_input_tokens).
    *
-   * @generated from field: int32 llm_call_count = 4;
+   * @generated from field: int64 cache_creation_input_tokens = 4;
+   */
+  cacheCreationInputTokens: bigint;
+
+  /**
+   * Tokens read from prompt cache (cache hits).
+   *
+   * @generated from field: int64 cache_read_input_tokens = 5;
+   */
+  cacheReadInputTokens: bigint;
+
+  /**
+   * Reasoning/thinking tokens (OpenAI reasoning_tokens, Vertex thoughtsTokenCount).
+   *
+   * @generated from field: int64 reasoning_tokens = 6;
+   */
+  reasoningTokens: bigint;
+
+  /**
+   * Tool-use prompt tokens (Vertex toolUsePromptTokenCount).
+   *
+   * @generated from field: int64 tool_use_prompt_tokens = 7;
+   */
+  toolUsePromptTokens: bigint;
+
+  /**
+   * Audio tokens (future multimodal billing).
+   *
+   * @generated from field: int64 audio_input_tokens = 8;
+   */
+  audioInputTokens: bigint;
+
+  /**
+   * @generated from field: int64 audio_output_tokens = 9;
+   */
+  audioOutputTokens: bigint;
+
+  /**
+   * Provider-specific token details not yet normalized.
+   *
+   * @generated from field: map<string, int64> provider_token_details = 20;
+   */
+  providerTokenDetails: { [key: string]: bigint };
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.TokenUsage.
+ * Use `create(TokenUsageSchema)` to create a new message.
+ */
+export const TokenUsageSchema: GenMessage<TokenUsage> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 0);
+
+/**
+ * Pricing rates snapshot at the time of the LLM call.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.PricingSnapshot
+ */
+export type PricingSnapshot = Message<"ai.stigmer.agentic.agentexecution.v1.PricingSnapshot"> & {
+  /**
+   * Version of the model pricing registry used.
+   *
+   * @generated from field: string pricing_registry_version = 1;
+   */
+  pricingRegistryVersion: string;
+
+  /**
+   * When this pricing became effective.
+   *
+   * @generated from field: google.protobuf.Timestamp pricing_effective_at = 2;
+   */
+  pricingEffectiveAt?: Timestamp;
+
+  /**
+   * Currency (always "USD" for now).
+   *
+   * @generated from field: string currency = 3;
+   */
+  currency: string;
+
+  /**
+   * Provider cost rates (micro-USD per million tokens).
+   *
+   * @generated from field: int64 input_price_micros_per_million = 10;
+   */
+  inputPriceMicrosPerMillion: bigint;
+
+  /**
+   * @generated from field: int64 output_price_micros_per_million = 11;
+   */
+  outputPriceMicrosPerMillion: bigint;
+
+  /**
+   * @generated from field: int64 cache_creation_price_micros_per_million = 12;
+   */
+  cacheCreationPriceMicrosPerMillion: bigint;
+
+  /**
+   * @generated from field: int64 cache_read_price_micros_per_million = 13;
+   */
+  cacheReadPriceMicrosPerMillion: bigint;
+
+  /**
+   * @generated from field: int64 reasoning_price_micros_per_million = 14;
+   */
+  reasoningPriceMicrosPerMillion: bigint;
+
+  /**
+   * Customer billing policy applied.
+   *
+   * @generated from field: string markup_policy_version = 30;
+   */
+  markupPolicyVersion: string;
+
+  /**
+   * @generated from field: string cost_tier = 31;
+   */
+  costTier: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.PricingSnapshot.
+ * Use `create(PricingSnapshotSchema)` to create a new message.
+ */
+export const PricingSnapshotSchema: GenMessage<PricingSnapshot> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 1);
+
+/**
+ * Cost computation result stamped on each usage record.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.CostStamp
+ */
+export type CostStamp = Message<"ai.stigmer.agentic.agentexecution.v1.CostStamp"> & {
+  /**
+   * Currency (always "USD").
+   *
+   * @generated from field: string currency = 1;
+   */
+  currency: string;
+
+  /**
+   * Raw provider cost computed server-side from pricing registry.
+   *
+   * @generated from field: int64 provider_cost_micros = 2;
+   */
+  providerCostMicros: bigint;
+
+  /**
+   * Amount debited from customer credits (after markup policy).
+   *
+   * @generated from field: int64 customer_billable_amount_micros = 3;
+   */
+  customerBillableAmountMicros: bigint;
+
+  /**
+   * How cost was computed.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.CostCalculationStatus calculation_status = 4;
+   */
+  calculationStatus: CostCalculationStatus;
+
+  /**
+   * Full pricing snapshot for historical reproducibility.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.PricingSnapshot pricing = 5;
+   */
+  pricing?: PricingSnapshot;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.CostStamp.
+ * Use `create(CostStampSchema)` to create a new message.
+ */
+export const CostStampSchema: GenMessage<CostStamp> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 2);
+
+/**
+ * Proxy-observed timing for a single LLM call.
+ * These are server-side measurements, not client-perceived latency.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.ProxyTiming
+ */
+export type ProxyTiming = Message<"ai.stigmer.agentic.agentexecution.v1.ProxyTiming"> & {
+  /**
+   * When the proxy received the runner's request.
+   *
+   * @generated from field: google.protobuf.Timestamp proxy_received_at = 1;
+   */
+  proxyReceivedAt?: Timestamp;
+
+  /**
+   * When the proxy sent the request to the upstream provider.
+   *
+   * @generated from field: google.protobuf.Timestamp upstream_request_started_at = 2;
+   */
+  upstreamRequestStartedAt?: Timestamp;
+
+  /**
+   * When the first response byte arrived from the provider.
+   *
+   * @generated from field: google.protobuf.Timestamp first_response_byte_at = 3;
+   */
+  firstResponseByteAt?: Timestamp;
+
+  /**
+   * When the last response byte arrived from the provider.
+   *
+   * @generated from field: google.protobuf.Timestamp last_response_byte_at = 4;
+   */
+  lastResponseByteAt?: Timestamp;
+
+  /**
+   * When the proxy completed its handling.
+   *
+   * @generated from field: google.protobuf.Timestamp proxy_completed_at = 5;
+   */
+  proxyCompletedAt?: Timestamp;
+
+  /**
+   * Derived durations in milliseconds.
+   *
+   * @generated from field: int64 upstream_ttfb_ms = 10;
+   */
+  upstreamTtfbMs: bigint;
+
+  /**
+   * @generated from field: int64 upstream_ttlb_ms = 11;
+   */
+  upstreamTtlbMs: bigint;
+
+  /**
+   * @generated from field: int64 stream_duration_ms = 12;
+   */
+  streamDurationMs: bigint;
+
+  /**
+   * @generated from field: int64 proxy_total_duration_ms = 13;
+   */
+  proxyTotalDurationMs: bigint;
+
+  /**
+   * Transfer sizes.
+   *
+   * @generated from field: int64 request_bytes = 20;
+   */
+  requestBytes: bigint;
+
+  /**
+   * @generated from field: int64 response_bytes = 21;
+   */
+  responseBytes: bigint;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.ProxyTiming.
+ * Use `create(ProxyTimingSchema)` to create a new message.
+ */
+export const ProxyTimingSchema: GenMessage<ProxyTiming> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 3);
+
+/**
+ * Links a usage record to its billing debit in the credit ledger.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.BillingLink
+ */
+export type BillingLink = Message<"ai.stigmer.agentic.agentexecution.v1.BillingLink"> & {
+  /**
+   * Current debit status.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.BillingDebitStatus debit_status = 1;
+   */
+  debitStatus: BillingDebitStatus;
+
+  /**
+   * Execution reservation ID (from authorizeExecution).
+   *
+   * @generated from field: string reservation_id = 2;
+   */
+  reservationId: string;
+
+  /**
+   * Billing ledger debit ID (from reportLlmCallUsage).
+   *
+   * @generated from field: string billing_debit_id = 3;
+   */
+  billingDebitId: string;
+
+  /**
+   * When the debit was applied.
+   *
+   * @generated from field: google.protobuf.Timestamp debited_at = 4;
+   */
+  debitedAt?: Timestamp;
+
+  /**
+   * Operational visibility.
+   *
+   * @generated from field: int32 billing_attempt_count = 5;
+   */
+  billingAttemptCount: number;
+
+  /**
+   * @generated from field: string last_billing_error = 6;
+   */
+  lastBillingError: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.BillingLink.
+ * Use `create(BillingLinkSchema)` to create a new message.
+ */
+export const BillingLinkSchema: GenMessage<BillingLink> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 4);
+
+/**
+ * Immutable, billing-authoritative record for a single LLM API call.
+ *
+ * Written by the proxy after each SSE stream completes (cloud mode) or by
+ * the runner directly (OSS mode). Stored in the `llm_call_usage_record`
+ * MongoDB collection, never embedded in the execution document.
+ *
+ * ## Lifecycle
+ * 1. Proxy observes SSE stream completion and extracts final usage
+ * 2. Server inserts LlmCallUsageRecord (idempotent by idempotency_key)
+ * 3. Server computes cost and triggers billing debit
+ * 4. billing_link.debit_status transitions to DEBITED
+ *
+ * ## Idempotency
+ * Unique on (execution_id, sequence, metering_source). Insert-only; never mutated
+ * except for billing_link status transitions.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord
+ */
+export type LlmCallUsageRecord = Message<"ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord"> & {
+  /**
+   * ─── Identity ───────────────────────────────────────────────────────────────
+   * Stable unique ID for this record (ULID).
+   *
+   * @generated from field: string usage_record_id = 1;
+   */
+  usageRecordId: string;
+
+  /**
+   * Execution this call belongs to.
+   *
+   * @generated from field: string execution_id = 2;
+   */
+  executionId: string;
+
+  /**
+   * For sub-agent rollups: root execution of the tree.
+   *
+   * @generated from field: string root_execution_id = 3;
+   */
+  rootExecutionId: string;
+
+  /**
+   * 1-based call ordering within the execution.
+   *
+   * @generated from field: int32 sequence = 4;
+   */
+  sequence: number;
+
+  /**
+   * Deduplication key: execution_id + sequence + metering_source.
+   *
+   * @generated from field: string idempotency_key = 5;
+   */
+  idempotencyKey: string;
+
+  /**
+   * Hash of normalized payload for conflict detection on retries.
+   *
+   * @generated from field: string canonical_payload_hash = 6;
+   */
+  canonicalPayloadHash: string;
+
+  /**
+   * ─── Timestamps ─────────────────────────────────────────────────────────────
+   * When the proxy observed stream completion.
+   *
+   * @generated from field: google.protobuf.Timestamp observed_at = 10;
+   */
+  observedAt?: Timestamp;
+
+  /**
+   * When this record was created in the database.
+   *
+   * @generated from field: google.protobuf.Timestamp created_at = 11;
+   */
+  createdAt?: Timestamp;
+
+  /**
+   * ─── Trust / Source ─────────────────────────────────────────────────────────
+   * Who wrote this record and at what trust level.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.UsageMeteringSource metering_source = 20;
+   */
+  meteringSource: UsageMeteringSource;
+
+  /**
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.UsageTrustLevel trust_level = 21;
+   */
+  trustLevel: UsageTrustLevel;
+
+  /**
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus usage_status = 22;
+   */
+  usageStatus: UsageCompletionStatus;
+
+  /**
+   * Whether this record should produce a billing debit.
+   *
+   * @generated from field: bool is_billable = 23;
+   */
+  isBillable: boolean;
+
+  /**
+   * ─── Provider / Request Metadata ────────────────────────────────────────────
+   *
+   * @generated from field: string provider = 30;
+   */
+  provider: string;
+
+  /**
+   * @generated from field: string requested_model = 31;
+   */
+  requestedModel: string;
+
+  /**
+   * @generated from field: string resolved_model = 32;
+   */
+  resolvedModel: string;
+
+  /**
+   * @generated from field: string endpoint = 33;
+   */
+  endpoint: string;
+
+  /**
+   * @generated from field: bool streaming = 34;
+   */
+  streaming: boolean;
+
+  /**
+   * @generated from field: string service_tier = 35;
+   */
+  serviceTier: string;
+
+  /**
+   * @generated from field: string provider_request_id = 36;
+   */
+  providerRequestId: string;
+
+  /**
+   * @generated from field: string harness = 37;
+   */
+  harness: string;
+
+  /**
+   * @generated from field: int32 http_status_code = 40;
+   */
+  httpStatusCode: number;
+
+  /**
+   * @generated from field: string finish_reason = 41;
+   */
+  finishReason: string;
+
+  /**
+   * @generated from field: string error_code = 42;
+   */
+  errorCode: string;
+
+  /**
+   * ─── Token Usage ────────────────────────────────────────────────────────────
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 50;
+   */
+  tokens?: TokenUsage;
+
+  /**
+   * ─── Cost ───────────────────────────────────────────────────────────────────
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.CostStamp cost = 51;
+   */
+  cost?: CostStamp;
+
+  /**
+   * ─── Proxy Timing ──────────────────────────────────────────────────────────
+   * Present when metering_source is PROXY_PROVIDER_REPORTED.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 60;
+   */
+  proxyTiming?: ProxyTiming;
+
+  /**
+   * ─── Raw Provider Usage ─────────────────────────────────────────────────────
+   * Compact JSON of provider's raw usage object for audit/debug.
+   *
+   * @generated from field: string provider_usage_json = 70;
+   */
+  providerUsageJson: string;
+
+  /**
+   * ─── Billing Handoff ────────────────────────────────────────────────────────
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.BillingLink billing = 80;
+   */
+  billing?: BillingLink;
+
+  /**
+   * ─── Labels ─────────────────────────────────────────────────────────────────
+   * Custom metadata for filtering (e.g., agent_path, node_path).
+   *
+   * @generated from field: map<string, string> labels = 90;
+   */
+  labels: { [key: string]: string };
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.
+ * Use `create(LlmCallUsageRecordSchema)` to create a new message.
+ */
+export const LlmCallUsageRecordSchema: GenMessage<LlmCallUsageRecord> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 5);
+
+/**
+ * Per-model usage breakdown within an execution.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.ModelUsageBreakdown
+ */
+export type ModelUsageBreakdown = Message<"ai.stigmer.agentic.agentexecution.v1.ModelUsageBreakdown"> & {
+  /**
+   * @generated from field: string provider = 1;
+   */
+  provider: string;
+
+  /**
+   * @generated from field: string resolved_model = 2;
+   */
+  resolvedModel: string;
+
+  /**
+   * @generated from field: string service_tier = 3;
+   */
+  serviceTier: string;
+
+  /**
+   * @generated from field: int32 call_count = 10;
+   */
+  callCount: number;
+
+  /**
+   * @generated from field: int32 billable_call_count = 11;
+   */
+  billableCallCount: number;
+
+  /**
+   * @generated from field: int32 failed_call_count = 12;
+   */
+  failedCallCount: number;
+
+  /**
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 20;
+   */
+  tokens?: TokenUsage;
+
+  /**
+   * @generated from field: string currency = 30;
+   */
+  currency: string;
+
+  /**
+   * @generated from field: int64 provider_cost_micros = 31;
+   */
+  providerCostMicros: bigint;
+
+  /**
+   * @generated from field: int64 customer_billable_amount_micros = 32;
+   */
+  customerBillableAmountMicros: bigint;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.ModelUsageBreakdown.
+ * Use `create(ModelUsageBreakdownSchema)` to create a new message.
+ */
+export const ModelUsageBreakdownSchema: GenMessage<ModelUsageBreakdown> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 6);
+
+/**
+ * Execution-level usage aggregate, derived from per-call records.
+ * Stored on AgentExecutionStatus.usage_summary for fast reads.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate
+ */
+export type ExecutionUsageAggregate = Message<"ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate"> & {
+  /**
+   * ─── Counts ─────────────────────────────────────────────────────────────────
+   *
+   * @generated from field: int32 llm_call_count = 1;
    */
   llmCallCount: number;
 
   /**
-   * Primary model used for this execution.
-   * Typically matches ExecutionConfig.model_name or the first model detected.
-   * Examples: "claude-sonnet-4-20250514", "gpt-4o", "gemini-1.5-pro"
+   * @generated from field: int32 billable_call_count = 2;
+   */
+  billableCallCount: number;
+
+  /**
+   * @generated from field: int32 failed_call_count = 3;
+   */
+  failedCallCount: number;
+
+  /**
+   * ─── Token Totals ──────────────────────────────────────────────────────────
    *
-   * @generated from field: string primary_model = 5;
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.TokenUsage total_tokens = 10;
+   */
+  totalTokens?: TokenUsage;
+
+  /**
+   * ─── Cost Totals ───────────────────────────────────────────────────────────
+   *
+   * @generated from field: string currency = 20;
+   */
+  currency: string;
+
+  /**
+   * @generated from field: int64 provider_cost_micros = 21;
+   */
+  providerCostMicros: bigint;
+
+  /**
+   * @generated from field: int64 customer_billable_amount_micros = 22;
+   */
+  customerBillableAmountMicros: bigint;
+
+  /**
+   * ─── Model Breakdown ───────────────────────────────────────────────────────
+   *
+   * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.ModelUsageBreakdown model_breakdown = 30;
+   */
+  modelBreakdown: ModelUsageBreakdown[];
+
+  /**
+   * ─── Display Convenience ───────────────────────────────────────────────────
+   *
+   * @generated from field: string primary_provider = 40;
+   */
+  primaryProvider: string;
+
+  /**
+   * @generated from field: string primary_model = 41;
    */
   primaryModel: string;
 
   /**
-   * Tokens written to provider prompt cache across all LLM calls.
-   * Anthropic: cache_creation_input_tokens (billed at 1.25x input rate)
-   * OpenAI: N/A (caching is automatic, no separate write metric)
-   * Zero if prompt caching is not active or not supported by provider.
+   * ─── Freshness ─────────────────────────────────────────────────────────────
    *
-   * @generated from field: int32 cache_creation_tokens = 6;
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.UsageAggregateStatus status = 50;
    */
-  cacheCreationTokens: number;
+  status: UsageAggregateStatus;
 
   /**
-   * Tokens read from provider prompt cache (cache hits) across all LLM calls.
-   * Anthropic: cache_read_input_tokens (billed at 0.1x input rate)
-   * OpenAI: prompt_tokens_details.cached_tokens (billed at 0.5x input rate)
-   * Zero if no cache hits occurred.
-   *
-   * @generated from field: int32 cache_read_tokens = 7;
+   * @generated from field: google.protobuf.Timestamp last_usage_at = 51;
    */
-  cacheReadTokens: number;
+  lastUsageAt?: Timestamp;
 
   /**
-   * Breakdown of token usage and cost per model.
-   * Each entry aggregates all LLM calls for a specific model within this context.
-   * Used for cost reports: "claude-sonnet-4 used 50K input tokens = $0.15."
-   *
-   * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.ModelUsage model_breakdown = 8;
+   * @generated from field: int32 source_record_count = 52;
    */
-  modelBreakdown: ModelUsage[];
+  sourceRecordCount: number;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate.
+ * Use `create(ExecutionUsageAggregateSchema)` to create a new message.
+ */
+export const ExecutionUsageAggregateSchema: GenMessage<ExecutionUsageAggregate> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 7);
+
+/**
+ * Runner-reported execution observability metrics. Display-only in cloud mode.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics
+ */
+export type ExecutionObservabilityMetrics = Message<"ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics"> & {
+  /**
+   * Runner-observed wall-clock timings (milliseconds).
+   *
+   * @generated from field: int64 runner_total_duration_ms = 1;
+   */
+  runnerTotalDurationMs: bigint;
 
   /**
-   * Total estimated cost in USD for this execution context.
-   * Computed at execution time using the pricing rates stamped on each ModelUsage.
-   * Equals: sum(model_breakdown[].estimated_cost_usd)
-   *
-   * Captured at write time because pricing changes over time — storing the
-   * computed cost makes historical data self-contained and accurate without
-   * needing a pricing history table.
-   *
-   * @generated from field: double estimated_cost_usd = 9;
+   * @generated from field: int64 runner_llm_wait_duration_ms = 2;
    */
-  estimatedCostUsd: number;
+  runnerLlmWaitDurationMs: bigint;
 
   /**
-   * Total characters truncated from tool results during this execution.
-   * Non-zero indicates the agent received tool outputs that exceeded the
-   * configured max_tool_result_chars limit.
-   * Useful for: tuning truncation limits, identifying verbose tools.
+   * @generated from field: int64 tool_duration_ms = 3;
+   */
+  toolDurationMs: bigint;
+
+  /**
+   * @generated from field: int64 approval_wait_duration_ms = 4;
+   */
+  approvalWaitDurationMs: bigint;
+
+  /**
+   * Tool result truncation tracking.
    *
    * @generated from field: int64 tool_result_chars_truncated = 10;
    */
   toolResultCharsTruncated: bigint;
 
   /**
-   * Per-call breakdown of every LLM API call in this context.
-   * Ordered chronologically (call 1, call 2, ...).
-   * Enables debugging expensive calls, tracking token growth across calls,
-   * and verifying cache hit patterns.
+   * Context window utilization.
    *
-   * This is the detailed view — model_breakdown is the per-model aggregate.
-   * Both are populated: model_breakdown for reports, llm_calls for debugging.
+   * @generated from field: int64 max_context_window_used_tokens = 11;
+   */
+  maxContextWindowUsedTokens: bigint;
+
+  /**
+   * @generated from field: int64 context_window_size_tokens = 12;
+   */
+  contextWindowSizeTokens: bigint;
+
+  /**
+   * When these metrics were last updated.
    *
+   * @generated from field: google.protobuf.Timestamp updated_at = 20;
+   */
+  updatedAt?: Timestamp;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics.
+ * Use `create(ExecutionObservabilityMetricsSchema)` to create a new message.
+ */
+export const ExecutionObservabilityMetricsSchema: GenMessage<ExecutionObservabilityMetrics> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 8);
+
+/**
+ * DEPRECATED: Use ExecutionUsageAggregate for execution-level usage.
+ * Retained for backward compatibility with existing runner-reported data.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.UsageMetrics
+ */
+export type UsageMetrics = Message<"ai.stigmer.agentic.agentexecution.v1.UsageMetrics"> & {
+  /**
+   * @generated from field: int32 prompt_tokens = 1;
+   */
+  promptTokens: number;
+
+  /**
+   * @generated from field: int32 completion_tokens = 2;
+   */
+  completionTokens: number;
+
+  /**
+   * @generated from field: int32 total_tokens = 3;
+   */
+  totalTokens: number;
+
+  /**
+   * @generated from field: int32 llm_call_count = 4;
+   */
+  llmCallCount: number;
+
+  /**
+   * @generated from field: string primary_model = 5;
+   */
+  primaryModel: string;
+
+  /**
+   * @generated from field: int32 cache_creation_tokens = 6;
+   */
+  cacheCreationTokens: number;
+
+  /**
+   * @generated from field: int32 cache_read_tokens = 7;
+   */
+  cacheReadTokens: number;
+
+  /**
+   * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.ModelUsage model_breakdown = 8;
+   */
+  modelBreakdown: ModelUsage[];
+
+  /**
+   * @generated from field: double estimated_cost_usd = 9;
+   */
+  estimatedCostUsd: number;
+
+  /**
+   * @generated from field: int64 tool_result_chars_truncated = 10;
+   */
+  toolResultCharsTruncated: bigint;
+
+  /**
    * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11;
    */
   llmCalls: LlmCallMetrics[];
 
   /**
-   * Total wall-clock duration of the execution in milliseconds.
-   * Convenience field equivalent to (completed_at - started_at).
-   * Includes all time: LLM calls, tool execution, approval waits, overhead.
-   *
    * @generated from field: int32 total_duration_ms = 12;
    */
   totalDurationMs: number;
 
   /**
-   * Time spent waiting for LLM responses in milliseconds.
-   * Sum of all LLM call durations (llm_calls[].duration_ms).
-   * Directly correlates with token generation cost.
-   *
    * @generated from field: int32 llm_duration_ms = 13;
    */
   llmDurationMs: number;
 
   /**
-   * Time spent executing tools in milliseconds.
-   * Sum of all tool execution durations (tool start to tool complete).
-   * Represents compute resource usage in the sandbox.
-   *
    * @generated from field: int32 tool_duration_ms = 14;
    */
   toolDurationMs: number;
 
   /**
-   * Time spent waiting for user approval in milliseconds.
-   * Sum of all approval wait times (approval_requested_at to approval_decided_at).
-   * This is idle time — no LLM or compute resources consumed.
-   * Useful for excluding from "active execution cost" calculations.
-   *
    * @generated from field: int32 approval_wait_duration_ms = 15;
    */
   approvalWaitDurationMs: number;
 
   /**
-   * Provider that served the primary model.
-   * Examples: "anthropic", "openai", "google", "ollama", "aws-bedrock"
-   * Matches the provider field in model_breakdown for the primary model.
-   * Useful for quick display without diving into model_breakdown.
-   *
    * @generated from field: string primary_provider = 16;
    */
   primaryProvider: string;
@@ -219,136 +883,70 @@ export type UsageMetrics = Message<"ai.stigmer.agentic.agentexecution.v1.UsageMe
  * Use `create(UsageMetricsSchema)` to create a new message.
  */
 export const UsageMetricsSchema: GenMessage<UsageMetrics> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 0);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 9);
 
 /**
- * ModelUsage captures token usage and cost for a single model within an execution.
- * Provides the per-model breakdown needed for accurate cost calculation when
- * multiple models are used (e.g., main model + summarization model).
- *
- * ## Token Bucket Design
- *
- * The four token fields (input_tokens, output_tokens, cache_creation_tokens,
- * cache_read_tokens) are disjoint, non-overlapping buckets. Every token falls
- * into exactly one bucket, making cost calculation straightforward:
- *   cost = (input_tokens * input_price / 1M)
- *        + (output_tokens * output_price / 1M)
- *        + (cache_creation_tokens * cache_creation_price / 1M)
- *        + (cache_read_tokens * cache_read_price / 1M)
- *
- * ## input_tokens Semantics
- *
- * input_tokens represents regular (non-cached) input tokens only — tokens
- * billed at the standard input rate. This follows the Anthropic provider
- * convention where input_tokens excludes cache tokens.
- *
- * Total input for this model = input_tokens + cache_creation_tokens + cache_read_tokens
- *
- * ## Pricing Rates
- *
- * Pricing fields are stamped at execution time from the Model Pricing Registry.
- * This makes historical data self-contained: an execution from January 2026
- * carries January 2026 rates even if provider pricing changes later.
+ * DEPRECATED: Use ModelUsageBreakdown for per-model usage.
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.ModelUsage
  */
 export type ModelUsage = Message<"ai.stigmer.agentic.agentexecution.v1.ModelUsage"> & {
   /**
-   * Model identifier as returned by the provider.
-   * Example: "claude-sonnet-4-20250514", "gpt-4o-2024-08-06"
-   *
    * @generated from field: string model = 1;
    */
   model: string;
 
   /**
-   * Provider identifier. Determines which pricing table to use.
-   * Examples: "anthropic", "openai", "google", "ollama", "aws-bedrock"
-   *
    * @generated from field: string provider = 2;
    */
   provider: string;
 
   /**
-   * Regular input tokens (non-cached) billed at the standard input rate.
-   * Anthropic: input_tokens (excludes cache tokens)
-   * OpenAI: prompt_tokens - cached_tokens
-   *
-   * Total input = input_tokens + cache_creation_tokens + cache_read_tokens
-   *
    * @generated from field: int32 input_tokens = 3;
    */
   inputTokens: number;
 
   /**
-   * Output tokens generated by the model.
-   *
    * @generated from field: int32 output_tokens = 4;
    */
   outputTokens: number;
 
   /**
-   * Tokens written to prompt cache during this execution.
-   * Anthropic: cache_creation_input_tokens (billed at 1.25x input rate)
-   * OpenAI: N/A (caching is automatic, no separate write metric)
-   *
    * @generated from field: int32 cache_creation_tokens = 5;
    */
   cacheCreationTokens: number;
 
   /**
-   * Tokens read from prompt cache (cache hits).
-   * Anthropic: cache_read_input_tokens (billed at 0.1x input rate)
-   * OpenAI: prompt_tokens_details.cached_tokens (billed at 0.5x input rate)
-   *
    * @generated from field: int32 cache_read_tokens = 6;
    */
   cacheReadTokens: number;
 
   /**
-   * Number of LLM API calls made with this model.
-   *
    * @generated from field: int32 call_count = 7;
    */
   callCount: number;
 
   /**
-   * Input token price per million tokens (USD) at execution time.
-   *
    * @generated from field: double input_price_per_million = 8;
    */
   inputPricePerMillion: number;
 
   /**
-   * Output token price per million tokens (USD) at execution time.
-   *
    * @generated from field: double output_price_per_million = 9;
    */
   outputPricePerMillion: number;
 
   /**
-   * Cache write token price per million tokens (USD) at execution time.
-   * Anthropic: 1.25x of input_price. OpenAI: same as input.
-   *
    * @generated from field: double cache_creation_price_per_million = 10;
    */
   cacheCreationPricePerMillion: number;
 
   /**
-   * Cache read token price per million tokens (USD) at execution time.
-   * Anthropic: 0.1x of input_price. OpenAI: 0.5x of input_price.
-   *
    * @generated from field: double cache_read_price_per_million = 11;
    */
   cacheReadPricePerMillion: number;
 
   /**
-   * Computed cost in USD for this model's usage in this execution.
-   * = (input_tokens * input_price / 1M)
-   *   + (output_tokens * output_price / 1M)
-   *   + (cache_creation_tokens * cache_creation_price / 1M)
-   *   + (cache_read_tokens * cache_read_price / 1M)
-   *
    * @generated from field: double estimated_cost_usd = 12;
    */
   estimatedCostUsd: number;
@@ -359,107 +957,66 @@ export type ModelUsage = Message<"ai.stigmer.agentic.agentexecution.v1.ModelUsag
  * Use `create(ModelUsageSchema)` to create a new message.
  */
 export const ModelUsageSchema: GenMessage<ModelUsage> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 1);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 10);
 
 /**
- * Metrics for a single LLM API call during execution.
- * Provides per-call granularity for debugging, optimization, and cost attribution.
- *
- * One entry is created for each on_chat_model_end event.
- * Ordered chronologically — the Nth entry corresponds to the Nth LLM call.
- *
- * ## Cache Verification
- *
- * Especially valuable for verifying prompt caching: you expect call 1 to be a
- * cache miss (or cache write), and calls 2+ to have high cache_read_tokens.
- * If they don't, something is wrong with cache breakpoint placement.
- *
- * ## Size Consideration
- *
- * A typical execution has 3-15 LLM calls. Each LlmCallMetrics is ~10 fields /
- * ~80 bytes. Even a 50-call execution adds only ~4KB — negligible compared to
- * the messages[] and tool_calls[] arrays which carry full content strings.
+ * DEPRECATED: Use LlmCallUsageRecord for per-call billing data.
+ * Retained for AgentMessage.llm_metrics (runner-reported display data).
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics
  */
 export type LlmCallMetrics = Message<"ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics"> & {
   /**
-   * Sequence number of this LLM call within the execution (1-based).
-   *
    * @generated from field: int32 sequence = 1;
    */
   sequence: number;
 
   /**
-   * Model used for this specific call.
-   * May differ from primary_model if model fallback or routing occurred.
-   *
    * @generated from field: string model = 2;
    */
   model: string;
 
   /**
-   * Provider for this call.
-   *
    * @generated from field: string provider = 3;
    */
   provider: string;
 
   /**
-   * Input tokens for this call (total prompt size sent to the model).
-   *
    * @generated from field: int32 input_tokens = 4;
    */
   inputTokens: number;
 
   /**
-   * Output tokens generated by the model in this call.
-   *
    * @generated from field: int32 output_tokens = 5;
    */
   outputTokens: number;
 
   /**
-   * Cache tokens written during this call.
-   *
    * @generated from field: int32 cache_creation_tokens = 6;
    */
   cacheCreationTokens: number;
 
   /**
-   * Cache tokens read (cache hits) during this call.
-   *
    * @generated from field: int32 cache_read_tokens = 7;
    */
   cacheReadTokens: number;
 
   /**
-   * Computed cost in USD for this single call.
-   *
    * @generated from field: double estimated_cost_usd = 8;
    */
   estimatedCostUsd: number;
 
   /**
-   * Wall-clock duration of this LLM call in milliseconds.
-   * From request sent to response complete.
-   *
    * @generated from field: int32 duration_ms = 9;
    */
   durationMs: number;
 
   /**
-   * ISO 8601 timestamp when this LLM call started.
-   *
    * @generated from field: string timestamp = 10;
    */
   timestamp: string;
 
   /**
-   * Total tokens involved in this call. Convenience field for quick reference.
-   * Equals: input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens
-   * Consistent with UsageMetrics.total_tokens (prompt_tokens + completion_tokens).
-   *
    * @generated from field: int32 total_tokens = 11;
    */
   totalTokens: number;
@@ -470,5 +1027,325 @@ export type LlmCallMetrics = Message<"ai.stigmer.agentic.agentexecution.v1.LlmCa
  * Use `create(LlmCallMetricsSchema)` to create a new message.
  */
 export const LlmCallMetricsSchema: GenMessage<LlmCallMetrics> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 2);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 11);
+
+/**
+ * Identifies who wrote the usage record and under what conditions.
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.UsageMeteringSource
+ */
+export enum UsageMeteringSource {
+  /**
+   * @generated from enum value: USAGE_METERING_SOURCE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Cloud mode: Stigmer proxy observed provider-reported final usage from SSE stream.
+   *
+   * @generated from enum value: USAGE_METERING_SOURCE_PROXY_PROVIDER_REPORTED = 1;
+   */
+  PROXY_PROVIDER_REPORTED = 1,
+
+  /**
+   * OSS/BYOK mode: runner reports provider response usage directly.
+   *
+   * @generated from enum value: USAGE_METERING_SOURCE_RUNNER_PROVIDER_REPORTED_OSS = 2;
+   */
+  RUNNER_PROVIDER_REPORTED_OSS = 2,
+
+  /**
+   * Estimate from tokenizer/preflight/local accounting. Never billing-authoritative in cloud mode.
+   *
+   * @generated from enum value: USAGE_METERING_SOURCE_ESTIMATED = 3;
+   */
+  ESTIMATED = 3,
+
+  /**
+   * Reconciliation from provider admin usage/cost reports.
+   *
+   * @generated from enum value: USAGE_METERING_SOURCE_PROVIDER_ADMIN_RECONCILED = 4;
+   */
+  PROVIDER_ADMIN_RECONCILED = 4,
+
+  /**
+   * Human/system manual adjustment.
+   *
+   * @generated from enum value: USAGE_METERING_SOURCE_MANUAL_ADJUSTMENT = 5;
+   */
+  MANUAL_ADJUSTMENT = 5,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.UsageMeteringSource.
+ */
+export const UsageMeteringSourceSchema: GenEnum<UsageMeteringSource> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 0);
+
+/**
+ * Declares what the record can be used for.
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.UsageTrustLevel
+ */
+export enum UsageTrustLevel {
+  /**
+   * @generated from enum value: USAGE_TRUST_LEVEL_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Billing-authoritative: safe to debit credits from.
+   *
+   * @generated from enum value: USAGE_TRUST_LEVEL_BILLING_AUTHORITY = 1;
+   */
+  BILLING_AUTHORITY = 1,
+
+  /**
+   * Server-observed but not billing (e.g., proxy timing).
+   *
+   * @generated from enum value: USAGE_TRUST_LEVEL_SERVER_OBSERVED = 2;
+   */
+  SERVER_OBSERVED = 2,
+
+  /**
+   * Display-only: runner-reported, never used for billing.
+   *
+   * @generated from enum value: USAGE_TRUST_LEVEL_DISPLAY_ONLY = 3;
+   */
+  DISPLAY_ONLY = 3,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.UsageTrustLevel.
+ */
+export const UsageTrustLevelSchema: GenEnum<UsageTrustLevel> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 1);
+
+/**
+ * Status of provider-reported token usage extraction.
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus
+ */
+export enum UsageCompletionStatus {
+  /**
+   * @generated from enum value: USAGE_COMPLETION_STATUS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Provider reported complete final usage (normal case).
+   *
+   * @generated from enum value: USAGE_COMPLETION_STATUS_COMPLETE = 1;
+   */
+  COMPLETE = 1,
+
+  /**
+   * Stream ended without final usage event (e.g., connection interrupted).
+   *
+   * @generated from enum value: USAGE_COMPLETION_STATUS_STREAM_INTERRUPTED = 2;
+   */
+  STREAM_INTERRUPTED = 2,
+
+  /**
+   * Provider returned error but included partial usage data.
+   *
+   * @generated from enum value: USAGE_COMPLETION_STATUS_PROVIDER_ERROR_WITH_USAGE = 3;
+   */
+  PROVIDER_ERROR_WITH_USAGE = 3,
+
+  /**
+   * Provider returned error with no usage data.
+   *
+   * @generated from enum value: USAGE_COMPLETION_STATUS_PROVIDER_ERROR_NO_USAGE = 4;
+   */
+  PROVIDER_ERROR_NO_USAGE = 4,
+
+  /**
+   * Usage is estimated (tokenizer/preflight), not provider-reported.
+   *
+   * @generated from enum value: USAGE_COMPLETION_STATUS_ESTIMATED_ONLY = 5;
+   */
+  ESTIMATED_ONLY = 5,
+
+  /**
+   * Reconciled against provider admin reports.
+   *
+   * @generated from enum value: USAGE_COMPLETION_STATUS_RECONCILED = 6;
+   */
+  RECONCILED = 6,
+
+  /**
+   * Conflict: retry with different payload detected.
+   *
+   * @generated from enum value: USAGE_COMPLETION_STATUS_CONFLICT = 7;
+   */
+  CONFLICT = 7,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus.
+ */
+export const UsageCompletionStatusSchema: GenEnum<UsageCompletionStatus> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 2);
+
+/**
+ * Status of the billing debit for a usage record.
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.BillingDebitStatus
+ */
+export enum BillingDebitStatus {
+  /**
+   * @generated from enum value: BILLING_DEBIT_STATUS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * No billing applicable (e.g., OSS mode, $0 cost, incomplete usage).
+   *
+   * @generated from enum value: BILLING_DEBIT_STATUS_NOT_APPLICABLE = 1;
+   */
+  NOT_APPLICABLE = 1,
+
+  /**
+   * Debit pending (usage written, billing not yet attempted).
+   *
+   * @generated from enum value: BILLING_DEBIT_STATUS_PENDING = 2;
+   */
+  PENDING = 2,
+
+  /**
+   * Credits successfully debited.
+   *
+   * @generated from enum value: BILLING_DEBIT_STATUS_DEBITED = 3;
+   */
+  DEBITED = 3,
+
+  /**
+   * Debit failed but retryable (transient error).
+   *
+   * @generated from enum value: BILLING_DEBIT_STATUS_FAILED_RETRYABLE = 4;
+   */
+  FAILED_RETRYABLE = 4,
+
+  /**
+   * Debit failed terminally (e.g., no reservation found).
+   *
+   * @generated from enum value: BILLING_DEBIT_STATUS_FAILED_TERMINAL = 5;
+   */
+  FAILED_TERMINAL = 5,
+
+  /**
+   * Conflict detected (duplicate with different payload).
+   *
+   * @generated from enum value: BILLING_DEBIT_STATUS_CONFLICT = 6;
+   */
+  CONFLICT = 6,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.BillingDebitStatus.
+ */
+export const BillingDebitStatusSchema: GenEnum<BillingDebitStatus> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 3);
+
+/**
+ * Status of cost calculation for a usage record.
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.CostCalculationStatus
+ */
+export enum CostCalculationStatus {
+  /**
+   * @generated from enum value: COST_CALCULATION_STATUS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Cost computed from pricing registry at write time.
+   *
+   * @generated from enum value: COST_CALCULATION_STATUS_COMPUTED = 1;
+   */
+  COMPUTED = 1,
+
+  /**
+   * Cost is an estimate (model not found in registry).
+   *
+   * @generated from enum value: COST_CALCULATION_STATUS_ESTIMATED = 2;
+   */
+  ESTIMATED = 2,
+
+  /**
+   * Model pricing not found; cost is zero.
+   *
+   * @generated from enum value: COST_CALCULATION_STATUS_PRICE_NOT_FOUND = 3;
+   */
+  PRICE_NOT_FOUND = 3,
+
+  /**
+   * Cost was reconciled against provider reports.
+   *
+   * @generated from enum value: COST_CALCULATION_STATUS_RECONCILED = 4;
+   */
+  RECONCILED = 4,
+
+  /**
+   * Cost was manually adjusted.
+   *
+   * @generated from enum value: COST_CALCULATION_STATUS_MANUAL_ADJUSTED = 5;
+   */
+  MANUAL_ADJUSTED = 5,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.CostCalculationStatus.
+ */
+export const CostCalculationStatusSchema: GenEnum<CostCalculationStatus> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 4);
+
+/**
+ * Aggregate completeness status for execution-level usage summary.
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.UsageAggregateStatus
+ */
+export enum UsageAggregateStatus {
+  /**
+   * @generated from enum value: USAGE_AGGREGATE_STATUS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: USAGE_AGGREGATE_STATUS_COMPLETE = 1;
+   */
+  COMPLETE = 1,
+
+  /**
+   * @generated from enum value: USAGE_AGGREGATE_STATUS_PARTIAL = 2;
+   */
+  PARTIAL = 2,
+
+  /**
+   * @generated from enum value: USAGE_AGGREGATE_STATUS_PENDING_BILLING = 3;
+   */
+  PENDING_BILLING = 3,
+
+  /**
+   * @generated from enum value: USAGE_AGGREGATE_STATUS_HAS_ESTIMATES = 4;
+   */
+  HAS_ESTIMATES = 4,
+
+  /**
+   * @generated from enum value: USAGE_AGGREGATE_STATUS_HAS_CONFLICTS = 5;
+   */
+  HAS_CONFLICTS = 5,
+
+  /**
+   * @generated from enum value: USAGE_AGGREGATE_STATUS_RECONCILED = 6;
+   */
+  RECONCILED = 6,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.UsageAggregateStatus.
+ */
+export const UsageAggregateStatusSchema: GenEnum<UsageAggregateStatus> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 5);
 

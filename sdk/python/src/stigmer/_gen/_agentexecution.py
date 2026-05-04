@@ -45,6 +45,12 @@ class AgentExecutionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def update_usage(self, input: io_pb2.UpdateUsageInput) -> io_pb2.UpdateUsageResponse:
+        try:
+            return self._command.updateUsage(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def delete(self, id: str) -> api_pb2.AgentExecution:
         try:
             return self._command.delete(apiresource_io_pb2.ApiResourceId(value=id))

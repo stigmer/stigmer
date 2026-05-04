@@ -84,6 +84,64 @@ message UpdateStatusResponse {
   string signal_reason = 2;
 }
 
+// Input message for updateUsage RPC.
+// Contains proxy-observed data for a single LLM call. The server computes
+// provider cost from the model registry — the caller never supplies cost,
+// harness, or cost tier. This is the tamper-proof trust boundary.
+//
+// ## Idempotency
+//
+// Deduplicated by (execution_id, sequence, metering_source). If the same
+// sequence is reported twice with the same payload, the second call is a no-op.
+// If the payload differs, a conflict is recorded.
+message UpdateUsageInput {
+  // ID of the agent execution (required).
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // 1-based sequence number of this LLM call within the execution (required).
+  int32 sequence = 2 [(buf.validate.field).int32.gt = 0];
+
+  // Provider identifier matching the proxy route (required).
+  // Example: "openai", "anthropic"
+  string provider = 3 [(buf.validate.field).string.min_len = 1];
+
+  // Model identifier as reported by the provider in the response (required).
+  // This is the resolved/actual model, not the requested alias.
+  // Example: "claude-sonnet-4-20250514", "gpt-4o-2024-08-06"
+  string resolved_model = 4 [(buf.validate.field).string.min_len = 1];
+
+  // Token usage extracted from the provider's SSE stream.
+  TokenUsage tokens = 5;
+
+  // Status of usage extraction (did we get complete final usage?).
+  UsageCompletionStatus usage_status = 6;
+
+  // Provider request ID from response headers (for reconciliation/support).
+  string provider_request_id = 7;
+
+  // HTTP status code from the upstream provider response.
+  int32 http_status_code = 8;
+
+  // Whether the response was streamed (SSE).
+  bool streaming = 9;
+
+  // Provider's finish reason (e.g., "end_turn", "stop", "max_tokens").
+  string finish_reason = 10;
+
+  // Proxy-observed timing for this call.
+  ProxyTiming proxy_timing = 11;
+
+  // Raw provider usage JSON for audit/debug (compact, optional).
+  string provider_usage_json = 12;
+}
+
+// Minimal acknowledgment for updateUsage. Intentionally empty.
+//
+// Billing signals are NOT returned here — the proxy is a transparent byte pipe
+// and cannot act on STOP/WARNING. Signals are delivered to the runner through
+// the updateStatus response, where the runner checks them every few seconds.
+message UpdateUsageResponse {}
+
 // Input for submitting an approval decision (HITL Phase 1).
 //
 // All required fields must be provided. The handler validates:
