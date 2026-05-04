@@ -101,8 +101,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-04 13:29
-**Current Task**: T03 (Wire SSE parser into LlmProxyController) — COMPLETED
-**Status**: T01 audit + T02 fixes + T03 proxy wiring all committed.
+**Current Task**: T04 (Wire SSE parser into CursorProxyController) — COMPLETED
+**Status**: T01–T04 all implemented. T01–T03 committed. T04 ready to commit.
 
 ## Session Progress (2026-05-04)
 
@@ -202,13 +202,43 @@ When starting a new session:
 - OSS: `82ee8f939` on `feat/react-sdk-streaming-ux` — `requested_model` proto field
 - Cloud: `47f7538c` on `feat/stripe-billing-integration` — full T03 wiring (18 files, +1127 -111)
 
+## Session Progress (2026-05-04 Session 4)
+
+### T04 Completed: CursorProxyController Usage Metering
+
+**Key Research Finding**: The CursorProxyController javadoc example (`aiserver.v1.AgentService/Send`) is for SDK-internal Connect RPC analytics. The main agent streaming uses REST + SSE at `GET /v1/agents/{id}/runs/{id}/stream` on `api.cursor.com`. Cursor SDK's `CloudApiClient.streamRun()` sets `Accept: text/event-stream`.
+
+**Wire format**: Standard SSE with JSON payloads. `turn-ended` events carry `{inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens}`. `SseFrameDecoder` is fully reusable.
+
+**New: CursorUsageExtractor**:
+- Reuses `SseFrameDecoder` for SSE framing
+- Parses JSON payloads for `turn-ended` events with `usage` object
+- Accumulates token counts across multiple turns per run
+- Extracts model from `assistant` message events
+- Handles both camelCase and snake_case field names
+- 6 unit tests + 3 SSE fixture files
+
+**CursorProxyController rewrite**:
+- Conditional tee: checks response `Content-Type` for `text/event-stream`
+- SSE responses: tee loop (read → write + `extractor.onBytes`) with ProxyTiming capture
+- Non-SSE responses: passthrough via `transferTo` (no parsing overhead)
+- Injected `ProxyUsageReporter` + `ProxyCallSequencer` (existing Spring beans)
+- No request body modification needed (Cursor always includes usage)
+- Provider request ID from `x-request-id` / `x-cursor-request-id` headers
+- Cardinal rule maintained: billing in try-catch, never breaks stream
+
+**Updated**:
+- `SseUsageExtractorFactory`: added `"cursor"` case
+- `BUILD.bazel`: `cursor_usage_extractor_test` target + fixed `stream_options_injection_test` dep
+
+**Hypothesis test**: Created `CursorApiWireFormatTest` (live API calls) — H1 confirmed (API key works, `api.cursor.com/v1/models` returns JSON). H2-H7 blocked by missing GitHub integration on the service-account API key. Test deleted after findings captured.
+
 ## Next Steps
 
-1. **T04**: Wire SSE parser into `CursorProxyController` (research Cursor response format first)
-2. **T05**: Strip runner `llm_metrics` in cloud mode + wire billing signal in `BuildUpdateStatusResponseStep`
-3. **T06**: Dual-header proxy access control (independent — `execution_id` + `mcp_server_id`)
-4. **T07**: Pass `mcp_server_id` through classify workflow + caching
-5. **T08**: Deprecate runner-side billing calls
+1. **T05**: Strip runner `llm_metrics` in cloud mode + wire billing signal in `BuildUpdateStatusResponseStep`
+2. **T06**: Dual-header proxy access control (independent — `execution_id` + `mcp_server_id`)
+3. **T07**: Pass `mcp_server_id` through classify workflow + caching
+4. **T08**: Deprecate runner-side billing calls
 
 ## Context for Resume
 - Per-call usage goes to `llm_call_usage_record` collection (billing source of truth)
@@ -219,14 +249,18 @@ When starting a new session:
 - Response is empty — signals flow through `updateStatus`
 - T03 introduced `ProxyUsageReporter` and `ProxyCallSequencer` in `ai.stigmer.proxy.usage`
 - `LlmProxyController` now: tee stream, inject stream_options, capture timing, report usage
+- `CursorProxyController` now: conditional tee (SSE only), CursorUsageExtractor, report usage
+- Both proxy controllers share: `ProxyUsageReporter`, `ProxyCallSequencer`, `ProxyTiming`, `ParsedLlmUsage`
+- Cursor API uses `api.cursor.com` for REST + SSE, `api2.cursor.sh` for Connect RPC analytics
+- Cursor SDK `turn-ended` events provide per-turn usage; extractor accumulates across turns
 - Research reference: `research.llm-usage-capture-model/04.report.gpt.md`
 - Proto stubs need regeneration (`make protos`) after OSS proto lands
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T04" - Wire CursorProxyController
 - "Continue with T05" - Strip llm_metrics + billing signal
+- "Continue with T06" - Dual-header proxy access control
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 
