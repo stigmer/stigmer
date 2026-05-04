@@ -101,8 +101,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-04 13:29
-**Current Task**: T06 (Dual-header proxy access control) — COMPLETED
-**Status**: T01–T06 all implemented. T01–T03 committed. T04–T06 ready to commit.
+**Current Task**: T07 (Pass mcp_server_id through classify workflow) — COMPLETED
+**Status**: T01–T07 all implemented and committed. T08 (deprecate runner-side billing) is next.
 
 ## Session Progress (2026-05-04)
 
@@ -323,11 +323,37 @@ The original T06 plan called for removing `require-execution-id` and hard-requir
 - `application.yaml` — config property rename
 - `BUILD.bazel` — new test target
 
+## Session Progress (2026-05-04 Session 7)
+
+### T07 Completed: Pass mcp_server_id Through Classify Workflow + Short-Circuit
+
+**Repo**: stigmer (OSS). No stigmer-cloud changes.
+
+**Header plumbing**:
+- `LLMConfig.build_llm_kwargs()`: Added `mcp_server_id` param → `X-Stigmer-Mcp-Server-Id` header
+- Both scope headers are independent (proxy handles "both present" from T06)
+- `classify_tools()` and `ClassifyToolApprovalsInput`: accept + forward `mcp_server_id`
+- `ConnectMcpServerWorkflow`: passes `input.mcp_server_id` into classify input
+
+**Short-circuit (stability guarantee)**:
+- `tools_fingerprint()`: deterministic SHA-256 of (name + description + schema) sorted by name
+- Discover activity returns previous fingerprint + approvals from McpServer status
+- Workflow compares: match → skip classify, reuse previous approvals; mismatch → reclassify
+- Prevents LLM non-determinism from flipping approval policies on reconnect
+
+**Sub-agent title generation scope fix**:
+- `_generate_sub_agent_subject()`: now passes `execution_id` to `build_llm_kwargs()`
+- Prevents 403 when `require-scope-header` is flipped to `true`
+
+**Tests**: 20 new across 3 files (header plumbing, fingerprint, sub-agent scope)
+**Embedded sync**: 4 files synced to `client-apps/cli/embedded/agentrunner/source/`
+**Committed**: `02c272fc6` on `feat/react-sdk-streaming-ux`
+
 ## Next Steps
 
-1. **T07**: Pass `mcp_server_id` through classify workflow + caching
-2. **T08**: Deprecate runner-side billing calls
-3. **Follow-up**: Flip `require-scope-header` to `true` after T07 is deployed
+1. **T08**: Deprecate runner-side billing calls
+2. **Follow-up**: Flip `require-scope-header` to `true` after T07 is deployed
+3. **Follow-up**: Commit T04–T06 on stigmer-cloud (still uncommitted from earlier sessions)
 
 ## Context for Resume
 - Per-call usage goes to `llm_call_usage_record` collection (billing source of truth)
@@ -350,14 +376,20 @@ The original T06 plan called for removing `require-execution-id` and hard-requir
 - T06: `X-Stigmer-Mcp-Server-Id` recognized but no caller sends it yet (T07 adds that)
 - T06: Config `stigmer.proxy.require-scope-header` (env `STIGMER_PROXY_REQUIRE_SCOPE_HEADER`) — defaults `false`, flip to `true` after T07
 - T06: FGA infrastructure ready: `can_connect` (22), `mcp_server` ApiResourceKind (44), `mcp_server.fga` has `can_connect: viewer`
+- T07: `build_llm_kwargs()` now supports both `execution_id` and `mcp_server_id` (independent, both optional)
+- T07: `classify_tools()` passes `mcp_server_id` → proxy sends `X-Stigmer-Mcp-Server-Id`
+- T07: `tools_fingerprint()` in `discover_mcp_server.py` — SHA-256 of canonical tool JSON
+- T07: `ConnectMcpServerWorkflow` short-circuits classify when fingerprint matches previous
+- T07: `_generate_sub_agent_subject()` now passes `execution_id` (was missing, would 403 on hard enforcement)
+- T07: All changes in stigmer OSS agent-runner, zero stigmer-cloud changes
 - Research reference: `research.llm-usage-capture-model/04.report.gpt.md`
 - Proto stubs need regeneration (`make protos`) after OSS proto lands
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T07" - Pass mcp_server_id through classify workflow + caching
 - "Continue with T08" - Deprecate runner-side billing calls
+- "Commit T04–T06 on stigmer-cloud" - Uncommitted work from earlier sessions
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 
