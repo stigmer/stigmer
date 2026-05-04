@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03 09:55
-**Current Task**: T01 — Phase 4.1 Complete (Payment Method Management)
-**Status**: Phase 4.1 Complete — Ready for Phase 4.2 (Auto-Recharge Configuration)
+**Current Task**: T01 — Phase 4.2 Complete (Auto-Recharge Configuration)
+**Status**: Phase 4.2 Complete — Ready for Phase 4.3 (Recharge Trigger)
 
 ## Session Progress (2026-05-03)
 
@@ -620,10 +620,43 @@ When starting a new session:
 - `StripeWebhookService` handles 6 event types (was 4): added `customer.updated`, `payment_method.attached`
 - SDK: `BillingClient.createBillingPortalSession()` + `useCreateBillingPortalSession` hook + `PaymentMethodCard` component
 
+### Phase 4.2 Completed (Auto-Recharge Configuration)
+- **Proto cleanup**: Removed unused `AutoRechargeConfig.default_payment_method_id` (field 6); added `string current_month = 7` for Phase 4.3 monthly cap reset
+- **Design decision**: Fixed-amount recharge model (not target-balance). `recharge_amount_micros` = fixed charge per event.
+- **Design decision**: Auto-recharge uses account-level PM (`BillingAccount.default_payment_method`), not a per-config PM.
+- Added `SetAutoRechargeConfigInput` message to `io.proto` (user-configurable fields only)
+- Added `setAutoRechargeConfig` RPC to `BillingCommandController` (returns `BillingAccount`)
+- Created `BillingAccountRepo.atomicSetAutoRechargeConfig()` — targeted `$set` on user fields, preserves system counters
+- Created `BillingAccountService.setAutoRechargeConfig()` — validation: PM required + account active when enabling, amounts > 0, cap >= amount
+- Created `SetAutoRechargeConfigHandler` — standard pipeline with `can_manage_billing` authorization
+- 12 service test cases + 3 repo test cases, all passing
+- Registered `billing_account_service_test` Bazel target (was missing)
+- Added `BillingClient.setAutoRechargeConfig()` to TypeScript SDK
+- Created `useSetAutoRechargeConfig` React behavior hook
+- Created `AutoRechargeCard` component — toggle, dollar inputs, save button, disabled-without-PM state
+- Wired into `BillingSection` between `PaymentMethodCard` and `CreditPackGrid`
+- Updated `billing.mdx` docs
+- Build + test verified: `bazelw build` + `bazelw test` clean, `tsc --noEmit` clean on all 3 TS packages
+
+### Key Design Decisions (Phase 4.2)
+- **Fixed-amount model over target-balance**: User sets a fixed recharge amount (e.g., $50) per event. Simpler, more predictable, matches AWS/Twilio pattern. Target-balance model (charge dynamic amount to reach a target) was considered and rejected for v1.
+- **Account-level PM**: `AutoRechargeConfig.default_payment_method_id` was a Phase 0 placeholder — removed entirely. Auto-recharge uses `BillingAccount.default_payment_method` (field 11) for off-session charges. Separate PM per auto-recharge is deferred to enterprise/Phase 6.
+- **Targeted `$set` over full sub-document replace**: Repo method sets individual `auto_recharge.*` fields, preserving system-managed `current_month_charged_micros` and `current_month`. Prevents config changes from resetting the monthly counter.
+- **Two-path validation**: Enabling requires PM + active account + positive amounts + cap >= amount. Disabling only requires non-negative amounts — preserves config for one-toggle re-enable.
+- **`current_month` field added proactively**: Phase 4.3 needs a month identifier for lazy cap reset. Adding it now avoids a second proto change cycle.
+
+- **Phase 4.2**: `SetAutoRechargeConfigInput` in `io.proto` — 4 user-configurable fields (enabled, threshold, amount, cap)
+- 12 gRPC RPCs now handler-wired: `setAutoRechargeConfig` added (was 11)
+- `AutoRechargeConfig` proto cleaned: field 6 removed, field 7 (`current_month`) added
+- `BillingAccountRepo.atomicSetAutoRechargeConfig()` uses targeted `$set` on sub-fields
+- `BillingAccountService.setAutoRechargeConfig()` validates with two-path logic (enable vs disable)
+- React: `AutoRechargeCard` + `useSetAutoRechargeConfig` hook, wired into `BillingSection`
+- SDK: `BillingClient.setAutoRechargeConfig()` + `SetAutoRechargeConfigParams` type
+
 ## Next Steps (Phase 4 — Auto-Recharge, continued)
 
 1. ~~Payment method management (saved via `setup_future_usage=off_session`)~~ ✅
-2. Auto-recharge configuration (SetAutoRechargeConfig RPC, threshold/target/cap)
+2. ~~Auto-recharge configuration (SetAutoRechargeConfig RPC, threshold/amount/cap)~~ ✅
 3. Recharge trigger (off-session PaymentIntent on balance drop)
 4. Recharge failure handling (retry, disable, notify)
 5. Webhook handling for recharge PaymentIntents
