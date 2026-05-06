@@ -40,11 +40,6 @@ func (a *AgentExecutionClient) UpdateStatus(ctx context.Context, input *agentexe
 	return resp, wrapErr(err)
 }
 
-func (a *AgentExecutionClient) UpdateUsage(ctx context.Context, input *agentexecutionv1.UpdateUsageInput) (*agentexecutionv1.UpdateUsageResponse, error) {
-	resp, err := a.command.UpdateUsage(ctx, input)
-	return resp, wrapErr(err)
-}
-
 func (a *AgentExecutionClient) Delete(ctx context.Context, id string) (*agentexecutionv1.AgentExecution, error) {
 	resp, err := a.command.Delete(ctx, &apiresource.ApiResourceId{Value: id})
 	return resp, wrapErr(err)

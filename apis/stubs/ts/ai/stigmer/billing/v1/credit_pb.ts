@@ -314,8 +314,8 @@ export const CreditPackSchema: GenMessage<CreditPack> = /*@__PURE__*/
  * ExecutionReservation tracks credits held for an active agent execution.
  *
  * Created at execution start (AuthorizeExecution), consumed incrementally
- * by per-LLM-call debits (ReportLlmCallUsage), and settled at execution
- * end (FinalizeExecution) to release any unused hold.
+ * by per-LLM-call debits (via proxy-observed usage metering), and settled
+ * at execution end (FinalizeExecution) to release any unused hold.
  *
  * @generated from message ai.stigmer.billing.v1.ExecutionReservation
  */

@@ -22,15 +22,15 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from ai.stigmer.agentic.agentexecution.v1 import usage_pb2 as ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_usage__pb2
 from ai.stigmer.billing.v1 import credit_pb2 as ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2
 from ai.stigmer.billing.v1 import enum_pb2 as ai_dot_stigmer_dot_billing_dot_v1_dot_enum__pb2
-from ai.stigmer.billing.v1 import policy_pb2 as ai_dot_stigmer_dot_billing_dot_v1_dot_policy__pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_pagination__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1e\x61i/stigmer/billing/v1/io.proto\x12\x15\x61i.stigmer.billing.v1\x1a\"ai/stigmer/billing/v1/credit.proto\x1a ai/stigmer/billing/v1/enum.proto\x1a\"ai/stigmer/billing/v1/policy.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"?\n\x1eGetOrCreateBillingAccountInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"\xa9\x01\n\x12\x41\x64justCreditsInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12#\n\ramount_micros\x18\x02 \x01(\x03R\x0c\x61mountMicros\x12\x1e\n\x06reason\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x06reason\x12/\n\x0fidempotency_key\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0eidempotencyKey\"\xbe\x01\n\x17\x41uthorizeExecutionInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12)\n\x0c\x65xecution_id\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xecutionId\x12 \n\x07harness\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07harness\x12\x37\n\x18\x65xpected_cost_cap_micros\x18\x04 \x01(\x03R\x15\x65xpectedCostCapMicros\"\xeb\x01\n\x1a\x41uthorizeExecutionResponse\x12\x1e\n\nauthorized\x18\x01 \x01(\x08R\nauthorized\x12%\n\x0ereservation_id\x18\x02 \x01(\tR\rreservationId\x12\'\n\x0freserved_micros\x18\x03 \x01(\x03R\x0ereservedMicros\x12\x38\n\x18\x61vailable_balance_micros\x18\x04 \x01(\x03R\x16\x61vailableBalanceMicros\x12#\n\rdenial_reason\x18\x05 \x01(\tR\x0c\x64\x65nialReason\"\xa8\x03\n\x17ReportLlmCallUsageInput\x12)\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xecutionId\x12#\n\x08sequence\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02 \x00R\x08sequence\x12\x1c\n\x05model\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05model\x12 \n\x07harness\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07harness\x12#\n\tcost_tier\x18\x05 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x08\x63ostTier\x12\x30\n\x14provider_cost_micros\x18\x06 \x01(\x03R\x12providerCostMicros\x12!\n\x0cinput_tokens\x18\x07 \x01(\x05R\x0binputTokens\x12#\n\routput_tokens\x18\x08 \x01(\x05R\x0coutputTokens\x12\x32\n\x15\x63\x61\x63he_creation_tokens\x18\t \x01(\x05R\x13\x63\x61\x63heCreationTokens\x12*\n\x11\x63\x61\x63he_read_tokens\x18\n \x01(\x05R\x0f\x63\x61\x63heReadTokens\"\x8e\x02\n\x1aReportLlmCallUsageResponse\x12\x45\n\x06signal\x18\x01 \x01(\x0e\x32-.ai.stigmer.billing.v1.ExecutionBillingSignalR\x06signal\x12\x30\n\x14\x62\x61lance_after_micros\x18\x02 \x01(\x03R\x12\x62\x61lanceAfterMicros\x12\x34\n\x16\x62illable_amount_micros\x18\x03 \x01(\x03R\x14\x62illableAmountMicros\x12\x41\n\x06rating\x18\x04 \x01(\x0b\x32).ai.stigmer.billing.v1.BillingUsageRatingR\x06rating\"C\n\x16\x46inalizeExecutionInput\x12)\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xecutionId\"\x85\x02\n\x19\x46inalizeExecutionResponse\x12;\n\x1atotal_provider_cost_micros\x18\x01 \x01(\x03R\x17totalProviderCostMicros\x12?\n\x1ctotal_billable_amount_micros\x18\x02 \x01(\x03R\x19totalBillableAmountMicros\x12>\n\x1breleased_reservation_micros\x18\x03 \x01(\x03R\x19releasedReservationMicros\x12*\n\x11\x62illed_call_count\x18\x04 \x01(\x05R\x0f\x62illedCallCount\"\xb2\x01\n CreateCreditCheckoutSessionInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12\x1f\n\x07pack_id\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x06packId\x12\'\n\x0bsuccess_url\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nsuccessUrl\x12%\n\ncancel_url\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tcancelUrl\"\x99\x01\n#CreateCreditCheckoutSessionResponse\x12!\n\x0c\x63heckout_url\x18\x01 \x01(\tR\x0b\x63heckoutUrl\x12\x1f\n\x0bpurchase_id\x18\x02 \x01(\tR\npurchaseId\x12.\n\x13\x63heckout_session_id\x18\x03 \x01(\tR\x11\x63heckoutSessionId\"g\n\x1f\x43reateBillingPortalSessionInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12%\n\nreturn_url\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\treturnUrl\"C\n\"CreateBillingPortalSessionResponse\x12\x1d\n\nportal_url\x18\x01 \x01(\tR\tportalUrl\"\xe4\x01\n\x1aSetAutoRechargeConfigInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12\x18\n\x07\x65nabled\x18\x02 \x01(\x08R\x07\x65nabled\x12)\n\x10threshold_micros\x18\x03 \x01(\x03R\x0fthresholdMicros\x12\x34\n\x16recharge_amount_micros\x18\x04 \x01(\x03R\x14rechargeAmountMicros\x12,\n\x12monthly_cap_micros\x18\x05 \x01(\x03R\x10monthlyCapMicros\"7\n\x16GetBillingAccountInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"6\n\x15GetCreditBalanceInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"\xa6\x02\n\x14GetCreditLedgerInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12\x34\n\x04page\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x04page\x12G\n\x0btype_filter\x18\x03 \x03(\x0e\x32&.ai.stigmer.billing.v1.LedgerEntryTypeR\ntypeFilter\x12\x39\n\nstart_time\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tstartTime\x12\x35\n\x08\x65nd_time\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x07\x65ndTime\"{\n\x14\x43reditLedgerResponse\x12\x42\n\x07\x65ntries\x18\x01 \x03(\x0b\x32(.ai.stigmer.billing.v1.CreditLedgerEntryR\x07\x65ntries\x12\x1f\n\x0btotal_pages\x18\x02 \x01(\x05R\ntotalPages\"\xbd\x01\n\x1aGetBillingUsageReportInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12\x41\n\nstart_time\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x06\xbaH\x03\xc8\x01\x01R\tstartTime\x12=\n\x08\x65nd_time\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x06\xbaH\x03\xc8\x01\x01R\x07\x65ndTime\"\xc0\x02\n\x1a\x42illingUsageReportResponse\x12;\n\x1atotal_provider_cost_micros\x18\x01 \x01(\x03R\x17totalProviderCostMicros\x12?\n\x1ctotal_billable_amount_micros\x18\x02 \x01(\x03R\x19totalBillableAmountMicros\x12\'\n\x0f\x65xecution_count\x18\x03 \x01(\x05R\x0e\x65xecutionCount\x12$\n\x0ellm_call_count\x18\x04 \x01(\x05R\x0cllmCallCount\x12U\n\x0fmodel_breakdown\x18\x05 \x03(\x0b\x32,.ai.stigmer.billing.v1.ModelBillingBreakdownR\x0emodelBreakdown\"\xeb\x01\n\x15ModelBillingBreakdown\x12\x14\n\x05model\x18\x01 \x01(\tR\x05model\x12\x18\n\x07harness\x18\x02 \x01(\tR\x07harness\x12\x1b\n\tcost_tier\x18\x03 \x01(\tR\x08\x63ostTier\x12\x30\n\x14provider_cost_micros\x18\x04 \x01(\x03R\x12providerCostMicros\x12\x34\n\x16\x62illable_amount_micros\x18\x05 \x01(\x03R\x14\x62illableAmountMicros\x12\x1d\n\ncall_count\x18\x06 \x01(\x05R\tcallCount\"5\n\x1cGetCustomerModelPricingInput\x12\x15\n\x06org_id\x18\x01 \x01(\tR\x05orgId\"j\n\x1c\x43ustomerModelPricingResponse\x12J\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x30.ai.stigmer.billing.v1.CustomerModelPricingEntryR\x07\x65ntries\"\xb4\x04\n\x19\x43ustomerModelPricingEntry\x12\x19\n\x08model_id\x18\x01 \x01(\tR\x07modelId\x12!\n\x0c\x64isplay_name\x18\x02 \x01(\tR\x0b\x64isplayName\x12\x1a\n\x08provider\x18\x03 \x01(\tR\x08provider\x12\x18\n\x07harness\x18\x04 \x01(\tR\x07harness\x12\x1b\n\tcost_tier\x18\x05 \x01(\tR\x08\x63ostTier\x12\x42\n\x1einput_price_micros_per_million\x18\x06 \x01(\x03R\x1ainputPriceMicrosPerMillion\x12\x44\n\x1foutput_price_micros_per_million\x18\x07 \x01(\x03R\x1boutputPriceMicrosPerMillion\x12S\n\'cache_creation_price_micros_per_million\x18\x08 \x01(\x03R\"cacheCreationPriceMicrosPerMillion\x12K\n#cache_read_price_micros_per_million\x18\t \x01(\x03R\x1e\x63\x61\x63heReadPriceMicrosPerMillion\x12*\n\x11pricing_policy_id\x18\n \x01(\tR\x0fpricingPolicyId\x12.\n\x13markup_basis_points\x18\x0b \x01(\x05R\x11markupBasisPointsB\x9b\x01\n\x19\x63om.ai.stigmer.billing.v1B\x07IoProtoP\x01\xa2\x02\x03\x41SB\xaa\x02\x15\x41i.Stigmer.Billing.V1\xca\x02\x15\x41i\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18\x41i::Stigmer::Billing::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1e\x61i/stigmer/billing/v1/io.proto\x12\x15\x61i.stigmer.billing.v1\x1a\x30\x61i/stigmer/agentic/agentexecution/v1/usage.proto\x1a\"ai/stigmer/billing/v1/credit.proto\x1a ai/stigmer/billing/v1/enum.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"?\n\x1eGetOrCreateBillingAccountInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"\xa9\x01\n\x12\x41\x64justCreditsInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12#\n\ramount_micros\x18\x02 \x01(\x03R\x0c\x61mountMicros\x12\x1e\n\x06reason\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x06reason\x12/\n\x0fidempotency_key\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0eidempotencyKey\"\xbe\x01\n\x17\x41uthorizeExecutionInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12)\n\x0c\x65xecution_id\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xecutionId\x12 \n\x07harness\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07harness\x12\x37\n\x18\x65xpected_cost_cap_micros\x18\x04 \x01(\x03R\x15\x65xpectedCostCapMicros\"\xeb\x01\n\x1a\x41uthorizeExecutionResponse\x12\x1e\n\nauthorized\x18\x01 \x01(\x08R\nauthorized\x12%\n\x0ereservation_id\x18\x02 \x01(\tR\rreservationId\x12\'\n\x0freserved_micros\x18\x03 \x01(\x03R\x0ereservedMicros\x12\x38\n\x18\x61vailable_balance_micros\x18\x04 \x01(\x03R\x16\x61vailableBalanceMicros\x12#\n\rdenial_reason\x18\x05 \x01(\tR\x0c\x64\x65nialReason\"\xb2\x05\n\x17RecordLlmCallUsageInput\x12)\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xecutionId\x12#\n\x08sequence\x18\x02 \x01(\x05\x42\x07\xbaH\x04\x1a\x02 \x00R\x08sequence\x12\"\n\x08provider\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x08provider\x12-\n\x0eresolved_model\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\rresolvedModel\x12\'\n\x0frequested_model\x18\x05 \x01(\tR\x0erequestedModel\x12H\n\x06tokens\x18\x06 \x01(\x0b\x32\x30.ai.stigmer.agentic.agentexecution.v1.TokenUsageR\x06tokens\x12^\n\x0cusage_status\x18\x07 \x01(\x0e\x32;.ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatusR\x0busageStatus\x12.\n\x13provider_request_id\x18\x08 \x01(\tR\x11providerRequestId\x12(\n\x10http_status_code\x18\t \x01(\x05R\x0ehttpStatusCode\x12\x1c\n\tstreaming\x18\n \x01(\x08R\tstreaming\x12#\n\rfinish_reason\x18\x0b \x01(\tR\x0c\x66inishReason\x12T\n\x0cproxy_timing\x18\x0c \x01(\x0b\x32\x31.ai.stigmer.agentic.agentexecution.v1.ProxyTimingR\x0bproxyTiming\x12.\n\x13provider_usage_json\x18\r \x01(\tR\x11providerUsageJson\"\x81\x02\n\x1aRecordLlmCallUsageResponse\x12&\n\x0fusage_record_id\x18\x01 \x01(\tR\rusageRecordId\x12\x30\n\x14provider_cost_micros\x18\x02 \x01(\x03R\x12providerCostMicros\x12\x45\n\x1f\x63ustomer_billable_amount_micros\x18\x03 \x01(\x03R\x1c\x63ustomerBillableAmountMicros\x12\x1f\n\x0bis_billable\x18\x04 \x01(\x08R\nisBillable\x12!\n\x0cis_duplicate\x18\x05 \x01(\x08R\x0bisDuplicate\"C\n\x16\x46inalizeExecutionInput\x12)\n\x0c\x65xecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0b\x65xecutionId\"\x85\x02\n\x19\x46inalizeExecutionResponse\x12;\n\x1atotal_provider_cost_micros\x18\x01 \x01(\x03R\x17totalProviderCostMicros\x12?\n\x1ctotal_billable_amount_micros\x18\x02 \x01(\x03R\x19totalBillableAmountMicros\x12>\n\x1breleased_reservation_micros\x18\x03 \x01(\x03R\x19releasedReservationMicros\x12*\n\x11\x62illed_call_count\x18\x04 \x01(\x05R\x0f\x62illedCallCount\"\xb2\x01\n CreateCreditCheckoutSessionInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12\x1f\n\x07pack_id\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x06packId\x12\'\n\x0bsuccess_url\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nsuccessUrl\x12%\n\ncancel_url\x18\x04 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tcancelUrl\"\x99\x01\n#CreateCreditCheckoutSessionResponse\x12!\n\x0c\x63heckout_url\x18\x01 \x01(\tR\x0b\x63heckoutUrl\x12\x1f\n\x0bpurchase_id\x18\x02 \x01(\tR\npurchaseId\x12.\n\x13\x63heckout_session_id\x18\x03 \x01(\tR\x11\x63heckoutSessionId\"g\n\x1f\x43reateBillingPortalSessionInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12%\n\nreturn_url\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\treturnUrl\"C\n\"CreateBillingPortalSessionResponse\x12\x1d\n\nportal_url\x18\x01 \x01(\tR\tportalUrl\"\xe4\x01\n\x1aSetAutoRechargeConfigInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12\x18\n\x07\x65nabled\x18\x02 \x01(\x08R\x07\x65nabled\x12)\n\x10threshold_micros\x18\x03 \x01(\x03R\x0fthresholdMicros\x12\x34\n\x16recharge_amount_micros\x18\x04 \x01(\x03R\x14rechargeAmountMicros\x12,\n\x12monthly_cap_micros\x18\x05 \x01(\x03R\x10monthlyCapMicros\"7\n\x16GetBillingAccountInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"6\n\x15GetCreditBalanceInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"\xa6\x02\n\x14GetCreditLedgerInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12\x34\n\x04page\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x04page\x12G\n\x0btype_filter\x18\x03 \x03(\x0e\x32&.ai.stigmer.billing.v1.LedgerEntryTypeR\ntypeFilter\x12\x39\n\nstart_time\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tstartTime\x12\x35\n\x08\x65nd_time\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x07\x65ndTime\"{\n\x14\x43reditLedgerResponse\x12\x42\n\x07\x65ntries\x18\x01 \x03(\x0b\x32(.ai.stigmer.billing.v1.CreditLedgerEntryR\x07\x65ntries\x12\x1f\n\x0btotal_pages\x18\x02 \x01(\x05R\ntotalPages\"\xbd\x01\n\x1aGetBillingUsageReportInput\x12\x1d\n\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\x12\x41\n\nstart_time\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x06\xbaH\x03\xc8\x01\x01R\tstartTime\x12=\n\x08\x65nd_time\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampB\x06\xbaH\x03\xc8\x01\x01R\x07\x65ndTime\"\xc0\x02\n\x1a\x42illingUsageReportResponse\x12;\n\x1atotal_provider_cost_micros\x18\x01 \x01(\x03R\x17totalProviderCostMicros\x12?\n\x1ctotal_billable_amount_micros\x18\x02 \x01(\x03R\x19totalBillableAmountMicros\x12\'\n\x0f\x65xecution_count\x18\x03 \x01(\x05R\x0e\x65xecutionCount\x12$\n\x0ellm_call_count\x18\x04 \x01(\x05R\x0cllmCallCount\x12U\n\x0fmodel_breakdown\x18\x05 \x03(\x0b\x32,.ai.stigmer.billing.v1.ModelBillingBreakdownR\x0emodelBreakdown\"\xeb\x01\n\x15ModelBillingBreakdown\x12\x14\n\x05model\x18\x01 \x01(\tR\x05model\x12\x18\n\x07harness\x18\x02 \x01(\tR\x07harness\x12\x1b\n\tcost_tier\x18\x03 \x01(\tR\x08\x63ostTier\x12\x30\n\x14provider_cost_micros\x18\x04 \x01(\x03R\x12providerCostMicros\x12\x34\n\x16\x62illable_amount_micros\x18\x05 \x01(\x03R\x14\x62illableAmountMicros\x12\x1d\n\ncall_count\x18\x06 \x01(\x05R\tcallCount\"5\n\x1cGetCustomerModelPricingInput\x12\x15\n\x06org_id\x18\x01 \x01(\tR\x05orgId\"j\n\x1c\x43ustomerModelPricingResponse\x12J\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x30.ai.stigmer.billing.v1.CustomerModelPricingEntryR\x07\x65ntries\"\xb4\x04\n\x19\x43ustomerModelPricingEntry\x12\x19\n\x08model_id\x18\x01 \x01(\tR\x07modelId\x12!\n\x0c\x64isplay_name\x18\x02 \x01(\tR\x0b\x64isplayName\x12\x1a\n\x08provider\x18\x03 \x01(\tR\x08provider\x12\x18\n\x07harness\x18\x04 \x01(\tR\x07harness\x12\x1b\n\tcost_tier\x18\x05 \x01(\tR\x08\x63ostTier\x12\x42\n\x1einput_price_micros_per_million\x18\x06 \x01(\x03R\x1ainputPriceMicrosPerMillion\x12\x44\n\x1foutput_price_micros_per_million\x18\x07 \x01(\x03R\x1boutputPriceMicrosPerMillion\x12S\n\'cache_creation_price_micros_per_million\x18\x08 \x01(\x03R\"cacheCreationPriceMicrosPerMillion\x12K\n#cache_read_price_micros_per_million\x18\t \x01(\x03R\x1e\x63\x61\x63heReadPriceMicrosPerMillion\x12*\n\x11pricing_policy_id\x18\n \x01(\tR\x0fpricingPolicyId\x12.\n\x13markup_basis_points\x18\x0b \x01(\x05R\x11markupBasisPointsB\x9b\x01\n\x19\x63om.ai.stigmer.billing.v1B\x07IoProtoP\x01\xa2\x02\x03\x41SB\xaa\x02\x15\x41i.Stigmer.Billing.V1\xca\x02\x15\x41i\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18\x41i::Stigmer::Billing::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -52,16 +52,14 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_AUTHORIZEEXECUTIONINPUT'].fields_by_name['execution_id']._serialized_options = b'\272H\003\310\001\001'
   _globals['_AUTHORIZEEXECUTIONINPUT'].fields_by_name['harness']._loaded_options = None
   _globals['_AUTHORIZEEXECUTIONINPUT'].fields_by_name['harness']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_REPORTLLMCALLUSAGEINPUT'].fields_by_name['execution_id']._loaded_options = None
-  _globals['_REPORTLLMCALLUSAGEINPUT'].fields_by_name['execution_id']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_REPORTLLMCALLUSAGEINPUT'].fields_by_name['sequence']._loaded_options = None
-  _globals['_REPORTLLMCALLUSAGEINPUT'].fields_by_name['sequence']._serialized_options = b'\272H\004\032\002 \000'
-  _globals['_REPORTLLMCALLUSAGEINPUT'].fields_by_name['model']._loaded_options = None
-  _globals['_REPORTLLMCALLUSAGEINPUT'].fields_by_name['model']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_REPORTLLMCALLUSAGEINPUT'].fields_by_name['harness']._loaded_options = None
-  _globals['_REPORTLLMCALLUSAGEINPUT'].fields_by_name['harness']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_REPORTLLMCALLUSAGEINPUT'].fields_by_name['cost_tier']._loaded_options = None
-  _globals['_REPORTLLMCALLUSAGEINPUT'].fields_by_name['cost_tier']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_RECORDLLMCALLUSAGEINPUT'].fields_by_name['execution_id']._loaded_options = None
+  _globals['_RECORDLLMCALLUSAGEINPUT'].fields_by_name['execution_id']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_RECORDLLMCALLUSAGEINPUT'].fields_by_name['sequence']._loaded_options = None
+  _globals['_RECORDLLMCALLUSAGEINPUT'].fields_by_name['sequence']._serialized_options = b'\272H\004\032\002 \000'
+  _globals['_RECORDLLMCALLUSAGEINPUT'].fields_by_name['provider']._loaded_options = None
+  _globals['_RECORDLLMCALLUSAGEINPUT'].fields_by_name['provider']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_RECORDLLMCALLUSAGEINPUT'].fields_by_name['resolved_model']._loaded_options = None
+  _globals['_RECORDLLMCALLUSAGEINPUT'].fields_by_name['resolved_model']._serialized_options = b'\272H\003\310\001\001'
   _globals['_FINALIZEEXECUTIONINPUT'].fields_by_name['execution_id']._loaded_options = None
   _globals['_FINALIZEEXECUTIONINPUT'].fields_by_name['execution_id']._serialized_options = b'\272H\003\310\001\001'
   _globals['_CREATECREDITCHECKOUTSESSIONINPUT'].fields_by_name['org_id']._loaded_options = None
@@ -90,50 +88,50 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GETBILLINGUSAGEREPORTINPUT'].fields_by_name['start_time']._serialized_options = b'\272H\003\310\001\001'
   _globals['_GETBILLINGUSAGEREPORTINPUT'].fields_by_name['end_time']._loaded_options = None
   _globals['_GETBILLINGUSAGEREPORTINPUT'].fields_by_name['end_time']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_GETORCREATEBILLINGACCOUNTINPUT']._serialized_start=266
-  _globals['_GETORCREATEBILLINGACCOUNTINPUT']._serialized_end=329
-  _globals['_ADJUSTCREDITSINPUT']._serialized_start=332
-  _globals['_ADJUSTCREDITSINPUT']._serialized_end=501
-  _globals['_AUTHORIZEEXECUTIONINPUT']._serialized_start=504
-  _globals['_AUTHORIZEEXECUTIONINPUT']._serialized_end=694
-  _globals['_AUTHORIZEEXECUTIONRESPONSE']._serialized_start=697
-  _globals['_AUTHORIZEEXECUTIONRESPONSE']._serialized_end=932
-  _globals['_REPORTLLMCALLUSAGEINPUT']._serialized_start=935
-  _globals['_REPORTLLMCALLUSAGEINPUT']._serialized_end=1359
-  _globals['_REPORTLLMCALLUSAGERESPONSE']._serialized_start=1362
-  _globals['_REPORTLLMCALLUSAGERESPONSE']._serialized_end=1632
-  _globals['_FINALIZEEXECUTIONINPUT']._serialized_start=1634
-  _globals['_FINALIZEEXECUTIONINPUT']._serialized_end=1701
-  _globals['_FINALIZEEXECUTIONRESPONSE']._serialized_start=1704
-  _globals['_FINALIZEEXECUTIONRESPONSE']._serialized_end=1965
-  _globals['_CREATECREDITCHECKOUTSESSIONINPUT']._serialized_start=1968
-  _globals['_CREATECREDITCHECKOUTSESSIONINPUT']._serialized_end=2146
-  _globals['_CREATECREDITCHECKOUTSESSIONRESPONSE']._serialized_start=2149
-  _globals['_CREATECREDITCHECKOUTSESSIONRESPONSE']._serialized_end=2302
-  _globals['_CREATEBILLINGPORTALSESSIONINPUT']._serialized_start=2304
-  _globals['_CREATEBILLINGPORTALSESSIONINPUT']._serialized_end=2407
-  _globals['_CREATEBILLINGPORTALSESSIONRESPONSE']._serialized_start=2409
-  _globals['_CREATEBILLINGPORTALSESSIONRESPONSE']._serialized_end=2476
-  _globals['_SETAUTORECHARGECONFIGINPUT']._serialized_start=2479
-  _globals['_SETAUTORECHARGECONFIGINPUT']._serialized_end=2707
-  _globals['_GETBILLINGACCOUNTINPUT']._serialized_start=2709
-  _globals['_GETBILLINGACCOUNTINPUT']._serialized_end=2764
-  _globals['_GETCREDITBALANCEINPUT']._serialized_start=2766
-  _globals['_GETCREDITBALANCEINPUT']._serialized_end=2820
-  _globals['_GETCREDITLEDGERINPUT']._serialized_start=2823
-  _globals['_GETCREDITLEDGERINPUT']._serialized_end=3117
-  _globals['_CREDITLEDGERRESPONSE']._serialized_start=3119
-  _globals['_CREDITLEDGERRESPONSE']._serialized_end=3242
-  _globals['_GETBILLINGUSAGEREPORTINPUT']._serialized_start=3245
-  _globals['_GETBILLINGUSAGEREPORTINPUT']._serialized_end=3434
-  _globals['_BILLINGUSAGEREPORTRESPONSE']._serialized_start=3437
-  _globals['_BILLINGUSAGEREPORTRESPONSE']._serialized_end=3757
-  _globals['_MODELBILLINGBREAKDOWN']._serialized_start=3760
-  _globals['_MODELBILLINGBREAKDOWN']._serialized_end=3995
-  _globals['_GETCUSTOMERMODELPRICINGINPUT']._serialized_start=3997
-  _globals['_GETCUSTOMERMODELPRICINGINPUT']._serialized_end=4050
-  _globals['_CUSTOMERMODELPRICINGRESPONSE']._serialized_start=4052
-  _globals['_CUSTOMERMODELPRICINGRESPONSE']._serialized_end=4158
-  _globals['_CUSTOMERMODELPRICINGENTRY']._serialized_start=4161
-  _globals['_CUSTOMERMODELPRICINGENTRY']._serialized_end=4725
+  _globals['_GETORCREATEBILLINGACCOUNTINPUT']._serialized_start=280
+  _globals['_GETORCREATEBILLINGACCOUNTINPUT']._serialized_end=343
+  _globals['_ADJUSTCREDITSINPUT']._serialized_start=346
+  _globals['_ADJUSTCREDITSINPUT']._serialized_end=515
+  _globals['_AUTHORIZEEXECUTIONINPUT']._serialized_start=518
+  _globals['_AUTHORIZEEXECUTIONINPUT']._serialized_end=708
+  _globals['_AUTHORIZEEXECUTIONRESPONSE']._serialized_start=711
+  _globals['_AUTHORIZEEXECUTIONRESPONSE']._serialized_end=946
+  _globals['_RECORDLLMCALLUSAGEINPUT']._serialized_start=949
+  _globals['_RECORDLLMCALLUSAGEINPUT']._serialized_end=1639
+  _globals['_RECORDLLMCALLUSAGERESPONSE']._serialized_start=1642
+  _globals['_RECORDLLMCALLUSAGERESPONSE']._serialized_end=1899
+  _globals['_FINALIZEEXECUTIONINPUT']._serialized_start=1901
+  _globals['_FINALIZEEXECUTIONINPUT']._serialized_end=1968
+  _globals['_FINALIZEEXECUTIONRESPONSE']._serialized_start=1971
+  _globals['_FINALIZEEXECUTIONRESPONSE']._serialized_end=2232
+  _globals['_CREATECREDITCHECKOUTSESSIONINPUT']._serialized_start=2235
+  _globals['_CREATECREDITCHECKOUTSESSIONINPUT']._serialized_end=2413
+  _globals['_CREATECREDITCHECKOUTSESSIONRESPONSE']._serialized_start=2416
+  _globals['_CREATECREDITCHECKOUTSESSIONRESPONSE']._serialized_end=2569
+  _globals['_CREATEBILLINGPORTALSESSIONINPUT']._serialized_start=2571
+  _globals['_CREATEBILLINGPORTALSESSIONINPUT']._serialized_end=2674
+  _globals['_CREATEBILLINGPORTALSESSIONRESPONSE']._serialized_start=2676
+  _globals['_CREATEBILLINGPORTALSESSIONRESPONSE']._serialized_end=2743
+  _globals['_SETAUTORECHARGECONFIGINPUT']._serialized_start=2746
+  _globals['_SETAUTORECHARGECONFIGINPUT']._serialized_end=2974
+  _globals['_GETBILLINGACCOUNTINPUT']._serialized_start=2976
+  _globals['_GETBILLINGACCOUNTINPUT']._serialized_end=3031
+  _globals['_GETCREDITBALANCEINPUT']._serialized_start=3033
+  _globals['_GETCREDITBALANCEINPUT']._serialized_end=3087
+  _globals['_GETCREDITLEDGERINPUT']._serialized_start=3090
+  _globals['_GETCREDITLEDGERINPUT']._serialized_end=3384
+  _globals['_CREDITLEDGERRESPONSE']._serialized_start=3386
+  _globals['_CREDITLEDGERRESPONSE']._serialized_end=3509
+  _globals['_GETBILLINGUSAGEREPORTINPUT']._serialized_start=3512
+  _globals['_GETBILLINGUSAGEREPORTINPUT']._serialized_end=3701
+  _globals['_BILLINGUSAGEREPORTRESPONSE']._serialized_start=3704
+  _globals['_BILLINGUSAGEREPORTRESPONSE']._serialized_end=4024
+  _globals['_MODELBILLINGBREAKDOWN']._serialized_start=4027
+  _globals['_MODELBILLINGBREAKDOWN']._serialized_end=4262
+  _globals['_GETCUSTOMERMODELPRICINGINPUT']._serialized_start=4264
+  _globals['_GETCUSTOMERMODELPRICINGINPUT']._serialized_end=4317
+  _globals['_CUSTOMERMODELPRICINGRESPONSE']._serialized_start=4319
+  _globals['_CUSTOMERMODELPRICINGRESPONSE']._serialized_end=4425
+  _globals['_CUSTOMERMODELPRICINGENTRY']._serialized_start=4428
+  _globals['_CUSTOMERMODELPRICINGENTRY']._serialized_end=4992
 # @@protoc_insertion_point(module_scope)

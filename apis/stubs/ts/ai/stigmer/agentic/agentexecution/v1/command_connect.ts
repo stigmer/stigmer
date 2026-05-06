@@ -5,7 +5,7 @@
 
 import { AgentExecution } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { AgentExecutionUpdateStatusInput, CancelAgentExecutionInput, PauseAgentExecutionInput, RecoverAgentExecutionInput, ResumeAgentExecutionInput, SubmitApprovalInput, TerminateAgentExecutionInput, UpdateStatusResponse, UpdateUsageInput, UpdateUsageResponse, UploadAttachmentRequest, UploadAttachmentResponse } from "./io_pbjs";
+import { AgentExecutionUpdateStatusInput, CancelAgentExecutionInput, PauseAgentExecutionInput, RecoverAgentExecutionInput, ResumeAgentExecutionInput, SubmitApprovalInput, TerminateAgentExecutionInput, UpdateStatusResponse, UploadAttachmentRequest, UploadAttachmentResponse } from "./io_pbjs";
 import { ApiResourceId } from "../../../commons/apiresource/io_pbjs";
 
 /**
@@ -65,39 +65,6 @@ export const AgentExecutionCommandController = {
       name: "updateStatus",
       I: AgentExecutionUpdateStatusInput,
       O: UpdateStatusResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Record proxy-observed LLM usage for an agent execution.
-     *
-     * @internal
-     * Called by the LLM/Cursor proxy after each streaming response completes.
-     * The proxy extracts token counts from the provider's SSE stream and reports
-     * them here. The handler computes provider cost server-side from the model
-     * registry (never trusts caller-supplied cost), writes trusted usage to the
-     * execution, and debits billing credits as a side effect.
-     *
-     * ## Authorization
-     *
-     * Operator-only. The proxy authenticates as the platform operator identity.
-     * Regular users and runners cannot call this RPC.
-     *
-     * ## Idempotency
-     *
-     * Deduplicated by (execution_id, sequence). Safe to retry on transient failures.
-     *
-     * ## Signal Delivery
-     *
-     * This RPC does NOT return a billing signal. The proxy is a transparent byte
-     * pipe and cannot act on STOP/WARNING. Billing signals are delivered to the
-     * runner through the updateStatus response.
-     *
-     * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.updateUsage
-     */
-    updateUsage: {
-      name: "updateUsage",
-      I: UpdateUsageInput,
-      O: UpdateUsageResponse,
       kind: MethodKind.Unary,
     },
     /**

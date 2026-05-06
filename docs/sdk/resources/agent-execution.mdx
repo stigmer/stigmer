@@ -63,7 +63,6 @@ AgentExecution agentExecution = client.agentExecutions().get("aex_01j5q3k7m8r2s4
 | [`create`](#create) | Create and trigger a new agent execution. | |
 | [`update`](#update) | Update an agent execution. | |
 | [`updateStatus`](#updatestatus) | Update an agent execution's status. | |
-| [`updateUsage`](#updateusage) | Record proxy-observed LLM usage for an agent execution. | |
 | [`delete`](#delete) | Delete an agent execution by ID. | |
 | [`pause`](#pause) | Pause a running agent execution. | |
 | [`resume`](#resume) | Resume a paused agent execution. | |
@@ -728,89 +727,6 @@ UpdateStatusResponse updateStatusResponse = client.agentExecutions().updateStatu
 
 **Returns**: [`UpdateStatusResponse`](#updatestatusresponse)
 
-### updateUsage
-
-Record proxy-observed LLM usage for an agent execution.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const updateUsageResponse = await stigmer.agentExecution.updateUsage({
-  executionId: "...",
-  sequence: 0,
-  provider: "...",
-  resolvedModel: "...",
-  tokens: {},
-  usageStatus: "...",
-  providerRequestId: "...",
-  httpStatusCode: 0,
-  streaming: false,
-  finishReason: "...",
-  proxyTiming: {},
-  providerUsageJson: "...",
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-updateUsageResponse, err := client.AgentExecution.UpdateUsage(ctx, &stigmer.UpdateUsageInput{
-  ExecutionId:       "...",
-  Sequence:          0,
-  Provider:          "...",
-  ResolvedModel:     "...",
-  Tokens:            &stigmer.TokenUsageInput{},
-  UsageStatus:       "...",
-  ProviderRequestId: "...",
-  HttpStatusCode:    0,
-  Streaming:         false,
-  FinishReason:      "...",
-  ProxyTiming:       &stigmer.ProxyTimingInput{},
-  ProviderUsageJson: "...",
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-update_usage_response = client.agent_executions.update_usage(UpdateUsageInput(
-    execution_id="...",
-    sequence=0,
-    provider="...",
-    resolved_model="...",
-    tokens=None,
-    usage_status="...",
-    provider_request_id="...",
-    http_status_code=0,
-    streaming=False,
-    finish_reason="...",
-    proxy_timing=None,
-    provider_usage_json="...",
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-UpdateUsageResponse updateUsageResponse = client.agentExecutions().updateUsage(UpdateUsageInput.builder()
-    .executionId("...")
-    .sequence(0)
-    .provider("...")
-    .resolvedModel("...")
-    .tokens(null)
-    .usageStatus("...")
-    .providerRequestId("...")
-    .httpStatusCode(0)
-    .streaming(false)
-    .finishReason("...")
-    .proxyTiming(null)
-    .providerUsageJson("...")
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`UpdateUsageInput`](#updateusageinput)
-
-**Returns**: [`UpdateUsageResponse`](#updateusageresponse)
-
 ### delete
 
 Delete an agent execution by ID.
@@ -1262,31 +1178,6 @@ UpdateStatusResponse is the lightweight response returned by the updateStatus RP
   }}
 />
 
-### UpdateUsageInput
-
-Input message for updateUsage RPC.
-
-<TypeTable
-  type={{
-    executionId: { type: "string", description: "ID of the agent execution (required)." },
-    sequence: { type: "number", description: "1-based sequence number of this LLM call within the execution (required)." },
-    provider: { type: "string", description: "Provider identifier matching the proxy route (required)." },
-    resolvedModel: { type: "string", description: "Model identifier as reported by the provider in the response (required)." },
-    tokens: { type: "TokenUsageInput", description: "Token usage extracted from the provider's SSE stream." },
-    usageStatus: { type: "UsageCompletionStatus", description: "Status of usage extraction (did we get complete final usage?).", typeDescriptionLink: "#usagecompletionstatus" },
-    providerRequestId: { type: "string", description: "Provider request ID from response headers (for reconciliation/support)." },
-    httpStatusCode: { type: "number", description: "HTTP status code from the upstream provider response." },
-    streaming: { type: "boolean", description: "Whether the response was streamed (SSE)." },
-    finishReason: { type: "string", description: "Provider's finish reason (e.g., \"end_turn\", \"stop\", \"max_tokens\")." },
-    proxyTiming: { type: "ProxyTimingInput", description: "Proxy-observed timing for this call." },
-    providerUsageJson: { type: "string", description: "Raw provider usage JSON for audit/debug (compact, optional)." },
-  }}
-/>
-
-### UpdateUsageResponse
-
-Minimal acknowledgment for updateUsage.
-
 ### SubmitApprovalInput
 
 Input for submitting an approval decision (HITL Phase 1).
@@ -1583,8 +1474,6 @@ AgentExecutionStatus contains all execution results and state.
     workspaceWriteBacks: { type: "WorkspaceWriteBack[]", description: "Git write-back outcomes for workspace entries that had changes.", typeDescriptionLink: "#workspacewriteback" },
     setupProgress: { type: "SetupProgress", description: "Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.", typeDescriptionLink: "#setupprogress" },
     runnerId: { type: "string", description: "ID of the Runner that executed this execution." },
-    usageSummary: { type: "ExecutionUsageAggregate", description: "Aggregated usage and cost for this execution, derived from billing-authoritative per-call records.", typeDescriptionLink: "#executionusageaggregate" },
-    observability: { type: "ExecutionObservabilityMetrics", description: "Runner-reported execution timing and context metrics.", typeDescriptionLink: "#executionobservabilitymetrics" },
   }}
 />
 
@@ -1600,7 +1489,6 @@ Represents a single message in the agent conversation.
     toolCalls: { type: "ToolCall[]", description: "Tool calls associated with this message (if type == ai and tools were invoked).", typeDescriptionLink: "#toolcall" },
     metadata: { type: "object", description: "Optional message metadata." },
     isStreaming: { type: "boolean", description: "True while the AI is actively generating this message, false when complete." },
-    llmMetrics: { type: "LlmCallMetrics", description: "LLM call metrics for this message.", typeDescriptionLink: "#llmcallmetrics" },
   }}
 />
 
@@ -1639,65 +1527,6 @@ ExecutionArtifact represents a file or directory published by an agent.
   }}
 />
 
-### ExecutionObservabilityMetrics
-
-Runner-reported execution observability metrics.
-
-<TypeTable
-  type={{
-    runnerTotalDurationMs: { type: "number", description: "Runner-observed wall-clock timings (milliseconds)." },
-    runnerLlmWaitDurationMs: { type: "number", description: "" },
-    toolDurationMs: { type: "number", description: "" },
-    approvalWaitDurationMs: { type: "number", description: "" },
-    toolResultCharsTruncated: { type: "number", description: "Tool result truncation tracking." },
-    maxContextWindowUsedTokens: { type: "number", description: "Context window utilization." },
-    contextWindowSizeTokens: { type: "number", description: "" },
-    updatedAt: { type: "string", description: "When these metrics were last updated." },
-  }}
-/>
-
-### ExecutionUsageAggregate
-
-Execution-level usage aggregate, derived from per-call records.
-
-<TypeTable
-  type={{
-    llmCallCount: { type: "number", description: "─── Counts ─────────────────────────────────────────────────────────────────." },
-    billableCallCount: { type: "number", description: "" },
-    failedCallCount: { type: "number", description: "" },
-    totalTokens: { type: "TokenUsage", description: "─── Token Totals ──────────────────────────────────────────────────────────.", typeDescriptionLink: "#tokenusage" },
-    currency: { type: "string", description: "─── Cost Totals ───────────────────────────────────────────────────────────." },
-    providerCostMicros: { type: "number", description: "" },
-    customerBillableAmountMicros: { type: "number", description: "" },
-    modelBreakdown: { type: "ModelUsageBreakdown[]", description: "─── Model Breakdown ───────────────────────────────────────────────────────.", typeDescriptionLink: "#modelusagebreakdown" },
-    primaryProvider: { type: "string", description: "─── Display Convenience ───────────────────────────────────────────────────." },
-    primaryModel: { type: "string", description: "" },
-    status: { type: "UsageAggregateStatus", description: "─── Freshness ─────────────────────────────────────────────────────────────.", typeDescriptionLink: "#usageaggregatestatus" },
-    lastUsageAt: { type: "string", description: "" },
-    sourceRecordCount: { type: "number", description: "" },
-  }}
-/>
-
-### LlmCallMetrics
-
-DEPRECATED: Use LlmCallUsageRecord for per-call billing data.
-
-<TypeTable
-  type={{
-    sequence: { type: "number", description: "" },
-    model: { type: "string", description: "" },
-    provider: { type: "string", description: "" },
-    inputTokens: { type: "number", description: "" },
-    outputTokens: { type: "number", description: "" },
-    cacheCreationTokens: { type: "number", description: "" },
-    cacheReadTokens: { type: "number", description: "" },
-    estimatedCostUsd: { type: "number", description: "" },
-    durationMs: { type: "number", description: "" },
-    timestamp: { type: "string", description: "" },
-    totalTokens: { type: "number", description: "" },
-  }}
-/>
-
 ### McpServerResolutionStatus
 
 McpServerResolutionStatus captures the resolution outcome for a single MCP server.
@@ -1707,25 +1536,6 @@ McpServerResolutionStatus captures the resolution outcome for a single MCP serve
     resolved: { type: "boolean", description: "Whether the MCP server was successfully resolved and configured." },
     message: { type: "string", description: "Human-readable status message explaining the resolution outcome." },
     enabledToolCount: { type: "number", description: "Number of tools enabled from this MCP server." },
-  }}
-/>
-
-### ModelUsageBreakdown
-
-Per-model usage breakdown within an execution.
-
-<TypeTable
-  type={{
-    provider: { type: "string", description: "" },
-    resolvedModel: { type: "string", description: "" },
-    serviceTier: { type: "string", description: "" },
-    callCount: { type: "number", description: "" },
-    billableCallCount: { type: "number", description: "" },
-    failedCallCount: { type: "number", description: "" },
-    tokens: { type: "TokenUsage", description: "", typeDescriptionLink: "#tokenusage" },
-    currency: { type: "string", description: "" },
-    providerCostMicros: { type: "number", description: "" },
-    customerBillableAmountMicros: { type: "number", description: "" },
   }}
 />
 
@@ -1826,25 +1636,6 @@ Represents a single item in the agent's todo list.
   }}
 />
 
-### TokenUsage
-
-Normalized token usage from a single LLM call.
-
-<TypeTable
-  type={{
-    inputTokens: { type: "number", description: "Regular input tokens (non-cached, non-tool, billed at standard input rate)." },
-    outputTokens: { type: "number", description: "Output/completion tokens generated by the model." },
-    totalTokens: { type: "number", description: "Provider-reported total tokens." },
-    cacheCreationInputTokens: { type: "number", description: "Tokens written to prompt cache (Anthropic cache_creation_input_tokens)." },
-    cacheReadInputTokens: { type: "number", description: "Tokens read from prompt cache (cache hits)." },
-    reasoningTokens: { type: "number", description: "Reasoning/thinking tokens (OpenAI reasoning_tokens, Vertex thoughtsTokenCount)." },
-    toolUsePromptTokens: { type: "number", description: "Tool-use prompt tokens (Vertex toolUsePromptTokenCount)." },
-    audioInputTokens: { type: "number", description: "Audio tokens (future multimodal billing)." },
-    audioOutputTokens: { type: "number", description: "" },
-    providerTokenDetails: { type: "Record<string, number>", description: "Provider-specific token details not yet normalized." },
-  }}
-/>
-
 ### ToolCall
 
 Represents a tool call made by the agent during execution.
@@ -1899,20 +1690,6 @@ ExecutionControlSignal is a platform-to-runner directive returned by the updateS
 | `EXECUTION_CONTROL_SIGNAL_STOP` | Execution must stop gracefully. |
 | `EXECUTION_CONTROL_SIGNAL_WARNING` | Informational warning (e.g. low credit balance). |
 
-### UsageCompletionStatus
-
-Status of provider-reported token usage extraction.
-
-| Value | Description |
-|-------|-------------|
-| `USAGE_COMPLETION_STATUS_COMPLETE` | Provider reported complete final usage (normal case). |
-| `USAGE_COMPLETION_STATUS_STREAM_INTERRUPTED` | Stream ended without final usage event (e.g., connection interrupted). |
-| `USAGE_COMPLETION_STATUS_PROVIDER_ERROR_WITH_USAGE` | Provider returned error but included partial usage data. |
-| `USAGE_COMPLETION_STATUS_PROVIDER_ERROR_NO_USAGE` | Provider returned error with no usage data. |
-| `USAGE_COMPLETION_STATUS_ESTIMATED_ONLY` | Usage is estimated (tokenizer/preflight), not provider-reported. |
-| `USAGE_COMPLETION_STATUS_RECONCILED` | Reconciled against provider admin reports. |
-| `USAGE_COMPLETION_STATUS_CONFLICT` | Conflict: retry with different payload detected. |
-
 ### ApprovalAction
 
 ApprovalAction represents the user's decision on an approval request.
@@ -1958,19 +1735,6 @@ ExecutionArtifactKind defines the type of artifact published by an agent.
 |-------|-------------|
 | `EXECUTION_ARTIFACT_KIND_FILE` | A single file published by the agent. |
 | `EXECUTION_ARTIFACT_KIND_DIRECTORY` | A directory published by the agent, archived as a ZIP file for download. |
-
-### UsageAggregateStatus
-
-Aggregate completeness status for execution-level usage summary.
-
-| Value | Description |
-|-------|-------------|
-| `USAGE_AGGREGATE_STATUS_COMPLETE` |  |
-| `USAGE_AGGREGATE_STATUS_PARTIAL` |  |
-| `USAGE_AGGREGATE_STATUS_PENDING_BILLING` |  |
-| `USAGE_AGGREGATE_STATUS_HAS_ESTIMATES` |  |
-| `USAGE_AGGREGATE_STATUS_HAS_CONFLICTS` |  |
-| `USAGE_AGGREGATE_STATUS_RECONCILED` |  |
 
 ### SubAgentStatus
 

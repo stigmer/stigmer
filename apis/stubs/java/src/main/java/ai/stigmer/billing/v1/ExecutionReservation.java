@@ -10,8 +10,8 @@ package ai.stigmer.billing.v1;
  * ExecutionReservation tracks credits held for an active agent execution.
  *
  * Created at execution start (AuthorizeExecution), consumed incrementally
- * by per-LLM-call debits (ReportLlmCallUsage), and settled at execution
- * end (FinalizeExecution) to release any unused hold.
+ * by per-LLM-call debits (via proxy-observed usage metering), and settled
+ * at execution end (FinalizeExecution) to release any unused hold.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.billing.v1.ExecutionReservation}
@@ -569,8 +569,8 @@ private static final long serialVersionUID = 0L;
    * ExecutionReservation tracks credits held for an active agent execution.
    *
    * Created at execution start (AuthorizeExecution), consumed incrementally
-   * by per-LLM-call debits (ReportLlmCallUsage), and settled at execution
-   * end (FinalizeExecution) to release any unused hold.
+   * by per-LLM-call debits (via proxy-observed usage metering), and settled
+   * at execution end (FinalizeExecution) to release any unused hold.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.billing.v1.ExecutionReservation}

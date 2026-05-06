@@ -45,13 +45,14 @@ service BillingCommandController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
-  // Report a single LLM call's usage for billing.
-  // Applies the billing policy, debits credits, and returns a signal.
+  // Record a single LLM call's usage for billing.
+  // Computes cost server-side from the model registry, inserts an immutable
+  // LlmCallUsageRecord, and debits credits from the execution's reservation.
   //
   // @internal
-  // Called by the agent runner after each LLM call completes.
-  // Deduplicated by (execution_id, sequence).
-  rpc reportLlmCallUsage(ReportLlmCallUsageInput) returns (ReportLlmCallUsageResponse) {
+  // Called by the proxy after each LLM SSE stream completes.
+  // Deduplicated by (execution_id, sequence, metering_source).
+  rpc recordLlmCallUsage(RecordLlmCallUsageInput) returns (RecordLlmCallUsageResponse) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 

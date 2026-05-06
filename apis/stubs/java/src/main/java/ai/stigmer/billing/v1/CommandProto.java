@@ -53,10 +53,10 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       " this organization\022}\n\022authorizeExecution" +
       "\022..ai.stigmer.billing.v1.AuthorizeExecut" +
       "ionInput\0321.ai.stigmer.billing.v1.Authori" +
-      "zeExecutionResponse\"\004\320\270\030\001\022}\n\022reportLlmCa" +
-      "llUsage\022..ai.stigmer.billing.v1.ReportLl" +
+      "zeExecutionResponse\"\004\320\270\030\001\022}\n\022recordLlmCa" +
+      "llUsage\022..ai.stigmer.billing.v1.RecordLl" +
       "mCallUsageInput\0321.ai.stigmer.billing.v1." +
-      "ReportLlmCallUsageResponse\"\004\320\270\030\001\022z\n\021fina" +
+      "RecordLlmCallUsageResponse\"\004\320\270\030\001\022z\n\021fina" +
       "lizeExecution\022-.ai.stigmer.billing.v1.Fi" +
       "nalizeExecutionInput\0320.ai.stigmer.billin" +
       "g.v1.FinalizeExecutionResponse\"\004\320\270\030\001\022\334\001\n" +

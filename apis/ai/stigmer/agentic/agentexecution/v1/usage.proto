@@ -113,17 +113,6 @@ enum CostCalculationStatus {
   COST_CALCULATION_STATUS_MANUAL_ADJUSTED = 5;
 }
 
-// Aggregate completeness status for execution-level usage summary.
-enum UsageAggregateStatus {
-  USAGE_AGGREGATE_STATUS_UNSPECIFIED = 0;
-  USAGE_AGGREGATE_STATUS_COMPLETE = 1;
-  USAGE_AGGREGATE_STATUS_PARTIAL = 2;
-  USAGE_AGGREGATE_STATUS_PENDING_BILLING = 3;
-  USAGE_AGGREGATE_STATUS_HAS_ESTIMATES = 4;
-  USAGE_AGGREGATE_STATUS_HAS_CONFLICTS = 5;
-  USAGE_AGGREGATE_STATUS_RECONCILED = 6;
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // TOKEN USAGE
 //
@@ -367,95 +356,20 @@ message LlmCallUsageRecord {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// EXECUTION USAGE AGGREGATE (Derived Summary)
+// PER-MESSAGE USAGE TYPES (Runner-reported, OSS-mode data path)
 //
-// Lightweight projection derived from per-call LlmCallUsageRecords.
-// Denormalized onto AgentExecutionStatus for fast dashboard reads.
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// Per-model usage breakdown within an execution.
-message ModelUsageBreakdown {
-  string provider = 1;
-  string resolved_model = 2;
-  string service_tier = 3;
-
-  int32 call_count = 10;
-  int32 billable_call_count = 11;
-  int32 failed_call_count = 12;
-
-  TokenUsage tokens = 20;
-
-  string currency = 30;
-  int64 provider_cost_micros = 31;
-  int64 customer_billable_amount_micros = 32;
-}
-
-// Execution-level usage aggregate, derived from per-call records.
-// Stored on AgentExecutionStatus.usage_summary for fast reads.
-message ExecutionUsageAggregate {
-  // ─── Counts ─────────────────────────────────────────────────────────────────
-  int32 llm_call_count = 1;
-  int32 billable_call_count = 2;
-  int32 failed_call_count = 3;
-
-  // ─── Token Totals ──────────────────────────────────────────────────────────
-  TokenUsage total_tokens = 10;
-
-  // ─── Cost Totals ───────────────────────────────────────────────────────────
-  string currency = 20;
-  int64 provider_cost_micros = 21;
-  int64 customer_billable_amount_micros = 22;
-
-  // ─── Model Breakdown ───────────────────────────────────────────────────────
-  repeated ModelUsageBreakdown model_breakdown = 30;
-
-  // ─── Display Convenience ───────────────────────────────────────────────────
-  string primary_provider = 40;
-  string primary_model = 41;
-
-  // ─── Freshness ─────────────────────────────────────────────────────────────
-  UsageAggregateStatus status = 50;
-  google.protobuf.Timestamp last_usage_at = 51;
-  int32 source_record_count = 52;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// EXECUTION OBSERVABILITY METRICS (Runner-Reported)
+// These types are used by AgentMessage.llm_metrics — runner-reported per-message
+// usage data. In cloud mode, the billing source of truth is LlmCallUsageRecord
+// in the dedicated collection (written by the proxy). In OSS mode (no proxy),
+// these are the primary source of usage data for display and reports.
 //
-// Display-only timing and context metrics reported by the runner.
-// Never used for billing. Stored on AgentExecutionStatus.observability.
+// UsageAggregationService reads from LlmCallUsageRecord when available, and
+// falls back to these types for OSS-mode or pre-migration executions.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Runner-reported execution observability metrics. Display-only in cloud mode.
-message ExecutionObservabilityMetrics {
-  // Runner-observed wall-clock timings (milliseconds).
-  int64 runner_total_duration_ms = 1;
-  int64 runner_llm_wait_duration_ms = 2;
-  int64 tool_duration_ms = 3;
-  int64 approval_wait_duration_ms = 4;
-
-  // Tool result truncation tracking.
-  int64 tool_result_chars_truncated = 10;
-
-  // Context window utilization.
-  int64 max_context_window_used_tokens = 11;
-  int64 context_window_size_tokens = 12;
-
-  // When these metrics were last updated.
-  google.protobuf.Timestamp updated_at = 20;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// LEGACY MESSAGES (Deprecated — kept for wire compatibility)
-//
-// These messages are used by AgentMessage.llm_metrics (runner-reported display
-// data on individual messages). They remain for backward compatibility but are
-// NOT the billing source of truth. The billing source of truth is
-// LlmCallUsageRecord in the dedicated collection.
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// DEPRECATED: Use ExecutionUsageAggregate for execution-level usage.
-// Retained for backward compatibility with existing runner-reported data.
+// Execution-level usage aggregate derived from per-message llm_metrics.
+// Used in usage report RPC responses. In cloud mode, values are sourced from
+// ExecutionUsageAggregate (proxy-written); in OSS mode, computed from llm_metrics.
 message UsageMetrics {
   int32 prompt_tokens = 1;
   int32 completion_tokens = 2;
@@ -467,7 +381,7 @@ message UsageMetrics {
   repeated ModelUsage model_breakdown = 8;
   double estimated_cost_usd = 9;
   int64 tool_result_chars_truncated = 10;
-  repeated LlmCallMetrics llm_calls = 11;
+  reserved 11;
   int32 total_duration_ms = 12;
   int32 llm_duration_ms = 13;
   int32 tool_duration_ms = 14;
@@ -475,7 +389,9 @@ message UsageMetrics {
   string primary_provider = 16;
 }
 
-// DEPRECATED: Use ModelUsageBreakdown for per-model usage.
+// Per-model usage breakdown used in usage report RPC responses.
+// In cloud mode, populated from LlmCallUsageRecord queries;
+// in OSS mode, derived from AgentMessage.llm_metrics.
 message ModelUsage {
   string model = 1;
   string provider = 2;
@@ -489,20 +405,4 @@ message ModelUsage {
   double cache_creation_price_per_million = 10;
   double cache_read_price_per_million = 11;
   double estimated_cost_usd = 12;
-}
-
-// DEPRECATED: Use LlmCallUsageRecord for per-call billing data.
-// Retained for AgentMessage.llm_metrics (runner-reported display data).
-message LlmCallMetrics {
-  int32 sequence = 1;
-  string model = 2;
-  string provider = 3;
-  int32 input_tokens = 4;
-  int32 output_tokens = 5;
-  int32 cache_creation_tokens = 6;
-  int32 cache_read_tokens = 7;
-  double estimated_cost_usd = 8;
-  int32 duration_ms = 9;
-  string timestamp = 10;
-  int32 total_tokens = 11;
 }

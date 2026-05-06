@@ -10,7 +10,6 @@ import "ai/stigmer/agentic/agentexecution/v1/message.proto";
 import "ai/stigmer/agentic/agentexecution/v1/spec.proto";
 import "ai/stigmer/agentic/agentexecution/v1/subagent.proto";
 import "ai/stigmer/agentic/agentexecution/v1/todo.proto";
-import "ai/stigmer/agentic/agentexecution/v1/usage.proto";
 import "ai/stigmer/agentic/agentexecution/v1/writeback.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
@@ -241,30 +240,6 @@ message AgentExecutionStatus {
   //
   // Used for observability: "which runner handled this work?"
   string runner_id = 19;
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Usage Summary (Proxy-Metered Billing Aggregate)
-  //
-  // Derived from immutable LlmCallUsageRecord entries in the dedicated
-  // llm_call_usage_record collection. Updated via atomic $inc/$set after each
-  // per-call record is inserted. This is the display-friendly cost/token summary.
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // Aggregated usage and cost for this execution, derived from billing-authoritative
-  // per-call records. Updated incrementally as LLM calls complete.
-  ExecutionUsageAggregate usage_summary = 20;
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Observability Metrics (Runner-Reported, Display-Only)
-  //
-  // Timing and context utilization data reported by the runner.
-  // Never used for billing. Useful for debugging, performance monitoring,
-  // and UX (showing execution duration breakdown to users).
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // Runner-reported execution timing and context metrics.
-  // Display-only in cloud mode; never billing-authoritative.
-  ExecutionObservabilityMetrics observability = 21;
 }
 
 // Setup progress reported during the EXECUTION_PENDING phase.

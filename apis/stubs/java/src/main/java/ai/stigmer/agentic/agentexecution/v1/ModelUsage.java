@@ -7,7 +7,9 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 /**
  * <pre>
- * DEPRECATED: Use ModelUsageBreakdown for per-model usage.
+ * Per-model usage breakdown used in usage report RPC responses.
+ * In cloud mode, populated from LlmCallUsageRecord queries;
+ * in OSS mode, derived from AgentMessage.llm_metrics.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ModelUsage}
@@ -530,7 +532,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * DEPRECATED: Use ModelUsageBreakdown for per-model usage.
+   * Per-model usage breakdown used in usage report RPC responses.
+   * In cloud mode, populated from LlmCallUsageRecord queries;
+   * in OSS mode, derived from AgentMessage.llm_metrics.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ModelUsage}

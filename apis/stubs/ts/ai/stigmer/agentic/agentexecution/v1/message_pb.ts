@@ -6,8 +6,6 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ApprovalAction, MessageType, ToolCallStatus, ToolCallStreamingSource } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb.js";
-import type { LlmCallMetrics } from "./usage_pb.js";
-import { file_ai_stigmer_agentic_agentexecution_v1_usage } from "./usage_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
 import type { JsonObject, Message } from "@bufbuild/protobuf";
@@ -16,7 +14,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/message.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_message: GenFile = /*@__PURE__*/
-  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvbWVzc2FnZS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIs0CCgxBZ2VudE1lc3NhZ2USSQoEdHlwZRgBIAEoDjIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5NZXNzYWdlVHlwZUIIukgFggECEAESDwoHY29udGVudBgCIAEoCRIRCgl0aW1lc3RhbXAYAyABKAkSQgoKdG9vbF9jYWxscxgEIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub29sQ2FsbBIpCghtZXRhZGF0YRgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFAoMaXNfc3RyZWFtaW5nGAYgASgIEkkKC2xsbV9tZXRyaWNzGAcgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkxsbUNhbGxNZXRyaWNzIvEECghUb29sQ2FsbBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEiUKBGFyZ3MYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Eg4KBnJlc3VsdBgEIAEoCRJOCgZzdGF0dXMYBSABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbENhbGxTdGF0dXNCCLpIBYIBAhABEhIKCnN0YXJ0ZWRfYXQYByABKAkSFAoMY29tcGxldGVkX2F0GAggASgJEg0KBWVycm9yGAkgASgJEhkKEXJlcXVpcmVzX2FwcHJvdmFsGAogASgIEhgKEGFwcHJvdmFsX21lc3NhZ2UYCyABKAkSHQoVYXBwcm92YWxfcmVxdWVzdGVkX2F0GAwgASgJEhsKE2FwcHJvdmFsX2RlY2lkZWRfYXQYDSABKAkSEwoLYXBwcm92ZWRfYnkYDiABKAkSTQoPYXBwcm92YWxfYWN0aW9uGA8gASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uEhQKDGlzX3N0cmVhbWluZxgQIAEoCBJXChBzdHJlYW1pbmdfc291cmNlGBMgASgOMj0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xDYWxsU3RyZWFtaW5nU291cmNlEhcKD21jcF9zZXJ2ZXJfc2x1ZxgRIAEoCRIUCgxhcmdzX3ByZXZpZXcYEiABKAlKBAgGEAdSEmNvbXBvbmVudF9tZXRhZGF0YWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_usage, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvbWVzc2FnZS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIoICCgxBZ2VudE1lc3NhZ2USSQoEdHlwZRgBIAEoDjIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5NZXNzYWdlVHlwZUIIukgFggECEAESDwoHY29udGVudBgCIAEoCRIRCgl0aW1lc3RhbXAYAyABKAkSQgoKdG9vbF9jYWxscxgEIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub29sQ2FsbBIpCghtZXRhZGF0YRgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFAoMaXNfc3RyZWFtaW5nGAYgASgIItcECghUb29sQ2FsbBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEiUKBGFyZ3MYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Eg4KBnJlc3VsdBgEIAEoCRJOCgZzdGF0dXMYBSABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbENhbGxTdGF0dXNCCLpIBYIBAhABEhIKCnN0YXJ0ZWRfYXQYByABKAkSFAoMY29tcGxldGVkX2F0GAggASgJEg0KBWVycm9yGAkgASgJEhkKEXJlcXVpcmVzX2FwcHJvdmFsGAogASgIEhgKEGFwcHJvdmFsX21lc3NhZ2UYCyABKAkSHQoVYXBwcm92YWxfcmVxdWVzdGVkX2F0GAwgASgJEhsKE2FwcHJvdmFsX2RlY2lkZWRfYXQYDSABKAkSEwoLYXBwcm92ZWRfYnkYDiABKAkSTQoPYXBwcm92YWxfYWN0aW9uGA8gASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uEhQKDGlzX3N0cmVhbWluZxgQIAEoCBJXChBzdHJlYW1pbmdfc291cmNlGBMgASgOMj0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvb2xDYWxsU3RyZWFtaW5nU291cmNlEhcKD21jcF9zZXJ2ZXJfc2x1ZxgRIAEoCRIUCgxhcmdzX3ByZXZpZXcYEiABKAliBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * Represents a single message in the agent conversation.
@@ -69,16 +67,6 @@ export type AgentMessage = Message<"ai.stigmer.agentic.agentexecution.v1.AgentMe
    * @generated from field: bool is_streaming = 6;
    */
   isStreaming: boolean;
-
-  /**
-   * LLM call metrics for this message.
-   * Only populated for type == MESSAGE_AI.
-   * Captures the full cost record of the single LLM call that produced this message:
-   * token breakdown, estimated cost, model, provider, and duration.
-   *
-   * @generated from field: ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7;
-   */
-  llmMetrics?: LlmCallMetrics;
 };
 
 /**

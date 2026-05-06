@@ -3,7 +3,6 @@ syntax = "proto3";
 package ai.stigmer.agentic.agentexecution.v1;
 
 import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
-import "ai/stigmer/agentic/agentexecution/v1/usage.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
@@ -30,12 +29,6 @@ message AgentMessage {
   // Enables UI to show typing indicator during streaming and final content when done.
   // Default (false) indicates either a non-AI message or a completed AI message.
   bool is_streaming = 6;
-
-  // LLM call metrics for this message.
-  // Only populated for type == MESSAGE_AI.
-  // Captures the full cost record of the single LLM call that produced this message:
-  // token breakdown, estimated cost, model, provider, and duration.
-  LlmCallMetrics llm_metrics = 7;
 }
 
 // Represents a tool call made by the agent during execution.
@@ -54,9 +47,6 @@ message ToolCall {
 
   // Status of the tool call execution.
   ToolCallStatus status = 5 [(buf.validate.field).enum.defined_only = true];
-
-  reserved 6;
-  reserved "component_metadata";
 
   // ISO 8601 timestamp when the tool call started.
   string started_at = 7;

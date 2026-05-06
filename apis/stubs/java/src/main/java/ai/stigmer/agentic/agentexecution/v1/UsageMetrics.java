@@ -7,8 +7,9 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 /**
  * <pre>
- * DEPRECATED: Use ExecutionUsageAggregate for execution-level usage.
- * Retained for backward compatibility with existing runner-reported data.
+ * Execution-level usage aggregate derived from per-message llm_metrics.
+ * Used in usage report RPC responses. In cloud mode, values are sourced from
+ * ExecutionUsageAggregate (proxy-written); in OSS mode, computed from llm_metrics.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.UsageMetrics}
@@ -35,7 +36,6 @@ private static final long serialVersionUID = 0L;
   private UsageMetrics() {
     primaryModel_ = "";
     modelBreakdown_ = java.util.Collections.emptyList();
-    llmCalls_ = java.util.Collections.emptyList();
     primaryProvider_ = "";
   }
 
@@ -225,47 +225,6 @@ private static final long serialVersionUID = 0L;
     return toolResultCharsTruncated_;
   }
 
-  public static final int LLM_CALLS_FIELD_NUMBER = 11;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics> llmCalls_;
-  /**
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics> getLlmCallsList() {
-    return llmCalls_;
-  }
-  /**
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder> 
-      getLlmCallsOrBuilderList() {
-    return llmCalls_;
-  }
-  /**
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-   */
-  @java.lang.Override
-  public int getLlmCallsCount() {
-    return llmCalls_.size();
-  }
-  /**
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics getLlmCalls(int index) {
-    return llmCalls_.get(index);
-  }
-  /**
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder getLlmCallsOrBuilder(
-      int index) {
-    return llmCalls_.get(index);
-  }
-
   public static final int TOTAL_DURATION_MS_FIELD_NUMBER = 12;
   private int totalDurationMs_ = 0;
   /**
@@ -393,9 +352,6 @@ private static final long serialVersionUID = 0L;
     if (toolResultCharsTruncated_ != 0L) {
       output.writeInt64(10, toolResultCharsTruncated_);
     }
-    for (int i = 0; i < llmCalls_.size(); i++) {
-      output.writeMessage(11, llmCalls_.get(i));
-    }
     if (totalDurationMs_ != 0) {
       output.writeInt32(12, totalDurationMs_);
     }
@@ -464,15 +420,6 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(10, toolResultCharsTruncated_);
     }
-
-        {
-          final int count = llmCalls_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(llmCalls_.get(i));
-          }
-          size += 1 * count;
-        }
     if (totalDurationMs_ != 0) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(12, totalDurationMs_);
@@ -528,8 +475,6 @@ private static final long serialVersionUID = 0L;
             other.getEstimatedCostUsd())) return false;
     if (getToolResultCharsTruncated()
         != other.getToolResultCharsTruncated()) return false;
-    if (!getLlmCallsList()
-        .equals(other.getLlmCallsList())) return false;
     if (getTotalDurationMs()
         != other.getTotalDurationMs()) return false;
     if (getLlmDurationMs()
@@ -575,10 +520,6 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + TOOL_RESULT_CHARS_TRUNCATED_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getToolResultCharsTruncated());
-    if (getLlmCallsCount() > 0) {
-      hash = (37 * hash) + LLM_CALLS_FIELD_NUMBER;
-      hash = (53 * hash) + getLlmCallsList().hashCode();
-    }
     hash = (37 * hash) + TOTAL_DURATION_MS_FIELD_NUMBER;
     hash = (53 * hash) + getTotalDurationMs();
     hash = (37 * hash) + LLM_DURATION_MS_FIELD_NUMBER;
@@ -688,8 +629,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * DEPRECATED: Use ExecutionUsageAggregate for execution-level usage.
-   * Retained for backward compatibility with existing runner-reported data.
+   * Execution-level usage aggregate derived from per-message llm_metrics.
+   * Used in usage report RPC responses. In cloud mode, values are sourced from
+   * ExecutionUsageAggregate (proxy-written); in OSS mode, computed from llm_metrics.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.UsageMetrics}
@@ -741,13 +683,6 @@ private static final long serialVersionUID = 0L;
       bitField0_ = (bitField0_ & ~0x00000080);
       estimatedCostUsd_ = 0D;
       toolResultCharsTruncated_ = 0L;
-      if (llmCallsBuilder_ == null) {
-        llmCalls_ = java.util.Collections.emptyList();
-      } else {
-        llmCalls_ = null;
-        llmCallsBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000400);
       totalDurationMs_ = 0;
       llmDurationMs_ = 0;
       toolDurationMs_ = 0;
@@ -795,15 +730,6 @@ private static final long serialVersionUID = 0L;
       } else {
         result.modelBreakdown_ = modelBreakdownBuilder_.build();
       }
-      if (llmCallsBuilder_ == null) {
-        if (((bitField0_ & 0x00000400) != 0)) {
-          llmCalls_ = java.util.Collections.unmodifiableList(llmCalls_);
-          bitField0_ = (bitField0_ & ~0x00000400);
-        }
-        result.llmCalls_ = llmCalls_;
-      } else {
-        result.llmCalls_ = llmCallsBuilder_.build();
-      }
     }
 
     private void buildPartial0(ai.stigmer.agentic.agentexecution.v1.UsageMetrics result) {
@@ -835,19 +761,19 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000200) != 0)) {
         result.toolResultCharsTruncated_ = toolResultCharsTruncated_;
       }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         result.totalDurationMs_ = totalDurationMs_;
       }
-      if (((from_bitField0_ & 0x00001000) != 0)) {
+      if (((from_bitField0_ & 0x00000800) != 0)) {
         result.llmDurationMs_ = llmDurationMs_;
       }
-      if (((from_bitField0_ & 0x00002000) != 0)) {
+      if (((from_bitField0_ & 0x00001000) != 0)) {
         result.toolDurationMs_ = toolDurationMs_;
       }
-      if (((from_bitField0_ & 0x00004000) != 0)) {
+      if (((from_bitField0_ & 0x00002000) != 0)) {
         result.approvalWaitDurationMs_ = approvalWaitDurationMs_;
       }
-      if (((from_bitField0_ & 0x00008000) != 0)) {
+      if (((from_bitField0_ & 0x00004000) != 0)) {
         result.primaryProvider_ = primaryProvider_;
       }
     }
@@ -919,32 +845,6 @@ private static final long serialVersionUID = 0L;
       if (other.getToolResultCharsTruncated() != 0L) {
         setToolResultCharsTruncated(other.getToolResultCharsTruncated());
       }
-      if (llmCallsBuilder_ == null) {
-        if (!other.llmCalls_.isEmpty()) {
-          if (llmCalls_.isEmpty()) {
-            llmCalls_ = other.llmCalls_;
-            bitField0_ = (bitField0_ & ~0x00000400);
-          } else {
-            ensureLlmCallsIsMutable();
-            llmCalls_.addAll(other.llmCalls_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.llmCalls_.isEmpty()) {
-          if (llmCallsBuilder_.isEmpty()) {
-            llmCallsBuilder_.dispose();
-            llmCallsBuilder_ = null;
-            llmCalls_ = other.llmCalls_;
-            bitField0_ = (bitField0_ & ~0x00000400);
-            llmCallsBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetLlmCallsFieldBuilder() : null;
-          } else {
-            llmCallsBuilder_.addAllMessages(other.llmCalls_);
-          }
-        }
-      }
       if (other.getTotalDurationMs() != 0) {
         setTotalDurationMs(other.getTotalDurationMs());
       }
@@ -959,7 +859,7 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getPrimaryProvider().isEmpty()) {
         primaryProvider_ = other.primaryProvider_;
-        bitField0_ |= 0x00008000;
+        bitField0_ |= 0x00004000;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -1046,42 +946,29 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000200;
               break;
             } // case 80
-            case 90: {
-              ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics m =
-                  input.readMessage(
-                      ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.parser(),
-                      extensionRegistry);
-              if (llmCallsBuilder_ == null) {
-                ensureLlmCallsIsMutable();
-                llmCalls_.add(m);
-              } else {
-                llmCallsBuilder_.addMessage(m);
-              }
-              break;
-            } // case 90
             case 96: {
               totalDurationMs_ = input.readInt32();
-              bitField0_ |= 0x00000800;
+              bitField0_ |= 0x00000400;
               break;
             } // case 96
             case 104: {
               llmDurationMs_ = input.readInt32();
-              bitField0_ |= 0x00001000;
+              bitField0_ |= 0x00000800;
               break;
             } // case 104
             case 112: {
               toolDurationMs_ = input.readInt32();
-              bitField0_ |= 0x00002000;
+              bitField0_ |= 0x00001000;
               break;
             } // case 112
             case 120: {
               approvalWaitDurationMs_ = input.readInt32();
-              bitField0_ |= 0x00004000;
+              bitField0_ |= 0x00002000;
               break;
             } // case 120
             case 130: {
               primaryProvider_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00008000;
+              bitField0_ |= 0x00004000;
               break;
             } // case 130
             default: {
@@ -1669,246 +1556,6 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.util.List<ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics> llmCalls_ =
-      java.util.Collections.emptyList();
-    private void ensureLlmCallsIsMutable() {
-      if (!((bitField0_ & 0x00000400) != 0)) {
-        llmCalls_ = new java.util.ArrayList<ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics>(llmCalls_);
-        bitField0_ |= 0x00000400;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics, ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder> llmCallsBuilder_;
-
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics> getLlmCallsList() {
-      if (llmCallsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(llmCalls_);
-      } else {
-        return llmCallsBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public int getLlmCallsCount() {
-      if (llmCallsBuilder_ == null) {
-        return llmCalls_.size();
-      } else {
-        return llmCallsBuilder_.getCount();
-      }
-    }
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics getLlmCalls(int index) {
-      if (llmCallsBuilder_ == null) {
-        return llmCalls_.get(index);
-      } else {
-        return llmCallsBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public Builder setLlmCalls(
-        int index, ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics value) {
-      if (llmCallsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureLlmCallsIsMutable();
-        llmCalls_.set(index, value);
-        onChanged();
-      } else {
-        llmCallsBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public Builder setLlmCalls(
-        int index, ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.Builder builderForValue) {
-      if (llmCallsBuilder_ == null) {
-        ensureLlmCallsIsMutable();
-        llmCalls_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        llmCallsBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public Builder addLlmCalls(ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics value) {
-      if (llmCallsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureLlmCallsIsMutable();
-        llmCalls_.add(value);
-        onChanged();
-      } else {
-        llmCallsBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public Builder addLlmCalls(
-        int index, ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics value) {
-      if (llmCallsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureLlmCallsIsMutable();
-        llmCalls_.add(index, value);
-        onChanged();
-      } else {
-        llmCallsBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public Builder addLlmCalls(
-        ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.Builder builderForValue) {
-      if (llmCallsBuilder_ == null) {
-        ensureLlmCallsIsMutable();
-        llmCalls_.add(builderForValue.build());
-        onChanged();
-      } else {
-        llmCallsBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public Builder addLlmCalls(
-        int index, ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.Builder builderForValue) {
-      if (llmCallsBuilder_ == null) {
-        ensureLlmCallsIsMutable();
-        llmCalls_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        llmCallsBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public Builder addAllLlmCalls(
-        java.lang.Iterable<? extends ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics> values) {
-      if (llmCallsBuilder_ == null) {
-        ensureLlmCallsIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, llmCalls_);
-        onChanged();
-      } else {
-        llmCallsBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public Builder clearLlmCalls() {
-      if (llmCallsBuilder_ == null) {
-        llmCalls_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000400);
-        onChanged();
-      } else {
-        llmCallsBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public Builder removeLlmCalls(int index) {
-      if (llmCallsBuilder_ == null) {
-        ensureLlmCallsIsMutable();
-        llmCalls_.remove(index);
-        onChanged();
-      } else {
-        llmCallsBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.Builder getLlmCallsBuilder(
-        int index) {
-      return internalGetLlmCallsFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder getLlmCallsOrBuilder(
-        int index) {
-      if (llmCallsBuilder_ == null) {
-        return llmCalls_.get(index);  } else {
-        return llmCallsBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder> 
-         getLlmCallsOrBuilderList() {
-      if (llmCallsBuilder_ != null) {
-        return llmCallsBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(llmCalls_);
-      }
-    }
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.Builder addLlmCallsBuilder() {
-      return internalGetLlmCallsFieldBuilder().addBuilder(
-          ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.getDefaultInstance());
-    }
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.Builder addLlmCallsBuilder(
-        int index) {
-      return internalGetLlmCallsFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.getDefaultInstance());
-    }
-    /**
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.Builder> 
-         getLlmCallsBuilderList() {
-      return internalGetLlmCallsFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics, ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder> 
-        internalGetLlmCallsFieldBuilder() {
-      if (llmCallsBuilder_ == null) {
-        llmCallsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics, ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder>(
-                llmCalls_,
-                ((bitField0_ & 0x00000400) != 0),
-                getParentForChildren(),
-                isClean());
-        llmCalls_ = null;
-      }
-      return llmCallsBuilder_;
-    }
-
     private int totalDurationMs_ ;
     /**
      * <code>int32 total_duration_ms = 12 [json_name = "totalDurationMs"];</code>
@@ -1926,7 +1573,7 @@ private static final long serialVersionUID = 0L;
     public Builder setTotalDurationMs(int value) {
 
       totalDurationMs_ = value;
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -1935,7 +1582,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearTotalDurationMs() {
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00000400);
       totalDurationMs_ = 0;
       onChanged();
       return this;
@@ -1958,7 +1605,7 @@ private static final long serialVersionUID = 0L;
     public Builder setLlmDurationMs(int value) {
 
       llmDurationMs_ = value;
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -1967,7 +1614,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearLlmDurationMs() {
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00000800);
       llmDurationMs_ = 0;
       onChanged();
       return this;
@@ -1990,7 +1637,7 @@ private static final long serialVersionUID = 0L;
     public Builder setToolDurationMs(int value) {
 
       toolDurationMs_ = value;
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -1999,7 +1646,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearToolDurationMs() {
-      bitField0_ = (bitField0_ & ~0x00002000);
+      bitField0_ = (bitField0_ & ~0x00001000);
       toolDurationMs_ = 0;
       onChanged();
       return this;
@@ -2022,7 +1669,7 @@ private static final long serialVersionUID = 0L;
     public Builder setApprovalWaitDurationMs(int value) {
 
       approvalWaitDurationMs_ = value;
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -2031,7 +1678,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearApprovalWaitDurationMs() {
-      bitField0_ = (bitField0_ & ~0x00004000);
+      bitField0_ = (bitField0_ & ~0x00002000);
       approvalWaitDurationMs_ = 0;
       onChanged();
       return this;
@@ -2080,7 +1727,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       primaryProvider_ = value;
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }
@@ -2090,7 +1737,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearPrimaryProvider() {
       primaryProvider_ = getDefaultInstance().getPrimaryProvider();
-      bitField0_ = (bitField0_ & ~0x00008000);
+      bitField0_ = (bitField0_ & ~0x00004000);
       onChanged();
       return this;
     }
@@ -2104,7 +1751,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       primaryProvider_ = value;
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }

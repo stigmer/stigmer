@@ -50,7 +50,6 @@ from stigmer_runner.worker.activities.graphton.handlers.sub_agent import (  # no
     _generate_sub_agent_subject,
 )
 from stigmer_runner.worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
-from stigmer_runner.worker.activities.graphton.usage_tracker import UsageTracker
 
 # ---------------------------------------------------------------------------
 # Backward-compatible re-exports (tests and internal callers import from here)
@@ -86,7 +85,6 @@ class StatusBuilder:
         self.state = ExecutionState(proto=initial_status)
         self._approval_config = approval_config
         self._tool_call_id_capture = tool_call_id_capture or ToolCallIdCapture()
-        self._usage_tracker = UsageTracker(execution_id)
         self.force_next_update: bool = False
         self._display_env_vars: dict[str, str] | None = None
         self._secret_keys: set[str] | None = None
@@ -188,6 +186,7 @@ class StatusBuilder:
                     f"run_id={event.get('run_id', '')}"
                 )
 
+
     # ── Handler Delegations ───────────────────────────────────────────────
 
     async def _handle_tool_start_event(self, event: dict[str, Any], namespace: str = "") -> None:
@@ -204,6 +203,8 @@ class StatusBuilder:
 
     def _handle_chat_model_end_event(self, event: dict[str, Any], namespace: str = "") -> None:
         chat_model_handlers.handle_chat_model_end(self, event, namespace)
+
+    # ── Billing Usage Reporting ───────────────────────────────────────────
 
     # ── Streaming Buffer Delegations ──────────────────────────────────────
 

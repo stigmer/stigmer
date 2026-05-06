@@ -473,8 +473,8 @@ func (x *CreditPack) GetActive() bool {
 // ExecutionReservation tracks credits held for an active agent execution.
 //
 // Created at execution start (AuthorizeExecution), consumed incrementally
-// by per-LLM-call debits (ReportLlmCallUsage), and settled at execution
-// end (FinalizeExecution) to release any unused hold.
+// by per-LLM-call debits (via proxy-observed usage metering), and settled
+// at execution end (FinalizeExecution) to release any unused hold.
 type ExecutionReservation struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unique identifier for this reservation.

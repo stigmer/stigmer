@@ -95,30 +95,6 @@ public interface UsageMetricsOrBuilder extends
   long getToolResultCharsTruncated();
 
   /**
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-   */
-  java.util.List<ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics> 
-      getLlmCallsList();
-  /**
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-   */
-  ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics getLlmCalls(int index);
-  /**
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-   */
-  int getLlmCallsCount();
-  /**
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder> 
-      getLlmCallsOrBuilderList();
-  /**
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_calls = 11 [json_name = "llmCalls"];</code>
-   */
-  ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder getLlmCallsOrBuilder(
-      int index);
-
-  /**
    * <code>int32 total_duration_ms = 12 [json_name = "totalDurationMs"];</code>
    * @return The totalDurationMs.
    */

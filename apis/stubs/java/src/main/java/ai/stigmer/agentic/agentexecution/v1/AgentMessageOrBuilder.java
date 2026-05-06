@@ -151,40 +151,4 @@ public interface AgentMessageOrBuilder extends
    * @return The isStreaming.
    */
   boolean getIsStreaming();
-
-  /**
-   * <pre>
-   * LLM call metrics for this message.
-   * Only populated for type == MESSAGE_AI.
-   * Captures the full cost record of the single LLM call that produced this message:
-   * token breakdown, estimated cost, model, provider, and duration.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
-   * @return Whether the llmMetrics field is set.
-   */
-  boolean hasLlmMetrics();
-  /**
-   * <pre>
-   * LLM call metrics for this message.
-   * Only populated for type == MESSAGE_AI.
-   * Captures the full cost record of the single LLM call that produced this message:
-   * token breakdown, estimated cost, model, provider, and duration.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
-   * @return The llmMetrics.
-   */
-  ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics getLlmMetrics();
-  /**
-   * <pre>
-   * LLM call metrics for this message.
-   * Only populated for type == MESSAGE_AI.
-   * Captures the full cost record of the single LLM call that produced this message:
-   * token breakdown, estimated cost, model, provider, and duration.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
-   */
-  ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder getLlmMetricsOrBuilder();
 }

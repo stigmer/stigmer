@@ -36,10 +36,10 @@ class BillingCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionResponse.FromString,
                 _registered_method=True)
-        self.reportLlmCallUsage = channel.unary_unary(
-                '/ai.stigmer.billing.v1.BillingCommandController/reportLlmCallUsage',
-                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ReportLlmCallUsageInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ReportLlmCallUsageResponse.FromString,
+        self.recordLlmCallUsage = channel.unary_unary(
+                '/ai.stigmer.billing.v1.BillingCommandController/recordLlmCallUsage',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RecordLlmCallUsageInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RecordLlmCallUsageResponse.FromString,
                 _registered_method=True)
         self.finalizeExecution = channel.unary_unary(
                 '/ai.stigmer.billing.v1.BillingCommandController/finalizeExecution',
@@ -103,13 +103,14 @@ class BillingCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def reportLlmCallUsage(self, request, context):
-        """Report a single LLM call's usage for billing.
-        Applies the billing policy, debits credits, and returns a signal.
+    def recordLlmCallUsage(self, request, context):
+        """Record a single LLM call's usage for billing.
+        Computes cost server-side from the model registry, inserts an immutable
+        LlmCallUsageRecord, and debits credits from the execution's reservation.
 
         @internal
-        Called by the agent runner after each LLM call completes.
-        Deduplicated by (execution_id, sequence).
+        Called by the proxy after each LLM SSE stream completes.
+        Deduplicated by (execution_id, sequence, metering_source).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -177,10 +178,10 @@ def add_BillingCommandControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.AuthorizeExecutionResponse.SerializeToString,
             ),
-            'reportLlmCallUsage': grpc.unary_unary_rpc_method_handler(
-                    servicer.reportLlmCallUsage,
-                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ReportLlmCallUsageInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ReportLlmCallUsageResponse.SerializeToString,
+            'recordLlmCallUsage': grpc.unary_unary_rpc_method_handler(
+                    servicer.recordLlmCallUsage,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RecordLlmCallUsageInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RecordLlmCallUsageResponse.SerializeToString,
             ),
             'finalizeExecution': grpc.unary_unary_rpc_method_handler(
                     servicer.finalizeExecution,
@@ -300,7 +301,7 @@ class BillingCommandController(object):
             _registered_method=True)
 
     @staticmethod
-    def reportLlmCallUsage(request,
+    def recordLlmCallUsage(request,
             target,
             options=(),
             channel_credentials=None,
@@ -313,9 +314,9 @@ class BillingCommandController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.billing.v1.BillingCommandController/reportLlmCallUsage',
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ReportLlmCallUsageInput.SerializeToString,
-            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ReportLlmCallUsageResponse.FromString,
+            '/ai.stigmer.billing.v1.BillingCommandController/recordLlmCallUsage',
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RecordLlmCallUsageInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RecordLlmCallUsageResponse.FromString,
             options,
             channel_credentials,
             insecure,

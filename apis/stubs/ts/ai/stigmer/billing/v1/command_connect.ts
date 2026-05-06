@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, ReportLlmCallUsageInput, ReportLlmCallUsageResponse, SetAutoRechargeConfigInput } from "./io_pbjs";
+import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, SetAutoRechargeConfigInput } from "./io_pbjs";
 import { BillingAccount } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { CreditLedgerEntry } from "./credit_pbjs";
@@ -65,19 +65,20 @@ export const BillingCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Report a single LLM call's usage for billing.
-     * Applies the billing policy, debits credits, and returns a signal.
+     * Record a single LLM call's usage for billing.
+     * Computes cost server-side from the model registry, inserts an immutable
+     * LlmCallUsageRecord, and debits credits from the execution's reservation.
      *
      * @internal
-     * Called by the agent runner after each LLM call completes.
-     * Deduplicated by (execution_id, sequence).
+     * Called by the proxy after each LLM SSE stream completes.
+     * Deduplicated by (execution_id, sequence, metering_source).
      *
-     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.reportLlmCallUsage
+     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.recordLlmCallUsage
      */
-    reportLlmCallUsage: {
-      name: "reportLlmCallUsage",
-      I: ReportLlmCallUsageInput,
-      O: ReportLlmCallUsageResponse,
+    recordLlmCallUsage: {
+      name: "recordLlmCallUsage",
+      I: RecordLlmCallUsageInput,
+      O: RecordLlmCallUsageResponse,
       kind: MethodKind.Unary,
     },
     /**

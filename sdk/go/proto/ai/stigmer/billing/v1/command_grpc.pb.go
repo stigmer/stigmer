@@ -22,7 +22,7 @@ const (
 	BillingCommandController_GetOrCreateBillingAccount_FullMethodName   = "/ai.stigmer.billing.v1.BillingCommandController/getOrCreateBillingAccount"
 	BillingCommandController_AdjustCredits_FullMethodName               = "/ai.stigmer.billing.v1.BillingCommandController/adjustCredits"
 	BillingCommandController_AuthorizeExecution_FullMethodName          = "/ai.stigmer.billing.v1.BillingCommandController/authorizeExecution"
-	BillingCommandController_ReportLlmCallUsage_FullMethodName          = "/ai.stigmer.billing.v1.BillingCommandController/reportLlmCallUsage"
+	BillingCommandController_RecordLlmCallUsage_FullMethodName          = "/ai.stigmer.billing.v1.BillingCommandController/recordLlmCallUsage"
 	BillingCommandController_FinalizeExecution_FullMethodName           = "/ai.stigmer.billing.v1.BillingCommandController/finalizeExecution"
 	BillingCommandController_CreateCreditCheckoutSession_FullMethodName = "/ai.stigmer.billing.v1.BillingCommandController/createCreditCheckoutSession"
 	BillingCommandController_CreateBillingPortalSession_FullMethodName  = "/ai.stigmer.billing.v1.BillingCommandController/createBillingPortalSession"
@@ -55,13 +55,14 @@ type BillingCommandControllerClient interface {
 	// Called by the Temporal workflow before dispatching to the agent runner.
 	// The runner must not start if authorized is false.
 	AuthorizeExecution(ctx context.Context, in *AuthorizeExecutionInput, opts ...grpc.CallOption) (*AuthorizeExecutionResponse, error)
-	// Report a single LLM call's usage for billing.
-	// Applies the billing policy, debits credits, and returns a signal.
+	// Record a single LLM call's usage for billing.
+	// Computes cost server-side from the model registry, inserts an immutable
+	// LlmCallUsageRecord, and debits credits from the execution's reservation.
 	//
 	// @internal
-	// Called by the agent runner after each LLM call completes.
-	// Deduplicated by (execution_id, sequence).
-	ReportLlmCallUsage(ctx context.Context, in *ReportLlmCallUsageInput, opts ...grpc.CallOption) (*ReportLlmCallUsageResponse, error)
+	// Called by the proxy after each LLM SSE stream completes.
+	// Deduplicated by (execution_id, sequence, metering_source).
+	RecordLlmCallUsage(ctx context.Context, in *RecordLlmCallUsageInput, opts ...grpc.CallOption) (*RecordLlmCallUsageResponse, error)
 	// Settle billing for a completed execution.
 	// Releases unused reservation credits and produces the final billing record.
 	//
@@ -126,10 +127,10 @@ func (c *billingCommandControllerClient) AuthorizeExecution(ctx context.Context,
 	return out, nil
 }
 
-func (c *billingCommandControllerClient) ReportLlmCallUsage(ctx context.Context, in *ReportLlmCallUsageInput, opts ...grpc.CallOption) (*ReportLlmCallUsageResponse, error) {
+func (c *billingCommandControllerClient) RecordLlmCallUsage(ctx context.Context, in *RecordLlmCallUsageInput, opts ...grpc.CallOption) (*RecordLlmCallUsageResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ReportLlmCallUsageResponse)
-	err := c.cc.Invoke(ctx, BillingCommandController_ReportLlmCallUsage_FullMethodName, in, out, cOpts...)
+	out := new(RecordLlmCallUsageResponse)
+	err := c.cc.Invoke(ctx, BillingCommandController_RecordLlmCallUsage_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -202,13 +203,14 @@ type BillingCommandControllerServer interface {
 	// Called by the Temporal workflow before dispatching to the agent runner.
 	// The runner must not start if authorized is false.
 	AuthorizeExecution(context.Context, *AuthorizeExecutionInput) (*AuthorizeExecutionResponse, error)
-	// Report a single LLM call's usage for billing.
-	// Applies the billing policy, debits credits, and returns a signal.
+	// Record a single LLM call's usage for billing.
+	// Computes cost server-side from the model registry, inserts an immutable
+	// LlmCallUsageRecord, and debits credits from the execution's reservation.
 	//
 	// @internal
-	// Called by the agent runner after each LLM call completes.
-	// Deduplicated by (execution_id, sequence).
-	ReportLlmCallUsage(context.Context, *ReportLlmCallUsageInput) (*ReportLlmCallUsageResponse, error)
+	// Called by the proxy after each LLM SSE stream completes.
+	// Deduplicated by (execution_id, sequence, metering_source).
+	RecordLlmCallUsage(context.Context, *RecordLlmCallUsageInput) (*RecordLlmCallUsageResponse, error)
 	// Settle billing for a completed execution.
 	// Releases unused reservation credits and produces the final billing record.
 	//
@@ -251,8 +253,8 @@ func (UnimplementedBillingCommandControllerServer) AdjustCredits(context.Context
 func (UnimplementedBillingCommandControllerServer) AuthorizeExecution(context.Context, *AuthorizeExecutionInput) (*AuthorizeExecutionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AuthorizeExecution not implemented")
 }
-func (UnimplementedBillingCommandControllerServer) ReportLlmCallUsage(context.Context, *ReportLlmCallUsageInput) (*ReportLlmCallUsageResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ReportLlmCallUsage not implemented")
+func (UnimplementedBillingCommandControllerServer) RecordLlmCallUsage(context.Context, *RecordLlmCallUsageInput) (*RecordLlmCallUsageResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RecordLlmCallUsage not implemented")
 }
 func (UnimplementedBillingCommandControllerServer) FinalizeExecution(context.Context, *FinalizeExecutionInput) (*FinalizeExecutionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FinalizeExecution not implemented")
@@ -340,20 +342,20 @@ func _BillingCommandController_AuthorizeExecution_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BillingCommandController_ReportLlmCallUsage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReportLlmCallUsageInput)
+func _BillingCommandController_RecordLlmCallUsage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RecordLlmCallUsageInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(BillingCommandControllerServer).ReportLlmCallUsage(ctx, in)
+		return srv.(BillingCommandControllerServer).RecordLlmCallUsage(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: BillingCommandController_ReportLlmCallUsage_FullMethodName,
+		FullMethod: BillingCommandController_RecordLlmCallUsage_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingCommandControllerServer).ReportLlmCallUsage(ctx, req.(*ReportLlmCallUsageInput))
+		return srv.(BillingCommandControllerServer).RecordLlmCallUsage(ctx, req.(*RecordLlmCallUsageInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -450,8 +452,8 @@ var BillingCommandController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _BillingCommandController_AuthorizeExecution_Handler,
 		},
 		{
-			MethodName: "reportLlmCallUsage",
-			Handler:    _BillingCommandController_ReportLlmCallUsage_Handler,
+			MethodName: "recordLlmCallUsage",
+			Handler:    _BillingCommandController_RecordLlmCallUsage_Handler,
 		},
 		{
 			MethodName: "finalizeExecution",

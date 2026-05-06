@@ -101,8 +101,23 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-04 13:29
-**Current Task**: T07 (Pass mcp_server_id through classify workflow) — COMPLETED
-**Status**: T01–T07 all implemented and committed. T08 (deprecate runner-side billing) is next.
+**Current Task**: T08 (Full billing cleanup + bounded context separation) — COMPLETED
+**Status**: All tasks complete. Sub-project is DONE.
+
+### What Was Done in T08 (2026-05-06)
+- Removed runner-side billing calls (`BillingReporter`, `BillingClient`)
+- Removed `reportLlmCallUsage` RPC + handler (untrusted runner entry point)
+- Flipped `require-scope-header` to `true` (hard enforcement)
+- Removed all OSS usage tracking code (`UsageTracker`, `llm_metrics`, `LlmCallMetrics`)
+- Removed `usage_summary` denormalization from execution document
+- Removed `ExecutionUsageAggregate`, `ModelUsageBreakdown`, `ExecutionObservabilityMetrics` proto types
+- Created `recordLlmCallUsage` RPC on `BillingCommandController` (billing owns everything)
+- Proxy calls billing directly via `downstream/billing/BillingUsageGrpcRepo`
+- `UsageAggregationService` reads from `LlmCallUsageRecord` collection only
+
+### Follow-ups (tracked in parent project)
+- Rewire `UsageWidget` to query usage endpoint (real-time cost display)
+- Wire CLI usage display to usage report RPC
 
 ## Session Progress (2026-05-04)
 
