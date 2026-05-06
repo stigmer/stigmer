@@ -10,13 +10,18 @@ import {
   CreateCreditCheckoutSessionInputSchema,
   CreateBillingPortalSessionInputSchema,
   SetAutoRechargeConfigInputSchema,
+  GetBillingUsageReportInputSchema,
+  GetCustomerModelPricingInputSchema,
   type CreateCreditCheckoutSessionResponse,
   type CreateBillingPortalSessionResponse,
   type CreditLedgerResponse,
+  type BillingUsageReportResponse,
+  type CustomerModelPricingResponse,
 } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
 import type { BillingAccount, CreditBalance } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
 import type { LedgerEntryType } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { wrapError } from "./gen/errors";
 
 /** Parameters for creating a Stripe Checkout Session. */
@@ -48,6 +53,18 @@ export interface GetCreditLedgerParams {
   /** Pagination: `{ num, size }` where `num` is 1-based page number. */
   readonly page?: { readonly num: number; readonly size: number };
   readonly typeFilter?: LedgerEntryType[];
+}
+
+/** Parameters for querying the billing usage report. */
+export interface GetBillingUsageReportParams {
+  readonly orgId: string;
+  readonly startTime: Date;
+  readonly endTime: Date;
+}
+
+/** Parameters for querying customer model pricing. */
+export interface GetCustomerModelPricingParams {
+  readonly orgId?: string;
 }
 
 /**
@@ -191,6 +208,54 @@ export class BillingClient {
           thresholdMicros: params.thresholdMicros,
           rechargeAmountMicros: params.rechargeAmountMicros,
           monthlyCapMicros: params.monthlyCapMicros,
+        }),
+      );
+    } catch (e) {
+      throw wrapError(e);
+    }
+  }
+
+  /**
+   * Retrieve an aggregated billing usage report for a date range.
+   *
+   * Returns total provider cost, total billable amount, execution
+   * and LLM call counts, and a per-model breakdown with cost tier
+   * attribution. Data is sourced from the `llm_call_usage_record`
+   * collection (proxy-observed, tamper-proof).
+   */
+  async getBillingUsageReport(
+    params: GetBillingUsageReportParams,
+  ): Promise<BillingUsageReportResponse> {
+    try {
+      return await this.query.getBillingUsageReport(
+        create(GetBillingUsageReportInputSchema, {
+          orgId: params.orgId,
+          startTime: timestampFromDate(params.startTime),
+          endTime: timestampFromDate(params.endTime),
+        }),
+      );
+    } catch (e) {
+      throw wrapError(e);
+    }
+  }
+
+  /**
+   * Retrieve the customer-facing model price list with markup applied.
+   *
+   * Returns per-million-token prices for all billable models, with
+   * the active billing policy markup already factored in. These are
+   * the prices the customer pays, organized by harness and cost tier.
+   *
+   * Pass `orgId` to resolve org-specific policy overrides (future).
+   * Omit for default pricing.
+   */
+  async getCustomerModelPricing(
+    params?: GetCustomerModelPricingParams,
+  ): Promise<CustomerModelPricingResponse> {
+    try {
+      return await this.query.getCustomerModelPricing(
+        create(GetCustomerModelPricingInputSchema, {
+          orgId: params?.orgId ?? "",
         }),
       );
     } catch (e) {

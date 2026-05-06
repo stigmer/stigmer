@@ -68,8 +68,32 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03 09:55
-**Current Task**: T01 — Phase 5 Partial (Dashboard Enrichment done, Alerts + Calculator deferred)
-**Status**: Phase 5.1+5.2+5.5 Complete. Phase 5.3 (Alerts) and 5.4 (Cost Calculator) remain.
+**Current Task**: T01 — All billing RPCs implemented. Phase 5.3 (Alerts) on hold pending email infra.
+**Status**: All 14 billing RPCs handler-wired. Phase 5.3 (Alerts) on hold. Phase 5.4 (Cost Calculator) deferred to Phase 6.4.
+
+### Deferred Billing RPCs Completed (2026-05-06)
+- `getCustomerModelPricing` handler: `GetCustomerModelPricingHandler` with `BuildPricingStep` — iterates all models from `ModelPricingService.getAllModels()`, resolves billing policy per (harness, costTier), applies markup to 4 per-million-token rates via `BillingMicros.applyMarkup()`
+- `getBillingUsageReport` handler: already existed (`GetBillingUsageReportHandler`), added 6 unit tests covering aggregation, distinct execution counting, empty ranges, and error handling
+- Added `displayName` field to `ModelPricing` record in `ModelPricingService` (populated from `model-registry.json`)
+- Added `getAllModels()` method to `ModelPricingService` for public iteration
+- 7 unit tests for `GetCustomerModelPricingHandler` (markup math, missing policy skip, empty registry, sorting, null safety, identity markup)
+- TypeScript SDK: `getBillingUsageReport()` and `getCustomerModelPricing()` on `BillingClient` + `GetBillingUsageReportParams` / `GetCustomerModelPricingParams` types
+- React SDK: `useBillingUsageReport(orgId, startTime, endTime)` and `useCustomerModelPricing(orgId?)` data hooks + barrel exports
+- 2 new Bazel test targets registered, all tests pass
+- TypeScript clean: `@stigmer/sdk`, `@stigmer/react`, `client-apps/web`
+- **All 14 billing RPCs are now handler-wired** (12 command + query RPCs from Phases 1-4, plus getBillingUsageReport and getCustomerModelPricing)
+
+### Proxy-Side Billing Metering Sub-Project — COMPLETE
+- Sub-project `20260504.01.sp.proxy-side-billing-metering` is fully complete (T01–T08)
+- All proxy metering, billing signal wiring, dual-header auth, and runner billing removal are done
+- See sub-project next-task.md for full session history
+
+### Stripe Dashboard Webhook Ops — COMPLETE
+- All 8 webhook event types registered in Stripe Dashboard:
+  - Checkout: `checkout.session.async_payment_failed`, `checkout.session.async_payment_succeeded`, `checkout.session.completed`, `checkout.session.expired`
+  - Customer: `customer.updated`
+  - Payment Intent: `payment_intent.payment_failed`, `payment_intent.succeeded`
+  - Payment Method: `payment_method.attached`
 
 ### Phase 5.1+5.2+5.5 Completed (2026-05-06)
 - Added `HarnessCostSummary` proto + `harness_breakdown` field to `GetOrgUsageReportOutput`
@@ -451,7 +475,7 @@ When starting a new session:
 - ExecutionReservationRepo supports `atomicIncrementConsumed()` for per-call reservation tracking and `updateStatus()` for lifecycle transitions
 - Balance model: reserve moves available→reserved, per-call debit reduces reserved+total (or available+total for fallback), finalize releases reserved→available
 - 8 gRPC RPCs are now handler-wired: getOrCreateBillingAccount, adjustCredits, getBillingAccount, getCreditBalance, getCreditLedger, authorizeExecution, reportLlmCallUsage, **finalizeExecution**
-- 2 RPCs deferred: getBillingUsageReport, getCustomerModelPricing (Phase 5)
+- ~~2 RPCs deferred: getBillingUsageReport, getCustomerModelPricing (Phase 5)~~ ✅ Both implemented (2026-05-06)
 - `BillingExecutionConfig` provides Spring-configurable reservation defaults ($1.00 reserve, $0.05 minimum, 4h expiry)
 - HITL reservation expiry is handled: expired reservations fall back to available balance debit
 - Zero-cost calls (cached responses) are handled: no debit, no ledger entry, immediate CONTINUE
@@ -734,14 +758,16 @@ When starting a new session:
 
 1. ~~Balance & Spend Dashboard (5.1) — runway, enhanced summary cards~~ ✅
 2. ~~Usage Breakdown (5.2) — per-agent, harness split~~ ✅
-3. Alerts & Notifications (5.3) — low balance emails, budget warnings (requires email infrastructure)
+3. Alerts & Notifications (5.3) — ON HOLD (requires email infrastructure)
 4. Cost Calculator (5.4) — interactive estimator for pricing page (deferred to Phase 6.4)
 5. ~~CSV Export (5.5) — daily + model breakdown downloads~~ ✅
+6. ~~Deferred RPCs — getBillingUsageReport + getCustomerModelPricing~~ ✅
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 5.3" - Begin alerts & notifications infrastructure
+- "Start Phase 5.3" - Begin alerts & notifications infrastructure (requires email infra decision)
+- "Start Phase 6" - Scope enterprise invoicing
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
