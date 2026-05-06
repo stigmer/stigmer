@@ -1284,6 +1284,20 @@
           },
           "description": "Daily cost trend within the time range, ordered chronologically.",
           "required": false
+        },
+        {
+          "name": "HarnessBreakdown",
+          "jsonName": "harnessBreakdown",
+          "protoField": "harness_breakdown",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "HarnessCostSummary"
+            }
+          },
+          "description": "Cost split by execution harness (e.g., \"native\" vs \"cursor\").",
+          "required": false
         }
       ]
     }

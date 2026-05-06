@@ -914,6 +914,9 @@ message GetOrgUsageReportOutput {
 
   // Daily cost trend within the time range, ordered chronologically.
   repeated DailyCostEntry daily_costs = 8;
+
+  // Cost split by execution harness (e.g., "native" vs "cursor").
+  repeated HarnessCostSummary harness_breakdown = 9;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1008,4 +1011,23 @@ message DailyCostEntry {
 
   // Total billable cost in micro-USD on this date.
   int64 billable_cost_micros = 4;
+}
+
+// Cost split by execution harness within an org report.
+//
+// Each entry represents one harness (e.g., "native" or "cursor") and
+// aggregates cost, call count, and execution count for that harness
+// within the report's time range.
+message HarnessCostSummary {
+  // Harness identifier (e.g., "native", "cursor").
+  string harness = 1;
+
+  // Total billable cost in micro-USD for this harness.
+  int64 billable_cost_micros = 2;
+
+  // Number of LLM API calls through this harness.
+  int32 call_count = 3;
+
+  // Number of distinct executions that used this harness.
+  int32 execution_count = 4;
 }

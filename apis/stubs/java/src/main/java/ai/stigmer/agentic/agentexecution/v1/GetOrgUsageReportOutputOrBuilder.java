@@ -201,4 +201,48 @@ public interface GetOrgUsageReportOutputOrBuilder extends
    */
   ai.stigmer.agentic.agentexecution.v1.DailyCostEntryOrBuilder getDailyCostsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary> 
+      getHarnessBreakdownList();
+  /**
+   * <pre>
+   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary getHarnessBreakdown(int index);
+  /**
+   * <pre>
+   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   */
+  int getHarnessBreakdownCount();
+  /**
+   * <pre>
+   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.HarnessCostSummaryOrBuilder> 
+      getHarnessBreakdownOrBuilderList();
+  /**
+   * <pre>
+   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.HarnessCostSummaryOrBuilder getHarnessBreakdownOrBuilder(
+      int index);
 }
