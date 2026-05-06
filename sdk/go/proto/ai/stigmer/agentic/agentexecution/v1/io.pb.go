@@ -2250,9 +2250,11 @@ type GetOrgUsageReportOutput struct {
 	// Top agents by cost (top 10), ordered by billable_cost_micros descending.
 	TopAgentsByCost []*AgentUsageSummary `protobuf:"bytes,7,rep,name=top_agents_by_cost,json=topAgentsByCost,proto3" json:"top_agents_by_cost,omitempty"`
 	// Daily cost trend within the time range, ordered chronologically.
-	DailyCosts    []*DailyCostEntry `protobuf:"bytes,8,rep,name=daily_costs,json=dailyCosts,proto3" json:"daily_costs,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	DailyCosts []*DailyCostEntry `protobuf:"bytes,8,rep,name=daily_costs,json=dailyCosts,proto3" json:"daily_costs,omitempty"`
+	// Cost split by execution harness (e.g., "native" vs "cursor").
+	HarnessBreakdown []*HarnessCostSummary `protobuf:"bytes,9,rep,name=harness_breakdown,json=harnessBreakdown,proto3" json:"harness_breakdown,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *GetOrgUsageReportOutput) Reset() {
@@ -2337,6 +2339,13 @@ func (x *GetOrgUsageReportOutput) GetTopAgentsByCost() []*AgentUsageSummary {
 func (x *GetOrgUsageReportOutput) GetDailyCosts() []*DailyCostEntry {
 	if x != nil {
 		return x.DailyCosts
+	}
+	return nil
+}
+
+func (x *GetOrgUsageReportOutput) GetHarnessBreakdown() []*HarnessCostSummary {
+	if x != nil {
+		return x.HarnessBreakdown
 	}
 	return nil
 }
@@ -2714,6 +2723,83 @@ func (x *DailyCostEntry) GetBillableCostMicros() int64 {
 	return 0
 }
 
+// Cost split by execution harness within an org report.
+//
+// Each entry represents one harness (e.g., "native" or "cursor") and
+// aggregates cost, call count, and execution count for that harness
+// within the report's time range.
+type HarnessCostSummary struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Harness identifier (e.g., "native", "cursor").
+	Harness string `protobuf:"bytes,1,opt,name=harness,proto3" json:"harness,omitempty"`
+	// Total billable cost in micro-USD for this harness.
+	BillableCostMicros int64 `protobuf:"varint,2,opt,name=billable_cost_micros,json=billableCostMicros,proto3" json:"billable_cost_micros,omitempty"`
+	// Number of LLM API calls through this harness.
+	CallCount int32 `protobuf:"varint,3,opt,name=call_count,json=callCount,proto3" json:"call_count,omitempty"`
+	// Number of distinct executions that used this harness.
+	ExecutionCount int32 `protobuf:"varint,4,opt,name=execution_count,json=executionCount,proto3" json:"execution_count,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *HarnessCostSummary) Reset() {
+	*x = HarnessCostSummary{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HarnessCostSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HarnessCostSummary) ProtoMessage() {}
+
+func (x *HarnessCostSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HarnessCostSummary.ProtoReflect.Descriptor instead.
+func (*HarnessCostSummary) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *HarnessCostSummary) GetHarness() string {
+	if x != nil {
+		return x.Harness
+	}
+	return ""
+}
+
+func (x *HarnessCostSummary) GetBillableCostMicros() int64 {
+	if x != nil {
+		return x.BillableCostMicros
+	}
+	return 0
+}
+
+func (x *HarnessCostSummary) GetCallCount() int32 {
+	if x != nil {
+		return x.CallCount
+	}
+	return 0
+}
+
+func (x *HarnessCostSummary) GetExecutionCount() int32 {
+	if x != nil {
+		return x.ExecutionCount
+	}
+	return 0
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
@@ -2836,7 +2922,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\x16GetOrgUsageReportInput\x12\x1e\n" +
 	"\x06org_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05orgId\x12$\n" +
 	"\tfrom_date\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bfromDate\x12 \n" +
-	"\ato_date\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06toDate\"\xfa\x03\n" +
+	"\ato_date\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06toDate\"\xe1\x04\n" +
 	"\x17GetOrgUsageReportOutput\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12!\n" +
 	"\ftotal_agents\x18\x02 \x01(\x05R\vtotalAgents\x12%\n" +
@@ -2846,7 +2932,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\x0fmodel_breakdown\x18\x06 \x03(\v20.ai.stigmer.agentic.agentexecution.v1.ModelUsageR\x0emodelBreakdown\x12d\n" +
 	"\x12top_agents_by_cost\x18\a \x03(\v27.ai.stigmer.agentic.agentexecution.v1.AgentUsageSummaryR\x0ftopAgentsByCost\x12U\n" +
 	"\vdaily_costs\x18\b \x03(\v24.ai.stigmer.agentic.agentexecution.v1.DailyCostEntryR\n" +
-	"dailyCosts\"\xc6\x03\n" +
+	"dailyCosts\x12e\n" +
+	"\x11harness_breakdown\x18\t \x03(\v28.ai.stigmer.agentic.agentexecution.v1.HarnessCostSummaryR\x10harnessBreakdown\"\xc6\x03\n" +
 	"\x15ExecutionUsageSummary\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12\x1d\n" +
 	"\n" +
@@ -2879,7 +2966,13 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\x04date\x18\x01 \x01(\tR\x04date\x12'\n" +
 	"\x0fexecution_count\x18\x02 \x01(\x05R\x0eexecutionCount\x12!\n" +
 	"\ftotal_tokens\x18\x03 \x01(\x03R\vtotalTokens\x120\n" +
-	"\x14billable_cost_micros\x18\x04 \x01(\x03R\x12billableCostMicrosB\xc7\x02\n" +
+	"\x14billable_cost_micros\x18\x04 \x01(\x03R\x12billableCostMicros\"\xa8\x01\n" +
+	"\x12HarnessCostSummary\x12\x18\n" +
+	"\aharness\x18\x01 \x01(\tR\aharness\x120\n" +
+	"\x14billable_cost_micros\x18\x02 \x01(\x03R\x12billableCostMicros\x12\x1d\n" +
+	"\n" +
+	"call_count\x18\x03 \x01(\x05R\tcallCount\x12'\n" +
+	"\x0fexecution_count\x18\x04 \x01(\x05R\x0eexecutionCountB\xc7\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\aIoProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -2894,7 +2987,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
+var file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_ai_stigmer_agentic_agentexecution_v1_io_proto_goTypes = []any{
 	(*AgentExecutionId)(nil),                    // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionId
 	(*SessionId)(nil),                           // 1: ai.stigmer.agentic.agentexecution.v1.SessionId
@@ -2928,38 +3021,40 @@ var file_ai_stigmer_agentic_agentexecution_v1_io_proto_goTypes = []any{
 	(*SessionUsageSummary)(nil),                 // 29: ai.stigmer.agentic.agentexecution.v1.SessionUsageSummary
 	(*AgentUsageSummary)(nil),                   // 30: ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary
 	(*DailyCostEntry)(nil),                      // 31: ai.stigmer.agentic.agentexecution.v1.DailyCostEntry
-	(*AgentExecution)(nil),                      // 32: ai.stigmer.agentic.agentexecution.v1.AgentExecution
-	(ExecutionPhase)(0),                         // 33: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	(*AgentExecutionStatus)(nil),                // 34: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
-	(ExecutionControlSignal)(0),                 // 35: ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
-	(ApprovalAction)(0),                         // 36: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(*UsageReportAggregate)(nil),                // 37: ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
-	(*ModelUsage)(nil),                          // 38: ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	(*HarnessCostSummary)(nil),                  // 32: ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary
+	(*AgentExecution)(nil),                      // 33: ai.stigmer.agentic.agentexecution.v1.AgentExecution
+	(ExecutionPhase)(0),                         // 34: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	(*AgentExecutionStatus)(nil),                // 35: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
+	(ExecutionControlSignal)(0),                 // 36: ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
+	(ApprovalAction)(0),                         // 37: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(*UsageReportAggregate)(nil),                // 38: ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
+	(*ModelUsage)(nil),                          // 39: ai.stigmer.agentic.agentexecution.v1.ModelUsage
 }
 var file_ai_stigmer_agentic_agentexecution_v1_io_proto_depIdxs = []int32{
-	32, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionList.entries:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
-	33, // 1: ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	34, // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
-	35, // 3: ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse.signal:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
-	36, // 4: ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	33, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionList.entries:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
+	34, // 1: ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	35, // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
+	36, // 3: ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse.signal:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
+	37, // 4: ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
 	7,  // 5: ai.stigmer.agentic.agentexecution.v1.ApprovalDecisionList.decisions:type_name -> ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput
-	37, // 6: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput.aggregate:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
-	38, // 7: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
-	37, // 8: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
+	38, // 6: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput.aggregate:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
+	39, // 7: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	38, // 8: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
 	28, // 9: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.executions:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary
-	38, // 10: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
-	37, // 11: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
-	38, // 12: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	39, // 10: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	38, // 11: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
+	39, // 12: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
 	29, // 13: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.sessions:type_name -> ai.stigmer.agentic.agentexecution.v1.SessionUsageSummary
-	38, // 14: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	39, // 14: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
 	30, // 15: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.top_agents_by_cost:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary
 	31, // 16: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.daily_costs:type_name -> ai.stigmer.agentic.agentexecution.v1.DailyCostEntry
-	33, // 17: ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	18, // [18:18] is the sub-list for method output_type
-	18, // [18:18] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	32, // 17: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.harness_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary
+	34, // 18: ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	19, // [19:19] is the sub-list for method output_type
+	19, // [19:19] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_io_proto_init() }
@@ -2976,7 +3071,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   32,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

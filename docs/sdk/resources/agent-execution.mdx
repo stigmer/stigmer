@@ -1497,6 +1497,7 @@ GetOrgUsageReportOutput returns aggregated usage for an organization.
     modelBreakdown: { type: "ModelUsageInput[]", description: "Per-model breakdown across the organization." },
     topAgentsByCost: { type: "AgentUsageSummaryInput[]", description: "Top agents by cost (top 10), ordered by billable_cost_micros descending." },
     dailyCosts: { type: "DailyCostEntryInput[]", description: "Daily cost trend within the time range, ordered chronologically." },
+    harnessBreakdown: { type: "HarnessCostSummaryInput[]", description: "Cost split by execution harness (e.g., \"native\" vs \"cursor\")." },
   }}
 />
 
