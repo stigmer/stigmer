@@ -350,59 +350,81 @@ message LlmCallUsageRecord {
   // ─── Billing Handoff ────────────────────────────────────────────────────────
   BillingLink billing = 80;
 
+  // ─── Scope ──────────────────────────────────────────────────────────────────
+  // Denormalized from the execution for direct queries by org and session.
+  // Populated at write time by the billing handler.
+
+  // Organization that owns this execution.
+  string org_id = 7;
+
+  // Session this execution belongs to.
+  string session_id = 8;
+
   // ─── Labels ─────────────────────────────────────────────────────────────────
   // Custom metadata for filtering (e.g., agent_path, node_path).
   map<string, string> labels = 90;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PER-MESSAGE USAGE TYPES (Runner-reported, OSS-mode data path)
+// USAGE REPORT TYPES
 //
-// These types are used by AgentMessage.llm_metrics — runner-reported per-message
-// usage data. In cloud mode, the billing source of truth is LlmCallUsageRecord
-// in the dedicated collection (written by the proxy). In OSS mode (no proxy),
-// these are the primary source of usage data for display and reports.
+// Aggregate types used by usage report RPC responses. All token counts are
+// int64 and all cost amounts are int64 micro-USD (1 USD = 1,000,000 micros).
 //
-// UsageAggregationService reads from LlmCallUsageRecord when available, and
-// falls back to these types for OSS-mode or pre-migration executions.
+// Data is sourced from LlmCallUsageRecord in the llm_call_usage_record
+// collection. In OSS mode (no proxy), the collection is empty and reports
+// return zeroes.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Execution-level usage aggregate derived from per-message llm_metrics.
-// Used in usage report RPC responses. In cloud mode, values are sourced from
-// ExecutionUsageAggregate (proxy-written); in OSS mode, computed from llm_metrics.
-message UsageMetrics {
-  int32 prompt_tokens = 1;
-  int32 completion_tokens = 2;
-  int32 total_tokens = 3;
-  int32 llm_call_count = 4;
-  string primary_model = 5;
-  int32 cache_creation_tokens = 6;
-  int32 cache_read_tokens = 7;
-  repeated ModelUsage model_breakdown = 8;
-  double estimated_cost_usd = 9;
-  int64 tool_result_chars_truncated = 10;
-  reserved 11;
-  int32 total_duration_ms = 12;
-  int32 llm_duration_ms = 13;
-  int32 tool_duration_ms = 14;
-  int32 approval_wait_duration_ms = 15;
-  string primary_provider = 16;
+// Aggregated usage across a scope (execution, session, agent, or org).
+//
+// Used as the `total_usage` field in session and agent usage report responses.
+// All token fields are int64 to support large aggregates (org-wide, multi-day).
+// Cost fields are int64 micro-USD for precision.
+message UsageReportAggregate {
+  // Token counts.
+  int64 input_tokens = 1;
+  int64 output_tokens = 2;
+  int64 total_tokens = 3;
+  int64 cache_creation_input_tokens = 4;
+  int64 cache_read_input_tokens = 5;
+  int64 reasoning_tokens = 6;
+
+  // Number of LLM API calls in this aggregate.
+  int32 llm_call_count = 10;
+
+  // Cost in micro-USD (1 USD = 1,000,000 micros).
+  // billable = what the customer pays (with markup).
+  // provider = what Stigmer pays the LLM provider (raw).
+  int64 billable_cost_micros = 20;
+  int64 provider_cost_micros = 21;
+
+  // Primary model and provider (most-used by call count).
+  string primary_model = 30;
+  string primary_provider = 31;
 }
 
-// Per-model usage breakdown used in usage report RPC responses.
-// In cloud mode, populated from LlmCallUsageRecord queries;
-// in OSS mode, derived from AgentMessage.llm_metrics.
+// Per-model usage breakdown within a report scope.
+//
+// Groups token counts and cost by (model, provider) pair. Used in
+// model_breakdown repeated fields on report responses.
 message ModelUsage {
+  // Model identifier as resolved by the provider.
   string model = 1;
+
+  // LLM provider (e.g., "openai", "anthropic", "cursor").
   string provider = 2;
-  int32 input_tokens = 3;
-  int32 output_tokens = 4;
-  int32 cache_creation_tokens = 5;
-  int32 cache_read_tokens = 6;
+
+  // Token counts for this model.
+  int64 input_tokens = 3;
+  int64 output_tokens = 4;
+  int64 cache_creation_input_tokens = 5;
+  int64 cache_read_input_tokens = 6;
+
+  // Number of LLM API calls to this model.
   int32 call_count = 7;
-  double input_price_per_million = 8;
-  double output_price_per_million = 9;
-  double cache_creation_price_per_million = 10;
-  double cache_read_price_per_million = 11;
-  double estimated_cost_usd = 12;
+
+  // Cost in micro-USD for this model.
+  int64 billable_cost_micros = 8;
+  int64 provider_cost_micros = 9;
 }

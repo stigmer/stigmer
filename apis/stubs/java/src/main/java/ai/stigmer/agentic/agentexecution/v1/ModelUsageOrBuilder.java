@@ -11,11 +11,19 @@ public interface ModelUsageOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Model identifier as resolved by the provider.
+   * </pre>
+   *
    * <code>string model = 1 [json_name = "model"];</code>
    * @return The model.
    */
   java.lang.String getModel();
   /**
+   * <pre>
+   * Model identifier as resolved by the provider.
+   * </pre>
+   *
    * <code>string model = 1 [json_name = "model"];</code>
    * @return The bytes for model.
    */
@@ -23,11 +31,19 @@ public interface ModelUsageOrBuilder extends
       getModelBytes();
 
   /**
+   * <pre>
+   * LLM provider (e.g., "openai", "anthropic", "cursor").
+   * </pre>
+   *
    * <code>string provider = 2 [json_name = "provider"];</code>
    * @return The provider.
    */
   java.lang.String getProvider();
   /**
+   * <pre>
+   * LLM provider (e.g., "openai", "anthropic", "cursor").
+   * </pre>
+   *
    * <code>string provider = 2 [json_name = "provider"];</code>
    * @return The bytes for provider.
    */
@@ -35,62 +51,56 @@ public interface ModelUsageOrBuilder extends
       getProviderBytes();
 
   /**
-   * <code>int32 input_tokens = 3 [json_name = "inputTokens"];</code>
+   * <pre>
+   * Token counts for this model.
+   * </pre>
+   *
+   * <code>int64 input_tokens = 3 [json_name = "inputTokens"];</code>
    * @return The inputTokens.
    */
-  int getInputTokens();
+  long getInputTokens();
 
   /**
-   * <code>int32 output_tokens = 4 [json_name = "outputTokens"];</code>
+   * <code>int64 output_tokens = 4 [json_name = "outputTokens"];</code>
    * @return The outputTokens.
    */
-  int getOutputTokens();
+  long getOutputTokens();
 
   /**
-   * <code>int32 cache_creation_tokens = 5 [json_name = "cacheCreationTokens"];</code>
-   * @return The cacheCreationTokens.
+   * <code>int64 cache_creation_input_tokens = 5 [json_name = "cacheCreationInputTokens"];</code>
+   * @return The cacheCreationInputTokens.
    */
-  int getCacheCreationTokens();
+  long getCacheCreationInputTokens();
 
   /**
-   * <code>int32 cache_read_tokens = 6 [json_name = "cacheReadTokens"];</code>
-   * @return The cacheReadTokens.
+   * <code>int64 cache_read_input_tokens = 6 [json_name = "cacheReadInputTokens"];</code>
+   * @return The cacheReadInputTokens.
    */
-  int getCacheReadTokens();
+  long getCacheReadInputTokens();
 
   /**
+   * <pre>
+   * Number of LLM API calls to this model.
+   * </pre>
+   *
    * <code>int32 call_count = 7 [json_name = "callCount"];</code>
    * @return The callCount.
    */
   int getCallCount();
 
   /**
-   * <code>double input_price_per_million = 8 [json_name = "inputPricePerMillion"];</code>
-   * @return The inputPricePerMillion.
+   * <pre>
+   * Cost in micro-USD for this model.
+   * </pre>
+   *
+   * <code>int64 billable_cost_micros = 8 [json_name = "billableCostMicros"];</code>
+   * @return The billableCostMicros.
    */
-  double getInputPricePerMillion();
+  long getBillableCostMicros();
 
   /**
-   * <code>double output_price_per_million = 9 [json_name = "outputPricePerMillion"];</code>
-   * @return The outputPricePerMillion.
+   * <code>int64 provider_cost_micros = 9 [json_name = "providerCostMicros"];</code>
+   * @return The providerCostMicros.
    */
-  double getOutputPricePerMillion();
-
-  /**
-   * <code>double cache_creation_price_per_million = 10 [json_name = "cacheCreationPricePerMillion"];</code>
-   * @return The cacheCreationPricePerMillion.
-   */
-  double getCacheCreationPricePerMillion();
-
-  /**
-   * <code>double cache_read_price_per_million = 11 [json_name = "cacheReadPricePerMillion"];</code>
-   * @return The cacheReadPricePerMillion.
-   */
-  double getCacheReadPricePerMillion();
-
-  /**
-   * <code>double estimated_cost_usd = 12 [json_name = "estimatedCostUsd"];</code>
-   * @return The estimatedCostUsd.
-   */
-  double getEstimatedCostUsd();
+  long getProviderCostMicros();
 }

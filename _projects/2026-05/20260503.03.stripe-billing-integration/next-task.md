@@ -675,37 +675,19 @@ After loading context:
 
 ## Follow-Up Work Items (Post-Completion)
 
-These items should be picked up after all sub-projects under this billing integration are complete.
-They are not blocking any current tasks but represent necessary cleanup and migration work.
+### 1. ~~Migrate UsageAggregationService to LlmCallUsageRecord~~ — DONE (2026-05-06)
 
-### 1. Migrate UsageAggregationService to LlmCallUsageRecord
+Completed in the Usage Report Modernization session. `UsageAggregationService` now reads from `LlmCallUsageRecordRepo` and builds `UsageReportAggregate` / `ModelUsage` types with int64/micro-USD fields. No int32 truncation, no double cost.
 
-**Context**: `UsageAggregationService` (used by `GetOrgUsageReportHandler`, `GetSessionUsageReportHandler`, `GetAgentUsageReportHandler`) currently reads usage data from `AgentMessage.llm_metrics` — runner-reported per-message data. With proxy-side billing metering (sub-project 20260504.01), the billing-authoritative data now lives in the `llm_call_usage_record` collection.
+### 2. ~~Remove legacy usage proto types~~ — DONE (2026-05-06)
 
-**What**: Rewrite the three usage report handlers to query `LlmCallUsageRecord` from the dedicated collection instead of walking `AgentMessage.llm_metrics`. This aligns the user-facing usage reports with the billing source of truth.
+`UsageMetrics` deleted from `usage.proto`. `ModelUsage` redesigned with int64 tokens and int64 `billable_cost_micros`. All summary types (`ExecutionUsageSummary`, `SessionUsageSummary`, `AgentUsageSummary`, `DailyCostEntry`) upgraded. All consumers (CLI, React, Ink, web) migrated. Changelog: `_changelog/2026-05/2026-05-06-160616-usage-report-modernization.md`.
 
-**Files**:
-- `UsageAggregationService.java` — rewrite to query `LlmCallUsageRecordRepo`
-- `AgentExecutionGetOrgUsageReportHandler.java`
-- `AgentExecutionGetSessionUsageReportHandler.java`
-- `AgentExecutionGetAgentUsageReportHandler.java`
-- `AgentExecutionRepo.findByOrgAndDateRangeForUsage()` — currently projects `status.messages.llmMetrics`; may no longer be needed
+### 3. Wire CLI `computeExecutionUsage` to `getExecutionUsageReport` RPC
 
-### 2. Remove legacy usage proto types
+**Context**: `computeExecutionUsage()` in `usage_format.go` returns nil. The return type was updated to `*UsageReportAggregate` and the `getExecutionUsageReport` RPC + handler exist, but the CLI function doesn't have the SDK client wired into its calling scope. Requires plumbing the `stigmer.Client` through `streamAgentEpilogue` → `displaySessionExitLine` / `displayAgentExecutionComplete`.
 
-**Context**: `UsageMetrics`, `ModelUsage`, and `LlmCallMetrics` in `usage.proto` are currently labeled "DEPRECATED" in comments, but they are not truly deprecated — nobody external depends on them. They are legacy types from before the proxy-metering architecture was built. The new authoritative types are `LlmCallUsageRecord`, `ExecutionUsageAggregate`, `ModelUsageBreakdown`, and `ExecutionObservabilityMetrics`.
-
-**What**: Once `UsageAggregationService` is migrated (item 1 above) and the runner no longer sends `llm_metrics` on `AgentMessage`, remove:
-- `UsageMetrics` message from `usage.proto`
-- `ModelUsage` message from `usage.proto`
-- `LlmCallMetrics` message from `usage.proto`
-- `llm_metrics` field from `AgentMessage` in `message.proto`
-- Legacy report response types in `io.proto` that use `UsageMetrics`/`ModelUsage` (replace with types based on `LlmCallUsageRecord`)
-- Update the "DEPRECATED" comments to reflect that these are "LEGACY — to be removed" until they are actually removed
-
-**Prerequisite**: Item 1 must be done first. The runner must also stop sending `llm_metrics` (or the field must be ignored server-side).
-
-**Note**: The current proto comments say "DEPRECATED" but these types were never published to external consumers. When cleaning up, simply remove them — no deprecation period needed.
+**Priority**: Medium — the display infrastructure is ready, just needs the RPC call wired in.
 
 ## Sub-Projects
 

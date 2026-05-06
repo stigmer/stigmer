@@ -46,6 +46,11 @@ class AgentExecutionQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactContentRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactContentResponse.FromString,
                 _registered_method=True)
+        self.getExecutionUsageReport = channel.unary_unary(
+                '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getExecutionUsageReport',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetExecutionUsageReportInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetExecutionUsageReportOutput.FromString,
+                _registered_method=True)
         self.getSessionUsageReport = channel.unary_unary(
                 '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getSessionUsageReport',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetSessionUsageReportInput.SerializeToString,
@@ -195,18 +200,27 @@ class AgentExecutionQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def getSessionUsageReport(self, request, context):
+    def getExecutionUsageReport(self, request, context):
         """─────────────────────────────────────────────────────────────────────────────
         Usage Report Operations
 
-        These RPCs provide cost and token consumption visibility at session,
-        agent, and organization levels. All data is derived from AgentExecution
-        records with different aggregation scopes.
+        These RPCs provide cost and token consumption visibility at execution,
+        session, agent, and organization levels. All data is sourced from the
+        llm_call_usage_record collection (billing domain).
         ─────────────────────────────────────────────────────────────────────────────
 
-        Get a usage report for a session.
+        Get a usage report for a single execution.
 
-        Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+        Returns aggregated tokens, cost, and per-model breakdown for one execution.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def getSessionUsageReport(self, request, context):
+        """Get a usage report for a session.
+
+        Returns aggregated tokens, cost, and per-execution breakdown.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -266,6 +280,11 @@ def add_AgentExecutionQueryControllerServicer_to_server(servicer, server):
                     servicer.getArtifactContent,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactContentRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactContentResponse.SerializeToString,
+            ),
+            'getExecutionUsageReport': grpc.unary_unary_rpc_method_handler(
+                    servicer.getExecutionUsageReport,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetExecutionUsageReportInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetExecutionUsageReportOutput.SerializeToString,
             ),
             'getSessionUsageReport': grpc.unary_unary_rpc_method_handler(
                     servicer.getSessionUsageReport,
@@ -446,6 +465,33 @@ class AgentExecutionQueryController(object):
             '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getArtifactContent',
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactContentRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactContentResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getExecutionUsageReport(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getExecutionUsageReport',
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetExecutionUsageReportInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetExecutionUsageReportOutput.FromString,
             options,
             channel_credentials,
             insecure,

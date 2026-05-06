@@ -7,8 +7,7 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 /**
  * <pre>
- * DailyCostEntry represents cost and usage for a single day.
- * Used in org-level reports to show daily cost trends.
+ * Cost and usage for a single day within an org report.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.DailyCostEntry}
@@ -117,33 +116,33 @@ private static final long serialVersionUID = 0L;
   }
 
   public static final int TOTAL_TOKENS_FIELD_NUMBER = 3;
-  private int totalTokens_ = 0;
+  private long totalTokens_ = 0L;
   /**
    * <pre>
    * Total tokens consumed on this date.
    * </pre>
    *
-   * <code>int32 total_tokens = 3 [json_name = "totalTokens"];</code>
+   * <code>int64 total_tokens = 3 [json_name = "totalTokens"];</code>
    * @return The totalTokens.
    */
   @java.lang.Override
-  public int getTotalTokens() {
+  public long getTotalTokens() {
     return totalTokens_;
   }
 
-  public static final int ESTIMATED_COST_USD_FIELD_NUMBER = 4;
-  private double estimatedCostUsd_ = 0D;
+  public static final int BILLABLE_COST_MICROS_FIELD_NUMBER = 4;
+  private long billableCostMicros_ = 0L;
   /**
    * <pre>
-   * Total estimated cost in USD on this date.
+   * Total billable cost in micro-USD on this date.
    * </pre>
    *
-   * <code>double estimated_cost_usd = 4 [json_name = "estimatedCostUsd"];</code>
-   * @return The estimatedCostUsd.
+   * <code>int64 billable_cost_micros = 4 [json_name = "billableCostMicros"];</code>
+   * @return The billableCostMicros.
    */
   @java.lang.Override
-  public double getEstimatedCostUsd() {
-    return estimatedCostUsd_;
+  public long getBillableCostMicros() {
+    return billableCostMicros_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -166,11 +165,11 @@ private static final long serialVersionUID = 0L;
     if (executionCount_ != 0) {
       output.writeInt32(2, executionCount_);
     }
-    if (totalTokens_ != 0) {
-      output.writeInt32(3, totalTokens_);
+    if (totalTokens_ != 0L) {
+      output.writeInt64(3, totalTokens_);
     }
-    if (java.lang.Double.doubleToRawLongBits(estimatedCostUsd_) != 0) {
-      output.writeDouble(4, estimatedCostUsd_);
+    if (billableCostMicros_ != 0L) {
+      output.writeInt64(4, billableCostMicros_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -188,13 +187,13 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(2, executionCount_);
     }
-    if (totalTokens_ != 0) {
+    if (totalTokens_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(3, totalTokens_);
+        .computeInt64Size(3, totalTokens_);
     }
-    if (java.lang.Double.doubleToRawLongBits(estimatedCostUsd_) != 0) {
+    if (billableCostMicros_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
-        .computeDoubleSize(4, estimatedCostUsd_);
+        .computeInt64Size(4, billableCostMicros_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -217,9 +216,8 @@ private static final long serialVersionUID = 0L;
         != other.getExecutionCount()) return false;
     if (getTotalTokens()
         != other.getTotalTokens()) return false;
-    if (java.lang.Double.doubleToLongBits(getEstimatedCostUsd())
-        != java.lang.Double.doubleToLongBits(
-            other.getEstimatedCostUsd())) return false;
+    if (getBillableCostMicros()
+        != other.getBillableCostMicros()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -236,10 +234,11 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + EXECUTION_COUNT_FIELD_NUMBER;
     hash = (53 * hash) + getExecutionCount();
     hash = (37 * hash) + TOTAL_TOKENS_FIELD_NUMBER;
-    hash = (53 * hash) + getTotalTokens();
-    hash = (37 * hash) + ESTIMATED_COST_USD_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        java.lang.Double.doubleToLongBits(getEstimatedCostUsd()));
+        getTotalTokens());
+    hash = (37 * hash) + BILLABLE_COST_MICROS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getBillableCostMicros());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -339,8 +338,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * DailyCostEntry represents cost and usage for a single day.
-   * Used in org-level reports to show daily cost trends.
+   * Cost and usage for a single day within an org report.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.DailyCostEntry}
@@ -378,8 +376,8 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       date_ = "";
       executionCount_ = 0;
-      totalTokens_ = 0;
-      estimatedCostUsd_ = 0D;
+      totalTokens_ = 0L;
+      billableCostMicros_ = 0L;
       return this;
     }
 
@@ -423,7 +421,7 @@ private static final long serialVersionUID = 0L;
         result.totalTokens_ = totalTokens_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.estimatedCostUsd_ = estimatedCostUsd_;
+        result.billableCostMicros_ = billableCostMicros_;
       }
     }
 
@@ -447,11 +445,11 @@ private static final long serialVersionUID = 0L;
       if (other.getExecutionCount() != 0) {
         setExecutionCount(other.getExecutionCount());
       }
-      if (other.getTotalTokens() != 0) {
+      if (other.getTotalTokens() != 0L) {
         setTotalTokens(other.getTotalTokens());
       }
-      if (java.lang.Double.doubleToRawLongBits(other.getEstimatedCostUsd()) != 0) {
-        setEstimatedCostUsd(other.getEstimatedCostUsd());
+      if (other.getBillableCostMicros() != 0L) {
+        setBillableCostMicros(other.getBillableCostMicros());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -490,15 +488,15 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 16
             case 24: {
-              totalTokens_ = input.readInt32();
+              totalTokens_ = input.readInt64();
               bitField0_ |= 0x00000004;
               break;
             } // case 24
-            case 33: {
-              estimatedCostUsd_ = input.readDouble();
+            case 32: {
+              billableCostMicros_ = input.readInt64();
               bitField0_ |= 0x00000008;
               break;
-            } // case 33
+            } // case 32
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -652,17 +650,17 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private int totalTokens_ ;
+    private long totalTokens_ ;
     /**
      * <pre>
      * Total tokens consumed on this date.
      * </pre>
      *
-     * <code>int32 total_tokens = 3 [json_name = "totalTokens"];</code>
+     * <code>int64 total_tokens = 3 [json_name = "totalTokens"];</code>
      * @return The totalTokens.
      */
     @java.lang.Override
-    public int getTotalTokens() {
+    public long getTotalTokens() {
       return totalTokens_;
     }
     /**
@@ -670,11 +668,11 @@ private static final long serialVersionUID = 0L;
      * Total tokens consumed on this date.
      * </pre>
      *
-     * <code>int32 total_tokens = 3 [json_name = "totalTokens"];</code>
+     * <code>int64 total_tokens = 3 [json_name = "totalTokens"];</code>
      * @param value The totalTokens to set.
      * @return This builder for chaining.
      */
-    public Builder setTotalTokens(int value) {
+    public Builder setTotalTokens(long value) {
 
       totalTokens_ = value;
       bitField0_ |= 0x00000004;
@@ -686,56 +684,56 @@ private static final long serialVersionUID = 0L;
      * Total tokens consumed on this date.
      * </pre>
      *
-     * <code>int32 total_tokens = 3 [json_name = "totalTokens"];</code>
+     * <code>int64 total_tokens = 3 [json_name = "totalTokens"];</code>
      * @return This builder for chaining.
      */
     public Builder clearTotalTokens() {
       bitField0_ = (bitField0_ & ~0x00000004);
-      totalTokens_ = 0;
+      totalTokens_ = 0L;
       onChanged();
       return this;
     }
 
-    private double estimatedCostUsd_ ;
+    private long billableCostMicros_ ;
     /**
      * <pre>
-     * Total estimated cost in USD on this date.
+     * Total billable cost in micro-USD on this date.
      * </pre>
      *
-     * <code>double estimated_cost_usd = 4 [json_name = "estimatedCostUsd"];</code>
-     * @return The estimatedCostUsd.
+     * <code>int64 billable_cost_micros = 4 [json_name = "billableCostMicros"];</code>
+     * @return The billableCostMicros.
      */
     @java.lang.Override
-    public double getEstimatedCostUsd() {
-      return estimatedCostUsd_;
+    public long getBillableCostMicros() {
+      return billableCostMicros_;
     }
     /**
      * <pre>
-     * Total estimated cost in USD on this date.
+     * Total billable cost in micro-USD on this date.
      * </pre>
      *
-     * <code>double estimated_cost_usd = 4 [json_name = "estimatedCostUsd"];</code>
-     * @param value The estimatedCostUsd to set.
+     * <code>int64 billable_cost_micros = 4 [json_name = "billableCostMicros"];</code>
+     * @param value The billableCostMicros to set.
      * @return This builder for chaining.
      */
-    public Builder setEstimatedCostUsd(double value) {
+    public Builder setBillableCostMicros(long value) {
 
-      estimatedCostUsd_ = value;
+      billableCostMicros_ = value;
       bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Total estimated cost in USD on this date.
+     * Total billable cost in micro-USD on this date.
      * </pre>
      *
-     * <code>double estimated_cost_usd = 4 [json_name = "estimatedCostUsd"];</code>
+     * <code>int64 billable_cost_micros = 4 [json_name = "billableCostMicros"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearEstimatedCostUsd() {
+    public Builder clearBillableCostMicros() {
       bitField0_ = (bitField0_ & ~0x00000008);
-      estimatedCostUsd_ = 0D;
+      billableCostMicros_ = 0L;
       onChanged();
       return this;
     }

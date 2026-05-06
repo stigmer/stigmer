@@ -495,6 +495,46 @@ public interface LlmCallUsageRecordOrBuilder extends
 
   /**
    * <pre>
+   * Organization that owns this execution.
+   * </pre>
+   *
+   * <code>string org_id = 7 [json_name = "orgId"];</code>
+   * @return The orgId.
+   */
+  java.lang.String getOrgId();
+  /**
+   * <pre>
+   * Organization that owns this execution.
+   * </pre>
+   *
+   * <code>string org_id = 7 [json_name = "orgId"];</code>
+   * @return The bytes for orgId.
+   */
+  com.google.protobuf.ByteString
+      getOrgIdBytes();
+
+  /**
+   * <pre>
+   * Session this execution belongs to.
+   * </pre>
+   *
+   * <code>string session_id = 8 [json_name = "sessionId"];</code>
+   * @return The sessionId.
+   */
+  java.lang.String getSessionId();
+  /**
+   * <pre>
+   * Session this execution belongs to.
+   * </pre>
+   *
+   * <code>string session_id = 8 [json_name = "sessionId"];</code>
+   * @return The bytes for sessionId.
+   */
+  com.google.protobuf.ByteString
+      getSessionIdBytes();
+
+  /**
+   * <pre>
    * ─── Labels ─────────────────────────────────────────────────────────────────
    * Custom metadata for filtering (e.g., agent_path, node_path).
    * </pre>

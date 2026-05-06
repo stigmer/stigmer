@@ -54,7 +54,8 @@ export interface UseOrgUsageReportReturn {
  * if (error) return <ErrorMessage error={error} />;
  * if (!report) return null;
  *
- * return <div>Total cost: {formatCost(report.totalCostUsd)}</div>;
+ * const costUsd = Number(report.totalBillableCostMicros) / 1_000_000;
+ * return <div>Total cost: {formatCost(costUsd)}</div>;
  * ```
  */
 export function useOrgUsageReport(

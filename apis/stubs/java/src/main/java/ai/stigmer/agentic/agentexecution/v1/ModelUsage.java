@@ -7,9 +7,10 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 /**
  * <pre>
- * Per-model usage breakdown used in usage report RPC responses.
- * In cloud mode, populated from LlmCallUsageRecord queries;
- * in OSS mode, derived from AgentMessage.llm_metrics.
+ * Per-model usage breakdown within a report scope.
+ *
+ * Groups token counts and cost by (model, provider) pair. Used in
+ * model_breakdown repeated fields on report responses.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ModelUsage}
@@ -60,6 +61,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object model_ = "";
   /**
+   * <pre>
+   * Model identifier as resolved by the provider.
+   * </pre>
+   *
    * <code>string model = 1 [json_name = "model"];</code>
    * @return The model.
    */
@@ -77,6 +82,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * Model identifier as resolved by the provider.
+   * </pre>
+   *
    * <code>string model = 1 [json_name = "model"];</code>
    * @return The bytes for model.
    */
@@ -99,6 +108,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object provider_ = "";
   /**
+   * <pre>
+   * LLM provider (e.g., "openai", "anthropic", "cursor").
+   * </pre>
+   *
    * <code>string provider = 2 [json_name = "provider"];</code>
    * @return The provider.
    */
@@ -116,6 +129,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * LLM provider (e.g., "openai", "anthropic", "cursor").
+   * </pre>
+   *
    * <code>string provider = 2 [json_name = "provider"];</code>
    * @return The bytes for provider.
    */
@@ -135,52 +152,60 @@ private static final long serialVersionUID = 0L;
   }
 
   public static final int INPUT_TOKENS_FIELD_NUMBER = 3;
-  private int inputTokens_ = 0;
+  private long inputTokens_ = 0L;
   /**
-   * <code>int32 input_tokens = 3 [json_name = "inputTokens"];</code>
+   * <pre>
+   * Token counts for this model.
+   * </pre>
+   *
+   * <code>int64 input_tokens = 3 [json_name = "inputTokens"];</code>
    * @return The inputTokens.
    */
   @java.lang.Override
-  public int getInputTokens() {
+  public long getInputTokens() {
     return inputTokens_;
   }
 
   public static final int OUTPUT_TOKENS_FIELD_NUMBER = 4;
-  private int outputTokens_ = 0;
+  private long outputTokens_ = 0L;
   /**
-   * <code>int32 output_tokens = 4 [json_name = "outputTokens"];</code>
+   * <code>int64 output_tokens = 4 [json_name = "outputTokens"];</code>
    * @return The outputTokens.
    */
   @java.lang.Override
-  public int getOutputTokens() {
+  public long getOutputTokens() {
     return outputTokens_;
   }
 
-  public static final int CACHE_CREATION_TOKENS_FIELD_NUMBER = 5;
-  private int cacheCreationTokens_ = 0;
+  public static final int CACHE_CREATION_INPUT_TOKENS_FIELD_NUMBER = 5;
+  private long cacheCreationInputTokens_ = 0L;
   /**
-   * <code>int32 cache_creation_tokens = 5 [json_name = "cacheCreationTokens"];</code>
-   * @return The cacheCreationTokens.
+   * <code>int64 cache_creation_input_tokens = 5 [json_name = "cacheCreationInputTokens"];</code>
+   * @return The cacheCreationInputTokens.
    */
   @java.lang.Override
-  public int getCacheCreationTokens() {
-    return cacheCreationTokens_;
+  public long getCacheCreationInputTokens() {
+    return cacheCreationInputTokens_;
   }
 
-  public static final int CACHE_READ_TOKENS_FIELD_NUMBER = 6;
-  private int cacheReadTokens_ = 0;
+  public static final int CACHE_READ_INPUT_TOKENS_FIELD_NUMBER = 6;
+  private long cacheReadInputTokens_ = 0L;
   /**
-   * <code>int32 cache_read_tokens = 6 [json_name = "cacheReadTokens"];</code>
-   * @return The cacheReadTokens.
+   * <code>int64 cache_read_input_tokens = 6 [json_name = "cacheReadInputTokens"];</code>
+   * @return The cacheReadInputTokens.
    */
   @java.lang.Override
-  public int getCacheReadTokens() {
-    return cacheReadTokens_;
+  public long getCacheReadInputTokens() {
+    return cacheReadInputTokens_;
   }
 
   public static final int CALL_COUNT_FIELD_NUMBER = 7;
   private int callCount_ = 0;
   /**
+   * <pre>
+   * Number of LLM API calls to this model.
+   * </pre>
+   *
    * <code>int32 call_count = 7 [json_name = "callCount"];</code>
    * @return The callCount.
    */
@@ -189,59 +214,30 @@ private static final long serialVersionUID = 0L;
     return callCount_;
   }
 
-  public static final int INPUT_PRICE_PER_MILLION_FIELD_NUMBER = 8;
-  private double inputPricePerMillion_ = 0D;
+  public static final int BILLABLE_COST_MICROS_FIELD_NUMBER = 8;
+  private long billableCostMicros_ = 0L;
   /**
-   * <code>double input_price_per_million = 8 [json_name = "inputPricePerMillion"];</code>
-   * @return The inputPricePerMillion.
+   * <pre>
+   * Cost in micro-USD for this model.
+   * </pre>
+   *
+   * <code>int64 billable_cost_micros = 8 [json_name = "billableCostMicros"];</code>
+   * @return The billableCostMicros.
    */
   @java.lang.Override
-  public double getInputPricePerMillion() {
-    return inputPricePerMillion_;
+  public long getBillableCostMicros() {
+    return billableCostMicros_;
   }
 
-  public static final int OUTPUT_PRICE_PER_MILLION_FIELD_NUMBER = 9;
-  private double outputPricePerMillion_ = 0D;
+  public static final int PROVIDER_COST_MICROS_FIELD_NUMBER = 9;
+  private long providerCostMicros_ = 0L;
   /**
-   * <code>double output_price_per_million = 9 [json_name = "outputPricePerMillion"];</code>
-   * @return The outputPricePerMillion.
+   * <code>int64 provider_cost_micros = 9 [json_name = "providerCostMicros"];</code>
+   * @return The providerCostMicros.
    */
   @java.lang.Override
-  public double getOutputPricePerMillion() {
-    return outputPricePerMillion_;
-  }
-
-  public static final int CACHE_CREATION_PRICE_PER_MILLION_FIELD_NUMBER = 10;
-  private double cacheCreationPricePerMillion_ = 0D;
-  /**
-   * <code>double cache_creation_price_per_million = 10 [json_name = "cacheCreationPricePerMillion"];</code>
-   * @return The cacheCreationPricePerMillion.
-   */
-  @java.lang.Override
-  public double getCacheCreationPricePerMillion() {
-    return cacheCreationPricePerMillion_;
-  }
-
-  public static final int CACHE_READ_PRICE_PER_MILLION_FIELD_NUMBER = 11;
-  private double cacheReadPricePerMillion_ = 0D;
-  /**
-   * <code>double cache_read_price_per_million = 11 [json_name = "cacheReadPricePerMillion"];</code>
-   * @return The cacheReadPricePerMillion.
-   */
-  @java.lang.Override
-  public double getCacheReadPricePerMillion() {
-    return cacheReadPricePerMillion_;
-  }
-
-  public static final int ESTIMATED_COST_USD_FIELD_NUMBER = 12;
-  private double estimatedCostUsd_ = 0D;
-  /**
-   * <code>double estimated_cost_usd = 12 [json_name = "estimatedCostUsd"];</code>
-   * @return The estimatedCostUsd.
-   */
-  @java.lang.Override
-  public double getEstimatedCostUsd() {
-    return estimatedCostUsd_;
+  public long getProviderCostMicros() {
+    return providerCostMicros_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -264,35 +260,26 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(provider_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, provider_);
     }
-    if (inputTokens_ != 0) {
-      output.writeInt32(3, inputTokens_);
+    if (inputTokens_ != 0L) {
+      output.writeInt64(3, inputTokens_);
     }
-    if (outputTokens_ != 0) {
-      output.writeInt32(4, outputTokens_);
+    if (outputTokens_ != 0L) {
+      output.writeInt64(4, outputTokens_);
     }
-    if (cacheCreationTokens_ != 0) {
-      output.writeInt32(5, cacheCreationTokens_);
+    if (cacheCreationInputTokens_ != 0L) {
+      output.writeInt64(5, cacheCreationInputTokens_);
     }
-    if (cacheReadTokens_ != 0) {
-      output.writeInt32(6, cacheReadTokens_);
+    if (cacheReadInputTokens_ != 0L) {
+      output.writeInt64(6, cacheReadInputTokens_);
     }
     if (callCount_ != 0) {
       output.writeInt32(7, callCount_);
     }
-    if (java.lang.Double.doubleToRawLongBits(inputPricePerMillion_) != 0) {
-      output.writeDouble(8, inputPricePerMillion_);
+    if (billableCostMicros_ != 0L) {
+      output.writeInt64(8, billableCostMicros_);
     }
-    if (java.lang.Double.doubleToRawLongBits(outputPricePerMillion_) != 0) {
-      output.writeDouble(9, outputPricePerMillion_);
-    }
-    if (java.lang.Double.doubleToRawLongBits(cacheCreationPricePerMillion_) != 0) {
-      output.writeDouble(10, cacheCreationPricePerMillion_);
-    }
-    if (java.lang.Double.doubleToRawLongBits(cacheReadPricePerMillion_) != 0) {
-      output.writeDouble(11, cacheReadPricePerMillion_);
-    }
-    if (java.lang.Double.doubleToRawLongBits(estimatedCostUsd_) != 0) {
-      output.writeDouble(12, estimatedCostUsd_);
+    if (providerCostMicros_ != 0L) {
+      output.writeInt64(9, providerCostMicros_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -309,45 +296,33 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(provider_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, provider_);
     }
-    if (inputTokens_ != 0) {
+    if (inputTokens_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(3, inputTokens_);
+        .computeInt64Size(3, inputTokens_);
     }
-    if (outputTokens_ != 0) {
+    if (outputTokens_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(4, outputTokens_);
+        .computeInt64Size(4, outputTokens_);
     }
-    if (cacheCreationTokens_ != 0) {
+    if (cacheCreationInputTokens_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(5, cacheCreationTokens_);
+        .computeInt64Size(5, cacheCreationInputTokens_);
     }
-    if (cacheReadTokens_ != 0) {
+    if (cacheReadInputTokens_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(6, cacheReadTokens_);
+        .computeInt64Size(6, cacheReadInputTokens_);
     }
     if (callCount_ != 0) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(7, callCount_);
     }
-    if (java.lang.Double.doubleToRawLongBits(inputPricePerMillion_) != 0) {
+    if (billableCostMicros_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
-        .computeDoubleSize(8, inputPricePerMillion_);
+        .computeInt64Size(8, billableCostMicros_);
     }
-    if (java.lang.Double.doubleToRawLongBits(outputPricePerMillion_) != 0) {
+    if (providerCostMicros_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
-        .computeDoubleSize(9, outputPricePerMillion_);
-    }
-    if (java.lang.Double.doubleToRawLongBits(cacheCreationPricePerMillion_) != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeDoubleSize(10, cacheCreationPricePerMillion_);
-    }
-    if (java.lang.Double.doubleToRawLongBits(cacheReadPricePerMillion_) != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeDoubleSize(11, cacheReadPricePerMillion_);
-    }
-    if (java.lang.Double.doubleToRawLongBits(estimatedCostUsd_) != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeDoubleSize(12, estimatedCostUsd_);
+        .computeInt64Size(9, providerCostMicros_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -372,27 +347,16 @@ private static final long serialVersionUID = 0L;
         != other.getInputTokens()) return false;
     if (getOutputTokens()
         != other.getOutputTokens()) return false;
-    if (getCacheCreationTokens()
-        != other.getCacheCreationTokens()) return false;
-    if (getCacheReadTokens()
-        != other.getCacheReadTokens()) return false;
+    if (getCacheCreationInputTokens()
+        != other.getCacheCreationInputTokens()) return false;
+    if (getCacheReadInputTokens()
+        != other.getCacheReadInputTokens()) return false;
     if (getCallCount()
         != other.getCallCount()) return false;
-    if (java.lang.Double.doubleToLongBits(getInputPricePerMillion())
-        != java.lang.Double.doubleToLongBits(
-            other.getInputPricePerMillion())) return false;
-    if (java.lang.Double.doubleToLongBits(getOutputPricePerMillion())
-        != java.lang.Double.doubleToLongBits(
-            other.getOutputPricePerMillion())) return false;
-    if (java.lang.Double.doubleToLongBits(getCacheCreationPricePerMillion())
-        != java.lang.Double.doubleToLongBits(
-            other.getCacheCreationPricePerMillion())) return false;
-    if (java.lang.Double.doubleToLongBits(getCacheReadPricePerMillion())
-        != java.lang.Double.doubleToLongBits(
-            other.getCacheReadPricePerMillion())) return false;
-    if (java.lang.Double.doubleToLongBits(getEstimatedCostUsd())
-        != java.lang.Double.doubleToLongBits(
-            other.getEstimatedCostUsd())) return false;
+    if (getBillableCostMicros()
+        != other.getBillableCostMicros()) return false;
+    if (getProviderCostMicros()
+        != other.getProviderCostMicros()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -409,30 +373,25 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + PROVIDER_FIELD_NUMBER;
     hash = (53 * hash) + getProvider().hashCode();
     hash = (37 * hash) + INPUT_TOKENS_FIELD_NUMBER;
-    hash = (53 * hash) + getInputTokens();
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getInputTokens());
     hash = (37 * hash) + OUTPUT_TOKENS_FIELD_NUMBER;
-    hash = (53 * hash) + getOutputTokens();
-    hash = (37 * hash) + CACHE_CREATION_TOKENS_FIELD_NUMBER;
-    hash = (53 * hash) + getCacheCreationTokens();
-    hash = (37 * hash) + CACHE_READ_TOKENS_FIELD_NUMBER;
-    hash = (53 * hash) + getCacheReadTokens();
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getOutputTokens());
+    hash = (37 * hash) + CACHE_CREATION_INPUT_TOKENS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getCacheCreationInputTokens());
+    hash = (37 * hash) + CACHE_READ_INPUT_TOKENS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getCacheReadInputTokens());
     hash = (37 * hash) + CALL_COUNT_FIELD_NUMBER;
     hash = (53 * hash) + getCallCount();
-    hash = (37 * hash) + INPUT_PRICE_PER_MILLION_FIELD_NUMBER;
+    hash = (37 * hash) + BILLABLE_COST_MICROS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        java.lang.Double.doubleToLongBits(getInputPricePerMillion()));
-    hash = (37 * hash) + OUTPUT_PRICE_PER_MILLION_FIELD_NUMBER;
+        getBillableCostMicros());
+    hash = (37 * hash) + PROVIDER_COST_MICROS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        java.lang.Double.doubleToLongBits(getOutputPricePerMillion()));
-    hash = (37 * hash) + CACHE_CREATION_PRICE_PER_MILLION_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        java.lang.Double.doubleToLongBits(getCacheCreationPricePerMillion()));
-    hash = (37 * hash) + CACHE_READ_PRICE_PER_MILLION_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        java.lang.Double.doubleToLongBits(getCacheReadPricePerMillion()));
-    hash = (37 * hash) + ESTIMATED_COST_USD_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        java.lang.Double.doubleToLongBits(getEstimatedCostUsd()));
+        getProviderCostMicros());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -532,9 +491,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Per-model usage breakdown used in usage report RPC responses.
-   * In cloud mode, populated from LlmCallUsageRecord queries;
-   * in OSS mode, derived from AgentMessage.llm_metrics.
+   * Per-model usage breakdown within a report scope.
+   *
+   * Groups token counts and cost by (model, provider) pair. Used in
+   * model_breakdown repeated fields on report responses.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ModelUsage}
@@ -572,16 +532,13 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       model_ = "";
       provider_ = "";
-      inputTokens_ = 0;
-      outputTokens_ = 0;
-      cacheCreationTokens_ = 0;
-      cacheReadTokens_ = 0;
+      inputTokens_ = 0L;
+      outputTokens_ = 0L;
+      cacheCreationInputTokens_ = 0L;
+      cacheReadInputTokens_ = 0L;
       callCount_ = 0;
-      inputPricePerMillion_ = 0D;
-      outputPricePerMillion_ = 0D;
-      cacheCreationPricePerMillion_ = 0D;
-      cacheReadPricePerMillion_ = 0D;
-      estimatedCostUsd_ = 0D;
+      billableCostMicros_ = 0L;
+      providerCostMicros_ = 0L;
       return this;
     }
 
@@ -628,28 +585,19 @@ private static final long serialVersionUID = 0L;
         result.outputTokens_ = outputTokens_;
       }
       if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.cacheCreationTokens_ = cacheCreationTokens_;
+        result.cacheCreationInputTokens_ = cacheCreationInputTokens_;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.cacheReadTokens_ = cacheReadTokens_;
+        result.cacheReadInputTokens_ = cacheReadInputTokens_;
       }
       if (((from_bitField0_ & 0x00000040) != 0)) {
         result.callCount_ = callCount_;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.inputPricePerMillion_ = inputPricePerMillion_;
+        result.billableCostMicros_ = billableCostMicros_;
       }
       if (((from_bitField0_ & 0x00000100) != 0)) {
-        result.outputPricePerMillion_ = outputPricePerMillion_;
-      }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
-        result.cacheCreationPricePerMillion_ = cacheCreationPricePerMillion_;
-      }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
-        result.cacheReadPricePerMillion_ = cacheReadPricePerMillion_;
-      }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
-        result.estimatedCostUsd_ = estimatedCostUsd_;
+        result.providerCostMicros_ = providerCostMicros_;
       }
     }
 
@@ -675,35 +623,26 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000002;
         onChanged();
       }
-      if (other.getInputTokens() != 0) {
+      if (other.getInputTokens() != 0L) {
         setInputTokens(other.getInputTokens());
       }
-      if (other.getOutputTokens() != 0) {
+      if (other.getOutputTokens() != 0L) {
         setOutputTokens(other.getOutputTokens());
       }
-      if (other.getCacheCreationTokens() != 0) {
-        setCacheCreationTokens(other.getCacheCreationTokens());
+      if (other.getCacheCreationInputTokens() != 0L) {
+        setCacheCreationInputTokens(other.getCacheCreationInputTokens());
       }
-      if (other.getCacheReadTokens() != 0) {
-        setCacheReadTokens(other.getCacheReadTokens());
+      if (other.getCacheReadInputTokens() != 0L) {
+        setCacheReadInputTokens(other.getCacheReadInputTokens());
       }
       if (other.getCallCount() != 0) {
         setCallCount(other.getCallCount());
       }
-      if (java.lang.Double.doubleToRawLongBits(other.getInputPricePerMillion()) != 0) {
-        setInputPricePerMillion(other.getInputPricePerMillion());
+      if (other.getBillableCostMicros() != 0L) {
+        setBillableCostMicros(other.getBillableCostMicros());
       }
-      if (java.lang.Double.doubleToRawLongBits(other.getOutputPricePerMillion()) != 0) {
-        setOutputPricePerMillion(other.getOutputPricePerMillion());
-      }
-      if (java.lang.Double.doubleToRawLongBits(other.getCacheCreationPricePerMillion()) != 0) {
-        setCacheCreationPricePerMillion(other.getCacheCreationPricePerMillion());
-      }
-      if (java.lang.Double.doubleToRawLongBits(other.getCacheReadPricePerMillion()) != 0) {
-        setCacheReadPricePerMillion(other.getCacheReadPricePerMillion());
-      }
-      if (java.lang.Double.doubleToRawLongBits(other.getEstimatedCostUsd()) != 0) {
-        setEstimatedCostUsd(other.getEstimatedCostUsd());
+      if (other.getProviderCostMicros() != 0L) {
+        setProviderCostMicros(other.getProviderCostMicros());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -742,22 +681,22 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 18
             case 24: {
-              inputTokens_ = input.readInt32();
+              inputTokens_ = input.readInt64();
               bitField0_ |= 0x00000004;
               break;
             } // case 24
             case 32: {
-              outputTokens_ = input.readInt32();
+              outputTokens_ = input.readInt64();
               bitField0_ |= 0x00000008;
               break;
             } // case 32
             case 40: {
-              cacheCreationTokens_ = input.readInt32();
+              cacheCreationInputTokens_ = input.readInt64();
               bitField0_ |= 0x00000010;
               break;
             } // case 40
             case 48: {
-              cacheReadTokens_ = input.readInt32();
+              cacheReadInputTokens_ = input.readInt64();
               bitField0_ |= 0x00000020;
               break;
             } // case 48
@@ -766,31 +705,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 56
-            case 65: {
-              inputPricePerMillion_ = input.readDouble();
+            case 64: {
+              billableCostMicros_ = input.readInt64();
               bitField0_ |= 0x00000080;
               break;
-            } // case 65
-            case 73: {
-              outputPricePerMillion_ = input.readDouble();
+            } // case 64
+            case 72: {
+              providerCostMicros_ = input.readInt64();
               bitField0_ |= 0x00000100;
               break;
-            } // case 73
-            case 81: {
-              cacheCreationPricePerMillion_ = input.readDouble();
-              bitField0_ |= 0x00000200;
-              break;
-            } // case 81
-            case 89: {
-              cacheReadPricePerMillion_ = input.readDouble();
-              bitField0_ |= 0x00000400;
-              break;
-            } // case 89
-            case 97: {
-              estimatedCostUsd_ = input.readDouble();
-              bitField0_ |= 0x00000800;
-              break;
-            } // case 97
+            } // case 72
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -810,6 +734,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object model_ = "";
     /**
+     * <pre>
+     * Model identifier as resolved by the provider.
+     * </pre>
+     *
      * <code>string model = 1 [json_name = "model"];</code>
      * @return The model.
      */
@@ -826,6 +754,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Model identifier as resolved by the provider.
+     * </pre>
+     *
      * <code>string model = 1 [json_name = "model"];</code>
      * @return The bytes for model.
      */
@@ -843,6 +775,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Model identifier as resolved by the provider.
+     * </pre>
+     *
      * <code>string model = 1 [json_name = "model"];</code>
      * @param value The model to set.
      * @return This builder for chaining.
@@ -856,6 +792,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Model identifier as resolved by the provider.
+     * </pre>
+     *
      * <code>string model = 1 [json_name = "model"];</code>
      * @return This builder for chaining.
      */
@@ -866,6 +806,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Model identifier as resolved by the provider.
+     * </pre>
+     *
      * <code>string model = 1 [json_name = "model"];</code>
      * @param value The bytes for model to set.
      * @return This builder for chaining.
@@ -882,6 +826,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object provider_ = "";
     /**
+     * <pre>
+     * LLM provider (e.g., "openai", "anthropic", "cursor").
+     * </pre>
+     *
      * <code>string provider = 2 [json_name = "provider"];</code>
      * @return The provider.
      */
@@ -898,6 +846,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * LLM provider (e.g., "openai", "anthropic", "cursor").
+     * </pre>
+     *
      * <code>string provider = 2 [json_name = "provider"];</code>
      * @return The bytes for provider.
      */
@@ -915,6 +867,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * LLM provider (e.g., "openai", "anthropic", "cursor").
+     * </pre>
+     *
      * <code>string provider = 2 [json_name = "provider"];</code>
      * @param value The provider to set.
      * @return This builder for chaining.
@@ -928,6 +884,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * LLM provider (e.g., "openai", "anthropic", "cursor").
+     * </pre>
+     *
      * <code>string provider = 2 [json_name = "provider"];</code>
      * @return This builder for chaining.
      */
@@ -938,6 +898,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * LLM provider (e.g., "openai", "anthropic", "cursor").
+     * </pre>
+     *
      * <code>string provider = 2 [json_name = "provider"];</code>
      * @param value The bytes for provider to set.
      * @return This builder for chaining.
@@ -952,21 +916,29 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private int inputTokens_ ;
+    private long inputTokens_ ;
     /**
-     * <code>int32 input_tokens = 3 [json_name = "inputTokens"];</code>
+     * <pre>
+     * Token counts for this model.
+     * </pre>
+     *
+     * <code>int64 input_tokens = 3 [json_name = "inputTokens"];</code>
      * @return The inputTokens.
      */
     @java.lang.Override
-    public int getInputTokens() {
+    public long getInputTokens() {
       return inputTokens_;
     }
     /**
-     * <code>int32 input_tokens = 3 [json_name = "inputTokens"];</code>
+     * <pre>
+     * Token counts for this model.
+     * </pre>
+     *
+     * <code>int64 input_tokens = 3 [json_name = "inputTokens"];</code>
      * @param value The inputTokens to set.
      * @return This builder for chaining.
      */
-    public Builder setInputTokens(int value) {
+    public Builder setInputTokens(long value) {
 
       inputTokens_ = value;
       bitField0_ |= 0x00000004;
@@ -974,31 +946,35 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>int32 input_tokens = 3 [json_name = "inputTokens"];</code>
+     * <pre>
+     * Token counts for this model.
+     * </pre>
+     *
+     * <code>int64 input_tokens = 3 [json_name = "inputTokens"];</code>
      * @return This builder for chaining.
      */
     public Builder clearInputTokens() {
       bitField0_ = (bitField0_ & ~0x00000004);
-      inputTokens_ = 0;
+      inputTokens_ = 0L;
       onChanged();
       return this;
     }
 
-    private int outputTokens_ ;
+    private long outputTokens_ ;
     /**
-     * <code>int32 output_tokens = 4 [json_name = "outputTokens"];</code>
+     * <code>int64 output_tokens = 4 [json_name = "outputTokens"];</code>
      * @return The outputTokens.
      */
     @java.lang.Override
-    public int getOutputTokens() {
+    public long getOutputTokens() {
       return outputTokens_;
     }
     /**
-     * <code>int32 output_tokens = 4 [json_name = "outputTokens"];</code>
+     * <code>int64 output_tokens = 4 [json_name = "outputTokens"];</code>
      * @param value The outputTokens to set.
      * @return This builder for chaining.
      */
-    public Builder setOutputTokens(int value) {
+    public Builder setOutputTokens(long value) {
 
       outputTokens_ = value;
       bitField0_ |= 0x00000008;
@@ -1006,82 +982,86 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>int32 output_tokens = 4 [json_name = "outputTokens"];</code>
+     * <code>int64 output_tokens = 4 [json_name = "outputTokens"];</code>
      * @return This builder for chaining.
      */
     public Builder clearOutputTokens() {
       bitField0_ = (bitField0_ & ~0x00000008);
-      outputTokens_ = 0;
+      outputTokens_ = 0L;
       onChanged();
       return this;
     }
 
-    private int cacheCreationTokens_ ;
+    private long cacheCreationInputTokens_ ;
     /**
-     * <code>int32 cache_creation_tokens = 5 [json_name = "cacheCreationTokens"];</code>
-     * @return The cacheCreationTokens.
+     * <code>int64 cache_creation_input_tokens = 5 [json_name = "cacheCreationInputTokens"];</code>
+     * @return The cacheCreationInputTokens.
      */
     @java.lang.Override
-    public int getCacheCreationTokens() {
-      return cacheCreationTokens_;
+    public long getCacheCreationInputTokens() {
+      return cacheCreationInputTokens_;
     }
     /**
-     * <code>int32 cache_creation_tokens = 5 [json_name = "cacheCreationTokens"];</code>
-     * @param value The cacheCreationTokens to set.
+     * <code>int64 cache_creation_input_tokens = 5 [json_name = "cacheCreationInputTokens"];</code>
+     * @param value The cacheCreationInputTokens to set.
      * @return This builder for chaining.
      */
-    public Builder setCacheCreationTokens(int value) {
+    public Builder setCacheCreationInputTokens(long value) {
 
-      cacheCreationTokens_ = value;
+      cacheCreationInputTokens_ = value;
       bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
     /**
-     * <code>int32 cache_creation_tokens = 5 [json_name = "cacheCreationTokens"];</code>
+     * <code>int64 cache_creation_input_tokens = 5 [json_name = "cacheCreationInputTokens"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearCacheCreationTokens() {
+    public Builder clearCacheCreationInputTokens() {
       bitField0_ = (bitField0_ & ~0x00000010);
-      cacheCreationTokens_ = 0;
+      cacheCreationInputTokens_ = 0L;
       onChanged();
       return this;
     }
 
-    private int cacheReadTokens_ ;
+    private long cacheReadInputTokens_ ;
     /**
-     * <code>int32 cache_read_tokens = 6 [json_name = "cacheReadTokens"];</code>
-     * @return The cacheReadTokens.
+     * <code>int64 cache_read_input_tokens = 6 [json_name = "cacheReadInputTokens"];</code>
+     * @return The cacheReadInputTokens.
      */
     @java.lang.Override
-    public int getCacheReadTokens() {
-      return cacheReadTokens_;
+    public long getCacheReadInputTokens() {
+      return cacheReadInputTokens_;
     }
     /**
-     * <code>int32 cache_read_tokens = 6 [json_name = "cacheReadTokens"];</code>
-     * @param value The cacheReadTokens to set.
+     * <code>int64 cache_read_input_tokens = 6 [json_name = "cacheReadInputTokens"];</code>
+     * @param value The cacheReadInputTokens to set.
      * @return This builder for chaining.
      */
-    public Builder setCacheReadTokens(int value) {
+    public Builder setCacheReadInputTokens(long value) {
 
-      cacheReadTokens_ = value;
+      cacheReadInputTokens_ = value;
       bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
     /**
-     * <code>int32 cache_read_tokens = 6 [json_name = "cacheReadTokens"];</code>
+     * <code>int64 cache_read_input_tokens = 6 [json_name = "cacheReadInputTokens"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearCacheReadTokens() {
+    public Builder clearCacheReadInputTokens() {
       bitField0_ = (bitField0_ & ~0x00000020);
-      cacheReadTokens_ = 0;
+      cacheReadInputTokens_ = 0L;
       onChanged();
       return this;
     }
 
     private int callCount_ ;
     /**
+     * <pre>
+     * Number of LLM API calls to this model.
+     * </pre>
+     *
      * <code>int32 call_count = 7 [json_name = "callCount"];</code>
      * @return The callCount.
      */
@@ -1090,6 +1070,10 @@ private static final long serialVersionUID = 0L;
       return callCount_;
     }
     /**
+     * <pre>
+     * Number of LLM API calls to this model.
+     * </pre>
+     *
      * <code>int32 call_count = 7 [json_name = "callCount"];</code>
      * @param value The callCount to set.
      * @return This builder for chaining.
@@ -1102,6 +1086,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Number of LLM API calls to this model.
+     * </pre>
+     *
      * <code>int32 call_count = 7 [json_name = "callCount"];</code>
      * @return This builder for chaining.
      */
@@ -1112,162 +1100,78 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private double inputPricePerMillion_ ;
+    private long billableCostMicros_ ;
     /**
-     * <code>double input_price_per_million = 8 [json_name = "inputPricePerMillion"];</code>
-     * @return The inputPricePerMillion.
+     * <pre>
+     * Cost in micro-USD for this model.
+     * </pre>
+     *
+     * <code>int64 billable_cost_micros = 8 [json_name = "billableCostMicros"];</code>
+     * @return The billableCostMicros.
      */
     @java.lang.Override
-    public double getInputPricePerMillion() {
-      return inputPricePerMillion_;
+    public long getBillableCostMicros() {
+      return billableCostMicros_;
     }
     /**
-     * <code>double input_price_per_million = 8 [json_name = "inputPricePerMillion"];</code>
-     * @param value The inputPricePerMillion to set.
+     * <pre>
+     * Cost in micro-USD for this model.
+     * </pre>
+     *
+     * <code>int64 billable_cost_micros = 8 [json_name = "billableCostMicros"];</code>
+     * @param value The billableCostMicros to set.
      * @return This builder for chaining.
      */
-    public Builder setInputPricePerMillion(double value) {
+    public Builder setBillableCostMicros(long value) {
 
-      inputPricePerMillion_ = value;
+      billableCostMicros_ = value;
       bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
     /**
-     * <code>double input_price_per_million = 8 [json_name = "inputPricePerMillion"];</code>
+     * <pre>
+     * Cost in micro-USD for this model.
+     * </pre>
+     *
+     * <code>int64 billable_cost_micros = 8 [json_name = "billableCostMicros"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearInputPricePerMillion() {
+    public Builder clearBillableCostMicros() {
       bitField0_ = (bitField0_ & ~0x00000080);
-      inputPricePerMillion_ = 0D;
+      billableCostMicros_ = 0L;
       onChanged();
       return this;
     }
 
-    private double outputPricePerMillion_ ;
+    private long providerCostMicros_ ;
     /**
-     * <code>double output_price_per_million = 9 [json_name = "outputPricePerMillion"];</code>
-     * @return The outputPricePerMillion.
+     * <code>int64 provider_cost_micros = 9 [json_name = "providerCostMicros"];</code>
+     * @return The providerCostMicros.
      */
     @java.lang.Override
-    public double getOutputPricePerMillion() {
-      return outputPricePerMillion_;
+    public long getProviderCostMicros() {
+      return providerCostMicros_;
     }
     /**
-     * <code>double output_price_per_million = 9 [json_name = "outputPricePerMillion"];</code>
-     * @param value The outputPricePerMillion to set.
+     * <code>int64 provider_cost_micros = 9 [json_name = "providerCostMicros"];</code>
+     * @param value The providerCostMicros to set.
      * @return This builder for chaining.
      */
-    public Builder setOutputPricePerMillion(double value) {
+    public Builder setProviderCostMicros(long value) {
 
-      outputPricePerMillion_ = value;
+      providerCostMicros_ = value;
       bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
     /**
-     * <code>double output_price_per_million = 9 [json_name = "outputPricePerMillion"];</code>
+     * <code>int64 provider_cost_micros = 9 [json_name = "providerCostMicros"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearOutputPricePerMillion() {
+    public Builder clearProviderCostMicros() {
       bitField0_ = (bitField0_ & ~0x00000100);
-      outputPricePerMillion_ = 0D;
-      onChanged();
-      return this;
-    }
-
-    private double cacheCreationPricePerMillion_ ;
-    /**
-     * <code>double cache_creation_price_per_million = 10 [json_name = "cacheCreationPricePerMillion"];</code>
-     * @return The cacheCreationPricePerMillion.
-     */
-    @java.lang.Override
-    public double getCacheCreationPricePerMillion() {
-      return cacheCreationPricePerMillion_;
-    }
-    /**
-     * <code>double cache_creation_price_per_million = 10 [json_name = "cacheCreationPricePerMillion"];</code>
-     * @param value The cacheCreationPricePerMillion to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCacheCreationPricePerMillion(double value) {
-
-      cacheCreationPricePerMillion_ = value;
-      bitField0_ |= 0x00000200;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>double cache_creation_price_per_million = 10 [json_name = "cacheCreationPricePerMillion"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCacheCreationPricePerMillion() {
-      bitField0_ = (bitField0_ & ~0x00000200);
-      cacheCreationPricePerMillion_ = 0D;
-      onChanged();
-      return this;
-    }
-
-    private double cacheReadPricePerMillion_ ;
-    /**
-     * <code>double cache_read_price_per_million = 11 [json_name = "cacheReadPricePerMillion"];</code>
-     * @return The cacheReadPricePerMillion.
-     */
-    @java.lang.Override
-    public double getCacheReadPricePerMillion() {
-      return cacheReadPricePerMillion_;
-    }
-    /**
-     * <code>double cache_read_price_per_million = 11 [json_name = "cacheReadPricePerMillion"];</code>
-     * @param value The cacheReadPricePerMillion to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCacheReadPricePerMillion(double value) {
-
-      cacheReadPricePerMillion_ = value;
-      bitField0_ |= 0x00000400;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>double cache_read_price_per_million = 11 [json_name = "cacheReadPricePerMillion"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCacheReadPricePerMillion() {
-      bitField0_ = (bitField0_ & ~0x00000400);
-      cacheReadPricePerMillion_ = 0D;
-      onChanged();
-      return this;
-    }
-
-    private double estimatedCostUsd_ ;
-    /**
-     * <code>double estimated_cost_usd = 12 [json_name = "estimatedCostUsd"];</code>
-     * @return The estimatedCostUsd.
-     */
-    @java.lang.Override
-    public double getEstimatedCostUsd() {
-      return estimatedCostUsd_;
-    }
-    /**
-     * <code>double estimated_cost_usd = 12 [json_name = "estimatedCostUsd"];</code>
-     * @param value The estimatedCostUsd to set.
-     * @return This builder for chaining.
-     */
-    public Builder setEstimatedCostUsd(double value) {
-
-      estimatedCostUsd_ = value;
-      bitField0_ |= 0x00000800;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>double estimated_cost_usd = 12 [json_name = "estimatedCostUsd"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearEstimatedCostUsd() {
-      bitField0_ = (bitField0_ & ~0x00000800);
-      estimatedCostUsd_ = 0D;
+      providerCostMicros_ = 0L;
       onChanged();
       return this;
     }

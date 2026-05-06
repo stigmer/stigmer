@@ -156,13 +156,13 @@ private static final long serialVersionUID = 0L;
   }
 
   public static final int TOTAL_USAGE_FIELD_NUMBER = 3;
-  private ai.stigmer.agentic.agentexecution.v1.UsageMetrics totalUsage_;
+  private ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate totalUsage_;
   /**
    * <pre>
    * Aggregated usage within the time range.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
    * @return Whether the totalUsage field is set.
    */
   @java.lang.Override
@@ -174,23 +174,23 @@ private static final long serialVersionUID = 0L;
    * Aggregated usage within the time range.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
    * @return The totalUsage.
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.UsageMetrics getTotalUsage() {
-    return totalUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.UsageMetrics.getDefaultInstance() : totalUsage_;
+  public ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate getTotalUsage() {
+    return totalUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.getDefaultInstance() : totalUsage_;
   }
   /**
    * <pre>
    * Aggregated usage within the time range.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder getTotalUsageOrBuilder() {
-    return totalUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.UsageMetrics.getDefaultInstance() : totalUsage_;
+  public ai.stigmer.agentic.agentexecution.v1.UsageReportAggregateOrBuilder getTotalUsageOrBuilder() {
+    return totalUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.getDefaultInstance() : totalUsage_;
   }
 
   public static final int MODEL_BREAKDOWN_FIELD_NUMBER = 4;
@@ -345,19 +345,19 @@ private static final long serialVersionUID = 0L;
     return totalExecutions_;
   }
 
-  public static final int TOTAL_COST_USD_FIELD_NUMBER = 8;
-  private double totalCostUsd_ = 0D;
+  public static final int TOTAL_BILLABLE_COST_MICROS_FIELD_NUMBER = 8;
+  private long totalBillableCostMicros_ = 0L;
   /**
    * <pre>
-   * Total cost in USD within the time range.
+   * Total billable cost in micro-USD within the time range.
    * </pre>
    *
-   * <code>double total_cost_usd = 8 [json_name = "totalCostUsd"];</code>
-   * @return The totalCostUsd.
+   * <code>int64 total_billable_cost_micros = 8 [json_name = "totalBillableCostMicros"];</code>
+   * @return The totalBillableCostMicros.
    */
   @java.lang.Override
-  public double getTotalCostUsd() {
-    return totalCostUsd_;
+  public long getTotalBillableCostMicros() {
+    return totalBillableCostMicros_;
   }
 
   public static final int NEXT_PAGE_TOKEN_FIELD_NUMBER = 9;
@@ -442,8 +442,8 @@ private static final long serialVersionUID = 0L;
     if (totalExecutions_ != 0) {
       output.writeInt32(7, totalExecutions_);
     }
-    if (java.lang.Double.doubleToRawLongBits(totalCostUsd_) != 0) {
-      output.writeDouble(8, totalCostUsd_);
+    if (totalBillableCostMicros_ != 0L) {
+      output.writeInt64(8, totalBillableCostMicros_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 9, nextPageToken_);
@@ -493,9 +493,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(7, totalExecutions_);
     }
-    if (java.lang.Double.doubleToRawLongBits(totalCostUsd_) != 0) {
+    if (totalBillableCostMicros_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
-        .computeDoubleSize(8, totalCostUsd_);
+        .computeInt64Size(8, totalBillableCostMicros_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(nextPageToken_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(9, nextPageToken_);
@@ -532,9 +532,8 @@ private static final long serialVersionUID = 0L;
         != other.getTotalSessions()) return false;
     if (getTotalExecutions()
         != other.getTotalExecutions()) return false;
-    if (java.lang.Double.doubleToLongBits(getTotalCostUsd())
-        != java.lang.Double.doubleToLongBits(
-            other.getTotalCostUsd())) return false;
+    if (getTotalBillableCostMicros()
+        != other.getTotalBillableCostMicros()) return false;
     if (!getNextPageToken()
         .equals(other.getNextPageToken())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -568,9 +567,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getTotalSessions();
     hash = (37 * hash) + TOTAL_EXECUTIONS_FIELD_NUMBER;
     hash = (53 * hash) + getTotalExecutions();
-    hash = (37 * hash) + TOTAL_COST_USD_FIELD_NUMBER;
+    hash = (37 * hash) + TOTAL_BILLABLE_COST_MICROS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        java.lang.Double.doubleToLongBits(getTotalCostUsd()));
+        getTotalBillableCostMicros());
     hash = (37 * hash) + NEXT_PAGE_TOKEN_FIELD_NUMBER;
     hash = (53 * hash) + getNextPageToken().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
@@ -742,7 +741,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = (bitField0_ & ~0x00000010);
       totalSessions_ = 0;
       totalExecutions_ = 0;
-      totalCostUsd_ = 0D;
+      totalBillableCostMicros_ = 0L;
       nextPageToken_ = "";
       return this;
     }
@@ -819,7 +818,7 @@ private static final long serialVersionUID = 0L;
         result.totalExecutions_ = totalExecutions_;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.totalCostUsd_ = totalCostUsd_;
+        result.totalBillableCostMicros_ = totalBillableCostMicros_;
       }
       if (((from_bitField0_ & 0x00000100) != 0)) {
         result.nextPageToken_ = nextPageToken_;
@@ -910,8 +909,8 @@ private static final long serialVersionUID = 0L;
       if (other.getTotalExecutions() != 0) {
         setTotalExecutions(other.getTotalExecutions());
       }
-      if (java.lang.Double.doubleToRawLongBits(other.getTotalCostUsd()) != 0) {
-        setTotalCostUsd(other.getTotalCostUsd());
+      if (other.getTotalBillableCostMicros() != 0L) {
+        setTotalBillableCostMicros(other.getTotalBillableCostMicros());
       }
       if (!other.getNextPageToken().isEmpty()) {
         nextPageToken_ = other.nextPageToken_;
@@ -997,11 +996,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 56
-            case 65: {
-              totalCostUsd_ = input.readDouble();
+            case 64: {
+              totalBillableCostMicros_ = input.readInt64();
               bitField0_ |= 0x00000080;
               break;
-            } // case 65
+            } // case 64
             case 74: {
               nextPageToken_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000100;
@@ -1208,15 +1207,15 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private ai.stigmer.agentic.agentexecution.v1.UsageMetrics totalUsage_;
+    private ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate totalUsage_;
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.UsageMetrics, ai.stigmer.agentic.agentexecution.v1.UsageMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder> totalUsageBuilder_;
+        ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate, ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.Builder, ai.stigmer.agentic.agentexecution.v1.UsageReportAggregateOrBuilder> totalUsageBuilder_;
     /**
      * <pre>
      * Aggregated usage within the time range.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      * @return Whether the totalUsage field is set.
      */
     public boolean hasTotalUsage() {
@@ -1227,12 +1226,12 @@ private static final long serialVersionUID = 0L;
      * Aggregated usage within the time range.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      * @return The totalUsage.
      */
-    public ai.stigmer.agentic.agentexecution.v1.UsageMetrics getTotalUsage() {
+    public ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate getTotalUsage() {
       if (totalUsageBuilder_ == null) {
-        return totalUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.UsageMetrics.getDefaultInstance() : totalUsage_;
+        return totalUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.getDefaultInstance() : totalUsage_;
       } else {
         return totalUsageBuilder_.getMessage();
       }
@@ -1242,9 +1241,9 @@ private static final long serialVersionUID = 0L;
      * Aggregated usage within the time range.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      */
-    public Builder setTotalUsage(ai.stigmer.agentic.agentexecution.v1.UsageMetrics value) {
+    public Builder setTotalUsage(ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate value) {
       if (totalUsageBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -1262,10 +1261,10 @@ private static final long serialVersionUID = 0L;
      * Aggregated usage within the time range.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      */
     public Builder setTotalUsage(
-        ai.stigmer.agentic.agentexecution.v1.UsageMetrics.Builder builderForValue) {
+        ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.Builder builderForValue) {
       if (totalUsageBuilder_ == null) {
         totalUsage_ = builderForValue.build();
       } else {
@@ -1280,13 +1279,13 @@ private static final long serialVersionUID = 0L;
      * Aggregated usage within the time range.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      */
-    public Builder mergeTotalUsage(ai.stigmer.agentic.agentexecution.v1.UsageMetrics value) {
+    public Builder mergeTotalUsage(ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate value) {
       if (totalUsageBuilder_ == null) {
         if (((bitField0_ & 0x00000004) != 0) &&
           totalUsage_ != null &&
-          totalUsage_ != ai.stigmer.agentic.agentexecution.v1.UsageMetrics.getDefaultInstance()) {
+          totalUsage_ != ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.getDefaultInstance()) {
           getTotalUsageBuilder().mergeFrom(value);
         } else {
           totalUsage_ = value;
@@ -1305,7 +1304,7 @@ private static final long serialVersionUID = 0L;
      * Aggregated usage within the time range.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      */
     public Builder clearTotalUsage() {
       bitField0_ = (bitField0_ & ~0x00000004);
@@ -1322,9 +1321,9 @@ private static final long serialVersionUID = 0L;
      * Aggregated usage within the time range.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.UsageMetrics.Builder getTotalUsageBuilder() {
+    public ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.Builder getTotalUsageBuilder() {
       bitField0_ |= 0x00000004;
       onChanged();
       return internalGetTotalUsageFieldBuilder().getBuilder();
@@ -1334,14 +1333,14 @@ private static final long serialVersionUID = 0L;
      * Aggregated usage within the time range.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder getTotalUsageOrBuilder() {
+    public ai.stigmer.agentic.agentexecution.v1.UsageReportAggregateOrBuilder getTotalUsageOrBuilder() {
       if (totalUsageBuilder_ != null) {
         return totalUsageBuilder_.getMessageOrBuilder();
       } else {
         return totalUsage_ == null ?
-            ai.stigmer.agentic.agentexecution.v1.UsageMetrics.getDefaultInstance() : totalUsage_;
+            ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.getDefaultInstance() : totalUsage_;
       }
     }
     /**
@@ -1349,14 +1348,14 @@ private static final long serialVersionUID = 0L;
      * Aggregated usage within the time range.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.UsageMetrics, ai.stigmer.agentic.agentexecution.v1.UsageMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder> 
+        ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate, ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.Builder, ai.stigmer.agentic.agentexecution.v1.UsageReportAggregateOrBuilder> 
         internalGetTotalUsageFieldBuilder() {
       if (totalUsageBuilder_ == null) {
         totalUsageBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.agentexecution.v1.UsageMetrics, ai.stigmer.agentic.agentexecution.v1.UsageMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder>(
+            ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate, ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.Builder, ai.stigmer.agentic.agentexecution.v1.UsageReportAggregateOrBuilder>(
                 getTotalUsage(),
                 getParentForChildren(),
                 isClean());
@@ -2077,46 +2076,46 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private double totalCostUsd_ ;
+    private long totalBillableCostMicros_ ;
     /**
      * <pre>
-     * Total cost in USD within the time range.
+     * Total billable cost in micro-USD within the time range.
      * </pre>
      *
-     * <code>double total_cost_usd = 8 [json_name = "totalCostUsd"];</code>
-     * @return The totalCostUsd.
+     * <code>int64 total_billable_cost_micros = 8 [json_name = "totalBillableCostMicros"];</code>
+     * @return The totalBillableCostMicros.
      */
     @java.lang.Override
-    public double getTotalCostUsd() {
-      return totalCostUsd_;
+    public long getTotalBillableCostMicros() {
+      return totalBillableCostMicros_;
     }
     /**
      * <pre>
-     * Total cost in USD within the time range.
+     * Total billable cost in micro-USD within the time range.
      * </pre>
      *
-     * <code>double total_cost_usd = 8 [json_name = "totalCostUsd"];</code>
-     * @param value The totalCostUsd to set.
+     * <code>int64 total_billable_cost_micros = 8 [json_name = "totalBillableCostMicros"];</code>
+     * @param value The totalBillableCostMicros to set.
      * @return This builder for chaining.
      */
-    public Builder setTotalCostUsd(double value) {
+    public Builder setTotalBillableCostMicros(long value) {
 
-      totalCostUsd_ = value;
+      totalBillableCostMicros_ = value;
       bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Total cost in USD within the time range.
+     * Total billable cost in micro-USD within the time range.
      * </pre>
      *
-     * <code>double total_cost_usd = 8 [json_name = "totalCostUsd"];</code>
+     * <code>int64 total_billable_cost_micros = 8 [json_name = "totalBillableCostMicros"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearTotalCostUsd() {
+    public Builder clearTotalBillableCostMicros() {
       bitField0_ = (bitField0_ & ~0x00000080);
-      totalCostUsd_ = 0D;
+      totalBillableCostMicros_ = 0L;
       onChanged();
       return this;
     }

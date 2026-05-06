@@ -5,7 +5,7 @@ from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from collections.abc import Iterable as _Iterable, Mapping as _Mapping
+from collections.abc import Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
@@ -199,7 +199,7 @@ class BillingLink(_message.Message):
     def __init__(self, debit_status: _Optional[_Union[BillingDebitStatus, str]] = ..., reservation_id: _Optional[str] = ..., billing_debit_id: _Optional[str] = ..., debited_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., billing_attempt_count: _Optional[int] = ..., last_billing_error: _Optional[str] = ...) -> None: ...
 
 class LlmCallUsageRecord(_message.Message):
-    __slots__ = ("usage_record_id", "execution_id", "root_execution_id", "sequence", "idempotency_key", "canonical_payload_hash", "observed_at", "created_at", "metering_source", "trust_level", "usage_status", "is_billable", "provider", "requested_model", "resolved_model", "endpoint", "streaming", "service_tier", "provider_request_id", "harness", "http_status_code", "finish_reason", "error_code", "tokens", "cost", "proxy_timing", "provider_usage_json", "billing", "labels")
+    __slots__ = ("usage_record_id", "execution_id", "root_execution_id", "sequence", "idempotency_key", "canonical_payload_hash", "observed_at", "created_at", "metering_source", "trust_level", "usage_status", "is_billable", "provider", "requested_model", "resolved_model", "endpoint", "streaming", "service_tier", "provider_request_id", "harness", "http_status_code", "finish_reason", "error_code", "tokens", "cost", "proxy_timing", "provider_usage_json", "billing", "org_id", "session_id", "labels")
     class LabelsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -235,6 +235,8 @@ class LlmCallUsageRecord(_message.Message):
     PROXY_TIMING_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_USAGE_JSON_FIELD_NUMBER: _ClassVar[int]
     BILLING_FIELD_NUMBER: _ClassVar[int]
+    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     LABELS_FIELD_NUMBER: _ClassVar[int]
     usage_record_id: str
     execution_id: str
@@ -264,67 +266,55 @@ class LlmCallUsageRecord(_message.Message):
     proxy_timing: ProxyTiming
     provider_usage_json: str
     billing: BillingLink
+    org_id: str
+    session_id: str
     labels: _containers.ScalarMap[str, str]
-    def __init__(self, usage_record_id: _Optional[str] = ..., execution_id: _Optional[str] = ..., root_execution_id: _Optional[str] = ..., sequence: _Optional[int] = ..., idempotency_key: _Optional[str] = ..., canonical_payload_hash: _Optional[str] = ..., observed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., metering_source: _Optional[_Union[UsageMeteringSource, str]] = ..., trust_level: _Optional[_Union[UsageTrustLevel, str]] = ..., usage_status: _Optional[_Union[UsageCompletionStatus, str]] = ..., is_billable: bool = ..., provider: _Optional[str] = ..., requested_model: _Optional[str] = ..., resolved_model: _Optional[str] = ..., endpoint: _Optional[str] = ..., streaming: bool = ..., service_tier: _Optional[str] = ..., provider_request_id: _Optional[str] = ..., harness: _Optional[str] = ..., http_status_code: _Optional[int] = ..., finish_reason: _Optional[str] = ..., error_code: _Optional[str] = ..., tokens: _Optional[_Union[TokenUsage, _Mapping]] = ..., cost: _Optional[_Union[CostStamp, _Mapping]] = ..., proxy_timing: _Optional[_Union[ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., billing: _Optional[_Union[BillingLink, _Mapping]] = ..., labels: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    def __init__(self, usage_record_id: _Optional[str] = ..., execution_id: _Optional[str] = ..., root_execution_id: _Optional[str] = ..., sequence: _Optional[int] = ..., idempotency_key: _Optional[str] = ..., canonical_payload_hash: _Optional[str] = ..., observed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., metering_source: _Optional[_Union[UsageMeteringSource, str]] = ..., trust_level: _Optional[_Union[UsageTrustLevel, str]] = ..., usage_status: _Optional[_Union[UsageCompletionStatus, str]] = ..., is_billable: bool = ..., provider: _Optional[str] = ..., requested_model: _Optional[str] = ..., resolved_model: _Optional[str] = ..., endpoint: _Optional[str] = ..., streaming: bool = ..., service_tier: _Optional[str] = ..., provider_request_id: _Optional[str] = ..., harness: _Optional[str] = ..., http_status_code: _Optional[int] = ..., finish_reason: _Optional[str] = ..., error_code: _Optional[str] = ..., tokens: _Optional[_Union[TokenUsage, _Mapping]] = ..., cost: _Optional[_Union[CostStamp, _Mapping]] = ..., proxy_timing: _Optional[_Union[ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., billing: _Optional[_Union[BillingLink, _Mapping]] = ..., org_id: _Optional[str] = ..., session_id: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
-class UsageMetrics(_message.Message):
-    __slots__ = ("prompt_tokens", "completion_tokens", "total_tokens", "llm_call_count", "primary_model", "cache_creation_tokens", "cache_read_tokens", "model_breakdown", "estimated_cost_usd", "tool_result_chars_truncated", "total_duration_ms", "llm_duration_ms", "tool_duration_ms", "approval_wait_duration_ms", "primary_provider")
-    PROMPT_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    COMPLETION_TOKENS_FIELD_NUMBER: _ClassVar[int]
+class UsageReportAggregate(_message.Message):
+    __slots__ = ("input_tokens", "output_tokens", "total_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "reasoning_tokens", "llm_call_count", "billable_cost_micros", "provider_cost_micros", "primary_model", "primary_provider")
+    INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    OUTPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     TOTAL_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    CACHE_CREATION_INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    CACHE_READ_INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    REASONING_TOKENS_FIELD_NUMBER: _ClassVar[int]
     LLM_CALL_COUNT_FIELD_NUMBER: _ClassVar[int]
+    BILLABLE_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
     PRIMARY_MODEL_FIELD_NUMBER: _ClassVar[int]
-    CACHE_CREATION_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    CACHE_READ_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    MODEL_BREAKDOWN_FIELD_NUMBER: _ClassVar[int]
-    ESTIMATED_COST_USD_FIELD_NUMBER: _ClassVar[int]
-    TOOL_RESULT_CHARS_TRUNCATED_FIELD_NUMBER: _ClassVar[int]
-    TOTAL_DURATION_MS_FIELD_NUMBER: _ClassVar[int]
-    LLM_DURATION_MS_FIELD_NUMBER: _ClassVar[int]
-    TOOL_DURATION_MS_FIELD_NUMBER: _ClassVar[int]
-    APPROVAL_WAIT_DURATION_MS_FIELD_NUMBER: _ClassVar[int]
     PRIMARY_PROVIDER_FIELD_NUMBER: _ClassVar[int]
-    prompt_tokens: int
-    completion_tokens: int
+    input_tokens: int
+    output_tokens: int
     total_tokens: int
+    cache_creation_input_tokens: int
+    cache_read_input_tokens: int
+    reasoning_tokens: int
     llm_call_count: int
+    billable_cost_micros: int
+    provider_cost_micros: int
     primary_model: str
-    cache_creation_tokens: int
-    cache_read_tokens: int
-    model_breakdown: _containers.RepeatedCompositeFieldContainer[ModelUsage]
-    estimated_cost_usd: float
-    tool_result_chars_truncated: int
-    total_duration_ms: int
-    llm_duration_ms: int
-    tool_duration_ms: int
-    approval_wait_duration_ms: int
     primary_provider: str
-    def __init__(self, prompt_tokens: _Optional[int] = ..., completion_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., llm_call_count: _Optional[int] = ..., primary_model: _Optional[str] = ..., cache_creation_tokens: _Optional[int] = ..., cache_read_tokens: _Optional[int] = ..., model_breakdown: _Optional[_Iterable[_Union[ModelUsage, _Mapping]]] = ..., estimated_cost_usd: _Optional[float] = ..., tool_result_chars_truncated: _Optional[int] = ..., total_duration_ms: _Optional[int] = ..., llm_duration_ms: _Optional[int] = ..., tool_duration_ms: _Optional[int] = ..., approval_wait_duration_ms: _Optional[int] = ..., primary_provider: _Optional[str] = ...) -> None: ...
+    def __init__(self, input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., cache_creation_input_tokens: _Optional[int] = ..., cache_read_input_tokens: _Optional[int] = ..., reasoning_tokens: _Optional[int] = ..., llm_call_count: _Optional[int] = ..., billable_cost_micros: _Optional[int] = ..., provider_cost_micros: _Optional[int] = ..., primary_model: _Optional[str] = ..., primary_provider: _Optional[str] = ...) -> None: ...
 
 class ModelUsage(_message.Message):
-    __slots__ = ("model", "provider", "input_tokens", "output_tokens", "cache_creation_tokens", "cache_read_tokens", "call_count", "input_price_per_million", "output_price_per_million", "cache_creation_price_per_million", "cache_read_price_per_million", "estimated_cost_usd")
+    __slots__ = ("model", "provider", "input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "call_count", "billable_cost_micros", "provider_cost_micros")
     MODEL_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
     INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     OUTPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    CACHE_CREATION_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    CACHE_READ_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    CACHE_CREATION_INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    CACHE_READ_INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     CALL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    INPUT_PRICE_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
-    OUTPUT_PRICE_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
-    CACHE_CREATION_PRICE_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
-    CACHE_READ_PRICE_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
-    ESTIMATED_COST_USD_FIELD_NUMBER: _ClassVar[int]
+    BILLABLE_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
     model: str
     provider: str
     input_tokens: int
     output_tokens: int
-    cache_creation_tokens: int
-    cache_read_tokens: int
+    cache_creation_input_tokens: int
+    cache_read_input_tokens: int
     call_count: int
-    input_price_per_million: float
-    output_price_per_million: float
-    cache_creation_price_per_million: float
-    cache_read_price_per_million: float
-    estimated_cost_usd: float
-    def __init__(self, model: _Optional[str] = ..., provider: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_creation_tokens: _Optional[int] = ..., cache_read_tokens: _Optional[int] = ..., call_count: _Optional[int] = ..., input_price_per_million: _Optional[float] = ..., output_price_per_million: _Optional[float] = ..., cache_creation_price_per_million: _Optional[float] = ..., cache_read_price_per_million: _Optional[float] = ..., estimated_cost_usd: _Optional[float] = ...) -> None: ...
+    billable_cost_micros: int
+    provider_cost_micros: int
+    def __init__(self, model: _Optional[str] = ..., provider: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_creation_input_tokens: _Optional[int] = ..., cache_read_input_tokens: _Optional[int] = ..., call_count: _Optional[int] = ..., billable_cost_micros: _Optional[int] = ..., provider_cost_micros: _Optional[int] = ...) -> None: ...

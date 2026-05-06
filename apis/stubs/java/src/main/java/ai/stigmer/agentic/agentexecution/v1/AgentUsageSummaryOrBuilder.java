@@ -62,21 +62,21 @@ public interface AgentUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Total tokens (prompt + completion) across all executions.
+   * Total tokens (input + output) across all executions.
    * </pre>
    *
-   * <code>int32 total_tokens = 4 [json_name = "totalTokens"];</code>
+   * <code>int64 total_tokens = 4 [json_name = "totalTokens"];</code>
    * @return The totalTokens.
    */
-  int getTotalTokens();
+  long getTotalTokens();
 
   /**
    * <pre>
-   * Total estimated cost in USD for this agent.
+   * Total billable cost in micro-USD for this agent.
    * </pre>
    *
-   * <code>double estimated_cost_usd = 5 [json_name = "estimatedCostUsd"];</code>
-   * @return The estimatedCostUsd.
+   * <code>int64 billable_cost_micros = 5 [json_name = "billableCostMicros"];</code>
+   * @return The billableCostMicros.
    */
-  double getEstimatedCostUsd();
+  long getBillableCostMicros();
 }

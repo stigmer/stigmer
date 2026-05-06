@@ -9,39 +9,39 @@ import (
 
 func TestRenderAgentUsageTable_BasicReport(t *testing.T) {
 	report := &agentexecutionv1.GetAgentUsageReportOutput{
-		AgentId:         "agt_abc",
-		AgentName:       "my-coding-assistant",
-		TotalSessions:   8,
-		TotalExecutions: 47,
-		TotalCostUsd:    4.12,
+		AgentId:                "agt_abc",
+		AgentName:              "my-coding-assistant",
+		TotalSessions:          8,
+		TotalExecutions:        47,
+		TotalBillableCostMicros: 4_120_000,
 		ModelBreakdown: []*agentexecutionv1.ModelUsage{
 			{
-				Model:            "claude-sonnet-4",
-				InputTokens:      800000,
-				OutputTokens:     45000,
-				EstimatedCostUsd: 4.02,
+				Model:              "claude-sonnet-4",
+				InputTokens:        800000,
+				OutputTokens:       45000,
+				BillableCostMicros: 4_020_000,
 			},
 			{
-				Model:            "claude-haiku-4",
-				InputTokens:      45000,
-				OutputTokens:     2400,
-				EstimatedCostUsd: 0.10,
+				Model:              "claude-haiku-4",
+				InputTokens:        45000,
+				OutputTokens:       2400,
+				BillableCostMicros: 100_000,
 			},
 		},
 		Sessions: []*agentexecutionv1.SessionUsageSummary{
 			{
-				SessionId:        "ses_001",
-				ExecutionCount:   6,
-				EstimatedCostUsd: 0.52,
-				FirstExecutionAt: "2026-03-01T10:00:00Z",
-				LastExecutionAt:  "2026-03-01T15:00:00Z",
+				SessionId:          "ses_001",
+				ExecutionCount:     6,
+				BillableCostMicros: 520_000,
+				FirstExecutionAt:   "2026-03-01T10:00:00Z",
+				LastExecutionAt:    "2026-03-01T15:00:00Z",
 			},
 			{
-				SessionId:        "ses_002",
-				ExecutionCount:   4,
-				EstimatedCostUsd: 0.41,
-				FirstExecutionAt: "2026-03-02T09:00:00Z",
-				LastExecutionAt:  "2026-03-03T11:00:00Z",
+				SessionId:          "ses_002",
+				ExecutionCount:     4,
+				BillableCostMicros: 410_000,
+				FirstExecutionAt:   "2026-03-02T09:00:00Z",
+				LastExecutionAt:    "2026-03-03T11:00:00Z",
 			},
 		},
 	}
@@ -75,9 +75,9 @@ func TestRenderAgentUsageTable_BasicReport(t *testing.T) {
 
 func TestRenderAgentUsageTable_FallsBackToAgentID(t *testing.T) {
 	report := &agentexecutionv1.GetAgentUsageReportOutput{
-		AgentId:         "agt_xyz",
-		TotalExecutions: 1,
-		TotalCostUsd:    0.05,
+		AgentId:                "agt_xyz",
+		TotalExecutions:        1,
+		TotalBillableCostMicros: 50_000,
 	}
 
 	output := captureStdout(t, func() {

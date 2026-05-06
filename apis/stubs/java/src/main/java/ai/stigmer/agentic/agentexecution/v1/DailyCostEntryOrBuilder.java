@@ -45,18 +45,18 @@ public interface DailyCostEntryOrBuilder extends
    * Total tokens consumed on this date.
    * </pre>
    *
-   * <code>int32 total_tokens = 3 [json_name = "totalTokens"];</code>
+   * <code>int64 total_tokens = 3 [json_name = "totalTokens"];</code>
    * @return The totalTokens.
    */
-  int getTotalTokens();
+  long getTotalTokens();
 
   /**
    * <pre>
-   * Total estimated cost in USD on this date.
+   * Total billable cost in micro-USD on this date.
    * </pre>
    *
-   * <code>double estimated_cost_usd = 4 [json_name = "estimatedCostUsd"];</code>
-   * @return The estimatedCostUsd.
+   * <code>int64 billable_cost_micros = 4 [json_name = "billableCostMicros"];</code>
+   * @return The billableCostMicros.
    */
-  double getEstimatedCostUsd();
+  long getBillableCostMicros();
 }
