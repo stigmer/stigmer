@@ -32,9 +32,9 @@ func summaryPanelWidth() int {
 //   - Completed: green success panel
 //   - Failed: red error panel with error message
 //   - Cancelled/Terminated: yellow warning panel
-func displayAgentExecutionComplete(execution *agentexecutionv1.AgentExecution) {
+func displayAgentExecutionComplete(execution *agentexecutionv1.AgentExecution, usage *agentexecutionv1.UsageReportAggregate) {
 	title, style := agentSummaryTitleAndStyle(execution.Status.Phase)
-	content := buildAgentSummaryContent(execution)
+	content := buildAgentSummaryContent(execution, usage)
 
 	fmt.Println()
 	fmt.Println(panel.Render(content, panel.Options{
@@ -69,7 +69,7 @@ func agentSummaryTitleAndStyle(phase agentexecutionv1.ExecutionPhase) (string, p
 
 // buildAgentSummaryContent assembles the labeled statistics displayed inside the
 // agent completion panel. For failures, the error message is shown first.
-func buildAgentSummaryContent(execution *agentexecutionv1.AgentExecution) string {
+func buildAgentSummaryContent(execution *agentexecutionv1.AgentExecution, usage *agentexecutionv1.UsageReportAggregate) string {
 	var sections []string
 
 	// Error message (failures only)
@@ -100,8 +100,7 @@ func buildAgentSummaryContent(execution *agentexecutionv1.AgentExecution) string
 		sections = append(sections, "Approval:    requested")
 	}
 
-	// Model, tokens, and cost (computed from per-message llm_metrics)
-	if usage := computeExecutionUsage(execution); usage != nil {
+	if usage != nil {
 		if label := formatModelLabel(usage); label != "" {
 			sections = append(sections, fmt.Sprintf("Model:       %s", label))
 		}
@@ -314,13 +313,13 @@ func resolveFailureError(execution *agentexecutionv1.AgentExecution) string {
 // displaySessionExitLine prints a compact summary after streaming ends for a
 // session-based command. The status line uses climsg for colored output on
 // stderr, followed by a copy-pasteable resume command.
-func displaySessionExitLine(sessionID string, exec *agentexecutionv1.AgentExecution) {
+func displaySessionExitLine(sessionID string, exec *agentexecutionv1.AgentExecution, usage *agentexecutionv1.UsageReportAggregate) {
 	fmt.Fprintln(os.Stderr)
 	phase := exec.GetStatus().GetPhase()
 	duration := parseDuration(exec.GetStatus().GetStartedAt(), exec.GetStatus().GetCompletedAt())
 	var costMicros int64
-	if u := computeExecutionUsage(exec); u != nil {
-		costMicros = u.BillableCostMicros
+	if usage != nil {
+		costMicros = usage.BillableCostMicros
 	}
 
 	switch phase {

@@ -760,11 +760,9 @@ Completed in the Usage Report Modernization session. `UsageAggregationService` n
 
 `UsageMetrics` deleted from `usage.proto`. `ModelUsage` redesigned with int64 tokens and int64 `billable_cost_micros`. All summary types (`ExecutionUsageSummary`, `SessionUsageSummary`, `AgentUsageSummary`, `DailyCostEntry`) upgraded. All consumers (CLI, React, Ink, web) migrated. Changelog: `_changelog/2026-05/2026-05-06-160616-usage-report-modernization.md`.
 
-### 3. Wire CLI `computeExecutionUsage` to `getExecutionUsageReport` RPC
+### 3. ~~Wire CLI `computeExecutionUsage` to `getExecutionUsageReport` RPC~~ — DONE (2026-05-06)
 
-**Context**: `computeExecutionUsage()` in `usage_format.go` returns nil. The return type was updated to `*UsageReportAggregate` and the `getExecutionUsageReport` RPC + handler exist, but the CLI function doesn't have the SDK client wired into its calling scope. Requires plumbing the `stigmer.Client` through `streamAgentEpilogue` → `displaySessionExitLine` / `displayAgentExecutionComplete`.
-
-**Priority**: Medium — the display infrastructure is ready, just needs the RPC call wired in.
+Completed in the CLI Usage Report Wiring session. Replaced `computeExecutionUsage` stub with `fetchExecutionUsage` that calls `GetExecutionUsageReport` RPC. Fixed broken OSS server build (11 errors from deleted `UsageMetrics`/`LlmCallMetrics` types). Added `GetExecutionUsageReport` handler to OSS server. Updated `streamAgentEpilogue`, `displayAgentExecutionComplete`, `displaySessionExitLine`, and `resume_session.go`. Changelog: `_changelog/2026-05/2026-05-06-174341-wire-cli-execution-usage-report.md`.
 
 ## Sub-Projects
 
