@@ -1,21 +1,31 @@
 package root
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"time"
 
+	stigmer "github.com/stigmer/stigmer/sdk/go"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	"gopkg.in/yaml.v3"
 )
 
-// computeExecutionUsage returns usage metrics for an execution.
-// Usage data lives in the llm_call_usage_record collection (billing domain)
-// and is not embedded on the execution document. Returns nil — the CLI will
-// be wired to query usage reports from the server in a follow-up.
-func computeExecutionUsage(_ *agentexecutionv1.AgentExecution) *agentexecutionv1.UsageReportAggregate {
-	return nil
+// fetchExecutionUsage calls the GetExecutionUsageReport RPC and returns the
+// aggregate. Returns nil on any error — usage display is best-effort
+// enrichment, not critical path.
+func fetchExecutionUsage(ctx context.Context, client *stigmer.Client, executionID string) *agentexecutionv1.UsageReportAggregate {
+	if client == nil || executionID == "" {
+		return nil
+	}
+	resp, err := client.AgentExecution.GetExecutionUsageReport(ctx, &agentexecutionv1.GetExecutionUsageReportInput{
+		ExecutionId: executionID,
+	})
+	if err != nil {
+		return nil
+	}
+	return resp.GetAggregate()
 }
 
 // formatCost renders a micro-USD cost as a human-readable USD string.

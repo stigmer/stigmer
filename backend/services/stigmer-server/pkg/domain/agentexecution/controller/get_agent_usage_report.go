@@ -142,20 +142,14 @@ func (s *buildAgentUsageReportStep) Execute(ctx *pipeline.RequestContext[*agente
 		sessionSummaries = append(sessionSummaries, buildSessionSummary(sid, group))
 	}
 
-	var totalCost float64
-	for _, exec := range executions {
-		totalCost += executionTotalCost(exec)
-	}
-
 	report := &agentexecutionv1.GetAgentUsageReportOutput{
 		AgentId:         agentID,
 		AgentName:       agentName,
-		TotalUsage:      aggregateUsageMetrics(executions),
+		TotalUsage:      aggregateUsageReport(executions),
 		ModelBreakdown:  mergeModelBreakdowns(executions),
 		Sessions:        sessionSummaries,
 		TotalSessions:   int32(len(bySession)),
 		TotalExecutions: int32(len(executions)),
-		TotalCostUsd:    totalCost,
 	}
 
 	ctx.Set(agentUsageReportKey, report)

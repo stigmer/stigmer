@@ -90,10 +90,12 @@ func streamAgentEpilogue(sessionID, executionID, phase, exitErr string, sdkClien
 		return nil, errors.Wrap(err, "failed to fetch final execution state")
 	}
 
+	usage := fetchExecutionUsage(context.Background(), sdkClient, finalExec.GetMetadata().GetId())
+
 	if sessionID != "" {
-		displaySessionExitLine(sessionID, finalExec)
+		displaySessionExitLine(sessionID, finalExec, usage)
 	} else {
-		displayAgentExecutionComplete(finalExec)
+		displayAgentExecutionComplete(finalExec, usage)
 	}
 
 	return finalExec, nil
