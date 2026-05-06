@@ -493,6 +493,8 @@ export type {
 export {
   useBillingAccount,
   useCreditLedger,
+  useBillingUsageReport,
+  useCustomerModelPricing,
   useCreateCheckoutSession,
   useCreateBillingPortalSession,
   useSetAutoRechargeConfig,
@@ -517,6 +519,8 @@ export type {
   UseBillingAccountReturn,
   UseCreditLedgerReturn,
   UseCreditLedgerOptions,
+  UseBillingUsageReportReturn,
+  UseCustomerModelPricingReturn,
   CreateCheckoutSessionInput,
   UseCreateCheckoutSessionReturn,
   UseCreateBillingPortalSessionReturn,

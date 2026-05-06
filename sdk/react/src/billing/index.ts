@@ -3,6 +3,10 @@ export { useBillingAccount } from "./useBillingAccount";
 export type { UseBillingAccountReturn } from "./useBillingAccount";
 export { useCreditLedger } from "./useCreditLedger";
 export type { UseCreditLedgerReturn, UseCreditLedgerOptions } from "./useCreditLedger";
+export { useBillingUsageReport } from "./useBillingUsageReport";
+export type { UseBillingUsageReportReturn } from "./useBillingUsageReport";
+export { useCustomerModelPricing } from "./useCustomerModelPricing";
+export type { UseCustomerModelPricingReturn } from "./useCustomerModelPricing";
 
 // Behavior hooks
 export { useCreateCheckoutSession } from "./useCreateCheckoutSession";

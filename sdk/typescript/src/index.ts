@@ -51,6 +51,8 @@ export {
   type CreateBillingPortalSessionParams,
   type SetAutoRechargeConfigParams,
   type GetCreditLedgerParams,
+  type GetBillingUsageReportParams,
+  type GetCustomerModelPricingParams,
 } from "./billing";
 
 // Search client
