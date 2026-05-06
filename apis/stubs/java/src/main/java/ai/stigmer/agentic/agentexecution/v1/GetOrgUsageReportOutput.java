@@ -151,19 +151,19 @@ private static final long serialVersionUID = 0L;
     return totalExecutions_;
   }
 
-  public static final int TOTAL_COST_USD_FIELD_NUMBER = 5;
-  private double totalCostUsd_ = 0D;
+  public static final int TOTAL_BILLABLE_COST_MICROS_FIELD_NUMBER = 5;
+  private long totalBillableCostMicros_ = 0L;
   /**
    * <pre>
-   * Total cost in USD across the organization in the time range.
+   * Total billable cost in micro-USD across the organization in the time range.
    * </pre>
    *
-   * <code>double total_cost_usd = 5 [json_name = "totalCostUsd"];</code>
-   * @return The totalCostUsd.
+   * <code>int64 total_billable_cost_micros = 5 [json_name = "totalBillableCostMicros"];</code>
+   * @return The totalBillableCostMicros.
    */
   @java.lang.Override
-  public double getTotalCostUsd() {
-    return totalCostUsd_;
+  public long getTotalBillableCostMicros() {
+    return totalBillableCostMicros_;
   }
 
   public static final int MODEL_BREAKDOWN_FIELD_NUMBER = 6;
@@ -232,7 +232,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary> topAgentsByCost_;
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -243,7 +243,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -255,7 +255,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -266,7 +266,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -277,7 +277,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -375,8 +375,8 @@ private static final long serialVersionUID = 0L;
     if (totalExecutions_ != 0) {
       output.writeInt32(4, totalExecutions_);
     }
-    if (java.lang.Double.doubleToRawLongBits(totalCostUsd_) != 0) {
-      output.writeDouble(5, totalCostUsd_);
+    if (totalBillableCostMicros_ != 0L) {
+      output.writeInt64(5, totalBillableCostMicros_);
     }
     for (int i = 0; i < modelBreakdown_.size(); i++) {
       output.writeMessage(6, modelBreakdown_.get(i));
@@ -411,9 +411,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(4, totalExecutions_);
     }
-    if (java.lang.Double.doubleToRawLongBits(totalCostUsd_) != 0) {
+    if (totalBillableCostMicros_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
-        .computeDoubleSize(5, totalCostUsd_);
+        .computeInt64Size(5, totalBillableCostMicros_);
     }
 
         {
@@ -465,9 +465,8 @@ private static final long serialVersionUID = 0L;
         != other.getTotalSessions()) return false;
     if (getTotalExecutions()
         != other.getTotalExecutions()) return false;
-    if (java.lang.Double.doubleToLongBits(getTotalCostUsd())
-        != java.lang.Double.doubleToLongBits(
-            other.getTotalCostUsd())) return false;
+    if (getTotalBillableCostMicros()
+        != other.getTotalBillableCostMicros()) return false;
     if (!getModelBreakdownList()
         .equals(other.getModelBreakdownList())) return false;
     if (!getTopAgentsByCostList()
@@ -493,9 +492,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getTotalSessions();
     hash = (37 * hash) + TOTAL_EXECUTIONS_FIELD_NUMBER;
     hash = (53 * hash) + getTotalExecutions();
-    hash = (37 * hash) + TOTAL_COST_USD_FIELD_NUMBER;
+    hash = (37 * hash) + TOTAL_BILLABLE_COST_MICROS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        java.lang.Double.doubleToLongBits(getTotalCostUsd()));
+        getTotalBillableCostMicros());
     if (getModelBreakdownCount() > 0) {
       hash = (37 * hash) + MODEL_BREAKDOWN_FIELD_NUMBER;
       hash = (53 * hash) + getModelBreakdownList().hashCode();
@@ -650,7 +649,7 @@ private static final long serialVersionUID = 0L;
       totalAgents_ = 0;
       totalSessions_ = 0;
       totalExecutions_ = 0;
-      totalCostUsd_ = 0D;
+      totalBillableCostMicros_ = 0L;
       if (modelBreakdownBuilder_ == null) {
         modelBreakdown_ = java.util.Collections.emptyList();
       } else {
@@ -749,7 +748,7 @@ private static final long serialVersionUID = 0L;
         result.totalExecutions_ = totalExecutions_;
       }
       if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.totalCostUsd_ = totalCostUsd_;
+        result.totalBillableCostMicros_ = totalBillableCostMicros_;
       }
     }
 
@@ -779,8 +778,8 @@ private static final long serialVersionUID = 0L;
       if (other.getTotalExecutions() != 0) {
         setTotalExecutions(other.getTotalExecutions());
       }
-      if (java.lang.Double.doubleToRawLongBits(other.getTotalCostUsd()) != 0) {
-        setTotalCostUsd(other.getTotalCostUsd());
+      if (other.getTotalBillableCostMicros() != 0L) {
+        setTotalBillableCostMicros(other.getTotalBillableCostMicros());
       }
       if (modelBreakdownBuilder_ == null) {
         if (!other.modelBreakdown_.isEmpty()) {
@@ -906,11 +905,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 32
-            case 41: {
-              totalCostUsd_ = input.readDouble();
+            case 40: {
+              totalBillableCostMicros_ = input.readInt64();
               bitField0_ |= 0x00000010;
               break;
-            } // case 41
+            } // case 40
             case 50: {
               ai.stigmer.agentic.agentexecution.v1.ModelUsage m =
                   input.readMessage(
@@ -1191,46 +1190,46 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private double totalCostUsd_ ;
+    private long totalBillableCostMicros_ ;
     /**
      * <pre>
-     * Total cost in USD across the organization in the time range.
+     * Total billable cost in micro-USD across the organization in the time range.
      * </pre>
      *
-     * <code>double total_cost_usd = 5 [json_name = "totalCostUsd"];</code>
-     * @return The totalCostUsd.
+     * <code>int64 total_billable_cost_micros = 5 [json_name = "totalBillableCostMicros"];</code>
+     * @return The totalBillableCostMicros.
      */
     @java.lang.Override
-    public double getTotalCostUsd() {
-      return totalCostUsd_;
+    public long getTotalBillableCostMicros() {
+      return totalBillableCostMicros_;
     }
     /**
      * <pre>
-     * Total cost in USD across the organization in the time range.
+     * Total billable cost in micro-USD across the organization in the time range.
      * </pre>
      *
-     * <code>double total_cost_usd = 5 [json_name = "totalCostUsd"];</code>
-     * @param value The totalCostUsd to set.
+     * <code>int64 total_billable_cost_micros = 5 [json_name = "totalBillableCostMicros"];</code>
+     * @param value The totalBillableCostMicros to set.
      * @return This builder for chaining.
      */
-    public Builder setTotalCostUsd(double value) {
+    public Builder setTotalBillableCostMicros(long value) {
 
-      totalCostUsd_ = value;
+      totalBillableCostMicros_ = value;
       bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Total cost in USD across the organization in the time range.
+     * Total billable cost in micro-USD across the organization in the time range.
      * </pre>
      *
-     * <code>double total_cost_usd = 5 [json_name = "totalCostUsd"];</code>
+     * <code>int64 total_billable_cost_micros = 5 [json_name = "totalBillableCostMicros"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearTotalCostUsd() {
+    public Builder clearTotalBillableCostMicros() {
       bitField0_ = (bitField0_ & ~0x00000010);
-      totalCostUsd_ = 0D;
+      totalBillableCostMicros_ = 0L;
       onChanged();
       return this;
     }
@@ -1561,7 +1560,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1575,7 +1574,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1589,7 +1588,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1603,7 +1602,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1624,7 +1623,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1642,7 +1641,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1662,7 +1661,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1683,7 +1682,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1701,7 +1700,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1719,7 +1718,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1738,7 +1737,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1755,7 +1754,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1772,7 +1771,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1783,7 +1782,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1797,7 +1796,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1812,7 +1811,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1823,7 +1822,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1835,7 +1834,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>

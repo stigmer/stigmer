@@ -62,13 +62,13 @@ public interface GetOrgUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * Total cost in USD across the organization in the time range.
+   * Total billable cost in micro-USD across the organization in the time range.
    * </pre>
    *
-   * <code>double total_cost_usd = 5 [json_name = "totalCostUsd"];</code>
-   * @return The totalCostUsd.
+   * <code>int64 total_billable_cost_micros = 5 [json_name = "totalBillableCostMicros"];</code>
+   * @return The totalBillableCostMicros.
    */
-  double getTotalCostUsd();
+  long getTotalBillableCostMicros();
 
   /**
    * <pre>
@@ -116,7 +116,7 @@ public interface GetOrgUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -125,7 +125,7 @@ public interface GetOrgUsageReportOutputOrBuilder extends
       getTopAgentsByCostList();
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -133,7 +133,7 @@ public interface GetOrgUsageReportOutputOrBuilder extends
   ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary getTopAgentsByCost(int index);
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -141,7 +141,7 @@ public interface GetOrgUsageReportOutputOrBuilder extends
   int getTopAgentsByCostCount();
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -150,7 +150,7 @@ public interface GetOrgUsageReportOutputOrBuilder extends
       getTopAgentsByCostOrBuilderList();
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>

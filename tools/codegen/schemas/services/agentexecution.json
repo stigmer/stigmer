@@ -151,12 +151,20 @@
           "description": "Read the raw content of an execution artifact.\n\n Returns artifact bytes through the Stigmer API, eliminating CORS\n concerns for SDK consumers who need to read content programmatically\n (e.g., YAML parsing for resource detection, in-app preview rendering).\n\n For direct file downloads, use getArtifactDownloadUrl instead — it\n returns a presigned R2 URL that avoids proxying bytes through the server.\n\n @internal\n\n ## Authorization\n\n Requires can_view permission on the execution. This ensures users can\n only read artifacts from executions they have access to.\n\n ## Security\n\n The storage_key is validated to ensure it belongs to the specified\n execution. Keys must start with \"artifacts/{execution_id}/\" to prevent\n path traversal attacks.\n\n ## Size Limit\n\n Content is truncated to max_bytes (default: 512 KB). The response\n includes total_size_bytes and a truncated flag so callers can decide\n whether to offer a full download via getArtifactDownloadUrl.\n\n ## Example Flow\n\n 1. Get execution via AgentExecutionQueryController.get\n 2. Find artifact in status.artifacts[]\n 3. Call getArtifactContent with execution_id and storage_key\n 4. Decode content bytes as UTF-8 for text artifacts\n 5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)"
         },
         {
+          "name": "GetExecutionUsageReport",
+          "inputType": "GetExecutionUsageReportInput",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput",
+          "outputType": "GetExecutionUsageReportOutput",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput",
+          "description": "Get a usage report for a single execution.\n\n Returns aggregated tokens, cost, and per-model breakdown for one execution."
+        },
+        {
           "name": "GetSessionUsageReport",
           "inputType": "GetSessionUsageReportInput",
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput",
           "outputType": "GetSessionUsageReportOutput",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput",
-          "description": "Get a usage report for a session.\n\n Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown."
+          "description": "Get a usage report for a session.\n\n Returns aggregated tokens, cost, and per-execution breakdown."
         },
         {
           "name": "GetAgentUsageReport",
@@ -803,6 +811,60 @@
       ]
     },
     {
+      "name": "GetExecutionUsageReportInput",
+      "description": "GetExecutionUsageReportInput requests a usage report for a single execution.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Execution ID to get usage report for.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetExecutionUsageReportOutput",
+      "description": "GetExecutionUsageReportOutput returns aggregated usage for one execution.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Aggregate",
+          "jsonName": "aggregate",
+          "protoField": "aggregate",
+          "type": {
+            "kind": "message",
+            "messageType": "UsageReportAggregate"
+          },
+          "description": "Aggregated token counts and cost for this execution.",
+          "required": false
+        },
+        {
+          "name": "ModelBreakdown",
+          "jsonName": "modelBreakdown",
+          "protoField": "model_breakdown",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ModelUsage"
+            }
+          },
+          "description": "Per-model breakdown within this execution.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "GetSessionUsageReportInput",
       "description": "GetSessionUsageReportInput requests a usage report for a single session.\n Aggregates cost and token data across all executions in the session.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput",
@@ -855,7 +917,7 @@
           "protoField": "total_usage",
           "type": {
             "kind": "message",
-            "messageType": "UsageMetrics"
+            "messageType": "UsageReportAggregate"
           },
           "description": "Aggregated usage across all executions in this session.",
           "required": false
@@ -886,16 +948,6 @@
             }
           },
           "description": "Per-model breakdown across the entire session.",
-          "required": false
-        },
-        {
-          "name": "TotalSummarizationCostUsd",
-          "jsonName": "totalSummarizationCostUsd",
-          "protoField": "total_summarization_cost_usd",
-          "type": {
-            "kind": "double"
-          },
-          "description": "Total summarization cost across all executions.",
           "required": false
         },
         {
@@ -1013,7 +1065,7 @@
           "protoField": "total_usage",
           "type": {
             "kind": "message",
-            "messageType": "UsageMetrics"
+            "messageType": "UsageReportAggregate"
           },
           "description": "Aggregated usage within the time range.",
           "required": false
@@ -1067,13 +1119,13 @@
           "required": false
         },
         {
-          "name": "TotalCostUsd",
-          "jsonName": "totalCostUsd",
-          "protoField": "total_cost_usd",
+          "name": "TotalBillableCostMicros",
+          "jsonName": "totalBillableCostMicros",
+          "protoField": "total_billable_cost_micros",
           "type": {
-            "kind": "double"
+            "kind": "int64"
           },
-          "description": "Total cost in USD within the time range.",
+          "description": "Total billable cost in micro-USD within the time range.",
           "required": false
         },
         {
@@ -1182,13 +1234,13 @@
           "required": false
         },
         {
-          "name": "TotalCostUsd",
-          "jsonName": "totalCostUsd",
-          "protoField": "total_cost_usd",
+          "name": "TotalBillableCostMicros",
+          "jsonName": "totalBillableCostMicros",
+          "protoField": "total_billable_cost_micros",
           "type": {
-            "kind": "double"
+            "kind": "int64"
           },
-          "description": "Total cost in USD across the organization in the time range.",
+          "description": "Total billable cost in micro-USD across the organization in the time range.",
           "required": false
         },
         {
@@ -1216,7 +1268,7 @@
               "messageType": "AgentUsageSummary"
             }
           },
-          "description": "Top agents by cost (top 10), ordered by estimated_cost_usd descending.",
+          "description": "Top agents by cost (top 10), ordered by billable_cost_micros descending.",
           "required": false
         },
         {

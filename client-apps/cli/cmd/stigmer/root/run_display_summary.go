@@ -108,8 +108,8 @@ func buildAgentSummaryContent(execution *agentexecutionv1.AgentExecution) string
 		if usage.TotalTokens > 0 {
 			sections = append(sections, fmt.Sprintf("Tokens:      %s (%s in, %s out)",
 				formatTokenCount(usage.TotalTokens),
-				formatTokenCount(usage.PromptTokens),
-				formatTokenCount(usage.CompletionTokens)))
+				formatTokenCount(usage.InputTokens),
+				formatTokenCount(usage.OutputTokens)))
 		}
 		if costLine := formatCostLine(usage); costLine != "" {
 			sections = append(sections, fmt.Sprintf("Cost:        %s", costLine))
@@ -120,8 +120,8 @@ func buildAgentSummaryContent(execution *agentexecutionv1.AgentExecution) string
 	if ctx := execution.Status.GetContextInfo(); ctx != nil && ctx.ContextWindowLimit > 0 {
 		utilPct := float64(ctx.CurrentTokenCount) / float64(ctx.ContextWindowLimit) * 100
 		sections = append(sections, fmt.Sprintf("Context:     %s / %s (%.0f%%)",
-			formatTokenCount(ctx.CurrentTokenCount),
-			formatTokenCount(ctx.ContextWindowLimit),
+			formatTokenCount(int64(ctx.CurrentTokenCount)),
+			formatTokenCount(int64(ctx.ContextWindowLimit)),
 			utilPct))
 	}
 
@@ -183,14 +183,14 @@ func hadApprovalWait(toolCalls []*agentexecutionv1.ToolCall) bool {
 }
 
 // formatTokenCount returns a human-readable token count (e.g., "12.5K", "1.2M").
-func formatTokenCount(count int32) string {
+func formatTokenCount(count int64) string {
 	if count < 1000 {
 		return fmt.Sprintf("%d", count)
 	}
-	if count < 1000000 {
+	if count < 1_000_000 {
 		return fmt.Sprintf("%.1fK", float64(count)/1000)
 	}
-	return fmt.Sprintf("%.1fM", float64(count)/1000000)
+	return fmt.Sprintf("%.1fM", float64(count)/1_000_000)
 }
 
 // displayWorkflowExecutionComplete renders the final workflow execution summary
@@ -318,15 +318,15 @@ func displaySessionExitLine(sessionID string, exec *agentexecutionv1.AgentExecut
 	fmt.Fprintln(os.Stderr)
 	phase := exec.GetStatus().GetPhase()
 	duration := parseDuration(exec.GetStatus().GetStartedAt(), exec.GetStatus().GetCompletedAt())
-	var cost float64
+	var costMicros int64
 	if u := computeExecutionUsage(exec); u != nil {
-		cost = u.EstimatedCostUsd
+		costMicros = u.BillableCostMicros
 	}
 
 	switch phase {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:
-		if duration > 0 && cost > 0 {
-			climsg.Success("Completed (%s · %s)", duration.Round(time.Second), formatCost(cost))
+		if duration > 0 && costMicros > 0 {
+			climsg.Success("Completed (%s · %s)", duration.Round(time.Second), formatCost(costMicros))
 		} else if duration > 0 {
 			climsg.Success("Completed (%s)", duration.Round(time.Second))
 		} else {

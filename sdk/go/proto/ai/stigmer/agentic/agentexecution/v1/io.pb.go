@@ -1702,6 +1702,107 @@ func (x *GetArtifactContentResponse) GetTruncated() bool {
 	return false
 }
 
+// GetExecutionUsageReportInput requests a usage report for a single execution.
+type GetExecutionUsageReportInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Execution ID to get usage report for.
+	ExecutionId   string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetExecutionUsageReportInput) Reset() {
+	*x = GetExecutionUsageReportInput{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetExecutionUsageReportInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetExecutionUsageReportInput) ProtoMessage() {}
+
+func (x *GetExecutionUsageReportInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetExecutionUsageReportInput.ProtoReflect.Descriptor instead.
+func (*GetExecutionUsageReportInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *GetExecutionUsageReportInput) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+// GetExecutionUsageReportOutput returns aggregated usage for one execution.
+type GetExecutionUsageReportOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Aggregated token counts and cost for this execution.
+	Aggregate *UsageReportAggregate `protobuf:"bytes,1,opt,name=aggregate,proto3" json:"aggregate,omitempty"`
+	// Per-model breakdown within this execution.
+	ModelBreakdown []*ModelUsage `protobuf:"bytes,2,rep,name=model_breakdown,json=modelBreakdown,proto3" json:"model_breakdown,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetExecutionUsageReportOutput) Reset() {
+	*x = GetExecutionUsageReportOutput{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetExecutionUsageReportOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetExecutionUsageReportOutput) ProtoMessage() {}
+
+func (x *GetExecutionUsageReportOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetExecutionUsageReportOutput.ProtoReflect.Descriptor instead.
+func (*GetExecutionUsageReportOutput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *GetExecutionUsageReportOutput) GetAggregate() *UsageReportAggregate {
+	if x != nil {
+		return x.Aggregate
+	}
+	return nil
+}
+
+func (x *GetExecutionUsageReportOutput) GetModelBreakdown() []*ModelUsage {
+	if x != nil {
+		return x.ModelBreakdown
+	}
+	return nil
+}
+
 // GetSessionUsageReportInput requests a usage report for a single session.
 // Aggregates cost and token data across all executions in the session.
 type GetSessionUsageReportInput struct {
@@ -1714,7 +1815,7 @@ type GetSessionUsageReportInput struct {
 
 func (x *GetSessionUsageReportInput) Reset() {
 	*x = GetSessionUsageReportInput{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[20]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1726,7 +1827,7 @@ func (x *GetSessionUsageReportInput) String() string {
 func (*GetSessionUsageReportInput) ProtoMessage() {}
 
 func (x *GetSessionUsageReportInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[20]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1739,7 +1840,7 @@ func (x *GetSessionUsageReportInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionUsageReportInput.ProtoReflect.Descriptor instead.
 func (*GetSessionUsageReportInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{20}
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetSessionUsageReportInput) GetSessionId() string {
@@ -1761,24 +1862,22 @@ type GetSessionUsageReportOutput struct {
 	// Total number of executions in this session.
 	ExecutionCount int32 `protobuf:"varint,2,opt,name=execution_count,json=executionCount,proto3" json:"execution_count,omitempty"`
 	// Aggregated usage across all executions in this session.
-	TotalUsage *UsageMetrics `protobuf:"bytes,3,opt,name=total_usage,json=totalUsage,proto3" json:"total_usage,omitempty"`
+	TotalUsage *UsageReportAggregate `protobuf:"bytes,3,opt,name=total_usage,json=totalUsage,proto3" json:"total_usage,omitempty"`
 	// Per-execution breakdown (ordered chronologically).
 	Executions []*ExecutionUsageSummary `protobuf:"bytes,4,rep,name=executions,proto3" json:"executions,omitempty"`
 	// Per-model breakdown across the entire session.
 	ModelBreakdown []*ModelUsage `protobuf:"bytes,5,rep,name=model_breakdown,json=modelBreakdown,proto3" json:"model_breakdown,omitempty"`
-	// Total summarization cost across all executions.
-	TotalSummarizationCostUsd float64 `protobuf:"fixed64,6,opt,name=total_summarization_cost_usd,json=totalSummarizationCostUsd,proto3" json:"total_summarization_cost_usd,omitempty"`
 	// ISO 8601 timestamp of the first execution in this session.
-	FirstExecutionAt string `protobuf:"bytes,7,opt,name=first_execution_at,json=firstExecutionAt,proto3" json:"first_execution_at,omitempty"`
+	FirstExecutionAt string `protobuf:"bytes,6,opt,name=first_execution_at,json=firstExecutionAt,proto3" json:"first_execution_at,omitempty"`
 	// ISO 8601 timestamp of the most recent execution in this session.
-	LastExecutionAt string `protobuf:"bytes,8,opt,name=last_execution_at,json=lastExecutionAt,proto3" json:"last_execution_at,omitempty"`
+	LastExecutionAt string `protobuf:"bytes,7,opt,name=last_execution_at,json=lastExecutionAt,proto3" json:"last_execution_at,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *GetSessionUsageReportOutput) Reset() {
 	*x = GetSessionUsageReportOutput{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[21]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1790,7 +1889,7 @@ func (x *GetSessionUsageReportOutput) String() string {
 func (*GetSessionUsageReportOutput) ProtoMessage() {}
 
 func (x *GetSessionUsageReportOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[21]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1803,7 +1902,7 @@ func (x *GetSessionUsageReportOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionUsageReportOutput.ProtoReflect.Descriptor instead.
 func (*GetSessionUsageReportOutput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{21}
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *GetSessionUsageReportOutput) GetSessionId() string {
@@ -1820,7 +1919,7 @@ func (x *GetSessionUsageReportOutput) GetExecutionCount() int32 {
 	return 0
 }
 
-func (x *GetSessionUsageReportOutput) GetTotalUsage() *UsageMetrics {
+func (x *GetSessionUsageReportOutput) GetTotalUsage() *UsageReportAggregate {
 	if x != nil {
 		return x.TotalUsage
 	}
@@ -1839,13 +1938,6 @@ func (x *GetSessionUsageReportOutput) GetModelBreakdown() []*ModelUsage {
 		return x.ModelBreakdown
 	}
 	return nil
-}
-
-func (x *GetSessionUsageReportOutput) GetTotalSummarizationCostUsd() float64 {
-	if x != nil {
-		return x.TotalSummarizationCostUsd
-	}
-	return 0
 }
 
 func (x *GetSessionUsageReportOutput) GetFirstExecutionAt() string {
@@ -1885,7 +1977,7 @@ type GetAgentUsageReportInput struct {
 
 func (x *GetAgentUsageReportInput) Reset() {
 	*x = GetAgentUsageReportInput{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[22]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1897,7 +1989,7 @@ func (x *GetAgentUsageReportInput) String() string {
 func (*GetAgentUsageReportInput) ProtoMessage() {}
 
 func (x *GetAgentUsageReportInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[22]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1910,7 +2002,7 @@ func (x *GetAgentUsageReportInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAgentUsageReportInput.ProtoReflect.Descriptor instead.
 func (*GetAgentUsageReportInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{22}
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *GetAgentUsageReportInput) GetAgentId() string {
@@ -1959,7 +2051,7 @@ type GetAgentUsageReportOutput struct {
 	// Human-readable agent name for display.
 	AgentName string `protobuf:"bytes,2,opt,name=agent_name,json=agentName,proto3" json:"agent_name,omitempty"`
 	// Aggregated usage within the time range.
-	TotalUsage *UsageMetrics `protobuf:"bytes,3,opt,name=total_usage,json=totalUsage,proto3" json:"total_usage,omitempty"`
+	TotalUsage *UsageReportAggregate `protobuf:"bytes,3,opt,name=total_usage,json=totalUsage,proto3" json:"total_usage,omitempty"`
 	// Per-model breakdown across the agent's executions.
 	ModelBreakdown []*ModelUsage `protobuf:"bytes,4,rep,name=model_breakdown,json=modelBreakdown,proto3" json:"model_breakdown,omitempty"`
 	// Per-session breakdown within the time range.
@@ -1968,8 +2060,8 @@ type GetAgentUsageReportOutput struct {
 	TotalSessions int32 `protobuf:"varint,6,opt,name=total_sessions,json=totalSessions,proto3" json:"total_sessions,omitempty"`
 	// Total number of executions within the time range.
 	TotalExecutions int32 `protobuf:"varint,7,opt,name=total_executions,json=totalExecutions,proto3" json:"total_executions,omitempty"`
-	// Total cost in USD within the time range.
-	TotalCostUsd float64 `protobuf:"fixed64,8,opt,name=total_cost_usd,json=totalCostUsd,proto3" json:"total_cost_usd,omitempty"`
+	// Total billable cost in micro-USD within the time range.
+	TotalBillableCostMicros int64 `protobuf:"varint,8,opt,name=total_billable_cost_micros,json=totalBillableCostMicros,proto3" json:"total_billable_cost_micros,omitempty"`
 	// Token for the next page of sessions (empty if no more pages).
 	NextPageToken string `protobuf:"bytes,9,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1978,7 +2070,7 @@ type GetAgentUsageReportOutput struct {
 
 func (x *GetAgentUsageReportOutput) Reset() {
 	*x = GetAgentUsageReportOutput{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[23]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1990,7 +2082,7 @@ func (x *GetAgentUsageReportOutput) String() string {
 func (*GetAgentUsageReportOutput) ProtoMessage() {}
 
 func (x *GetAgentUsageReportOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[23]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2003,7 +2095,7 @@ func (x *GetAgentUsageReportOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAgentUsageReportOutput.ProtoReflect.Descriptor instead.
 func (*GetAgentUsageReportOutput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{23}
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *GetAgentUsageReportOutput) GetAgentId() string {
@@ -2020,7 +2112,7 @@ func (x *GetAgentUsageReportOutput) GetAgentName() string {
 	return ""
 }
 
-func (x *GetAgentUsageReportOutput) GetTotalUsage() *UsageMetrics {
+func (x *GetAgentUsageReportOutput) GetTotalUsage() *UsageReportAggregate {
 	if x != nil {
 		return x.TotalUsage
 	}
@@ -2055,9 +2147,9 @@ func (x *GetAgentUsageReportOutput) GetTotalExecutions() int32 {
 	return 0
 }
 
-func (x *GetAgentUsageReportOutput) GetTotalCostUsd() float64 {
+func (x *GetAgentUsageReportOutput) GetTotalBillableCostMicros() int64 {
 	if x != nil {
-		return x.TotalCostUsd
+		return x.TotalBillableCostMicros
 	}
 	return 0
 }
@@ -2088,7 +2180,7 @@ type GetOrgUsageReportInput struct {
 
 func (x *GetOrgUsageReportInput) Reset() {
 	*x = GetOrgUsageReportInput{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[24]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2100,7 +2192,7 @@ func (x *GetOrgUsageReportInput) String() string {
 func (*GetOrgUsageReportInput) ProtoMessage() {}
 
 func (x *GetOrgUsageReportInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[24]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2113,7 +2205,7 @@ func (x *GetOrgUsageReportInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrgUsageReportInput.ProtoReflect.Descriptor instead.
 func (*GetOrgUsageReportInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{24}
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetOrgUsageReportInput) GetOrgId() string {
@@ -2151,11 +2243,11 @@ type GetOrgUsageReportOutput struct {
 	TotalSessions int32 `protobuf:"varint,3,opt,name=total_sessions,json=totalSessions,proto3" json:"total_sessions,omitempty"`
 	// Total executions across all agents in the time range.
 	TotalExecutions int32 `protobuf:"varint,4,opt,name=total_executions,json=totalExecutions,proto3" json:"total_executions,omitempty"`
-	// Total cost in USD across the organization in the time range.
-	TotalCostUsd float64 `protobuf:"fixed64,5,opt,name=total_cost_usd,json=totalCostUsd,proto3" json:"total_cost_usd,omitempty"`
+	// Total billable cost in micro-USD across the organization in the time range.
+	TotalBillableCostMicros int64 `protobuf:"varint,5,opt,name=total_billable_cost_micros,json=totalBillableCostMicros,proto3" json:"total_billable_cost_micros,omitempty"`
 	// Per-model breakdown across the organization.
 	ModelBreakdown []*ModelUsage `protobuf:"bytes,6,rep,name=model_breakdown,json=modelBreakdown,proto3" json:"model_breakdown,omitempty"`
-	// Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+	// Top agents by cost (top 10), ordered by billable_cost_micros descending.
 	TopAgentsByCost []*AgentUsageSummary `protobuf:"bytes,7,rep,name=top_agents_by_cost,json=topAgentsByCost,proto3" json:"top_agents_by_cost,omitempty"`
 	// Daily cost trend within the time range, ordered chronologically.
 	DailyCosts    []*DailyCostEntry `protobuf:"bytes,8,rep,name=daily_costs,json=dailyCosts,proto3" json:"daily_costs,omitempty"`
@@ -2165,7 +2257,7 @@ type GetOrgUsageReportOutput struct {
 
 func (x *GetOrgUsageReportOutput) Reset() {
 	*x = GetOrgUsageReportOutput{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[25]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2177,7 +2269,7 @@ func (x *GetOrgUsageReportOutput) String() string {
 func (*GetOrgUsageReportOutput) ProtoMessage() {}
 
 func (x *GetOrgUsageReportOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[25]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2190,7 +2282,7 @@ func (x *GetOrgUsageReportOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrgUsageReportOutput.ProtoReflect.Descriptor instead.
 func (*GetOrgUsageReportOutput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{25}
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *GetOrgUsageReportOutput) GetOrgId() string {
@@ -2221,9 +2313,9 @@ func (x *GetOrgUsageReportOutput) GetTotalExecutions() int32 {
 	return 0
 }
 
-func (x *GetOrgUsageReportOutput) GetTotalCostUsd() float64 {
+func (x *GetOrgUsageReportOutput) GetTotalBillableCostMicros() int64 {
 	if x != nil {
-		return x.TotalCostUsd
+		return x.TotalBillableCostMicros
 	}
 	return 0
 }
@@ -2249,9 +2341,7 @@ func (x *GetOrgUsageReportOutput) GetDailyCosts() []*DailyCostEntry {
 	return nil
 }
 
-// ExecutionUsageSummary is a lightweight view of a single execution's usage.
-// Used in session-level reports for per-execution breakdown without returning
-// the full AgentExecution resource.
+// Lightweight view of a single execution's usage within a session report.
 type ExecutionUsageSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Execution identifier.
@@ -2260,14 +2350,14 @@ type ExecutionUsageSummary struct {
 	StartedAt string `protobuf:"bytes,2,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
 	// ISO 8601 timestamp when execution completed.
 	CompletedAt string `protobuf:"bytes,3,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
-	// Total input tokens for this execution.
-	PromptTokens int32 `protobuf:"varint,4,opt,name=prompt_tokens,json=promptTokens,proto3" json:"prompt_tokens,omitempty"`
-	// Total output tokens for this execution.
-	CompletionTokens int32 `protobuf:"varint,5,opt,name=completion_tokens,json=completionTokens,proto3" json:"completion_tokens,omitempty"`
+	// Input tokens for this execution.
+	InputTokens int64 `protobuf:"varint,4,opt,name=input_tokens,json=inputTokens,proto3" json:"input_tokens,omitempty"`
+	// Output tokens for this execution.
+	OutputTokens int64 `protobuf:"varint,5,opt,name=output_tokens,json=outputTokens,proto3" json:"output_tokens,omitempty"`
 	// Cache read tokens for this execution.
-	CacheReadTokens int32 `protobuf:"varint,6,opt,name=cache_read_tokens,json=cacheReadTokens,proto3" json:"cache_read_tokens,omitempty"`
-	// Estimated cost in USD for this execution.
-	EstimatedCostUsd float64 `protobuf:"fixed64,7,opt,name=estimated_cost_usd,json=estimatedCostUsd,proto3" json:"estimated_cost_usd,omitempty"`
+	CacheReadInputTokens int64 `protobuf:"varint,6,opt,name=cache_read_input_tokens,json=cacheReadInputTokens,proto3" json:"cache_read_input_tokens,omitempty"`
+	// Billable cost in micro-USD for this execution.
+	BillableCostMicros int64 `protobuf:"varint,7,opt,name=billable_cost_micros,json=billableCostMicros,proto3" json:"billable_cost_micros,omitempty"`
 	// Primary model used for this execution.
 	PrimaryModel string `protobuf:"bytes,8,opt,name=primary_model,json=primaryModel,proto3" json:"primary_model,omitempty"`
 	// Number of sub-agent invocations in this execution.
@@ -2280,7 +2370,7 @@ type ExecutionUsageSummary struct {
 
 func (x *ExecutionUsageSummary) Reset() {
 	*x = ExecutionUsageSummary{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[26]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2292,7 +2382,7 @@ func (x *ExecutionUsageSummary) String() string {
 func (*ExecutionUsageSummary) ProtoMessage() {}
 
 func (x *ExecutionUsageSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[26]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2305,7 +2395,7 @@ func (x *ExecutionUsageSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecutionUsageSummary.ProtoReflect.Descriptor instead.
 func (*ExecutionUsageSummary) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{26}
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ExecutionUsageSummary) GetExecutionId() string {
@@ -2329,30 +2419,30 @@ func (x *ExecutionUsageSummary) GetCompletedAt() string {
 	return ""
 }
 
-func (x *ExecutionUsageSummary) GetPromptTokens() int32 {
+func (x *ExecutionUsageSummary) GetInputTokens() int64 {
 	if x != nil {
-		return x.PromptTokens
+		return x.InputTokens
 	}
 	return 0
 }
 
-func (x *ExecutionUsageSummary) GetCompletionTokens() int32 {
+func (x *ExecutionUsageSummary) GetOutputTokens() int64 {
 	if x != nil {
-		return x.CompletionTokens
+		return x.OutputTokens
 	}
 	return 0
 }
 
-func (x *ExecutionUsageSummary) GetCacheReadTokens() int32 {
+func (x *ExecutionUsageSummary) GetCacheReadInputTokens() int64 {
 	if x != nil {
-		return x.CacheReadTokens
+		return x.CacheReadInputTokens
 	}
 	return 0
 }
 
-func (x *ExecutionUsageSummary) GetEstimatedCostUsd() float64 {
+func (x *ExecutionUsageSummary) GetBillableCostMicros() int64 {
 	if x != nil {
-		return x.EstimatedCostUsd
+		return x.BillableCostMicros
 	}
 	return 0
 }
@@ -2378,18 +2468,17 @@ func (x *ExecutionUsageSummary) GetPhase() ExecutionPhase {
 	return ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED
 }
 
-// SessionUsageSummary is a lightweight view of a session's usage.
-// Used in agent-level reports for per-session breakdown.
+// Lightweight view of a session's usage within an agent report.
 type SessionUsageSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Session identifier.
 	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// Number of executions in this session.
 	ExecutionCount int32 `protobuf:"varint,2,opt,name=execution_count,json=executionCount,proto3" json:"execution_count,omitempty"`
-	// Total tokens (prompt + completion) across all executions.
-	TotalTokens int32 `protobuf:"varint,3,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
-	// Total estimated cost in USD for this session.
-	EstimatedCostUsd float64 `protobuf:"fixed64,4,opt,name=estimated_cost_usd,json=estimatedCostUsd,proto3" json:"estimated_cost_usd,omitempty"`
+	// Total tokens (input + output) across all executions.
+	TotalTokens int64 `protobuf:"varint,3,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
+	// Total billable cost in micro-USD for this session.
+	BillableCostMicros int64 `protobuf:"varint,4,opt,name=billable_cost_micros,json=billableCostMicros,proto3" json:"billable_cost_micros,omitempty"`
 	// ISO 8601 timestamp of the first execution in this session.
 	FirstExecutionAt string `protobuf:"bytes,5,opt,name=first_execution_at,json=firstExecutionAt,proto3" json:"first_execution_at,omitempty"`
 	// ISO 8601 timestamp of the most recent execution in this session.
@@ -2400,7 +2489,7 @@ type SessionUsageSummary struct {
 
 func (x *SessionUsageSummary) Reset() {
 	*x = SessionUsageSummary{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[27]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2412,7 +2501,7 @@ func (x *SessionUsageSummary) String() string {
 func (*SessionUsageSummary) ProtoMessage() {}
 
 func (x *SessionUsageSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[27]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2425,7 +2514,7 @@ func (x *SessionUsageSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionUsageSummary.ProtoReflect.Descriptor instead.
 func (*SessionUsageSummary) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{27}
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *SessionUsageSummary) GetSessionId() string {
@@ -2442,16 +2531,16 @@ func (x *SessionUsageSummary) GetExecutionCount() int32 {
 	return 0
 }
 
-func (x *SessionUsageSummary) GetTotalTokens() int32 {
+func (x *SessionUsageSummary) GetTotalTokens() int64 {
 	if x != nil {
 		return x.TotalTokens
 	}
 	return 0
 }
 
-func (x *SessionUsageSummary) GetEstimatedCostUsd() float64 {
+func (x *SessionUsageSummary) GetBillableCostMicros() int64 {
 	if x != nil {
-		return x.EstimatedCostUsd
+		return x.BillableCostMicros
 	}
 	return 0
 }
@@ -2470,8 +2559,7 @@ func (x *SessionUsageSummary) GetLastExecutionAt() string {
 	return ""
 }
 
-// AgentUsageSummary is a lightweight view of an agent's usage.
-// Used in org-level reports to show top agents by cost.
+// Lightweight view of an agent's usage within an org report.
 type AgentUsageSummary struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Agent identifier.
@@ -2480,17 +2568,17 @@ type AgentUsageSummary struct {
 	AgentName string `protobuf:"bytes,2,opt,name=agent_name,json=agentName,proto3" json:"agent_name,omitempty"`
 	// Total executions for this agent in the time range.
 	ExecutionCount int32 `protobuf:"varint,3,opt,name=execution_count,json=executionCount,proto3" json:"execution_count,omitempty"`
-	// Total tokens (prompt + completion) across all executions.
-	TotalTokens int32 `protobuf:"varint,4,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
-	// Total estimated cost in USD for this agent.
-	EstimatedCostUsd float64 `protobuf:"fixed64,5,opt,name=estimated_cost_usd,json=estimatedCostUsd,proto3" json:"estimated_cost_usd,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Total tokens (input + output) across all executions.
+	TotalTokens int64 `protobuf:"varint,4,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
+	// Total billable cost in micro-USD for this agent.
+	BillableCostMicros int64 `protobuf:"varint,5,opt,name=billable_cost_micros,json=billableCostMicros,proto3" json:"billable_cost_micros,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *AgentUsageSummary) Reset() {
 	*x = AgentUsageSummary{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[28]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2502,7 +2590,7 @@ func (x *AgentUsageSummary) String() string {
 func (*AgentUsageSummary) ProtoMessage() {}
 
 func (x *AgentUsageSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[28]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2515,7 +2603,7 @@ func (x *AgentUsageSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentUsageSummary.ProtoReflect.Descriptor instead.
 func (*AgentUsageSummary) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{28}
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *AgentUsageSummary) GetAgentId() string {
@@ -2539,22 +2627,21 @@ func (x *AgentUsageSummary) GetExecutionCount() int32 {
 	return 0
 }
 
-func (x *AgentUsageSummary) GetTotalTokens() int32 {
+func (x *AgentUsageSummary) GetTotalTokens() int64 {
 	if x != nil {
 		return x.TotalTokens
 	}
 	return 0
 }
 
-func (x *AgentUsageSummary) GetEstimatedCostUsd() float64 {
+func (x *AgentUsageSummary) GetBillableCostMicros() int64 {
 	if x != nil {
-		return x.EstimatedCostUsd
+		return x.BillableCostMicros
 	}
 	return 0
 }
 
-// DailyCostEntry represents cost and usage for a single day.
-// Used in org-level reports to show daily cost trends.
+// Cost and usage for a single day within an org report.
 type DailyCostEntry struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Date in YYYY-MM-DD format.
@@ -2562,16 +2649,16 @@ type DailyCostEntry struct {
 	// Number of executions on this date.
 	ExecutionCount int32 `protobuf:"varint,2,opt,name=execution_count,json=executionCount,proto3" json:"execution_count,omitempty"`
 	// Total tokens consumed on this date.
-	TotalTokens int32 `protobuf:"varint,3,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
-	// Total estimated cost in USD on this date.
-	EstimatedCostUsd float64 `protobuf:"fixed64,4,opt,name=estimated_cost_usd,json=estimatedCostUsd,proto3" json:"estimated_cost_usd,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	TotalTokens int64 `protobuf:"varint,3,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
+	// Total billable cost in micro-USD on this date.
+	BillableCostMicros int64 `protobuf:"varint,4,opt,name=billable_cost_micros,json=billableCostMicros,proto3" json:"billable_cost_micros,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *DailyCostEntry) Reset() {
 	*x = DailyCostEntry{}
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[29]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2583,7 +2670,7 @@ func (x *DailyCostEntry) String() string {
 func (*DailyCostEntry) ProtoMessage() {}
 
 func (x *DailyCostEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[29]
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2596,7 +2683,7 @@ func (x *DailyCostEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DailyCostEntry.ProtoReflect.Descriptor instead.
 func (*DailyCostEntry) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{29}
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *DailyCostEntry) GetDate() string {
@@ -2613,16 +2700,16 @@ func (x *DailyCostEntry) GetExecutionCount() int32 {
 	return 0
 }
 
-func (x *DailyCostEntry) GetTotalTokens() int32 {
+func (x *DailyCostEntry) GetTotalTokens() int64 {
 	if x != nil {
 		return x.TotalTokens
 	}
 	return 0
 }
 
-func (x *DailyCostEntry) GetEstimatedCostUsd() float64 {
+func (x *DailyCostEntry) GetBillableCostMicros() int64 {
 	if x != nil {
-		return x.EstimatedCostUsd
+		return x.BillableCostMicros
 	}
 	return 0
 }
@@ -2706,89 +2793,93 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\acontent\x18\x01 \x01(\fR\acontent\x12!\n" +
 	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\x12(\n" +
 	"\x10total_size_bytes\x18\x03 \x01(\x03R\x0etotalSizeBytes\x12\x1c\n" +
-	"\ttruncated\x18\x04 \x01(\bR\ttruncated\"D\n" +
+	"\ttruncated\x18\x04 \x01(\bR\ttruncated\"J\n" +
+	"\x1cGetExecutionUsageReportInput\x12*\n" +
+	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\"\xd4\x01\n" +
+	"\x1dGetExecutionUsageReportOutput\x12X\n" +
+	"\taggregate\x18\x01 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregateR\taggregate\x12Y\n" +
+	"\x0fmodel_breakdown\x18\x02 \x03(\v20.ai.stigmer.agentic.agentexecution.v1.ModelUsageR\x0emodelBreakdown\"D\n" +
 	"\x1aGetSessionUsageReportInput\x12&\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tsessionId\"\x8d\x04\n" +
+	"session_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tsessionId\"\xd4\x03\n" +
 	"\x1bGetSessionUsageReportOutput\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12'\n" +
-	"\x0fexecution_count\x18\x02 \x01(\x05R\x0eexecutionCount\x12S\n" +
-	"\vtotal_usage\x18\x03 \x01(\v22.ai.stigmer.agentic.agentexecution.v1.UsageMetricsR\n" +
+	"\x0fexecution_count\x18\x02 \x01(\x05R\x0eexecutionCount\x12[\n" +
+	"\vtotal_usage\x18\x03 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregateR\n" +
 	"totalUsage\x12[\n" +
 	"\n" +
 	"executions\x18\x04 \x03(\v2;.ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummaryR\n" +
 	"executions\x12Y\n" +
-	"\x0fmodel_breakdown\x18\x05 \x03(\v20.ai.stigmer.agentic.agentexecution.v1.ModelUsageR\x0emodelBreakdown\x12?\n" +
-	"\x1ctotal_summarization_cost_usd\x18\x06 \x01(\x01R\x19totalSummarizationCostUsd\x12,\n" +
-	"\x12first_execution_at\x18\a \x01(\tR\x10firstExecutionAt\x12*\n" +
-	"\x11last_execution_at\x18\b \x01(\tR\x0flastExecutionAt\"\xb0\x01\n" +
+	"\x0fmodel_breakdown\x18\x05 \x03(\v20.ai.stigmer.agentic.agentexecution.v1.ModelUsageR\x0emodelBreakdown\x12,\n" +
+	"\x12first_execution_at\x18\x06 \x01(\tR\x10firstExecutionAt\x12*\n" +
+	"\x11last_execution_at\x18\a \x01(\tR\x0flastExecutionAt\"\xb0\x01\n" +
 	"\x18GetAgentUsageReportInput\x12\"\n" +
 	"\bagent_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aagentId\x12\x1b\n" +
 	"\tfrom_date\x18\x02 \x01(\tR\bfromDate\x12\x17\n" +
 	"\ato_date\x18\x03 \x01(\tR\x06toDate\x12\x1b\n" +
 	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x05 \x01(\tR\tpageToken\"\xfc\x03\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\"\x9b\x04\n" +
 	"\x19GetAgentUsageReportOutput\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x1d\n" +
 	"\n" +
-	"agent_name\x18\x02 \x01(\tR\tagentName\x12S\n" +
-	"\vtotal_usage\x18\x03 \x01(\v22.ai.stigmer.agentic.agentexecution.v1.UsageMetricsR\n" +
+	"agent_name\x18\x02 \x01(\tR\tagentName\x12[\n" +
+	"\vtotal_usage\x18\x03 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregateR\n" +
 	"totalUsage\x12Y\n" +
 	"\x0fmodel_breakdown\x18\x04 \x03(\v20.ai.stigmer.agentic.agentexecution.v1.ModelUsageR\x0emodelBreakdown\x12U\n" +
 	"\bsessions\x18\x05 \x03(\v29.ai.stigmer.agentic.agentexecution.v1.SessionUsageSummaryR\bsessions\x12%\n" +
 	"\x0etotal_sessions\x18\x06 \x01(\x05R\rtotalSessions\x12)\n" +
-	"\x10total_executions\x18\a \x01(\x05R\x0ftotalExecutions\x12$\n" +
-	"\x0etotal_cost_usd\x18\b \x01(\x01R\ftotalCostUsd\x12&\n" +
+	"\x10total_executions\x18\a \x01(\x05R\x0ftotalExecutions\x12;\n" +
+	"\x1atotal_billable_cost_micros\x18\b \x01(\x03R\x17totalBillableCostMicros\x12&\n" +
 	"\x0fnext_page_token\x18\t \x01(\tR\rnextPageToken\"\x80\x01\n" +
 	"\x16GetOrgUsageReportInput\x12\x1e\n" +
 	"\x06org_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05orgId\x12$\n" +
 	"\tfrom_date\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bfromDate\x12 \n" +
-	"\ato_date\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06toDate\"\xe3\x03\n" +
+	"\ato_date\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06toDate\"\xfa\x03\n" +
 	"\x17GetOrgUsageReportOutput\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12!\n" +
 	"\ftotal_agents\x18\x02 \x01(\x05R\vtotalAgents\x12%\n" +
 	"\x0etotal_sessions\x18\x03 \x01(\x05R\rtotalSessions\x12)\n" +
-	"\x10total_executions\x18\x04 \x01(\x05R\x0ftotalExecutions\x12$\n" +
-	"\x0etotal_cost_usd\x18\x05 \x01(\x01R\ftotalCostUsd\x12Y\n" +
+	"\x10total_executions\x18\x04 \x01(\x05R\x0ftotalExecutions\x12;\n" +
+	"\x1atotal_billable_cost_micros\x18\x05 \x01(\x03R\x17totalBillableCostMicros\x12Y\n" +
 	"\x0fmodel_breakdown\x18\x06 \x03(\v20.ai.stigmer.agentic.agentexecution.v1.ModelUsageR\x0emodelBreakdown\x12d\n" +
 	"\x12top_agents_by_cost\x18\a \x03(\v27.ai.stigmer.agentic.agentexecution.v1.AgentUsageSummaryR\x0ftopAgentsByCost\x12U\n" +
 	"\vdaily_costs\x18\b \x03(\v24.ai.stigmer.agentic.agentexecution.v1.DailyCostEntryR\n" +
-	"dailyCosts\"\xc1\x03\n" +
+	"dailyCosts\"\xc6\x03\n" +
 	"\x15ExecutionUsageSummary\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12\x1d\n" +
 	"\n" +
 	"started_at\x18\x02 \x01(\tR\tstartedAt\x12!\n" +
-	"\fcompleted_at\x18\x03 \x01(\tR\vcompletedAt\x12#\n" +
-	"\rprompt_tokens\x18\x04 \x01(\x05R\fpromptTokens\x12+\n" +
-	"\x11completion_tokens\x18\x05 \x01(\x05R\x10completionTokens\x12*\n" +
-	"\x11cache_read_tokens\x18\x06 \x01(\x05R\x0fcacheReadTokens\x12,\n" +
-	"\x12estimated_cost_usd\x18\a \x01(\x01R\x10estimatedCostUsd\x12#\n" +
+	"\fcompleted_at\x18\x03 \x01(\tR\vcompletedAt\x12!\n" +
+	"\finput_tokens\x18\x04 \x01(\x03R\vinputTokens\x12#\n" +
+	"\routput_tokens\x18\x05 \x01(\x03R\foutputTokens\x125\n" +
+	"\x17cache_read_input_tokens\x18\x06 \x01(\x03R\x14cacheReadInputTokens\x120\n" +
+	"\x14billable_cost_micros\x18\a \x01(\x03R\x12billableCostMicros\x12#\n" +
 	"\rprimary_model\x18\b \x01(\tR\fprimaryModel\x12&\n" +
 	"\x0fsub_agent_count\x18\t \x01(\x05R\rsubAgentCount\x12J\n" +
 	"\x05phase\x18\n" +
-	" \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ExecutionPhaseR\x05phase\"\x88\x02\n" +
+	" \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ExecutionPhaseR\x05phase\"\x8c\x02\n" +
 	"\x13SessionUsageSummary\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12'\n" +
 	"\x0fexecution_count\x18\x02 \x01(\x05R\x0eexecutionCount\x12!\n" +
-	"\ftotal_tokens\x18\x03 \x01(\x05R\vtotalTokens\x12,\n" +
-	"\x12estimated_cost_usd\x18\x04 \x01(\x01R\x10estimatedCostUsd\x12,\n" +
+	"\ftotal_tokens\x18\x03 \x01(\x03R\vtotalTokens\x120\n" +
+	"\x14billable_cost_micros\x18\x04 \x01(\x03R\x12billableCostMicros\x12,\n" +
 	"\x12first_execution_at\x18\x05 \x01(\tR\x10firstExecutionAt\x12*\n" +
-	"\x11last_execution_at\x18\x06 \x01(\tR\x0flastExecutionAt\"\xc7\x01\n" +
+	"\x11last_execution_at\x18\x06 \x01(\tR\x0flastExecutionAt\"\xcb\x01\n" +
 	"\x11AgentUsageSummary\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x1d\n" +
 	"\n" +
 	"agent_name\x18\x02 \x01(\tR\tagentName\x12'\n" +
 	"\x0fexecution_count\x18\x03 \x01(\x05R\x0eexecutionCount\x12!\n" +
-	"\ftotal_tokens\x18\x04 \x01(\x05R\vtotalTokens\x12,\n" +
-	"\x12estimated_cost_usd\x18\x05 \x01(\x01R\x10estimatedCostUsd\"\x9e\x01\n" +
+	"\ftotal_tokens\x18\x04 \x01(\x03R\vtotalTokens\x120\n" +
+	"\x14billable_cost_micros\x18\x05 \x01(\x03R\x12billableCostMicros\"\xa2\x01\n" +
 	"\x0eDailyCostEntry\x12\x12\n" +
 	"\x04date\x18\x01 \x01(\tR\x04date\x12'\n" +
 	"\x0fexecution_count\x18\x02 \x01(\x05R\x0eexecutionCount\x12!\n" +
-	"\ftotal_tokens\x18\x03 \x01(\x05R\vtotalTokens\x12,\n" +
-	"\x12estimated_cost_usd\x18\x04 \x01(\x01R\x10estimatedCostUsdB\xc7\x02\n" +
+	"\ftotal_tokens\x18\x03 \x01(\x03R\vtotalTokens\x120\n" +
+	"\x14billable_cost_micros\x18\x04 \x01(\x03R\x12billableCostMicrosB\xc7\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\aIoProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -2803,7 +2894,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
+var file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_ai_stigmer_agentic_agentexecution_v1_io_proto_goTypes = []any{
 	(*AgentExecutionId)(nil),                    // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionId
 	(*SessionId)(nil),                           // 1: ai.stigmer.agentic.agentexecution.v1.SessionId
@@ -2825,46 +2916,50 @@ var file_ai_stigmer_agentic_agentexecution_v1_io_proto_goTypes = []any{
 	(*GetArtifactDownloadUrlResponse)(nil),      // 17: ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse
 	(*GetArtifactContentRequest)(nil),           // 18: ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest
 	(*GetArtifactContentResponse)(nil),          // 19: ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse
-	(*GetSessionUsageReportInput)(nil),          // 20: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput
-	(*GetSessionUsageReportOutput)(nil),         // 21: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput
-	(*GetAgentUsageReportInput)(nil),            // 22: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput
-	(*GetAgentUsageReportOutput)(nil),           // 23: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput
-	(*GetOrgUsageReportInput)(nil),              // 24: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput
-	(*GetOrgUsageReportOutput)(nil),             // 25: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput
-	(*ExecutionUsageSummary)(nil),               // 26: ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary
-	(*SessionUsageSummary)(nil),                 // 27: ai.stigmer.agentic.agentexecution.v1.SessionUsageSummary
-	(*AgentUsageSummary)(nil),                   // 28: ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary
-	(*DailyCostEntry)(nil),                      // 29: ai.stigmer.agentic.agentexecution.v1.DailyCostEntry
-	(*AgentExecution)(nil),                      // 30: ai.stigmer.agentic.agentexecution.v1.AgentExecution
-	(ExecutionPhase)(0),                         // 31: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	(*AgentExecutionStatus)(nil),                // 32: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
-	(ExecutionControlSignal)(0),                 // 33: ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
-	(ApprovalAction)(0),                         // 34: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(*UsageMetrics)(nil),                        // 35: ai.stigmer.agentic.agentexecution.v1.UsageMetrics
-	(*ModelUsage)(nil),                          // 36: ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	(*GetExecutionUsageReportInput)(nil),        // 20: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput
+	(*GetExecutionUsageReportOutput)(nil),       // 21: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput
+	(*GetSessionUsageReportInput)(nil),          // 22: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput
+	(*GetSessionUsageReportOutput)(nil),         // 23: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput
+	(*GetAgentUsageReportInput)(nil),            // 24: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput
+	(*GetAgentUsageReportOutput)(nil),           // 25: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput
+	(*GetOrgUsageReportInput)(nil),              // 26: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput
+	(*GetOrgUsageReportOutput)(nil),             // 27: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput
+	(*ExecutionUsageSummary)(nil),               // 28: ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary
+	(*SessionUsageSummary)(nil),                 // 29: ai.stigmer.agentic.agentexecution.v1.SessionUsageSummary
+	(*AgentUsageSummary)(nil),                   // 30: ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary
+	(*DailyCostEntry)(nil),                      // 31: ai.stigmer.agentic.agentexecution.v1.DailyCostEntry
+	(*AgentExecution)(nil),                      // 32: ai.stigmer.agentic.agentexecution.v1.AgentExecution
+	(ExecutionPhase)(0),                         // 33: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	(*AgentExecutionStatus)(nil),                // 34: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
+	(ExecutionControlSignal)(0),                 // 35: ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
+	(ApprovalAction)(0),                         // 36: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(*UsageReportAggregate)(nil),                // 37: ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
+	(*ModelUsage)(nil),                          // 38: ai.stigmer.agentic.agentexecution.v1.ModelUsage
 }
 var file_ai_stigmer_agentic_agentexecution_v1_io_proto_depIdxs = []int32{
-	30, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionList.entries:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
-	31, // 1: ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	32, // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
-	33, // 3: ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse.signal:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
-	34, // 4: ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	32, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionList.entries:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
+	33, // 1: ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	34, // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
+	35, // 3: ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse.signal:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
+	36, // 4: ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
 	7,  // 5: ai.stigmer.agentic.agentexecution.v1.ApprovalDecisionList.decisions:type_name -> ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput
-	35, // 6: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
-	26, // 7: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.executions:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary
-	36, // 8: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
-	35, // 9: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
-	36, // 10: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
-	27, // 11: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.sessions:type_name -> ai.stigmer.agentic.agentexecution.v1.SessionUsageSummary
-	36, // 12: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
-	28, // 13: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.top_agents_by_cost:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary
-	29, // 14: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.daily_costs:type_name -> ai.stigmer.agentic.agentexecution.v1.DailyCostEntry
-	31, // 15: ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	16, // [16:16] is the sub-list for method output_type
-	16, // [16:16] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	37, // 6: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput.aggregate:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
+	38, // 7: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	37, // 8: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
+	28, // 9: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.executions:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary
+	38, // 10: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	37, // 11: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
+	38, // 12: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	29, // 13: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.sessions:type_name -> ai.stigmer.agentic.agentexecution.v1.SessionUsageSummary
+	38, // 14: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	30, // 15: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.top_agents_by_cost:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary
+	31, // 16: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.daily_costs:type_name -> ai.stigmer.agentic.agentexecution.v1.DailyCostEntry
+	33, // 17: ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	18, // [18:18] is the sub-list for method output_type
+	18, // [18:18] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_io_proto_init() }
@@ -2881,7 +2976,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   30,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

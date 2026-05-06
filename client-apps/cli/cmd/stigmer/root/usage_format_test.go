@@ -17,32 +17,32 @@ func TestFormatCost_Zero(t *testing.T) {
 }
 
 func TestFormatCost_SubCent(t *testing.T) {
-	if got := formatCost(0.003); got != "$0.003" {
-		t.Errorf("formatCost(0.003) = %q, want $0.003", got)
+	if got := formatCost(3000); got != "$0.003" {
+		t.Errorf("formatCost(3000) = %q, want $0.003", got)
 	}
 }
 
 func TestFormatCost_SubDollar(t *testing.T) {
-	if got := formatCost(0.074); got != "$0.074" {
-		t.Errorf("formatCost(0.074) = %q, want $0.074", got)
+	if got := formatCost(74000); got != "$0.074" {
+		t.Errorf("formatCost(74000) = %q, want $0.074", got)
 	}
 }
 
 func TestFormatCost_ExactlyOneDollar(t *testing.T) {
-	if got := formatCost(1.0); got != "$1.00" {
-		t.Errorf("formatCost(1.0) = %q, want $1.00", got)
+	if got := formatCost(1_000_000); got != "$1.00" {
+		t.Errorf("formatCost(1_000_000) = %q, want $1.00", got)
 	}
 }
 
 func TestFormatCost_MultipleDollars(t *testing.T) {
-	if got := formatCost(18.42); got != "$18.42" {
-		t.Errorf("formatCost(18.42) = %q, want $18.42", got)
+	if got := formatCost(18_420_000); got != "$18.42" {
+		t.Errorf("formatCost(18_420_000) = %q, want $18.42", got)
 	}
 }
 
 func TestFormatCost_LargeAmount(t *testing.T) {
-	if got := formatCost(1234.56); got != "$1234.56" {
-		t.Errorf("formatCost(1234.56) = %q, want $1234.56", got)
+	if got := formatCost(1_234_560_000); got != "$1234.56" {
+		t.Errorf("formatCost(1_234_560_000) = %q, want $1234.56", got)
 	}
 }
 
@@ -56,22 +56,22 @@ func TestFormatCacheHitRate_NilUsage(t *testing.T) {
 	}
 }
 
-func TestFormatCacheHitRate_ZeroPromptTokens(t *testing.T) {
-	usage := &agentexecutionv1.UsageMetrics{PromptTokens: 0, CacheReadTokens: 100}
+func TestFormatCacheHitRate_ZeroInputTokens(t *testing.T) {
+	usage := &agentexecutionv1.UsageReportAggregate{InputTokens: 0, CacheReadInputTokens: 100}
 	if got := formatCacheHitRate(usage); got != "" {
-		t.Errorf("formatCacheHitRate(0 prompt) = %q, want empty", got)
+		t.Errorf("formatCacheHitRate(0 input) = %q, want empty", got)
 	}
 }
 
 func TestFormatCacheHitRate_ZeroCacheTokens(t *testing.T) {
-	usage := &agentexecutionv1.UsageMetrics{PromptTokens: 10000, CacheReadTokens: 0}
+	usage := &agentexecutionv1.UsageReportAggregate{InputTokens: 10000, CacheReadInputTokens: 0}
 	if got := formatCacheHitRate(usage); got != "" {
 		t.Errorf("formatCacheHitRate(0 cache) = %q, want empty", got)
 	}
 }
 
 func TestFormatCacheHitRate_TypicalRate(t *testing.T) {
-	usage := &agentexecutionv1.UsageMetrics{PromptTokens: 12450, CacheReadTokens: 10200}
+	usage := &agentexecutionv1.UsageReportAggregate{InputTokens: 12450, CacheReadInputTokens: 10200}
 	got := formatCacheHitRate(usage)
 	if got != "82% cached" {
 		t.Errorf("formatCacheHitRate(10200/12450) = %q, want '82%% cached'", got)
@@ -79,7 +79,7 @@ func TestFormatCacheHitRate_TypicalRate(t *testing.T) {
 }
 
 func TestFormatCacheHitRate_FullCache(t *testing.T) {
-	usage := &agentexecutionv1.UsageMetrics{PromptTokens: 5000, CacheReadTokens: 5000}
+	usage := &agentexecutionv1.UsageReportAggregate{InputTokens: 5000, CacheReadInputTokens: 5000}
 	got := formatCacheHitRate(usage)
 	if got != "100% cached" {
 		t.Errorf("formatCacheHitRate(full) = %q, want '100%% cached'", got)
@@ -97,86 +97,27 @@ func TestFormatModelLabel_NilUsage(t *testing.T) {
 }
 
 func TestFormatModelLabel_EmptyModel(t *testing.T) {
-	usage := &agentexecutionv1.UsageMetrics{}
+	usage := &agentexecutionv1.UsageReportAggregate{}
 	if got := formatModelLabel(usage); got != "" {
 		t.Errorf("formatModelLabel(empty) = %q, want empty", got)
 	}
 }
 
 func TestFormatModelLabel_ModelOnly(t *testing.T) {
-	usage := &agentexecutionv1.UsageMetrics{PrimaryModel: "claude-sonnet-4"}
+	usage := &agentexecutionv1.UsageReportAggregate{PrimaryModel: "claude-sonnet-4"}
 	if got := formatModelLabel(usage); got != "claude-sonnet-4" {
 		t.Errorf("formatModelLabel(model only) = %q, want 'claude-sonnet-4'", got)
 	}
 }
 
 func TestFormatModelLabel_ModelAndProvider(t *testing.T) {
-	usage := &agentexecutionv1.UsageMetrics{
+	usage := &agentexecutionv1.UsageReportAggregate{
 		PrimaryModel:    "claude-sonnet-4",
 		PrimaryProvider: "anthropic",
 	}
 	want := "claude-sonnet-4 (anthropic)"
 	if got := formatModelLabel(usage); got != want {
 		t.Errorf("formatModelLabel(both) = %q, want %q", got, want)
-	}
-}
-
-// =============================================================================
-// formatDurationBreakdown Tests
-// =============================================================================
-
-func TestFormatDurationBreakdown_NilUsage(t *testing.T) {
-	if got := formatDurationBreakdown(nil); got != "" {
-		t.Errorf("formatDurationBreakdown(nil) = %q, want empty", got)
-	}
-}
-
-func TestFormatDurationBreakdown_ZeroDurations(t *testing.T) {
-	usage := &agentexecutionv1.UsageMetrics{}
-	if got := formatDurationBreakdown(usage); got != "" {
-		t.Errorf("formatDurationBreakdown(zeros) = %q, want empty", got)
-	}
-}
-
-func TestFormatDurationBreakdown_LlmOnly(t *testing.T) {
-	usage := &agentexecutionv1.UsageMetrics{LlmDurationMs: 12300}
-	got := formatDurationBreakdown(usage)
-	if got != "LLM 12s" {
-		t.Errorf("formatDurationBreakdown(llm) = %q, want 'LLM 12s'", got)
-	}
-}
-
-func TestFormatDurationBreakdown_AllComponents(t *testing.T) {
-	usage := &agentexecutionv1.UsageMetrics{
-		LlmDurationMs:          12300,
-		ToolDurationMs:         28100,
-		ApprovalWaitDurationMs: 5000,
-	}
-	got := formatDurationBreakdown(usage)
-	if got != "LLM 12s · Tools 28s · Approval 5s" {
-		t.Errorf("formatDurationBreakdown(all) = %q, want 'LLM 12s · Tools 28s · Approval 5s'", got)
-	}
-}
-
-// =============================================================================
-// formatMillis Tests
-// =============================================================================
-
-func TestFormatMillis_SubSecond(t *testing.T) {
-	if got := formatMillis(500); got != "1s" {
-		t.Errorf("formatMillis(500) = %q, want '1s'", got)
-	}
-}
-
-func TestFormatMillis_ExactSeconds(t *testing.T) {
-	if got := formatMillis(5000); got != "5s" {
-		t.Errorf("formatMillis(5000) = %q, want '5s'", got)
-	}
-}
-
-func TestFormatMillis_Minutes(t *testing.T) {
-	if got := formatMillis(90000); got != "1m30s" {
-		t.Errorf("formatMillis(90000) = %q, want '1m30s'", got)
 	}
 }
 
@@ -216,17 +157,17 @@ func TestFormatCostLine_NilUsage(t *testing.T) {
 }
 
 func TestFormatCostLine_ZeroCost(t *testing.T) {
-	usage := &agentexecutionv1.UsageMetrics{EstimatedCostUsd: 0}
+	usage := &agentexecutionv1.UsageReportAggregate{BillableCostMicros: 0}
 	if got := formatCostLine(usage); got != "" {
 		t.Errorf("formatCostLine(0) = %q, want empty", got)
 	}
 }
 
 func TestFormatCostLine_CostWithoutCache(t *testing.T) {
-	usage := &agentexecutionv1.UsageMetrics{
-		EstimatedCostUsd: 0.074,
-		PromptTokens:     12450,
-		CacheReadTokens:  0,
+	usage := &agentexecutionv1.UsageReportAggregate{
+		BillableCostMicros:   74000,
+		InputTokens:          12450,
+		CacheReadInputTokens: 0,
 	}
 	if got := formatCostLine(usage); got != "$0.074" {
 		t.Errorf("formatCostLine(no cache) = %q, want '$0.074'", got)
@@ -234,10 +175,10 @@ func TestFormatCostLine_CostWithoutCache(t *testing.T) {
 }
 
 func TestFormatCostLine_CostWithCache(t *testing.T) {
-	usage := &agentexecutionv1.UsageMetrics{
-		EstimatedCostUsd: 0.074,
-		PromptTokens:     12450,
-		CacheReadTokens:  10200,
+	usage := &agentexecutionv1.UsageReportAggregate{
+		BillableCostMicros:   74000,
+		InputTokens:          12450,
+		CacheReadInputTokens: 10200,
 	}
 	want := "$0.074 (82% cached)"
 	if got := formatCostLine(usage); got != want {
@@ -291,13 +232,13 @@ func TestFormatDateRange_BothEmpty(t *testing.T) {
 // =============================================================================
 
 func TestFormatShare_Typical(t *testing.T) {
-	if got := formatShare(4.02, 4.12); got != "97.6%" {
-		t.Errorf("formatShare(4.02, 4.12) = %q, want '97.6%%'", got)
+	if got := formatShare(4_020_000, 4_120_000); got != "97.6%" {
+		t.Errorf("formatShare(4_020_000, 4_120_000) = %q, want '97.6%%'", got)
 	}
 }
 
 func TestFormatShare_ZeroTotal(t *testing.T) {
-	if got := formatShare(1.0, 0); got != "0.0%" {
-		t.Errorf("formatShare(1, 0) = %q, want '0.0%%'", got)
+	if got := formatShare(1_000_000, 0); got != "0.0%" {
+		t.Errorf("formatShare(1_000_000, 0) = %q, want '0.0%%'", got)
 	}
 }

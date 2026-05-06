@@ -64,6 +64,8 @@ private static final long serialVersionUID = 0L;
     finishReason_ = "";
     errorCode_ = "";
     providerUsageJson_ = "";
+    orgId_ = "";
+    sessionId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -1092,6 +1094,100 @@ private static final long serialVersionUID = 0L;
     return billing_ == null ? ai.stigmer.agentic.agentexecution.v1.BillingLink.getDefaultInstance() : billing_;
   }
 
+  public static final int ORG_ID_FIELD_NUMBER = 7;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object orgId_ = "";
+  /**
+   * <pre>
+   * Organization that owns this execution.
+   * </pre>
+   *
+   * <code>string org_id = 7 [json_name = "orgId"];</code>
+   * @return The orgId.
+   */
+  @java.lang.Override
+  public java.lang.String getOrgId() {
+    java.lang.Object ref = orgId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      orgId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Organization that owns this execution.
+   * </pre>
+   *
+   * <code>string org_id = 7 [json_name = "orgId"];</code>
+   * @return The bytes for orgId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getOrgIdBytes() {
+    java.lang.Object ref = orgId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      orgId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int SESSION_ID_FIELD_NUMBER = 8;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object sessionId_ = "";
+  /**
+   * <pre>
+   * Session this execution belongs to.
+   * </pre>
+   *
+   * <code>string session_id = 8 [json_name = "sessionId"];</code>
+   * @return The sessionId.
+   */
+  @java.lang.Override
+  public java.lang.String getSessionId() {
+    java.lang.Object ref = sessionId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      sessionId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Session this execution belongs to.
+   * </pre>
+   *
+   * <code>string session_id = 8 [json_name = "sessionId"];</code>
+   * @return The bytes for sessionId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getSessionIdBytes() {
+    java.lang.Object ref = sessionId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      sessionId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   public static final int LABELS_FIELD_NUMBER = 90;
   private static final class LabelsDefaultEntryHolder {
     static final com.google.protobuf.MapEntry<
@@ -1223,6 +1319,12 @@ java.lang.String defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(canonicalPayloadHash_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 6, canonicalPayloadHash_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 7, orgId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(sessionId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 8, sessionId_);
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(10, getObservedAt());
     }
@@ -1322,6 +1424,12 @@ java.lang.String defaultValue) {
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(canonicalPayloadHash_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(6, canonicalPayloadHash_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(orgId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(7, orgId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(sessionId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(8, sessionId_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -1497,6 +1605,10 @@ java.lang.String defaultValue) {
       if (!getBilling()
           .equals(other.getBilling())) return false;
     }
+    if (!getOrgId()
+        .equals(other.getOrgId())) return false;
+    if (!getSessionId()
+        .equals(other.getSessionId())) return false;
     if (!internalGetLabels().equals(
         other.internalGetLabels())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -1580,6 +1692,10 @@ java.lang.String defaultValue) {
       hash = (37 * hash) + BILLING_FIELD_NUMBER;
       hash = (53 * hash) + getBilling().hashCode();
     }
+    hash = (37 * hash) + ORG_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getOrgId().hashCode();
+    hash = (37 * hash) + SESSION_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getSessionId().hashCode();
     if (!internalGetLabels().getMap().isEmpty()) {
       hash = (37 * hash) + LABELS_FIELD_NUMBER;
       hash = (53 * hash) + internalGetLabels().hashCode();
@@ -1818,6 +1934,8 @@ java.lang.String defaultValue) {
         billingBuilder_.dispose();
         billingBuilder_ = null;
       }
+      orgId_ = "";
+      sessionId_ = "";
       internalGetMutableLabels().clear();
       return this;
     }
@@ -1956,6 +2074,12 @@ java.lang.String defaultValue) {
         to_bitField0_ |= 0x00000020;
       }
       if (((from_bitField0_ & 0x10000000) != 0)) {
+        result.orgId_ = orgId_;
+      }
+      if (((from_bitField0_ & 0x20000000) != 0)) {
+        result.sessionId_ = sessionId_;
+      }
+      if (((from_bitField0_ & 0x40000000) != 0)) {
         result.labels_ = internalGetLabels();
         result.labels_.makeImmutable();
       }
@@ -2088,9 +2212,19 @@ java.lang.String defaultValue) {
       if (other.hasBilling()) {
         mergeBilling(other.getBilling());
       }
+      if (!other.getOrgId().isEmpty()) {
+        orgId_ = other.orgId_;
+        bitField0_ |= 0x10000000;
+        onChanged();
+      }
+      if (!other.getSessionId().isEmpty()) {
+        sessionId_ = other.sessionId_;
+        bitField0_ |= 0x20000000;
+        onChanged();
+      }
       internalGetMutableLabels().mergeFrom(
           other.internalGetLabels());
-      bitField0_ |= 0x10000000;
+      bitField0_ |= 0x40000000;
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -2147,6 +2281,16 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000020;
               break;
             } // case 50
+            case 58: {
+              orgId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x10000000;
+              break;
+            } // case 58
+            case 66: {
+              sessionId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x20000000;
+              break;
+            } // case 66
             case 82: {
               input.readMessage(
                   internalGetObservedAtFieldBuilder().getBuilder(),
@@ -2275,7 +2419,7 @@ java.lang.String defaultValue) {
                   LabelsDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableLabels().getMutableMap().put(
                   labels__.getKey(), labels__.getValue());
-              bitField0_ |= 0x10000000;
+              bitField0_ |= 0x40000000;
               break;
             } // case 722
             default: {
@@ -4818,6 +4962,190 @@ java.lang.String defaultValue) {
       return billingBuilder_;
     }
 
+    private java.lang.Object orgId_ = "";
+    /**
+     * <pre>
+     * Organization that owns this execution.
+     * </pre>
+     *
+     * <code>string org_id = 7 [json_name = "orgId"];</code>
+     * @return The orgId.
+     */
+    public java.lang.String getOrgId() {
+      java.lang.Object ref = orgId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        orgId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Organization that owns this execution.
+     * </pre>
+     *
+     * <code>string org_id = 7 [json_name = "orgId"];</code>
+     * @return The bytes for orgId.
+     */
+    public com.google.protobuf.ByteString
+        getOrgIdBytes() {
+      java.lang.Object ref = orgId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        orgId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Organization that owns this execution.
+     * </pre>
+     *
+     * <code>string org_id = 7 [json_name = "orgId"];</code>
+     * @param value The orgId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOrgId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      orgId_ = value;
+      bitField0_ |= 0x10000000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Organization that owns this execution.
+     * </pre>
+     *
+     * <code>string org_id = 7 [json_name = "orgId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOrgId() {
+      orgId_ = getDefaultInstance().getOrgId();
+      bitField0_ = (bitField0_ & ~0x10000000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Organization that owns this execution.
+     * </pre>
+     *
+     * <code>string org_id = 7 [json_name = "orgId"];</code>
+     * @param value The bytes for orgId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOrgIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      orgId_ = value;
+      bitField0_ |= 0x10000000;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object sessionId_ = "";
+    /**
+     * <pre>
+     * Session this execution belongs to.
+     * </pre>
+     *
+     * <code>string session_id = 8 [json_name = "sessionId"];</code>
+     * @return The sessionId.
+     */
+    public java.lang.String getSessionId() {
+      java.lang.Object ref = sessionId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        sessionId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Session this execution belongs to.
+     * </pre>
+     *
+     * <code>string session_id = 8 [json_name = "sessionId"];</code>
+     * @return The bytes for sessionId.
+     */
+    public com.google.protobuf.ByteString
+        getSessionIdBytes() {
+      java.lang.Object ref = sessionId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        sessionId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Session this execution belongs to.
+     * </pre>
+     *
+     * <code>string session_id = 8 [json_name = "sessionId"];</code>
+     * @param value The sessionId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSessionId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      sessionId_ = value;
+      bitField0_ |= 0x20000000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Session this execution belongs to.
+     * </pre>
+     *
+     * <code>string session_id = 8 [json_name = "sessionId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSessionId() {
+      sessionId_ = getDefaultInstance().getSessionId();
+      bitField0_ = (bitField0_ & ~0x20000000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Session this execution belongs to.
+     * </pre>
+     *
+     * <code>string session_id = 8 [json_name = "sessionId"];</code>
+     * @param value The bytes for sessionId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSessionIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      sessionId_ = value;
+      bitField0_ |= 0x20000000;
+      onChanged();
+      return this;
+    }
+
     private com.google.protobuf.MapField<
         java.lang.String, java.lang.String> labels_;
     private com.google.protobuf.MapField<java.lang.String, java.lang.String>
@@ -4837,7 +5165,7 @@ java.lang.String defaultValue) {
       if (!labels_.isMutable()) {
         labels_ = labels_.copy();
       }
-      bitField0_ |= 0x10000000;
+      bitField0_ |= 0x40000000;
       onChanged();
       return labels_;
     }
@@ -4917,7 +5245,7 @@ java.lang.String defaultValue) {
       return map.get(key);
     }
     public Builder clearLabels() {
-      bitField0_ = (bitField0_ & ~0x10000000);
+      bitField0_ = (bitField0_ & ~0x40000000);
       internalGetMutableLabels().getMutableMap()
           .clear();
       return this;
@@ -4943,7 +5271,7 @@ java.lang.String defaultValue) {
     @java.lang.Deprecated
     public java.util.Map<java.lang.String, java.lang.String>
         getMutableLabels() {
-      bitField0_ |= 0x10000000;
+      bitField0_ |= 0x40000000;
       return internalGetMutableLabels().getMutableMap();
     }
     /**
@@ -4961,7 +5289,7 @@ java.lang.String defaultValue) {
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableLabels().getMutableMap()
           .put(key, value);
-      bitField0_ |= 0x10000000;
+      bitField0_ |= 0x40000000;
       return this;
     }
     /**
@@ -4976,7 +5304,7 @@ java.lang.String defaultValue) {
         java.util.Map<java.lang.String, java.lang.String> values) {
       internalGetMutableLabels().getMutableMap()
           .putAll(values);
-      bitField0_ |= 0x10000000;
+      bitField0_ |= 0x40000000;
       return this;
     }
 

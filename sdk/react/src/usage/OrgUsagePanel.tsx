@@ -159,22 +159,26 @@ function DateRangeSelector({
 // SummaryCards (internal)
 // ---------------------------------------------------------------------------
 
+function microsToUsd(micros: bigint): number {
+  return Number(micros) / 1_000_000;
+}
+
 function SummaryCards({ report }: { report: GetOrgUsageReportOutput }) {
   const { totalLlmCalls, totalTokens } = report.modelBreakdown.reduce(
     (acc, m) => ({
       totalLlmCalls: acc.totalLlmCalls + m.callCount,
       totalTokens:
         acc.totalTokens +
-        m.inputTokens +
-        m.outputTokens +
-        m.cacheCreationTokens +
-        m.cacheReadTokens,
+        Number(m.inputTokens) +
+        Number(m.outputTokens) +
+        Number(m.cacheCreationInputTokens) +
+        Number(m.cacheReadInputTokens),
     }),
     { totalLlmCalls: 0, totalTokens: 0 },
   );
 
   const cards: { label: string; value: string }[] = [
-    { label: "Total Cost", value: formatCost(report.totalCostUsd) },
+    { label: "Total Cost", value: formatCost(microsToUsd(report.totalBillableCostMicros)) },
     { label: "LLM Calls", value: formatCompactNumber(totalLlmCalls) },
     { label: "Tokens", value: formatCompactNumber(totalTokens) },
   ];
@@ -207,7 +211,7 @@ function SummaryCards({ report }: { report: GetOrgUsageReportOutput }) {
 const CHART_HEIGHT_PX = 128;
 
 function DailyCostChart({ entries }: { entries: readonly DailyCostEntry[] }) {
-  const maxCost = Math.max(...entries.map((e) => e.estimatedCostUsd), 0);
+  const maxCost = Math.max(...entries.map((e) => microsToUsd(e.billableCostMicros)), 0);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   return (
@@ -222,9 +226,9 @@ function DailyCostChart({ entries }: { entries: readonly DailyCostEntry[] }) {
             <span className="text-xs tabular-nums text-muted-foreground">
               {formatChartDate(entries[hoveredIdx].date)}
               {" \u00B7 "}
-              {formatCost(entries[hoveredIdx].estimatedCostUsd)}
+              {formatCost(microsToUsd(entries[hoveredIdx].billableCostMicros))}
               {" \u00B7 "}
-              {formatTokenCount(entries[hoveredIdx].totalTokens)} tokens
+              {formatTokenCount(Number(entries[hoveredIdx].totalTokens))} tokens
             </span>
           )}
         </div>
@@ -238,7 +242,7 @@ function DailyCostChart({ entries }: { entries: readonly DailyCostEntry[] }) {
         >
           {entries.map((entry, i) => {
             const ratio =
-              maxCost > 0 ? entry.estimatedCostUsd / maxCost : 0;
+              maxCost > 0 ? microsToUsd(entry.billableCostMicros) / maxCost : 0;
             const heightPx = Math.max(ratio * CHART_HEIGHT_PX, 2);
 
             return (
@@ -326,9 +330,11 @@ function ModelBreakdownList({
           </span>
         </div>
         {models.map((m) => {
-          const totalInput =
-            m.inputTokens + m.cacheCreationTokens + m.cacheReadTokens;
-          const hasCache = m.cacheReadTokens > 0 || m.cacheCreationTokens > 0;
+          const inputTok = Number(m.inputTokens);
+          const cacheCreation = Number(m.cacheCreationInputTokens);
+          const cacheRead = Number(m.cacheReadInputTokens);
+          const totalInput = inputTok + cacheCreation + cacheRead;
+          const hasCache = cacheRead > 0 || cacheCreation > 0;
 
           return (
             <div
@@ -363,24 +369,24 @@ function ModelBreakdownList({
                   role="cell"
                   className="self-center text-right text-xs tabular-nums text-muted-foreground"
                 >
-                  {formatCompactNumber(m.outputTokens)}
+                  {formatCompactNumber(Number(m.outputTokens))}
                 </span>
                 <span
                   role="cell"
                   className="self-center text-right text-xs tabular-nums text-foreground"
                 >
-                  {formatCost(m.estimatedCostUsd)}
+                  {formatCost(microsToUsd(m.billableCostMicros))}
                 </span>
               </div>
               {hasCache && (
                 <div className="mt-0.5 text-[0.6rem] tabular-nums text-muted-foreground">
                   cache{" "}
-                  {m.cacheReadTokens > 0 &&
-                    `${formatCompactNumber(m.cacheReadTokens)} read`}
-                  {m.cacheReadTokens > 0 && m.cacheCreationTokens > 0 &&
+                  {cacheRead > 0 &&
+                    `${formatCompactNumber(cacheRead)} read`}
+                  {cacheRead > 0 && cacheCreation > 0 &&
                     " · "}
-                  {m.cacheCreationTokens > 0 &&
-                    `${formatCompactNumber(m.cacheCreationTokens)} write`}
+                  {cacheCreation > 0 &&
+                    `${formatCompactNumber(cacheCreation)} write`}
                 </div>
               )}
             </div>

@@ -130,6 +130,12 @@ class AgentExecutionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def get_execution_usage_report(self, input: io_pb2.GetExecutionUsageReportInput) -> io_pb2.GetExecutionUsageReportOutput:
+        try:
+            return self._query.getExecutionUsageReport(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get_session_usage_report(self, input: io_pb2.GetSessionUsageReportInput) -> io_pb2.GetSessionUsageReportOutput:
         try:
             return self._query.getSessionUsageReport(input)

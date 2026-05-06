@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/usage.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_usage: GenFile = /*@__PURE__*/
-  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvdXNhZ2UucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKxAwoKVG9rZW5Vc2FnZRIUCgxpbnB1dF90b2tlbnMYASABKAMSFQoNb3V0cHV0X3Rva2VucxgCIAEoAxIUCgx0b3RhbF90b2tlbnMYAyABKAMSIwobY2FjaGVfY3JlYXRpb25faW5wdXRfdG9rZW5zGAQgASgDEh8KF2NhY2hlX3JlYWRfaW5wdXRfdG9rZW5zGAUgASgDEhgKEHJlYXNvbmluZ190b2tlbnMYBiABKAMSHgoWdG9vbF91c2VfcHJvbXB0X3Rva2VucxgHIAEoAxIaChJhdWRpb19pbnB1dF90b2tlbnMYCCABKAMSGwoTYXVkaW9fb3V0cHV0X3Rva2VucxgJIAEoAxJqChZwcm92aWRlcl90b2tlbl9kZXRhaWxzGBQgAygLMkouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRva2VuVXNhZ2UuUHJvdmlkZXJUb2tlbkRldGFpbHNFbnRyeRo7ChlQcm92aWRlclRva2VuRGV0YWlsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoAzoCOAEijAMKD1ByaWNpbmdTbmFwc2hvdBIgChhwcmljaW5nX3JlZ2lzdHJ5X3ZlcnNpb24YASABKAkSOAoUcHJpY2luZ19lZmZlY3RpdmVfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhAKCGN1cnJlbmN5GAMgASgJEiYKHmlucHV0X3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgKIAEoAxInCh9vdXRwdXRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAsgASgDEi8KJ2NhY2hlX2NyZWF0aW9uX3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgMIAEoAxIrCiNjYWNoZV9yZWFkX3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgNIAEoAxIqCiJyZWFzb25pbmdfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGA4gASgDEh0KFW1hcmt1cF9wb2xpY3lfdmVyc2lvbhgeIAEoCRIRCgljb3N0X3RpZXIYHyABKAkihQIKCUNvc3RTdGFtcBIQCghjdXJyZW5jeRgBIAEoCRIcChRwcm92aWRlcl9jb3N0X21pY3JvcxgCIAEoAxInCh9jdXN0b21lcl9iaWxsYWJsZV9hbW91bnRfbWljcm9zGAMgASgDElcKEmNhbGN1bGF0aW9uX3N0YXR1cxgEIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Db3N0Q2FsY3VsYXRpb25TdGF0dXMSRgoHcHJpY2luZxgFIAEoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5QcmljaW5nU25hcHNob3Qi1AMKC1Byb3h5VGltaW5nEjUKEXByb3h5X3JlY2VpdmVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI/Cht1cHN0cmVhbV9yZXF1ZXN0X3N0YXJ0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjoKFmZpcnN0X3Jlc3BvbnNlX2J5dGVfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjkKFWxhc3RfcmVzcG9uc2VfYnl0ZV9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASNgoScHJveHlfY29tcGxldGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIYChB1cHN0cmVhbV90dGZiX21zGAogASgDEhgKEHVwc3RyZWFtX3R0bGJfbXMYCyABKAMSGgoSc3RyZWFtX2R1cmF0aW9uX21zGAwgASgDEh8KF3Byb3h5X3RvdGFsX2R1cmF0aW9uX21zGA0gASgDEhUKDXJlcXVlc3RfYnl0ZXMYFCABKAMSFgoOcmVzcG9uc2VfYnl0ZXMYFSABKAMi+gEKC0JpbGxpbmdMaW5rEk4KDGRlYml0X3N0YXR1cxgBIAEoDjI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5CaWxsaW5nRGViaXRTdGF0dXMSFgoOcmVzZXJ2YXRpb25faWQYAiABKAkSGAoQYmlsbGluZ19kZWJpdF9pZBgDIAEoCRIuCgpkZWJpdGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIdChViaWxsaW5nX2F0dGVtcHRfY291bnQYBSABKAUSGgoSbGFzdF9iaWxsaW5nX2Vycm9yGAYgASgJIrMJChJMbG1DYWxsVXNhZ2VSZWNvcmQSFwoPdXNhZ2VfcmVjb3JkX2lkGAEgASgJEhQKDGV4ZWN1dGlvbl9pZBgCIAEoCRIZChFyb290X2V4ZWN1dGlvbl9pZBgDIAEoCRIQCghzZXF1ZW5jZRgEIAEoBRIXCg9pZGVtcG90ZW5jeV9rZXkYBSABKAkSHgoWY2Fub25pY2FsX3BheWxvYWRfaGFzaBgGIAEoCRIvCgtvYnNlcnZlZF9hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKY3JlYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASUgoPbWV0ZXJpbmdfc291cmNlGBQgASgOMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlVzYWdlTWV0ZXJpbmdTb3VyY2USSgoLdHJ1c3RfbGV2ZWwYFSABKA4yNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVXNhZ2VUcnVzdExldmVsElEKDHVzYWdlX3N0YXR1cxgWIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Vc2FnZUNvbXBsZXRpb25TdGF0dXMSEwoLaXNfYmlsbGFibGUYFyABKAgSEAoIcHJvdmlkZXIYHiABKAkSFwoPcmVxdWVzdGVkX21vZGVsGB8gASgJEhYKDnJlc29sdmVkX21vZGVsGCAgASgJEhAKCGVuZHBvaW50GCEgASgJEhEKCXN0cmVhbWluZxgiIAEoCBIUCgxzZXJ2aWNlX3RpZXIYIyABKAkSGwoTcHJvdmlkZXJfcmVxdWVzdF9pZBgkIAEoCRIPCgdoYXJuZXNzGCUgASgJEhgKEGh0dHBfc3RhdHVzX2NvZGUYKCABKAUSFQoNZmluaXNoX3JlYXNvbhgpIAEoCRISCgplcnJvcl9jb2RlGCogASgJEkAKBnRva2VucxgyIAEoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub2tlblVzYWdlEj0KBGNvc3QYMyABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ29zdFN0YW1wEkcKDHByb3h5X3RpbWluZxg8IAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Qcm94eVRpbWluZxIbChNwcm92aWRlcl91c2FnZV9qc29uGEYgASgJEkIKB2JpbGxpbmcYUCABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQmlsbGluZ0xpbmsSVAoGbGFiZWxzGFogAygLMkQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkxsbUNhbGxVc2FnZVJlY29yZC5MYWJlbHNFbnRyeRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBItwDCgxVc2FnZU1ldHJpY3MSFQoNcHJvbXB0X3Rva2VucxgBIAEoBRIZChFjb21wbGV0aW9uX3Rva2VucxgCIAEoBRIUCgx0b3RhbF90b2tlbnMYAyABKAUSFgoObGxtX2NhbGxfY291bnQYBCABKAUSFQoNcHJpbWFyeV9tb2RlbBgFIAEoCRIdChVjYWNoZV9jcmVhdGlvbl90b2tlbnMYBiABKAUSGQoRY2FjaGVfcmVhZF90b2tlbnMYByABKAUSSQoPbW9kZWxfYnJlYWtkb3duGAggAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLk1vZGVsVXNhZ2USGgoSZXN0aW1hdGVkX2Nvc3RfdXNkGAkgASgBEiMKG3Rvb2xfcmVzdWx0X2NoYXJzX3RydW5jYXRlZBgKIAEoAxIZChF0b3RhbF9kdXJhdGlvbl9tcxgMIAEoBRIXCg9sbG1fZHVyYXRpb25fbXMYDSABKAUSGAoQdG9vbF9kdXJhdGlvbl9tcxgOIAEoBRIhChlhcHByb3ZhbF93YWl0X2R1cmF0aW9uX21zGA8gASgFEhgKEHByaW1hcnlfcHJvdmlkZXIYECABKAlKBAgLEAwi1wIKCk1vZGVsVXNhZ2USDQoFbW9kZWwYASABKAkSEAoIcHJvdmlkZXIYAiABKAkSFAoMaW5wdXRfdG9rZW5zGAMgASgFEhUKDW91dHB1dF90b2tlbnMYBCABKAUSHQoVY2FjaGVfY3JlYXRpb25fdG9rZW5zGAUgASgFEhkKEWNhY2hlX3JlYWRfdG9rZW5zGAYgASgFEhIKCmNhbGxfY291bnQYByABKAUSHwoXaW5wdXRfcHJpY2VfcGVyX21pbGxpb24YCCABKAESIAoYb3V0cHV0X3ByaWNlX3Blcl9taWxsaW9uGAkgASgBEigKIGNhY2hlX2NyZWF0aW9uX3ByaWNlX3Blcl9taWxsaW9uGAogASgBEiQKHGNhY2hlX3JlYWRfcHJpY2VfcGVyX21pbGxpb24YCyABKAESGgoSZXN0aW1hdGVkX2Nvc3RfdXNkGAwgASgBKq4CChNVc2FnZU1ldGVyaW5nU291cmNlEiUKIVVTQUdFX01FVEVSSU5HX1NPVVJDRV9VTlNQRUNJRklFRBAAEjEKLVVTQUdFX01FVEVSSU5HX1NPVVJDRV9QUk9YWV9QUk9WSURFUl9SRVBPUlRFRBABEjYKMlVTQUdFX01FVEVSSU5HX1NPVVJDRV9SVU5ORVJfUFJPVklERVJfUkVQT1JURURfT1NTEAISIwofVVNBR0VfTUVURVJJTkdfU09VUkNFX0VTVElNQVRFRBADEjMKL1VTQUdFX01FVEVSSU5HX1NPVVJDRV9QUk9WSURFUl9BRE1JTl9SRUNPTkNJTEVEEAQSKwonVVNBR0VfTUVURVJJTkdfU09VUkNFX01BTlVBTF9BREpVU1RNRU5UEAUqqAEKD1VzYWdlVHJ1c3RMZXZlbBIhCh1VU0FHRV9UUlVTVF9MRVZFTF9VTlNQRUNJRklFRBAAEicKI1VTQUdFX1RSVVNUX0xFVkVMX0JJTExJTkdfQVVUSE9SSVRZEAESJQohVVNBR0VfVFJVU1RfTEVWRUxfU0VSVkVSX09CU0VSVkVEEAISIgoeVVNBR0VfVFJVU1RfTEVWRUxfRElTUExBWV9PTkxZEAMq/AIKFVVzYWdlQ29tcGxldGlvblN0YXR1cxInCiNVU0FHRV9DT01QTEVUSU9OX1NUQVRVU19VTlNQRUNJRklFRBAAEiQKIFVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX0NPTVBMRVRFEAESLgoqVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfU1RSRUFNX0lOVEVSUlVQVEVEEAISNQoxVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfUFJPVklERVJfRVJST1JfV0lUSF9VU0FHRRADEjMKL1VTQUdFX0NPTVBMRVRJT05fU1RBVFVTX1BST1ZJREVSX0VSUk9SX05PX1VTQUdFEAQSKgomVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfRVNUSU1BVEVEX09OTFkQBRImCiJVU0FHRV9DT01QTEVUSU9OX1NUQVRVU19SRUNPTkNJTEVEEAYSJAogVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfQ09ORkxJQ1QQByqfAgoSQmlsbGluZ0RlYml0U3RhdHVzEiQKIEJJTExJTkdfREVCSVRfU1RBVFVTX1VOU1BFQ0lGSUVEEAASJwojQklMTElOR19ERUJJVF9TVEFUVVNfTk9UX0FQUExJQ0FCTEUQARIgChxCSUxMSU5HX0RFQklUX1NUQVRVU19QRU5ESU5HEAISIAocQklMTElOR19ERUJJVF9TVEFUVVNfREVCSVRFRBADEikKJUJJTExJTkdfREVCSVRfU1RBVFVTX0ZBSUxFRF9SRVRSWUFCTEUQBBIoCiRCSUxMSU5HX0RFQklUX1NUQVRVU19GQUlMRURfVEVSTUlOQUwQBRIhCh1CSUxMSU5HX0RFQklUX1NUQVRVU19DT05GTElDVBAGKo8CChVDb3N0Q2FsY3VsYXRpb25TdGF0dXMSJwojQ09TVF9DQUxDVUxBVElPTl9TVEFUVVNfVU5TUEVDSUZJRUQQABIkCiBDT1NUX0NBTENVTEFUSU9OX1NUQVRVU19DT01QVVRFRBABEiUKIUNPU1RfQ0FMQ1VMQVRJT05fU1RBVFVTX0VTVElNQVRFRBACEisKJ0NPU1RfQ0FMQ1VMQVRJT05fU1RBVFVTX1BSSUNFX05PVF9GT1VORBADEiYKIkNPU1RfQ0FMQ1VMQVRJT05fU1RBVFVTX1JFQ09OQ0lMRUQQBBIrCidDT1NUX0NBTENVTEFUSU9OX1NUQVRVU19NQU5VQUxfQURKVVNURUQQBWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvdXNhZ2UucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKxAwoKVG9rZW5Vc2FnZRIUCgxpbnB1dF90b2tlbnMYASABKAMSFQoNb3V0cHV0X3Rva2VucxgCIAEoAxIUCgx0b3RhbF90b2tlbnMYAyABKAMSIwobY2FjaGVfY3JlYXRpb25faW5wdXRfdG9rZW5zGAQgASgDEh8KF2NhY2hlX3JlYWRfaW5wdXRfdG9rZW5zGAUgASgDEhgKEHJlYXNvbmluZ190b2tlbnMYBiABKAMSHgoWdG9vbF91c2VfcHJvbXB0X3Rva2VucxgHIAEoAxIaChJhdWRpb19pbnB1dF90b2tlbnMYCCABKAMSGwoTYXVkaW9fb3V0cHV0X3Rva2VucxgJIAEoAxJqChZwcm92aWRlcl90b2tlbl9kZXRhaWxzGBQgAygLMkouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRva2VuVXNhZ2UuUHJvdmlkZXJUb2tlbkRldGFpbHNFbnRyeRo7ChlQcm92aWRlclRva2VuRGV0YWlsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoAzoCOAEijAMKD1ByaWNpbmdTbmFwc2hvdBIgChhwcmljaW5nX3JlZ2lzdHJ5X3ZlcnNpb24YASABKAkSOAoUcHJpY2luZ19lZmZlY3RpdmVfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhAKCGN1cnJlbmN5GAMgASgJEiYKHmlucHV0X3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgKIAEoAxInCh9vdXRwdXRfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGAsgASgDEi8KJ2NhY2hlX2NyZWF0aW9uX3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgMIAEoAxIrCiNjYWNoZV9yZWFkX3ByaWNlX21pY3Jvc19wZXJfbWlsbGlvbhgNIAEoAxIqCiJyZWFzb25pbmdfcHJpY2VfbWljcm9zX3Blcl9taWxsaW9uGA4gASgDEh0KFW1hcmt1cF9wb2xpY3lfdmVyc2lvbhgeIAEoCRIRCgljb3N0X3RpZXIYHyABKAkihQIKCUNvc3RTdGFtcBIQCghjdXJyZW5jeRgBIAEoCRIcChRwcm92aWRlcl9jb3N0X21pY3JvcxgCIAEoAxInCh9jdXN0b21lcl9iaWxsYWJsZV9hbW91bnRfbWljcm9zGAMgASgDElcKEmNhbGN1bGF0aW9uX3N0YXR1cxgEIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Db3N0Q2FsY3VsYXRpb25TdGF0dXMSRgoHcHJpY2luZxgFIAEoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5QcmljaW5nU25hcHNob3Qi1AMKC1Byb3h5VGltaW5nEjUKEXByb3h5X3JlY2VpdmVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI/Cht1cHN0cmVhbV9yZXF1ZXN0X3N0YXJ0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjoKFmZpcnN0X3Jlc3BvbnNlX2J5dGVfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjkKFWxhc3RfcmVzcG9uc2VfYnl0ZV9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASNgoScHJveHlfY29tcGxldGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIYChB1cHN0cmVhbV90dGZiX21zGAogASgDEhgKEHVwc3RyZWFtX3R0bGJfbXMYCyABKAMSGgoSc3RyZWFtX2R1cmF0aW9uX21zGAwgASgDEh8KF3Byb3h5X3RvdGFsX2R1cmF0aW9uX21zGA0gASgDEhUKDXJlcXVlc3RfYnl0ZXMYFCABKAMSFgoOcmVzcG9uc2VfYnl0ZXMYFSABKAMi+gEKC0JpbGxpbmdMaW5rEk4KDGRlYml0X3N0YXR1cxgBIAEoDjI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5CaWxsaW5nRGViaXRTdGF0dXMSFgoOcmVzZXJ2YXRpb25faWQYAiABKAkSGAoQYmlsbGluZ19kZWJpdF9pZBgDIAEoCRIuCgpkZWJpdGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIdChViaWxsaW5nX2F0dGVtcHRfY291bnQYBSABKAUSGgoSbGFzdF9iaWxsaW5nX2Vycm9yGAYgASgJItcJChJMbG1DYWxsVXNhZ2VSZWNvcmQSFwoPdXNhZ2VfcmVjb3JkX2lkGAEgASgJEhQKDGV4ZWN1dGlvbl9pZBgCIAEoCRIZChFyb290X2V4ZWN1dGlvbl9pZBgDIAEoCRIQCghzZXF1ZW5jZRgEIAEoBRIXCg9pZGVtcG90ZW5jeV9rZXkYBSABKAkSHgoWY2Fub25pY2FsX3BheWxvYWRfaGFzaBgGIAEoCRIvCgtvYnNlcnZlZF9hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKY3JlYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASUgoPbWV0ZXJpbmdfc291cmNlGBQgASgOMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlVzYWdlTWV0ZXJpbmdTb3VyY2USSgoLdHJ1c3RfbGV2ZWwYFSABKA4yNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVXNhZ2VUcnVzdExldmVsElEKDHVzYWdlX3N0YXR1cxgWIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Vc2FnZUNvbXBsZXRpb25TdGF0dXMSEwoLaXNfYmlsbGFibGUYFyABKAgSEAoIcHJvdmlkZXIYHiABKAkSFwoPcmVxdWVzdGVkX21vZGVsGB8gASgJEhYKDnJlc29sdmVkX21vZGVsGCAgASgJEhAKCGVuZHBvaW50GCEgASgJEhEKCXN0cmVhbWluZxgiIAEoCBIUCgxzZXJ2aWNlX3RpZXIYIyABKAkSGwoTcHJvdmlkZXJfcmVxdWVzdF9pZBgkIAEoCRIPCgdoYXJuZXNzGCUgASgJEhgKEGh0dHBfc3RhdHVzX2NvZGUYKCABKAUSFQoNZmluaXNoX3JlYXNvbhgpIAEoCRISCgplcnJvcl9jb2RlGCogASgJEkAKBnRva2VucxgyIAEoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub2tlblVzYWdlEj0KBGNvc3QYMyABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ29zdFN0YW1wEkcKDHByb3h5X3RpbWluZxg8IAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Qcm94eVRpbWluZxIbChNwcm92aWRlcl91c2FnZV9qc29uGEYgASgJEkIKB2JpbGxpbmcYUCABKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQmlsbGluZ0xpbmsSDgoGb3JnX2lkGAcgASgJEhIKCnNlc3Npb25faWQYCCABKAkSVAoGbGFiZWxzGFogAygLMkQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkxsbUNhbGxVc2FnZVJlY29yZC5MYWJlbHNFbnRyeRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIr4CChRVc2FnZVJlcG9ydEFnZ3JlZ2F0ZRIUCgxpbnB1dF90b2tlbnMYASABKAMSFQoNb3V0cHV0X3Rva2VucxgCIAEoAxIUCgx0b3RhbF90b2tlbnMYAyABKAMSIwobY2FjaGVfY3JlYXRpb25faW5wdXRfdG9rZW5zGAQgASgDEh8KF2NhY2hlX3JlYWRfaW5wdXRfdG9rZW5zGAUgASgDEhgKEHJlYXNvbmluZ190b2tlbnMYBiABKAMSFgoObGxtX2NhbGxfY291bnQYCiABKAUSHAoUYmlsbGFibGVfY29zdF9taWNyb3MYFCABKAMSHAoUcHJvdmlkZXJfY29zdF9taWNyb3MYFSABKAMSFQoNcHJpbWFyeV9tb2RlbBgeIAEoCRIYChBwcmltYXJ5X3Byb3ZpZGVyGB8gASgJIvABCgpNb2RlbFVzYWdlEg0KBW1vZGVsGAEgASgJEhAKCHByb3ZpZGVyGAIgASgJEhQKDGlucHV0X3Rva2VucxgDIAEoAxIVCg1vdXRwdXRfdG9rZW5zGAQgASgDEiMKG2NhY2hlX2NyZWF0aW9uX2lucHV0X3Rva2VucxgFIAEoAxIfChdjYWNoZV9yZWFkX2lucHV0X3Rva2VucxgGIAEoAxISCgpjYWxsX2NvdW50GAcgASgFEhwKFGJpbGxhYmxlX2Nvc3RfbWljcm9zGAggASgDEhwKFHByb3ZpZGVyX2Nvc3RfbWljcm9zGAkgASgDKq4CChNVc2FnZU1ldGVyaW5nU291cmNlEiUKIVVTQUdFX01FVEVSSU5HX1NPVVJDRV9VTlNQRUNJRklFRBAAEjEKLVVTQUdFX01FVEVSSU5HX1NPVVJDRV9QUk9YWV9QUk9WSURFUl9SRVBPUlRFRBABEjYKMlVTQUdFX01FVEVSSU5HX1NPVVJDRV9SVU5ORVJfUFJPVklERVJfUkVQT1JURURfT1NTEAISIwofVVNBR0VfTUVURVJJTkdfU09VUkNFX0VTVElNQVRFRBADEjMKL1VTQUdFX01FVEVSSU5HX1NPVVJDRV9QUk9WSURFUl9BRE1JTl9SRUNPTkNJTEVEEAQSKwonVVNBR0VfTUVURVJJTkdfU09VUkNFX01BTlVBTF9BREpVU1RNRU5UEAUqqAEKD1VzYWdlVHJ1c3RMZXZlbBIhCh1VU0FHRV9UUlVTVF9MRVZFTF9VTlNQRUNJRklFRBAAEicKI1VTQUdFX1RSVVNUX0xFVkVMX0JJTExJTkdfQVVUSE9SSVRZEAESJQohVVNBR0VfVFJVU1RfTEVWRUxfU0VSVkVSX09CU0VSVkVEEAISIgoeVVNBR0VfVFJVU1RfTEVWRUxfRElTUExBWV9PTkxZEAMq/AIKFVVzYWdlQ29tcGxldGlvblN0YXR1cxInCiNVU0FHRV9DT01QTEVUSU9OX1NUQVRVU19VTlNQRUNJRklFRBAAEiQKIFVTQUdFX0NPTVBMRVRJT05fU1RBVFVTX0NPTVBMRVRFEAESLgoqVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfU1RSRUFNX0lOVEVSUlVQVEVEEAISNQoxVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfUFJPVklERVJfRVJST1JfV0lUSF9VU0FHRRADEjMKL1VTQUdFX0NPTVBMRVRJT05fU1RBVFVTX1BST1ZJREVSX0VSUk9SX05PX1VTQUdFEAQSKgomVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfRVNUSU1BVEVEX09OTFkQBRImCiJVU0FHRV9DT01QTEVUSU9OX1NUQVRVU19SRUNPTkNJTEVEEAYSJAogVVNBR0VfQ09NUExFVElPTl9TVEFUVVNfQ09ORkxJQ1QQByqfAgoSQmlsbGluZ0RlYml0U3RhdHVzEiQKIEJJTExJTkdfREVCSVRfU1RBVFVTX1VOU1BFQ0lGSUVEEAASJwojQklMTElOR19ERUJJVF9TVEFUVVNfTk9UX0FQUExJQ0FCTEUQARIgChxCSUxMSU5HX0RFQklUX1NUQVRVU19QRU5ESU5HEAISIAocQklMTElOR19ERUJJVF9TVEFUVVNfREVCSVRFRBADEikKJUJJTExJTkdfREVCSVRfU1RBVFVTX0ZBSUxFRF9SRVRSWUFCTEUQBBIoCiRCSUxMSU5HX0RFQklUX1NUQVRVU19GQUlMRURfVEVSTUlOQUwQBRIhCh1CSUxMSU5HX0RFQklUX1NUQVRVU19DT05GTElDVBAGKo8CChVDb3N0Q2FsY3VsYXRpb25TdGF0dXMSJwojQ09TVF9DQUxDVUxBVElPTl9TVEFUVVNfVU5TUEVDSUZJRUQQABIkCiBDT1NUX0NBTENVTEFUSU9OX1NUQVRVU19DT01QVVRFRBABEiUKIUNPU1RfQ0FMQ1VMQVRJT05fU1RBVFVTX0VTVElNQVRFRBACEisKJ0NPU1RfQ0FMQ1VMQVRJT05fU1RBVFVTX1BSSUNFX05PVF9GT1VORBADEiYKIkNPU1RfQ0FMQ1VMQVRJT05fU1RBVFVTX1JFQ09OQ0lMRUQQBBIrCidDT1NUX0NBTENVTEFUSU9OX1NUQVRVU19NQU5VQUxfQURKVVNURUQQBWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * Normalized token usage from a single LLM call.
@@ -557,6 +557,20 @@ export type LlmCallUsageRecord = Message<"ai.stigmer.agentic.agentexecution.v1.L
   billing?: BillingLink;
 
   /**
+   * Organization that owns this execution.
+   *
+   * @generated from field: string org_id = 7;
+   */
+  orgId: string;
+
+  /**
+   * Session this execution belongs to.
+   *
+   * @generated from field: string session_id = 8;
+   */
+  sessionId: string;
+
+  /**
    * ─── Labels ─────────────────────────────────────────────────────────────────
    * Custom metadata for filtering (e.g., agent_path, node_path).
    *
@@ -573,163 +587,151 @@ export const LlmCallUsageRecordSchema: GenMessage<LlmCallUsageRecord> = /*@__PUR
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 5);
 
 /**
- * Execution-level usage aggregate derived from per-message llm_metrics.
- * Used in usage report RPC responses. In cloud mode, values are sourced from
- * ExecutionUsageAggregate (proxy-written); in OSS mode, computed from llm_metrics.
+ * Aggregated usage across a scope (execution, session, agent, or org).
  *
- * @generated from message ai.stigmer.agentic.agentexecution.v1.UsageMetrics
+ * Used as the `total_usage` field in session and agent usage report responses.
+ * All token fields are int64 to support large aggregates (org-wide, multi-day).
+ * Cost fields are int64 micro-USD for precision.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
  */
-export type UsageMetrics = Message<"ai.stigmer.agentic.agentexecution.v1.UsageMetrics"> & {
+export type UsageReportAggregate = Message<"ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate"> & {
   /**
-   * @generated from field: int32 prompt_tokens = 1;
+   * Token counts.
+   *
+   * @generated from field: int64 input_tokens = 1;
    */
-  promptTokens: number;
+  inputTokens: bigint;
 
   /**
-   * @generated from field: int32 completion_tokens = 2;
+   * @generated from field: int64 output_tokens = 2;
    */
-  completionTokens: number;
+  outputTokens: bigint;
 
   /**
-   * @generated from field: int32 total_tokens = 3;
+   * @generated from field: int64 total_tokens = 3;
    */
-  totalTokens: number;
+  totalTokens: bigint;
 
   /**
-   * @generated from field: int32 llm_call_count = 4;
+   * @generated from field: int64 cache_creation_input_tokens = 4;
+   */
+  cacheCreationInputTokens: bigint;
+
+  /**
+   * @generated from field: int64 cache_read_input_tokens = 5;
+   */
+  cacheReadInputTokens: bigint;
+
+  /**
+   * @generated from field: int64 reasoning_tokens = 6;
+   */
+  reasoningTokens: bigint;
+
+  /**
+   * Number of LLM API calls in this aggregate.
+   *
+   * @generated from field: int32 llm_call_count = 10;
    */
   llmCallCount: number;
 
   /**
-   * @generated from field: string primary_model = 5;
+   * Cost in micro-USD (1 USD = 1,000,000 micros).
+   * billable = what the customer pays (with markup).
+   * provider = what Stigmer pays the LLM provider (raw).
+   *
+   * @generated from field: int64 billable_cost_micros = 20;
+   */
+  billableCostMicros: bigint;
+
+  /**
+   * @generated from field: int64 provider_cost_micros = 21;
+   */
+  providerCostMicros: bigint;
+
+  /**
+   * Primary model and provider (most-used by call count).
+   *
+   * @generated from field: string primary_model = 30;
    */
   primaryModel: string;
 
   /**
-   * @generated from field: int32 cache_creation_tokens = 6;
-   */
-  cacheCreationTokens: number;
-
-  /**
-   * @generated from field: int32 cache_read_tokens = 7;
-   */
-  cacheReadTokens: number;
-
-  /**
-   * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.ModelUsage model_breakdown = 8;
-   */
-  modelBreakdown: ModelUsage[];
-
-  /**
-   * @generated from field: double estimated_cost_usd = 9;
-   */
-  estimatedCostUsd: number;
-
-  /**
-   * @generated from field: int64 tool_result_chars_truncated = 10;
-   */
-  toolResultCharsTruncated: bigint;
-
-  /**
-   * @generated from field: int32 total_duration_ms = 12;
-   */
-  totalDurationMs: number;
-
-  /**
-   * @generated from field: int32 llm_duration_ms = 13;
-   */
-  llmDurationMs: number;
-
-  /**
-   * @generated from field: int32 tool_duration_ms = 14;
-   */
-  toolDurationMs: number;
-
-  /**
-   * @generated from field: int32 approval_wait_duration_ms = 15;
-   */
-  approvalWaitDurationMs: number;
-
-  /**
-   * @generated from field: string primary_provider = 16;
+   * @generated from field: string primary_provider = 31;
    */
   primaryProvider: string;
 };
 
 /**
- * Describes the message ai.stigmer.agentic.agentexecution.v1.UsageMetrics.
- * Use `create(UsageMetricsSchema)` to create a new message.
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.
+ * Use `create(UsageReportAggregateSchema)` to create a new message.
  */
-export const UsageMetricsSchema: GenMessage<UsageMetrics> = /*@__PURE__*/
+export const UsageReportAggregateSchema: GenMessage<UsageReportAggregate> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_usage, 6);
 
 /**
- * Per-model usage breakdown used in usage report RPC responses.
- * In cloud mode, populated from LlmCallUsageRecord queries;
- * in OSS mode, derived from AgentMessage.llm_metrics.
+ * Per-model usage breakdown within a report scope.
+ *
+ * Groups token counts and cost by (model, provider) pair. Used in
+ * model_breakdown repeated fields on report responses.
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.ModelUsage
  */
 export type ModelUsage = Message<"ai.stigmer.agentic.agentexecution.v1.ModelUsage"> & {
   /**
+   * Model identifier as resolved by the provider.
+   *
    * @generated from field: string model = 1;
    */
   model: string;
 
   /**
+   * LLM provider (e.g., "openai", "anthropic", "cursor").
+   *
    * @generated from field: string provider = 2;
    */
   provider: string;
 
   /**
-   * @generated from field: int32 input_tokens = 3;
+   * Token counts for this model.
+   *
+   * @generated from field: int64 input_tokens = 3;
    */
-  inputTokens: number;
+  inputTokens: bigint;
 
   /**
-   * @generated from field: int32 output_tokens = 4;
+   * @generated from field: int64 output_tokens = 4;
    */
-  outputTokens: number;
+  outputTokens: bigint;
 
   /**
-   * @generated from field: int32 cache_creation_tokens = 5;
+   * @generated from field: int64 cache_creation_input_tokens = 5;
    */
-  cacheCreationTokens: number;
+  cacheCreationInputTokens: bigint;
 
   /**
-   * @generated from field: int32 cache_read_tokens = 6;
+   * @generated from field: int64 cache_read_input_tokens = 6;
    */
-  cacheReadTokens: number;
+  cacheReadInputTokens: bigint;
 
   /**
+   * Number of LLM API calls to this model.
+   *
    * @generated from field: int32 call_count = 7;
    */
   callCount: number;
 
   /**
-   * @generated from field: double input_price_per_million = 8;
+   * Cost in micro-USD for this model.
+   *
+   * @generated from field: int64 billable_cost_micros = 8;
    */
-  inputPricePerMillion: number;
+  billableCostMicros: bigint;
 
   /**
-   * @generated from field: double output_price_per_million = 9;
+   * @generated from field: int64 provider_cost_micros = 9;
    */
-  outputPricePerMillion: number;
-
-  /**
-   * @generated from field: double cache_creation_price_per_million = 10;
-   */
-  cacheCreationPricePerMillion: number;
-
-  /**
-   * @generated from field: double cache_read_price_per_million = 11;
-   */
-  cacheReadPricePerMillion: number;
-
-  /**
-   * @generated from field: double estimated_cost_usd = 12;
-   */
-  estimatedCostUsd: number;
+  providerCostMicros: bigint;
 };
 
 /**

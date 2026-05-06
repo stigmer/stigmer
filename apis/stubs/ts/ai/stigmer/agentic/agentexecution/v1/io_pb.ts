@@ -8,7 +8,7 @@ import type { AgentExecution, AgentExecutionStatus } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_api } from "./api_pb.js";
 import type { ApprovalAction, ExecutionControlSignal, ExecutionPhase } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb.js";
-import type { ModelUsage, UsageMetrics } from "./usage_pb.js";
+import type { ModelUsage, UsageReportAggregate } from "./usage_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_usage } from "./usage_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { Message } from "@bufbuild/protobuf";
@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvaW8ucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSIpChBBZ2VudEV4ZWN1dGlvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEicAoSQWdlbnRFeGVjdXRpb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEkUKB2VudHJpZXMYAiADKAsyNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRFeGVjdXRpb24ilgEKGkxpc3RBZ2VudEV4ZWN1dGlvbnNSZXF1ZXN0EhEKCXBhZ2Vfc2l6ZRgBIAEoBRISCgpwYWdlX3Rva2VuGAIgASgJEkMKBXBoYXNlGAMgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblBoYXNlEgwKBHRhZ3MYBCADKAkiaAojTGlzdEFnZW50RXhlY3V0aW9uc0J5U2Vzc2lvblJlcXVlc3QSGgoKc2Vzc2lvbl9pZBgBIAEoCUIGukgDyAEBEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIpQBCh9BZ2VudEV4ZWN1dGlvblVwZGF0ZVN0YXR1c0lucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARJSCgZzdGF0dXMYAiABKAsyOi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRFeGVjdXRpb25TdGF0dXNCBrpIA8gBASJ7ChRVcGRhdGVTdGF0dXNSZXNwb25zZRJMCgZzaWduYWwYASABKA4yPC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRXhlY3V0aW9uQ29udHJvbFNpZ25hbBIVCg1zaWduYWxfcmVhc29uGAIgASgJIrwBChNTdWJtaXRBcHByb3ZhbElucHV0EiMKEmFnZW50X2V4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIdCgx0b29sX2NhbGxfaWQYAiABKAlCB7pIBHICEAESUAoGYWN0aW9uGAMgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uQgq6SAeCAQQQASAAEg8KB2NvbW1lbnQYBCABKAkiZAoUQXBwcm92YWxEZWNpc2lvbkxpc3QSTAoJZGVjaXNpb25zGAEgAygLMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlN1Ym1pdEFwcHJvdmFsSW5wdXQiQAoZQ2FuY2VsQWdlbnRFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiQwocVGVybWluYXRlQWdlbnRFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiMQoaUmVjb3ZlckFnZW50RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAEiPwoYUGF1c2VBZ2VudEV4ZWN1dGlvbklucHV0EhMKAmlkGAEgASgJQge6SARyAhABEg4KBnJlYXNvbhgCIAEoCSIwChlSZXN1bWVBZ2VudEV4ZWN1dGlvbklucHV0EhMKAmlkGAEgASgJQge6SARyAhABImMKF1VwbG9hZEF0dGFjaG1lbnRSZXF1ZXN0EhkKCGZpbGVuYW1lGAEgASgJQge6SARyAhABEhcKB2NvbnRlbnQYAiABKAxCBrpIA8gBARIUCgxjb250ZW50X3R5cGUYAyABKAkiLwoYVXBsb2FkQXR0YWNobWVudFJlc3BvbnNlEhMKC3N0b3JhZ2Vfa2V5GAEgASgJIlwKHUdldEFydGlmYWN0RG93bmxvYWRVcmxSZXF1ZXN0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIcCgtzdG9yYWdlX2tleRgCIAEoCUIHukgEcgIQASJKCh5HZXRBcnRpZmFjdERvd25sb2FkVXJsUmVzcG9uc2USFAoMZG93bmxvYWRfdXJsGAEgASgJEhIKCmV4cGlyZXNfYXQYAiABKAkifwoZR2V0QXJ0aWZhY3RDb250ZW50UmVxdWVzdBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAESHAoLc3RvcmFnZV9rZXkYAiABKAlCB7pIBHICEAESEQoJbWF4X2J5dGVzGAMgASgDEhIKCmVudHJ5X3BhdGgYBCABKAkicAoaR2V0QXJ0aWZhY3RDb250ZW50UmVzcG9uc2USDwoHY29udGVudBgBIAEoDBIUCgxjb250ZW50X3R5cGUYAiABKAkSGAoQdG90YWxfc2l6ZV9ieXRlcxgDIAEoAxIRCgl0cnVuY2F0ZWQYBCABKAgiOQoaR2V0U2Vzc2lvblVzYWdlUmVwb3J0SW5wdXQSGwoKc2Vzc2lvbl9pZBgBIAEoCUIHukgEcgIQASKMAwobR2V0U2Vzc2lvblVzYWdlUmVwb3J0T3V0cHV0EhIKCnNlc3Npb25faWQYASABKAkSFwoPZXhlY3V0aW9uX2NvdW50GAIgASgFEkcKC3RvdGFsX3VzYWdlGAMgASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlVzYWdlTWV0cmljcxJPCgpleGVjdXRpb25zGAQgAygLMjsuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblVzYWdlU3VtbWFyeRJJCg9tb2RlbF9icmVha2Rvd24YBSADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuTW9kZWxVc2FnZRIkChx0b3RhbF9zdW1tYXJpemF0aW9uX2Nvc3RfdXNkGAYgASgBEhoKEmZpcnN0X2V4ZWN1dGlvbl9hdBgHIAEoCRIZChFsYXN0X2V4ZWN1dGlvbl9hdBgIIAEoCSKAAQoYR2V0QWdlbnRVc2FnZVJlcG9ydElucHV0EhkKCGFnZW50X2lkGAEgASgJQge6SARyAhABEhEKCWZyb21fZGF0ZRgCIAEoCRIPCgd0b19kYXRlGAMgASgJEhEKCXBhZ2Vfc2l6ZRgEIAEoBRISCgpwYWdlX3Rva2VuGAUgASgJIoUDChlHZXRBZ2VudFVzYWdlUmVwb3J0T3V0cHV0EhAKCGFnZW50X2lkGAEgASgJEhIKCmFnZW50X25hbWUYAiABKAkSRwoLdG90YWxfdXNhZ2UYAyABKAsyMi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVXNhZ2VNZXRyaWNzEkkKD21vZGVsX2JyZWFrZG93bhgEIAMoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Nb2RlbFVzYWdlEksKCHNlc3Npb25zGAUgAygLMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNlc3Npb25Vc2FnZVN1bW1hcnkSFgoOdG90YWxfc2Vzc2lvbnMYBiABKAUSGAoQdG90YWxfZXhlY3V0aW9ucxgHIAEoBRIWCg50b3RhbF9jb3N0X3VzZBgIIAEoARIXCg9uZXh0X3BhZ2VfdG9rZW4YCSABKAkiZwoWR2V0T3JnVXNhZ2VSZXBvcnRJbnB1dBIXCgZvcmdfaWQYASABKAlCB7pIBHICEAESGgoJZnJvbV9kYXRlGAIgASgJQge6SARyAhABEhgKB3RvX2RhdGUYAyABKAlCB7pIBHICEAEi9AIKF0dldE9yZ1VzYWdlUmVwb3J0T3V0cHV0Eg4KBm9yZ19pZBgBIAEoCRIUCgx0b3RhbF9hZ2VudHMYAiABKAUSFgoOdG90YWxfc2Vzc2lvbnMYAyABKAUSGAoQdG90YWxfZXhlY3V0aW9ucxgEIAEoBRIWCg50b3RhbF9jb3N0X3VzZBgFIAEoARJJCg9tb2RlbF9icmVha2Rvd24YBiADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuTW9kZWxVc2FnZRJTChJ0b3BfYWdlbnRzX2J5X2Nvc3QYByADKAsyNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRVc2FnZVN1bW1hcnkSSQoLZGFpbHlfY29zdHMYCCADKAsyNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRGFpbHlDb3N0RW50cnkitQIKFUV4ZWN1dGlvblVzYWdlU3VtbWFyeRIUCgxleGVjdXRpb25faWQYASABKAkSEgoKc3RhcnRlZF9hdBgCIAEoCRIUCgxjb21wbGV0ZWRfYXQYAyABKAkSFQoNcHJvbXB0X3Rva2VucxgEIAEoBRIZChFjb21wbGV0aW9uX3Rva2VucxgFIAEoBRIZChFjYWNoZV9yZWFkX3Rva2VucxgGIAEoBRIaChJlc3RpbWF0ZWRfY29zdF91c2QYByABKAESFQoNcHJpbWFyeV9tb2RlbBgIIAEoCRIXCg9zdWJfYWdlbnRfY291bnQYCSABKAUSQwoFcGhhc2UYCiABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRXhlY3V0aW9uUGhhc2UiqwEKE1Nlc3Npb25Vc2FnZVN1bW1hcnkSEgoKc2Vzc2lvbl9pZBgBIAEoCRIXCg9leGVjdXRpb25fY291bnQYAiABKAUSFAoMdG90YWxfdG9rZW5zGAMgASgFEhoKEmVzdGltYXRlZF9jb3N0X3VzZBgEIAEoARIaChJmaXJzdF9leGVjdXRpb25fYXQYBSABKAkSGQoRbGFzdF9leGVjdXRpb25fYXQYBiABKAkihAEKEUFnZW50VXNhZ2VTdW1tYXJ5EhAKCGFnZW50X2lkGAEgASgJEhIKCmFnZW50X25hbWUYAiABKAkSFwoPZXhlY3V0aW9uX2NvdW50GAMgASgFEhQKDHRvdGFsX3Rva2VucxgEIAEoBRIaChJlc3RpbWF0ZWRfY29zdF91c2QYBSABKAEiaQoORGFpbHlDb3N0RW50cnkSDAoEZGF0ZRgBIAEoCRIXCg9leGVjdXRpb25fY291bnQYAiABKAUSFAoMdG90YWxfdG9rZW5zGAMgASgFEhoKEmVzdGltYXRlZF9jb3N0X3VzZBgEIAEoAWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_api, file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_usage, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvaW8ucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSIpChBBZ2VudEV4ZWN1dGlvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEicAoSQWdlbnRFeGVjdXRpb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEkUKB2VudHJpZXMYAiADKAsyNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRFeGVjdXRpb24ilgEKGkxpc3RBZ2VudEV4ZWN1dGlvbnNSZXF1ZXN0EhEKCXBhZ2Vfc2l6ZRgBIAEoBRISCgpwYWdlX3Rva2VuGAIgASgJEkMKBXBoYXNlGAMgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblBoYXNlEgwKBHRhZ3MYBCADKAkiaAojTGlzdEFnZW50RXhlY3V0aW9uc0J5U2Vzc2lvblJlcXVlc3QSGgoKc2Vzc2lvbl9pZBgBIAEoCUIGukgDyAEBEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIpQBCh9BZ2VudEV4ZWN1dGlvblVwZGF0ZVN0YXR1c0lucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARJSCgZzdGF0dXMYAiABKAsyOi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRFeGVjdXRpb25TdGF0dXNCBrpIA8gBASJ7ChRVcGRhdGVTdGF0dXNSZXNwb25zZRJMCgZzaWduYWwYASABKA4yPC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRXhlY3V0aW9uQ29udHJvbFNpZ25hbBIVCg1zaWduYWxfcmVhc29uGAIgASgJIrwBChNTdWJtaXRBcHByb3ZhbElucHV0EiMKEmFnZW50X2V4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIdCgx0b29sX2NhbGxfaWQYAiABKAlCB7pIBHICEAESUAoGYWN0aW9uGAMgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uQgq6SAeCAQQQASAAEg8KB2NvbW1lbnQYBCABKAkiZAoUQXBwcm92YWxEZWNpc2lvbkxpc3QSTAoJZGVjaXNpb25zGAEgAygLMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlN1Ym1pdEFwcHJvdmFsSW5wdXQiQAoZQ2FuY2VsQWdlbnRFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiQwocVGVybWluYXRlQWdlbnRFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiMQoaUmVjb3ZlckFnZW50RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAEiPwoYUGF1c2VBZ2VudEV4ZWN1dGlvbklucHV0EhMKAmlkGAEgASgJQge6SARyAhABEg4KBnJlYXNvbhgCIAEoCSIwChlSZXN1bWVBZ2VudEV4ZWN1dGlvbklucHV0EhMKAmlkGAEgASgJQge6SARyAhABImMKF1VwbG9hZEF0dGFjaG1lbnRSZXF1ZXN0EhkKCGZpbGVuYW1lGAEgASgJQge6SARyAhABEhcKB2NvbnRlbnQYAiABKAxCBrpIA8gBARIUCgxjb250ZW50X3R5cGUYAyABKAkiLwoYVXBsb2FkQXR0YWNobWVudFJlc3BvbnNlEhMKC3N0b3JhZ2Vfa2V5GAEgASgJIlwKHUdldEFydGlmYWN0RG93bmxvYWRVcmxSZXF1ZXN0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIcCgtzdG9yYWdlX2tleRgCIAEoCUIHukgEcgIQASJKCh5HZXRBcnRpZmFjdERvd25sb2FkVXJsUmVzcG9uc2USFAoMZG93bmxvYWRfdXJsGAEgASgJEhIKCmV4cGlyZXNfYXQYAiABKAkifwoZR2V0QXJ0aWZhY3RDb250ZW50UmVxdWVzdBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAESHAoLc3RvcmFnZV9rZXkYAiABKAlCB7pIBHICEAESEQoJbWF4X2J5dGVzGAMgASgDEhIKCmVudHJ5X3BhdGgYBCABKAkicAoaR2V0QXJ0aWZhY3RDb250ZW50UmVzcG9uc2USDwoHY29udGVudBgBIAEoDBIUCgxjb250ZW50X3R5cGUYAiABKAkSGAoQdG90YWxfc2l6ZV9ieXRlcxgDIAEoAxIRCgl0cnVuY2F0ZWQYBCABKAgiPQocR2V0RXhlY3V0aW9uVXNhZ2VSZXBvcnRJbnB1dBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAEiuQEKHUdldEV4ZWN1dGlvblVzYWdlUmVwb3J0T3V0cHV0Ek0KCWFnZ3JlZ2F0ZRgBIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Vc2FnZVJlcG9ydEFnZ3JlZ2F0ZRJJCg9tb2RlbF9icmVha2Rvd24YAiADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuTW9kZWxVc2FnZSI5ChpHZXRTZXNzaW9uVXNhZ2VSZXBvcnRJbnB1dBIbCgpzZXNzaW9uX2lkGAEgASgJQge6SARyAhABIu4CChtHZXRTZXNzaW9uVXNhZ2VSZXBvcnRPdXRwdXQSEgoKc2Vzc2lvbl9pZBgBIAEoCRIXCg9leGVjdXRpb25fY291bnQYAiABKAUSTwoLdG90YWxfdXNhZ2UYAyABKAsyOi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVXNhZ2VSZXBvcnRBZ2dyZWdhdGUSTwoKZXhlY3V0aW9ucxgEIAMoCzI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25Vc2FnZVN1bW1hcnkSSQoPbW9kZWxfYnJlYWtkb3duGAUgAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLk1vZGVsVXNhZ2USGgoSZmlyc3RfZXhlY3V0aW9uX2F0GAYgASgJEhkKEWxhc3RfZXhlY3V0aW9uX2F0GAcgASgJIoABChhHZXRBZ2VudFVzYWdlUmVwb3J0SW5wdXQSGQoIYWdlbnRfaWQYASABKAlCB7pIBHICEAESEQoJZnJvbV9kYXRlGAIgASgJEg8KB3RvX2RhdGUYAyABKAkSEQoJcGFnZV9zaXplGAQgASgFEhIKCnBhZ2VfdG9rZW4YBSABKAkimQMKGUdldEFnZW50VXNhZ2VSZXBvcnRPdXRwdXQSEAoIYWdlbnRfaWQYASABKAkSEgoKYWdlbnRfbmFtZRgCIAEoCRJPCgt0b3RhbF91c2FnZRgDIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Vc2FnZVJlcG9ydEFnZ3JlZ2F0ZRJJCg9tb2RlbF9icmVha2Rvd24YBCADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuTW9kZWxVc2FnZRJLCghzZXNzaW9ucxgFIAMoCzI5LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5TZXNzaW9uVXNhZ2VTdW1tYXJ5EhYKDnRvdGFsX3Nlc3Npb25zGAYgASgFEhgKEHRvdGFsX2V4ZWN1dGlvbnMYByABKAUSIgoadG90YWxfYmlsbGFibGVfY29zdF9taWNyb3MYCCABKAMSFwoPbmV4dF9wYWdlX3Rva2VuGAkgASgJImcKFkdldE9yZ1VzYWdlUmVwb3J0SW5wdXQSFwoGb3JnX2lkGAEgASgJQge6SARyAhABEhoKCWZyb21fZGF0ZRgCIAEoCUIHukgEcgIQARIYCgd0b19kYXRlGAMgASgJQge6SARyAhABIoADChdHZXRPcmdVc2FnZVJlcG9ydE91dHB1dBIOCgZvcmdfaWQYASABKAkSFAoMdG90YWxfYWdlbnRzGAIgASgFEhYKDnRvdGFsX3Nlc3Npb25zGAMgASgFEhgKEHRvdGFsX2V4ZWN1dGlvbnMYBCABKAUSIgoadG90YWxfYmlsbGFibGVfY29zdF9taWNyb3MYBSABKAMSSQoPbW9kZWxfYnJlYWtkb3duGAYgAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLk1vZGVsVXNhZ2USUwoSdG9wX2FnZW50c19ieV9jb3N0GAcgAygLMjcuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50VXNhZ2VTdW1tYXJ5EkkKC2RhaWx5X2Nvc3RzGAggAygLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkRhaWx5Q29zdEVudHJ5IrgCChVFeGVjdXRpb25Vc2FnZVN1bW1hcnkSFAoMZXhlY3V0aW9uX2lkGAEgASgJEhIKCnN0YXJ0ZWRfYXQYAiABKAkSFAoMY29tcGxldGVkX2F0GAMgASgJEhQKDGlucHV0X3Rva2VucxgEIAEoAxIVCg1vdXRwdXRfdG9rZW5zGAUgASgDEh8KF2NhY2hlX3JlYWRfaW5wdXRfdG9rZW5zGAYgASgDEhwKFGJpbGxhYmxlX2Nvc3RfbWljcm9zGAcgASgDEhUKDXByaW1hcnlfbW9kZWwYCCABKAkSFwoPc3ViX2FnZW50X2NvdW50GAkgASgFEkMKBXBoYXNlGAogASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblBoYXNlIq0BChNTZXNzaW9uVXNhZ2VTdW1tYXJ5EhIKCnNlc3Npb25faWQYASABKAkSFwoPZXhlY3V0aW9uX2NvdW50GAIgASgFEhQKDHRvdGFsX3Rva2VucxgDIAEoAxIcChRiaWxsYWJsZV9jb3N0X21pY3JvcxgEIAEoAxIaChJmaXJzdF9leGVjdXRpb25fYXQYBSABKAkSGQoRbGFzdF9leGVjdXRpb25fYXQYBiABKAkihgEKEUFnZW50VXNhZ2VTdW1tYXJ5EhAKCGFnZW50X2lkGAEgASgJEhIKCmFnZW50X25hbWUYAiABKAkSFwoPZXhlY3V0aW9uX2NvdW50GAMgASgFEhQKDHRvdGFsX3Rva2VucxgEIAEoAxIcChRiaWxsYWJsZV9jb3N0X21pY3JvcxgFIAEoAyJrCg5EYWlseUNvc3RFbnRyeRIMCgRkYXRlGAEgASgJEhcKD2V4ZWN1dGlvbl9jb3VudBgCIAEoBRIUCgx0b3RhbF90b2tlbnMYAyABKAMSHAoUYmlsbGFibGVfY29zdF9taWNyb3MYBCABKANiBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_api, file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_usage, file_buf_validate_validate]);
 
 /**
  * AgentExecutionId wraps an agent execution identifier.
@@ -1142,6 +1142,55 @@ export const GetArtifactContentResponseSchema: GenMessage<GetArtifactContentResp
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 19);
 
 /**
+ * GetExecutionUsageReportInput requests a usage report for a single execution.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput
+ */
+export type GetExecutionUsageReportInput = Message<"ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput"> & {
+  /**
+   * Execution ID to get usage report for.
+   *
+   * @generated from field: string execution_id = 1;
+   */
+  executionId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput.
+ * Use `create(GetExecutionUsageReportInputSchema)` to create a new message.
+ */
+export const GetExecutionUsageReportInputSchema: GenMessage<GetExecutionUsageReportInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 20);
+
+/**
+ * GetExecutionUsageReportOutput returns aggregated usage for one execution.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput
+ */
+export type GetExecutionUsageReportOutput = Message<"ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput"> & {
+  /**
+   * Aggregated token counts and cost for this execution.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate aggregate = 1;
+   */
+  aggregate?: UsageReportAggregate;
+
+  /**
+   * Per-model breakdown within this execution.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.ModelUsage model_breakdown = 2;
+   */
+  modelBreakdown: ModelUsage[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput.
+ * Use `create(GetExecutionUsageReportOutputSchema)` to create a new message.
+ */
+export const GetExecutionUsageReportOutputSchema: GenMessage<GetExecutionUsageReportOutput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 21);
+
+/**
  * GetSessionUsageReportInput requests a usage report for a single session.
  * Aggregates cost and token data across all executions in the session.
  *
@@ -1161,7 +1210,7 @@ export type GetSessionUsageReportInput = Message<"ai.stigmer.agentic.agentexecut
  * Use `create(GetSessionUsageReportInputSchema)` to create a new message.
  */
 export const GetSessionUsageReportInputSchema: GenMessage<GetSessionUsageReportInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 20);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 22);
 
 /**
  * GetSessionUsageReportOutput returns aggregated usage for a session.
@@ -1190,9 +1239,9 @@ export type GetSessionUsageReportOutput = Message<"ai.stigmer.agentic.agentexecu
   /**
    * Aggregated usage across all executions in this session.
    *
-   * @generated from field: ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3;
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3;
    */
-  totalUsage?: UsageMetrics;
+  totalUsage?: UsageReportAggregate;
 
   /**
    * Per-execution breakdown (ordered chronologically).
@@ -1209,23 +1258,16 @@ export type GetSessionUsageReportOutput = Message<"ai.stigmer.agentic.agentexecu
   modelBreakdown: ModelUsage[];
 
   /**
-   * Total summarization cost across all executions.
-   *
-   * @generated from field: double total_summarization_cost_usd = 6;
-   */
-  totalSummarizationCostUsd: number;
-
-  /**
    * ISO 8601 timestamp of the first execution in this session.
    *
-   * @generated from field: string first_execution_at = 7;
+   * @generated from field: string first_execution_at = 6;
    */
   firstExecutionAt: string;
 
   /**
    * ISO 8601 timestamp of the most recent execution in this session.
    *
-   * @generated from field: string last_execution_at = 8;
+   * @generated from field: string last_execution_at = 7;
    */
   lastExecutionAt: string;
 };
@@ -1235,7 +1277,7 @@ export type GetSessionUsageReportOutput = Message<"ai.stigmer.agentic.agentexecu
  * Use `create(GetSessionUsageReportOutputSchema)` to create a new message.
  */
 export const GetSessionUsageReportOutputSchema: GenMessage<GetSessionUsageReportOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 21);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 23);
 
 /**
  * GetAgentUsageReportInput requests a usage report for a specific agent.
@@ -1288,7 +1330,7 @@ export type GetAgentUsageReportInput = Message<"ai.stigmer.agentic.agentexecutio
  * Use `create(GetAgentUsageReportInputSchema)` to create a new message.
  */
 export const GetAgentUsageReportInputSchema: GenMessage<GetAgentUsageReportInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 22);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 24);
 
 /**
  * GetAgentUsageReportOutput returns aggregated usage for an agent.
@@ -1316,9 +1358,9 @@ export type GetAgentUsageReportOutput = Message<"ai.stigmer.agentic.agentexecuti
   /**
    * Aggregated usage within the time range.
    *
-   * @generated from field: ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3;
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3;
    */
-  totalUsage?: UsageMetrics;
+  totalUsage?: UsageReportAggregate;
 
   /**
    * Per-model breakdown across the agent's executions.
@@ -1349,11 +1391,11 @@ export type GetAgentUsageReportOutput = Message<"ai.stigmer.agentic.agentexecuti
   totalExecutions: number;
 
   /**
-   * Total cost in USD within the time range.
+   * Total billable cost in micro-USD within the time range.
    *
-   * @generated from field: double total_cost_usd = 8;
+   * @generated from field: int64 total_billable_cost_micros = 8;
    */
-  totalCostUsd: number;
+  totalBillableCostMicros: bigint;
 
   /**
    * Token for the next page of sessions (empty if no more pages).
@@ -1368,7 +1410,7 @@ export type GetAgentUsageReportOutput = Message<"ai.stigmer.agentic.agentexecuti
  * Use `create(GetAgentUsageReportOutputSchema)` to create a new message.
  */
 export const GetAgentUsageReportOutputSchema: GenMessage<GetAgentUsageReportOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 23);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 25);
 
 /**
  * GetOrgUsageReportInput requests a usage report for an entire organization.
@@ -1407,7 +1449,7 @@ export type GetOrgUsageReportInput = Message<"ai.stigmer.agentic.agentexecution.
  * Use `create(GetOrgUsageReportInputSchema)` to create a new message.
  */
 export const GetOrgUsageReportInputSchema: GenMessage<GetOrgUsageReportInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 24);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 26);
 
 /**
  * GetOrgUsageReportOutput returns aggregated usage for an organization.
@@ -1447,11 +1489,11 @@ export type GetOrgUsageReportOutput = Message<"ai.stigmer.agentic.agentexecution
   totalExecutions: number;
 
   /**
-   * Total cost in USD across the organization in the time range.
+   * Total billable cost in micro-USD across the organization in the time range.
    *
-   * @generated from field: double total_cost_usd = 5;
+   * @generated from field: int64 total_billable_cost_micros = 5;
    */
-  totalCostUsd: number;
+  totalBillableCostMicros: bigint;
 
   /**
    * Per-model breakdown across the organization.
@@ -1461,7 +1503,7 @@ export type GetOrgUsageReportOutput = Message<"ai.stigmer.agentic.agentexecution
   modelBreakdown: ModelUsage[];
 
   /**
-   * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
    *
    * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7;
    */
@@ -1480,12 +1522,10 @@ export type GetOrgUsageReportOutput = Message<"ai.stigmer.agentic.agentexecution
  * Use `create(GetOrgUsageReportOutputSchema)` to create a new message.
  */
 export const GetOrgUsageReportOutputSchema: GenMessage<GetOrgUsageReportOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 25);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 27);
 
 /**
- * ExecutionUsageSummary is a lightweight view of a single execution's usage.
- * Used in session-level reports for per-execution breakdown without returning
- * the full AgentExecution resource.
+ * Lightweight view of a single execution's usage within a session report.
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary
  */
@@ -1512,32 +1552,32 @@ export type ExecutionUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v
   completedAt: string;
 
   /**
-   * Total input tokens for this execution.
+   * Input tokens for this execution.
    *
-   * @generated from field: int32 prompt_tokens = 4;
+   * @generated from field: int64 input_tokens = 4;
    */
-  promptTokens: number;
+  inputTokens: bigint;
 
   /**
-   * Total output tokens for this execution.
+   * Output tokens for this execution.
    *
-   * @generated from field: int32 completion_tokens = 5;
+   * @generated from field: int64 output_tokens = 5;
    */
-  completionTokens: number;
+  outputTokens: bigint;
 
   /**
    * Cache read tokens for this execution.
    *
-   * @generated from field: int32 cache_read_tokens = 6;
+   * @generated from field: int64 cache_read_input_tokens = 6;
    */
-  cacheReadTokens: number;
+  cacheReadInputTokens: bigint;
 
   /**
-   * Estimated cost in USD for this execution.
+   * Billable cost in micro-USD for this execution.
    *
-   * @generated from field: double estimated_cost_usd = 7;
+   * @generated from field: int64 billable_cost_micros = 7;
    */
-  estimatedCostUsd: number;
+  billableCostMicros: bigint;
 
   /**
    * Primary model used for this execution.
@@ -1566,11 +1606,10 @@ export type ExecutionUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v
  * Use `create(ExecutionUsageSummarySchema)` to create a new message.
  */
 export const ExecutionUsageSummarySchema: GenMessage<ExecutionUsageSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 26);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 28);
 
 /**
- * SessionUsageSummary is a lightweight view of a session's usage.
- * Used in agent-level reports for per-session breakdown.
+ * Lightweight view of a session's usage within an agent report.
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.SessionUsageSummary
  */
@@ -1590,18 +1629,18 @@ export type SessionUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v1.
   executionCount: number;
 
   /**
-   * Total tokens (prompt + completion) across all executions.
+   * Total tokens (input + output) across all executions.
    *
-   * @generated from field: int32 total_tokens = 3;
+   * @generated from field: int64 total_tokens = 3;
    */
-  totalTokens: number;
+  totalTokens: bigint;
 
   /**
-   * Total estimated cost in USD for this session.
+   * Total billable cost in micro-USD for this session.
    *
-   * @generated from field: double estimated_cost_usd = 4;
+   * @generated from field: int64 billable_cost_micros = 4;
    */
-  estimatedCostUsd: number;
+  billableCostMicros: bigint;
 
   /**
    * ISO 8601 timestamp of the first execution in this session.
@@ -1623,11 +1662,10 @@ export type SessionUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v1.
  * Use `create(SessionUsageSummarySchema)` to create a new message.
  */
 export const SessionUsageSummarySchema: GenMessage<SessionUsageSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 27);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 29);
 
 /**
- * AgentUsageSummary is a lightweight view of an agent's usage.
- * Used in org-level reports to show top agents by cost.
+ * Lightweight view of an agent's usage within an org report.
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary
  */
@@ -1654,18 +1692,18 @@ export type AgentUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v1.Ag
   executionCount: number;
 
   /**
-   * Total tokens (prompt + completion) across all executions.
+   * Total tokens (input + output) across all executions.
    *
-   * @generated from field: int32 total_tokens = 4;
+   * @generated from field: int64 total_tokens = 4;
    */
-  totalTokens: number;
+  totalTokens: bigint;
 
   /**
-   * Total estimated cost in USD for this agent.
+   * Total billable cost in micro-USD for this agent.
    *
-   * @generated from field: double estimated_cost_usd = 5;
+   * @generated from field: int64 billable_cost_micros = 5;
    */
-  estimatedCostUsd: number;
+  billableCostMicros: bigint;
 };
 
 /**
@@ -1673,11 +1711,10 @@ export type AgentUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v1.Ag
  * Use `create(AgentUsageSummarySchema)` to create a new message.
  */
 export const AgentUsageSummarySchema: GenMessage<AgentUsageSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 28);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 30);
 
 /**
- * DailyCostEntry represents cost and usage for a single day.
- * Used in org-level reports to show daily cost trends.
+ * Cost and usage for a single day within an org report.
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.DailyCostEntry
  */
@@ -1699,16 +1736,16 @@ export type DailyCostEntry = Message<"ai.stigmer.agentic.agentexecution.v1.Daily
   /**
    * Total tokens consumed on this date.
    *
-   * @generated from field: int32 total_tokens = 3;
+   * @generated from field: int64 total_tokens = 3;
    */
-  totalTokens: number;
+  totalTokens: bigint;
 
   /**
-   * Total estimated cost in USD on this date.
+   * Total billable cost in micro-USD on this date.
    *
-   * @generated from field: double estimated_cost_usd = 4;
+   * @generated from field: int64 billable_cost_micros = 4;
    */
-  estimatedCostUsd: number;
+  billableCostMicros: bigint;
 };
 
 /**
@@ -1716,5 +1753,5 @@ export type DailyCostEntry = Message<"ai.stigmer.agentic.agentexecution.v1.Daily
  * Use `create(DailyCostEntrySchema)` to create a new message.
  */
 export const DailyCostEntrySchema: GenMessage<DailyCostEntry> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 29);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 31);
 
