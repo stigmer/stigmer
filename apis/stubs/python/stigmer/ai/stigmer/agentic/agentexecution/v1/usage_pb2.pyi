@@ -55,16 +55,6 @@ class CostCalculationStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     COST_CALCULATION_STATUS_PRICE_NOT_FOUND: _ClassVar[CostCalculationStatus]
     COST_CALCULATION_STATUS_RECONCILED: _ClassVar[CostCalculationStatus]
     COST_CALCULATION_STATUS_MANUAL_ADJUSTED: _ClassVar[CostCalculationStatus]
-
-class UsageAggregateStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-    __slots__ = ()
-    USAGE_AGGREGATE_STATUS_UNSPECIFIED: _ClassVar[UsageAggregateStatus]
-    USAGE_AGGREGATE_STATUS_COMPLETE: _ClassVar[UsageAggregateStatus]
-    USAGE_AGGREGATE_STATUS_PARTIAL: _ClassVar[UsageAggregateStatus]
-    USAGE_AGGREGATE_STATUS_PENDING_BILLING: _ClassVar[UsageAggregateStatus]
-    USAGE_AGGREGATE_STATUS_HAS_ESTIMATES: _ClassVar[UsageAggregateStatus]
-    USAGE_AGGREGATE_STATUS_HAS_CONFLICTS: _ClassVar[UsageAggregateStatus]
-    USAGE_AGGREGATE_STATUS_RECONCILED: _ClassVar[UsageAggregateStatus]
 USAGE_METERING_SOURCE_UNSPECIFIED: UsageMeteringSource
 USAGE_METERING_SOURCE_PROXY_PROVIDER_REPORTED: UsageMeteringSource
 USAGE_METERING_SOURCE_RUNNER_PROVIDER_REPORTED_OSS: UsageMeteringSource
@@ -96,13 +86,6 @@ COST_CALCULATION_STATUS_ESTIMATED: CostCalculationStatus
 COST_CALCULATION_STATUS_PRICE_NOT_FOUND: CostCalculationStatus
 COST_CALCULATION_STATUS_RECONCILED: CostCalculationStatus
 COST_CALCULATION_STATUS_MANUAL_ADJUSTED: CostCalculationStatus
-USAGE_AGGREGATE_STATUS_UNSPECIFIED: UsageAggregateStatus
-USAGE_AGGREGATE_STATUS_COMPLETE: UsageAggregateStatus
-USAGE_AGGREGATE_STATUS_PARTIAL: UsageAggregateStatus
-USAGE_AGGREGATE_STATUS_PENDING_BILLING: UsageAggregateStatus
-USAGE_AGGREGATE_STATUS_HAS_ESTIMATES: UsageAggregateStatus
-USAGE_AGGREGATE_STATUS_HAS_CONFLICTS: UsageAggregateStatus
-USAGE_AGGREGATE_STATUS_RECONCILED: UsageAggregateStatus
 
 class TokenUsage(_message.Message):
     __slots__ = ("input_tokens", "output_tokens", "total_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "reasoning_tokens", "tool_use_prompt_tokens", "audio_input_tokens", "audio_output_tokens", "provider_token_details")
@@ -284,82 +267,8 @@ class LlmCallUsageRecord(_message.Message):
     labels: _containers.ScalarMap[str, str]
     def __init__(self, usage_record_id: _Optional[str] = ..., execution_id: _Optional[str] = ..., root_execution_id: _Optional[str] = ..., sequence: _Optional[int] = ..., idempotency_key: _Optional[str] = ..., canonical_payload_hash: _Optional[str] = ..., observed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., metering_source: _Optional[_Union[UsageMeteringSource, str]] = ..., trust_level: _Optional[_Union[UsageTrustLevel, str]] = ..., usage_status: _Optional[_Union[UsageCompletionStatus, str]] = ..., is_billable: bool = ..., provider: _Optional[str] = ..., requested_model: _Optional[str] = ..., resolved_model: _Optional[str] = ..., endpoint: _Optional[str] = ..., streaming: bool = ..., service_tier: _Optional[str] = ..., provider_request_id: _Optional[str] = ..., harness: _Optional[str] = ..., http_status_code: _Optional[int] = ..., finish_reason: _Optional[str] = ..., error_code: _Optional[str] = ..., tokens: _Optional[_Union[TokenUsage, _Mapping]] = ..., cost: _Optional[_Union[CostStamp, _Mapping]] = ..., proxy_timing: _Optional[_Union[ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., billing: _Optional[_Union[BillingLink, _Mapping]] = ..., labels: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
-class ModelUsageBreakdown(_message.Message):
-    __slots__ = ("provider", "resolved_model", "service_tier", "call_count", "billable_call_count", "failed_call_count", "tokens", "currency", "provider_cost_micros", "customer_billable_amount_micros")
-    PROVIDER_FIELD_NUMBER: _ClassVar[int]
-    RESOLVED_MODEL_FIELD_NUMBER: _ClassVar[int]
-    SERVICE_TIER_FIELD_NUMBER: _ClassVar[int]
-    CALL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    BILLABLE_CALL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    FAILED_CALL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    TOKENS_FIELD_NUMBER: _ClassVar[int]
-    CURRENCY_FIELD_NUMBER: _ClassVar[int]
-    PROVIDER_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
-    CUSTOMER_BILLABLE_AMOUNT_MICROS_FIELD_NUMBER: _ClassVar[int]
-    provider: str
-    resolved_model: str
-    service_tier: str
-    call_count: int
-    billable_call_count: int
-    failed_call_count: int
-    tokens: TokenUsage
-    currency: str
-    provider_cost_micros: int
-    customer_billable_amount_micros: int
-    def __init__(self, provider: _Optional[str] = ..., resolved_model: _Optional[str] = ..., service_tier: _Optional[str] = ..., call_count: _Optional[int] = ..., billable_call_count: _Optional[int] = ..., failed_call_count: _Optional[int] = ..., tokens: _Optional[_Union[TokenUsage, _Mapping]] = ..., currency: _Optional[str] = ..., provider_cost_micros: _Optional[int] = ..., customer_billable_amount_micros: _Optional[int] = ...) -> None: ...
-
-class ExecutionUsageAggregate(_message.Message):
-    __slots__ = ("llm_call_count", "billable_call_count", "failed_call_count", "total_tokens", "currency", "provider_cost_micros", "customer_billable_amount_micros", "model_breakdown", "primary_provider", "primary_model", "status", "last_usage_at", "source_record_count")
-    LLM_CALL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    BILLABLE_CALL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    FAILED_CALL_COUNT_FIELD_NUMBER: _ClassVar[int]
-    TOTAL_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    CURRENCY_FIELD_NUMBER: _ClassVar[int]
-    PROVIDER_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
-    CUSTOMER_BILLABLE_AMOUNT_MICROS_FIELD_NUMBER: _ClassVar[int]
-    MODEL_BREAKDOWN_FIELD_NUMBER: _ClassVar[int]
-    PRIMARY_PROVIDER_FIELD_NUMBER: _ClassVar[int]
-    PRIMARY_MODEL_FIELD_NUMBER: _ClassVar[int]
-    STATUS_FIELD_NUMBER: _ClassVar[int]
-    LAST_USAGE_AT_FIELD_NUMBER: _ClassVar[int]
-    SOURCE_RECORD_COUNT_FIELD_NUMBER: _ClassVar[int]
-    llm_call_count: int
-    billable_call_count: int
-    failed_call_count: int
-    total_tokens: TokenUsage
-    currency: str
-    provider_cost_micros: int
-    customer_billable_amount_micros: int
-    model_breakdown: _containers.RepeatedCompositeFieldContainer[ModelUsageBreakdown]
-    primary_provider: str
-    primary_model: str
-    status: UsageAggregateStatus
-    last_usage_at: _timestamp_pb2.Timestamp
-    source_record_count: int
-    def __init__(self, llm_call_count: _Optional[int] = ..., billable_call_count: _Optional[int] = ..., failed_call_count: _Optional[int] = ..., total_tokens: _Optional[_Union[TokenUsage, _Mapping]] = ..., currency: _Optional[str] = ..., provider_cost_micros: _Optional[int] = ..., customer_billable_amount_micros: _Optional[int] = ..., model_breakdown: _Optional[_Iterable[_Union[ModelUsageBreakdown, _Mapping]]] = ..., primary_provider: _Optional[str] = ..., primary_model: _Optional[str] = ..., status: _Optional[_Union[UsageAggregateStatus, str]] = ..., last_usage_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., source_record_count: _Optional[int] = ...) -> None: ...
-
-class ExecutionObservabilityMetrics(_message.Message):
-    __slots__ = ("runner_total_duration_ms", "runner_llm_wait_duration_ms", "tool_duration_ms", "approval_wait_duration_ms", "tool_result_chars_truncated", "max_context_window_used_tokens", "context_window_size_tokens", "updated_at")
-    RUNNER_TOTAL_DURATION_MS_FIELD_NUMBER: _ClassVar[int]
-    RUNNER_LLM_WAIT_DURATION_MS_FIELD_NUMBER: _ClassVar[int]
-    TOOL_DURATION_MS_FIELD_NUMBER: _ClassVar[int]
-    APPROVAL_WAIT_DURATION_MS_FIELD_NUMBER: _ClassVar[int]
-    TOOL_RESULT_CHARS_TRUNCATED_FIELD_NUMBER: _ClassVar[int]
-    MAX_CONTEXT_WINDOW_USED_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    CONTEXT_WINDOW_SIZE_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    UPDATED_AT_FIELD_NUMBER: _ClassVar[int]
-    runner_total_duration_ms: int
-    runner_llm_wait_duration_ms: int
-    tool_duration_ms: int
-    approval_wait_duration_ms: int
-    tool_result_chars_truncated: int
-    max_context_window_used_tokens: int
-    context_window_size_tokens: int
-    updated_at: _timestamp_pb2.Timestamp
-    def __init__(self, runner_total_duration_ms: _Optional[int] = ..., runner_llm_wait_duration_ms: _Optional[int] = ..., tool_duration_ms: _Optional[int] = ..., approval_wait_duration_ms: _Optional[int] = ..., tool_result_chars_truncated: _Optional[int] = ..., max_context_window_used_tokens: _Optional[int] = ..., context_window_size_tokens: _Optional[int] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
-
 class UsageMetrics(_message.Message):
-    __slots__ = ("prompt_tokens", "completion_tokens", "total_tokens", "llm_call_count", "primary_model", "cache_creation_tokens", "cache_read_tokens", "model_breakdown", "estimated_cost_usd", "tool_result_chars_truncated", "llm_calls", "total_duration_ms", "llm_duration_ms", "tool_duration_ms", "approval_wait_duration_ms", "primary_provider")
+    __slots__ = ("prompt_tokens", "completion_tokens", "total_tokens", "llm_call_count", "primary_model", "cache_creation_tokens", "cache_read_tokens", "model_breakdown", "estimated_cost_usd", "tool_result_chars_truncated", "total_duration_ms", "llm_duration_ms", "tool_duration_ms", "approval_wait_duration_ms", "primary_provider")
     PROMPT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     COMPLETION_TOKENS_FIELD_NUMBER: _ClassVar[int]
     TOTAL_TOKENS_FIELD_NUMBER: _ClassVar[int]
@@ -370,7 +279,6 @@ class UsageMetrics(_message.Message):
     MODEL_BREAKDOWN_FIELD_NUMBER: _ClassVar[int]
     ESTIMATED_COST_USD_FIELD_NUMBER: _ClassVar[int]
     TOOL_RESULT_CHARS_TRUNCATED_FIELD_NUMBER: _ClassVar[int]
-    LLM_CALLS_FIELD_NUMBER: _ClassVar[int]
     TOTAL_DURATION_MS_FIELD_NUMBER: _ClassVar[int]
     LLM_DURATION_MS_FIELD_NUMBER: _ClassVar[int]
     TOOL_DURATION_MS_FIELD_NUMBER: _ClassVar[int]
@@ -386,13 +294,12 @@ class UsageMetrics(_message.Message):
     model_breakdown: _containers.RepeatedCompositeFieldContainer[ModelUsage]
     estimated_cost_usd: float
     tool_result_chars_truncated: int
-    llm_calls: _containers.RepeatedCompositeFieldContainer[LlmCallMetrics]
     total_duration_ms: int
     llm_duration_ms: int
     tool_duration_ms: int
     approval_wait_duration_ms: int
     primary_provider: str
-    def __init__(self, prompt_tokens: _Optional[int] = ..., completion_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., llm_call_count: _Optional[int] = ..., primary_model: _Optional[str] = ..., cache_creation_tokens: _Optional[int] = ..., cache_read_tokens: _Optional[int] = ..., model_breakdown: _Optional[_Iterable[_Union[ModelUsage, _Mapping]]] = ..., estimated_cost_usd: _Optional[float] = ..., tool_result_chars_truncated: _Optional[int] = ..., llm_calls: _Optional[_Iterable[_Union[LlmCallMetrics, _Mapping]]] = ..., total_duration_ms: _Optional[int] = ..., llm_duration_ms: _Optional[int] = ..., tool_duration_ms: _Optional[int] = ..., approval_wait_duration_ms: _Optional[int] = ..., primary_provider: _Optional[str] = ...) -> None: ...
+    def __init__(self, prompt_tokens: _Optional[int] = ..., completion_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., llm_call_count: _Optional[int] = ..., primary_model: _Optional[str] = ..., cache_creation_tokens: _Optional[int] = ..., cache_read_tokens: _Optional[int] = ..., model_breakdown: _Optional[_Iterable[_Union[ModelUsage, _Mapping]]] = ..., estimated_cost_usd: _Optional[float] = ..., tool_result_chars_truncated: _Optional[int] = ..., total_duration_ms: _Optional[int] = ..., llm_duration_ms: _Optional[int] = ..., tool_duration_ms: _Optional[int] = ..., approval_wait_duration_ms: _Optional[int] = ..., primary_provider: _Optional[str] = ...) -> None: ...
 
 class ModelUsage(_message.Message):
     __slots__ = ("model", "provider", "input_tokens", "output_tokens", "cache_creation_tokens", "cache_read_tokens", "call_count", "input_price_per_million", "output_price_per_million", "cache_creation_price_per_million", "cache_read_price_per_million", "estimated_cost_usd")
@@ -421,29 +328,3 @@ class ModelUsage(_message.Message):
     cache_read_price_per_million: float
     estimated_cost_usd: float
     def __init__(self, model: _Optional[str] = ..., provider: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_creation_tokens: _Optional[int] = ..., cache_read_tokens: _Optional[int] = ..., call_count: _Optional[int] = ..., input_price_per_million: _Optional[float] = ..., output_price_per_million: _Optional[float] = ..., cache_creation_price_per_million: _Optional[float] = ..., cache_read_price_per_million: _Optional[float] = ..., estimated_cost_usd: _Optional[float] = ...) -> None: ...
-
-class LlmCallMetrics(_message.Message):
-    __slots__ = ("sequence", "model", "provider", "input_tokens", "output_tokens", "cache_creation_tokens", "cache_read_tokens", "estimated_cost_usd", "duration_ms", "timestamp", "total_tokens")
-    SEQUENCE_FIELD_NUMBER: _ClassVar[int]
-    MODEL_FIELD_NUMBER: _ClassVar[int]
-    PROVIDER_FIELD_NUMBER: _ClassVar[int]
-    INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    OUTPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    CACHE_CREATION_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    CACHE_READ_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    ESTIMATED_COST_USD_FIELD_NUMBER: _ClassVar[int]
-    DURATION_MS_FIELD_NUMBER: _ClassVar[int]
-    TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
-    TOTAL_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    sequence: int
-    model: str
-    provider: str
-    input_tokens: int
-    output_tokens: int
-    cache_creation_tokens: int
-    cache_read_tokens: int
-    estimated_cost_usd: float
-    duration_ms: int
-    timestamp: str
-    total_tokens: int
-    def __init__(self, sequence: _Optional[int] = ..., model: _Optional[str] = ..., provider: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_creation_tokens: _Optional[int] = ..., cache_read_tokens: _Optional[int] = ..., estimated_cost_usd: _Optional[float] = ..., duration_ms: _Optional[int] = ..., timestamp: _Optional[str] = ..., total_tokens: _Optional[int] = ...) -> None: ...

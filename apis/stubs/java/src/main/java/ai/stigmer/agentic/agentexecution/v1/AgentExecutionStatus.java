@@ -1223,88 +1223,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
   }
 
-  public static final int USAGE_SUMMARY_FIELD_NUMBER = 20;
-  private ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate usageSummary_;
-  /**
-   * <pre>
-   * Aggregated usage and cost for this execution, derived from billing-authoritative
-   * per-call records. Updated incrementally as LLM calls complete.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate usage_summary = 20 [json_name = "usageSummary"];</code>
-   * @return Whether the usageSummary field is set.
-   */
-  @java.lang.Override
-  public boolean hasUsageSummary() {
-    return ((bitField0_ & 0x00000010) != 0);
-  }
-  /**
-   * <pre>
-   * Aggregated usage and cost for this execution, derived from billing-authoritative
-   * per-call records. Updated incrementally as LLM calls complete.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate usage_summary = 20 [json_name = "usageSummary"];</code>
-   * @return The usageSummary.
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate getUsageSummary() {
-    return usageSummary_ == null ? ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate.getDefaultInstance() : usageSummary_;
-  }
-  /**
-   * <pre>
-   * Aggregated usage and cost for this execution, derived from billing-authoritative
-   * per-call records. Updated incrementally as LLM calls complete.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate usage_summary = 20 [json_name = "usageSummary"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregateOrBuilder getUsageSummaryOrBuilder() {
-    return usageSummary_ == null ? ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate.getDefaultInstance() : usageSummary_;
-  }
-
-  public static final int OBSERVABILITY_FIELD_NUMBER = 21;
-  private ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics observability_;
-  /**
-   * <pre>
-   * Runner-reported execution timing and context metrics.
-   * Display-only in cloud mode; never billing-authoritative.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics observability = 21 [json_name = "observability"];</code>
-   * @return Whether the observability field is set.
-   */
-  @java.lang.Override
-  public boolean hasObservability() {
-    return ((bitField0_ & 0x00000020) != 0);
-  }
-  /**
-   * <pre>
-   * Runner-reported execution timing and context metrics.
-   * Display-only in cloud mode; never billing-authoritative.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics observability = 21 [json_name = "observability"];</code>
-   * @return The observability.
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics getObservability() {
-    return observability_ == null ? ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics.getDefaultInstance() : observability_;
-  }
-  /**
-   * <pre>
-   * Runner-reported execution timing and context metrics.
-   * Display-only in cloud mode; never billing-authoritative.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics observability = 21 [json_name = "observability"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetricsOrBuilder getObservabilityOrBuilder() {
-    return observability_ == null ? ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics.getDefaultInstance() : observability_;
-  }
-
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1366,12 +1284,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runnerId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 19, runnerId_);
-    }
-    if (((bitField0_ & 0x00000010) != 0)) {
-      output.writeMessage(20, getUsageSummary());
-    }
-    if (((bitField0_ & 0x00000020) != 0)) {
-      output.writeMessage(21, getObservability());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -1472,14 +1384,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runnerId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(19, runnerId_);
     }
-    if (((bitField0_ & 0x00000010) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(20, getUsageSummary());
-    }
-    if (((bitField0_ & 0x00000020) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(21, getObservability());
-    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -1542,16 +1446,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     if (!getRunnerId()
         .equals(other.getRunnerId())) return false;
-    if (hasUsageSummary() != other.hasUsageSummary()) return false;
-    if (hasUsageSummary()) {
-      if (!getUsageSummary()
-          .equals(other.getUsageSummary())) return false;
-    }
-    if (hasObservability() != other.hasObservability()) return false;
-    if (hasObservability()) {
-      if (!getObservability()
-          .equals(other.getObservability())) return false;
-    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1615,14 +1509,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     hash = (37 * hash) + RUNNER_ID_FIELD_NUMBER;
     hash = (53 * hash) + getRunnerId().hashCode();
-    if (hasUsageSummary()) {
-      hash = (37 * hash) + USAGE_SUMMARY_FIELD_NUMBER;
-      hash = (53 * hash) + getUsageSummary().hashCode();
-    }
-    if (hasObservability()) {
-      hash = (37 * hash) + OBSERVABILITY_FIELD_NUMBER;
-      hash = (53 * hash) + getObservability().hashCode();
-    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1789,8 +1675,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         internalGetArtifactsFieldBuilder();
         internalGetWorkspaceWriteBacksFieldBuilder();
         internalGetSetupProgressFieldBuilder();
-        internalGetUsageSummaryFieldBuilder();
-        internalGetObservabilityFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1859,16 +1743,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         setupProgressBuilder_ = null;
       }
       runnerId_ = "";
-      usageSummary_ = null;
-      if (usageSummaryBuilder_ != null) {
-        usageSummaryBuilder_.dispose();
-        usageSummaryBuilder_ = null;
-      }
-      observability_ = null;
-      if (observabilityBuilder_ != null) {
-        observabilityBuilder_.dispose();
-        observabilityBuilder_ = null;
-      }
       return this;
     }
 
@@ -1996,18 +1870,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       }
       if (((from_bitField0_ & 0x00008000) != 0)) {
         result.runnerId_ = runnerId_;
-      }
-      if (((from_bitField0_ & 0x00010000) != 0)) {
-        result.usageSummary_ = usageSummaryBuilder_ == null
-            ? usageSummary_
-            : usageSummaryBuilder_.build();
-        to_bitField0_ |= 0x00000010;
-      }
-      if (((from_bitField0_ & 0x00020000) != 0)) {
-        result.observability_ = observabilityBuilder_ == null
-            ? observability_
-            : observabilityBuilder_.build();
-        to_bitField0_ |= 0x00000020;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -2195,12 +2057,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         bitField0_ |= 0x00008000;
         onChanged();
       }
-      if (other.hasUsageSummary()) {
-        mergeUsageSummary(other.getUsageSummary());
-      }
-      if (other.hasObservability()) {
-        mergeObservability(other.getObservability());
-      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -2352,20 +2208,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
               bitField0_ |= 0x00008000;
               break;
             } // case 154
-            case 162: {
-              input.readMessage(
-                  internalGetUsageSummaryFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00010000;
-              break;
-            } // case 162
-            case 170: {
-              input.readMessage(
-                  internalGetObservabilityFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00020000;
-              break;
-            } // case 170
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -6465,338 +6307,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       bitField0_ |= 0x00008000;
       onChanged();
       return this;
-    }
-
-    private ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate usageSummary_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate, ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate.Builder, ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregateOrBuilder> usageSummaryBuilder_;
-    /**
-     * <pre>
-     * Aggregated usage and cost for this execution, derived from billing-authoritative
-     * per-call records. Updated incrementally as LLM calls complete.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate usage_summary = 20 [json_name = "usageSummary"];</code>
-     * @return Whether the usageSummary field is set.
-     */
-    public boolean hasUsageSummary() {
-      return ((bitField0_ & 0x00010000) != 0);
-    }
-    /**
-     * <pre>
-     * Aggregated usage and cost for this execution, derived from billing-authoritative
-     * per-call records. Updated incrementally as LLM calls complete.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate usage_summary = 20 [json_name = "usageSummary"];</code>
-     * @return The usageSummary.
-     */
-    public ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate getUsageSummary() {
-      if (usageSummaryBuilder_ == null) {
-        return usageSummary_ == null ? ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate.getDefaultInstance() : usageSummary_;
-      } else {
-        return usageSummaryBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * Aggregated usage and cost for this execution, derived from billing-authoritative
-     * per-call records. Updated incrementally as LLM calls complete.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate usage_summary = 20 [json_name = "usageSummary"];</code>
-     */
-    public Builder setUsageSummary(ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate value) {
-      if (usageSummaryBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        usageSummary_ = value;
-      } else {
-        usageSummaryBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00010000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Aggregated usage and cost for this execution, derived from billing-authoritative
-     * per-call records. Updated incrementally as LLM calls complete.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate usage_summary = 20 [json_name = "usageSummary"];</code>
-     */
-    public Builder setUsageSummary(
-        ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate.Builder builderForValue) {
-      if (usageSummaryBuilder_ == null) {
-        usageSummary_ = builderForValue.build();
-      } else {
-        usageSummaryBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00010000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Aggregated usage and cost for this execution, derived from billing-authoritative
-     * per-call records. Updated incrementally as LLM calls complete.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate usage_summary = 20 [json_name = "usageSummary"];</code>
-     */
-    public Builder mergeUsageSummary(ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate value) {
-      if (usageSummaryBuilder_ == null) {
-        if (((bitField0_ & 0x00010000) != 0) &&
-          usageSummary_ != null &&
-          usageSummary_ != ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate.getDefaultInstance()) {
-          getUsageSummaryBuilder().mergeFrom(value);
-        } else {
-          usageSummary_ = value;
-        }
-      } else {
-        usageSummaryBuilder_.mergeFrom(value);
-      }
-      if (usageSummary_ != null) {
-        bitField0_ |= 0x00010000;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Aggregated usage and cost for this execution, derived from billing-authoritative
-     * per-call records. Updated incrementally as LLM calls complete.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate usage_summary = 20 [json_name = "usageSummary"];</code>
-     */
-    public Builder clearUsageSummary() {
-      bitField0_ = (bitField0_ & ~0x00010000);
-      usageSummary_ = null;
-      if (usageSummaryBuilder_ != null) {
-        usageSummaryBuilder_.dispose();
-        usageSummaryBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Aggregated usage and cost for this execution, derived from billing-authoritative
-     * per-call records. Updated incrementally as LLM calls complete.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate usage_summary = 20 [json_name = "usageSummary"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate.Builder getUsageSummaryBuilder() {
-      bitField0_ |= 0x00010000;
-      onChanged();
-      return internalGetUsageSummaryFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Aggregated usage and cost for this execution, derived from billing-authoritative
-     * per-call records. Updated incrementally as LLM calls complete.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate usage_summary = 20 [json_name = "usageSummary"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregateOrBuilder getUsageSummaryOrBuilder() {
-      if (usageSummaryBuilder_ != null) {
-        return usageSummaryBuilder_.getMessageOrBuilder();
-      } else {
-        return usageSummary_ == null ?
-            ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate.getDefaultInstance() : usageSummary_;
-      }
-    }
-    /**
-     * <pre>
-     * Aggregated usage and cost for this execution, derived from billing-authoritative
-     * per-call records. Updated incrementally as LLM calls complete.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate usage_summary = 20 [json_name = "usageSummary"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate, ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate.Builder, ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregateOrBuilder> 
-        internalGetUsageSummaryFieldBuilder() {
-      if (usageSummaryBuilder_ == null) {
-        usageSummaryBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate, ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregate.Builder, ai.stigmer.agentic.agentexecution.v1.ExecutionUsageAggregateOrBuilder>(
-                getUsageSummary(),
-                getParentForChildren(),
-                isClean());
-        usageSummary_ = null;
-      }
-      return usageSummaryBuilder_;
-    }
-
-    private ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics observability_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics, ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetricsOrBuilder> observabilityBuilder_;
-    /**
-     * <pre>
-     * Runner-reported execution timing and context metrics.
-     * Display-only in cloud mode; never billing-authoritative.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics observability = 21 [json_name = "observability"];</code>
-     * @return Whether the observability field is set.
-     */
-    public boolean hasObservability() {
-      return ((bitField0_ & 0x00020000) != 0);
-    }
-    /**
-     * <pre>
-     * Runner-reported execution timing and context metrics.
-     * Display-only in cloud mode; never billing-authoritative.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics observability = 21 [json_name = "observability"];</code>
-     * @return The observability.
-     */
-    public ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics getObservability() {
-      if (observabilityBuilder_ == null) {
-        return observability_ == null ? ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics.getDefaultInstance() : observability_;
-      } else {
-        return observabilityBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * Runner-reported execution timing and context metrics.
-     * Display-only in cloud mode; never billing-authoritative.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics observability = 21 [json_name = "observability"];</code>
-     */
-    public Builder setObservability(ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics value) {
-      if (observabilityBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        observability_ = value;
-      } else {
-        observabilityBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00020000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Runner-reported execution timing and context metrics.
-     * Display-only in cloud mode; never billing-authoritative.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics observability = 21 [json_name = "observability"];</code>
-     */
-    public Builder setObservability(
-        ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics.Builder builderForValue) {
-      if (observabilityBuilder_ == null) {
-        observability_ = builderForValue.build();
-      } else {
-        observabilityBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00020000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Runner-reported execution timing and context metrics.
-     * Display-only in cloud mode; never billing-authoritative.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics observability = 21 [json_name = "observability"];</code>
-     */
-    public Builder mergeObservability(ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics value) {
-      if (observabilityBuilder_ == null) {
-        if (((bitField0_ & 0x00020000) != 0) &&
-          observability_ != null &&
-          observability_ != ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics.getDefaultInstance()) {
-          getObservabilityBuilder().mergeFrom(value);
-        } else {
-          observability_ = value;
-        }
-      } else {
-        observabilityBuilder_.mergeFrom(value);
-      }
-      if (observability_ != null) {
-        bitField0_ |= 0x00020000;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Runner-reported execution timing and context metrics.
-     * Display-only in cloud mode; never billing-authoritative.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics observability = 21 [json_name = "observability"];</code>
-     */
-    public Builder clearObservability() {
-      bitField0_ = (bitField0_ & ~0x00020000);
-      observability_ = null;
-      if (observabilityBuilder_ != null) {
-        observabilityBuilder_.dispose();
-        observabilityBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Runner-reported execution timing and context metrics.
-     * Display-only in cloud mode; never billing-authoritative.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics observability = 21 [json_name = "observability"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics.Builder getObservabilityBuilder() {
-      bitField0_ |= 0x00020000;
-      onChanged();
-      return internalGetObservabilityFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Runner-reported execution timing and context metrics.
-     * Display-only in cloud mode; never billing-authoritative.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics observability = 21 [json_name = "observability"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetricsOrBuilder getObservabilityOrBuilder() {
-      if (observabilityBuilder_ != null) {
-        return observabilityBuilder_.getMessageOrBuilder();
-      } else {
-        return observability_ == null ?
-            ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics.getDefaultInstance() : observability_;
-      }
-    }
-    /**
-     * <pre>
-     * Runner-reported execution timing and context metrics.
-     * Display-only in cloud mode; never billing-authoritative.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics observability = 21 [json_name = "observability"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics, ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetricsOrBuilder> 
-        internalGetObservabilityFieldBuilder() {
-      if (observabilityBuilder_ == null) {
-        observabilityBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics, ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.ExecutionObservabilityMetricsOrBuilder>(
-                getObservability(),
-                getParentForChildren(),
-                isClean());
-        observability_ = null;
-      }
-      return observabilityBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus)

@@ -51,36 +51,6 @@ service AgentExecutionCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update agent execution status";
   }
 
-  // Record proxy-observed LLM usage for an agent execution.
-  //
-  // @internal
-  // Called by the LLM/Cursor proxy after each streaming response completes.
-  // The proxy extracts token counts from the provider's SSE stream and reports
-  // them here. The handler computes provider cost server-side from the model
-  // registry (never trusts caller-supplied cost), writes trusted usage to the
-  // execution, and debits billing credits as a side effect.
-  //
-  // ## Authorization
-  //
-  // Operator-only. The proxy authenticates as the platform operator identity.
-  // Regular users and runners cannot call this RPC.
-  //
-  // ## Idempotency
-  //
-  // Deduplicated by (execution_id, sequence). Safe to retry on transient failures.
-  //
-  // ## Signal Delivery
-  //
-  // This RPC does NOT return a billing signal. The proxy is a transparent byte
-  // pipe and cannot act on STOP/WARNING. Billing signals are delivered to the
-  // runner through the updateStatus response.
-  rpc updateUsage(UpdateUsageInput) returns (UpdateUsageResponse) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
-    option (ai.stigmer.commons.rpc.config).permission = can_update_usage;
-    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update usage — operator access required";
-  }
-
   // Delete an agent execution by ID.
   rpc delete(ai.stigmer.commons.apiresource.ApiResourceId) returns (AgentExecution) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;

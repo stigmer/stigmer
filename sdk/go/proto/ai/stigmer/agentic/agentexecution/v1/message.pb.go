@@ -41,12 +41,7 @@ type AgentMessage struct {
 	// True while the AI is actively generating this message, false when complete.
 	// Enables UI to show typing indicator during streaming and final content when done.
 	// Default (false) indicates either a non-AI message or a completed AI message.
-	IsStreaming bool `protobuf:"varint,6,opt,name=is_streaming,json=isStreaming,proto3" json:"is_streaming,omitempty"`
-	// LLM call metrics for this message.
-	// Only populated for type == MESSAGE_AI.
-	// Captures the full cost record of the single LLM call that produced this message:
-	// token breakdown, estimated cost, model, provider, and duration.
-	LlmMetrics    *LlmCallMetrics `protobuf:"bytes,7,opt,name=llm_metrics,json=llmMetrics,proto3" json:"llm_metrics,omitempty"`
+	IsStreaming   bool `protobuf:"varint,6,opt,name=is_streaming,json=isStreaming,proto3" json:"is_streaming,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -121,13 +116,6 @@ func (x *AgentMessage) GetIsStreaming() bool {
 		return x.IsStreaming
 	}
 	return false
-}
-
-func (x *AgentMessage) GetLlmMetrics() *LlmCallMetrics {
-	if x != nil {
-		return x.LlmMetrics
-	}
-	return nil
 }
 
 // Represents a tool call made by the agent during execution.
@@ -395,7 +383,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_message_proto protoreflect.FileDes
 
 const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\n" +
-	"2ai/stigmer/agentic/agentexecution/v1/message.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x95\x03\n" +
+	"2ai/stigmer/agentic/agentexecution/v1/message.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xbe\x02\n" +
 	"\fAgentMessage\x12O\n" +
 	"\x04type\x18\x01 \x01(\x0e21.ai.stigmer.agentic.agentexecution.v1.MessageTypeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x04type\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12\x1c\n" +
@@ -403,9 +391,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\n" +
 	"tool_calls\x18\x04 \x03(\v2..ai.stigmer.agentic.agentexecution.v1.ToolCallR\ttoolCalls\x123\n" +
 	"\bmetadata\x18\x05 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12!\n" +
-	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\x12U\n" +
-	"\vllm_metrics\x18\a \x01(\v24.ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsR\n" +
-	"llmMetrics\"\xd1\x06\n" +
+	"\fis_streaming\x18\x06 \x01(\bR\visStreaming\"\xb7\x06\n" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12+\n" +
@@ -427,7 +413,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\fis_streaming\x18\x10 \x01(\bR\visStreaming\x12h\n" +
 	"\x10streaming_source\x18\x13 \x01(\x0e2=.ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSourceR\x0fstreamingSource\x12&\n" +
 	"\x0fmcp_server_slug\x18\x11 \x01(\tR\rmcpServerSlug\x12!\n" +
-	"\fargs_preview\x18\x12 \x01(\tR\vargsPreviewJ\x04\b\x06\x10\aR\x12component_metadataB\xcc\x02\n" +
+	"\fargs_preview\x18\x12 \x01(\tR\vargsPreviewB\xcc\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\fMessageProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -448,25 +434,23 @@ var file_ai_stigmer_agentic_agentexecution_v1_message_proto_goTypes = []any{
 	(*ToolCall)(nil),             // 1: ai.stigmer.agentic.agentexecution.v1.ToolCall
 	(MessageType)(0),             // 2: ai.stigmer.agentic.agentexecution.v1.MessageType
 	(*structpb.Struct)(nil),      // 3: google.protobuf.Struct
-	(*LlmCallMetrics)(nil),       // 4: ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics
-	(ToolCallStatus)(0),          // 5: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
-	(ApprovalAction)(0),          // 6: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(ToolCallStreamingSource)(0), // 7: ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
+	(ToolCallStatus)(0),          // 4: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
+	(ApprovalAction)(0),          // 5: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(ToolCallStreamingSource)(0), // 6: ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
 }
 var file_ai_stigmer_agentic_agentexecution_v1_message_proto_depIdxs = []int32{
 	2, // 0: ai.stigmer.agentic.agentexecution.v1.AgentMessage.type:type_name -> ai.stigmer.agentic.agentexecution.v1.MessageType
 	1, // 1: ai.stigmer.agentic.agentexecution.v1.AgentMessage.tool_calls:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCall
 	3, // 2: ai.stigmer.agentic.agentexecution.v1.AgentMessage.metadata:type_name -> google.protobuf.Struct
-	4, // 3: ai.stigmer.agentic.agentexecution.v1.AgentMessage.llm_metrics:type_name -> ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics
-	3, // 4: ai.stigmer.agentic.agentexecution.v1.ToolCall.args:type_name -> google.protobuf.Struct
-	5, // 5: ai.stigmer.agentic.agentexecution.v1.ToolCall.status:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
-	6, // 6: ai.stigmer.agentic.agentexecution.v1.ToolCall.approval_action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	7, // 7: ai.stigmer.agentic.agentexecution.v1.ToolCall.streaming_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	3, // 3: ai.stigmer.agentic.agentexecution.v1.ToolCall.args:type_name -> google.protobuf.Struct
+	4, // 4: ai.stigmer.agentic.agentexecution.v1.ToolCall.status:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
+	5, // 5: ai.stigmer.agentic.agentexecution.v1.ToolCall.approval_action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	6, // 6: ai.stigmer.agentic.agentexecution.v1.ToolCall.streaming_source:type_name -> ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_message_proto_init() }
@@ -475,7 +459,6 @@ func file_ai_stigmer_agentic_agentexecution_v1_message_proto_init() {
 		return
 	}
 	file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init()
-	file_ai_stigmer_agentic_agentexecution_v1_usage_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

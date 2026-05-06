@@ -135,8 +135,8 @@ message CreditPack {
 // ExecutionReservation tracks credits held for an active agent execution.
 //
 // Created at execution start (AuthorizeExecution), consumed incrementally
-// by per-LLM-call debits (ReportLlmCallUsage), and settled at execution
-// end (FinalizeExecution) to release any unused hold.
+// by per-LLM-call debits (via proxy-observed usage metering), and settled
+// at execution end (FinalizeExecution) to release any unused hold.
 message ExecutionReservation {
   // Unique identifier for this reservation.
   string reservation_id = 1;

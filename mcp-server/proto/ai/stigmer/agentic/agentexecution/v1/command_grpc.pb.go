@@ -23,7 +23,6 @@ const (
 	AgentExecutionCommandController_Create_FullMethodName           = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/create"
 	AgentExecutionCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/update"
 	AgentExecutionCommandController_UpdateStatus_FullMethodName     = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/updateStatus"
-	AgentExecutionCommandController_UpdateUsage_FullMethodName      = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/updateUsage"
 	AgentExecutionCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/delete"
 	AgentExecutionCommandController_SubmitApproval_FullMethodName   = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/submitApproval"
 	AgentExecutionCommandController_Cancel_FullMethodName           = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/cancel"
@@ -64,30 +63,6 @@ type AgentExecutionCommandControllerClient interface {
 	// Optimized for frequent status updates and merges status fields with
 	// existing state.
 	UpdateStatus(ctx context.Context, in *AgentExecutionUpdateStatusInput, opts ...grpc.CallOption) (*UpdateStatusResponse, error)
-	// Record proxy-observed LLM usage for an agent execution.
-	//
-	// @internal
-	// Called by the LLM/Cursor proxy after each streaming response completes.
-	// The proxy extracts token counts from the provider's SSE stream and reports
-	// them here. The handler computes provider cost server-side from the model
-	// registry (never trusts caller-supplied cost), writes trusted usage to the
-	// execution, and debits billing credits as a side effect.
-	//
-	// ## Authorization
-	//
-	// Operator-only. The proxy authenticates as the platform operator identity.
-	// Regular users and runners cannot call this RPC.
-	//
-	// ## Idempotency
-	//
-	// Deduplicated by (execution_id, sequence). Safe to retry on transient failures.
-	//
-	// ## Signal Delivery
-	//
-	// This RPC does NOT return a billing signal. The proxy is a transparent byte
-	// pipe and cannot act on STOP/WARNING. Billing signals are delivered to the
-	// runner through the updateStatus response.
-	UpdateUsage(ctx context.Context, in *UpdateUsageInput, opts ...grpc.CallOption) (*UpdateUsageResponse, error)
 	// Delete an agent execution by ID.
 	Delete(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*AgentExecution, error)
 	// Submit an approval decision for a pending tool call.
@@ -428,16 +403,6 @@ func (c *agentExecutionCommandControllerClient) UpdateStatus(ctx context.Context
 	return out, nil
 }
 
-func (c *agentExecutionCommandControllerClient) UpdateUsage(ctx context.Context, in *UpdateUsageInput, opts ...grpc.CallOption) (*UpdateUsageResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpdateUsageResponse)
-	err := c.cc.Invoke(ctx, AgentExecutionCommandController_UpdateUsage_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *agentExecutionCommandControllerClient) Delete(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*AgentExecution, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AgentExecution)
@@ -548,30 +513,6 @@ type AgentExecutionCommandControllerServer interface {
 	// Optimized for frequent status updates and merges status fields with
 	// existing state.
 	UpdateStatus(context.Context, *AgentExecutionUpdateStatusInput) (*UpdateStatusResponse, error)
-	// Record proxy-observed LLM usage for an agent execution.
-	//
-	// @internal
-	// Called by the LLM/Cursor proxy after each streaming response completes.
-	// The proxy extracts token counts from the provider's SSE stream and reports
-	// them here. The handler computes provider cost server-side from the model
-	// registry (never trusts caller-supplied cost), writes trusted usage to the
-	// execution, and debits billing credits as a side effect.
-	//
-	// ## Authorization
-	//
-	// Operator-only. The proxy authenticates as the platform operator identity.
-	// Regular users and runners cannot call this RPC.
-	//
-	// ## Idempotency
-	//
-	// Deduplicated by (execution_id, sequence). Safe to retry on transient failures.
-	//
-	// ## Signal Delivery
-	//
-	// This RPC does NOT return a billing signal. The proxy is a transparent byte
-	// pipe and cannot act on STOP/WARNING. Billing signals are delivered to the
-	// runner through the updateStatus response.
-	UpdateUsage(context.Context, *UpdateUsageInput) (*UpdateUsageResponse, error)
 	// Delete an agent execution by ID.
 	Delete(context.Context, *apiresource.ApiResourceId) (*AgentExecution, error)
 	// Submit an approval decision for a pending tool call.
@@ -890,9 +831,6 @@ func (UnimplementedAgentExecutionCommandControllerServer) Update(context.Context
 func (UnimplementedAgentExecutionCommandControllerServer) UpdateStatus(context.Context, *AgentExecutionUpdateStatusInput) (*UpdateStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateStatus not implemented")
 }
-func (UnimplementedAgentExecutionCommandControllerServer) UpdateUsage(context.Context, *UpdateUsageInput) (*UpdateUsageResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateUsage not implemented")
-}
 func (UnimplementedAgentExecutionCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceId) (*AgentExecution, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
@@ -987,24 +925,6 @@ func _AgentExecutionCommandController_UpdateStatus_Handler(srv interface{}, ctx 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AgentExecutionCommandControllerServer).UpdateStatus(ctx, req.(*AgentExecutionUpdateStatusInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AgentExecutionCommandController_UpdateUsage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateUsageInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AgentExecutionCommandControllerServer).UpdateUsage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AgentExecutionCommandController_UpdateUsage_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentExecutionCommandControllerServer).UpdateUsage(ctx, req.(*UpdateUsageInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1171,10 +1091,6 @@ var AgentExecutionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "updateStatus",
 			Handler:    _AgentExecutionCommandController_UpdateStatus_Handler,
-		},
-		{
-			MethodName: "updateUsage",
-			Handler:    _AgentExecutionCommandController_UpdateUsage_Handler,
 		},
 		{
 			MethodName: "delete",

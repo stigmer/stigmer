@@ -75,10 +75,6 @@ const (
 	// Billing permissions (org-scoped).
 	IamPermission_can_view_billing   IamPermission = 27
 	IamPermission_can_manage_billing IamPermission = 28
-	// Platform-level permission to update execution usage from the proxy.
-	// Restricted to operators to ensure only the trusted proxy (not a tampered
-	// runner) can write billing-authoritative usage data.
-	IamPermission_can_update_usage IamPermission = 29
 )
 
 // Enum value maps for IamPermission.
@@ -112,7 +108,6 @@ var (
 		26: "can_delete_session",
 		27: "can_view_billing",
 		28: "can_manage_billing",
-		29: "can_update_usage",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -143,7 +138,6 @@ var (
 		"can_delete_session":           26,
 		"can_view_billing":             27,
 		"can_manage_billing":           28,
-		"can_update_usage":             29,
 	}
 )
 
@@ -247,7 +241,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xab\x05\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\x95\x05\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -278,8 +272,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x11can_create_runner\x10\x19\x12\x16\n" +
 	"\x12can_delete_session\x10\x1a\x12\x14\n" +
 	"\x10can_view_billing\x10\x1b\x12\x16\n" +
-	"\x12can_manage_billing\x10\x1c\x12\x14\n" +
-	"\x10can_update_usage\x10\x1d*Q\n" +
+	"\x12can_manage_billing\x10\x1c*Q\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

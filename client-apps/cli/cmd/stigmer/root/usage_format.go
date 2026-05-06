@@ -11,69 +11,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// computeExecutionUsage derives a UsageMetrics proto from per-message
-// llm_metrics across main agent and all sub-agent messages.
-// Returns nil when no LLM call metrics are present.
-func computeExecutionUsage(exec *agentexecutionv1.AgentExecution) *agentexecutionv1.UsageMetrics {
-	if exec == nil || exec.Status == nil {
-		return nil
-	}
-	var (
-		promptTokens     int32
-		completionTokens int32
-		cacheCreation    int32
-		cacheRead        int32
-		llmCallCount     int32
-		estimatedCost    float64
-		llmDurationMs    int32
-		primaryModel     string
-		primaryProvider  string
-	)
-
-	processMsg := func(msg *agentexecutionv1.AgentMessage) {
-		m := msg.GetLlmMetrics()
-		if m == nil {
-			return
-		}
-		totalInput := m.InputTokens + m.CacheCreationTokens + m.CacheReadTokens
-		promptTokens += totalInput
-		completionTokens += m.OutputTokens
-		cacheCreation += m.CacheCreationTokens
-		cacheRead += m.CacheReadTokens
-		llmCallCount++
-		estimatedCost += m.EstimatedCostUsd
-		llmDurationMs += m.DurationMs
-		if primaryModel == "" && m.Model != "" {
-			primaryModel = m.Model
-			primaryProvider = m.Provider
-		}
-	}
-
-	for _, msg := range exec.Status.Messages {
-		processMsg(msg)
-	}
-	for _, sub := range exec.Status.SubAgentExecutions {
-		for _, msg := range sub.Messages {
-			processMsg(msg)
-		}
-	}
-
-	if llmCallCount == 0 {
-		return nil
-	}
-
-	return &agentexecutionv1.UsageMetrics{
-		PromptTokens:        promptTokens,
-		CompletionTokens:    completionTokens,
-		TotalTokens:         promptTokens + completionTokens,
-		LlmCallCount:        llmCallCount,
-		CacheCreationTokens: cacheCreation,
-		CacheReadTokens:     cacheRead,
-		EstimatedCostUsd:    estimatedCost,
-		LlmDurationMs:       llmDurationMs,
-		PrimaryModel:        primaryModel,
-		PrimaryProvider:     primaryProvider,
-	}
+// computeExecutionUsage returns usage metrics for an execution.
+// Usage data lives in the llm_call_usage_record collection (billing domain)
+// and is not embedded on the execution document. Returns nil — the CLI will
+// be wired to query usage reports from the server in a follow-up.
+func computeExecutionUsage(_ *agentexecutionv1.AgentExecution) *agentexecutionv1.UsageMetrics {
+	return nil
 }
 
 // formatCost renders a USD cost as a human-readable string.

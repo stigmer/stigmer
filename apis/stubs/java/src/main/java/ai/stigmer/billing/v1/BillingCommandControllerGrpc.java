@@ -110,35 +110,35 @@ public final class BillingCommandControllerGrpc {
     return getAuthorizeExecutionMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.ReportLlmCallUsageInput,
-      ai.stigmer.billing.v1.ReportLlmCallUsageResponse> getReportLlmCallUsageMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RecordLlmCallUsageInput,
+      ai.stigmer.billing.v1.RecordLlmCallUsageResponse> getRecordLlmCallUsageMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "reportLlmCallUsage",
-      requestType = ai.stigmer.billing.v1.ReportLlmCallUsageInput.class,
-      responseType = ai.stigmer.billing.v1.ReportLlmCallUsageResponse.class,
+      fullMethodName = SERVICE_NAME + '/' + "recordLlmCallUsage",
+      requestType = ai.stigmer.billing.v1.RecordLlmCallUsageInput.class,
+      responseType = ai.stigmer.billing.v1.RecordLlmCallUsageResponse.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.ReportLlmCallUsageInput,
-      ai.stigmer.billing.v1.ReportLlmCallUsageResponse> getReportLlmCallUsageMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.ReportLlmCallUsageInput, ai.stigmer.billing.v1.ReportLlmCallUsageResponse> getReportLlmCallUsageMethod;
-    if ((getReportLlmCallUsageMethod = BillingCommandControllerGrpc.getReportLlmCallUsageMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RecordLlmCallUsageInput,
+      ai.stigmer.billing.v1.RecordLlmCallUsageResponse> getRecordLlmCallUsageMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RecordLlmCallUsageInput, ai.stigmer.billing.v1.RecordLlmCallUsageResponse> getRecordLlmCallUsageMethod;
+    if ((getRecordLlmCallUsageMethod = BillingCommandControllerGrpc.getRecordLlmCallUsageMethod) == null) {
       synchronized (BillingCommandControllerGrpc.class) {
-        if ((getReportLlmCallUsageMethod = BillingCommandControllerGrpc.getReportLlmCallUsageMethod) == null) {
-          BillingCommandControllerGrpc.getReportLlmCallUsageMethod = getReportLlmCallUsageMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.ReportLlmCallUsageInput, ai.stigmer.billing.v1.ReportLlmCallUsageResponse>newBuilder()
+        if ((getRecordLlmCallUsageMethod = BillingCommandControllerGrpc.getRecordLlmCallUsageMethod) == null) {
+          BillingCommandControllerGrpc.getRecordLlmCallUsageMethod = getRecordLlmCallUsageMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.RecordLlmCallUsageInput, ai.stigmer.billing.v1.RecordLlmCallUsageResponse>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "reportLlmCallUsage"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "recordLlmCallUsage"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.ReportLlmCallUsageInput.getDefaultInstance()))
+                  ai.stigmer.billing.v1.RecordLlmCallUsageInput.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.billing.v1.ReportLlmCallUsageResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("reportLlmCallUsage"))
+                  ai.stigmer.billing.v1.RecordLlmCallUsageResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("recordLlmCallUsage"))
               .build();
         }
       }
     }
-    return getReportLlmCallUsageMethod;
+    return getRecordLlmCallUsageMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.FinalizeExecutionInput,
@@ -374,16 +374,17 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Report a single LLM call's usage for billing.
-     * Applies the billing policy, debits credits, and returns a signal.
+     * Record a single LLM call's usage for billing.
+     * Computes cost server-side from the model registry, inserts an immutable
+     * LlmCallUsageRecord, and debits credits from the execution's reservation.
      * &#64;internal
-     * Called by the agent runner after each LLM call completes.
-     * Deduplicated by (execution_id, sequence).
+     * Called by the proxy after each LLM SSE stream completes.
+     * Deduplicated by (execution_id, sequence, metering_source).
      * </pre>
      */
-    default void reportLlmCallUsage(ai.stigmer.billing.v1.ReportLlmCallUsageInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ReportLlmCallUsageResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getReportLlmCallUsageMethod(), responseObserver);
+    default void recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.RecordLlmCallUsageResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRecordLlmCallUsageMethod(), responseObserver);
     }
 
     /**
@@ -520,17 +521,18 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Report a single LLM call's usage for billing.
-     * Applies the billing policy, debits credits, and returns a signal.
+     * Record a single LLM call's usage for billing.
+     * Computes cost server-side from the model registry, inserts an immutable
+     * LlmCallUsageRecord, and debits credits from the execution's reservation.
      * &#64;internal
-     * Called by the agent runner after each LLM call completes.
-     * Deduplicated by (execution_id, sequence).
+     * Called by the proxy after each LLM SSE stream completes.
+     * Deduplicated by (execution_id, sequence, metering_source).
      * </pre>
      */
-    public void reportLlmCallUsage(ai.stigmer.billing.v1.ReportLlmCallUsageInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ReportLlmCallUsageResponse> responseObserver) {
+    public void recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.RecordLlmCallUsageResponse> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getReportLlmCallUsageMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getRecordLlmCallUsageMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -652,16 +654,17 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Report a single LLM call's usage for billing.
-     * Applies the billing policy, debits credits, and returns a signal.
+     * Record a single LLM call's usage for billing.
+     * Computes cost server-side from the model registry, inserts an immutable
+     * LlmCallUsageRecord, and debits credits from the execution's reservation.
      * &#64;internal
-     * Called by the agent runner after each LLM call completes.
-     * Deduplicated by (execution_id, sequence).
+     * Called by the proxy after each LLM SSE stream completes.
+     * Deduplicated by (execution_id, sequence, metering_source).
      * </pre>
      */
-    public ai.stigmer.billing.v1.ReportLlmCallUsageResponse reportLlmCallUsage(ai.stigmer.billing.v1.ReportLlmCallUsageInput request) throws io.grpc.StatusException {
+    public ai.stigmer.billing.v1.RecordLlmCallUsageResponse recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getReportLlmCallUsageMethod(), getCallOptions(), request);
+          getChannel(), getRecordLlmCallUsageMethod(), getCallOptions(), request);
     }
 
     /**
@@ -779,16 +782,17 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Report a single LLM call's usage for billing.
-     * Applies the billing policy, debits credits, and returns a signal.
+     * Record a single LLM call's usage for billing.
+     * Computes cost server-side from the model registry, inserts an immutable
+     * LlmCallUsageRecord, and debits credits from the execution's reservation.
      * &#64;internal
-     * Called by the agent runner after each LLM call completes.
-     * Deduplicated by (execution_id, sequence).
+     * Called by the proxy after each LLM SSE stream completes.
+     * Deduplicated by (execution_id, sequence, metering_source).
      * </pre>
      */
-    public ai.stigmer.billing.v1.ReportLlmCallUsageResponse reportLlmCallUsage(ai.stigmer.billing.v1.ReportLlmCallUsageInput request) {
+    public ai.stigmer.billing.v1.RecordLlmCallUsageResponse recordLlmCallUsage(ai.stigmer.billing.v1.RecordLlmCallUsageInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getReportLlmCallUsageMethod(), getCallOptions(), request);
+          getChannel(), getRecordLlmCallUsageMethod(), getCallOptions(), request);
     }
 
     /**
@@ -909,17 +913,18 @@ public final class BillingCommandControllerGrpc {
 
     /**
      * <pre>
-     * Report a single LLM call's usage for billing.
-     * Applies the billing policy, debits credits, and returns a signal.
+     * Record a single LLM call's usage for billing.
+     * Computes cost server-side from the model registry, inserts an immutable
+     * LlmCallUsageRecord, and debits credits from the execution's reservation.
      * &#64;internal
-     * Called by the agent runner after each LLM call completes.
-     * Deduplicated by (execution_id, sequence).
+     * Called by the proxy after each LLM SSE stream completes.
+     * Deduplicated by (execution_id, sequence, metering_source).
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.ReportLlmCallUsageResponse> reportLlmCallUsage(
-        ai.stigmer.billing.v1.ReportLlmCallUsageInput request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.RecordLlmCallUsageResponse> recordLlmCallUsage(
+        ai.stigmer.billing.v1.RecordLlmCallUsageInput request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getReportLlmCallUsageMethod(), getCallOptions()), request);
+          getChannel().newCall(getRecordLlmCallUsageMethod(), getCallOptions()), request);
     }
 
     /**
@@ -982,7 +987,7 @@ public final class BillingCommandControllerGrpc {
   private static final int METHODID_GET_OR_CREATE_BILLING_ACCOUNT = 0;
   private static final int METHODID_ADJUST_CREDITS = 1;
   private static final int METHODID_AUTHORIZE_EXECUTION = 2;
-  private static final int METHODID_REPORT_LLM_CALL_USAGE = 3;
+  private static final int METHODID_RECORD_LLM_CALL_USAGE = 3;
   private static final int METHODID_FINALIZE_EXECUTION = 4;
   private static final int METHODID_CREATE_CREDIT_CHECKOUT_SESSION = 5;
   private static final int METHODID_CREATE_BILLING_PORTAL_SESSION = 6;
@@ -1017,9 +1022,9 @@ public final class BillingCommandControllerGrpc {
           serviceImpl.authorizeExecution((ai.stigmer.billing.v1.AuthorizeExecutionInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.AuthorizeExecutionResponse>) responseObserver);
           break;
-        case METHODID_REPORT_LLM_CALL_USAGE:
-          serviceImpl.reportLlmCallUsage((ai.stigmer.billing.v1.ReportLlmCallUsageInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ReportLlmCallUsageResponse>) responseObserver);
+        case METHODID_RECORD_LLM_CALL_USAGE:
+          serviceImpl.recordLlmCallUsage((ai.stigmer.billing.v1.RecordLlmCallUsageInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.RecordLlmCallUsageResponse>) responseObserver);
           break;
         case METHODID_FINALIZE_EXECUTION:
           serviceImpl.finalizeExecution((ai.stigmer.billing.v1.FinalizeExecutionInput) request,
@@ -1077,12 +1082,12 @@ public final class BillingCommandControllerGrpc {
               ai.stigmer.billing.v1.AuthorizeExecutionResponse>(
                 service, METHODID_AUTHORIZE_EXECUTION)))
         .addMethod(
-          getReportLlmCallUsageMethod(),
+          getRecordLlmCallUsageMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.billing.v1.ReportLlmCallUsageInput,
-              ai.stigmer.billing.v1.ReportLlmCallUsageResponse>(
-                service, METHODID_REPORT_LLM_CALL_USAGE)))
+              ai.stigmer.billing.v1.RecordLlmCallUsageInput,
+              ai.stigmer.billing.v1.RecordLlmCallUsageResponse>(
+                service, METHODID_RECORD_LLM_CALL_USAGE)))
         .addMethod(
           getFinalizeExecutionMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1162,7 +1167,7 @@ public final class BillingCommandControllerGrpc {
               .addMethod(getGetOrCreateBillingAccountMethod())
               .addMethod(getAdjustCreditsMethod())
               .addMethod(getAuthorizeExecutionMethod())
-              .addMethod(getReportLlmCallUsageMethod())
+              .addMethod(getRecordLlmCallUsageMethod())
               .addMethod(getFinalizeExecutionMethod())
               .addMethod(getCreateCreditCheckoutSessionMethod())
               .addMethod(getCreateBillingPortalSessionMethod())

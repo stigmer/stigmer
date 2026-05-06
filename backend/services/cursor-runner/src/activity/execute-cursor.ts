@@ -27,7 +27,6 @@ import { SetupProgressSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { ExecutionControlSignal, ExecutionPhase, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { LlmCallMetrics } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import type { SDKMessage } from "@cursor/sdk";
 
 import type { Config } from "../config.js";
@@ -36,7 +35,6 @@ import { resolveAgent } from "../adapter/session-lifecycle.js";
 import { MessageAccumulator, extractDeniedToolCalls, utcTimestamp } from "../adapter/message-translator.js";
 import { DeltaEnricher } from "../adapter/delta-enricher.js";
 import { TodoTracker } from "../adapter/todo-tracker.js";
-import { UsageTracker } from "../adapter/usage-tracker.js";
 import { resolveMcpServers } from "../adapter/mcp-resolver.js";
 import { resolveBlueprint } from "../adapter/blueprint-resolver.js";
 import { resolveSkills } from "../adapter/skill-resolver.js";
@@ -200,10 +198,8 @@ async function executeCursor(
 
     // Phase 11: Send message and stream events
     status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
-    const usageTracker = new UsageTracker(validatedModel);
     const collectedEvents: SDKMessage[] = [];
 
-    const pendingMetrics: LlmCallMetrics[] = [];
     const deltaEnricher = new DeltaEnricher();
     const todoTracker = new TodoTracker(status.todos);
 
@@ -212,13 +208,6 @@ async function executeCursor(
     const run = await agent.send(prompt, {
       onDelta: ({ update }) => {
         if (update.type === "turn-ended" && update.usage) {
-          const metrics = usageTracker.recordTurn({
-            inputTokens: update.usage.inputTokens,
-            outputTokens: update.usage.outputTokens,
-            cacheReadTokens: update.usage.cacheReadTokens,
-            cacheWriteTokens: update.usage.cacheWriteTokens,
-          });
-          pendingMetrics.push(metrics);
         }
         deltaEnricher.processDelta(update);
         heartbeat();
@@ -241,9 +230,6 @@ async function executeCursor(
         );
       }
 
-      while (pendingMetrics.length > 0) {
-        const metrics = pendingMetrics.shift()!;
-        stampMetricsOnLastAiMessage(status.messages, metrics);
 
 
       }
@@ -275,9 +261,6 @@ async function executeCursor(
       `ExecuteCursor stream ended: execution=${executionId}, events=${eventCount}, messages=${status.messages.length}, subAgents=${status.subAgentExecutions.length}`,
     );
 
-    while (pendingMetrics.length > 0) {
-      const metrics = pendingMetrics.shift()!;
-      stampMetricsOnLastAiMessage(status.messages, metrics);
     }
 
     // Phase 11b: Handle platform stop signal early exit
@@ -424,35 +407,6 @@ async function reportSetupProgress(
     setupProgress: create(SetupProgressSchema, { currentPhase: phase }),
   });
   await persistStatus(client, executionId, status);
-}
-
-/**
- * Stamp LlmCallMetrics onto the most recent MESSAGE_AI message.
- *
- * Cursor's turn-ended event reports aggregate token usage for the entire
- * turn. The corresponding AI message (the model's text output for that
- * turn) is the natural home for llm_metrics — matching the Python
- * agent-runner's pattern where each on_chat_model_end stamps metrics
- * onto the AI message it produced.
- *
- * If no AI message exists yet (e.g., the turn consisted only of tool
- * calls with no assistant text), we skip silently. The tokens are still
- * logged by UsageTracker for observability.
- */
-function stampMetricsOnLastAiMessage(
-  messages: AgentMessage[],
-  metrics: LlmCallMetrics,
-): void {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].type === MessageType.MESSAGE_AI && !messages[i].llmMetrics) {
-      messages[i].llmMetrics = metrics;
-      return;
-    }
-  }
-  console.warn(
-    "No unstamped MESSAGE_AI found for turn %d — metrics not attached to a message",
-    metrics.sequence,
-  );
 }
 
 /**

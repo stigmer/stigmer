@@ -68,38 +68,6 @@ class UpdateStatusResponse(_message.Message):
     signal_reason: str
     def __init__(self, signal: _Optional[_Union[_enum_pb2.ExecutionControlSignal, str]] = ..., signal_reason: _Optional[str] = ...) -> None: ...
 
-class UpdateUsageInput(_message.Message):
-    __slots__ = ("execution_id", "sequence", "provider", "resolved_model", "tokens", "usage_status", "provider_request_id", "http_status_code", "streaming", "finish_reason", "proxy_timing", "provider_usage_json")
-    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
-    SEQUENCE_FIELD_NUMBER: _ClassVar[int]
-    PROVIDER_FIELD_NUMBER: _ClassVar[int]
-    RESOLVED_MODEL_FIELD_NUMBER: _ClassVar[int]
-    TOKENS_FIELD_NUMBER: _ClassVar[int]
-    USAGE_STATUS_FIELD_NUMBER: _ClassVar[int]
-    PROVIDER_REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
-    HTTP_STATUS_CODE_FIELD_NUMBER: _ClassVar[int]
-    STREAMING_FIELD_NUMBER: _ClassVar[int]
-    FINISH_REASON_FIELD_NUMBER: _ClassVar[int]
-    PROXY_TIMING_FIELD_NUMBER: _ClassVar[int]
-    PROVIDER_USAGE_JSON_FIELD_NUMBER: _ClassVar[int]
-    execution_id: str
-    sequence: int
-    provider: str
-    resolved_model: str
-    tokens: _usage_pb2.TokenUsage
-    usage_status: _usage_pb2.UsageCompletionStatus
-    provider_request_id: str
-    http_status_code: int
-    streaming: bool
-    finish_reason: str
-    proxy_timing: _usage_pb2.ProxyTiming
-    provider_usage_json: str
-    def __init__(self, execution_id: _Optional[str] = ..., sequence: _Optional[int] = ..., provider: _Optional[str] = ..., resolved_model: _Optional[str] = ..., tokens: _Optional[_Union[_usage_pb2.TokenUsage, _Mapping]] = ..., usage_status: _Optional[_Union[_usage_pb2.UsageCompletionStatus, str]] = ..., provider_request_id: _Optional[str] = ..., http_status_code: _Optional[int] = ..., streaming: bool = ..., finish_reason: _Optional[str] = ..., proxy_timing: _Optional[_Union[_usage_pb2.ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ...) -> None: ...
-
-class UpdateUsageResponse(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
-
 class SubmitApprovalInput(_message.Message):
     __slots__ = ("agent_execution_id", "tool_call_id", "action", "comment")
     AGENT_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]

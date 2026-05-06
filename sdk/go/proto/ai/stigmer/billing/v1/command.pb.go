@@ -30,7 +30,7 @@ const file_ai_stigmer_billing_v1_command_proto_rawDesc = "" +
 	"\x19getOrCreateBillingAccount\x125.ai.stigmer.billing.v1.GetOrCreateBillingAccountInput\x1a%.ai.stigmer.billing.v1.BillingAccount\"F¸\x18B\b\x1c\x10\x1e\"\x06org_id*4unauthorized to manage billing for this organization\x12\xac\x01\n" +
 	"\radjustCredits\x12).ai.stigmer.billing.v1.AdjustCreditsInput\x1a(.ai.stigmer.billing.v1.CreditLedgerEntry\"F¸\x18B\b\x1c\x10\x1e\"\x06org_id*4unauthorized to adjust credits for this organization\x12}\n" +
 	"\x12authorizeExecution\x12..ai.stigmer.billing.v1.AuthorizeExecutionInput\x1a1.ai.stigmer.billing.v1.AuthorizeExecutionResponse\"\x04и\x18\x01\x12}\n" +
-	"\x12reportLlmCallUsage\x12..ai.stigmer.billing.v1.ReportLlmCallUsageInput\x1a1.ai.stigmer.billing.v1.ReportLlmCallUsageResponse\"\x04и\x18\x01\x12z\n" +
+	"\x12recordLlmCallUsage\x12..ai.stigmer.billing.v1.RecordLlmCallUsageInput\x1a1.ai.stigmer.billing.v1.RecordLlmCallUsageResponse\"\x04и\x18\x01\x12z\n" +
 	"\x11finalizeExecution\x12-.ai.stigmer.billing.v1.FinalizeExecutionInput\x1a0.ai.stigmer.billing.v1.FinalizeExecutionResponse\"\x04и\x18\x01\x12\xdc\x01\n" +
 	"\x1bcreateCreditCheckoutSession\x127.ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput\x1a:.ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse\"H¸\x18D\b\x1c\x10\x1e\"\x06org_id*6unauthorized to purchase credits for this organization\x12\xd7\x01\n" +
 	"\x1acreateBillingPortalSession\x126.ai.stigmer.billing.v1.CreateBillingPortalSessionInput\x1a9.ai.stigmer.billing.v1.CreateBillingPortalSessionResponse\"F¸\x18B\b\x1c\x10\x1e\"\x06org_id*4unauthorized to manage billing for this organization\x12\xbf\x01\n" +
@@ -41,7 +41,7 @@ var file_ai_stigmer_billing_v1_command_proto_goTypes = []any{
 	(*GetOrCreateBillingAccountInput)(nil),      // 0: ai.stigmer.billing.v1.GetOrCreateBillingAccountInput
 	(*AdjustCreditsInput)(nil),                  // 1: ai.stigmer.billing.v1.AdjustCreditsInput
 	(*AuthorizeExecutionInput)(nil),             // 2: ai.stigmer.billing.v1.AuthorizeExecutionInput
-	(*ReportLlmCallUsageInput)(nil),             // 3: ai.stigmer.billing.v1.ReportLlmCallUsageInput
+	(*RecordLlmCallUsageInput)(nil),             // 3: ai.stigmer.billing.v1.RecordLlmCallUsageInput
 	(*FinalizeExecutionInput)(nil),              // 4: ai.stigmer.billing.v1.FinalizeExecutionInput
 	(*CreateCreditCheckoutSessionInput)(nil),    // 5: ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput
 	(*CreateBillingPortalSessionInput)(nil),     // 6: ai.stigmer.billing.v1.CreateBillingPortalSessionInput
@@ -49,7 +49,7 @@ var file_ai_stigmer_billing_v1_command_proto_goTypes = []any{
 	(*BillingAccount)(nil),                      // 8: ai.stigmer.billing.v1.BillingAccount
 	(*CreditLedgerEntry)(nil),                   // 9: ai.stigmer.billing.v1.CreditLedgerEntry
 	(*AuthorizeExecutionResponse)(nil),          // 10: ai.stigmer.billing.v1.AuthorizeExecutionResponse
-	(*ReportLlmCallUsageResponse)(nil),          // 11: ai.stigmer.billing.v1.ReportLlmCallUsageResponse
+	(*RecordLlmCallUsageResponse)(nil),          // 11: ai.stigmer.billing.v1.RecordLlmCallUsageResponse
 	(*FinalizeExecutionResponse)(nil),           // 12: ai.stigmer.billing.v1.FinalizeExecutionResponse
 	(*CreateCreditCheckoutSessionResponse)(nil), // 13: ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse
 	(*CreateBillingPortalSessionResponse)(nil),  // 14: ai.stigmer.billing.v1.CreateBillingPortalSessionResponse
@@ -58,7 +58,7 @@ var file_ai_stigmer_billing_v1_command_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.billing.v1.BillingCommandController.getOrCreateBillingAccount:input_type -> ai.stigmer.billing.v1.GetOrCreateBillingAccountInput
 	1,  // 1: ai.stigmer.billing.v1.BillingCommandController.adjustCredits:input_type -> ai.stigmer.billing.v1.AdjustCreditsInput
 	2,  // 2: ai.stigmer.billing.v1.BillingCommandController.authorizeExecution:input_type -> ai.stigmer.billing.v1.AuthorizeExecutionInput
-	3,  // 3: ai.stigmer.billing.v1.BillingCommandController.reportLlmCallUsage:input_type -> ai.stigmer.billing.v1.ReportLlmCallUsageInput
+	3,  // 3: ai.stigmer.billing.v1.BillingCommandController.recordLlmCallUsage:input_type -> ai.stigmer.billing.v1.RecordLlmCallUsageInput
 	4,  // 4: ai.stigmer.billing.v1.BillingCommandController.finalizeExecution:input_type -> ai.stigmer.billing.v1.FinalizeExecutionInput
 	5,  // 5: ai.stigmer.billing.v1.BillingCommandController.createCreditCheckoutSession:input_type -> ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput
 	6,  // 6: ai.stigmer.billing.v1.BillingCommandController.createBillingPortalSession:input_type -> ai.stigmer.billing.v1.CreateBillingPortalSessionInput
@@ -66,7 +66,7 @@ var file_ai_stigmer_billing_v1_command_proto_depIdxs = []int32{
 	8,  // 8: ai.stigmer.billing.v1.BillingCommandController.getOrCreateBillingAccount:output_type -> ai.stigmer.billing.v1.BillingAccount
 	9,  // 9: ai.stigmer.billing.v1.BillingCommandController.adjustCredits:output_type -> ai.stigmer.billing.v1.CreditLedgerEntry
 	10, // 10: ai.stigmer.billing.v1.BillingCommandController.authorizeExecution:output_type -> ai.stigmer.billing.v1.AuthorizeExecutionResponse
-	11, // 11: ai.stigmer.billing.v1.BillingCommandController.reportLlmCallUsage:output_type -> ai.stigmer.billing.v1.ReportLlmCallUsageResponse
+	11, // 11: ai.stigmer.billing.v1.BillingCommandController.recordLlmCallUsage:output_type -> ai.stigmer.billing.v1.RecordLlmCallUsageResponse
 	12, // 12: ai.stigmer.billing.v1.BillingCommandController.finalizeExecution:output_type -> ai.stigmer.billing.v1.FinalizeExecutionResponse
 	13, // 13: ai.stigmer.billing.v1.BillingCommandController.createCreditCheckoutSession:output_type -> ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse
 	14, // 14: ai.stigmer.billing.v1.BillingCommandController.createBillingPortalSession:output_type -> ai.stigmer.billing.v1.CreateBillingPortalSessionResponse

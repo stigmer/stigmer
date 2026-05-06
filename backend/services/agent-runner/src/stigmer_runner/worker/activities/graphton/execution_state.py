@@ -3,7 +3,7 @@
 All mutable execution state lives here in typed, documented fields.
 StatusBuilder owns an ``ExecutionState`` instance and all event handlers
 operate on it.  Configuration and collaborators (approval config,
-ToolCallIdCapture, UsageTracker, display env) stay on StatusBuilder
+ToolCallIdCapture, display env) stay on StatusBuilder
 itself — they are not execution state.
 
 The state is split into:

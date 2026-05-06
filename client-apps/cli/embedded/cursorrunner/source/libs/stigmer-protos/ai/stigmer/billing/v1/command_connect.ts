@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, ReportLlmCallUsageInput, ReportLlmCallUsageResponse } from "./io_pbjs";
+import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, SetAutoRechargeConfigInput } from "./io_pbjs";
 import { BillingAccount } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { CreditLedgerEntry } from "./credit_pbjs";
@@ -14,9 +14,6 @@ import { CreditLedgerEntry } from "./credit_pbjs";
  * Billing is not a standard API Resource — there is no api_resource_kind annotation.
  * RPCs authorize against the organization resource kind.
  *
- * Phase 0-2 RPCs are defined here. Stripe checkout (Phase 3),
- * auto-recharge configuration (Phase 4), and other write operations
- * are added in their respective phases.
  *
  * @generated from service ai.stigmer.billing.v1.BillingCommandController
  */
@@ -68,22 +65,6 @@ export const BillingCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Report a single LLM call's usage for billing.
-     * Applies the billing policy, debits credits, and returns a signal.
-     *
-     * @internal
-     * Called by the agent runner after each LLM call completes.
-     * Deduplicated by (execution_id, sequence).
-     *
-     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.reportLlmCallUsage
-     */
-    reportLlmCallUsage: {
-      name: "reportLlmCallUsage",
-      I: ReportLlmCallUsageInput,
-      O: ReportLlmCallUsageResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
      * Settle billing for a completed execution.
      * Releases unused reservation credits and produces the final billing record.
      *
@@ -96,6 +77,51 @@ export const BillingCommandController = {
       name: "finalizeExecution",
       I: FinalizeExecutionInput,
       O: FinalizeExecutionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Create a Stripe Checkout Session to purchase a credit pack.
+     * Returns a checkout URL for the client to redirect the user.
+     *
+     * The caller's email is resolved server-side for Stripe Customer creation.
+     * Credits are provisioned asynchronously via the checkout.session.completed webhook.
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.createCreditCheckoutSession
+     */
+    createCreditCheckoutSession: {
+      name: "createCreditCheckoutSession",
+      I: CreateCreditCheckoutSessionInput,
+      O: CreateCreditCheckoutSessionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Open a Stripe Customer Portal session for payment method management.
+     * Returns a portal URL for the client to redirect the user.
+     *
+     * Requires an existing Stripe Customer (created during first credit purchase).
+     * The portal allows users to add, update, or remove saved payment methods.
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.createBillingPortalSession
+     */
+    createBillingPortalSession: {
+      name: "createBillingPortalSession",
+      I: CreateBillingPortalSessionInput,
+      O: CreateBillingPortalSessionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Configure automatic credit recharge for an organization.
+     * Returns the updated BillingAccount with the new config applied.
+     *
+     * Enabling requires an active account with a saved payment method.
+     * Disabling preserves the threshold/amount/cap for easy re-enablement.
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.setAutoRechargeConfig
+     */
+    setAutoRechargeConfig: {
+      name: "setAutoRechargeConfig",
+      I: SetAutoRechargeConfigInput,
+      O: BillingAccount,
       kind: MethodKind.Unary,
     },
   }
