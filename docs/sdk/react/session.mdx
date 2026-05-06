@@ -640,16 +640,11 @@ return (
 
 ### useSessionUsage
 
-Usage derivation hook for session-level cost and token aggregation.
+Usage hook for session-level cost and token aggregation.
 
-Usage data is now sourced from the llm_call_usage_record collection
-(billing domain) via server-side usage report RPCs. This hook currently
-returns empty data — real-time usage display will be rewired in a follow-up
-to query a usage endpoint.
-
-The hook interface is preserved so existing consumers (UsageWidget,
-SessionPage) continue to compile and render gracefully (hasUsage: false
-causes the widget to render nothing).
+Calls `getSessionUsageReport` to fetch real usage data from the
+billing domain. Returns zeros while loading or when no session is
+available.
 
 **Signature**
 
@@ -659,7 +654,7 @@ function useSessionUsage(executions: readonly AgentExecution[]): UseSessionUsage
 
 <TypeTable
   type={{
-    executions: { type: "readonly AgentExecution[]", description: "All executions for a session (unused until rewired).", required: true },
+    executions: { type: "readonly AgentExecution[]", description: "All executions for a session (used to derive session ID).", required: true },
   }}
 />
 

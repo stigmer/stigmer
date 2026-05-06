@@ -411,6 +411,68 @@ func (CreditPurchaseStatus) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{5}
 }
 
+// AutoRechargeEventStatus tracks the lifecycle of an automatic recharge attempt.
+//
+// A recharge begins as PENDING when the billing system claims a monthly cap
+// slot and creates a Stripe PaymentIntent. It transitions to SUCCEEDED when
+// the payment_intent.succeeded webhook confirms payment and credits are
+// provisioned, or to FAILED if the PaymentIntent creation fails or the
+// payment_intent.payment_failed webhook fires.
+type AutoRechargeEventStatus int32
+
+const (
+	AutoRechargeEventStatus_auto_recharge_event_status_unspecified AutoRechargeEventStatus = 0
+	// PaymentIntent created; awaiting Stripe payment confirmation.
+	AutoRechargeEventStatus_auto_recharge_pending AutoRechargeEventStatus = 1
+	// Payment succeeded; credits have been provisioned.
+	AutoRechargeEventStatus_auto_recharge_succeeded AutoRechargeEventStatus = 2
+	// Payment failed; monthly cap slot has been released.
+	AutoRechargeEventStatus_auto_recharge_failed AutoRechargeEventStatus = 3
+)
+
+// Enum value maps for AutoRechargeEventStatus.
+var (
+	AutoRechargeEventStatus_name = map[int32]string{
+		0: "auto_recharge_event_status_unspecified",
+		1: "auto_recharge_pending",
+		2: "auto_recharge_succeeded",
+		3: "auto_recharge_failed",
+	}
+	AutoRechargeEventStatus_value = map[string]int32{
+		"auto_recharge_event_status_unspecified": 0,
+		"auto_recharge_pending":                  1,
+		"auto_recharge_succeeded":                2,
+		"auto_recharge_failed":                   3,
+	}
+)
+
+func (x AutoRechargeEventStatus) Enum() *AutoRechargeEventStatus {
+	p := new(AutoRechargeEventStatus)
+	*p = x
+	return p
+}
+
+func (x AutoRechargeEventStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AutoRechargeEventStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_billing_v1_enum_proto_enumTypes[6].Descriptor()
+}
+
+func (AutoRechargeEventStatus) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_billing_v1_enum_proto_enumTypes[6]
+}
+
+func (x AutoRechargeEventStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AutoRechargeEventStatus.Descriptor instead.
+func (AutoRechargeEventStatus) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP(), []int{6}
+}
+
 var File_ai_stigmer_billing_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_v1_enum_proto_rawDesc = "" +
@@ -458,7 +520,12 @@ const file_ai_stigmer_billing_v1_enum_proto_rawDesc = "" +
 	"\x17credit_purchase_pending\x10\x01\x12\x1d\n" +
 	"\x19credit_purchase_completed\x10\x02\x12\x1a\n" +
 	"\x16credit_purchase_failed\x10\x03\x12\x1b\n" +
-	"\x17credit_purchase_expired\x10\x04B\xe7\x01\n" +
+	"\x17credit_purchase_expired\x10\x04*\x97\x01\n" +
+	"\x17AutoRechargeEventStatus\x12*\n" +
+	"&auto_recharge_event_status_unspecified\x10\x00\x12\x19\n" +
+	"\x15auto_recharge_pending\x10\x01\x12\x1b\n" +
+	"\x17auto_recharge_succeeded\x10\x02\x12\x18\n" +
+	"\x14auto_recharge_failed\x10\x03B\xe7\x01\n" +
 	"\x19com.ai.stigmer.billing.v1B\tEnumProtoP\x01ZHgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
 
 var (
@@ -473,14 +540,15 @@ func file_ai_stigmer_billing_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_billing_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_billing_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_ai_stigmer_billing_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
 var file_ai_stigmer_billing_v1_enum_proto_goTypes = []any{
-	(LedgerEntryType)(0),        // 0: ai.stigmer.billing.v1.LedgerEntryType
-	(CreditGrantKind)(0),        // 1: ai.stigmer.billing.v1.CreditGrantKind
-	(BillingAccountStatus)(0),   // 2: ai.stigmer.billing.v1.BillingAccountStatus
-	(ReservationStatus)(0),      // 3: ai.stigmer.billing.v1.ReservationStatus
-	(ExecutionBillingSignal)(0), // 4: ai.stigmer.billing.v1.ExecutionBillingSignal
-	(CreditPurchaseStatus)(0),   // 5: ai.stigmer.billing.v1.CreditPurchaseStatus
+	(LedgerEntryType)(0),         // 0: ai.stigmer.billing.v1.LedgerEntryType
+	(CreditGrantKind)(0),         // 1: ai.stigmer.billing.v1.CreditGrantKind
+	(BillingAccountStatus)(0),    // 2: ai.stigmer.billing.v1.BillingAccountStatus
+	(ReservationStatus)(0),       // 3: ai.stigmer.billing.v1.ReservationStatus
+	(ExecutionBillingSignal)(0),  // 4: ai.stigmer.billing.v1.ExecutionBillingSignal
+	(CreditPurchaseStatus)(0),    // 5: ai.stigmer.billing.v1.CreditPurchaseStatus
+	(AutoRechargeEventStatus)(0), // 6: ai.stigmer.billing.v1.AutoRechargeEventStatus
 }
 var file_ai_stigmer_billing_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -500,7 +568,7 @@ func file_ai_stigmer_billing_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_billing_v1_enum_proto_rawDesc), len(file_ai_stigmer_billing_v1_enum_proto_rawDesc)),
-			NumEnums:      6,
+			NumEnums:      7,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

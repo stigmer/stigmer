@@ -723,6 +723,153 @@ func (x *CreditPurchase) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+// AutoRechargeEvent tracks a single automatic recharge attempt through
+// its lifecycle: claim → PaymentIntent creation → payment confirmation
+// → credit provisioning.
+//
+// Created with status PENDING when the billing system detects a balance
+// drop below the org's threshold and successfully claims a monthly cap
+// slot. Transitions to SUCCEEDED when the payment_intent.succeeded
+// webhook provisions credits, or to FAILED if payment fails.
+//
+// The monthly cap slot (BillingAccount.auto_recharge.current_month_charged_micros)
+// is claimed atomically before this document is created, and released
+// (decremented) if the event transitions to FAILED.
+type AutoRechargeEvent struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Unique identifier for this recharge event.
+	EventId string `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	// Organization being recharged.
+	OrgId string `protobuf:"bytes,2,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	// Amount charged to the payment method in micro-USD.
+	AmountMicros int64 `protobuf:"varint,3,opt,name=amount_micros,json=amountMicros,proto3" json:"amount_micros,omitempty"`
+	// Credits to provision upon successful payment in micro-USD.
+	// Equal to amount_micros at launch (no volume bonus on recharges).
+	CreditsMicros int64 `protobuf:"varint,4,opt,name=credits_micros,json=creditsMicros,proto3" json:"credits_micros,omitempty"`
+	// Stripe PaymentIntent ID. Set after PaymentIntent creation succeeds.
+	PaymentIntentId string `protobuf:"bytes,5,opt,name=payment_intent_id,json=paymentIntentId,proto3" json:"payment_intent_id,omitempty"`
+	// Current lifecycle status.
+	Status AutoRechargeEventStatus `protobuf:"varint,6,opt,name=status,proto3,enum=ai.stigmer.billing.v1.AutoRechargeEventStatus" json:"status,omitempty"`
+	// Reason for failure, if status is FAILED.
+	FailureReason string `protobuf:"bytes,7,opt,name=failure_reason,json=failureReason,proto3" json:"failure_reason,omitempty"`
+	// Deduplication key for the ledger entry provisioning credits.
+	// Format: "auto_recharge_{event_id}".
+	IdempotencyKey string `protobuf:"bytes,8,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	// Stripe Customer ID used for this charge.
+	StripeCustomerId string                 `protobuf:"bytes,9,opt,name=stripe_customer_id,json=stripeCustomerId,proto3" json:"stripe_customer_id,omitempty"`
+	CreatedAt        *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	CompletedAt      *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *AutoRechargeEvent) Reset() {
+	*x = AutoRechargeEvent{}
+	mi := &file_ai_stigmer_billing_v1_credit_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AutoRechargeEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AutoRechargeEvent) ProtoMessage() {}
+
+func (x *AutoRechargeEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_billing_v1_credit_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AutoRechargeEvent.ProtoReflect.Descriptor instead.
+func (*AutoRechargeEvent) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_v1_credit_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *AutoRechargeEvent) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+func (x *AutoRechargeEvent) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *AutoRechargeEvent) GetAmountMicros() int64 {
+	if x != nil {
+		return x.AmountMicros
+	}
+	return 0
+}
+
+func (x *AutoRechargeEvent) GetCreditsMicros() int64 {
+	if x != nil {
+		return x.CreditsMicros
+	}
+	return 0
+}
+
+func (x *AutoRechargeEvent) GetPaymentIntentId() string {
+	if x != nil {
+		return x.PaymentIntentId
+	}
+	return ""
+}
+
+func (x *AutoRechargeEvent) GetStatus() AutoRechargeEventStatus {
+	if x != nil {
+		return x.Status
+	}
+	return AutoRechargeEventStatus_auto_recharge_event_status_unspecified
+}
+
+func (x *AutoRechargeEvent) GetFailureReason() string {
+	if x != nil {
+		return x.FailureReason
+	}
+	return ""
+}
+
+func (x *AutoRechargeEvent) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
+func (x *AutoRechargeEvent) GetStripeCustomerId() string {
+	if x != nil {
+		return x.StripeCustomerId
+	}
+	return ""
+}
+
+func (x *AutoRechargeEvent) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *AutoRechargeEvent) GetCompletedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CompletedAt
+	}
+	return nil
+}
+
 var File_ai_stigmer_billing_v1_credit_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_v1_credit_proto_rawDesc = "" +
@@ -796,7 +943,21 @@ const file_ai_stigmer_billing_v1_credit_proto_rawDesc = "" +
 	"created_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAtB\xec\x01\n" +
+	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xfd\x03\n" +
+	"\x11AutoRechargeEvent\x12\x19\n" +
+	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x15\n" +
+	"\x06org_id\x18\x02 \x01(\tR\x05orgId\x12#\n" +
+	"\ramount_micros\x18\x03 \x01(\x03R\famountMicros\x12%\n" +
+	"\x0ecredits_micros\x18\x04 \x01(\x03R\rcreditsMicros\x12*\n" +
+	"\x11payment_intent_id\x18\x05 \x01(\tR\x0fpaymentIntentId\x12F\n" +
+	"\x06status\x18\x06 \x01(\x0e2..ai.stigmer.billing.v1.AutoRechargeEventStatusR\x06status\x12%\n" +
+	"\x0efailure_reason\x18\a \x01(\tR\rfailureReason\x12'\n" +
+	"\x0fidempotency_key\x18\b \x01(\tR\x0eidempotencyKey\x12,\n" +
+	"\x12stripe_customer_id\x18\t \x01(\tR\x10stripeCustomerId\x129\n" +
+	"\n" +
+	"created_at\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12=\n" +
+	"\fcompleted_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAtB\xec\x01\n" +
 	"\x19com.ai.stigmer.billing.v1B\vCreditProtoP\x01ZKgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
 
 var (
@@ -811,7 +972,7 @@ func file_ai_stigmer_billing_v1_credit_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_billing_v1_credit_proto_rawDescData
 }
 
-var file_ai_stigmer_billing_v1_credit_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_ai_stigmer_billing_v1_credit_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_billing_v1_credit_proto_goTypes = []any{
 	(*CreditLedgerEntry)(nil),     // 0: ai.stigmer.billing.v1.CreditLedgerEntry
 	(*CreditLedgerSource)(nil),    // 1: ai.stigmer.billing.v1.CreditLedgerSource
@@ -819,32 +980,37 @@ var file_ai_stigmer_billing_v1_credit_proto_goTypes = []any{
 	(*CreditPack)(nil),            // 3: ai.stigmer.billing.v1.CreditPack
 	(*ExecutionReservation)(nil),  // 4: ai.stigmer.billing.v1.ExecutionReservation
 	(*CreditPurchase)(nil),        // 5: ai.stigmer.billing.v1.CreditPurchase
-	(LedgerEntryType)(0),          // 6: ai.stigmer.billing.v1.LedgerEntryType
-	(*BillingUsageRating)(nil),    // 7: ai.stigmer.billing.v1.BillingUsageRating
-	(*timestamppb.Timestamp)(nil), // 8: google.protobuf.Timestamp
-	(CreditGrantKind)(0),          // 9: ai.stigmer.billing.v1.CreditGrantKind
-	(ReservationStatus)(0),        // 10: ai.stigmer.billing.v1.ReservationStatus
-	(CreditPurchaseStatus)(0),     // 11: ai.stigmer.billing.v1.CreditPurchaseStatus
+	(*AutoRechargeEvent)(nil),     // 6: ai.stigmer.billing.v1.AutoRechargeEvent
+	(LedgerEntryType)(0),          // 7: ai.stigmer.billing.v1.LedgerEntryType
+	(*BillingUsageRating)(nil),    // 8: ai.stigmer.billing.v1.BillingUsageRating
+	(*timestamppb.Timestamp)(nil), // 9: google.protobuf.Timestamp
+	(CreditGrantKind)(0),          // 10: ai.stigmer.billing.v1.CreditGrantKind
+	(ReservationStatus)(0),        // 11: ai.stigmer.billing.v1.ReservationStatus
+	(CreditPurchaseStatus)(0),     // 12: ai.stigmer.billing.v1.CreditPurchaseStatus
+	(AutoRechargeEventStatus)(0),  // 13: ai.stigmer.billing.v1.AutoRechargeEventStatus
 }
 var file_ai_stigmer_billing_v1_credit_proto_depIdxs = []int32{
-	6,  // 0: ai.stigmer.billing.v1.CreditLedgerEntry.type:type_name -> ai.stigmer.billing.v1.LedgerEntryType
-	7,  // 1: ai.stigmer.billing.v1.CreditLedgerEntry.rating:type_name -> ai.stigmer.billing.v1.BillingUsageRating
+	7,  // 0: ai.stigmer.billing.v1.CreditLedgerEntry.type:type_name -> ai.stigmer.billing.v1.LedgerEntryType
+	8,  // 1: ai.stigmer.billing.v1.CreditLedgerEntry.rating:type_name -> ai.stigmer.billing.v1.BillingUsageRating
 	1,  // 2: ai.stigmer.billing.v1.CreditLedgerEntry.source:type_name -> ai.stigmer.billing.v1.CreditLedgerSource
-	8,  // 3: ai.stigmer.billing.v1.CreditLedgerEntry.created_at:type_name -> google.protobuf.Timestamp
-	9,  // 4: ai.stigmer.billing.v1.CreditGrant.kind:type_name -> ai.stigmer.billing.v1.CreditGrantKind
-	8,  // 5: ai.stigmer.billing.v1.CreditGrant.expires_at:type_name -> google.protobuf.Timestamp
-	8,  // 6: ai.stigmer.billing.v1.CreditGrant.created_at:type_name -> google.protobuf.Timestamp
-	10, // 7: ai.stigmer.billing.v1.ExecutionReservation.status:type_name -> ai.stigmer.billing.v1.ReservationStatus
-	8,  // 8: ai.stigmer.billing.v1.ExecutionReservation.created_at:type_name -> google.protobuf.Timestamp
-	8,  // 9: ai.stigmer.billing.v1.ExecutionReservation.expires_at:type_name -> google.protobuf.Timestamp
-	11, // 10: ai.stigmer.billing.v1.CreditPurchase.status:type_name -> ai.stigmer.billing.v1.CreditPurchaseStatus
-	8,  // 11: ai.stigmer.billing.v1.CreditPurchase.created_at:type_name -> google.protobuf.Timestamp
-	8,  // 12: ai.stigmer.billing.v1.CreditPurchase.updated_at:type_name -> google.protobuf.Timestamp
-	13, // [13:13] is the sub-list for method output_type
-	13, // [13:13] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	9,  // 3: ai.stigmer.billing.v1.CreditLedgerEntry.created_at:type_name -> google.protobuf.Timestamp
+	10, // 4: ai.stigmer.billing.v1.CreditGrant.kind:type_name -> ai.stigmer.billing.v1.CreditGrantKind
+	9,  // 5: ai.stigmer.billing.v1.CreditGrant.expires_at:type_name -> google.protobuf.Timestamp
+	9,  // 6: ai.stigmer.billing.v1.CreditGrant.created_at:type_name -> google.protobuf.Timestamp
+	11, // 7: ai.stigmer.billing.v1.ExecutionReservation.status:type_name -> ai.stigmer.billing.v1.ReservationStatus
+	9,  // 8: ai.stigmer.billing.v1.ExecutionReservation.created_at:type_name -> google.protobuf.Timestamp
+	9,  // 9: ai.stigmer.billing.v1.ExecutionReservation.expires_at:type_name -> google.protobuf.Timestamp
+	12, // 10: ai.stigmer.billing.v1.CreditPurchase.status:type_name -> ai.stigmer.billing.v1.CreditPurchaseStatus
+	9,  // 11: ai.stigmer.billing.v1.CreditPurchase.created_at:type_name -> google.protobuf.Timestamp
+	9,  // 12: ai.stigmer.billing.v1.CreditPurchase.updated_at:type_name -> google.protobuf.Timestamp
+	13, // 13: ai.stigmer.billing.v1.AutoRechargeEvent.status:type_name -> ai.stigmer.billing.v1.AutoRechargeEventStatus
+	9,  // 14: ai.stigmer.billing.v1.AutoRechargeEvent.created_at:type_name -> google.protobuf.Timestamp
+	9,  // 15: ai.stigmer.billing.v1.AutoRechargeEvent.completed_at:type_name -> google.protobuf.Timestamp
+	16, // [16:16] is the sub-list for method output_type
+	16, // [16:16] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_billing_v1_credit_proto_init() }
@@ -860,7 +1026,7 @@ func file_ai_stigmer_billing_v1_credit_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_billing_v1_credit_proto_rawDesc), len(file_ai_stigmer_billing_v1_credit_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -128,3 +128,23 @@ enum CreditPurchaseStatus {
   // Checkout session expired without payment completion.
   credit_purchase_expired = 4;
 }
+
+// AutoRechargeEventStatus tracks the lifecycle of an automatic recharge attempt.
+//
+// A recharge begins as PENDING when the billing system claims a monthly cap
+// slot and creates a Stripe PaymentIntent. It transitions to SUCCEEDED when
+// the payment_intent.succeeded webhook confirms payment and credits are
+// provisioned, or to FAILED if the PaymentIntent creation fails or the
+// payment_intent.payment_failed webhook fires.
+enum AutoRechargeEventStatus {
+  auto_recharge_event_status_unspecified = 0;
+
+  // PaymentIntent created; awaiting Stripe payment confirmation.
+  auto_recharge_pending = 1;
+
+  // Payment succeeded; credits have been provisioned.
+  auto_recharge_succeeded = 2;
+
+  // Payment failed; monthly cap slot has been released.
+  auto_recharge_failed = 3;
+}

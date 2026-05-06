@@ -133,3 +133,29 @@ class CreditPurchase(_message.Message):
     created_at: _timestamp_pb2.Timestamp
     updated_at: _timestamp_pb2.Timestamp
     def __init__(self, purchase_id: _Optional[str] = ..., org_id: _Optional[str] = ..., pack_id: _Optional[str] = ..., amount_paid_micros: _Optional[int] = ..., credits_granted_micros: _Optional[int] = ..., status: _Optional[_Union[_enum_pb2.CreditPurchaseStatus, str]] = ..., stripe_customer_id: _Optional[str] = ..., checkout_session_id: _Optional[str] = ..., payment_intent_id: _Optional[str] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+
+class AutoRechargeEvent(_message.Message):
+    __slots__ = ("event_id", "org_id", "amount_micros", "credits_micros", "payment_intent_id", "status", "failure_reason", "idempotency_key", "stripe_customer_id", "created_at", "completed_at")
+    EVENT_ID_FIELD_NUMBER: _ClassVar[int]
+    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    AMOUNT_MICROS_FIELD_NUMBER: _ClassVar[int]
+    CREDITS_MICROS_FIELD_NUMBER: _ClassVar[int]
+    PAYMENT_INTENT_ID_FIELD_NUMBER: _ClassVar[int]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
+    FAILURE_REASON_FIELD_NUMBER: _ClassVar[int]
+    IDEMPOTENCY_KEY_FIELD_NUMBER: _ClassVar[int]
+    STRIPE_CUSTOMER_ID_FIELD_NUMBER: _ClassVar[int]
+    CREATED_AT_FIELD_NUMBER: _ClassVar[int]
+    COMPLETED_AT_FIELD_NUMBER: _ClassVar[int]
+    event_id: str
+    org_id: str
+    amount_micros: int
+    credits_micros: int
+    payment_intent_id: str
+    status: _enum_pb2.AutoRechargeEventStatus
+    failure_reason: str
+    idempotency_key: str
+    stripe_customer_id: str
+    created_at: _timestamp_pb2.Timestamp
+    completed_at: _timestamp_pb2.Timestamp
+    def __init__(self, event_id: _Optional[str] = ..., org_id: _Optional[str] = ..., amount_micros: _Optional[int] = ..., credits_micros: _Optional[int] = ..., payment_intent_id: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.AutoRechargeEventStatus, str]] = ..., failure_reason: _Optional[str] = ..., idempotency_key: _Optional[str] = ..., stripe_customer_id: _Optional[str] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., completed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
