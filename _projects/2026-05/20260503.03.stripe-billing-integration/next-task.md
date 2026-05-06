@@ -68,8 +68,18 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03 09:55
-**Current Task**: T01 — Phase 4 Complete (Auto-Recharge)
-**Status**: Phase 4 Complete — All 5 sub-phases done. Ready for Phase 5 or follow-up work items.
+**Current Task**: T01 — Phase 5 Partial (Dashboard Enrichment done, Alerts + Calculator deferred)
+**Status**: Phase 5.1+5.2+5.5 Complete. Phase 5.3 (Alerts) and 5.4 (Cost Calculator) remain.
+
+### Phase 5.1+5.2+5.5 Completed (2026-05-06)
+- Added `HarnessCostSummary` proto + `harness_breakdown` field to `GetOrgUsageReportOutput`
+- Backend: `buildHarnessBreakdown()` in `UsageAggregationService` + handler wiring + timing log
+- React SDK: `CreditRunwayIndicator`, `AgentBreakdownList`, `HarnessSplitCard`, `useExportCSV` + `ExportButton`
+- Enhanced `SummaryCards` (6 metrics, 2 rows) with runway subtitle
+- `OrgUsagePanel` enriched with all new components + export toolbar
+- 5 unit tests, TypeScript clean, Bazel clean
+- Committed: stigmer `9c91df477`, stigmer-cloud `e30d519e`
+- Changelog: `_changelog/2026-05/2026-05-06-171747-phase5-usage-dashboard-enrichment.md`
 
 ## Session Progress (2026-05-03)
 
@@ -720,10 +730,18 @@ When starting a new session:
 4. ~~Recharge failure handling (retry, disable, notify)~~ ✅ (minimal: immediate compensation)
 5. ~~Webhook handling for recharge PaymentIntents~~ ✅
 
+## Next Steps (Phase 5 — Dashboard & Analytics)
+
+1. ~~Balance & Spend Dashboard (5.1) — runway, enhanced summary cards~~ ✅
+2. ~~Usage Breakdown (5.2) — per-agent, harness split~~ ✅
+3. Alerts & Notifications (5.3) — low balance emails, budget warnings (requires email infrastructure)
+4. Cost Calculator (5.4) — interactive estimator for pricing page (deferred to Phase 6.4)
+5. ~~CSV Export (5.5) — daily + model breakdown downloads~~ ✅
+
 ## Quick Commands
 
 After loading context:
-- "Start Phase 4" - Begin auto-recharge implementation
+- "Start Phase 5.3" - Begin alerts & notifications infrastructure
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
