@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03 09:55
-**Current Task**: T01 — Phase 4.2 Complete (Auto-Recharge Configuration)
-**Status**: Phase 4.2 Complete — Ready for Phase 4.3 (Recharge Trigger)
+**Current Task**: T01 — Phase 4 Complete (Auto-Recharge)
+**Status**: Phase 4 Complete — All 5 sub-phases done. Ready for Phase 5 or follow-up work items.
 
 ## Session Progress (2026-05-03)
 
@@ -653,13 +653,72 @@ When starting a new session:
 - React: `AutoRechargeCard` + `useSetAutoRechargeConfig` hook, wired into `BillingSection`
 - SDK: `BillingClient.setAutoRechargeConfig()` + `SetAutoRechargeConfigParams` type
 
+### Phase 4.3+4.4+4.5 Completed (Auto-Recharge Trigger + Webhook + Minimal Failure Handling)
+- Added `AutoRechargeEventStatus` enum to `enum.proto`: `pending`, `succeeded`, `failed`
+- Added `AutoRechargeEvent` message to `credit.proto` — lifecycle tracking for recharge attempts
+- Created `auto_recharge_event` collection via Mongock migration (order 027):
+  - `event_id` unique, `payment_intent_id` unique sparse, `(org_id, status)`, `(status, created_at)`
+- Created `AutoRechargeEventRepo` in `ai.stigmer.domain.billing.repo`:
+  - Proto-JSON pattern with insert, findByEventId, findByPaymentIntentId, findPendingByOrgId
+  - `atomicSetPaymentIntentId` (CAS), `updateStatus`, `markFailed`
+- Added 3 atomic methods to `BillingAccountRepo`:
+  - `atomicResetRechargeMonthIfNeeded(orgId, month)` — lazy month rollover with `$set`
+  - `atomicClaimRechargeSlot(orgId, amount)` — concurrency gate via `$expr` + `$inc`
+  - `atomicReleaseRechargeSlot(orgId, amount)` — failure compensation via `$inc`
+- Refactored `CreditLedgerService`:
+  - Extracted `provisionCredits(orgId, amount, entryType, grantKind, priority, source, key)` — parameterized entry type
+  - `adjustCredits()` now delegates to `provisionCredits` with `adjustment_credit` type (no behavior change)
+  - Enables auto-recharge to provision with `LedgerEntryType.auto_recharge_credit`
+- Created `AutoRechargeService` in `ai.stigmer.domain.billing.service`:
+  - `evaluateAndTrigger(orgId, account)` — fast in-memory checks + atomic CAS claim + async Stripe PI
+  - `executeRecharge(event, customerId, pmId)` — creates off-session PaymentIntent with `confirm=true`
+  - `provisionRechargeCredits(eventId)` — called by webhook, provisions credits via `CreditLedgerService.provisionCredits()`
+  - `compensateFailedRecharge(eventId, reason)` — releases cap slot + marks FAILED
+- Created `AutoRechargeExecutorConfig` — dedicated `ThreadPoolTaskExecutor` (core=2, max=4, queue=100, DiscardPolicy)
+- Wired trigger into `ExecutionBillingService.reportLlmCallUsage()`:
+  - After signal computation, if `low_balance_warning` or `stop_execution`, calls `autoRechargeService.evaluateAndTrigger()`
+  - Wrapped in try-catch — auto-recharge evaluation failure never affects the billing response
+- Extended `StripeWebhookService` with 2 new event handlers:
+  - `payment_intent.succeeded` — metadata-routed: only processes PIs with `stigmer_recharge_event_id`
+  - `payment_intent.payment_failed` — compensates monthly cap, marks event FAILED
+- Refactored `ExecutionBillingService.reportLlmCallUsage()` return type:
+  - Replaced removed `ReportLlmCallUsageResponse` proto with domain record `UsageDebitResult(signal, balanceAfterMicros, billableAmountMicros, rating)`
+  - Updated `RecordLlmCallUsageHandler.DebitBillingStep` to use record accessors
+- Fixed pre-existing build issue: `ProxyScopeResult.UNSCOPED` visibility (package-private → public)
+- Unit tests: `AutoRechargeServiceTest` (11 tests) + `AutoRechargeEventRepoTest` (6 tests) — all pass
+- All 16 billing test targets pass (including updated `StripeWebhookServiceTest`, `ExecutionBillingServiceQuerySignalTest`)
+- Build verified: `./bazelw build //backend/services/stigmer-service/...` — clean (excluding pre-existing deleted test reference)
+
+### Key Design Decisions (Phase 4.3)
+- **Trigger inside `reportLlmCallUsage()`**: Zero overhead on the happy path (balance healthy). On low-balance path: one in-memory config check + one conditional CAS. The Stripe call is fully async.
+- **Atomic CAS concurrency gate**: `atomicClaimRechargeSlot` uses `$expr` to compare `charged + amount <= cap` within a single MongoDB `findAndModify`. Only one concurrent caller wins; all others skip silently.
+- **Async executor with DiscardPolicy**: Pool saturation silently drops the task rather than blocking or throwing. The next balance check will re-evaluate. Auto-recharge is a best-effort optimization, not a critical-path operation.
+- **Webhook-driven credit provisioning (not optimistic)**: Credits appear only after `payment_intent.succeeded` fires. 5-30 second gap is acceptable — the execution may stop gracefully, and new credits are available for the next execution.
+- **Metadata-based webhook routing**: Auto-recharge PIs carry `stigmer_recharge_event_id`; checkout PIs carry `stigmer_purchase_id`. No conflict because checkout uses `checkout.session.completed`.
+- **Broad exception catch in `executeRecharge()`**: Catches `Exception` (not just `StripeException`) because unexpected failures (network, OOM) must also trigger compensation.
+- **`UsageDebitResult` record replaces `ReportLlmCallUsageResponse`**: The proto was renamed from `Report*` to `Record*` in the proxy-side billing metering sub-project. Domain record is cleaner than depending on a renamed proto type.
+
+### Stripe Ops Required (Phase 4.3)
+- Register new webhook events in Stripe Dashboard: `payment_intent.succeeded`, `payment_intent.payment_failed`
+
+- **Phase 4.3**: `AutoRechargeEvent` proto message + `AutoRechargeEventStatus` enum
+- `auto_recharge_event` collection (Mongock order 027) with 4 indexes
+- `AutoRechargeEventRepo` — proto-JSON, CAS for payment_intent_id, lifecycle status transitions
+- `AutoRechargeService` — 4 methods: evaluate, execute, provision, compensate
+- `AutoRechargeExecutorConfig` — dedicated thread pool for async Stripe calls
+- `BillingAccountRepo` — 3 new atomic methods for monthly cap management
+- `CreditLedgerService.provisionCredits()` — parameterized entry type (refactored from `adjustCredits`)
+- `StripeWebhookService` handles 8 event types (was 6): added `payment_intent.succeeded`, `payment_intent.payment_failed`
+- Trigger: `ExecutionBillingService.reportLlmCallUsage()` → `autoRechargeService.evaluateAndTrigger()` on low/stop signals
+- All Phase 4 (Auto-Recharge) is now complete — 5/5 sub-phases done
+
 ## Next Steps (Phase 4 — Auto-Recharge, continued)
 
 1. ~~Payment method management (saved via `setup_future_usage=off_session`)~~ ✅
 2. ~~Auto-recharge configuration (SetAutoRechargeConfig RPC, threshold/amount/cap)~~ ✅
-3. Recharge trigger (off-session PaymentIntent on balance drop)
-4. Recharge failure handling (retry, disable, notify)
-5. Webhook handling for recharge PaymentIntents
+3. ~~Recharge trigger (off-session PaymentIntent on balance drop)~~ ✅
+4. ~~Recharge failure handling (retry, disable, notify)~~ ✅ (minimal: immediate compensation)
+5. ~~Webhook handling for recharge PaymentIntents~~ ✅
 
 ## Quick Commands
 

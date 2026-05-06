@@ -201,3 +201,49 @@ message CreditPurchase {
   google.protobuf.Timestamp created_at = 10;
   google.protobuf.Timestamp updated_at = 11;
 }
+
+// AutoRechargeEvent tracks a single automatic recharge attempt through
+// its lifecycle: claim → PaymentIntent creation → payment confirmation
+// → credit provisioning.
+//
+// Created with status PENDING when the billing system detects a balance
+// drop below the org's threshold and successfully claims a monthly cap
+// slot. Transitions to SUCCEEDED when the payment_intent.succeeded
+// webhook provisions credits, or to FAILED if payment fails.
+//
+// The monthly cap slot (BillingAccount.auto_recharge.current_month_charged_micros)
+// is claimed atomically before this document is created, and released
+// (decremented) if the event transitions to FAILED.
+message AutoRechargeEvent {
+  // Unique identifier for this recharge event.
+  string event_id = 1;
+
+  // Organization being recharged.
+  string org_id = 2;
+
+  // Amount charged to the payment method in micro-USD.
+  int64 amount_micros = 3;
+
+  // Credits to provision upon successful payment in micro-USD.
+  // Equal to amount_micros at launch (no volume bonus on recharges).
+  int64 credits_micros = 4;
+
+  // Stripe PaymentIntent ID. Set after PaymentIntent creation succeeds.
+  string payment_intent_id = 5;
+
+  // Current lifecycle status.
+  AutoRechargeEventStatus status = 6;
+
+  // Reason for failure, if status is FAILED.
+  string failure_reason = 7;
+
+  // Deduplication key for the ledger entry provisioning credits.
+  // Format: "auto_recharge_{event_id}".
+  string idempotency_key = 8;
+
+  // Stripe Customer ID used for this charge.
+  string stripe_customer_id = 9;
+
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp completed_at = 11;
+}

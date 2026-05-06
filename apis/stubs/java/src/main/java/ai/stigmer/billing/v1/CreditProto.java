@@ -56,6 +56,11 @@ public final class CreditProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_billing_v1_CreditPurchase_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_billing_v1_AutoRechargeEvent_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_billing_v1_AutoRechargeEvent_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -125,10 +130,23 @@ public final class CreditProto extends com.google.protobuf.GeneratedFile {
       "entIntentId\0229\n\ncreated_at\030\n \001(\0132\032.google" +
       ".protobuf.TimestampR\tcreatedAt\0229\n\nupdate" +
       "d_at\030\013 \001(\0132\032.google.protobuf.TimestampR\t" +
-      "updatedAtB\204\001B\013CreditProtoP\001\242\002\003ASB\252\002\025Ai.S" +
-      "tigmer.Billing.V1\312\002\025Ai\\Stigmer\\Billing\\V" +
-      "1\342\002!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\352\002\030" +
-      "Ai::Stigmer::Billing::V1b\006proto3"
+      "updatedAt\"\375\003\n\021AutoRechargeEvent\022\031\n\010event" +
+      "_id\030\001 \001(\tR\007eventId\022\025\n\006org_id\030\002 \001(\tR\005orgI" +
+      "d\022#\n\ramount_micros\030\003 \001(\003R\014amountMicros\022%" +
+      "\n\016credits_micros\030\004 \001(\003R\rcreditsMicros\022*\n" +
+      "\021payment_intent_id\030\005 \001(\tR\017paymentIntentI" +
+      "d\022F\n\006status\030\006 \001(\0162..ai.stigmer.billing.v" +
+      "1.AutoRechargeEventStatusR\006status\022%\n\016fai" +
+      "lure_reason\030\007 \001(\tR\rfailureReason\022\'\n\017idem" +
+      "potency_key\030\010 \001(\tR\016idempotencyKey\022,\n\022str" +
+      "ipe_customer_id\030\t \001(\tR\020stripeCustomerId\022" +
+      "9\n\ncreated_at\030\n \001(\0132\032.google.protobuf.Ti" +
+      "mestampR\tcreatedAt\022=\n\014completed_at\030\013 \001(\013" +
+      "2\032.google.protobuf.TimestampR\013completedA" +
+      "tB\204\001B\013CreditProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.B" +
+      "illing.V1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\S" +
+      "tigmer\\Billing\\V1\\GPBMetadata\352\002\030Ai::Stig" +
+      "mer::Billing::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -173,6 +191,12 @@ public final class CreditProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_billing_v1_CreditPurchase_descriptor,
         new java.lang.String[] { "PurchaseId", "OrgId", "PackId", "AmountPaidMicros", "CreditsGrantedMicros", "Status", "StripeCustomerId", "CheckoutSessionId", "PaymentIntentId", "CreatedAt", "UpdatedAt", });
+    internal_static_ai_stigmer_billing_v1_AutoRechargeEvent_descriptor =
+      getDescriptor().getMessageType(6);
+    internal_static_ai_stigmer_billing_v1_AutoRechargeEvent_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_billing_v1_AutoRechargeEvent_descriptor,
+        new java.lang.String[] { "EventId", "OrgId", "AmountMicros", "CreditsMicros", "PaymentIntentId", "Status", "FailureReason", "IdempotencyKey", "StripeCustomerId", "CreatedAt", "CompletedAt", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.billing.v1.EnumProto.getDescriptor();
     ai.stigmer.billing.v1.PolicyProto.getDescriptor();

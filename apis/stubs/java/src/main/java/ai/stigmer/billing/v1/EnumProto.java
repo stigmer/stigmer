@@ -62,11 +62,14 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "urchase_status_unspecified\020\000\022\033\n\027credit_p" +
       "urchase_pending\020\001\022\035\n\031credit_purchase_com" +
       "pleted\020\002\022\032\n\026credit_purchase_failed\020\003\022\033\n\027" +
-      "credit_purchase_expired\020\004B\202\001B\tEnumProtoP" +
-      "\001\242\002\003ASB\252\002\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Sti" +
-      "gmer\\Billing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\" +
-      "GPBMetadata\352\002\030Ai::Stigmer::Billing::V1b\006" +
-      "proto3"
+      "credit_purchase_expired\020\004*\227\001\n\027AutoRechar" +
+      "geEventStatus\022*\n&auto_recharge_event_sta" +
+      "tus_unspecified\020\000\022\031\n\025auto_recharge_pendi" +
+      "ng\020\001\022\033\n\027auto_recharge_succeeded\020\002\022\030\n\024aut" +
+      "o_recharge_failed\020\003B\202\001B\tEnumProtoP\001\242\002\003AS" +
+      "B\252\002\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Stigmer\\B" +
+      "illing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\GPBMet" +
+      "adata\352\002\030Ai::Stigmer::Billing::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

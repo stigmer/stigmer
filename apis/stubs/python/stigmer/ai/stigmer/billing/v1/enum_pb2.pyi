@@ -56,6 +56,13 @@ class CreditPurchaseStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     credit_purchase_completed: _ClassVar[CreditPurchaseStatus]
     credit_purchase_failed: _ClassVar[CreditPurchaseStatus]
     credit_purchase_expired: _ClassVar[CreditPurchaseStatus]
+
+class AutoRechargeEventStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    auto_recharge_event_status_unspecified: _ClassVar[AutoRechargeEventStatus]
+    auto_recharge_pending: _ClassVar[AutoRechargeEventStatus]
+    auto_recharge_succeeded: _ClassVar[AutoRechargeEventStatus]
+    auto_recharge_failed: _ClassVar[AutoRechargeEventStatus]
 ledger_entry_type_unspecified: LedgerEntryType
 purchase_credit: LedgerEntryType
 promotional_credit: LedgerEntryType
@@ -91,3 +98,7 @@ credit_purchase_pending: CreditPurchaseStatus
 credit_purchase_completed: CreditPurchaseStatus
 credit_purchase_failed: CreditPurchaseStatus
 credit_purchase_expired: CreditPurchaseStatus
+auto_recharge_event_status_unspecified: AutoRechargeEventStatus
+auto_recharge_pending: AutoRechargeEventStatus
+auto_recharge_succeeded: AutoRechargeEventStatus
+auto_recharge_failed: AutoRechargeEventStatus
