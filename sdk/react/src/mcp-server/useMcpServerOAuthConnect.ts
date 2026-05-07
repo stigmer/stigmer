@@ -122,6 +122,7 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
 
   const popupRef = useRef<Window | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -130,6 +131,13 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
   }, []);
 
   const clearError = useCallback(() => {
+    if (cleanupRef.current || popupRef.current) {
+      cancelledRef.current = true;
+      cleanupRef.current?.();
+      closePopup(popupRef.current);
+      popupRef.current = null;
+      cleanupRef.current = null;
+    }
     setPhase("idle");
     setError(null);
   }, []);
@@ -138,6 +146,7 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
     async (mcpServerId: string, org: string, declaredEnvKeys?: readonly string[]): Promise<McpServer> => {
       setPhase("initiating");
       setError(null);
+      cancelledRef.current = false;
 
       cleanupRef.current?.();
 
@@ -214,9 +223,12 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
         return server;
       } catch (err) {
         const wrapped = toError(err);
-        setError(wrapped);
-        setPhase("idle");
-        closePopup(popup);
+        if (!cancelledRef.current) {
+          setError(wrapped);
+          setPhase("idle");
+          closePopup(popup);
+        }
+        cancelledRef.current = false;
         throw wrapped;
       } finally {
         popupRef.current = null;
@@ -241,9 +253,14 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
 
 /**
  * Grace period (ms) after `popup.closed` is first detected before treating
- * it as a user-initiated close. COOP providers sever the opener reference
- * immediately, making `popup.closed` appear `true` while the popup is still
- * active. The grace period lets the BroadcastChannel callback arrive.
+ * it as a user-initiated close.
+ *
+ * Only used when BroadcastChannel is unavailable. When BC is available,
+ * `popup.closed` polling is skipped entirely because COOP providers
+ * (e.g. Sentry, GitHub) sever the opener reference on cross-origin
+ * navigation, making `popup.closed` permanently `true` while the popup
+ * is still active. The overall {@link POPUP_CALLBACK_TIMEOUT_MS} serves
+ * as the safety net for abandoned flows instead.
  */
 const POPUP_CLOSED_GRACE_MS = 5_000;
 
@@ -257,6 +274,7 @@ function waitForOAuthCallback(
     let timeoutId: ReturnType<typeof setTimeout>;
     let pollId: ReturnType<typeof setInterval>;
     let bc: BroadcastChannel | null = null;
+    let hasBroadcastChannel = false;
 
     function cleanup() {
       if (timeoutId) clearTimeout(timeoutId);
@@ -314,6 +332,7 @@ function waitForOAuthCallback(
     // BroadcastChannel — works even when COOP severs window.opener.
     try {
       bc = new BroadcastChannel(OAUTH_BROADCAST_CHANNEL);
+      hasBroadcastChannel = true;
       bc.onmessage = (event: MessageEvent) => {
         validateAndSettle(event.data as OAuthCallbackMessage | undefined);
       };
@@ -332,12 +351,21 @@ function waitForOAuthCallback(
       closePopup(popup);
     }, POPUP_CALLBACK_TIMEOUT_MS);
 
-    // COOP providers make popup.closed appear true immediately after
-    // cross-origin navigation. Wait a grace period before treating it
-    // as a real user-initiated close.
+    // When BroadcastChannel is available, skip popup.closed polling.
+    // COOP providers (Sentry, GitHub, etc.) sever the opener reference
+    // on cross-origin navigation, making popup.closed permanently true
+    // while the popup is still active. BroadcastChannel reliably
+    // delivers the callback regardless of COOP; the overall timeout
+    // above catches abandoned flows.
+    //
+    // When BroadcastChannel is NOT available (legacy browsers), fall
+    // back to popup.closed polling with a short grace period — it is
+    // the only signal we have in that degraded path.
     let popupClosedAt: number | null = null;
 
     pollId = setInterval(() => {
+      if (hasBroadcastChannel) return;
+
       if (popup.closed) {
         if (popupClosedAt === null) {
           popupClosedAt = Date.now();
