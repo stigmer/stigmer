@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import { useModelRegistry } from "./useModelRegistry";
-import { modelKey, parseModelKey, type ModelInfo, type CostTier } from "./registry";
-import { HARNESS_LABELS, type HarnessOption } from "./harness";
+import type { ModelInfo, CostTier, SpeedTier } from "./registry";
+import { HARNESS_META, HARNESS_OPTIONS, type HarnessOption } from "./harness";
 
 const COST_TIER_LABEL: Record<CostTier, string> = {
   economy: "$",
@@ -13,46 +13,70 @@ const COST_TIER_LABEL: Record<CostTier, string> = {
   premium: "$$$",
 };
 
+const SPEED_TIER_LABEL: Record<SpeedTier, string> = {
+  fastest: "Fastest",
+  fast: "Fast",
+  balanced: "Balanced",
+  slow: "Powerful",
+};
+
 /** Props for {@link ModelSelector}. */
 export interface ModelSelectorProps {
-  /** Currently selected compound key (`"native/claude-sonnet-4.6"`) or plain `modelId`. */
+  /** Currently selected model ID. */
   readonly value?: string;
   /** Called when the user picks a different model. Receives the `modelId`. */
   readonly onValueChange: (modelId: string) => void;
   /**
-   * When provided, restricts the catalog to a single harness (backward compat).
-   * When omitted, shows the unified picker with models from both engines.
+   * Current harness. When provided as a single value, locks the selector
+   * to that harness (dropdown hidden). When omitted, shows the harness dropdown.
    */
   readonly harness?: HarnessOption;
+  /** Called when user changes harness in the dropdown. */
+  readonly onHarnessChange?: (harness: HarnessOption) => void;
   /**
-   * Fires when the selected model belongs to a different harness than
-   * the previous selection. Only relevant in unified mode (no `harness` prop).
+   * Restrict which harnesses appear in the dropdown.
+   * When omitted, shows all registered harnesses that have models in the registry.
    */
-  readonly onHarnessResolved?: (harness: HarnessOption) => void;
+  readonly availableHarnesses?: readonly HarnessOption[];
+  /** Override the curated (featured) list for the current harness. */
+  readonly curatedModels?: readonly string[];
+  /** Grouping in the "Show All" expanded view. Default: "provider". */
+  readonly groupBy?: "provider" | "tier" | "none";
+  /** Show speed tier badge. Default: true. */
+  readonly showSpeedBadge?: boolean;
+  /** Show short descriptions in curated view. Default: true. */
+  readonly showDescriptions?: boolean;
+  /** Compact mode: smaller trigger, no descriptions. Default: false. */
+  readonly compact?: boolean;
   /** Additional CSS class names for the trigger button. */
   readonly className?: string;
   /** When true, disables the selector. */
   readonly disabled?: boolean;
+
+  /**
+   * @deprecated Use {@link onHarnessChange} instead.
+   */
+  readonly onHarnessResolved?: (harness: HarnessOption) => void;
 }
 
 /**
- * Cursor-style model picker: a flat searchable list inside a popover.
+ * Combined harness + model picker with a compact trigger button.
  *
- * Shows a curated list of featured models by default. The user can
- * expand via "Show All Models" or type to search the full catalog.
+ * Shows a harness dropdown at the top of the popover (when not locked
+ * to a single harness), followed by a curated model list scoped to
+ * the selected harness. Supports search and progressive disclosure
+ * via "Show All Models."
  *
- * Each model row shows the display name, an engine tag
- * ("Stigmer" / "Cursor"), and a cost-tier indicator.
- *
- * In unified mode (no `harness` prop), selecting a model implicitly
- * resolves the harness via {@link ModelSelectorProps.onHarnessResolved}.
+ * The trigger button displays the current selection in compact format:
+ * `Harness · Model Name ▾` (or just `Model Name ▾` when harness is locked).
  *
  * @example
  * ```tsx
  * <ModelSelector
- *   value={selectedModelId}
- *   onValueChange={setSelectedModelId}
- *   onHarnessResolved={setHarness}
+ *   value={modelId}
+ *   onValueChange={setModelId}
+ *   harness={harness}
+ *   onHarnessChange={setHarness}
  * />
  * ```
  */
@@ -60,13 +84,23 @@ export function ModelSelector({
   value,
   onValueChange,
   harness,
+  onHarnessChange,
   onHarnessResolved,
+  availableHarnesses,
+  curatedModels,
+  groupBy = "provider",
+  showSpeedBadge = true,
+  showDescriptions = true,
+  compact = false,
   className,
   disabled,
 }: ModelSelectorProps) {
-  const isUnified = harness === undefined;
-  const { models, featured, defaultModel, getModel, getByKey } = useModelRegistry(
-    isUnified ? undefined : { harness },
+  const isHarnessLocked = harness !== undefined;
+  const [internalHarness, setInternalHarness] = useState<HarnessOption>(harness ?? "native");
+  const activeHarness = harness ?? internalHarness;
+
+  const { models, featured, defaultModel, getModel, byProvider } = useModelRegistry(
+    { harness: activeHarness },
   );
 
   const [open, setOpen] = useState(false);
@@ -77,31 +111,56 @@ export function ModelSelector({
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const resolveSelected = useCallback((): ModelInfo | undefined => {
-    if (!value) return undefined;
-    if (isUnified) {
-      const byKey = getByKey(value);
-      if (byKey) return byKey;
-    }
-    return getModel(value);
-  }, [value, isUnified, getByKey, getModel]);
+  const resolvedHarnesses = useMemo(() => {
+    if (availableHarnesses) return availableHarnesses;
+    // For now, show native and cursor (the two harnesses with models in the registry).
+    // Future harnesses will be added to the registry and appear here automatically.
+    return HARNESS_OPTIONS.filter((h) => h === "native" || h === "cursor");
+  }, [availableHarnesses]);
 
-  const selectedModel = resolveSelected() ?? defaultModel;
+  const selectedModel = (value ? getModel(value) : undefined) ?? defaultModel;
 
   const isSearching = searchQuery.length > 0;
   const lowerQuery = searchQuery.toLowerCase();
+
+  const curatedSet = useMemo(() => {
+    if (curatedModels) return new Set(curatedModels);
+    return null;
+  }, [curatedModels]);
+
+  const featuredModels = useMemo(() => {
+    if (curatedSet) {
+      return models.filter((m) => curatedSet.has(m.modelId));
+    }
+    return featured;
+  }, [models, featured, curatedSet]);
 
   const visibleModels: readonly ModelInfo[] = useMemo(() => {
     if (isSearching) {
       return models.filter((m) =>
         m.displayName.toLowerCase().includes(lowerQuery)
         || m.modelId.toLowerCase().includes(lowerQuery)
-        || HARNESS_LABELS[m.harness].toLowerCase().includes(lowerQuery),
+        || m.shortDescription.toLowerCase().includes(lowerQuery),
       );
     }
     if (showAll) return models;
-    return featured.length > 0 ? featured : models;
-  }, [models, featured, isSearching, showAll, lowerQuery]);
+    return featuredModels.length > 0 ? featuredModels : models;
+  }, [models, featuredModels, isSearching, showAll, lowerQuery]);
+
+  const groupedModels = useMemo(() => {
+    if (!showAll || groupBy === "none" || isSearching) return null;
+    const groups = new Map<string, ModelInfo[]>();
+    for (const model of models) {
+      const key = groupBy === "provider" ? model.provider : model.costTier;
+      const group = groups.get(key);
+      if (group) {
+        group.push(model);
+      } else {
+        groups.set(key, [model]);
+      }
+    }
+    return groups;
+  }, [models, showAll, groupBy, isSearching]);
 
   useEffect(() => {
     setHighlightIdx(-1);
@@ -121,16 +180,23 @@ export function ModelSelector({
     }
   }, [open]);
 
+  const handleHarnessChange = useCallback(
+    (newHarness: HarnessOption) => {
+      setInternalHarness(newHarness);
+      onHarnessChange?.(newHarness);
+      onHarnessResolved?.(newHarness);
+      setShowAll(false);
+      setSearchQuery("");
+    },
+    [onHarnessChange, onHarnessResolved],
+  );
+
   const selectModel = useCallback(
     (model: ModelInfo) => {
-      const key = isUnified ? modelKey(model.harness, model.modelId) : model.modelId;
-      onValueChange(key);
-      if (isUnified && onHarnessResolved && model.harness !== selectedModel?.harness) {
-        onHarnessResolved(model.harness);
-      }
+      onValueChange(model.modelId);
       setOpen(false);
     },
-    [isUnified, onValueChange, onHarnessResolved, selectedModel],
+    [onValueChange],
   );
 
   const scrollHighlightIntoView = useCallback((idx: number) => {
@@ -175,11 +241,10 @@ export function ModelSelector({
     [visibleModels, highlightIdx, selectModel, scrollHighlightIntoView],
   );
 
-  const showShowAllButton = !isSearching && !showAll && featured.length > 0 && featured.length < models.length;
+  const showShowAllButton = !isSearching && !showAll && featuredModels.length > 0 && featuredModels.length < models.length;
 
   const triggerLabel = selectedModel.displayName;
-  const triggerHarness = isUnified ? HARNESS_LABELS[selectedModel.harness] : undefined;
-  const triggerCost = COST_TIER_LABEL[selectedModel.costTier];
+  const triggerHarness = !isHarnessLocked ? HARNESS_META[activeHarness].label : undefined;
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
@@ -190,17 +255,17 @@ export function ModelSelector({
           "bg-background px-2.5 py-1.5 text-xs text-foreground",
           "hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           "disabled:pointer-events-none disabled:opacity-50",
-          "transition-colors max-w-[18rem] max-sm:max-w-[10rem]",
+          "transition-colors max-w-[20rem] max-sm:max-w-[12rem]",
           className,
         )}
       >
-        <span className="truncate">{triggerLabel}</span>
         {triggerHarness && (
-          <span className="shrink-0 rounded bg-muted px-1 py-0.5 text-[0.6rem] font-medium text-muted-foreground">
-            {triggerHarness}
-          </span>
+          <span className="shrink-0 text-muted-foreground">{triggerHarness}</span>
         )}
-        <span className="shrink-0 text-[0.6rem] text-muted-foreground">{triggerCost}</span>
+        {triggerHarness && (
+          <span className="shrink-0 text-border" aria-hidden>·</span>
+        )}
+        <span className="truncate">{triggerLabel}</span>
         <ChevronIcon />
       </Popover.Trigger>
 
@@ -210,12 +275,36 @@ export function ModelSelector({
             role="dialog"
             aria-label="Model selector"
             className={cn(
-              "z-popover w-72 rounded-lg border border-border bg-popover shadow-md",
+              "z-popover w-80 rounded-lg border border-border bg-popover shadow-md",
               "text-popover-foreground",
             )}
           >
+            {/* Harness dropdown (only when not locked) */}
+            {!isHarnessLocked && (
+              <div className="border-b border-border px-3 py-2">
+                <label className="mb-1 block text-[0.6rem] font-medium uppercase tracking-wider text-muted-foreground">
+                  Harness
+                </label>
+                <select
+                  value={activeHarness}
+                  onChange={(e) => handleHarnessChange(e.target.value as HarnessOption)}
+                  className={cn(
+                    "w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground",
+                    "focus:outline-none focus:ring-2 focus:ring-ring",
+                  )}
+                  aria-label="Select harness"
+                >
+                  {resolvedHarnesses.map((h) => (
+                    <option key={h} value={h}>
+                      {HARNESS_META[h].label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Search input */}
-            <div className="border-b border-border px-2 py-1.5">
+            <div className="border-b border-border px-3 py-1.5">
               <input
                 ref={searchRef}
                 role="searchbox"
@@ -236,59 +325,47 @@ export function ModelSelector({
               ref={listRef}
               role="listbox"
               aria-label="Available models"
-              className="max-h-64 overflow-y-auto p-1"
+              className="max-h-72 overflow-y-auto p-1"
             >
               {visibleModels.length === 0 && (
                 <div className="px-2 py-3 text-center text-xs text-muted-foreground">
                   No models found
                 </div>
               )}
-              {visibleModels.map((model, idx) => {
-                const key = modelKey(model.harness, model.modelId);
-                const isSelected = selectedModel
-                  ? model.harness === selectedModel.harness && model.modelId === selectedModel.modelId
-                  : false;
-                const isHighlighted = idx === highlightIdx;
 
-                return (
-                  <button
-                    key={key}
-                    data-model-option=""
-                    role="option"
-                    aria-selected={isSelected}
-                    type="button"
-                    className={cn(
-                      "flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs outline-none",
-                      "transition-colors",
-                      isHighlighted && "bg-accent text-accent-foreground",
-                      !isHighlighted && "hover:bg-accent-hover",
-                      isSelected && "font-medium",
-                    )}
+              {/* Grouped rendering */}
+              {groupedModels ? (
+                Array.from(groupedModels.entries()).map(([group, groupModels]) => (
+                  <div key={group}>
+                    <div className="px-2 pb-0.5 pt-2 text-[0.6rem] font-medium uppercase tracking-wider text-muted-foreground">
+                      {group}
+                    </div>
+                    {groupModels.map((model) => (
+                      <ModelRow
+                        key={model.modelId}
+                        model={model}
+                        isSelected={model.modelId === selectedModel.modelId}
+                        showDescription={false}
+                        showSpeedBadge={showSpeedBadge}
+                        onClick={() => selectModel(model)}
+                      />
+                    ))}
+                  </div>
+                ))
+              ) : (
+                visibleModels.map((model, idx) => (
+                  <ModelRow
+                    key={model.modelId}
+                    model={model}
+                    isSelected={model.modelId === selectedModel.modelId}
+                    isHighlighted={idx === highlightIdx}
+                    showDescription={showDescriptions && !compact && !isSearching && !showAll}
+                    showSpeedBadge={showSpeedBadge}
                     onClick={() => selectModel(model)}
                     onMouseEnter={() => setHighlightIdx(idx)}
-                  >
-                    {/* Model name */}
-                    <span className="flex-1 truncate text-left">{model.displayName}</span>
-
-                    {/* Engine tag (unified mode only) */}
-                    {isUnified && (
-                      <span className="shrink-0 rounded bg-muted px-1 py-0.5 text-[0.55rem] font-medium text-muted-foreground">
-                        {HARNESS_LABELS[model.harness]}
-                      </span>
-                    )}
-
-                    {/* Cost tier */}
-                    <span className="shrink-0 text-[0.6rem] text-muted-foreground">
-                      {COST_TIER_LABEL[model.costTier]}
-                    </span>
-
-                    {/* Selected checkmark */}
-                    {isSelected && (
-                      <CheckIcon className="shrink-0 text-primary" />
-                    )}
-                  </button>
-                );
-              })}
+                  />
+                ))
+              )}
 
               {/* Show All Models */}
               {showShowAllButton && (
@@ -301,7 +378,7 @@ export function ModelSelector({
                   )}
                   onClick={() => setShowAll(true)}
                 >
-                  Show All Models
+                  Show all models
                 </button>
               )}
             </div>
@@ -309,6 +386,66 @@ export function ModelSelector({
         </Popover.Positioner>
       </Popover.Portal>
     </Popover.Root>
+  );
+}
+
+interface ModelRowProps {
+  model: ModelInfo;
+  isSelected: boolean;
+  isHighlighted?: boolean;
+  showDescription: boolean;
+  showSpeedBadge: boolean;
+  onClick: () => void;
+  onMouseEnter?: () => void;
+}
+
+function ModelRow({
+  model,
+  isSelected,
+  isHighlighted,
+  showDescription,
+  showSpeedBadge,
+  onClick,
+  onMouseEnter,
+}: ModelRowProps) {
+  return (
+    <button
+      data-model-option=""
+      role="option"
+      aria-selected={isSelected}
+      type="button"
+      className={cn(
+        "flex w-full cursor-pointer flex-col rounded-md px-2 py-1.5 text-xs outline-none",
+        "transition-colors",
+        isHighlighted && "bg-accent text-accent-foreground",
+        !isHighlighted && "hover:bg-accent-hover",
+        isSelected && "font-medium",
+      )}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+    >
+      <div className="flex w-full items-center gap-2">
+        <span className="flex-1 truncate text-left">{model.displayName}</span>
+
+        {showSpeedBadge && (
+          <span className="shrink-0 text-[0.6rem] text-muted-foreground">
+            {SPEED_TIER_LABEL[model.speedTier]}
+          </span>
+        )}
+
+        <span className="shrink-0 text-[0.6rem] text-muted-foreground">
+          {COST_TIER_LABEL[model.costTier]}
+        </span>
+
+        {isSelected && <CheckIcon className="shrink-0 text-primary" />}
+      </div>
+
+      {showDescription && model.shortDescription && (
+        <span className="mt-0.5 block text-left text-[0.6rem] text-muted-foreground">
+          {model.shortDescription}
+        </span>
+      )}
+    </button>
   );
 }
 

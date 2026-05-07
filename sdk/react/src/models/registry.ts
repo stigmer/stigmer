@@ -21,6 +21,16 @@ import registryData from "../../data/model-registry.json";
 export type CostTier = "economy" | "standard" | "premium";
 
 /**
+ * Latency characteristic of a model, shown as a badge in the selector.
+ *
+ * - `fastest` — minimal latency, small models (Haiku, Mini, Nano, Flash)
+ * - `fast` — good balance of speed and capability (Sonnet, Codex, standard)
+ * - `balanced` — moderate latency, larger context (Pro, GPT-4 Turbo)
+ * - `slow` — highest capability, longer response times (Opus, GPT-5.5, o1)
+ */
+export type SpeedTier = "fastest" | "fast" | "balanced" | "slow";
+
+/**
  * LLM provider identifier. Each provider maps to a distinct inference
  * backend (or intermediary, in the case of Cursor-served third-party
  * models). The {@link MODEL_REGISTRY} uses this for grouping in the
@@ -66,6 +76,10 @@ export interface ModelInfo {
   readonly provider: Provider;
   /** Human-readable name shown in the model picker. */
   readonly displayName: string;
+  /** 3-6 word pitch explaining why to pick this model. Shown in the curated view. */
+  readonly shortDescription: string;
+  /** Latency characteristic shown as a badge (Fastest / Fast / Balanced / Slow). */
+  readonly speedTier: SpeedTier;
   /** Pricing bracket used for cost-tier indicators in the UI. */
   readonly costTier: CostTier;
   /** Which execution engine serves this model. */
@@ -127,6 +141,8 @@ export function parseModelKey(key: string): ParsedModelKey | undefined {
 interface RegistryJsonEntry {
   id?: string;
   displayName?: string;
+  shortDescription?: string;
+  speedTier?: string;
   provider?: string;
   harness?: string;
   costTier?: string;
@@ -141,7 +157,8 @@ interface RegistryJsonEntry {
 }
 
 const VALID_COST_TIERS = new Set(["economy", "standard", "premium"]);
-const VALID_HARNESSES = new Set(["native", "cursor"]);
+const VALID_SPEED_TIERS = new Set(["fastest", "fast", "balanced", "slow"]);
+const VALID_HARNESSES = new Set(["native", "cursor", "copilot", "claude_code", "codex", "devin"]);
 
 function isModelEntry(entry: RegistryJsonEntry): entry is Required<Pick<RegistryJsonEntry, "id" | "displayName" | "provider" | "harness" | "costTier">> & RegistryJsonEntry {
   return (
@@ -168,14 +185,90 @@ export const MODEL_REGISTRY: readonly ModelInfo[] = (
     modelId: m.id,
     provider: m.provider as Provider,
     displayName: m.displayName,
+    shortDescription: m.shortDescription ?? "",
+    speedTier: (VALID_SPEED_TIERS.has(m.speedTier ?? "") ? m.speedTier : "fast") as SpeedTier,
     costTier: m.costTier as CostTier,
     harness: m.harness as HarnessOption,
     featured: m.featured ?? false,
   }));
 
-/** Model ID used when no user preference is set (native harness). */
-export const DEFAULT_MODEL_ID = "claude-sonnet-4.5";
+/**
+ * Model ID used when no user preference is set (native harness).
+ *
+ * @deprecated Use {@link resolveDefaultModelId} for dynamic resolution
+ * based on the active harness and featured models. This constant is kept
+ * as the last-resort platform fallback.
+ */
+export const DEFAULT_MODEL_ID = "claude-sonnet-4.6";
 
 /** Model ID used when the Cursor harness is selected and no user preference is set. */
 export const DEFAULT_CURSOR_MODEL_ID = "default";
+
+/**
+ * Resolution source for the default model selection.
+ *
+ * Tells the caller how the default was determined, enabling
+ * UI affordances like "Using org default" or "Your last choice."
+ */
+export type DefaultModelSource =
+  | "user_preference"
+  | "org_default"
+  | "agent_default"
+  | "harness_default"
+  | "platform_fallback";
+
+/** Result of the default model resolution. */
+export interface DefaultModelResolution {
+  readonly modelId: string;
+  readonly source: DefaultModelSource;
+}
+
+/**
+ * Resolve the default model for a given harness using a priority chain.
+ *
+ * Priority (Phase 1 — no backend):
+ * 1. localStorage user preference (passed in as `userPreference`)
+ * 2. First featured model for the harness from the registry
+ * 3. Hardcoded platform fallback
+ *
+ * Future phases will add org-level and agent-level defaults between
+ * user preference and harness default.
+ */
+export function resolveDefaultModelId(
+  harness: HarnessOption,
+  options?: {
+    userPreference?: string;
+    orgDefault?: string;
+    agentDefault?: string;
+  },
+): DefaultModelResolution {
+  if (options?.userPreference) {
+    const model = MODEL_REGISTRY.find(
+      (m) => m.harness === harness && m.modelId === options.userPreference,
+    );
+    if (model) return { modelId: model.modelId, source: "user_preference" };
+  }
+
+  if (options?.orgDefault) {
+    const model = MODEL_REGISTRY.find(
+      (m) => m.harness === harness && m.modelId === options.orgDefault,
+    );
+    if (model) return { modelId: model.modelId, source: "org_default" };
+  }
+
+  if (options?.agentDefault) {
+    const model = MODEL_REGISTRY.find(
+      (m) => m.harness === harness && m.modelId === options.agentDefault,
+    );
+    if (model) return { modelId: model.modelId, source: "agent_default" };
+  }
+
+  const featured = MODEL_REGISTRY.find(
+    (m) => m.harness === harness && m.featured,
+  );
+  if (featured) return { modelId: featured.modelId, source: "harness_default" };
+
+  const fallbackId = harness === "cursor" ? DEFAULT_CURSOR_MODEL_ID : DEFAULT_MODEL_ID;
+  return { modelId: fallbackId, source: "platform_fallback" };
+}
 

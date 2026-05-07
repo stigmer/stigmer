@@ -137,11 +137,13 @@ describe("useModelRegistry", () => {
       expect(cursorModels).toHaveLength(0);
     });
 
-    it("resolves defaultModel to DEFAULT_MODEL_ID", () => {
+    it("resolves defaultModel to the first featured native model", () => {
       const { result } = renderHook(() =>
         useModelRegistry({ harness: "native" }),
       );
-      expect(result.current.defaultModel.modelId).toBe(DEFAULT_MODEL_ID);
+      const featured = result.current.featured;
+      expect(featured.length).toBeGreaterThan(0);
+      expect(result.current.defaultModel.modelId).toBe(featured[0].modelId);
     });
   });
 

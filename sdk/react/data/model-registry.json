@@ -1,17 +1,19 @@
 {
-  "$comment": "Unified model registry \u2014 single source of truth for all model metadata. Maintained by AI via @update-model-registry.",
+  "$comment": "Unified model registry — single source of truth for all model metadata. Maintained by AI via @update-model-registry.",
   "models": [
     {
-      "$comment": "\u2550\u2550\u2550 NATIVE HARNESS \u2014 Anthropic (direct API) \u2550\u2550\u2550"
+      "$comment": "═══ NATIVE HARNESS — Anthropic (direct API) ═══"
     },
     {
       "id": "claude-opus-4.6",
       "apiModelId": "claude-opus-4-6",
       "displayName": "Claude Opus 4.6",
+      "shortDescription": "Complex reasoning & analysis",
+      "speedTier": "slow",
       "provider": "anthropic",
       "harness": "native",
       "costTier": "premium",
-      "featured": false,
+      "featured": true,
       "pricing": {
         "inputPricePerMillion": 5.0,
         "outputPricePerMillion": 25.0,
@@ -40,6 +42,8 @@
       "id": "claude-sonnet-4.6",
       "apiModelId": "claude-sonnet-4-6",
       "displayName": "Claude Sonnet 4.6",
+      "shortDescription": "Best for most tasks",
+      "speedTier": "fast",
       "provider": "anthropic",
       "harness": "native",
       "costTier": "standard",
@@ -72,6 +76,8 @@
       "id": "claude-opus-4.5",
       "apiModelId": "claude-opus-4-5-20251101",
       "displayName": "Claude Opus 4.5",
+      "shortDescription": "Advanced reasoning, previous gen",
+      "speedTier": "slow",
       "provider": "anthropic",
       "harness": "native",
       "costTier": "premium",
@@ -104,6 +110,8 @@
       "id": "claude-sonnet-4.5",
       "apiModelId": "claude-sonnet-4-5-20250929",
       "displayName": "Claude Sonnet 4.5",
+      "shortDescription": "Reliable all-purpose model",
+      "speedTier": "fast",
       "provider": "anthropic",
       "harness": "native",
       "costTier": "standard",
@@ -136,6 +144,8 @@
       "id": "claude-opus-4",
       "apiModelId": "claude-opus-4-20250514",
       "displayName": "Claude Opus 4",
+      "shortDescription": "Deep reasoning, legacy",
+      "speedTier": "slow",
       "provider": "anthropic",
       "harness": "native",
       "costTier": "premium",
@@ -168,10 +178,12 @@
       "id": "claude-haiku-4.5",
       "apiModelId": "claude-haiku-4-5-20251001",
       "displayName": "Claude Haiku 4.5",
+      "shortDescription": "Quick responses, lower cost",
+      "speedTier": "fastest",
       "provider": "anthropic",
       "harness": "native",
       "costTier": "economy",
-      "featured": false,
+      "featured": true,
       "pricing": {
         "inputPricePerMillion": 1.0,
         "outputPricePerMillion": 5.0,
@@ -200,6 +212,8 @@
       "id": "claude-sonnet-3.5",
       "apiModelId": "claude-3-5-sonnet-20241022",
       "displayName": "Claude Sonnet 3.5",
+      "shortDescription": "Proven, efficient workhorse",
+      "speedTier": "fast",
       "provider": "anthropic",
       "harness": "native",
       "costTier": "standard",
@@ -232,6 +246,8 @@
       "id": "claude-haiku-3.5",
       "apiModelId": "claude-3-5-haiku-20241022",
       "displayName": "Claude Haiku 3.5",
+      "shortDescription": "Ultra-fast, budget-friendly",
+      "speedTier": "fastest",
       "provider": "anthropic",
       "harness": "native",
       "costTier": "economy",
@@ -261,11 +277,13 @@
       }
     },
     {
-      "$comment": "\u2550\u2550\u2550 NATIVE HARNESS \u2014 OpenAI (direct API) \u2550\u2550\u2550"
+      "$comment": "═══ NATIVE HARNESS — OpenAI (direct API) ═══"
     },
     {
       "id": "gpt-4",
       "displayName": "GPT-4",
+      "shortDescription": "Original GPT-4, legacy",
+      "speedTier": "balanced",
       "provider": "openai",
       "harness": "native",
       "costTier": "premium",
@@ -297,6 +315,8 @@
     {
       "id": "gpt-4-turbo",
       "displayName": "GPT-4 Turbo",
+      "shortDescription": "Faster GPT-4 variant",
+      "speedTier": "fast",
       "provider": "openai",
       "harness": "native",
       "costTier": "standard",
@@ -328,10 +348,12 @@
     {
       "id": "gpt-4o",
       "displayName": "GPT-4o",
+      "shortDescription": "Multimodal, well-rounded",
+      "speedTier": "fast",
       "provider": "openai",
       "harness": "native",
       "costTier": "standard",
-      "featured": false,
+      "featured": true,
       "pricing": {
         "inputPricePerMillion": 5.0,
         "outputPricePerMillion": 15.0,
@@ -359,6 +381,8 @@
     {
       "id": "gpt-4o-mini",
       "displayName": "GPT-4o Mini",
+      "shortDescription": "Lightweight, cost-effective",
+      "speedTier": "fastest",
       "provider": "openai",
       "harness": "native",
       "costTier": "economy",
@@ -390,6 +414,8 @@
     {
       "id": "gpt-3.5-turbo",
       "displayName": "GPT-3.5 Turbo",
+      "shortDescription": "Budget-friendly, basic tasks",
+      "speedTier": "fastest",
       "provider": "openai",
       "harness": "native",
       "costTier": "economy",
@@ -421,6 +447,8 @@
     {
       "id": "o1",
       "displayName": "o1",
+      "shortDescription": "Deep reasoning specialist",
+      "speedTier": "slow",
       "provider": "openai",
       "harness": "native",
       "costTier": "premium",
@@ -452,6 +480,8 @@
     {
       "id": "o1-mini",
       "displayName": "o1 Mini",
+      "shortDescription": "Compact reasoning model",
+      "speedTier": "balanced",
       "provider": "openai",
       "harness": "native",
       "costTier": "standard",
@@ -481,11 +511,13 @@
       }
     },
     {
-      "$comment": "\u2550\u2550\u2550 NATIVE HARNESS \u2014 Ollama (local, no cost) \u2550\u2550\u2550"
+      "$comment": "═══ NATIVE HARNESS — Ollama (local, no cost) ═══"
     },
     {
       "id": "qwen2.5-coder:7b",
       "displayName": "Qwen 2.5 Coder 7B",
+      "shortDescription": "Local coding, lightweight",
+      "speedTier": "fast",
       "provider": "ollama",
       "harness": "native",
       "costTier": "economy",
@@ -517,6 +549,8 @@
     {
       "id": "qwen2.5-coder:14b",
       "displayName": "Qwen 2.5 Coder 14B",
+      "shortDescription": "Local coding, capable",
+      "speedTier": "balanced",
       "provider": "ollama",
       "harness": "native",
       "costTier": "economy",
@@ -548,6 +582,8 @@
     {
       "id": "codellama:7b",
       "displayName": "Code Llama 7B",
+      "shortDescription": "Local code generation",
+      "speedTier": "fast",
       "provider": "ollama",
       "harness": "native",
       "costTier": "economy",
@@ -579,6 +615,8 @@
     {
       "id": "codellama:13b",
       "displayName": "Code Llama 13B",
+      "shortDescription": "Local code, larger model",
+      "speedTier": "balanced",
       "provider": "ollama",
       "harness": "native",
       "costTier": "economy",
@@ -610,6 +648,8 @@
     {
       "id": "deepseek-coder-v2:16b",
       "displayName": "DeepSeek Coder V2 16B",
+      "shortDescription": "Local, large context",
+      "speedTier": "balanced",
       "provider": "ollama",
       "harness": "native",
       "costTier": "economy",
@@ -641,6 +681,8 @@
     {
       "id": "llama3.2:3b",
       "displayName": "Llama 3.2 3B",
+      "shortDescription": "Ultra-light local model",
+      "speedTier": "fastest",
       "provider": "ollama",
       "harness": "native",
       "costTier": "economy",
@@ -672,6 +714,8 @@
     {
       "id": "mistral:7b",
       "displayName": "Mistral 7B",
+      "shortDescription": "Local general-purpose",
+      "speedTier": "fast",
       "provider": "ollama",
       "harness": "native",
       "costTier": "economy",
@@ -701,11 +745,13 @@
       }
     },
     {
-      "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 Auto pool \u2550\u2550\u2550"
+      "$comment": "═══ CURSOR HARNESS — Auto pool ═══"
     },
     {
       "id": "default",
       "displayName": "Auto",
+      "shortDescription": "Auto-selects best model",
+      "speedTier": "fast",
       "provider": "cursor",
       "harness": "cursor",
       "costTier": "standard",
@@ -720,11 +766,13 @@
       }
     },
     {
-      "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 Cursor own models \u2550\u2550\u2550"
+      "$comment": "═══ CURSOR HARNESS — Cursor own models ═══"
     },
     {
       "id": "composer-2",
       "displayName": "Composer 2",
+      "shortDescription": "Cursor's fast model",
+      "speedTier": "fastest",
       "provider": "cursor",
       "harness": "cursor",
       "costTier": "economy",
@@ -741,6 +789,8 @@
     {
       "id": "composer-1.5",
       "displayName": "Composer 1.5",
+      "shortDescription": "Cursor's balanced model",
+      "speedTier": "fast",
       "provider": "cursor",
       "harness": "cursor",
       "costTier": "standard",
@@ -755,11 +805,13 @@
       }
     },
     {
-      "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 Anthropic via Cursor \u2550\u2550\u2550"
+      "$comment": "═══ CURSOR HARNESS — Anthropic via Cursor ═══"
     },
     {
       "id": "claude-opus-4-7",
       "displayName": "Claude 4.7 Opus",
+      "shortDescription": "Latest Opus via Cursor",
+      "speedTier": "slow",
       "provider": "anthropic",
       "harness": "cursor",
       "costTier": "premium",
@@ -776,6 +828,8 @@
     {
       "id": "claude-sonnet-4-6",
       "displayName": "Claude 4.6 Sonnet",
+      "shortDescription": "Balanced via Cursor",
+      "speedTier": "fast",
       "provider": "anthropic",
       "harness": "cursor",
       "costTier": "standard",
@@ -792,10 +846,12 @@
     {
       "id": "claude-opus-4-6",
       "displayName": "Claude 4.6 Opus",
+      "shortDescription": "Powerful via Cursor",
+      "speedTier": "slow",
       "provider": "anthropic",
       "harness": "cursor",
       "costTier": "premium",
-      "featured": true,
+      "featured": false,
       "pricing": {
         "inputPricePerMillion": 5.0,
         "outputPricePerMillion": 25.0,
@@ -808,6 +864,8 @@
     {
       "id": "claude-opus-4-5",
       "displayName": "Claude 4.5 Opus",
+      "shortDescription": "Opus 4.5 via Cursor",
+      "speedTier": "slow",
       "provider": "anthropic",
       "harness": "cursor",
       "costTier": "premium",
@@ -824,6 +882,8 @@
     {
       "id": "claude-sonnet-4-5",
       "displayName": "Claude 4.5 Sonnet",
+      "shortDescription": "Sonnet 4.5 via Cursor",
+      "speedTier": "fast",
       "provider": "anthropic",
       "harness": "cursor",
       "costTier": "standard",
@@ -840,6 +900,8 @@
     {
       "id": "claude-haiku-4-5",
       "displayName": "Claude 4.5 Haiku",
+      "shortDescription": "Fast & affordable via Cursor",
+      "speedTier": "fastest",
       "provider": "anthropic",
       "harness": "cursor",
       "costTier": "economy",
@@ -856,6 +918,8 @@
     {
       "id": "claude-sonnet-4",
       "displayName": "Claude 4 Sonnet",
+      "shortDescription": "Sonnet 4 via Cursor",
+      "speedTier": "fast",
       "provider": "anthropic",
       "harness": "cursor",
       "costTier": "standard",
@@ -870,15 +934,17 @@
       }
     },
     {
-      "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 OpenAI via Cursor \u2550\u2550\u2550"
+      "$comment": "═══ CURSOR HARNESS — OpenAI via Cursor ═══"
     },
     {
       "id": "gpt-5.5",
       "displayName": "GPT-5.5",
+      "shortDescription": "Most capable GPT model",
+      "speedTier": "slow",
       "provider": "openai",
       "harness": "cursor",
       "costTier": "premium",
-      "featured": true,
+      "featured": false,
       "pricing": {
         "inputPricePerMillion": 5.0,
         "outputPricePerMillion": 30.0,
@@ -891,6 +957,8 @@
     {
       "id": "gpt-5.4",
       "displayName": "GPT-5.4",
+      "shortDescription": "Strong general-purpose GPT",
+      "speedTier": "fast",
       "provider": "openai",
       "harness": "cursor",
       "costTier": "standard",
@@ -907,6 +975,8 @@
     {
       "id": "gpt-5.4-mini",
       "displayName": "GPT-5.4 Mini",
+      "shortDescription": "Efficient GPT, lower cost",
+      "speedTier": "fastest",
       "provider": "openai",
       "harness": "cursor",
       "costTier": "economy",
@@ -923,6 +993,8 @@
     {
       "id": "gpt-5.4-nano",
       "displayName": "GPT-5.4 Nano",
+      "shortDescription": "Minimal GPT, ultra-cheap",
+      "speedTier": "fastest",
       "provider": "openai",
       "harness": "cursor",
       "costTier": "economy",
@@ -939,6 +1011,8 @@
     {
       "id": "gpt-5.3-codex",
       "displayName": "GPT-5.3 Codex",
+      "shortDescription": "Optimized for code",
+      "speedTier": "fast",
       "provider": "openai",
       "harness": "cursor",
       "costTier": "standard",
@@ -955,6 +1029,8 @@
     {
       "id": "gpt-5.2",
       "displayName": "GPT-5.2",
+      "shortDescription": "Previous GPT generation",
+      "speedTier": "fast",
       "provider": "openai",
       "harness": "cursor",
       "costTier": "standard",
@@ -971,6 +1047,8 @@
     {
       "id": "gpt-5.2-codex",
       "displayName": "GPT-5.2 Codex",
+      "shortDescription": "Code-optimized, prior gen",
+      "speedTier": "fast",
       "provider": "openai",
       "harness": "cursor",
       "costTier": "standard",
@@ -987,6 +1065,8 @@
     {
       "id": "gpt-5.1-codex-max",
       "displayName": "GPT-5.1 Codex Max",
+      "shortDescription": "Extended code output",
+      "speedTier": "fast",
       "provider": "openai",
       "harness": "cursor",
       "costTier": "standard",
@@ -1003,6 +1083,8 @@
     {
       "id": "gpt-5.1",
       "displayName": "GPT-5.1",
+      "shortDescription": "Reliable GPT 5.1",
+      "speedTier": "fast",
       "provider": "openai",
       "harness": "cursor",
       "costTier": "standard",
@@ -1019,6 +1101,8 @@
     {
       "id": "gpt-5.1-codex-mini",
       "displayName": "GPT-5.1 Codex Mini",
+      "shortDescription": "Budget code tasks",
+      "speedTier": "fastest",
       "provider": "openai",
       "harness": "cursor",
       "costTier": "economy",
@@ -1035,6 +1119,8 @@
     {
       "id": "gpt-5-mini",
       "displayName": "GPT-5 Mini",
+      "shortDescription": "Ultra-budget GPT",
+      "speedTier": "fastest",
       "provider": "openai",
       "harness": "cursor",
       "costTier": "economy",
@@ -1049,11 +1135,13 @@
       }
     },
     {
-      "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 Google via Cursor \u2550\u2550\u2550"
+      "$comment": "═══ CURSOR HARNESS — Google via Cursor ═══"
     },
     {
       "id": "gemini-3.1-pro",
       "displayName": "Gemini 3.1 Pro",
+      "shortDescription": "Google's flagship model",
+      "speedTier": "balanced",
       "provider": "google",
       "harness": "cursor",
       "costTier": "standard",
@@ -1070,6 +1158,8 @@
     {
       "id": "gemini-3-flash",
       "displayName": "Gemini 3 Flash",
+      "shortDescription": "Fast Google model",
+      "speedTier": "fastest",
       "provider": "google",
       "harness": "cursor",
       "costTier": "economy",
@@ -1086,6 +1176,8 @@
     {
       "id": "gemini-2.5-flash",
       "displayName": "Gemini 2.5 Flash",
+      "shortDescription": "Budget Google model",
+      "speedTier": "fastest",
       "provider": "google",
       "harness": "cursor",
       "costTier": "economy",
@@ -1100,11 +1192,13 @@
       }
     },
     {
-      "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 xAI via Cursor \u2550\u2550\u2550"
+      "$comment": "═══ CURSOR HARNESS — xAI via Cursor ═══"
     },
     {
       "id": "grok-4-20",
       "displayName": "Grok 4.20",
+      "shortDescription": "xAI's reasoning model",
+      "speedTier": "fast",
       "provider": "xai",
       "harness": "cursor",
       "costTier": "standard",
@@ -1119,11 +1213,13 @@
       }
     },
     {
-      "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 Moonshot via Cursor \u2550\u2550\u2550"
+      "$comment": "═══ CURSOR HARNESS — Moonshot via Cursor ═══"
     },
     {
       "id": "kimi-k2.5",
       "displayName": "Kimi K2.5",
+      "shortDescription": "Moonshot's capable model",
+      "speedTier": "fast",
       "provider": "moonshot",
       "harness": "cursor",
       "costTier": "economy",
