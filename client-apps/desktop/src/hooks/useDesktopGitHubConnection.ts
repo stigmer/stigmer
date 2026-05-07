@@ -61,7 +61,12 @@ export function useDesktopGitHubConnection(
   const deploymentMode = useDeploymentMode();
   const isCloud = deploymentMode === "cloud";
 
-  // ── Local mode: localhost callback server ──────────────────────────
+  // In dev mode the production .app bundle owns the stigmer:// protocol,
+  // so deep links never reach the dev instance. Use the localhost
+  // callback server instead, matching the Auth0 flow in AuthProvider.
+  const useLocalServer = !isCloud || import.meta.env.DEV;
+
+  // ── Localhost callback server ─────────────────────────────────────
   const [localPort, setLocalPort] = useState<number | null>(null);
   const localPortRef = useRef<number | null>(null);
 
@@ -73,22 +78,22 @@ export function useDesktopGitHubConnection(
   }, []);
 
   useEffect(() => {
-    if (isCloud) return;
+    if (!useLocalServer) return;
     startLocalServer().catch((err) => {
       console.error("Failed to start GitHub callback server:", err);
     });
-  }, [isCloud, startLocalServer]);
+  }, [useLocalServer, startLocalServer]);
 
   // ── Resolve callback URL and hook config ──────────────────────────
   const openUrl = useCallback(async (url: string) => {
     await invoke("open_auth_in_browser", { authUrl: url });
   }, []);
 
-  const callbackUrl = isCloud
-    ? `${CONSOLE_URL}/auth/github/callback?source=desktop`
-    : localPort
+  const callbackUrl = useLocalServer
+    ? localPort
       ? `http://127.0.0.1:${localPort}/auth/github/callback`
-      : undefined;
+      : undefined
+    : `${CONSOLE_URL}/auth/github/callback?source=desktop`;
 
   const config: UseGitHubConnectionConfig | undefined = callbackUrl
     ? { openUrl, callbackUrl }
@@ -116,15 +121,15 @@ export function useDesktopGitHubConnection(
             "GitHub OAuth callback failed:",
             error_description ?? error ?? "missing code or state",
           );
-          if (!isCloud) startLocalServer().catch(() => {});
+          if (useLocalServer) startLocalServer().catch(() => {});
           return;
         }
 
-        const effectiveCallbackUrl = isCloud
-          ? `${CONSOLE_URL}/auth/github/callback?source=desktop`
-          : localPortRef.current
+        const effectiveCallbackUrl = useLocalServer
+          ? localPortRef.current
             ? `http://127.0.0.1:${localPortRef.current}/auth/github/callback`
-            : null;
+            : null
+          : `${CONSOLE_URL}/auth/github/callback?source=desktop`;
 
         if (!effectiveCallbackUrl) {
           console.error("GitHub OAuth: no callback URL available for exchange");
@@ -137,7 +142,7 @@ export function useDesktopGitHubConnection(
             console.error("GitHub OAuth token exchange failed:", err);
           });
 
-        if (!isCloud) startLocalServer().catch(() => {});
+        if (useLocalServer) startLocalServer().catch(() => {});
       },
     );
 
@@ -145,7 +150,7 @@ export function useDesktopGitHubConnection(
       cancelled = true;
       unlistenPromise.then((fn) => fn());
     };
-  }, [isCloud, startLocalServer]);
+  }, [useLocalServer, startLocalServer]);
 
   return connection;
 }

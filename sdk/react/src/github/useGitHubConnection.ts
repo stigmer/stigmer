@@ -480,10 +480,8 @@ export function useGitHubConnection(
         const tokenVar = {
           [GITHUB_TOKEN_KEY]: { value: accessToken, isSecret: true },
         };
-        const env = await personalEnvRef.current.getOrCreate(tokenVar);
-        if (!personalEnvHasKey(env, GITHUB_TOKEN_KEY)) {
-          await personalEnvRef.current.addVariables(tokenVar);
-        }
+        await personalEnvRef.current.getOrCreate();
+        await personalEnvRef.current.addVariables(tokenVar);
 
         setToken(accessToken);
 

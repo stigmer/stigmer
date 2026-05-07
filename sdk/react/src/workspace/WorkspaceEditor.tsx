@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, type KeyboardEvent } from "react";
+import { useState, useCallback, useEffect, type KeyboardEvent } from "react";
 import type { UseWorkspaceEntriesReturn } from "./useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 import { GitHubRepoPicker } from "../github/GitHubRepoPicker";
@@ -269,7 +269,7 @@ export function WorkspaceEditor({
 
       {/* Action items */}
       <div className="space-y-0.5">
-        {enableLocal && (
+        {canBrowse && (
           <button
             type="button"
             onClick={
@@ -280,7 +280,7 @@ export function WorkspaceEditor({
                   }
                 : () => setActivePanel("browse")
             }
-            disabled={disabled || !runnerId}
+            disabled={disabled}
             className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs text-foreground transition-colors hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-40"
           >
             <FolderIcon />
@@ -328,14 +328,7 @@ function GitHubPanel({
 
   if (!connection.isConnected) {
     if (connection.isConnecting) {
-      return (
-        <div className="space-y-3 py-4 text-center">
-          <div className="mx-auto h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-foreground" />
-          <p className="text-xs text-muted-foreground">
-            Connecting to GitHub...
-          </p>
-        </div>
-      );
+      return <GitHubConnectingState onCancel={connection.disconnect} />;
     }
 
     const redirectUri = `${window.location.origin}/auth/github/callback`;
@@ -476,6 +469,39 @@ function ManualGitPanel({
           Add
         </button>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Connecting state with cancel + timeout
+// ---------------------------------------------------------------------------
+
+const CONNECTING_TIMEOUT_MS = 30_000;
+
+function GitHubConnectingState({ onCancel }: { onCancel: () => void }) {
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    const id = setTimeout(() => setTimedOut(true), CONNECTING_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, []);
+
+  return (
+    <div className="space-y-3 py-4 text-center">
+      <div className="mx-auto h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-foreground" />
+      <p className="text-xs text-muted-foreground">
+        {timedOut
+          ? "Taking longer than expected..."
+          : "Connecting to GitHub..."}
+      </p>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="text-[0.65rem] text-muted-foreground hover:text-foreground transition-colors"
+      >
+        Cancel
+      </button>
     </div>
   );
 }
