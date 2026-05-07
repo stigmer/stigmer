@@ -18,8 +18,7 @@ const API_JSON_PATH = path.resolve(
   "..",
   "sdk",
   "react",
-  "dist",
-  "api.json",
+  "typedoc-output.json",
 );
 
 const OUTPUT_DIR =
