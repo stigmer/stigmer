@@ -58,7 +58,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "vironment\022\253\001\n\006delete\0226.ai.stigmer.common" +
       "s.apiresource.ApiResourceDeleteInput\032..a" +
       "i.stigmer.agentic.environment.v1.Environ" +
-      "ment\"9\302\270\0305\010\002\0205\"\013metadata.id*\"unauthorize" +
+      "ment\"9\302\270\0305\010\002\0205\"\013resource_id*\"unauthorize" +
       "d to delete environment\022\317\001\n\017updateVariab" +
       "les\022D.ai.stigmer.agentic.environment.v1." +
       "UpdateEnvironmentVariablesRequest\032..ai.s" +
