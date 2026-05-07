@@ -6,6 +6,7 @@ import {
   DEFAULT_MODEL_ID,
   DEFAULT_CURSOR_MODEL_ID,
   DISABLED_PROVIDERS,
+  resolveDefaultModelId,
   modelKey,
   type ModelInfo,
   type Provider,
@@ -78,10 +79,10 @@ export function useModelRegistry(options?: UseModelRegistryOptions): UseModelReg
   const harness = options?.harness;
 
   return useMemo(() => {
-    const isCursor = harness === "cursor";
-    const isNative = harness === "native";
     const isUnified = harness === undefined;
-    const defaultId = isCursor ? DEFAULT_CURSOR_MODEL_ID : DEFAULT_MODEL_ID;
+    const { modelId: defaultId } = harness
+      ? resolveDefaultModelId(harness)
+      : { modelId: DEFAULT_MODEL_ID };
 
     const byProvider = new Map<Provider, ModelInfo[]>();
     const byId = new Map<string, ModelInfo>();
@@ -91,13 +92,10 @@ export function useModelRegistry(options?: UseModelRegistryOptions): UseModelReg
     let defaultModel: ModelInfo | undefined;
 
     for (const model of MODEL_REGISTRY) {
-      if (isCursor) {
-        if (model.harness !== "cursor") continue;
-      } else if (isNative) {
-        if (model.harness !== "native") continue;
+      if (isUnified) {
         if (DISABLED_PROVIDERS.has(model.provider)) continue;
       } else {
-        // Unified — include both harnesses, still respect DISABLED_PROVIDERS
+        if (model.harness !== harness) continue;
         if (DISABLED_PROVIDERS.has(model.provider)) continue;
       }
 
