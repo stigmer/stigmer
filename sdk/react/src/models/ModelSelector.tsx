@@ -279,27 +279,38 @@ export function ModelSelector({
               "text-popover-foreground",
             )}
           >
-            {/* Harness dropdown (only when not locked) */}
+            {/* Harness selector (only when not locked) */}
             {!isHarnessLocked && (
               <div className="border-b border-border px-3 py-2">
-                <label className="mb-1 block text-[0.6rem] font-medium uppercase tracking-wider text-muted-foreground">
-                  Harness
-                </label>
-                <select
-                  value={activeHarness}
-                  onChange={(e) => handleHarnessChange(e.target.value as HarnessOption)}
-                  className={cn(
-                    "w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground",
-                    "focus:outline-none focus:ring-2 focus:ring-ring",
-                  )}
+                <div
+                  role="radiogroup"
                   aria-label="Select harness"
+                  className="flex items-center gap-1 rounded-md bg-muted p-0.5"
                 >
-                  {resolvedHarnesses.map((h) => (
-                    <option key={h} value={h}>
-                      {HARNESS_META[h].label}
-                    </option>
-                  ))}
-                </select>
+                  {resolvedHarnesses.map((h) => {
+                    const isActive = h === activeHarness;
+                    return (
+                      <button
+                        key={h}
+                        type="button"
+                        role="radio"
+                        aria-checked={isActive}
+                        className={cn(
+                          "flex-1 rounded-[5px] px-2.5 py-1 text-xs transition-colors",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          isActive
+                            ? "bg-background font-medium text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground",
+                        )}
+                        onClick={() => {
+                          if (!isActive) handleHarnessChange(h);
+                        }}
+                      >
+                        {HARNESS_META[h].label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
