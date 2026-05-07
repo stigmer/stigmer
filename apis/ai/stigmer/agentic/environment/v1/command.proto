@@ -53,7 +53,7 @@ service EnvironmentCommandController {
   rpc delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput) returns (Environment) {
     option (ai.stigmer.commons.rpc.config).resource_kind = environment;
     option (ai.stigmer.commons.rpc.config).permission = can_edit;
-    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete environment";
   }
 
