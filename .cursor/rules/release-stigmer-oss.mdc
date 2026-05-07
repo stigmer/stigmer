@@ -107,10 +107,12 @@ Create three annotated tags (mirroring the `make release` target):
 ```bash
 git tag -a "sdk/go/v<NEW>"     -m "Release sdk/go v<NEW>"
 git tag -a "mcp-server/v<NEW>" -m "Release mcp-server v<NEW>"
-git tag -a "v<NEW>"            -m "<full release notes from step 5>"
+git tag --cleanup=verbatim -a "v<NEW>" -m "<full release notes from step 5>"
 ```
 
 The `sdk/go` and `mcp-server` tags get short messages; the main `v*` tag gets the full release notes.
+
+> **Important**: The main `v*` tag MUST use `--cleanup=verbatim` because the release notes contain Markdown headings (`##`, `###`) which git's default `strip` cleanup treats as comments and silently removes.
 
 ### 7. Push Tags
 
