@@ -7,7 +7,9 @@ import type { BillingAccount } from "@stigmer/protos/ai/stigmer/billing/v1/billi
 
 /** Input for {@link useSetAutoRechargeConfig}. */
 export interface SetAutoRechargeConfigInput {
+  /** Organization ID to configure auto-recharge for. */
   readonly orgId: string;
+  /** Whether auto-recharge is enabled. */
   readonly enabled: boolean;
   /** Trigger threshold in micro-USD. */
   readonly thresholdMicros: bigint;

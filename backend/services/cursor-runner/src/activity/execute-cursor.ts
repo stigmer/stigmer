@@ -230,10 +230,6 @@ async function executeCursor(
         );
       }
 
-
-
-      }
-
       const shouldPersist = eventCount % 20 === 0 || deltaEnricher.isDirty || todoTracker.isDirty;
       if (shouldPersist) {
         const signal = await persistStatus(client, executionId, status);
@@ -261,7 +257,6 @@ async function executeCursor(
       `ExecuteCursor stream ended: execution=${executionId}, events=${eventCount}, messages=${status.messages.length}, subAgents=${status.subAgentExecutions.length}`,
     );
 
-    }
 
     // Phase 11b: Handle platform stop signal early exit
     if (platformStopSignaled) {

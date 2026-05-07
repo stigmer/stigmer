@@ -131,7 +131,7 @@ def tools_fingerprint(tools: list[DiscoveredToolResult]) -> str:
             }
             for t in tools
         ],
-        key=lambda x: x["name"],
+        key=lambda x: str(x["name"]),
     )
     return hashlib.sha256(
         json.dumps(canonical, sort_keys=True).encode()

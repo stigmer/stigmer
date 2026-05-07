@@ -17,7 +17,7 @@ export const FetchCacheContext = createContext<FetchCache | null>(null);
 // ---------------------------------------------------------------------------
 
 /**
- * Provides a {@link FetchCache} instance to descendant `useFetch` hooks.
+ * Provides a `FetchCache` instance to descendant `useFetch` hooks.
  *
  * Mount this component **above** any remount boundary (e.g. above a
  * `key`-driven session switch) so that cached data survives when child
@@ -61,7 +61,7 @@ export function FetchCacheProvider({
 // ---------------------------------------------------------------------------
 
 /**
- * Access the nearest {@link FetchCache} from context.
+ * Access the nearest `FetchCache` from context.
  *
  * Returns `null` when no `FetchCacheProvider` is mounted — callers
  * must handle the null case gracefully (skip caching).

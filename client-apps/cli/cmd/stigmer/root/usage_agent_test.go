@@ -9,10 +9,10 @@ import (
 
 func TestRenderAgentUsageTable_BasicReport(t *testing.T) {
 	report := &agentexecutionv1.GetAgentUsageReportOutput{
-		AgentId:                "agt_abc",
-		AgentName:              "my-coding-assistant",
-		TotalSessions:          8,
-		TotalExecutions:        47,
+		AgentId:                 "agt_abc",
+		AgentName:               "my-coding-assistant",
+		TotalSessions:           8,
+		TotalExecutions:         47,
 		TotalBillableCostMicros: 4_120_000,
 		ModelBreakdown: []*agentexecutionv1.ModelUsage{
 			{
@@ -75,8 +75,8 @@ func TestRenderAgentUsageTable_BasicReport(t *testing.T) {
 
 func TestRenderAgentUsageTable_FallsBackToAgentID(t *testing.T) {
 	report := &agentexecutionv1.GetAgentUsageReportOutput{
-		AgentId:                "agt_xyz",
-		TotalExecutions:        1,
+		AgentId:                 "agt_xyz",
+		TotalExecutions:         1,
 		TotalBillableCostMicros: 50_000,
 	}
 

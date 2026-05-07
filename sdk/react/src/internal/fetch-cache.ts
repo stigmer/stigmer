@@ -25,7 +25,7 @@ interface CacheEntry {
   timestamp: number;
 }
 
-/** Configuration for {@link FetchCache}. */
+/** Configuration for `FetchCache`. */
 export interface FetchCacheOptions {
   /**
    * Maximum number of entries before the oldest are evicted.

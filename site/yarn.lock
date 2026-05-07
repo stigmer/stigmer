@@ -2200,16 +2200,16 @@ __metadata:
 
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=a3b108&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=a95922&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:2.12.0"
-  checksum: 10c0/bf5849aa63adf17e69c3a1e73eeda3e16832167cb0257ffd5232b1c98f477154eae680bc969ac48fd82a3ac31a499ceb70ffe8fb7398961f4e70da938277b620
+  checksum: 10c0/3deda1ed7d1bff13308791d58a4c934d1abda261a2947c9a4f1a6ec72dadd91cbf4cbad95387b3ad9ac93a0a21a319ff5246e80248718d161a831dac53b8dc51
   languageName: node
   linkType: hard
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=24eba6&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=e19007&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@stigmer/theme": "npm:*"
     react-markdown: "npm:^10.1.0"
@@ -2230,13 +2230,13 @@ __metadata:
       optional: true
     react-virtuoso:
       optional: true
-  checksum: 10c0/374c83b02e752655bc8ad34386bb004e8cd8e0f63402a8c59432df21d99127b508942978241dd3926237d1bef7598346a7f9a92e1eb1ea034114616cd4121200
+  checksum: 10c0/988954eceac080982e76e8654ae71e4bc0b4550fde27519c31e0a44ab06b168f66c3ed2d9a94dba301826f11d3b2fdbfdfdb6df6af94a402dd1a352db213fdce
   languageName: node
   linkType: hard
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=b5ab77&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=647011&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2247,7 +2247,7 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/bd07d679263409e3f21a67924d62050abb9d040679b6d41ba165fcd15068be234fef99c4c162c75703ac804b53cfb9b6bb996b55fea206197241956720fe12d3
+  checksum: 10c0/4a729256bf869710b8f18e4a2cd6b9dbc5d42ec204533befba5d77cb067c806c3eccbec9fa4b7b4d12800929644a212ad6c7235b51ece77798a91efb66d8ad16
   languageName: node
   linkType: hard
 
@@ -2846,7 +2846,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react-dom@npm:^19.0.2":
+"@types/react-dom@npm:^19.2.3":
   version: 19.2.3
   resolution: "@types/react-dom@npm:19.2.3"
   peerDependencies:
@@ -2864,7 +2864,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:*, @types/react@npm:^19.0.2":
+"@types/react@npm:*, @types/react@npm:^19.2.14":
   version: 19.2.14
   resolution: "@types/react@npm:19.2.14"
   dependencies:
@@ -9291,8 +9291,8 @@ __metadata:
     "@tailwindcss/postcss": "npm:^4.0.0"
     "@types/mdx": "npm:^2.0.13"
     "@types/node": "npm:^22.10.5"
-    "@types/react": "npm:^19.0.2"
-    "@types/react-dom": "npm:^19.0.2"
+    "@types/react": "npm:^19.2.14"
+    "@types/react-dom": "npm:^19.2.3"
     "@types/react-syntax-highlighter": "npm:^15.5.13"
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"

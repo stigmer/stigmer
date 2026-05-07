@@ -27,8 +27,8 @@ export interface UseBillingAccountReturn {
  *
  * Calls `billing.getOrCreateBillingAccount` which is idempotent —
  * creates the account on first call, returns the existing account
- * on subsequent calls. The returned {@link BillingAccount} includes
- * the embedded {@link CreditBalance} with available, reserved,
+ * on subsequent calls. The returned `BillingAccount` includes
+ * the embedded `CreditBalance` with available, reserved,
  * promotional, and purchased breakdowns.
  *
  * Pass `null` as `orgId` to skip fetching (stable no-op).
