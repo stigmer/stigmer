@@ -277,7 +277,7 @@ export function ModelSelector({
             role="dialog"
             aria-label="Model selector"
             className={cn(
-              "z-popover w-80 rounded-lg border border-border bg-popover shadow-md",
+              "z-popover w-72 rounded-lg border border-border bg-popover shadow-md",
               "text-popover-foreground",
             )}
           >
@@ -465,29 +465,24 @@ function ModelRow({
         "transition-colors",
         isHighlighted && "bg-accent text-accent-foreground",
         !isHighlighted && "hover:bg-accent-hover",
-        isSelected && "font-medium",
       )}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
     >
       <div className="flex w-full items-center gap-2">
-        <span className="flex-1 truncate text-left">{model.displayName}</span>
-
-        {showSpeedBadge && (
-          <span className="shrink-0 text-[0.6rem] text-muted-foreground">
-            {SPEED_TIER_LABEL[model.speedTier]}
-          </span>
-        )}
+        <span className="flex-1 truncate text-left font-medium">{model.displayName}</span>
 
         <span className="shrink-0 text-[0.6rem] text-muted-foreground">
-          {COST_TIER_LABEL[model.costTier]}
+          {showSpeedBadge
+            ? `${SPEED_TIER_LABEL[model.speedTier]} ${COST_TIER_LABEL[model.costTier]}`
+            : COST_TIER_LABEL[model.costTier]}
         </span>
 
         {isSelected && <CheckIcon className="shrink-0 text-primary" />}
       </div>
 
       {showDescription && model.shortDescription && (
-        <span className="mt-0.5 block text-left text-[0.6rem] text-muted-foreground">
+        <span className="mt-0.5 block text-left text-[0.65rem] text-muted-foreground">
           {model.shortDescription}
         </span>
       )}
