@@ -68,8 +68,23 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03 09:55
-**Current Task**: T01 — All billing RPCs implemented. Phase 5.3 (Alerts) on hold pending email infra.
-**Status**: All 14 billing RPCs handler-wired. Phase 5.3 (Alerts) on hold. Phase 5.4 (Cost Calculator) deferred to Phase 6.4.
+**Current Task**: Production ship — all blockers resolved, branch ready to merge.
+**Status**: All 14 billing RPCs handler-wired and secured. Production readiness complete. Phase 5.3 (Alerts) on hold. Phase 5.4 (Cost Calculator) deferred to Phase 6.4.
+
+### Production Ship Session (2026-05-07)
+- Added `can_view_billing` (viewer) and `can_manage_billing` (admin) to organization.fga — FGA model applied
+- Added `can_execute_billing_ops` (operator) to platform.fga — secures internal billing RPCs
+- Replaced `is_skip_authorization` on authorizeExecution, recordLlmCallUsage, finalizeExecution with platform operator auth
+- Switched `BillingUsageGrpcRepoImpl` from `inProcessChannel` to `inProcessChannelAsSystem`
+- Added authorize step to all 3 internal billing handler pipelines
+- Created Mongock migration (order 028) to seed billing accounts for all existing orgs
+- Ran `apply-all.sh` — all 48 Planton resources applied (secrets, variables, services)
+- Verified Stripe Customer Portal config (PM enabled, subscriptions disabled, redirect link set)
+- Verified all 8 Stripe webhook events registered
+- FGA model IDs applied: `01KR0BRC4FC0EF5C4T4TEZTX9C` → `01KR0D42A9YHRYYZWPW2M8YP58`
+- All builds pass, proto-FGA schema consistency test passes, 6 billing unit tests pass
+- Branch `feat/stripe-billing-integration` pushed (29 commits ahead of main)
+- **Ready to merge to `main` for production deployment**
 
 ### Deferred Billing RPCs Completed (2026-05-06)
 - `getCustomerModelPricing` handler: `GetCustomerModelPricingHandler` with `BuildPricingStep` — iterates all models from `ModelPricingService.getAllModels()`, resolves billing policy per (harness, costTier), applies markup to 4 per-million-token rates via `BillingMicros.applyMarkup()`
