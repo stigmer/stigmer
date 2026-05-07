@@ -1667,6 +1667,7 @@ class TestSubAgentInternals:
             "Scan all workflow-runner files and extract infrastructure dependencies...",
             "general-purpose",
             existing_subjects=[],
+            execution_id="test-execution-123",
         )
 
     @pytest.mark.asyncio

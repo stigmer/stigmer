@@ -10,9 +10,16 @@ cloud mode when the checkpointer type is mongodb.  Verifies:
 5. Missing URI raises ValueError
 """
 
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+# Other test modules stub temporalio with MagicMock objects in sys.modules.
+# Purge those stale mocks so the real temporalio can be imported here.
+_stale = [k for k in sys.modules if k.startswith("temporalio") and isinstance(sys.modules[k], MagicMock)]
+for _k in _stale:
+    del sys.modules[_k]
 
 
 def _make_runner(checkpointer_type="mongodb", mongodb_uri="mongodb://localhost:27017", mongodb_db_name="stigmer_checkpoints"):
