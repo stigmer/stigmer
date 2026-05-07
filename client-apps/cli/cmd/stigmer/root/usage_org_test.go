@@ -9,10 +9,10 @@ import (
 
 func TestRenderOrgUsageTable_FullReport(t *testing.T) {
 	report := &agentexecutionv1.GetOrgUsageReportOutput{
-		OrgId:                  "org_acme",
-		TotalAgents:            12,
-		TotalSessions:          34,
-		TotalExecutions:        187,
+		OrgId:                   "org_acme",
+		TotalAgents:             12,
+		TotalSessions:           34,
+		TotalExecutions:         187,
 		TotalBillableCostMicros: 18_420_000,
 		ModelBreakdown: []*agentexecutionv1.ModelUsage{
 			{
@@ -103,7 +103,7 @@ func TestRenderOrgUsageTable_EmptyReport(t *testing.T) {
 
 func TestRenderOrgUsageTable_AgentFallsBackToID(t *testing.T) {
 	report := &agentexecutionv1.GetOrgUsageReportOutput{
-		OrgId:                  "org_test",
+		OrgId:                   "org_test",
 		TotalBillableCostMicros: 1_000_000,
 		TopAgentsByCost: []*agentexecutionv1.AgentUsageSummary{
 			{

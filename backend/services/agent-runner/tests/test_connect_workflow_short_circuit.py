@@ -11,11 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sys
-from dataclasses import dataclass
-from typing import Any
 from unittest.mock import MagicMock
-
-import pytest
 
 # Stub out temporalio and grpc before importing the module under test,
 # because temporalio transitively requires google.protobuf well-known
@@ -48,7 +44,6 @@ from stigmer_runner.worker.activities.discover_mcp_server import (  # noqa: E402
     DiscoveredToolResult,
     tools_fingerprint,
 )
-
 
 # ---------------------------------------------------------------------------
 # tools_fingerprint

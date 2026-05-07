@@ -133,7 +133,10 @@ export function serializeType(type: TypeDocType): string {
 
 /** Escape characters that have special meaning in MDX text content. */
 export function escapeMdx(text: string): string {
-  return text.replace(/\{/g, "\\{").replace(/\}/g, "\\}");
+  return text
+    .replace(/\{/g, "\\{")
+    .replace(/\}/g, "\\}")
+    .replace(/<(?=[a-zA-Z0-9/!])/g, "\\<");
 }
 
 /** Escape characters for a JavaScript double-quoted string literal. */

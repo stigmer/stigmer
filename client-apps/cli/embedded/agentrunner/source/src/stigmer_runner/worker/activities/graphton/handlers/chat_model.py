@@ -382,7 +382,7 @@ def handle_chat_model_end(sb: StatusBuilder, event: dict[str, Any], namespace: s
     output_tokens = 0
     cache_creation_tokens = 0
     cache_read_tokens = 0
-    model_name = ""
+    _model_name = ""
 
     # Resolve usage_metadata from AIMessage attribute or raw dict.
     usage: dict | None = None
@@ -403,16 +403,16 @@ def handle_chat_model_end(sb: StatusBuilder, event: dict[str, Any], namespace: s
             cache_read_tokens = details.get("cache_read", 0) or 0
 
     # Derive the non-cached regular input (disjoint bucket for cost)
-    regular_input_tokens = max(0, total_input_tokens - cache_creation_tokens - cache_read_tokens)
+    _regular_input_tokens = max(0, total_input_tokens - cache_creation_tokens - cache_read_tokens)
 
     # Extract model name from response_metadata
     if hasattr(output_data, "response_metadata"):
         response_meta = output_data.response_metadata
         if isinstance(response_meta, dict):
-            model_name = response_meta.get("model", "") or response_meta.get("model_name", "")
+            _model_name = response_meta.get("model", "") or response_meta.get("model_name", "")
     elif isinstance(output_data, dict):
         response_meta = output_data.get("response_metadata", {})
-        model_name = response_meta.get("model", "") or response_meta.get("model_name", "")
+        _model_name = response_meta.get("model", "") or response_meta.get("model_name", "")
 
     # ─────────────────────────────────────────────────────────────────────────
     # Finalize AI message streaming state fields

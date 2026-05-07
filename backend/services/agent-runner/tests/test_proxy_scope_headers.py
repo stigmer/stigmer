@@ -14,7 +14,6 @@ import pytest
 
 from stigmer_runner.worker.config import LLMConfig
 
-
 # ---------------------------------------------------------------------------
 # build_llm_kwargs — mcp_server_id header
 # ---------------------------------------------------------------------------
