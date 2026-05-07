@@ -104,6 +104,7 @@ export function ModelSelector({
   );
 
   const [open, setOpen] = useState(false);
+  const [harnessOpen, setHarnessOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
   const [highlightIdx, setHighlightIdx] = useState(-1);
@@ -171,6 +172,7 @@ export function ModelSelector({
       setSearchQuery("");
       setShowAll(false);
       setHighlightIdx(-1);
+      setHarnessOpen(false);
     }
   }, [open]);
 
@@ -281,36 +283,64 @@ export function ModelSelector({
           >
             {/* Harness selector (only when not locked) */}
             {!isHarnessLocked && (
-              <div className="border-b border-border px-3 py-2">
-                <div
-                  role="radiogroup"
+              <div className="relative border-b border-border px-3 py-2">
+                <button
+                  type="button"
+                  aria-haspopup="listbox"
+                  aria-expanded={harnessOpen}
                   aria-label="Select harness"
-                  className="flex items-center gap-1 rounded-md bg-muted p-0.5"
+                  className={cn(
+                    "flex w-full items-center justify-between rounded-md border border-border",
+                    "bg-background px-2.5 py-1.5 text-xs text-foreground",
+                    "hover:bg-accent-hover transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  )}
+                  onClick={() => setHarnessOpen(!harnessOpen)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape" && harnessOpen) {
+                      e.stopPropagation();
+                      setHarnessOpen(false);
+                    }
+                  }}
                 >
-                  {resolvedHarnesses.map((h) => {
-                    const isActive = h === activeHarness;
-                    return (
-                      <button
-                        key={h}
-                        type="button"
-                        role="radio"
-                        aria-checked={isActive}
-                        className={cn(
-                          "flex-1 rounded-[5px] px-2.5 py-1 text-xs transition-colors",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                          isActive
-                            ? "bg-background font-medium text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground",
-                        )}
-                        onClick={() => {
-                          if (!isActive) handleHarnessChange(h);
-                        }}
-                      >
-                        {HARNESS_META[h].label}
-                      </button>
-                    );
-                  })}
-                </div>
+                  <span>{HARNESS_META[activeHarness].label}</span>
+                  <ChevronIcon />
+                </button>
+
+                {harnessOpen && (
+                  <div
+                    role="listbox"
+                    aria-label="Available harnesses"
+                    className={cn(
+                      "absolute left-3 right-3 z-10 mt-1 overflow-hidden rounded-md border border-border",
+                      "bg-popover shadow-md",
+                    )}
+                  >
+                    {resolvedHarnesses.map((h) => {
+                      const isActive = h === activeHarness;
+                      return (
+                        <button
+                          key={h}
+                          type="button"
+                          role="option"
+                          aria-selected={isActive}
+                          className={cn(
+                            "flex w-full items-center gap-2 px-2.5 py-1.5 text-xs transition-colors",
+                            "hover:bg-accent-hover",
+                            isActive && "font-medium",
+                          )}
+                          onClick={() => {
+                            handleHarnessChange(h);
+                            setHarnessOpen(false);
+                          }}
+                        >
+                          <span className="flex-1 text-left">{HARNESS_META[h].label}</span>
+                          {isActive && <CheckIcon className="shrink-0 text-primary" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
