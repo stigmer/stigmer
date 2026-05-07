@@ -281,68 +281,73 @@ export function ModelSelector({
               "text-popover-foreground",
             )}
           >
-            {/* Harness selector (only when not locked) */}
-            {!isHarnessLocked && (
-              <div className="relative border-b border-border px-3 py-2">
-                <button
-                  type="button"
-                  aria-haspopup="listbox"
-                  aria-expanded={harnessOpen}
-                  aria-label="Select harness"
-                  className={cn(
-                    "flex w-full items-center justify-between rounded-md border border-border",
-                    "bg-background px-2.5 py-1.5 text-xs text-foreground",
-                    "hover:bg-accent-hover transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  )}
-                  onClick={() => setHarnessOpen(!harnessOpen)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape" && harnessOpen) {
-                      e.stopPropagation();
-                      setHarnessOpen(false);
-                    }
-                  }}
-                >
-                  <span>{HARNESS_META[activeHarness].label}</span>
-                  <ChevronIcon />
-                </button>
-
-                {harnessOpen && (
-                  <div
-                    role="listbox"
-                    aria-label="Available harnesses"
-                    className={cn(
-                      "absolute left-3 right-3 z-10 mt-1 overflow-hidden rounded-md border border-border",
-                      "bg-popover shadow-md",
-                    )}
-                  >
-                    {resolvedHarnesses.map((h) => {
-                      const isActive = h === activeHarness;
-                      return (
-                        <button
-                          key={h}
-                          type="button"
-                          role="option"
-                          aria-selected={isActive}
-                          className={cn(
-                            "flex w-full items-center gap-2 px-2.5 py-1.5 text-xs transition-colors",
-                            "hover:bg-accent-hover",
-                            isActive && "font-medium",
-                          )}
-                          onClick={() => {
-                            handleHarnessChange(h);
-                            setHarnessOpen(false);
-                          }}
-                        >
-                          <span className="flex-1 text-left">{HARNESS_META[h].label}</span>
-                          {isActive && <CheckIcon className="shrink-0 text-primary" />}
-                        </button>
-                      );
-                    })}
-                  </div>
+            {/* Harness selector — inline label + compact dropdown; disabled when locked */}
+            <div className="relative flex items-center justify-between border-b border-border px-3 py-2">
+              <span className="text-xs text-muted-foreground">Harness</span>
+              <button
+                type="button"
+                aria-haspopup="listbox"
+                aria-expanded={harnessOpen}
+                aria-label="Select harness"
+                disabled={isHarnessLocked}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md border border-border",
+                  "bg-background px-2.5 py-1.5 text-xs text-foreground",
+                  "transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  isHarnessLocked
+                    ? "cursor-not-allowed opacity-50"
+                    : "hover:bg-accent-hover",
                 )}
-              </div>
-            )}
+                onClick={() => {
+                  if (!isHarnessLocked) setHarnessOpen(!harnessOpen);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape" && harnessOpen) {
+                    e.stopPropagation();
+                    setHarnessOpen(false);
+                  }
+                }}
+              >
+                <span>{HARNESS_META[activeHarness].label}</span>
+                {!isHarnessLocked && <ChevronIcon />}
+              </button>
+
+              {!isHarnessLocked && harnessOpen && (
+                <div
+                  role="listbox"
+                  aria-label="Available harnesses"
+                  className={cn(
+                    "absolute right-3 top-full z-10 mt-1 overflow-hidden rounded-md border border-border",
+                    "bg-popover shadow-md",
+                  )}
+                >
+                  {resolvedHarnesses.map((h) => {
+                    const isActive = h === activeHarness;
+                    return (
+                      <button
+                        key={h}
+                        type="button"
+                        role="option"
+                        aria-selected={isActive}
+                        className={cn(
+                          "flex w-full items-center gap-2 px-2.5 py-1.5 text-xs transition-colors",
+                          "hover:bg-accent-hover",
+                          isActive && "font-medium",
+                        )}
+                        onClick={() => {
+                          handleHarnessChange(h);
+                          setHarnessOpen(false);
+                        }}
+                      >
+                        <span className="flex-1 text-left">{HARNESS_META[h].label}</span>
+                        {isActive && <CheckIcon className="shrink-0 text-primary" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Search input */}
             <div className="border-b border-border px-3 py-1.5">
