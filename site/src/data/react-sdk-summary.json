@@ -32,7 +32,7 @@
       "slug": "billing",
       "title": "billing",
       "description": "",
-      "hooks": 5,
+      "hooks": 7,
       "components": 7
     },
     {
@@ -172,8 +172,8 @@
       "slug": "usage",
       "title": "Usage",
       "description": "Hooks and components for organization-level usage reporting and cost breakdown.",
-      "hooks": 1,
-      "components": 1
+      "hooks": 2,
+      "components": 5
     },
     {
       "slug": "user",

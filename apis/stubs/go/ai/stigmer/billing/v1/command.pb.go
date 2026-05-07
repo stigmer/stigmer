@@ -25,13 +25,13 @@ var File_ai_stigmer_billing_v1_command_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"#ai/stigmer/billing/v1/command.proto\x12\x15ai.stigmer.billing.v1\x1a+ai/stigmer/billing/v1/billing_account.proto\x1a\"ai/stigmer/billing/v1/credit.proto\x1a\x1eai/stigmer/billing/v1/io.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x82\v\n" +
+	"#ai/stigmer/billing/v1/command.proto\x12\x15ai.stigmer.billing.v1\x1a+ai/stigmer/billing/v1/billing_account.proto\x1a\"ai/stigmer/billing/v1/credit.proto\x1a\x1eai/stigmer/billing/v1/io.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xd4\f\n" +
 	"\x18BillingCommandController\x12\xc1\x01\n" +
 	"\x19getOrCreateBillingAccount\x125.ai.stigmer.billing.v1.GetOrCreateBillingAccountInput\x1a%.ai.stigmer.billing.v1.BillingAccount\"F¸\x18B\b\x1c\x10\x1e\"\x06org_id*4unauthorized to manage billing for this organization\x12\xac\x01\n" +
-	"\radjustCredits\x12).ai.stigmer.billing.v1.AdjustCreditsInput\x1a(.ai.stigmer.billing.v1.CreditLedgerEntry\"F¸\x18B\b\x1c\x10\x1e\"\x06org_id*4unauthorized to adjust credits for this organization\x12}\n" +
-	"\x12authorizeExecution\x12..ai.stigmer.billing.v1.AuthorizeExecutionInput\x1a1.ai.stigmer.billing.v1.AuthorizeExecutionResponse\"\x04и\x18\x01\x12}\n" +
-	"\x12recordLlmCallUsage\x12..ai.stigmer.billing.v1.RecordLlmCallUsageInput\x1a1.ai.stigmer.billing.v1.RecordLlmCallUsageResponse\"\x04и\x18\x01\x12z\n" +
-	"\x11finalizeExecution\x12-.ai.stigmer.billing.v1.FinalizeExecutionInput\x1a0.ai.stigmer.billing.v1.FinalizeExecutionResponse\"\x04и\x18\x01\x12\xdc\x01\n" +
+	"\radjustCredits\x12).ai.stigmer.billing.v1.AdjustCreditsInput\x1a(.ai.stigmer.billing.v1.CreditLedgerEntry\"F¸\x18B\b\x1c\x10\x1e\"\x06org_id*4unauthorized to adjust credits for this organization\x12\xc2\x01\n" +
+	"\x12authorizeExecution\x12..ai.stigmer.billing.v1.AuthorizeExecutionInput\x1a1.ai.stigmer.billing.v1.AuthorizeExecutionResponse\"I¸\x18E\b\x1d\x10\x1f*6only platform operators can execute billing operations2\astigmer\x12\xc2\x01\n" +
+	"\x12recordLlmCallUsage\x12..ai.stigmer.billing.v1.RecordLlmCallUsageInput\x1a1.ai.stigmer.billing.v1.RecordLlmCallUsageResponse\"I¸\x18E\b\x1d\x10\x1f*6only platform operators can execute billing operations2\astigmer\x12\xbf\x01\n" +
+	"\x11finalizeExecution\x12-.ai.stigmer.billing.v1.FinalizeExecutionInput\x1a0.ai.stigmer.billing.v1.FinalizeExecutionResponse\"I¸\x18E\b\x1d\x10\x1f*6only platform operators can execute billing operations2\astigmer\x12\xdc\x01\n" +
 	"\x1bcreateCreditCheckoutSession\x127.ai.stigmer.billing.v1.CreateCreditCheckoutSessionInput\x1a:.ai.stigmer.billing.v1.CreateCreditCheckoutSessionResponse\"H¸\x18D\b\x1c\x10\x1e\"\x06org_id*6unauthorized to purchase credits for this organization\x12\xd7\x01\n" +
 	"\x1acreateBillingPortalSession\x126.ai.stigmer.billing.v1.CreateBillingPortalSessionInput\x1a9.ai.stigmer.billing.v1.CreateBillingPortalSessionResponse\"F¸\x18B\b\x1c\x10\x1e\"\x06org_id*4unauthorized to manage billing for this organization\x12\xbf\x01\n" +
 	"\x15setAutoRechargeConfig\x121.ai.stigmer.billing.v1.SetAutoRechargeConfigInput\x1a%.ai.stigmer.billing.v1.BillingAccount\"L¸\x18H\b\x1c\x10\x1e\"\x06org_id*:unauthorized to manage auto-recharge for this organizationB\xea\x01\n" +

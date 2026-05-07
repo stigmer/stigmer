@@ -53,6 +53,55 @@ return <div>Balance: {formatCreditBalance(account.balance?.availableMicros)}</di
 ```
 
 
+### useBillingUsageReport
+
+Data hook that fetches an aggregated billing usage report for a date range.
+
+Returns total provider cost, total billable amount, execution and LLM
+call counts, and a per-model breakdown with cost tier attribution.
+
+Pass `null` as `orgId` to skip fetching (stable no-op).
+
+**Signature**
+
+```tsx
+function useBillingUsageReport(orgId: string | null, startTime: Date, endTime: Date): UseBillingUsageReportReturn
+```
+
+<TypeTable
+  type={{
+    orgId: { type: "string | null", description: "Organization ID, or `null` to skip.", required: true },
+    startTime: { type: "Date", description: "Start of the reporting period.", required: true },
+    endTime: { type: "Date", description: "End of the reporting period.", required: true },
+  }}
+/>
+
+**Returns** — `UseBillingUsageReportReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
+    report: { type: "BillingUsageReportResponse | null", description: "The usage report, or `null` before the first successful fetch." },
+  }}
+/>
+
+```tsx
+const { report, isLoading } = useBillingUsageReport(
+  orgId,
+  new Date("2026-05-01"),
+  new Date("2026-05-31"),
+);
+
+if (isLoading) return <Skeleton />;
+if (!report) return null;
+
+return <div>Total: {formatCreditBalance(report.totalBillableAmountMicros)}</div>;
+```
+
+
 ### useCreateBillingPortalSession
 
 Behavior hook that opens the Stripe Customer Portal for payment
@@ -171,6 +220,53 @@ if (isLoading) return <Skeleton />;
 if (!ledger) return null;
 
 return ledger.entries.map(entry => <LedgerRow key={entry.entryId} entry={entry} />);
+```
+
+
+### useCustomerModelPricing
+
+Data hook that fetches the customer-facing model price list.
+
+Returns per-million-token prices for all billable models with
+billing policy markup already applied, organized by harness
+and cost tier.
+
+Pass `null` as `orgId` to skip fetching (stable no-op).
+Pass `undefined` to fetch default pricing (no org override).
+
+**Signature**
+
+```tsx
+function useCustomerModelPricing(orgId: string | null | undefined): UseCustomerModelPricingReturn
+```
+
+<TypeTable
+  type={{
+    orgId: { type: "string | null | undefined", description: "Organization ID for org-specific overrides,   `undefined` for default pricing, or `null` to skip.", required: true },
+  }}
+/>
+
+**Returns** — `UseCustomerModelPricingReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
+    pricing: { type: "CustomerModelPricingResponse | null", description: "The pricing response, or `null` before the first successful fetch." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
+  }}
+/>
+
+```tsx
+const { pricing, isLoading } = useCustomerModelPricing(orgId);
+
+if (isLoading) return <Skeleton />;
+if (!pricing) return null;
+
+return pricing.entries.map(entry => (
+  <PricingRow key={entry.modelId} entry={entry} />
+));
 ```
 
 

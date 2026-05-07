@@ -42,7 +42,10 @@ service BillingCommandController {
   // Called by the Temporal workflow before dispatching to the agent runner.
   // The runner must not start if authorized is false.
   rpc authorizeExecution(AuthorizeExecutionInput) returns (AuthorizeExecutionResponse) {
-    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_execute_billing_ops;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can execute billing operations";
   }
 
   // Record a single LLM call's usage for billing.
@@ -53,7 +56,10 @@ service BillingCommandController {
   // Called by the proxy after each LLM SSE stream completes.
   // Deduplicated by (execution_id, sequence, metering_source).
   rpc recordLlmCallUsage(RecordLlmCallUsageInput) returns (RecordLlmCallUsageResponse) {
-    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_execute_billing_ops;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can execute billing operations";
   }
 
   // Settle billing for a completed execution.
@@ -62,7 +68,10 @@ service BillingCommandController {
   // @internal
   // Called by the Temporal workflow after the agent runner completes.
   rpc finalizeExecution(FinalizeExecutionInput) returns (FinalizeExecutionResponse) {
-    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_execute_billing_ops;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can execute billing operations";
   }
 
   // Create a Stripe Checkout Session to purchase a credit pack.
