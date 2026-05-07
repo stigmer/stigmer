@@ -55,6 +55,7 @@ AgentExecution agentExecution = client.agentExecutions().get("aex_01j5q3k7m8r2s4
 | [`getAgentUsageReport`](#getagentusagereport) | Get a usage report for an agent. | |
 | [`getArtifactContent`](#getartifactcontent) | Read the raw content of an execution artifact. | |
 | [`getArtifactDownloadUrl`](#getartifactdownloadurl) | Get a presigned download URL for an execution artifact. | |
+| [`getExecutionUsageReport`](#getexecutionusagereport) | Get a usage report for a single execution. | |
 | [`getOrgUsageReport`](#getorgusagereport) | Get a usage report for an organization. | |
 | [`getSessionUsageReport`](#getsessionusagereport) | Get a usage report for a session. | |
 | [`list`](#list) | List all agent executions with pagination and optional filtering. | |
@@ -264,6 +265,47 @@ GetArtifactDownloadUrlResponse getArtifactDownloadUrlResponse = client.agentExec
 
 **Returns**: [`GetArtifactDownloadUrlResponse`](#getartifactdownloadurlresponse)
 
+### getExecutionUsageReport
+
+Get a usage report for a single execution.
+
+Returns aggregated tokens, cost, and per-model breakdown for one execution.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const getExecutionUsageReportOutput = await stigmer.agentExecution.getExecutionUsageReport({
+  executionId: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+getExecutionUsageReportOutput, err := client.AgentExecution.GetExecutionUsageReport(ctx, &stigmer.GetExecutionUsageReportInput{
+  ExecutionId: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+get_execution_usage_report_output = client.agent_executions.get_execution_usage_report(GetExecutionUsageReportInput(
+    execution_id="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+GetExecutionUsageReportOutput getExecutionUsageReportOutput = client.agentExecutions().getExecutionUsageReport(GetExecutionUsageReportInput.builder()
+    .executionId("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetExecutionUsageReportInput`](#getexecutionusagereportinput)
+
+**Returns**: [`GetExecutionUsageReportOutput`](#getexecutionusagereportoutput)
+
 ### getOrgUsageReport
 
 Get a usage report for an organization.
@@ -317,7 +359,7 @@ GetOrgUsageReportOutput getOrgUsageReportOutput = client.agentExecutions().getOr
 
 Get a usage report for a session.
 
-Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+Returns aggregated tokens, cost, and per-execution breakdown.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -691,7 +733,7 @@ Update an agent execution's status.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const agentExecution = await stigmer.agentExecution.updateStatus({
+const updateStatusResponse = await stigmer.agentExecution.updateStatus({
   executionId: "...",
   status: {},
 });
@@ -699,7 +741,7 @@ const agentExecution = await stigmer.agentExecution.updateStatus({
 </Tab>
 <Tab value="Go">
 ```go
-agentExecution, err := client.AgentExecution.UpdateStatus(ctx, &stigmer.AgentExecutionUpdateStatusInput{
+updateStatusResponse, err := client.AgentExecution.UpdateStatus(ctx, &stigmer.AgentExecutionUpdateStatusInput{
   ExecutionId: "...",
   Status:      &stigmer.AgentExecutionStatusInput{},
 })
@@ -707,7 +749,7 @@ agentExecution, err := client.AgentExecution.UpdateStatus(ctx, &stigmer.AgentExe
 </Tab>
 <Tab value="Python">
 ```python
-agent_execution = client.agent_executions.update_status(AgentExecutionUpdateStatusInput(
+update_status_response = client.agent_executions.update_status(AgentExecutionUpdateStatusInput(
     execution_id="...",
     status=None,
 ))
@@ -715,7 +757,7 @@ agent_execution = client.agent_executions.update_status(AgentExecutionUpdateStat
 </Tab>
 <Tab value="Java">
 ```java
-AgentExecution agentExecution = client.agentExecutions().updateStatus(AgentExecutionUpdateStatusInput.builder()
+UpdateStatusResponse updateStatusResponse = client.agentExecutions().updateStatus(AgentExecutionUpdateStatusInput.builder()
     .executionId("...")
     .status(null)
     .build());
@@ -725,7 +767,7 @@ AgentExecution agentExecution = client.agentExecutions().updateStatus(AgentExecu
 
 **Parameters**: [`AgentExecutionUpdateStatusInput`](#agentexecutionupdatestatusinput)
 
-**Returns**: [`AgentExecution`](#agentexecution)
+**Returns**: [`UpdateStatusResponse`](#updatestatusresponse)
 
 ### delete
 
@@ -1167,6 +1209,17 @@ Input message for updateStatus RPC.
   }}
 />
 
+### UpdateStatusResponse
+
+UpdateStatusResponse is the lightweight response returned by the updateStatus RPC.
+
+<TypeTable
+  type={{
+    signal: { type: "ExecutionControlSignal", description: "Platform-to-runner directive.", typeDescriptionLink: "#executioncontrolsignal" },
+    signalReason: { type: "string", description: "Human-readable reason for the signal (optional)." },
+  }}
+/>
+
 ### SubmitApprovalInput
 
 Input for submitting an approval decision (HITL Phase 1).
@@ -1339,6 +1392,27 @@ GetArtifactContentResponse returns the raw content of an execution artifact.
   }}
 />
 
+### GetExecutionUsageReportInput
+
+GetExecutionUsageReportInput requests a usage report for a single execution.
+
+<TypeTable
+  type={{
+    executionId: { type: "string", description: "Execution ID to get usage report for." },
+  }}
+/>
+
+### GetExecutionUsageReportOutput
+
+GetExecutionUsageReportOutput returns aggregated usage for one execution.
+
+<TypeTable
+  type={{
+    aggregate: { type: "UsageReportAggregateInput", description: "Aggregated token counts and cost for this execution." },
+    modelBreakdown: { type: "ModelUsageInput[]", description: "Per-model breakdown within this execution." },
+  }}
+/>
+
 ### GetSessionUsageReportInput
 
 GetSessionUsageReportInput requests a usage report for a single session.
@@ -1357,10 +1431,9 @@ GetSessionUsageReportOutput returns aggregated usage for a session.
   type={{
     sessionId: { type: "string", description: "Session identifier." },
     executionCount: { type: "number", description: "Total number of executions in this session." },
-    totalUsage: { type: "UsageMetricsInput", description: "Aggregated usage across all executions in this session." },
+    totalUsage: { type: "UsageReportAggregateInput", description: "Aggregated usage across all executions in this session." },
     executions: { type: "ExecutionUsageSummaryInput[]", description: "Per-execution breakdown (ordered chronologically)." },
     modelBreakdown: { type: "ModelUsageInput[]", description: "Per-model breakdown across the entire session." },
-    totalSummarizationCostUsd: { type: "number", description: "Total summarization cost across all executions." },
     firstExecutionAt: { type: "string", description: "ISO 8601 timestamp of the first execution in this session." },
     lastExecutionAt: { type: "string", description: "ISO 8601 timestamp of the most recent execution in this session." },
   }}
@@ -1388,12 +1461,12 @@ GetAgentUsageReportOutput returns aggregated usage for an agent.
   type={{
     agentId: { type: "string", description: "Agent identifier." },
     agentName: { type: "string", description: "Human-readable agent name for display." },
-    totalUsage: { type: "UsageMetricsInput", description: "Aggregated usage within the time range." },
+    totalUsage: { type: "UsageReportAggregateInput", description: "Aggregated usage within the time range." },
     modelBreakdown: { type: "ModelUsageInput[]", description: "Per-model breakdown across the agent's executions." },
     sessions: { type: "SessionUsageSummaryInput[]", description: "Per-session breakdown within the time range." },
     totalSessions: { type: "number", description: "Total number of sessions within the time range." },
     totalExecutions: { type: "number", description: "Total number of executions within the time range." },
-    totalCostUsd: { type: "number", description: "Total cost in USD within the time range." },
+    totalBillableCostMicros: { type: "number", description: "Total billable cost in micro-USD within the time range." },
     nextPageToken: { type: "string", description: "Token for the next page of sessions (empty if no more pages)." },
   }}
 />
@@ -1420,10 +1493,11 @@ GetOrgUsageReportOutput returns aggregated usage for an organization.
     totalAgents: { type: "number", description: "Total distinct agents with executions in the time range." },
     totalSessions: { type: "number", description: "Total sessions across all agents in the time range." },
     totalExecutions: { type: "number", description: "Total executions across all agents in the time range." },
-    totalCostUsd: { type: "number", description: "Total cost in USD across the organization in the time range." },
+    totalBillableCostMicros: { type: "number", description: "Total billable cost in micro-USD across the organization in the time range." },
     modelBreakdown: { type: "ModelUsageInput[]", description: "Per-model breakdown across the organization." },
-    topAgentsByCost: { type: "AgentUsageSummaryInput[]", description: "Top agents by cost (top 10), ordered by estimated_cost_usd descending." },
+    topAgentsByCost: { type: "AgentUsageSummaryInput[]", description: "Top agents by cost (top 10), ordered by billable_cost_micros descending." },
     dailyCosts: { type: "DailyCostEntryInput[]", description: "Daily cost trend within the time range, ordered chronologically." },
+    harnessBreakdown: { type: "HarnessCostSummaryInput[]", description: "Cost split by execution harness (e.g., \"native\" vs \"cursor\")." },
   }}
 />
 
@@ -1478,7 +1552,6 @@ Represents a single message in the agent conversation.
     toolCalls: { type: "ToolCall[]", description: "Tool calls associated with this message (if type == ai and tools were invoked).", typeDescriptionLink: "#toolcall" },
     metadata: { type: "object", description: "Optional message metadata." },
     isStreaming: { type: "boolean", description: "True while the AI is actively generating this message, false when complete." },
-    llmMetrics: { type: "LlmCallMetrics", description: "LLM call metrics for this message.", typeDescriptionLink: "#llmcallmetrics" },
   }}
 />
 
@@ -1514,26 +1587,6 @@ ExecutionArtifact represents a file or directory published by an agent.
     expiresAt: { type: "string", description: "ISO 8601 timestamp when the download URL expires." },
     entries: { type: "string[]", description: "Relative file paths within a directory artifact's archive." },
     contentHash: { type: "string", description: "SHA-256 hex digest of the uploaded artifact bytes." },
-  }}
-/>
-
-### LlmCallMetrics
-
-Metrics for a single LLM API call during execution.
-
-<TypeTable
-  type={{
-    sequence: { type: "number", description: "Sequence number of this LLM call within the execution (1-based)." },
-    model: { type: "string", description: "Model used for this specific call." },
-    provider: { type: "string", description: "Provider for this call." },
-    inputTokens: { type: "number", description: "Input tokens for this call (total prompt size sent to the model)." },
-    outputTokens: { type: "number", description: "Output tokens generated by the model in this call." },
-    cacheCreationTokens: { type: "number", description: "Cache tokens written during this call." },
-    cacheReadTokens: { type: "number", description: "Cache tokens read (cache hits) during this call." },
-    estimatedCostUsd: { type: "number", description: "Computed cost in USD for this single call." },
-    durationMs: { type: "number", description: "Wall-clock duration of this LLM call in milliseconds." },
-    timestamp: { type: "string", description: "ISO 8601 timestamp when this LLM call started." },
-    totalTokens: { type: "number", description: "Total tokens involved in this call." },
   }}
 />
 
@@ -1690,6 +1743,15 @@ WorkspaceWriteBack captures the outcome of the platform-owned git write-back wor
     error: { type: "string", description: "Error message if the write-back failed at any step." },
   }}
 />
+
+### ExecutionControlSignal
+
+ExecutionControlSignal is a platform-to-runner directive returned by the updateStatus RPC.
+
+| Value | Description |
+|-------|-------------|
+| `EXECUTION_CONTROL_SIGNAL_STOP` | Execution must stop gracefully. |
+| `EXECUTION_CONTROL_SIGNAL_WARNING` | Informational warning (e.g. low credit balance). |
 
 ### ApprovalAction
 

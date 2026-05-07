@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -8,6 +8,7 @@ import {
   MessageType,
   SubAgentStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { useRenderTracer } from "../internal/dev";
 import { cn } from "@stigmer/theme";
 import { formatDuration } from "./ToolCallDetail";
 import { MessageEntry } from "./MessageEntry";
@@ -55,6 +56,10 @@ export interface SubAgentSectionProps {
  * the sub-agent's internal messages and tool calls — the same
  * building blocks used by the top-level {@link MessageThread}.
  *
+ * Wrapped in `React.memo` — structural sharing (T04) preserves the
+ * `SubAgentExecution` reference when the sub-agent's state is
+ * unchanged, so completed sub-agents skip re-renders entirely.
+ *
  * @example
  * ```tsx
  * // Standalone collapsible card (default)
@@ -64,16 +69,18 @@ export interface SubAgentSectionProps {
  * <SubAgentSection subAgentExecution={sub} collapsible={false} />
  * ```
  */
-export function SubAgentSection({
+export const SubAgentSection = memo(function SubAgentSection({
   subAgentExecution: sub,
   collapsible = true,
   className,
 }: SubAgentSectionProps) {
+  useRenderTracer("SubAgentSection", { status: sub.status, name: sub.name });
+
   const duration = formatDuration(sub.startedAt, sub.completedAt);
   const statusInfo = SUB_AGENT_STATUS_MAP[sub.status];
   const StatusIcon = statusInfo.icon;
   const isFailed = sub.status === SubAgentStatus.SUB_AGENT_FAILED;
-  const threadItems = buildSubAgentThreadItems(sub.messages);
+  const threadItems = buildSubAgentThreadItems(sub.id, sub.messages);
 
   const displayLabel = sub.subject || sub.name;
 
@@ -102,7 +109,7 @@ export function SubAgentSection({
       className={className}
     />
   );
-}
+});
 
 // ---------------------------------------------------------------------------
 // Collapsible card — progressive disclosure (default mode)
@@ -367,6 +374,7 @@ type SubAgentThreadItem =
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly key: string };
 
 function buildSubAgentThreadItems(
+  subAgentId: string,
   messages: readonly AgentMessage[],
 ): SubAgentThreadItem[] {
   const items: SubAgentThreadItem[] = [];
@@ -376,13 +384,13 @@ function buildSubAgentThreadItems(
 
     if (msg.type === MessageType.MESSAGE_TOOL) continue;
 
-    items.push({ kind: "message", message: msg, key: `sa-m${i}` });
+    items.push({ kind: "message", message: msg, key: `${subAgentId}-m${i}` });
 
     if (msg.type === MessageType.MESSAGE_AI && msg.toolCalls.length > 0) {
       items.push({
         kind: "tool-group",
         toolCalls: msg.toolCalls,
-        key: `sa-m${i}-tc`,
+        key: `${subAgentId}-m${i}-tc`,
       });
     }
   }

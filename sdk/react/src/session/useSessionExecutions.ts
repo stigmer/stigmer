@@ -73,6 +73,7 @@ export function useSessionExecutions(
       : null,
     [sessionId, stigmer],
     [] as AgentExecution[],
+    { cacheKey: sessionId ? `session-executions:${sessionId}` : undefined },
   );
 
   return { executions, isLoading, isRefetching, error, refetch };

@@ -640,16 +640,11 @@ return (
 
 ### useSessionUsage
 
-Pure derivation hook that aggregates usage data across all executions
-in a session from per-message `LlmCallMetrics`.
+Usage hook for session-level cost and token aggregation.
 
-Follows the same pattern as [`useSessionArtifacts`](#usesessionartifacts) and
-[`useSessionWriteBacks`](#usesessionwritebacks): `useMemo`-based derivation, no side
-effects, no data fetching. Takes the same `executions` array input.
-
-Per-message `llm_metrics` on `AgentMessage` (type == MESSAGE_AI) is
-the single source of truth for cost data. This hook walks all messages
-(main agent + sub-agents) across all executions and sums the fields.
+Calls `getSessionUsageReport` to fetch real usage data from the
+billing domain. Returns zeros while loading or when no session is
+available.
 
 **Signature**
 
@@ -659,7 +654,7 @@ function useSessionUsage(executions: readonly AgentExecution[]): UseSessionUsage
 
 <TypeTable
   type={{
-    executions: { type: "readonly AgentExecution[]", description: "All executions for a session, in chronological   order. Pass both completed and active-stream executions.", required: true },
+    executions: { type: "readonly AgentExecution[]", description: "All executions for a session (used to derive session ID).", required: true },
   }}
 />
 
@@ -667,28 +662,19 @@ function useSessionUsage(executions: readonly AgentExecution[]): UseSessionUsage
 
 <TypeTable
   type={{
-    cacheCreationTokens: { type: "number", description: "Total cache creation tokens across all executions." },
-    cacheReadTokens: { type: "number", description: "Total cache read tokens across all executions." },
-    hasUsage: { type: "boolean", description: "`true` when at least one execution has cost data." },
-    inputTokens: { type: "number", description: "Total input tokens (non-cached) across all executions." },
-    llmCallCount: { type: "number", description: "Total number of LLM calls across all executions." },
-    modelBreakdown: { type: "readonly ModelCostEntry[]", description: "Per-model breakdown, sorted by cost descending." },
-    outputTokens: { type: "number", description: "Total output tokens across all executions." },
-    primaryModel: { type: "string", description: "Primary model (first model encountered)." },
-    primaryProvider: { type: "string", description: "Primary provider (first provider encountered)." },
-    totalCostUsd: { type: "number", description: "Total estimated cost across all executions in the session." },
-    totalTokens: { type: "number", description: "Total tokens (all types) across all executions." },
+    cacheCreationTokens: { type: "number", description: "" },
+    cacheReadTokens: { type: "number", description: "" },
+    hasUsage: { type: "boolean", description: "" },
+    inputTokens: { type: "number", description: "" },
+    llmCallCount: { type: "number", description: "" },
+    modelBreakdown: { type: "readonly ModelCostEntry[]", description: "" },
+    outputTokens: { type: "number", description: "" },
+    primaryModel: { type: "string", description: "" },
+    primaryProvider: { type: "string", description: "" },
+    totalCostUsd: { type: "number", description: "" },
+    totalTokens: { type: "number", description: "" },
   }}
 />
-
-```tsx
-const conv = useSessionConversation(sessionId, org);
-const allExecutions = [
-  ...conv.completedExecutions,
-  ...(conv.activeStreamExecution ? [conv.activeStreamExecution] : []),
-];
-const { totalCostUsd, totalTokens, hasUsage } = useSessionUsage(allExecutions);
-```
 
 
 ### useSessionWriteBacks
@@ -887,18 +873,18 @@ function GroupedSessionList() {
 
 ### ModelCostEntry
 
-Per-model cost breakdown computed from per-message `LlmCallMetrics`.
+Per-model cost breakdown.
 
 <TypeTable
   type={{
-    cacheCreationTokens: { type: "number", description: "Total cache creation tokens across all calls to this model.", required: true },
-    cacheReadTokens: { type: "number", description: "Total cache read tokens across all calls to this model.", required: true },
-    callCount: { type: "number", description: "Number of LLM calls made to this model.", required: true },
-    estimatedCostUsd: { type: "number", description: "Estimated cost in USD for all calls to this model.", required: true },
-    inputTokens: { type: "number", description: "Total non-cached input tokens across all calls to this model.", required: true },
-    model: { type: "string", description: "Model identifier (e.g., `\"claude-3-5-sonnet-20241022\"`).", required: true },
-    outputTokens: { type: "number", description: "Total output tokens across all calls to this model.", required: true },
-    provider: { type: "string", description: "Provider that served the model (e.g., `\"anthropic\"`).", required: true },
+    cacheCreationTokens: { type: "number", description: "", required: true },
+    cacheReadTokens: { type: "number", description: "", required: true },
+    callCount: { type: "number", description: "", required: true },
+    estimatedCostUsd: { type: "number", description: "", required: true },
+    inputTokens: { type: "number", description: "", required: true },
+    model: { type: "string", description: "", required: true },
+    outputTokens: { type: "number", description: "", required: true },
+    provider: { type: "string", description: "", required: true },
   }}
 />
 

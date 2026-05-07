@@ -1,0 +1,249 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.v1;
+
+import "ai/stigmer/billing/v1/enum.proto";
+import "ai/stigmer/billing/v1/policy.proto";
+import "google/protobuf/timestamp.proto";
+
+// CreditLedgerEntry is an immutable, append-only record of a balance-affecting event.
+//
+// Every credit or debit produces exactly one ledger entry. Entries are never
+// updated or deleted. The balance_after_micros field creates a verifiable
+// chain — each entry's balance equals the previous entry's balance plus this
+// entry's amount_micros.
+message CreditLedgerEntry {
+  // Unique identifier for this ledger entry.
+  string entry_id = 1;
+
+  // Organization that owns this entry.
+  string org_id = 2;
+
+  // Classification of the balance change.
+  LedgerEntryType type = 3;
+
+  // Amount in micro-USD. Positive for credits, negative for debits.
+  int64 amount_micros = 4;
+
+  // Running balance after this entry was applied.
+  int64 balance_after_micros = 5;
+
+  // Client-supplied deduplication key. Prevents double-processing
+  // of webhook retries, usage reports, and admin adjustments.
+  string idempotency_key = 6;
+
+  // Billing policy rating details. Present only for usage_debit entries.
+  BillingUsageRating rating = 7;
+
+  // Contextual source information linking this entry to its origin.
+  CreditLedgerSource source = 8;
+
+  google.protobuf.Timestamp created_at = 9;
+}
+
+// CreditLedgerSource identifies the origin of a ledger entry for audit
+// and drill-down purposes.
+//
+// Fields are populated based on the entry type:
+// - usage_debit: execution_id, session_id, agent_id, llm_call_sequence
+// - purchase_credit / auto_recharge_credit: purchase_id
+// - adjustment_credit / adjustment_debit: adjusted_by, description
+// - reservation_hold / reservation_release: execution_id, reservation_id
+message CreditLedgerSource {
+  // Agent execution that generated this debit.
+  string execution_id = 1;
+
+  // Session containing the execution.
+  string session_id = 2;
+
+  // Agent that was executing.
+  string agent_id = 3;
+
+  // Sequence number of the LLM call within the execution (1-based).
+  int32 llm_call_sequence = 4;
+
+  // Credit purchase that funded this credit.
+  string purchase_id = 5;
+
+  // Credit grant being consumed or created.
+  string grant_id = 6;
+
+  // Reservation associated with this hold or release.
+  string reservation_id = 7;
+
+  // Identity account of the admin who made a manual adjustment.
+  string adjusted_by = 8;
+
+  // Human-readable reason for the entry.
+  string description = 9;
+}
+
+// CreditGrant tracks a discrete bucket of credits with its own expiry
+// and consumption state.
+//
+// Burn order: promotional grants are consumed before purchased grants.
+// Within the same kind, grants expiring soonest are consumed first.
+// The priority field provides explicit ordering when expiry dates are equal.
+message CreditGrant {
+  // Unique identifier for this grant.
+  string grant_id = 1;
+
+  // Organization that owns this grant.
+  string org_id = 2;
+
+  // How these credits were acquired.
+  CreditGrantKind kind = 3;
+
+  // Original amount when the grant was created.
+  int64 original_amount_micros = 4;
+
+  // Remaining unconsumed amount. Decremented as usage debits consume credits.
+  int64 remaining_amount_micros = 5;
+
+  // When this grant expires. Null for non-expiring grants (enterprise contracts).
+  google.protobuf.Timestamp expires_at = 6;
+
+  // Explicit burn order. Lower values are consumed first.
+  // Promotional grants default to 0; purchased grants default to 100.
+  int32 priority = 7;
+
+  google.protobuf.Timestamp created_at = 8;
+}
+
+// CreditPack defines a purchasable credit bundle in the self-serve catalog.
+//
+// Packs are static catalog entries, not user-created resources.
+// Launch catalog: Starter ($10/1,000 credits), Growth ($50/5,000), Team ($200/20,000).
+message CreditPack {
+  // Identifier for this pack (e.g., "starter", "growth", "team").
+  string pack_id = 1;
+
+  // Display name shown in the UI.
+  string display_name = 2;
+
+  // Price in micro-USD that the customer pays.
+  int64 price_micros = 3;
+
+  // Credits granted in micro-USD upon purchase.
+  // At launch, credits_micros equals price_micros (1 credit = $0.01, no volume bonus).
+  int64 credits_micros = 4;
+
+  // Whether this pack is currently available for purchase.
+  bool active = 5;
+}
+
+// ExecutionReservation tracks credits held for an active agent execution.
+//
+// Created at execution start (AuthorizeExecution), consumed incrementally
+// by per-LLM-call debits (via proxy-observed usage metering), and settled
+// at execution end (FinalizeExecution) to release any unused hold.
+message ExecutionReservation {
+  // Unique identifier for this reservation.
+  string reservation_id = 1;
+
+  // Organization that owns this reservation.
+  string org_id = 2;
+
+  // Agent execution this reservation is for.
+  string execution_id = 3;
+
+  // Total micro-USD reserved at execution start.
+  int64 reserved_micros = 4;
+
+  // Micro-USD consumed so far by usage debits against this reservation.
+  int64 consumed_micros = 5;
+
+  // Current lifecycle state.
+  ReservationStatus status = 6;
+
+  google.protobuf.Timestamp created_at = 7;
+
+  // Safety timeout: reservation auto-expires if not finalized.
+  google.protobuf.Timestamp expires_at = 8;
+}
+
+// CreditPurchase tracks a credit pack purchase through Stripe Checkout.
+//
+// Created with status PENDING when the Checkout Session is initiated.
+// Transitions to COMPLETED when the webhook confirms payment and credits
+// are provisioned, or to FAILED/EXPIRED if payment does not succeed.
+//
+// The checkout_session_id is set after the Stripe API call returns,
+// and payment_intent_id is populated by the webhook handler.
+message CreditPurchase {
+  // Unique identifier for this purchase.
+  string purchase_id = 1;
+
+  // Organization purchasing credits.
+  string org_id = 2;
+
+  // Credit pack being purchased (e.g., "starter", "growth", "team").
+  string pack_id = 3;
+
+  // Price paid in micro-USD.
+  int64 amount_paid_micros = 4;
+
+  // Credits to be provisioned in micro-USD upon successful payment.
+  int64 credits_granted_micros = 5;
+
+  // Current lifecycle status.
+  CreditPurchaseStatus status = 6;
+
+  // Stripe Customer ID used for this purchase.
+  string stripe_customer_id = 7;
+
+  // Stripe Checkout Session ID. Set after session creation.
+  string checkout_session_id = 8;
+
+  // Stripe PaymentIntent ID. Set by webhook on payment completion.
+  string payment_intent_id = 9;
+
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+// AutoRechargeEvent tracks a single automatic recharge attempt through
+// its lifecycle: claim → PaymentIntent creation → payment confirmation
+// → credit provisioning.
+//
+// Created with status PENDING when the billing system detects a balance
+// drop below the org's threshold and successfully claims a monthly cap
+// slot. Transitions to SUCCEEDED when the payment_intent.succeeded
+// webhook provisions credits, or to FAILED if payment fails.
+//
+// The monthly cap slot (BillingAccount.auto_recharge.current_month_charged_micros)
+// is claimed atomically before this document is created, and released
+// (decremented) if the event transitions to FAILED.
+message AutoRechargeEvent {
+  // Unique identifier for this recharge event.
+  string event_id = 1;
+
+  // Organization being recharged.
+  string org_id = 2;
+
+  // Amount charged to the payment method in micro-USD.
+  int64 amount_micros = 3;
+
+  // Credits to provision upon successful payment in micro-USD.
+  // Equal to amount_micros at launch (no volume bonus on recharges).
+  int64 credits_micros = 4;
+
+  // Stripe PaymentIntent ID. Set after PaymentIntent creation succeeds.
+  string payment_intent_id = 5;
+
+  // Current lifecycle status.
+  AutoRechargeEventStatus status = 6;
+
+  // Reason for failure, if status is FAILED.
+  string failure_reason = 7;
+
+  // Deduplication key for the ledger entry provisioning credits.
+  // Format: "auto_recharge_{event_id}".
+  string idempotency_key = 8;
+
+  // Stripe Customer ID used for this charge.
+  string stripe_customer_id = 9;
+
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp completed_at = 11;
+}

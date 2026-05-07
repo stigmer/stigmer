@@ -125,13 +125,13 @@ private static final long serialVersionUID = 0L;
   }
 
   public static final int TOTAL_USAGE_FIELD_NUMBER = 3;
-  private ai.stigmer.agentic.agentexecution.v1.UsageMetrics totalUsage_;
+  private ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate totalUsage_;
   /**
    * <pre>
    * Aggregated usage across all executions in this session.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
    * @return Whether the totalUsage field is set.
    */
   @java.lang.Override
@@ -143,23 +143,23 @@ private static final long serialVersionUID = 0L;
    * Aggregated usage across all executions in this session.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
    * @return The totalUsage.
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.UsageMetrics getTotalUsage() {
-    return totalUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.UsageMetrics.getDefaultInstance() : totalUsage_;
+  public ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate getTotalUsage() {
+    return totalUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.getDefaultInstance() : totalUsage_;
   }
   /**
    * <pre>
    * Aggregated usage across all executions in this session.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder getTotalUsageOrBuilder() {
-    return totalUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.UsageMetrics.getDefaultInstance() : totalUsage_;
+  public ai.stigmer.agentic.agentexecution.v1.UsageReportAggregateOrBuilder getTotalUsageOrBuilder() {
+    return totalUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.getDefaultInstance() : totalUsage_;
   }
 
   public static final int EXECUTIONS_FIELD_NUMBER = 4;
@@ -284,22 +284,7 @@ private static final long serialVersionUID = 0L;
     return modelBreakdown_.get(index);
   }
 
-  public static final int TOTAL_SUMMARIZATION_COST_USD_FIELD_NUMBER = 6;
-  private double totalSummarizationCostUsd_ = 0D;
-  /**
-   * <pre>
-   * Total summarization cost across all executions.
-   * </pre>
-   *
-   * <code>double total_summarization_cost_usd = 6 [json_name = "totalSummarizationCostUsd"];</code>
-   * @return The totalSummarizationCostUsd.
-   */
-  @java.lang.Override
-  public double getTotalSummarizationCostUsd() {
-    return totalSummarizationCostUsd_;
-  }
-
-  public static final int FIRST_EXECUTION_AT_FIELD_NUMBER = 7;
+  public static final int FIRST_EXECUTION_AT_FIELD_NUMBER = 6;
   @SuppressWarnings("serial")
   private volatile java.lang.Object firstExecutionAt_ = "";
   /**
@@ -307,7 +292,7 @@ private static final long serialVersionUID = 0L;
    * ISO 8601 timestamp of the first execution in this session.
    * </pre>
    *
-   * <code>string first_execution_at = 7 [json_name = "firstExecutionAt"];</code>
+   * <code>string first_execution_at = 6 [json_name = "firstExecutionAt"];</code>
    * @return The firstExecutionAt.
    */
   @java.lang.Override
@@ -328,7 +313,7 @@ private static final long serialVersionUID = 0L;
    * ISO 8601 timestamp of the first execution in this session.
    * </pre>
    *
-   * <code>string first_execution_at = 7 [json_name = "firstExecutionAt"];</code>
+   * <code>string first_execution_at = 6 [json_name = "firstExecutionAt"];</code>
    * @return The bytes for firstExecutionAt.
    */
   @java.lang.Override
@@ -346,7 +331,7 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int LAST_EXECUTION_AT_FIELD_NUMBER = 8;
+  public static final int LAST_EXECUTION_AT_FIELD_NUMBER = 7;
   @SuppressWarnings("serial")
   private volatile java.lang.Object lastExecutionAt_ = "";
   /**
@@ -354,7 +339,7 @@ private static final long serialVersionUID = 0L;
    * ISO 8601 timestamp of the most recent execution in this session.
    * </pre>
    *
-   * <code>string last_execution_at = 8 [json_name = "lastExecutionAt"];</code>
+   * <code>string last_execution_at = 7 [json_name = "lastExecutionAt"];</code>
    * @return The lastExecutionAt.
    */
   @java.lang.Override
@@ -375,7 +360,7 @@ private static final long serialVersionUID = 0L;
    * ISO 8601 timestamp of the most recent execution in this session.
    * </pre>
    *
-   * <code>string last_execution_at = 8 [json_name = "lastExecutionAt"];</code>
+   * <code>string last_execution_at = 7 [json_name = "lastExecutionAt"];</code>
    * @return The bytes for lastExecutionAt.
    */
   @java.lang.Override
@@ -422,14 +407,11 @@ private static final long serialVersionUID = 0L;
     for (int i = 0; i < modelBreakdown_.size(); i++) {
       output.writeMessage(5, modelBreakdown_.get(i));
     }
-    if (java.lang.Double.doubleToRawLongBits(totalSummarizationCostUsd_) != 0) {
-      output.writeDouble(6, totalSummarizationCostUsd_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(firstExecutionAt_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 7, firstExecutionAt_);
+      com.google.protobuf.GeneratedMessage.writeString(output, 6, firstExecutionAt_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(lastExecutionAt_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 8, lastExecutionAt_);
+      com.google.protobuf.GeneratedMessage.writeString(output, 7, lastExecutionAt_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -469,15 +451,11 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
-    if (java.lang.Double.doubleToRawLongBits(totalSummarizationCostUsd_) != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeDoubleSize(6, totalSummarizationCostUsd_);
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(firstExecutionAt_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(7, firstExecutionAt_);
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(6, firstExecutionAt_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(lastExecutionAt_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(8, lastExecutionAt_);
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(7, lastExecutionAt_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -507,9 +485,6 @@ private static final long serialVersionUID = 0L;
         .equals(other.getExecutionsList())) return false;
     if (!getModelBreakdownList()
         .equals(other.getModelBreakdownList())) return false;
-    if (java.lang.Double.doubleToLongBits(getTotalSummarizationCostUsd())
-        != java.lang.Double.doubleToLongBits(
-            other.getTotalSummarizationCostUsd())) return false;
     if (!getFirstExecutionAt()
         .equals(other.getFirstExecutionAt())) return false;
     if (!getLastExecutionAt()
@@ -541,9 +516,6 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + MODEL_BREAKDOWN_FIELD_NUMBER;
       hash = (53 * hash) + getModelBreakdownList().hashCode();
     }
-    hash = (37 * hash) + TOTAL_SUMMARIZATION_COST_USD_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        java.lang.Double.doubleToLongBits(getTotalSummarizationCostUsd()));
     hash = (37 * hash) + FIRST_EXECUTION_AT_FIELD_NUMBER;
     hash = (53 * hash) + getFirstExecutionAt().hashCode();
     hash = (37 * hash) + LAST_EXECUTION_AT_FIELD_NUMBER;
@@ -716,7 +688,6 @@ private static final long serialVersionUID = 0L;
         modelBreakdownBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000010);
-      totalSummarizationCostUsd_ = 0D;
       firstExecutionAt_ = "";
       lastExecutionAt_ = "";
       return this;
@@ -788,12 +759,9 @@ private static final long serialVersionUID = 0L;
         to_bitField0_ |= 0x00000001;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.totalSummarizationCostUsd_ = totalSummarizationCostUsd_;
-      }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
         result.firstExecutionAt_ = firstExecutionAt_;
       }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
+      if (((from_bitField0_ & 0x00000040) != 0)) {
         result.lastExecutionAt_ = lastExecutionAt_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -874,17 +842,14 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
-      if (java.lang.Double.doubleToRawLongBits(other.getTotalSummarizationCostUsd()) != 0) {
-        setTotalSummarizationCostUsd(other.getTotalSummarizationCostUsd());
-      }
       if (!other.getFirstExecutionAt().isEmpty()) {
         firstExecutionAt_ = other.firstExecutionAt_;
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000020;
         onChanged();
       }
       if (!other.getLastExecutionAt().isEmpty()) {
         lastExecutionAt_ = other.lastExecutionAt_;
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000040;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -956,21 +921,16 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 42
-            case 49: {
-              totalSummarizationCostUsd_ = input.readDouble();
+            case 50: {
+              firstExecutionAt_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000020;
               break;
-            } // case 49
+            } // case 50
             case 58: {
-              firstExecutionAt_ = input.readStringRequireUtf8();
+              lastExecutionAt_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000040;
               break;
             } // case 58
-            case 66: {
-              lastExecutionAt_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000080;
-              break;
-            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1124,15 +1084,15 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private ai.stigmer.agentic.agentexecution.v1.UsageMetrics totalUsage_;
+    private ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate totalUsage_;
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.UsageMetrics, ai.stigmer.agentic.agentexecution.v1.UsageMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder> totalUsageBuilder_;
+        ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate, ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.Builder, ai.stigmer.agentic.agentexecution.v1.UsageReportAggregateOrBuilder> totalUsageBuilder_;
     /**
      * <pre>
      * Aggregated usage across all executions in this session.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      * @return Whether the totalUsage field is set.
      */
     public boolean hasTotalUsage() {
@@ -1143,12 +1103,12 @@ private static final long serialVersionUID = 0L;
      * Aggregated usage across all executions in this session.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      * @return The totalUsage.
      */
-    public ai.stigmer.agentic.agentexecution.v1.UsageMetrics getTotalUsage() {
+    public ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate getTotalUsage() {
       if (totalUsageBuilder_ == null) {
-        return totalUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.UsageMetrics.getDefaultInstance() : totalUsage_;
+        return totalUsage_ == null ? ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.getDefaultInstance() : totalUsage_;
       } else {
         return totalUsageBuilder_.getMessage();
       }
@@ -1158,9 +1118,9 @@ private static final long serialVersionUID = 0L;
      * Aggregated usage across all executions in this session.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      */
-    public Builder setTotalUsage(ai.stigmer.agentic.agentexecution.v1.UsageMetrics value) {
+    public Builder setTotalUsage(ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate value) {
       if (totalUsageBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -1178,10 +1138,10 @@ private static final long serialVersionUID = 0L;
      * Aggregated usage across all executions in this session.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      */
     public Builder setTotalUsage(
-        ai.stigmer.agentic.agentexecution.v1.UsageMetrics.Builder builderForValue) {
+        ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.Builder builderForValue) {
       if (totalUsageBuilder_ == null) {
         totalUsage_ = builderForValue.build();
       } else {
@@ -1196,13 +1156,13 @@ private static final long serialVersionUID = 0L;
      * Aggregated usage across all executions in this session.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      */
-    public Builder mergeTotalUsage(ai.stigmer.agentic.agentexecution.v1.UsageMetrics value) {
+    public Builder mergeTotalUsage(ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate value) {
       if (totalUsageBuilder_ == null) {
         if (((bitField0_ & 0x00000004) != 0) &&
           totalUsage_ != null &&
-          totalUsage_ != ai.stigmer.agentic.agentexecution.v1.UsageMetrics.getDefaultInstance()) {
+          totalUsage_ != ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.getDefaultInstance()) {
           getTotalUsageBuilder().mergeFrom(value);
         } else {
           totalUsage_ = value;
@@ -1221,7 +1181,7 @@ private static final long serialVersionUID = 0L;
      * Aggregated usage across all executions in this session.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      */
     public Builder clearTotalUsage() {
       bitField0_ = (bitField0_ & ~0x00000004);
@@ -1238,9 +1198,9 @@ private static final long serialVersionUID = 0L;
      * Aggregated usage across all executions in this session.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.UsageMetrics.Builder getTotalUsageBuilder() {
+    public ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.Builder getTotalUsageBuilder() {
       bitField0_ |= 0x00000004;
       onChanged();
       return internalGetTotalUsageFieldBuilder().getBuilder();
@@ -1250,14 +1210,14 @@ private static final long serialVersionUID = 0L;
      * Aggregated usage across all executions in this session.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder getTotalUsageOrBuilder() {
+    public ai.stigmer.agentic.agentexecution.v1.UsageReportAggregateOrBuilder getTotalUsageOrBuilder() {
       if (totalUsageBuilder_ != null) {
         return totalUsageBuilder_.getMessageOrBuilder();
       } else {
         return totalUsage_ == null ?
-            ai.stigmer.agentic.agentexecution.v1.UsageMetrics.getDefaultInstance() : totalUsage_;
+            ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.getDefaultInstance() : totalUsage_;
       }
     }
     /**
@@ -1265,14 +1225,14 @@ private static final long serialVersionUID = 0L;
      * Aggregated usage across all executions in this session.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
      */
     private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.UsageMetrics, ai.stigmer.agentic.agentexecution.v1.UsageMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder> 
+        ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate, ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.Builder, ai.stigmer.agentic.agentexecution.v1.UsageReportAggregateOrBuilder> 
         internalGetTotalUsageFieldBuilder() {
       if (totalUsageBuilder_ == null) {
         totalUsageBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.agentexecution.v1.UsageMetrics, ai.stigmer.agentic.agentexecution.v1.UsageMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder>(
+            ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate, ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate.Builder, ai.stigmer.agentic.agentexecution.v1.UsageReportAggregateOrBuilder>(
                 getTotalUsage(),
                 getParentForChildren(),
                 isClean());
@@ -1905,57 +1865,13 @@ private static final long serialVersionUID = 0L;
       return modelBreakdownBuilder_;
     }
 
-    private double totalSummarizationCostUsd_ ;
-    /**
-     * <pre>
-     * Total summarization cost across all executions.
-     * </pre>
-     *
-     * <code>double total_summarization_cost_usd = 6 [json_name = "totalSummarizationCostUsd"];</code>
-     * @return The totalSummarizationCostUsd.
-     */
-    @java.lang.Override
-    public double getTotalSummarizationCostUsd() {
-      return totalSummarizationCostUsd_;
-    }
-    /**
-     * <pre>
-     * Total summarization cost across all executions.
-     * </pre>
-     *
-     * <code>double total_summarization_cost_usd = 6 [json_name = "totalSummarizationCostUsd"];</code>
-     * @param value The totalSummarizationCostUsd to set.
-     * @return This builder for chaining.
-     */
-    public Builder setTotalSummarizationCostUsd(double value) {
-
-      totalSummarizationCostUsd_ = value;
-      bitField0_ |= 0x00000020;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Total summarization cost across all executions.
-     * </pre>
-     *
-     * <code>double total_summarization_cost_usd = 6 [json_name = "totalSummarizationCostUsd"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearTotalSummarizationCostUsd() {
-      bitField0_ = (bitField0_ & ~0x00000020);
-      totalSummarizationCostUsd_ = 0D;
-      onChanged();
-      return this;
-    }
-
     private java.lang.Object firstExecutionAt_ = "";
     /**
      * <pre>
      * ISO 8601 timestamp of the first execution in this session.
      * </pre>
      *
-     * <code>string first_execution_at = 7 [json_name = "firstExecutionAt"];</code>
+     * <code>string first_execution_at = 6 [json_name = "firstExecutionAt"];</code>
      * @return The firstExecutionAt.
      */
     public java.lang.String getFirstExecutionAt() {
@@ -1975,7 +1891,7 @@ private static final long serialVersionUID = 0L;
      * ISO 8601 timestamp of the first execution in this session.
      * </pre>
      *
-     * <code>string first_execution_at = 7 [json_name = "firstExecutionAt"];</code>
+     * <code>string first_execution_at = 6 [json_name = "firstExecutionAt"];</code>
      * @return The bytes for firstExecutionAt.
      */
     public com.google.protobuf.ByteString
@@ -1996,7 +1912,7 @@ private static final long serialVersionUID = 0L;
      * ISO 8601 timestamp of the first execution in this session.
      * </pre>
      *
-     * <code>string first_execution_at = 7 [json_name = "firstExecutionAt"];</code>
+     * <code>string first_execution_at = 6 [json_name = "firstExecutionAt"];</code>
      * @param value The firstExecutionAt to set.
      * @return This builder for chaining.
      */
@@ -2004,7 +1920,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       firstExecutionAt_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2013,12 +1929,12 @@ private static final long serialVersionUID = 0L;
      * ISO 8601 timestamp of the first execution in this session.
      * </pre>
      *
-     * <code>string first_execution_at = 7 [json_name = "firstExecutionAt"];</code>
+     * <code>string first_execution_at = 6 [json_name = "firstExecutionAt"];</code>
      * @return This builder for chaining.
      */
     public Builder clearFirstExecutionAt() {
       firstExecutionAt_ = getDefaultInstance().getFirstExecutionAt();
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000020);
       onChanged();
       return this;
     }
@@ -2027,7 +1943,7 @@ private static final long serialVersionUID = 0L;
      * ISO 8601 timestamp of the first execution in this session.
      * </pre>
      *
-     * <code>string first_execution_at = 7 [json_name = "firstExecutionAt"];</code>
+     * <code>string first_execution_at = 6 [json_name = "firstExecutionAt"];</code>
      * @param value The bytes for firstExecutionAt to set.
      * @return This builder for chaining.
      */
@@ -2036,7 +1952,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       firstExecutionAt_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2047,7 +1963,7 @@ private static final long serialVersionUID = 0L;
      * ISO 8601 timestamp of the most recent execution in this session.
      * </pre>
      *
-     * <code>string last_execution_at = 8 [json_name = "lastExecutionAt"];</code>
+     * <code>string last_execution_at = 7 [json_name = "lastExecutionAt"];</code>
      * @return The lastExecutionAt.
      */
     public java.lang.String getLastExecutionAt() {
@@ -2067,7 +1983,7 @@ private static final long serialVersionUID = 0L;
      * ISO 8601 timestamp of the most recent execution in this session.
      * </pre>
      *
-     * <code>string last_execution_at = 8 [json_name = "lastExecutionAt"];</code>
+     * <code>string last_execution_at = 7 [json_name = "lastExecutionAt"];</code>
      * @return The bytes for lastExecutionAt.
      */
     public com.google.protobuf.ByteString
@@ -2088,7 +2004,7 @@ private static final long serialVersionUID = 0L;
      * ISO 8601 timestamp of the most recent execution in this session.
      * </pre>
      *
-     * <code>string last_execution_at = 8 [json_name = "lastExecutionAt"];</code>
+     * <code>string last_execution_at = 7 [json_name = "lastExecutionAt"];</code>
      * @param value The lastExecutionAt to set.
      * @return This builder for chaining.
      */
@@ -2096,7 +2012,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       lastExecutionAt_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2105,12 +2021,12 @@ private static final long serialVersionUID = 0L;
      * ISO 8601 timestamp of the most recent execution in this session.
      * </pre>
      *
-     * <code>string last_execution_at = 8 [json_name = "lastExecutionAt"];</code>
+     * <code>string last_execution_at = 7 [json_name = "lastExecutionAt"];</code>
      * @return This builder for chaining.
      */
     public Builder clearLastExecutionAt() {
       lastExecutionAt_ = getDefaultInstance().getLastExecutionAt();
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000040);
       onChanged();
       return this;
     }
@@ -2119,7 +2035,7 @@ private static final long serialVersionUID = 0L;
      * ISO 8601 timestamp of the most recent execution in this session.
      * </pre>
      *
-     * <code>string last_execution_at = 8 [json_name = "lastExecutionAt"];</code>
+     * <code>string last_execution_at = 7 [json_name = "lastExecutionAt"];</code>
      * @param value The bytes for lastExecutionAt to set.
      * @return This builder for chaining.
      */
@@ -2128,7 +2044,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       lastExecutionAt_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }

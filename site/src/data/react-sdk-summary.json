@@ -29,11 +29,18 @@
       "components": 1
     },
     {
+      "slug": "billing",
+      "title": "billing",
+      "description": "",
+      "hooks": 7,
+      "components": 7
+    },
+    {
       "slug": "composer",
       "title": "Composer",
       "description": "The unified message input with model selection, workspace, and attachments.",
       "hooks": 1,
-      "components": 1
+      "components": 0
     },
     {
       "slug": "environment",
@@ -54,7 +61,7 @@
       "title": "Execution",
       "description": "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
       "hooks": 7,
-      "components": 27
+      "components": 22
     },
     {
       "slug": "github",
@@ -69,6 +76,13 @@
       "description": "Hooks and components for access control bindings, role assignment, and org membership.",
       "hooks": 8,
       "components": 3
+    },
+    {
+      "slug": "identity-account",
+      "title": "identity-account",
+      "description": "",
+      "hooks": 1,
+      "components": 0
     },
     {
       "slug": "identity-provider",
@@ -158,8 +172,8 @@
       "slug": "usage",
       "title": "Usage",
       "description": "Hooks and components for organization-level usage reporting and cost breakdown.",
-      "hooks": 1,
-      "components": 1
+      "hooks": 2,
+      "components": 5
     },
     {
       "slug": "user",

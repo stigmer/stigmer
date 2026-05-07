@@ -207,6 +207,7 @@ class LLMConfig:
         proxy_endpoint: str | None = None,
         proxy_auth_token: str | None = None,
         execution_id: str | None = None,
+        mcp_server_id: str | None = None,
     ) -> dict[str, Any]:
         """Build provider-appropriate kwargs for ``parse_model_string``.
         
@@ -228,6 +229,11 @@ class LLMConfig:
             execution_id: Agent execution ID for proxy authorization.
                 When set, included as ``X-Stigmer-Execution-Id`` header
                 so the proxy can verify FGA access.
+            mcp_server_id: MCP server ID for proxy authorization.
+                When set, included as ``X-Stigmer-Mcp-Server-Id`` header
+                so the proxy can verify FGA ``can_connect`` access.
+                Used by the classify workflow where no agent execution
+                exists yet.
         
         Returns:
             Dict of kwargs to pass to ``parse_model_string``.
@@ -245,10 +251,13 @@ class LLMConfig:
                 "base_url": proxy_base,
                 "api_key": proxy_auth_token,
             }
+            headers: dict[str, str] = {}
             if execution_id:
-                kwargs["default_headers"] = {
-                    "X-Stigmer-Execution-Id": execution_id,
-                }
+                headers["X-Stigmer-Execution-Id"] = execution_id
+            if mcp_server_id:
+                headers["X-Stigmer-Mcp-Server-Id"] = mcp_server_id
+            if headers:
+                kwargs["default_headers"] = headers
             return kwargs
         
         if self.provider == "ollama":

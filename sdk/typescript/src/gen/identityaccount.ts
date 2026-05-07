@@ -62,9 +62,9 @@ export class IdentityAccountClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async simulateSignupWebhook(input: IdentityAccountEmail): Promise<void> {
+  async provisionMyAccount(): Promise<IdentityAccount> {
     try {
-      await this.command.simulateSignupWebhook(input);
+      return await this.command.provisionMyAccount(create(EmptySchema, {}));
     } catch (e) { throw wrapError(e); }
   }
 

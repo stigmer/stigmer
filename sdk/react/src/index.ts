@@ -2,6 +2,10 @@
 export { StigmerProvider, type StigmerProviderProps } from "./provider";
 export { StigmerContext } from "./context";
 
+// Fetch cache
+export { FetchCacheProvider } from "./internal/FetchCacheProvider";
+export type { FetchCacheOptions } from "./internal/fetch-cache";
+
 // Hooks
 export { useStigmer } from "./hooks";
 
@@ -139,6 +143,7 @@ export {
   SubAgentSection,
   MessageEntry,
   MessageThread,
+  ThreadSkeleton,
   FollowUpInput,
   ApprovalCard,
   ArtifactCard,
@@ -189,6 +194,7 @@ export type {
   SubAgentSectionProps,
   MessageEntryProps,
   MessageThreadProps,
+  ThreadSkeletonProps,
   FollowUpInputProps,
   ApprovalCardProps,
   ArtifactCardProps,
@@ -417,6 +423,15 @@ export type {
   UseSessionEnvPoolReturn,
 } from "./environment";
 
+// Identity Account — gate hook for ensuring the caller's identity account exists before app render
+export {
+  useIdentityAccountGate,
+} from "./identity-account";
+export type {
+  IdentityAccountGateState,
+  UseIdentityAccountGateReturn,
+} from "./identity-account";
+
 // IAM Policy — data hooks, behavior hooks, headless hook, and styled components for access management
 export {
   useGrantableRoles,
@@ -473,6 +488,53 @@ export type {
   OrgProfilePanelProps,
   OrgSwitcherProps,
 } from "./organization";
+
+// Billing — data hooks, behavior hooks, styled components, catalog, and formatting utilities
+export {
+  useBillingAccount,
+  useCreditLedger,
+  useBillingUsageReport,
+  useCustomerModelPricing,
+  useCreateCheckoutSession,
+  useCreateBillingPortalSession,
+  useSetAutoRechargeConfig,
+  BillingSection,
+  CreditBalanceCard,
+  PaymentMethodCard,
+  AutoRechargeCard,
+  CreditPackGrid,
+  CreditLedgerTable,
+  LowBalanceBanner,
+  CREDIT_PACKS,
+  formatPackPrice,
+  formatCreditCount,
+  formatCreditBalance,
+  formatLedgerAmount,
+  ledgerEntryLabel,
+  isCredit,
+  isHold,
+  formatLedgerDate,
+} from "./billing";
+export type {
+  UseBillingAccountReturn,
+  UseCreditLedgerReturn,
+  UseCreditLedgerOptions,
+  UseBillingUsageReportReturn,
+  UseCustomerModelPricingReturn,
+  CreateCheckoutSessionInput,
+  UseCreateCheckoutSessionReturn,
+  UseCreateBillingPortalSessionReturn,
+  SetAutoRechargeConfigInput,
+  UseSetAutoRechargeConfigReturn,
+  BillingSectionProps,
+  CreditBalanceCardProps,
+  PaymentMethodCardProps,
+  AutoRechargeCardProps,
+  CreditPackGridProps,
+  CreditLedgerTableProps,
+  LowBalanceBannerProps,
+  CreditPackInfo,
+} from "./billing";
 
 // Settings — navigation structure + section components shared across app shells
 export { SETTINGS_NAV_GROUPS } from "./settings";
@@ -666,6 +728,11 @@ export type {
 export {
   useOrgUsageReport,
   OrgUsagePanel,
+  CreditRunwayIndicator,
+  AgentBreakdownList,
+  HarnessSplitCard,
+  useExportCSV,
+  ExportButton,
   DATE_RANGE_PRESETS,
   dateRangeFromPreset,
   formatDateRange,
@@ -674,6 +741,12 @@ export {
 export type {
   UseOrgUsageReportReturn,
   OrgUsagePanelProps,
+  CreditRunwayIndicatorProps,
+  AgentBreakdownListProps,
+  HarnessSplitCardProps,
+  UseExportCSVReturn,
+  ExportFormat,
+  ExportButtonProps,
   DateRange,
   DateRangePreset,
 } from "./usage";

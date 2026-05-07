@@ -59,6 +59,7 @@ async def _generate_sub_agent_subject(
     input_text: str,
     sub_agent_name: str,
     existing_subjects: list[str] | None = None,
+    execution_id: str | None = None,
 ) -> str:
     """Generate a concise task title for a sub-agent from its input prompt.
 
@@ -85,6 +86,7 @@ async def _generate_sub_agent_subject(
         llm_kwargs = worker_config.llm.build_llm_kwargs(
             proxy_endpoint=worker_config.stigmer_proxy_endpoint,
             proxy_auth_token=worker_config.stigmer_token,
+            execution_id=execution_id,
         )
 
         model = parse_model_string(
@@ -224,7 +226,9 @@ async def handle_sub_agent_start(
     )
     existing = list(sb.state.subject_counts.keys())
     subject = await _generate_sub_agent_subject(
-        sub_agent_input, sub_agent_name, existing_subjects=existing,
+        sub_agent_input, sub_agent_name,
+        existing_subjects=existing,
+        execution_id=sb.execution_id,
     )
 
     if subject:

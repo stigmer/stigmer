@@ -13,10 +13,37 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation + RUNNER_PHASE_STARTING lifecycle + cursor-runner enum crash fix + parallel bootstrap + Temporal routing fix + process resilience + proxy observability + event visibility (tool calls, sub-agents, thinking) + delta enrichment (shell output, tool timing) + **model selector harness fix**
-- **Last Session**: May 2, 2026 — Session 23: Fix Model Selector Harness Filtering & Follow-Up Auto-Selection
-- **Active Task**: None — model selector fixes implemented and tested
-- **Branch**: `feat/cursor-harness`
+- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation + RUNNER_PHASE_STARTING lifecycle + cursor-runner enum crash fix + parallel bootstrap + Temporal routing fix + process resilience + proxy observability + event visibility (tool calls, sub-agents, thinking) + delta enrichment (shell output, tool timing) + model selector harness fix + **user-facing documentation**
+- **Last Session**: May 3, 2026 — Session 24: Cursor Harness User-Facing Documentation
+- **Active Task**: None — documentation complete and committed
+- **Branch**: `feat/react-sdk-streaming-ux`
+
+## Session Progress (May 3, 2026 — Session 24)
+
+### Cursor Harness User-Facing Documentation
+
+Added comprehensive user-facing documentation for the Cursor harness feature across the docs site. Applied a three-layer strategy following Diataxis methodology:
+
+**New pages:**
+- `docs/concepts/harnesses.mdx` — Explanation page: what harnesses are, native vs Cursor comparison table, architecture diagram, SDK examples
+- `docs/guides/runners/cursor-harness.mdx` — How-to guide: local setup (env var, `stigmer up`), cloud setup, session creation, model selection, approval flows, limitations, troubleshooting
+
+**Updated pages:**
+- `docs/vocabulary.md` — Harness (Tier 1), Cursor harness (Tier 2), cursor-runner (Tier 3), quick-reference table row
+- `docs/concepts/sessions.mdx` — Harness section with YAML example and cross-link
+- `docs/concepts/runners.mdx` — Dual-worker paragraph, Cursor harness guide link in What's next
+- `docs/guides/runners/overview.mdx` — Cursor harness card in guides grid
+- `docs/concepts/meta.json` — Added `"harnesses"` after `"runners"`
+- `docs/guides/runners/meta.json` — Added `"cursor-harness"` after `"cloud-mode"`
+
+**Decisions:**
+- Named "Harnesses" (matching API term); vocabulary bridges to "execution engine" for sales contexts
+- Skipped interactive demo (explanation page; deferred until UI stabilizes)
+- Excluded cloud proxy details (backend/operator concern)
+- Did not touch getting-started (progressive disclosure)
+- SDK reference pages already correct via codegen — no edits needed
+
+**Commit**: `98cf4876a` — `docs: add Cursor harness concept page, setup guide, and vocabulary entries`
 
 ## Session Progress (May 2, 2026 — Session 23)
 
@@ -107,6 +134,7 @@ Fixed a critical non-deterministic routing bug: Temporal dispatches activity tas
 7. PR review and merge of `feat/cursor-harness` branch (stigmer OSS)
 8. PR review and merge of CursorProxyController changes (stigmer-cloud)
 9. Release
+10. **Future docs**: Add Scenar interactive demo when the harness selector UI stabilizes
 
 ## Context for Resume
 

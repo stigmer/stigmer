@@ -201,6 +201,37 @@ public final class AgentExecutionQueryControllerGrpc {
     return getGetArtifactContentMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput,
+      ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput> getGetExecutionUsageReportMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getExecutionUsageReport",
+      requestType = ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput.class,
+      responseType = ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput,
+      ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput> getGetExecutionUsageReportMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput, ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput> getGetExecutionUsageReportMethod;
+    if ((getGetExecutionUsageReportMethod = AgentExecutionQueryControllerGrpc.getGetExecutionUsageReportMethod) == null) {
+      synchronized (AgentExecutionQueryControllerGrpc.class) {
+        if ((getGetExecutionUsageReportMethod = AgentExecutionQueryControllerGrpc.getGetExecutionUsageReportMethod) == null) {
+          AgentExecutionQueryControllerGrpc.getGetExecutionUsageReportMethod = getGetExecutionUsageReportMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput, ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getExecutionUsageReport"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentExecutionQueryControllerMethodDescriptorSupplier("getExecutionUsageReport"))
+              .build();
+        }
+      }
+    }
+    return getGetExecutionUsageReportMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput,
       ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput> getGetSessionUsageReportMethod;
 
@@ -475,8 +506,19 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
+     * Get a usage report for a single execution.
+     * Returns aggregated tokens, cost, and per-model breakdown for one execution.
+     * </pre>
+     */
+    default void getExecutionUsageReport(ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetExecutionUsageReportMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Get a usage report for a session.
-     * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+     * Returns aggregated tokens, cost, and per-execution breakdown.
      * </pre>
      */
     default void getSessionUsageReport(ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput request,
@@ -664,8 +706,20 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
+     * Get a usage report for a single execution.
+     * Returns aggregated tokens, cost, and per-model breakdown for one execution.
+     * </pre>
+     */
+    public void getExecutionUsageReport(ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetExecutionUsageReportMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Get a usage report for a session.
-     * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+     * Returns aggregated tokens, cost, and per-execution breakdown.
      * </pre>
      */
     public void getSessionUsageReport(ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput request,
@@ -838,8 +892,19 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
+     * Get a usage report for a single execution.
+     * Returns aggregated tokens, cost, and per-model breakdown for one execution.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput getExecutionUsageReport(ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetExecutionUsageReportMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Get a usage report for a session.
-     * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+     * Returns aggregated tokens, cost, and per-execution breakdown.
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput getSessionUsageReport(ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput request) throws io.grpc.StatusException {
@@ -1008,8 +1073,19 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
+     * Get a usage report for a single execution.
+     * Returns aggregated tokens, cost, and per-model breakdown for one execution.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput getExecutionUsageReport(ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetExecutionUsageReportMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Get a usage report for a session.
-     * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+     * Returns aggregated tokens, cost, and per-execution breakdown.
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput getSessionUsageReport(ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput request) {
@@ -1170,8 +1246,20 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
+     * Get a usage report for a single execution.
+     * Returns aggregated tokens, cost, and per-model breakdown for one execution.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput> getExecutionUsageReport(
+        ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetExecutionUsageReportMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Get a usage report for a session.
-     * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+     * Returns aggregated tokens, cost, and per-execution breakdown.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput> getSessionUsageReport(
@@ -1214,9 +1302,10 @@ public final class AgentExecutionQueryControllerGrpc {
   private static final int METHODID_SUBSCRIBE = 3;
   private static final int METHODID_GET_ARTIFACT_DOWNLOAD_URL = 4;
   private static final int METHODID_GET_ARTIFACT_CONTENT = 5;
-  private static final int METHODID_GET_SESSION_USAGE_REPORT = 6;
-  private static final int METHODID_GET_AGENT_USAGE_REPORT = 7;
-  private static final int METHODID_GET_ORG_USAGE_REPORT = 8;
+  private static final int METHODID_GET_EXECUTION_USAGE_REPORT = 6;
+  private static final int METHODID_GET_SESSION_USAGE_REPORT = 7;
+  private static final int METHODID_GET_AGENT_USAGE_REPORT = 8;
+  private static final int METHODID_GET_ORG_USAGE_REPORT = 9;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1258,6 +1347,10 @@ public final class AgentExecutionQueryControllerGrpc {
         case METHODID_GET_ARTIFACT_CONTENT:
           serviceImpl.getArtifactContent((ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse>) responseObserver);
+          break;
+        case METHODID_GET_EXECUTION_USAGE_REPORT:
+          serviceImpl.getExecutionUsageReport((ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput>) responseObserver);
           break;
         case METHODID_GET_SESSION_USAGE_REPORT:
           serviceImpl.getSessionUsageReport((ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput) request,
@@ -1331,6 +1424,13 @@ public final class AgentExecutionQueryControllerGrpc {
               ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest,
               ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse>(
                 service, METHODID_GET_ARTIFACT_CONTENT)))
+        .addMethod(
+          getGetExecutionUsageReportMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput,
+              ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput>(
+                service, METHODID_GET_EXECUTION_USAGE_REPORT)))
         .addMethod(
           getGetSessionUsageReportMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1406,6 +1506,7 @@ public final class AgentExecutionQueryControllerGrpc {
               .addMethod(getSubscribeMethod())
               .addMethod(getGetArtifactDownloadUrlMethod())
               .addMethod(getGetArtifactContentMethod())
+              .addMethod(getGetExecutionUsageReportMethod())
               .addMethod(getGetSessionUsageReportMethod())
               .addMethod(getGetAgentUsageReportMethod())
               .addMethod(getGetOrgUsageReportMethod())

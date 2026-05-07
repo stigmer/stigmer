@@ -62,6 +62,7 @@ export function useSession(id: string | null): UseSessionReturn {
     id ? () => stigmer.session.get(id) : null,
     [id, stigmer],
     null as Session | null,
+    { cacheKey: id ? `session:${id}` : undefined },
   );
 
   return { session, isLoading, isRefetching, error, refetch };

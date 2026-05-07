@@ -1,5 +1,4 @@
 from ai.stigmer.agentic.agentexecution.v1 import enum_pb2 as _enum_pb2
-from ai.stigmer.agentic.agentexecution.v1 import usage_pb2 as _usage_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf.internal import containers as _containers
@@ -11,22 +10,20 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentMessage(_message.Message):
-    __slots__ = ("type", "content", "timestamp", "tool_calls", "metadata", "is_streaming", "llm_metrics")
+    __slots__ = ("type", "content", "timestamp", "tool_calls", "metadata", "is_streaming")
     TYPE_FIELD_NUMBER: _ClassVar[int]
     CONTENT_FIELD_NUMBER: _ClassVar[int]
     TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
     TOOL_CALLS_FIELD_NUMBER: _ClassVar[int]
     METADATA_FIELD_NUMBER: _ClassVar[int]
     IS_STREAMING_FIELD_NUMBER: _ClassVar[int]
-    LLM_METRICS_FIELD_NUMBER: _ClassVar[int]
     type: _enum_pb2.MessageType
     content: str
     timestamp: str
     tool_calls: _containers.RepeatedCompositeFieldContainer[ToolCall]
     metadata: _struct_pb2.Struct
     is_streaming: bool
-    llm_metrics: _usage_pb2.LlmCallMetrics
-    def __init__(self, type: _Optional[_Union[_enum_pb2.MessageType, str]] = ..., content: _Optional[str] = ..., timestamp: _Optional[str] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., is_streaming: bool = ..., llm_metrics: _Optional[_Union[_usage_pb2.LlmCallMetrics, _Mapping]] = ...) -> None: ...
+    def __init__(self, type: _Optional[_Union[_enum_pb2.MessageType, str]] = ..., content: _Optional[str] = ..., timestamp: _Optional[str] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., is_streaming: bool = ...) -> None: ...
 
 class ToolCall(_message.Message):
     __slots__ = ("id", "name", "args", "result", "status", "started_at", "completed_at", "error", "requires_approval", "approval_message", "approval_requested_at", "approval_decided_at", "approved_by", "approval_action", "is_streaming", "streaming_source", "mcp_server_slug", "args_preview")

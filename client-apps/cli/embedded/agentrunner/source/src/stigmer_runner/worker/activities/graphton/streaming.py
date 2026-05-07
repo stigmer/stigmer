@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
+    ExecutionControlSignal,
     ExecutionPhase,
     MessageType,
     SubAgentStatus,
@@ -29,6 +30,7 @@ from stigmer_runner.worker.activities.graphton.status_builder import StatusBuild
 from stigmer_runner.worker.streaming import StreamingConfig, StreamingUpdateScheduler
 
 if TYPE_CHECKING:
+    from graphton.core.graceful_stop import GracefulStopMiddleware
     from stigmer_runner.grpc_client.agent_execution_client import AgentExecutionClient
 
 _FILE_MODIFYING_TOOLS = frozenset({
@@ -76,6 +78,7 @@ class StreamExecutor:
         is_cancelled_fn: Callable[[], bool],
         slim_status_fn: Callable[[AgentExecutionStatus], AgentExecutionStatus],
         logger: logging.Logger,
+        graceful_stop: GracefulStopMiddleware | None = None,
         on_file_written: Callable[[str], Any] | None = None,
         on_git_file_modified: Callable[[str], Any] | None = None,
     ) -> None:
@@ -93,6 +96,7 @@ class StreamExecutor:
         self._is_cancelled = is_cancelled_fn
         self._slim_status = slim_status_fn
         self._log = logger
+        self._graceful_stop = graceful_stop
         self._on_file_written = on_file_written
         self._on_git_file_modified = on_git_file_modified
         self._pending_publishes: set[asyncio.Task[None]] = set()
@@ -430,7 +434,7 @@ class StreamExecutor:
                 len(self._sb.current_status.messages),
                 self._sb.tool_call_count(),
             )
-            await asyncio.wait_for(
+            response = await asyncio.wait_for(
                 self._exec_client.update_status(
                     execution_id=self._execution_id,
                     status=self._sb.current_status,
@@ -438,6 +442,7 @@ class StreamExecutor:
                 timeout=self._grpc_timeout,
             )
             scheduler.mark_update_sent(events_processed)
+            self._handle_control_signal(response)
         except TimeoutError:
             self._log.warning(
                 "[STREAM] execution=%s update_sent=false reason=grpc_timeout "
@@ -456,6 +461,28 @@ class StreamExecutor:
             self._log.debug("Processed %d events", events_processed)
 
         return events_processed, last_hb_time
+
+    # ------------------------------------------------------------------
+    # Platform signal handling
+    # ------------------------------------------------------------------
+
+    def _handle_control_signal(self, response: Any) -> None:
+        """Act on the ExecutionControlSignal returned by updateStatus."""
+        signal = getattr(response, "signal", 0)
+        if signal == ExecutionControlSignal.EXECUTION_CONTROL_SIGNAL_STOP:
+            reason = getattr(response, "signal_reason", "")
+            self._log.warning(
+                "[PLATFORM_STOP] execution=%s signal=STOP reason=%s",
+                self._execution_id, reason or "unspecified",
+            )
+            if self._graceful_stop is not None and not self._graceful_stop.activated:
+                self._graceful_stop.activate(reason)
+        elif signal == ExecutionControlSignal.EXECUTION_CONTROL_SIGNAL_WARNING:
+            reason = getattr(response, "signal_reason", "")
+            self._log.warning(
+                "[PLATFORM_WARNING] execution=%s reason=%s",
+                self._execution_id, reason or "unspecified",
+            )
 
     # ------------------------------------------------------------------
     # Terminal-state handlers

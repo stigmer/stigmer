@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import Markdown from "react-markdown";
+import { memo, useState } from "react";
+import { Streamdown } from "streamdown";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-components";
+import { MARKDOWN_COMPONENTS } from "../internal/markdown-components";
+import { useRenderTracer } from "../internal/dev";
 
 /** Props for {@link MessageEntry}. */
 export interface MessageEntryProps {
@@ -19,13 +20,17 @@ export interface MessageEntryProps {
  * Renders a single message in the conversation thread.
  *
  * - `MESSAGE_HUMAN` — plain text with muted background
- * - `MESSAGE_AI` — markdown-rendered via `react-markdown` + `remark-gfm`,
- *   with a blinking cursor while streaming
+ * - `MESSAGE_AI` — markdown-rendered via Streamdown with block-level
+ *   memoization and streaming-aware incomplete-syntax healing
  * - `MESSAGE_THINKING` — collapsible thinking block with subdued styling,
  *   collapsed by default showing a brief summary
  * - `MESSAGE_SYSTEM` — small muted text
  * - `MESSAGE_TOOL` / `UNSPECIFIED` — renders nothing (tool results are
  *   consumed by {@link ToolCallGroup})
+ *
+ * Wrapped in `React.memo` — structural sharing (T04) guarantees that
+ * unchanged messages keep the same object reference, so completed
+ * messages skip re-renders entirely during streaming.
  *
  * Purely presentational — no data fetching, no state.
  * All visual properties flow through `--stgm-*` tokens.
@@ -35,7 +40,16 @@ export interface MessageEntryProps {
  * <MessageEntry message={agentMessage} />
  * ```
  */
-export function MessageEntry({ message, className }: MessageEntryProps) {
+export const MessageEntry = memo(function MessageEntry({
+  message,
+  className,
+}: MessageEntryProps) {
+  useRenderTracer("MessageEntry", {
+    messageType: message.type,
+    contentLength: message.content.length,
+    isStreaming: message.isStreaming,
+  });
+
   switch (message.type) {
     case MessageType.MESSAGE_HUMAN:
       return <HumanMessage content={message.content} className={className} />;
@@ -60,7 +74,7 @@ export function MessageEntry({ message, className }: MessageEntryProps) {
     default:
       return null;
   }
-}
+});
 
 function HumanMessage({
   content,
@@ -89,6 +103,8 @@ function AiMessage({
   isStreaming: boolean;
   className?: string;
 }) {
+  useRenderTracer("AiMessage", { contentLength: content.length, isStreaming });
+
   return (
     <div
       role="article"
@@ -97,18 +113,13 @@ function AiMessage({
       className={cn("px-4 py-3", className)}
     >
       <div className="stgm-prose">
-        <Markdown
-          remarkPlugins={REMARK_PLUGINS}
+        <Streamdown
           components={MARKDOWN_COMPONENTS}
+          isAnimating={isStreaming}
+          caret="block"
         >
           {content}
-        </Markdown>
-        {isStreaming && (
-          <span
-            className="inline-block w-[2px] h-[1em] bg-foreground align-text-bottom animate-pulse ml-0.5"
-            aria-hidden="true"
-          />
-        )}
+        </Streamdown>
       </div>
     </div>
   );

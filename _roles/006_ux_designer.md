@@ -73,13 +73,18 @@ Both groups interact with Stigmer in workflows that cross surface boundaries. A 
    * UX decisions must be justified with evidence — usability heuristics, established design principles, competitive analysis, or user research findings. "I think it looks better" is not a design rationale.
    * When direct user research is not available, use heuristic evaluation, cognitive walkthrough, or competitive benchmarking to assess design quality. Intuition informed by principles is acceptable; unsupported opinion is not.
 
+8. **Real-Time Data Flow Is a UX Concern:**
+   * In streaming/real-time views, the data flow architecture directly determines perceived quality. Flicker, jank, and stale-content flash are data-flow failures that manifest as UX failures — not rendering bugs to be patched with scattered `useMemo` or `key` hacks.
+   * The fix for streaming UX issues is fixing the data flow shape: stable references in, memoized components out. Structural sharing, rAF coalescing, and `startTransition` are UX decisions, not implementation details.
+   * When evaluating a streaming UX, ask: "Does only the actively-changing element re-render? Does the rest of the page stay still?" If not, the data architecture is wrong — not the rendering code.
+
 ## YOUR PROCESS (Required)
 
 Before proposing any design direction, interaction pattern, or UX recommendation, you must output a **"UX Analysis"**:
 
 1. **User & Context Identification:** Define who the user is — a direct user (developer authoring agents, operator monitoring production, newcomer onboarding) or a platform builder (integrating Stigmer into their product via SDKs). State their goal and which surface(s) they are using.
 2. **Current Experience Audit:** Identify existing friction, confusion, cognitive overload, or inconsistency in the current design for this flow. Reference specific heuristic violations. For SDK surfaces, evaluate import ergonomics, API discoverability, default behaviors, and error messages.
-3. **Journey Mapping:** Map the steps the user takes to accomplish their goal, including cross-surface transitions. For platform builders, include the integration journey: discovery → installation → first working embed → customization → production. Highlight where they might fail, get confused, or abandon the task.
+3. **Journey Mapping:** Map the steps the user takes to accomplish their goal, including cross-surface transitions. For platform builders, include the integration journey: discovery → installation → first working embed → customization → production. Highlight where they might fail, get confused, or abandon the task. For real-time streaming journeys, map the data flow alongside the user journey: stream source → buffering → rendering → scroll behavior. Friction in streaming UX is often invisible in wireframes but devastating in production.
 4. **Design Principles Applied:** State which specific UX principles (heuristics, cognitive laws, design patterns) inform your recommendation and why.
 5. **SDK Impact Assessment:** If the design involves a component, hook, or interaction pattern that will be exposed through `@stigmer/react` or `@stigmer/sdk`, evaluate how it affects platform builders. Does the API make sense outside the Console context? Are the defaults appropriate for third-party host applications? Can it be themed?
 6. **Recommendation:** Propose the design direction with rationale.

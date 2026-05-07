@@ -12,6 +12,10 @@ import type { Stigmer } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import { useExecutionStream } from "../useExecutionStream";
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
 /**
  * Creates a controllable async generator. Call `push(value)` to yield
  * the next value, `finish()` to end the stream, or `fail(err)` to
@@ -61,7 +65,9 @@ function makeSnapshot(phase: ExecutionPhase): AgentExecution {
   return exec;
 }
 
-function createMockStigmer(subscribeFn: Stigmer["agentExecution"]["subscribe"]) {
+function createMockStigmer(
+  subscribeFn: Stigmer["agentExecution"]["subscribe"],
+) {
   return {
     agentExecution: { subscribe: subscribeFn },
   } as unknown as Stigmer;
@@ -70,10 +76,16 @@ function createMockStigmer(subscribeFn: Stigmer["agentExecution"]["subscribe"]) 
 function createWrapper(client: Stigmer) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <StigmerContext.Provider value={client}>{children}</StigmerContext.Provider>
+      <StigmerContext.Provider value={client}>
+        {children}
+      </StigmerContext.Provider>
     );
   };
 }
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
 
 describe("useExecutionStream", () => {
   let stream: ReturnType<typeof createControllableStream<AgentExecution>>;
@@ -98,12 +110,14 @@ describe("useExecutionStream", () => {
     expect(subscribeFn).not.toHaveBeenCalled();
   });
 
-  it("starts in isConnecting state when given an ID", () => {
+  it("starts in isConnecting state when given an ID", async () => {
     const { result } = renderHook(() => useExecutionStream("exec-1"), {
       wrapper: createWrapper(mockStigmer),
     });
 
-    expect(result.current.isConnecting).toBe(true);
+    await waitFor(() => {
+      expect(result.current.isConnecting).toBe(true);
+    });
     expect(result.current.isStreaming).toBe(false);
     expect(result.current.execution).toBeNull();
   });
@@ -129,18 +143,25 @@ describe("useExecutionStream", () => {
       wrapper: createWrapper(mockStigmer),
     });
 
-    const snap1 = makeSnapshot(ExecutionPhase.EXECUTION_PENDING);
-    act(() => stream.push(snap1));
-
-    await waitFor(() => {
-      expect(result.current.execution).toBe(snap1);
+    act(() => {
+      stream.push(makeSnapshot(ExecutionPhase.EXECUTION_PENDING));
     });
 
-    const snap2 = makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS);
-    act(() => stream.push(snap2));
+    await waitFor(() => {
+      expect(result.current.execution).not.toBeNull();
+      expect(result.current.execution?.status?.phase).toBe(
+        ExecutionPhase.EXECUTION_PENDING,
+      );
+    });
+
+    act(() => {
+      stream.push(makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS));
+    });
 
     await waitFor(() => {
-      expect(result.current.execution).toBe(snap2);
+      expect(result.current.execution?.status?.phase).toBe(
+        ExecutionPhase.EXECUTION_IN_PROGRESS,
+      );
     });
   });
 
@@ -222,8 +243,10 @@ describe("useExecutionStream", () => {
 
     rerender({ id: "exec-2" });
 
-    expect(result.current.isConnecting).toBe(true);
-    expect(result.current.execution).toBeNull();
+    await waitFor(() => {
+      expect(result.current.isConnecting).toBe(true);
+      expect(result.current.execution).toBeNull();
+    });
     expect(subscribeFn).toHaveBeenCalledTimes(2);
   });
 
@@ -238,5 +261,79 @@ describe("useExecutionStream", () => {
     unmount();
 
     expect(signal.aborted).toBe(true);
+  });
+
+  it("resets state when executionId becomes null", async () => {
+    const { result, rerender } = renderHook(
+      ({ id }: { id: string | null }) => useExecutionStream(id),
+      {
+        wrapper: createWrapper(mockStigmer),
+        initialProps: { id: "exec-1" as string | null },
+      },
+    );
+
+    act(() => {
+      stream.push(makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS));
+    });
+
+    await waitFor(() => {
+      expect(result.current.execution).not.toBeNull();
+    });
+
+    rerender({ id: null });
+
+    await waitFor(() => {
+      expect(result.current.execution).toBeNull();
+      expect(result.current.isConnecting).toBe(false);
+      expect(result.current.isStreaming).toBe(false);
+    });
+  });
+
+  it("derives phase from execution snapshot", async () => {
+    const { result } = renderHook(() => useExecutionStream("exec-1"), {
+      wrapper: createWrapper(mockStigmer),
+    });
+
+    expect(result.current.phase).toBe(
+      ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED,
+    );
+
+    act(() => {
+      stream.push(makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS));
+    });
+
+    await waitFor(() => {
+      expect(result.current.phase).toBe(
+        ExecutionPhase.EXECUTION_IN_PROGRESS,
+      );
+    });
+  });
+
+  it("handles all terminal phases correctly", async () => {
+    for (const terminalPhase of [
+      ExecutionPhase.EXECUTION_COMPLETED,
+      ExecutionPhase.EXECUTION_FAILED,
+      ExecutionPhase.EXECUTION_CANCELLED,
+      ExecutionPhase.EXECUTION_TERMINATED,
+    ]) {
+      const localStream = createControllableStream<AgentExecution>();
+      subscribeFn.mockReturnValue(localStream.generator);
+
+      const { result, unmount } = renderHook(
+        () => useExecutionStream("exec-terminal"),
+        { wrapper: createWrapper(mockStigmer) },
+      );
+
+      act(() => {
+        localStream.push(makeSnapshot(terminalPhase));
+      });
+
+      await waitFor(() => {
+        expect(result.current.isStreaming).toBe(false);
+        expect(result.current.phase).toBe(terminalPhase);
+      });
+
+      unmount();
+    }
   });
 });

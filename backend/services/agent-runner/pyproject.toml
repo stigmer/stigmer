@@ -7,7 +7,7 @@ name = "stigmer-runner"
 version = "0.0.0.dev0"
 description = "Stigmer Agent Runner — Temporal worker for AI agent execution"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<4.0"
 license = "Apache-2.0"
 authors = [{ name = "Stigmer", email = "engineering@stigmer.ai" }]
 keywords = ["stigmer", "agent-runner", "temporal", "ai-agents", "langgraph"]
@@ -79,6 +79,13 @@ dev = [
     "pytest-asyncio>=0.24.0",
     "types-pyyaml>=6.0.12",
 ]
+
+[tool.poetry.group.dev.dependencies]
+ruff = ">=0.6.0"
+mypy = ">=1.10.0"
+pytest = ">=8.0.0"
+pytest-asyncio = ">=0.24.0"
+types-pyyaml = ">=6.0.12"
 
 # ---------------------------------------------------------------------------
 # Tool configuration

@@ -27,6 +27,7 @@ go_library(
         "@com_github_pkg_errors//:errors",
         "@com_github_rs_zerolog//log",
         "@com_github_stigmer_stigmer_sdk_go//:go",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/agentic/runner/v1:runner",
         "@org_golang_google_grpc//keepalive",
     ],
 )

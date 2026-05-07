@@ -29,6 +29,7 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import type { GetArtifactResponse } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { create } from "@bufbuild/protobuf";
 import { AgentExecutionUpdateStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import type { UpdateStatusResponse } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 
 export interface StigmerClientOptions {
   endpoint: string;
@@ -42,7 +43,7 @@ export interface StigmerClientOptions {
  * execution. The client handles transport setup and auth header injection.
  */
 export class StigmerClient {
-  private readonly transport: Transport;
+  readonly transport: Transport;
   private readonly executionQuery: Client<typeof AgentExecutionQueryController>;
   private readonly executionCommand: Client<typeof AgentExecutionCommandController>;
   private readonly sessionQuery: Client<typeof SessionQueryController>;
@@ -83,7 +84,7 @@ export class StigmerClient {
   async updateStatus(
     executionId: string,
     status: AgentExecutionStatus,
-  ): Promise<AgentExecution> {
+  ): Promise<UpdateStatusResponse> {
     const input = create(AgentExecutionUpdateStatusInputSchema, {
       executionId,
       status,

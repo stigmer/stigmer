@@ -63,9 +63,9 @@ public final class IdentityAccountClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public void simulateSignupWebhook(IdentityAccountEmail input) {
+    public IdentityAccount provisionMyAccount() {
         try {
-            command.simulateSignupWebhook(input);
+            return command.provisionMyAccount(Empty.getDefaultInstance());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

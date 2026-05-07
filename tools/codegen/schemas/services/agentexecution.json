@@ -27,8 +27,8 @@
           "name": "UpdateStatus",
           "inputType": "AgentExecutionUpdateStatusInput",
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput",
-          "outputType": "AgentExecution",
-          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
+          "outputType": "UpdateStatusResponse",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse",
           "description": "Update an agent execution's status.\n\n @internal\n Used by agent-runner to send progressive status updates (messages,\n tool_calls, phase, etc.). The runner authenticates as the triggering user,\n who owns the execution through the session ownership chain.\n Optimized for frequent status updates and merges status fields with\n existing state."
         },
         {
@@ -151,12 +151,20 @@
           "description": "Read the raw content of an execution artifact.\n\n Returns artifact bytes through the Stigmer API, eliminating CORS\n concerns for SDK consumers who need to read content programmatically\n (e.g., YAML parsing for resource detection, in-app preview rendering).\n\n For direct file downloads, use getArtifactDownloadUrl instead — it\n returns a presigned R2 URL that avoids proxying bytes through the server.\n\n @internal\n\n ## Authorization\n\n Requires can_view permission on the execution. This ensures users can\n only read artifacts from executions they have access to.\n\n ## Security\n\n The storage_key is validated to ensure it belongs to the specified\n execution. Keys must start with \"artifacts/{execution_id}/\" to prevent\n path traversal attacks.\n\n ## Size Limit\n\n Content is truncated to max_bytes (default: 512 KB). The response\n includes total_size_bytes and a truncated flag so callers can decide\n whether to offer a full download via getArtifactDownloadUrl.\n\n ## Example Flow\n\n 1. Get execution via AgentExecutionQueryController.get\n 2. Find artifact in status.artifacts[]\n 3. Call getArtifactContent with execution_id and storage_key\n 4. Decode content bytes as UTF-8 for text artifacts\n 5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)"
         },
         {
+          "name": "GetExecutionUsageReport",
+          "inputType": "GetExecutionUsageReportInput",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput",
+          "outputType": "GetExecutionUsageReportOutput",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput",
+          "description": "Get a usage report for a single execution.\n\n Returns aggregated tokens, cost, and per-model breakdown for one execution."
+        },
+        {
           "name": "GetSessionUsageReport",
           "inputType": "GetSessionUsageReportInput",
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput",
           "outputType": "GetSessionUsageReportOutput",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput",
-          "description": "Get a usage report for a session.\n\n Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown."
+          "description": "Get a usage report for a session.\n\n Returns aggregated tokens, cost, and per-execution breakdown."
         },
         {
           "name": "GetAgentUsageReport",
@@ -210,6 +218,39 @@
           "validation": {
             "required": true
           }
+        }
+      ]
+    },
+    {
+      "name": "UpdateStatusResponse",
+      "description": "UpdateStatusResponse is the lightweight response returned by the\n updateStatus RPC. It replaces the previous AgentExecution return type\n to avoid serializing the full resource on every progressive update\n (~every 2-3 seconds during streaming).\n\n The response carries an optional execution control signal from the\n platform back to the runner. The signal is generic — the runner acts\n on STOP / WARNING without knowing the source (billing, admin, budget).",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Signal",
+          "jsonName": "signal",
+          "protoField": "signal",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal",
+            "enumValues": [
+              "EXECUTION_CONTROL_SIGNAL_STOP",
+              "EXECUTION_CONTROL_SIGNAL_WARNING"
+            ]
+          },
+          "description": "Platform-to-runner directive. UNSPECIFIED means continue normally.",
+          "required": false
+        },
+        {
+          "name": "SignalReason",
+          "jsonName": "signalReason",
+          "protoField": "signal_reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable reason for the signal (optional).\n Logged by the runner and may be surfaced to the user in the stop summary.",
+          "required": false
         }
       ]
     },
@@ -770,6 +811,60 @@
       ]
     },
     {
+      "name": "GetExecutionUsageReportInput",
+      "description": "GetExecutionUsageReportInput requests a usage report for a single execution.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Execution ID to get usage report for.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetExecutionUsageReportOutput",
+      "description": "GetExecutionUsageReportOutput returns aggregated usage for one execution.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Aggregate",
+          "jsonName": "aggregate",
+          "protoField": "aggregate",
+          "type": {
+            "kind": "message",
+            "messageType": "UsageReportAggregate"
+          },
+          "description": "Aggregated token counts and cost for this execution.",
+          "required": false
+        },
+        {
+          "name": "ModelBreakdown",
+          "jsonName": "modelBreakdown",
+          "protoField": "model_breakdown",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ModelUsage"
+            }
+          },
+          "description": "Per-model breakdown within this execution.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "GetSessionUsageReportInput",
       "description": "GetSessionUsageReportInput requests a usage report for a single session.\n Aggregates cost and token data across all executions in the session.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput",
@@ -822,7 +917,7 @@
           "protoField": "total_usage",
           "type": {
             "kind": "message",
-            "messageType": "UsageMetrics"
+            "messageType": "UsageReportAggregate"
           },
           "description": "Aggregated usage across all executions in this session.",
           "required": false
@@ -853,16 +948,6 @@
             }
           },
           "description": "Per-model breakdown across the entire session.",
-          "required": false
-        },
-        {
-          "name": "TotalSummarizationCostUsd",
-          "jsonName": "totalSummarizationCostUsd",
-          "protoField": "total_summarization_cost_usd",
-          "type": {
-            "kind": "double"
-          },
-          "description": "Total summarization cost across all executions.",
           "required": false
         },
         {
@@ -980,7 +1065,7 @@
           "protoField": "total_usage",
           "type": {
             "kind": "message",
-            "messageType": "UsageMetrics"
+            "messageType": "UsageReportAggregate"
           },
           "description": "Aggregated usage within the time range.",
           "required": false
@@ -1034,13 +1119,13 @@
           "required": false
         },
         {
-          "name": "TotalCostUsd",
-          "jsonName": "totalCostUsd",
-          "protoField": "total_cost_usd",
+          "name": "TotalBillableCostMicros",
+          "jsonName": "totalBillableCostMicros",
+          "protoField": "total_billable_cost_micros",
           "type": {
-            "kind": "double"
+            "kind": "int64"
           },
-          "description": "Total cost in USD within the time range.",
+          "description": "Total billable cost in micro-USD within the time range.",
           "required": false
         },
         {
@@ -1149,13 +1234,13 @@
           "required": false
         },
         {
-          "name": "TotalCostUsd",
-          "jsonName": "totalCostUsd",
-          "protoField": "total_cost_usd",
+          "name": "TotalBillableCostMicros",
+          "jsonName": "totalBillableCostMicros",
+          "protoField": "total_billable_cost_micros",
           "type": {
-            "kind": "double"
+            "kind": "int64"
           },
-          "description": "Total cost in USD across the organization in the time range.",
+          "description": "Total billable cost in micro-USD across the organization in the time range.",
           "required": false
         },
         {
@@ -1183,7 +1268,7 @@
               "messageType": "AgentUsageSummary"
             }
           },
-          "description": "Top agents by cost (top 10), ordered by estimated_cost_usd descending.",
+          "description": "Top agents by cost (top 10), ordered by billable_cost_micros descending.",
           "required": false
         },
         {
@@ -1199,11 +1284,42 @@
           },
           "description": "Daily cost trend within the time range, ordered chronologically.",
           "required": false
+        },
+        {
+          "name": "HarnessBreakdown",
+          "jsonName": "harnessBreakdown",
+          "protoField": "harness_breakdown",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "HarnessCostSummary"
+            }
+          },
+          "description": "Cost split by execution harness (e.g., \"native\" vs \"cursor\").",
+          "required": false
         }
       ]
     }
   ],
   "enumTypes": [
+    {
+      "name": "ExecutionControlSignal",
+      "description": "ExecutionControlSignal is a platform-to-runner directive returned by the\n updateStatus RPC. The runner inspects this signal after every status\n update and acts accordingly.\n\n Signal sources are opaque to the runner — the platform may set STOP due\n to credit exhaustion, an admin kill, a user-configured budget cap, or any\n future enforcement mechanism. The runner does not know or care about the\n source; it only reacts to the signal value.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal",
+      "values": [
+        {
+          "name": "EXECUTION_CONTROL_SIGNAL_STOP",
+          "number": 1,
+          "description": "Execution must stop gracefully. The runner should block further tool\n calls and give the model one final turn to produce a summary."
+        },
+        {
+          "name": "EXECUTION_CONTROL_SIGNAL_WARNING",
+          "number": 2,
+          "description": "Informational warning (e.g. low credit balance). The runner logs the\n warning and continues execution."
+        }
+      ]
+    },
     {
       "name": "ApprovalAction",
       "description": "ApprovalAction represents the user's decision on an approval request.\n\n ## Action Semantics\n\n - APPROVE: Execute the tool normally, continue execution\n - SKIP: Return \"skipped by user\" message to LLM, continue execution\n - REJECT: Fail the execution immediately with rejection error\n\n ## LLM Behavior on Skip\n\n When a tool is skipped, the LLM receives a message like:\n \"Tool 'delete_repository' was skipped by user. Please proceed without this operation.\"\n This allows the LLM to adapt its plan while preserving execution continuity.\n\n ## Usage\n\n Used in:\n - ToolCall.approval_action: Records the decision made\n - SubmitApprovalInput.action: User's submitted decision",
@@ -1786,17 +1902,6 @@
           },
           "description": "True while the AI is actively generating this message, false when complete.\n Enables UI to show typing indicator during streaming and final content when done.\n Default (false) indicates either a non-AI message or a completed AI message.",
           "required": false
-        },
-        {
-          "name": "LlmMetrics",
-          "jsonName": "llmMetrics",
-          "protoField": "llm_metrics",
-          "type": {
-            "kind": "message",
-            "messageType": "LlmCallMetrics"
-          },
-          "description": "LLM call metrics for this message.\n Only populated for type == MESSAGE_AI.\n Captures the full cost record of the single LLM call that produced this message:\n token breakdown, estimated cost, model, provider, and duration.",
-          "required": false
         }
       ]
     },
@@ -2112,124 +2217,6 @@
             "kind": "string"
           },
           "description": "SHA-256 hex digest of the uploaded artifact bytes.\n\n Used as a cache-invalidation signal by UI clients: when the same file\n is overwritten (e.g., written then edited in the same execution), the\n storage_key remains stable but the content_hash changes. Clients\n include this value in their fetch-effect dependencies so that content\n is re-fetched whenever the underlying bytes change.\n\n Empty for older artifacts created before this field was added.\n Example: \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "LlmCallMetrics",
-      "description": "Metrics for a single LLM API call during execution.\n Provides per-call granularity for debugging, optimization, and cost attribution.\n\n One entry is created for each on_chat_model_end event.\n Ordered chronologically — the Nth entry corresponds to the Nth LLM call.\n\n ## Cache Verification\n\n Especially valuable for verifying prompt caching: you expect call 1 to be a\n cache miss (or cache write), and calls 2+ to have high cache_read_tokens.\n If they don't, something is wrong with cache breakpoint placement.\n\n ## Size Consideration\n\n A typical execution has 3-15 LLM calls. Each LlmCallMetrics is ~10 fields /\n ~80 bytes. Even a 50-call execution adds only ~4KB — negligible compared to\n the messages[] and tool_calls[] arrays which carry full content strings.",
-      "protoType": "ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics",
-      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/usage.proto",
-      "fields": [
-        {
-          "name": "Sequence",
-          "jsonName": "sequence",
-          "protoField": "sequence",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Sequence number of this LLM call within the execution (1-based).",
-          "required": false
-        },
-        {
-          "name": "Model",
-          "jsonName": "model",
-          "protoField": "model",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Model used for this specific call.\n May differ from primary_model if model fallback or routing occurred.",
-          "required": false
-        },
-        {
-          "name": "Provider",
-          "jsonName": "provider",
-          "protoField": "provider",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Provider for this call.",
-          "required": false
-        },
-        {
-          "name": "InputTokens",
-          "jsonName": "inputTokens",
-          "protoField": "input_tokens",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Input tokens for this call (total prompt size sent to the model).",
-          "required": false
-        },
-        {
-          "name": "OutputTokens",
-          "jsonName": "outputTokens",
-          "protoField": "output_tokens",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Output tokens generated by the model in this call.",
-          "required": false
-        },
-        {
-          "name": "CacheCreationTokens",
-          "jsonName": "cacheCreationTokens",
-          "protoField": "cache_creation_tokens",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Cache tokens written during this call.",
-          "required": false
-        },
-        {
-          "name": "CacheReadTokens",
-          "jsonName": "cacheReadTokens",
-          "protoField": "cache_read_tokens",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Cache tokens read (cache hits) during this call.",
-          "required": false
-        },
-        {
-          "name": "EstimatedCostUsd",
-          "jsonName": "estimatedCostUsd",
-          "protoField": "estimated_cost_usd",
-          "type": {
-            "kind": "double"
-          },
-          "description": "Computed cost in USD for this single call.",
-          "required": false
-        },
-        {
-          "name": "DurationMs",
-          "jsonName": "durationMs",
-          "protoField": "duration_ms",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Wall-clock duration of this LLM call in milliseconds.\n From request sent to response complete.",
-          "required": false
-        },
-        {
-          "name": "Timestamp",
-          "jsonName": "timestamp",
-          "protoField": "timestamp",
-          "type": {
-            "kind": "string"
-          },
-          "description": "ISO 8601 timestamp when this LLM call started.",
-          "required": false
-        },
-        {
-          "name": "TotalTokens",
-          "jsonName": "totalTokens",
-          "protoField": "total_tokens",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Total tokens involved in this call. Convenience field for quick reference.\n Equals: input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens\n Consistent with UsageMetrics.total_tokens (prompt_tokens + completion_tokens).",
           "required": false
         }
       ]

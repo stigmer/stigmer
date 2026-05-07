@@ -1,4 +1,5 @@
 @source "./**/*.{ts,tsx}";
+@source "../node_modules/streamdown/dist/*.js";
 
 @layer stgm;
 
@@ -82,6 +83,8 @@
 
 @layer stgm {
   .stgm {
+    --stgm-motion-duration: 150ms;
+    --stgm-motion-easing: var(--stgm-transition-timing, ease-out);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -94,5 +97,33 @@
     border-width: 0;
     border-style: solid;
     border-color: var(--stgm-border, currentColor);
+  }
+
+  @keyframes stgm-fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+
+  .stgm-thread-item-enter {
+    animation: stgm-fade-in-up var(--stgm-motion-duration) var(--stgm-motion-easing) both;
+  }
+}
+
+@layer stgm {
+  @media (prefers-reduced-motion: reduce) {
+    .stgm {
+      --stgm-motion-duration: 0ms;
+      --stgm-transition-duration: 0ms;
+    }
+
+    .stgm *,
+    .stgm *::before,
+    .stgm *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

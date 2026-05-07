@@ -61,9 +61,9 @@ class IdentityAccountClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def simulate_signup_webhook(self, input: io_pb2.IdentityAccountEmail) -> None:
+    def provision_my_account(self) -> api_pb2.IdentityAccount:
         try:
-            self._command.simulateSignupWebhook(input)
+            return self._command.provisionMyAccount(empty_pb2.Empty())
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

@@ -17,6 +17,11 @@ import {
   presetLabel,
   type DateRangePreset,
 } from "./date-range";
+import { CreditRunwayIndicator } from "./CreditRunwayIndicator";
+import { AgentBreakdownList } from "./AgentBreakdownList";
+import { HarnessSplitCard } from "./HarnessSplitCard";
+import { ExportButton } from "./ExportButton";
+import { useExportCSV } from "./useExportCSV";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -49,6 +54,8 @@ export function OrgUsagePanel({ orgId, className }: OrgUsagePanelProps) {
   const [preset, setPreset] = useState<DateRangePreset>("30d");
   const dateRange = dateRangeFromPreset(preset);
   const { report, isLoading, error } = useOrgUsageReport(orgId, dateRange);
+  const { exportCSV, isExporting } = useExportCSV(report, orgId);
+  const daysInRange = Number.parseInt(preset, 10);
 
   if (isLoading) {
     return (
@@ -90,16 +97,34 @@ export function OrgUsagePanel({ orgId, className }: OrgUsagePanelProps) {
 
   return (
     <div className={cn("space-y-6", className)}>
-      <DateRangeSelector
-        activePreset={preset}
-        onPresetChange={setPreset}
-        dateRange={dateRange}
-      />
+      <div className="flex items-center justify-between gap-3">
+        <DateRangeSelector
+          activePreset={preset}
+          onPresetChange={setPreset}
+          dateRange={dateRange}
+        />
+        <ExportButton
+          onExport={exportCSV}
+          isExporting={isExporting}
+          disabled={!report || report.modelBreakdown.length === 0}
+        />
+      </div>
 
-      <SummaryCards report={report} />
+      <SummaryCards report={report} daysInRange={daysInRange} />
 
       {report.dailyCosts.length > 0 && (
         <DailyCostChart entries={report.dailyCosts} />
+      )}
+
+      {report.harnessBreakdown.length > 0 && (
+        <HarnessSplitCard breakdown={report.harnessBreakdown} />
+      )}
+
+      {report.topAgentsByCost.length > 0 && (
+        <AgentBreakdownList
+          agents={report.topAgentsByCost}
+          totalBillableCostMicros={report.totalBillableCostMicros}
+        />
       )}
 
       {report.modelBreakdown.length > 0 && (
@@ -126,7 +151,7 @@ function DateRangeSelector({
 }) {
   return (
     <div
-      className="flex items-center justify-between gap-3"
+      className="flex items-center gap-3"
       role="group"
       aria-label="Date range"
     >
@@ -159,43 +184,80 @@ function DateRangeSelector({
 // SummaryCards (internal)
 // ---------------------------------------------------------------------------
 
-function SummaryCards({ report }: { report: GetOrgUsageReportOutput }) {
+function microsToUsd(micros: bigint): number {
+  return Number(micros) / 1_000_000;
+}
+
+function SummaryCards({
+  report,
+  daysInRange,
+}: {
+  report: GetOrgUsageReportOutput;
+  daysInRange: number;
+}) {
   const { totalLlmCalls, totalTokens } = report.modelBreakdown.reduce(
     (acc, m) => ({
       totalLlmCalls: acc.totalLlmCalls + m.callCount,
       totalTokens:
         acc.totalTokens +
-        m.inputTokens +
-        m.outputTokens +
-        m.cacheCreationTokens +
-        m.cacheReadTokens,
+        Number(m.inputTokens) +
+        Number(m.outputTokens) +
+        Number(m.cacheCreationInputTokens) +
+        Number(m.cacheReadInputTokens),
     }),
     { totalLlmCalls: 0, totalTokens: 0 },
   );
 
-  const cards: { label: string; value: string }[] = [
-    { label: "Total Cost", value: formatCost(report.totalCostUsd) },
-    { label: "LLM Calls", value: formatCompactNumber(totalLlmCalls) },
-    { label: "Tokens", value: formatCompactNumber(totalTokens) },
-  ];
-
   return (
-    <div
-      className="grid grid-cols-3 gap-3"
-      role="group"
-      aria-label="Usage summary"
-    >
-      {cards.map((card) => (
-        <div
-          key={card.label}
-          className="rounded-lg border border-border bg-card px-3.5 py-3"
-        >
+    <div role="group" aria-label="Usage summary" className="space-y-2">
+      {/* Primary row */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-lg border border-border bg-card px-3.5 py-3">
           <div className="text-lg font-semibold tabular-nums text-foreground">
-            {card.value}
+            {formatCost(microsToUsd(report.totalBillableCostMicros))}
           </div>
-          <div className="text-xs text-muted-foreground">{card.label}</div>
+          <div className="text-xs text-muted-foreground">Total Cost</div>
+          <CreditRunwayIndicator
+            totalBillableCostMicros={report.totalBillableCostMicros}
+            daysInRange={daysInRange}
+            className="mt-0.5 block"
+          />
         </div>
-      ))}
+        <div className="rounded-lg border border-border bg-card px-3.5 py-3">
+          <div className="text-lg font-semibold tabular-nums text-foreground">
+            {formatCompactNumber(totalLlmCalls)}
+          </div>
+          <div className="text-xs text-muted-foreground">LLM Calls</div>
+        </div>
+        <div className="rounded-lg border border-border bg-card px-3.5 py-3">
+          <div className="text-lg font-semibold tabular-nums text-foreground">
+            {formatCompactNumber(totalTokens)}
+          </div>
+          <div className="text-xs text-muted-foreground">Tokens</div>
+        </div>
+      </div>
+
+      {/* Secondary row */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-lg border border-border-muted bg-card/50 px-3.5 py-2.5">
+          <div className="text-sm font-semibold tabular-nums text-foreground">
+            {formatCompactNumber(report.totalExecutions)}
+          </div>
+          <div className="text-[0.65rem] text-muted-foreground">Executions</div>
+        </div>
+        <div className="rounded-lg border border-border-muted bg-card/50 px-3.5 py-2.5">
+          <div className="text-sm font-semibold tabular-nums text-foreground">
+            {formatCompactNumber(report.totalAgents)}
+          </div>
+          <div className="text-[0.65rem] text-muted-foreground">Agents</div>
+        </div>
+        <div className="rounded-lg border border-border-muted bg-card/50 px-3.5 py-2.5">
+          <div className="text-sm font-semibold tabular-nums text-foreground">
+            {formatCompactNumber(report.totalSessions)}
+          </div>
+          <div className="text-[0.65rem] text-muted-foreground">Sessions</div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -207,7 +269,7 @@ function SummaryCards({ report }: { report: GetOrgUsageReportOutput }) {
 const CHART_HEIGHT_PX = 128;
 
 function DailyCostChart({ entries }: { entries: readonly DailyCostEntry[] }) {
-  const maxCost = Math.max(...entries.map((e) => e.estimatedCostUsd), 0);
+  const maxCost = Math.max(...entries.map((e) => microsToUsd(e.billableCostMicros)), 0);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   return (
@@ -222,9 +284,9 @@ function DailyCostChart({ entries }: { entries: readonly DailyCostEntry[] }) {
             <span className="text-xs tabular-nums text-muted-foreground">
               {formatChartDate(entries[hoveredIdx].date)}
               {" \u00B7 "}
-              {formatCost(entries[hoveredIdx].estimatedCostUsd)}
+              {formatCost(microsToUsd(entries[hoveredIdx].billableCostMicros))}
               {" \u00B7 "}
-              {formatTokenCount(entries[hoveredIdx].totalTokens)} tokens
+              {formatTokenCount(Number(entries[hoveredIdx].totalTokens))} tokens
             </span>
           )}
         </div>
@@ -238,7 +300,7 @@ function DailyCostChart({ entries }: { entries: readonly DailyCostEntry[] }) {
         >
           {entries.map((entry, i) => {
             const ratio =
-              maxCost > 0 ? entry.estimatedCostUsd / maxCost : 0;
+              maxCost > 0 ? microsToUsd(entry.billableCostMicros) / maxCost : 0;
             const heightPx = Math.max(ratio * CHART_HEIGHT_PX, 2);
 
             return (
@@ -326,9 +388,11 @@ function ModelBreakdownList({
           </span>
         </div>
         {models.map((m) => {
-          const totalInput =
-            m.inputTokens + m.cacheCreationTokens + m.cacheReadTokens;
-          const hasCache = m.cacheReadTokens > 0 || m.cacheCreationTokens > 0;
+          const inputTok = Number(m.inputTokens);
+          const cacheCreation = Number(m.cacheCreationInputTokens);
+          const cacheRead = Number(m.cacheReadInputTokens);
+          const totalInput = inputTok + cacheCreation + cacheRead;
+          const hasCache = cacheRead > 0 || cacheCreation > 0;
 
           return (
             <div
@@ -363,24 +427,24 @@ function ModelBreakdownList({
                   role="cell"
                   className="self-center text-right text-xs tabular-nums text-muted-foreground"
                 >
-                  {formatCompactNumber(m.outputTokens)}
+                  {formatCompactNumber(Number(m.outputTokens))}
                 </span>
                 <span
                   role="cell"
                   className="self-center text-right text-xs tabular-nums text-foreground"
                 >
-                  {formatCost(m.estimatedCostUsd)}
+                  {formatCost(microsToUsd(m.billableCostMicros))}
                 </span>
               </div>
               {hasCache && (
                 <div className="mt-0.5 text-[0.6rem] tabular-nums text-muted-foreground">
                   cache{" "}
-                  {m.cacheReadTokens > 0 &&
-                    `${formatCompactNumber(m.cacheReadTokens)} read`}
-                  {m.cacheReadTokens > 0 && m.cacheCreationTokens > 0 &&
+                  {cacheRead > 0 &&
+                    `${formatCompactNumber(cacheRead)} read`}
+                  {cacheRead > 0 && cacheCreation > 0 &&
                     " · "}
-                  {m.cacheCreationTokens > 0 &&
-                    `${formatCompactNumber(m.cacheCreationTokens)} write`}
+                  {cacheCreation > 0 &&
+                    `${formatCompactNumber(cacheCreation)} write`}
                 </div>
               )}
             </div>

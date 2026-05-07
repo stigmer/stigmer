@@ -61,7 +61,7 @@ IdentityAccount identityAccount = client.identityAccounts().get("ida_01j5q3k7m8r
 | [`delete`](#delete) | Delete an identity account. |
 | [`createFederatedAccount`](#createfederatedaccount) | Create a federated identity account for an external platform user. |
 | [`deprovisionFederatedAccount`](#deprovisionfederatedaccount) | Deprovision a federated identity account by revoking access or deleting it. |
-| [`simulateSignupWebhook`](#simulatesignupwebhook) | Trigger account provisioning for a user who exists in Auth0 but not in Stigmer. |
+| [`provisionMyAccount`](#provisionmyaccount) | Provision the caller's own identity account. |
 | [`whoAmI`](#whoami) | Get the identity account of the currently authenticated user. |
 
 ### get
@@ -659,44 +659,36 @@ IdentityAccount identityAccount = client.identityAccounts().deprovisionFederated
 
 **Returns**: [`IdentityAccount`](#identityaccount)
 
-### simulateSignupWebhook
+### provisionMyAccount
 
-Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
+Provision the caller's own identity account.
+
+Called by the console when whoAmI() returns NOT_FOUND (first login after signup). Derives all identity information from the caller's JWT and the OIDC /userinfo endpoint. Creates the IdentityAccount and a personal Organization owned by the caller. Idempotent: returns the existing account on retry.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const empty = await stigmer.identityAccount.simulateSignupWebhook({
-  value: "...",
-});
+const identityAccount = await stigmer.identityAccount.provisionMyAccount();
 ```
 </Tab>
 <Tab value="Go">
 ```go
-empty, err := client.IdentityAccount.SimulateSignupWebhook(ctx, &stigmer.IdentityAccountEmail{
-  Value: "...",
-})
+identityAccount, err := client.IdentityAccount.ProvisionMyAccount(ctx)
 ```
 </Tab>
 <Tab value="Python">
 ```python
-empty = client.identity_accounts.simulate_signup_webhook(IdentityAccountEmail(
-    value="...",
-))
+identity_account = client.identity_accounts.provision_my_account()
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Empty empty = client.identityAccounts().simulateSignupWebhook(IdentityAccountEmail.builder()
-    .value("...")
-    .build());
+IdentityAccount identityAccount = client.identityAccounts().provisionMyAccount();
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`IdentityAccountEmail`](#identityaccountemail)
-
-**Returns**: `void`
+**Returns**: [`IdentityAccount`](#identityaccount)
 
 ### whoAmI
 

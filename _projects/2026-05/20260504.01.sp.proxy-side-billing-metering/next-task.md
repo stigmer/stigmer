@@ -1,0 +1,413 @@
+# Next Task: 20260504.01.sp.proxy-side-billing-metering
+
+## RULES OF ENGAGEMENT - READ FIRST
+
+**When this file is loaded in a new conversation, the AI MUST:**
+
+1. **DO NOT AUTO-EXECUTE** - Never start implementing without explicit user approval
+2. **GATHER CONTEXT SILENTLY** - Read all project files without outputting
+3. **PRESENT STATUS SUMMARY** - Show what's done, what's pending, agreed next steps
+4. **SHOW OPTIONS** - List recommended and alternative actions
+5. **WAIT FOR DIRECTION** - Do NOT proceed until user explicitly confirms
+
+### Required Status Summary Format
+
+When resuming this sub-project, present:
+
+- **Parent Project**: 20260503.03.stripe-billing-integration
+- **Overall Objective**: [1-2 sentences]
+- **What's Been Completed**: [Key milestones]
+- **What's Pending**: [Remaining work]
+- **Agreed Focus for This Session**: [From previous session]
+- **Options**: A (Recommended), B, C...
+
+**WAIT for user to say "proceed", "go", or choose an option.**
+
+---
+
+## Parent Project
+
+**Parent**: 20260503.03.stripe-billing-integration
+**Parent Next Task**: `~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260503.03.stripe-billing-integration/next-task.md`
+**Spawned From Task**: N/A
+
+### Inherited Knowledge (CHECK THESE FIRST)
+
+When resuming this sub-project, also review the parent's knowledge folders
+for decisions, guidelines, and lessons that apply across all sub-projects:
+
+- Parent Design Decisions: `~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260503.03.stripe-billing-integration/design-decisions/`
+- Parent Coding Guidelines: `~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260503.03.stripe-billing-integration/coding-guidelines/`
+- Parent Wrong Assumptions: `~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260503.03.stripe-billing-integration/wrong-assumptions/`
+- Parent Don't Dos: `~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260503.03.stripe-billing-integration/dont-dos/`
+
+---
+
+## Quick Resume Instructions
+
+Drop this file into your conversation to quickly resume work on this sub-project.
+
+## Sub-Project: 20260504.01.sp.proxy-side-billing-metering
+
+**Description**: Secure LLM billing by adding server-side usage metering in the proxy layer. The LLM and Cursor proxy controllers parse SSE responses to extract token usage, then call ExecutionBillingService in-process to debit credits — replacing the current runner-attested billing data with tamper-proof proxy-observed usage. Includes stripping runner llm_metrics in cloud mode, dual-header proxy access control (execution_id + mcp_server_id), and caching for classify_tool_approvals.
+**Goal**: Ship tamper-proof billing metering with zero runner code changes (aside from passing mcp_server_id through the classify workflow). All changes in stigmer-cloud — SSE parsing in proxy controllers, wiring to ExecutionBillingService, llm_metrics stripping in updateStatus handler, and dual-header enforcement.
+**Tech Stack**: Java 21/Spring Boot (stigmer-service), MongoDB, Stripe API, gRPC/Connect, Temporal, Python (agent-runner integration), TypeScript/React (billing UI)
+**Components**: stigmer-cloud billing bounded context (new), stigmer-service domain handlers, MongoDB collections, Stripe webhook integration, agent-runner UsageTracker billing hooks, web console billing pages, proto definitions (apis/), model-registry.json pricing policy
+
+## Essential Files to Review
+
+### 1. Latest Checkpoint (if exists)
+```
+~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260504.01.sp.proxy-side-billing-metering/checkpoints/
+```
+
+### 2. Current Task
+```
+~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260504.01.sp.proxy-side-billing-metering/tasks/
+```
+
+### 3. Project Documentation
+- **README**: `~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260504.01.sp.proxy-side-billing-metering/README.md`
+- **Parent README**: `~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260503.03.stripe-billing-integration/README.md`
+
+## Knowledge Folders to Check
+
+### This Sub-Project's Knowledge
+```
+~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260504.01.sp.proxy-side-billing-metering/design-decisions/
+~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260504.01.sp.proxy-side-billing-metering/coding-guidelines/
+~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260504.01.sp.proxy-side-billing-metering/wrong-assumptions/
+~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260504.01.sp.proxy-side-billing-metering/dont-dos/
+```
+
+### Parent Project's Knowledge (inherited)
+```
+~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260503.03.stripe-billing-integration/design-decisions/
+~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260503.03.stripe-billing-integration/coding-guidelines/
+~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260503.03.stripe-billing-integration/wrong-assumptions/
+~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260503.03.stripe-billing-integration/dont-dos/
+```
+
+## Resume Checklist
+
+When starting a new session:
+
+1. [ ] Read parent's latest knowledge folders (design-decisions, coding-guidelines, wrong-assumptions, dont-dos)
+2. [ ] Read this sub-project's latest checkpoint (if any) from `~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260504.01.sp.proxy-side-billing-metering/checkpoints/`
+3. [ ] Check current task status in `~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260504.01.sp.proxy-side-billing-metering/tasks/`
+4. [ ] Review this sub-project's own knowledge folders
+5. [ ] Continue with the next task or complete the current one
+
+## Current Status
+
+**Created**: 2026-05-04 13:29
+**Current Task**: T08 (Full billing cleanup + bounded context separation) — COMPLETED
+**Status**: All tasks complete. Sub-project is DONE.
+
+### What Was Done in T08 (2026-05-06)
+- Removed runner-side billing calls (`BillingReporter`, `BillingClient`)
+- Removed `reportLlmCallUsage` RPC + handler (untrusted runner entry point)
+- Flipped `require-scope-header` to `true` (hard enforcement)
+- Removed all OSS usage tracking code (`UsageTracker`, `llm_metrics`, `LlmCallMetrics`)
+- Removed `usage_summary` denormalization from execution document
+- Removed `ExecutionUsageAggregate`, `ModelUsageBreakdown`, `ExecutionObservabilityMetrics` proto types
+- Created `recordLlmCallUsage` RPC on `BillingCommandController` (billing owns everything)
+- Proxy calls billing directly via `downstream/billing/BillingUsageGrpcRepo`
+- `UsageAggregationService` reads from `LlmCallUsageRecord` collection only
+
+### Follow-ups (tracked in parent project)
+- Rewire `UsageWidget` to query usage endpoint (real-time cost display)
+- Wire CLI usage display to usage report RPC
+
+## Session Progress (2026-05-04)
+
+### T01 Completed: SSE Usage Parser
+- Implemented `SseFrameDecoder` (W3C-compliant SSE protocol parser)
+- Implemented `OpenAiUsageExtractor` (extracts usage from final chunk)
+- Implemented `AnthropicUsageExtractor` (extracts from message_start + message_delta)
+- Implemented `SseUsageExtractorFactory` (provider routing + no-op fallback)
+- Created `ParsedLlmUsage` record and `SseUsageExtractor` interface
+- 40 unit tests across 4 test classes, all passing
+- 6 SSE fixture files (3 OpenAI, 3 Anthropic)
+- Registered 4 Bazel test targets
+- Committed: `7f0882b5` on `feat/stripe-billing-integration`
+
+### Key Discovery: Pricing Data for T02
+- `model-registry.json` canonical file is at `stigmer/backend/libs/model-registry.json`
+- Synced into graphton Python package via `make sync-model-registry`
+- Contains per-million-token USD rates: `inputPricePerMillion`, `outputPricePerMillion`, `cacheWritePricePerMillion`, `cacheReadPricePerMillion`
+- T02 will need a Java-side `ModelPricingRegistry` to compute `providerCostMicros` from token counts
+- The runner currently computes cost in `UsageTracker._compute_call_cost()` using the same rates
+
+### Technical Correction Applied
+- Plan stated "parse `message_stop` event" for Anthropic — incorrect
+- Actually: `message_start` carries input + cache tokens, `message_delta` carries output tokens
+- `message_stop` has no usage data
+
+## Session Progress (2026-05-04 Session 2)
+
+### Deep Research: LLM Usage Capture Model
+- Conducted deep research on how 10 platforms (OpenAI, Anthropic, AWS Bedrock, Azure, Vertex, Cursor, Vercel, LiteLLM, Helicone, Portkey) model LLM usage
+- Research report: `research.llm-usage-capture-model/04.report.gpt.md` (1681 lines)
+- Key finding: layered model with immutable per-call records in dedicated collection, derived execution aggregate, separate runner observability
+
+### T02 Revised Architecture (based on research)
+- **Proto overhaul**: New `LlmCallUsageRecord`, `ExecutionUsageAggregate`, `ExecutionObservabilityMetrics`, `TokenUsage`, `CostStamp`, `PricingSnapshot`, `ProxyTiming`, `BillingLink` + 6 enums
+- **Dedicated collection**: `llm_call_usage_record` with Mongock migration + 5 indexes
+- **Handler rewrite**: Insert immutable record → debit billing → update execution aggregate
+- **Key decisions**:
+  - Per-call records NOT embedded in execution doc (separate collection)
+  - Integer micros for cost, not float `estimated_cost_usd`
+  - Explicit `metering_source` and `trust_level` fields
+  - `UsageCompletionStatus` handles interrupted streams
+  - Billing signal NOT returned from updateUsage (flows through updateStatus)
+  - `can_update_usage` FGA permission (operator-only)
+
+### Files Created/Modified (stigmer OSS)
+- `apis/ai/stigmer/agentic/agentexecution/v1/usage.proto` — complete overhaul (509 lines)
+- `apis/ai/stigmer/agentic/agentexecution/v1/api.proto` — added `usage_summary` + `observability` fields
+- `apis/ai/stigmer/agentic/agentexecution/v1/io.proto` — enriched `UpdateUsageInput`
+- `apis/ai/stigmer/agentic/agentexecution/v1/command.proto` — added `updateUsage` RPC
+- `apis/ai/stigmer/iam/v1/enum.proto` — added `can_update_usage = 29`
+
+### Files Created/Modified (stigmer-cloud)
+- `ModelPricingService.java` — loads model-registry.json, computes providerCostMicros
+- `LlmCallUsageRecordRepo.java` — insert-only idempotent repo for per-call records
+- `AgentExecutionUpdateUsageHandler.java` — 3-step pipeline (insert → debit → aggregate)
+- `U20260504_LlmCallUsageRecordCollection.java` — Mongock migration
+- `platform.fga` — added `can_update_usage: operator`
+- `model-registry.json` — copied to classpath resources
+- Tests: `ModelPricingServiceTest.java`, `AgentExecutionUpdateUsageHandlerTest.java`
+- `BUILD.bazel` — registered new test targets
+
+### Old Approach Removed
+- Deleted `atomicAppendUsage` from `AgentExecutionRepo` (was embedding in execution doc)
+- "Atomic persist refactor" plan no longer needed (race condition eliminated by separate collection)
+
+## Session Progress (2026-05-04 Session 3)
+
+### T03 Completed: LlmProxyController Wiring
+
+**Pre-T03 audit**: Identified and fixed T01/T02 compatibility gaps before wiring.
+
+**T01 Parser Upgrade**:
+- Expanded `ParsedLlmUsage`: 6 fields (int) → 11 fields (long)
+- Added: `totalTokens`, `reasoningTokens`, `finishReason`, `complete`, `providerUsageJson`
+- Renamed: `cacheCreationTokens`/`cacheReadTokens` → `cacheCreationInputTokens`/`cacheReadInputTokens`
+- OpenAI extractor: now captures `total_tokens`, `reasoning_tokens` (o-series), `cached_tokens`, `finish_reason` (tracked across events), raw usage JSON
+- Anthropic extractor: now captures `stop_reason`, raw usage JSON, `complete` flag
+- New fixtures: `openai-reasoning-tokens.txt`, `openai-cached-tokens.txt`
+
+**T02 Fixes**:
+- Widened `BillingMicros.tokenCost()`, `ModelPricingService`, `ExecutionBillingService` from `int` to `long`
+- Added `requested_model` to `UpdateUsageInput` proto and handler
+- Removed `(int)` casts in handler
+
+**LlmProxyController wiring**:
+- Replaced `transferTo` with tee stream loop (read/write/onBytes)
+- Inject `stream_options.include_usage` for OpenAI requests
+- Parse request body to extract `requested_model` for audit trail
+- Capture `ProxyTiming` (5 timestamps + derived durations)
+- Extract provider request-id from response headers
+- `ProxyUsageReporter` (new): bridges parser to billing pipeline in-process
+- `ProxyCallSequencer` (new): per-execution atomic sequence counter with TTL eviction
+- Cardinal rule: all usage/billing work in try-catch, never breaks LLM response stream
+
+**Commits**:
+- OSS: `82ee8f939` on `feat/react-sdk-streaming-ux` — `requested_model` proto field
+- Cloud: `47f7538c` on `feat/stripe-billing-integration` — full T03 wiring (18 files, +1127 -111)
+
+## Session Progress (2026-05-04 Session 4)
+
+### T04 Completed: CursorProxyController Usage Metering
+
+**Key Research Finding**: The CursorProxyController javadoc example (`aiserver.v1.AgentService/Send`) is for SDK-internal Connect RPC analytics. The main agent streaming uses REST + SSE at `GET /v1/agents/{id}/runs/{id}/stream` on `api.cursor.com`. Cursor SDK's `CloudApiClient.streamRun()` sets `Accept: text/event-stream`.
+
+**Wire format**: Standard SSE with JSON payloads. `turn-ended` events carry `{inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens}`. `SseFrameDecoder` is fully reusable.
+
+**New: CursorUsageExtractor**:
+- Reuses `SseFrameDecoder` for SSE framing
+- Parses JSON payloads for `turn-ended` events with `usage` object
+- Accumulates token counts across multiple turns per run
+- Extracts model from `assistant` message events
+- Handles both camelCase and snake_case field names
+- 6 unit tests + 3 SSE fixture files
+
+**CursorProxyController rewrite**:
+- Conditional tee: checks response `Content-Type` for `text/event-stream`
+- SSE responses: tee loop (read → write + `extractor.onBytes`) with ProxyTiming capture
+- Non-SSE responses: passthrough via `transferTo` (no parsing overhead)
+- Injected `ProxyUsageReporter` + `ProxyCallSequencer` (existing Spring beans)
+- No request body modification needed (Cursor always includes usage)
+- Provider request ID from `x-request-id` / `x-cursor-request-id` headers
+- Cardinal rule maintained: billing in try-catch, never breaks stream
+
+**Updated**:
+- `SseUsageExtractorFactory`: added `"cursor"` case
+- `BUILD.bazel`: `cursor_usage_extractor_test` target + fixed `stream_options_injection_test` dep
+
+**Hypothesis test**: Created `CursorApiWireFormatTest` (live API calls) — H1 confirmed (API key works, `api.cursor.com/v1/models` returns JSON). H2-H7 blocked by missing GitHub integration on the service-account API key. Test deleted after findings captured.
+
+## Session Progress (2026-05-04 Session 5)
+
+### T05 Completed: Wire Billing Signal in BuildUpdateStatusResponseStep
+
+**Design Decision: Don't strip `llm_metrics`**:
+The research report established the trust boundary at the collection level — `LlmCallUsageRecord` (dedicated collection) is the billing authority. `AgentMessage.llm_metrics` is legacy runner-reported display data. No billing code reads `llm_metrics`. Stripping would break `UsageAggregationService` (used by three report RPCs) without adding billing trust value. Migration of those reports to `LlmCallUsageRecord`-based queries is tracked as a follow-up in the parent project's next-task.md.
+
+**Note on "DEPRECATED" proto comments**: The `UsageMetrics`, `ModelUsage`, and `LlmCallMetrics` types in `usage.proto` are labeled "DEPRECATED" but are actually legacy types that were never published to external consumers. They should be labeled "LEGACY — to be removed" and cleaned up after `UsageAggregationService` is migrated. This is tracked in the parent project's follow-up work items.
+
+**New: `ExecutionBillingService.querySignal(executionId)`**:
+- Read-only billing state check (no writes)
+- Looks up reservation → billing account → `CreditLedgerService.determineSignal(account, headroom)`
+- No reservation (OSS/billing not configured) → `continue_execution` (never blocks)
+- Account not found or suspended → `stop_execution`
+- Returns `BillingSignalResult` record (signal + human-readable reason)
+
+**New: `BillingSignalMapper`**:
+- Static mapper: `ExecutionBillingSignal` (billing domain) → `ExecutionControlSignal` (agentic domain)
+- Keeps bounded context boundary clean
+
+**`BuildUpdateStatusResponseStep` rewrite**:
+- Replaced TODO with full billing signal wiring
+- Injects `ExecutionBillingService`, calls `querySignal()` in try-catch
+- Maps via `BillingSignalMapper.toControlSignal()`
+- Logs STOP/WARNING signals at INFO level
+- Billing check failure → UNSPECIFIED (never breaks status updates)
+
+**Tests**: 3 new test files (15 tests total)
+- `BillingSignalMapperTest` — 4 enum mapping tests
+- `ExecutionBillingServiceQuerySignalTest` — 6 scenario tests (no reservation, account issues, healthy/low/exhausted balance, finalized reservation)
+- `BuildUpdateStatusResponseStepTest` — 5 tests (signal passthrough, graceful degradation, criticality)
+
+**BUILD.bazel**: 3 new test targets registered in T05 section
+
+## Session Progress (2026-05-04 Session 6)
+
+### T06 Completed: Dual-Header Proxy Access Control
+
+**Design Decision: Keep soft enforcement (defer hard-require to after T07)**:
+The original T06 plan called for removing `require-execution-id` and hard-requiring at least one scope header. This was deferred because T07 is what makes the runner send `X-Stigmer-Mcp-Server-Id` for MCP connect classifier calls. If T06 hard-requires a scope header before T07 deploys, MCP connect LLM calls would get 403. Safer to add server-side support first (T06), then client-side header (T07), then flip enforcement.
+
+**New: `ProxyScopeResult` record**:
+- Captures which scope headers were present and authorized
+- `executionId` (non-null if `X-Stigmer-Execution-Id` authorized), `mcpServerId` (non-null if `X-Stigmer-Mcp-Server-Id` authorized), `metered` (true when execution scope present)
+- Static `UNSCOPED` sentinel for soft-enforcement fallback
+
+**New: `ProxyAuthorizationService.authorizeProxyScopes()`**:
+- Shared dual-header authorization logic (eliminates duplication between controllers)
+- `X-Stigmer-Execution-Id` → FGA `can_edit` on `agent_execution` (existing, metered)
+- `X-Stigmer-Mcp-Server-Id` → FGA `can_connect` on `mcp_server` (new, not metered)
+- Both present → both FGA checks, metering uses execution scope
+- Neither present + soft enforcement → warn and allow (current default)
+- Neither present + hard enforcement → 403
+- Also added `authorizeMcpServerAccess()` for direct use by other callers
+
+**`LlmProxyController` refactored**:
+- Added `MCP_SERVER_ID_HEADER = "X-Stigmer-Mcp-Server-Id"` constant
+- Replaced `authorizeExecution()` with `authorizeProxyScopes()` call
+- `reportUsageQuietly` gates on `scope.metered()` instead of null-checking executionId
+- Logs `mcp_server_id` at INFO level when present (observability)
+
+**`CursorProxyController` refactored**:
+- Same pattern as LlmProxyController
+- Metadata paths (`/v1/models`, `/v1/me`) bypass scope authorization entirely
+- Added `x-stigmer-mcp-server-id` to non-forwardable headers set
+- Metering gate: `isSseResponse && scope.metered()` (replaces `executionId != null`)
+
+**Config property renamed**: `stigmer.proxy.require-execution-id` → `stigmer.proxy.require-scope-header` (env: `STIGMER_PROXY_REQUIRE_SCOPE_HEADER`). Default remains `false`.
+
+**Tests**: `ProxyScopeAuthorizationTest` — 15 unit tests across 5 nested groups:
+- execution_id only (3): authorized, denied, correct permission/resource check
+- mcp_server_id only (3): authorized, denied, correct permission/resource check
+- both headers (3): both authorized, both FGA checks invoked, execution denied throws
+- no headers (4): soft enforcement, blank strings, hard enforcement, hard with blank
+- FGA caching (3): cache hit, per-resource independence, cached denial
+
+**FGA infrastructure — already existed (no changes needed)**:
+- `IamPermission.can_connect` (value 22) in `enum.proto`
+- `ApiResourceKind.mcp_server` (value 44) in `api_resource_kind.proto`
+- `mcp_server.fga`: `can_connect: viewer`
+
+**Files changed (stigmer-cloud)**: 5 modified, 2 new (+188/-79 lines)
+- `ProxyScopeResult.java` (new)
+- `ProxyScopeAuthorizationTest.java` (new)
+- `ProxyAuthorizationService.java` — added 3 methods
+- `LlmProxyController.java` — refactored auth + metering
+- `CursorProxyController.java` — refactored auth + metering
+- `application.yaml` — config property rename
+- `BUILD.bazel` — new test target
+
+## Session Progress (2026-05-04 Session 7)
+
+### T07 Completed: Pass mcp_server_id Through Classify Workflow + Short-Circuit
+
+**Repo**: stigmer (OSS). No stigmer-cloud changes.
+
+**Header plumbing**:
+- `LLMConfig.build_llm_kwargs()`: Added `mcp_server_id` param → `X-Stigmer-Mcp-Server-Id` header
+- Both scope headers are independent (proxy handles "both present" from T06)
+- `classify_tools()` and `ClassifyToolApprovalsInput`: accept + forward `mcp_server_id`
+- `ConnectMcpServerWorkflow`: passes `input.mcp_server_id` into classify input
+
+**Short-circuit (stability guarantee)**:
+- `tools_fingerprint()`: deterministic SHA-256 of (name + description + schema) sorted by name
+- Discover activity returns previous fingerprint + approvals from McpServer status
+- Workflow compares: match → skip classify, reuse previous approvals; mismatch → reclassify
+- Prevents LLM non-determinism from flipping approval policies on reconnect
+
+**Sub-agent title generation scope fix**:
+- `_generate_sub_agent_subject()`: now passes `execution_id` to `build_llm_kwargs()`
+- Prevents 403 when `require-scope-header` is flipped to `true`
+
+**Tests**: 20 new across 3 files (header plumbing, fingerprint, sub-agent scope)
+**Embedded sync**: 4 files synced to `client-apps/cli/embedded/agentrunner/source/`
+**Committed**: `02c272fc6` on `feat/react-sdk-streaming-ux`
+
+## Next Steps
+
+1. **T08**: Deprecate runner-side billing calls
+2. **Follow-up**: Flip `require-scope-header` to `true` after T07 is deployed
+3. **Follow-up**: Commit T04–T06 on stigmer-cloud (still uncommitted from earlier sessions)
+
+## Context for Resume
+- Per-call usage goes to `llm_call_usage_record` collection (billing source of truth)
+- Lightweight aggregate on execution doc: `status.usage_summary` (via $inc after each insert)
+- Runner observability: `status.observability` (timing/context data, display-only)
+- Legacy `UsageMetrics`/`ModelUsage`/`LlmCallMetrics` kept for now (wire compat with runner's `AgentMessage.llm_metrics`). NOT deprecated — they are legacy types to be removed after `UsageAggregationService` migration. Tracked in parent project follow-up items.
+- `updateUsage` RPC is operator-only (FGA `can_update_usage` on `platform:stigmer`)
+- Response is empty — billing signals flow through `updateStatus` → `ExecutionControlSignal`
+- T03 introduced `ProxyUsageReporter` and `ProxyCallSequencer` in `ai.stigmer.proxy.usage`
+- `LlmProxyController` now: tee stream, inject stream_options, capture timing, report usage, dual-header auth
+- `CursorProxyController` now: conditional tee (SSE only), CursorUsageExtractor, report usage, dual-header auth
+- Both proxy controllers share: `ProxyUsageReporter`, `ProxyCallSequencer`, `ProxyTiming`, `ParsedLlmUsage`
+- Cursor API uses `api.cursor.com` for REST + SSE, `api2.cursor.sh` for Connect RPC analytics
+- Cursor SDK `turn-ended` events provide per-turn usage; extractor accumulates across turns
+- T05: `BuildUpdateStatusResponseStep` now queries `ExecutionBillingService.querySignal()` on every runner heartbeat
+- T05: `BillingSignalMapper` bridges `ExecutionBillingSignal` (billing) → `ExecutionControlSignal` (agentic)
+- T05: No reservation = continue (OSS mode safe), account issues = stop, balance-based = delegated to `CreditLedgerService.determineSignal()`
+- T06: `ProxyAuthorizationService.authorizeProxyScopes()` handles dual-header logic in one place
+- T06: `ProxyScopeResult` encapsulates scope state (executionId, mcpServerId, metered flag)
+- T06: `X-Stigmer-Mcp-Server-Id` recognized but no caller sends it yet (T07 adds that)
+- T06: Config `stigmer.proxy.require-scope-header` (env `STIGMER_PROXY_REQUIRE_SCOPE_HEADER`) — defaults `false`, flip to `true` after T07
+- T06: FGA infrastructure ready: `can_connect` (22), `mcp_server` ApiResourceKind (44), `mcp_server.fga` has `can_connect: viewer`
+- T07: `build_llm_kwargs()` now supports both `execution_id` and `mcp_server_id` (independent, both optional)
+- T07: `classify_tools()` passes `mcp_server_id` → proxy sends `X-Stigmer-Mcp-Server-Id`
+- T07: `tools_fingerprint()` in `discover_mcp_server.py` — SHA-256 of canonical tool JSON
+- T07: `ConnectMcpServerWorkflow` short-circuits classify when fingerprint matches previous
+- T07: `_generate_sub_agent_subject()` now passes `execution_id` (was missing, would 403 on hard enforcement)
+- T07: All changes in stigmer OSS agent-runner, zero stigmer-cloud changes
+- Research reference: `research.llm-usage-capture-model/04.report.gpt.md`
+- Proto stubs need regeneration (`make protos`) after OSS proto lands
+
+## Quick Commands
+
+After loading context:
+- "Continue with T08" - Deprecate runner-side billing calls
+- "Commit T04–T06 on stigmer-cloud" - Uncommitted work from earlier sessions
+- "Show project status" - Get overview of progress
+- "Create checkpoint" - Save current progress
+
+---
+
+*This file provides portable paths to all project resources for quick context loading.*

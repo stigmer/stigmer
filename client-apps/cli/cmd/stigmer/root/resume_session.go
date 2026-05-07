@@ -78,7 +78,7 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 	wsRoots := localWorkspaceRoots(ses.GetSpec().GetWorkspaceEntries())
 
 	var model string
-	if u := computeExecutionUsage(latestExec); u != nil {
+	if u := fetchExecutionUsage(context.Background(), client, latestExec.GetMetadata().GetId()); u != nil {
 		model = u.PrimaryModel
 	}
 	headerInfo := sessionHeaderInfo{

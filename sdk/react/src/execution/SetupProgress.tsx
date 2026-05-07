@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { cn } from "@stigmer/theme";
 
@@ -87,7 +87,7 @@ function buildSteps(
  * <SetupProgress workspaceEntries={session.spec?.workspaceEntries} />
  * ```
  */
-export function SetupProgress({
+export const SetupProgress = memo(function SetupProgress({
   workspaceEntries,
   serverPhase,
   className,
@@ -129,7 +129,7 @@ export function SetupProgress({
       </span>
     </div>
   );
-}
+});
 
 function PulseIndicator() {
   return (

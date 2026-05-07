@@ -2,6 +2,8 @@ export { SETTINGS_NAV_GROUPS } from "./settings-nav";
 export type { SettingsNavItem, SettingsNavGroup } from "./settings-nav";
 
 export { ApiKeysSection } from "./ApiKeysSection";
+export { BillingSection } from "./BillingSection";
+export type { BillingSectionProps } from "./BillingSection";
 export { MembersSection } from "./MembersSection";
 export { OrgProfileSection } from "./OrgProfileSection";
 export { EnvironmentsSection } from "./EnvironmentsSection";

@@ -73,10 +73,9 @@ Status is system-managed and must never be set by users.
 
 | Operation | RPC | Authorization | Notes |
 |---|---|---|---|
-| Create | `IdentityAccountCommandController.create` | None — system-level, called by webhook and federated account creation flows | Not for direct user invocation |
+| Create | `IdentityAccountCommandController.create` | None — system-level, called by federated account creation and bootstrap migrations | Not for direct user invocation |
 | Update | `IdentityAccountCommandController.update` | `can_edit` on the IdentityAccount | Updates mutable profile fields |
 | Delete | `IdentityAccountCommandController.delete` | `can_delete` on the IdentityAccount | |
-| Simulate signup webhook | `IdentityAccountCommandController.simulateSignupWebhook` | None | Looks up an email in Auth0 and triggers account creation for users who signed up in Auth0 but not yet in Stigmer |
 
 ## CLI Commands
 

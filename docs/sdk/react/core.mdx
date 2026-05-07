@@ -123,6 +123,30 @@ if (!available) {
 ```
 
 
+### FetchCacheProvider
+
+Provides a `FetchCache` instance to descendant `useFetch` hooks.
+
+Mount this component **above** any remount boundary (e.g. above a
+`key`-driven session switch) so that cached data survives when child
+components unmount and remount. Without this provider, `useFetch`
+works exactly as before — no cache, no behavior change.
+
+```tsx
+// In your app shell (above the session key boundary):
+<FetchCacheProvider>
+  <SessionPageInner key={activeSessionId} id={activeSessionId} />
+</FetchCacheProvider>
+```
+
+```tsx
+// With custom limits:
+<FetchCacheProvider maxEntries={50} ttl={120_000}>
+  <App />
+</FetchCacheProvider>
+```
+
+
 ### StigmerProvider
 
 React provider that distributes a `Stigmer` SDK client to
@@ -207,6 +231,18 @@ pattern and avoid circular imports.
 
 Defaults to `"cloud"` so existing consumers who don't pass
 `deploymentMode` to `StigmerProvider` see all features enabled.
+
+
+### FetchCacheOptions
+
+Configuration for `FetchCache`.
+
+<TypeTable
+  type={{
+    maxEntries: { type: "number", description: "Maximum number of entries before the oldest are evicted." },
+    ttl: { type: "number", description: "Time-to-live in milliseconds. Entries older than this are treated as missing on read and lazily purged." },
+  }}
+/>
 
 
 ### isResourceAvailable

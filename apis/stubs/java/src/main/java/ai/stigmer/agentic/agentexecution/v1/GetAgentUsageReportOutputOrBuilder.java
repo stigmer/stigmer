@@ -55,7 +55,7 @@ public interface GetAgentUsageReportOutputOrBuilder extends
    * Aggregated usage within the time range.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
    * @return Whether the totalUsage field is set.
    */
   boolean hasTotalUsage();
@@ -64,18 +64,18 @@ public interface GetAgentUsageReportOutputOrBuilder extends
    * Aggregated usage within the time range.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
    * @return The totalUsage.
    */
-  ai.stigmer.agentic.agentexecution.v1.UsageMetrics getTotalUsage();
+  ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate getTotalUsage();
   /**
    * <pre>
    * Aggregated usage within the time range.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
    */
-  ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder getTotalUsageOrBuilder();
+  ai.stigmer.agentic.agentexecution.v1.UsageReportAggregateOrBuilder getTotalUsageOrBuilder();
 
   /**
    * <pre>
@@ -187,13 +187,13 @@ public interface GetAgentUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * Total cost in USD within the time range.
+   * Total billable cost in micro-USD within the time range.
    * </pre>
    *
-   * <code>double total_cost_usd = 8 [json_name = "totalCostUsd"];</code>
-   * @return The totalCostUsd.
+   * <code>int64 total_billable_cost_micros = 8 [json_name = "totalBillableCostMicros"];</code>
+   * @return The totalBillableCostMicros.
    */
-  double getTotalCostUsd();
+  long getTotalBillableCostMicros();
 
   /**
    * <pre>

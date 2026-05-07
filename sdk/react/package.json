@@ -65,6 +65,7 @@
     "@stigmer/theme": "*",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
+    "streamdown": "^2.5.0",
     "yaml": "^2.8.2"
   },
   "peerDependencies": {
@@ -74,10 +75,14 @@
     "@stigmer/sdk": "*",
     "lucide-react": ">=0.400.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-virtuoso": "^4.0.0"
   },
   "peerDependenciesMeta": {
     "@base-ui/react": {
+      "optional": true
+    },
+    "react-virtuoso": {
       "optional": true
     }
   },
@@ -86,6 +91,7 @@
     "@typescript-eslint/parser": "^8.57.0",
     "eslint": "^9.39.4",
     "happy-dom": "^20.8.4",
+    "react-virtuoso": "^4.18.6",
     "tsx": "^4.21.0",
     "typedoc": "^0.28.18",
     "vitest": "^3.2.4"

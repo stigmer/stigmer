@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, type AttachmentInput, type EnvVarInput, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { useComposer } from "./useComposer";
@@ -33,6 +33,7 @@ import {
   SYSTEM_ENV_VAR_KEYS,
   resolveSystemEnvVarValues,
 } from "../environment/systemEnvVars";
+import { useRenderTracer } from "../internal/dev";
 import { RunnerPhase } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/enum_pb";
 import {
   isActivePhase,
@@ -371,7 +372,7 @@ export interface SessionComposerProps {
  * />
  * ```
  */
-export function SessionComposer({
+export const SessionComposer = memo(function SessionComposer({
   onSubmit,
   isSubmitting = false,
   disabled = false,
@@ -407,6 +408,8 @@ export function SessionComposer({
   ariaLabel = "Send message",
   className,
 }: SessionComposerProps) {
+  useRenderTracer("SessionComposer", { disabled, isSubmitting });
+
   const [modelId, setModelIdRaw] = useState<string | undefined>(defaultModelId);
   const userOverrodeModel = useRef(false);
 
@@ -1433,7 +1436,7 @@ export function SessionComposer({
       </div>
     </div>
   );
-}
+});
 
 // ---------------------------------------------------------------------------
 // Agent setup error — secret-flow guidance or generic fallback

@@ -14,7 +14,6 @@ from ai.stigmer.agentic.agentexecution.v1.message_pb2 import AgentMessage
 
 from stigmer_runner.worker.activities.graphton.handlers import formatting, streaming_buffers
 from stigmer_runner.worker.activities.graphton.handlers.tool_event import PLANNING_TOOLS
-from stigmer_runner.worker.activities.graphton.usage_tracker import MAIN_SCOPE
 
 if TYPE_CHECKING:
     from stigmer_runner.worker.activities.graphton.status_builder import StatusBuilder
@@ -383,7 +382,7 @@ def handle_chat_model_end(sb: StatusBuilder, event: dict[str, Any], namespace: s
     output_tokens = 0
     cache_creation_tokens = 0
     cache_read_tokens = 0
-    model_name = ""
+    _model_name = ""
 
     # Resolve usage_metadata from AIMessage attribute or raw dict.
     usage: dict | None = None
@@ -404,16 +403,16 @@ def handle_chat_model_end(sb: StatusBuilder, event: dict[str, Any], namespace: s
             cache_read_tokens = details.get("cache_read", 0) or 0
 
     # Derive the non-cached regular input (disjoint bucket for cost)
-    regular_input_tokens = max(0, total_input_tokens - cache_creation_tokens - cache_read_tokens)
+    _regular_input_tokens = max(0, total_input_tokens - cache_creation_tokens - cache_read_tokens)
 
     # Extract model name from response_metadata
     if hasattr(output_data, "response_metadata"):
         response_meta = output_data.response_metadata
         if isinstance(response_meta, dict):
-            model_name = response_meta.get("model", "") or response_meta.get("model_name", "")
+            _model_name = response_meta.get("model", "") or response_meta.get("model_name", "")
     elif isinstance(output_data, dict):
         response_meta = output_data.get("response_metadata", {})
-        model_name = response_meta.get("model", "") or response_meta.get("model_name", "")
+        _model_name = response_meta.get("model", "") or response_meta.get("model_name", "")
 
     # ─────────────────────────────────────────────────────────────────────────
     # Finalize AI message streaming state fields
@@ -466,34 +465,9 @@ def handle_chat_model_end(sb: StatusBuilder, event: dict[str, Any], namespace: s
         pass
 
     # ─────────────────────────────────────────────────────────────────────────
-    # Record usage via UsageTracker (Phase 3)
-    #
-    # Delegates all token accounting, pricing lookup, cost computation,
-    # LlmCallMetrics construction, and ModelUsage aggregation to the
-    # tracker.  The returned LlmCallMetrics is used to enrich the
-    # AgentMessage with per-message cost and model fields.
-    # ─────────────────────────────────────────────────────────────────────────
-    scope = sub_agent.id if sub_agent else MAIN_SCOPE
-
-    call_metrics = sb._usage_tracker.record_llm_call(
-        model_name=model_name,
-        input_tokens=regular_input_tokens,
-        output_tokens=output_tokens,
-        cache_creation_tokens=cache_creation_tokens,
-        cache_read_tokens=cache_read_tokens,
-        duration_ms=generation_duration_ms,
-        timestamp=_utc_timestamp(),
-        scope=scope,
-    )
-
-    ai_message.llm_metrics.CopyFrom(call_metrics)
-
     sb.logger.debug(
-        "AI message finalized at index %d scope=%s "
-        "(tokens: %d, cost: $%.6f, duration: %sms)",
+        "AI message finalized at index %d (tokens: %d, duration: %sms)",
         ai_message_index,
-        scope,
         total_input_tokens + output_tokens,
-        call_metrics.estimated_cost_usd,
         generation_duration_ms or "N/A",
     )

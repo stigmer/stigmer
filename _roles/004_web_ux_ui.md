@@ -157,6 +157,12 @@ Stigmer's Web Console must be built to state-of-the-art standards — not just i
    * Every component must have a single responsibility. A component that fetches data, manages state, handles user input, and renders UI is a monolith — decompose it into a data hook, a behavior hook, and a presentational component.
    * TypeScript strictness is non-negotiable. No `any` types, no type assertions without justification, no implicit returns. The type system is a quality tool — use it fully. Types flow from `@stigmer/protos` through `@stigmer/sdk` into `@stigmer/react` — never redefine types that already exist in the generated layer.
    * Performance is a quality dimension. Unnecessary re-renders, unoptimized bundle sizes, and memory leaks in long-running streaming views are bugs, not optimization tasks for later.
+   * **Streaming & Real-Time View Standards:**
+     - Real-time views must use the structural-sharing + rAF-coalescing + `startTransition` pipeline (see `sdk-console-architecture.mdc` DD-009). Never store full stream snapshots in component state — this causes full-tree re-renders on every frame.
+     - Only the actively-changing row should re-render during streaming. Completed rows and the composer must remain untouched. Verify with `useRenderTracer` (dev-only instrumentation).
+     - Hook return values must be referentially stable (wrapped in `useMemo`). Callback deps must be narrowed to the specific property used, not the containing object. These are not optimizations — they are requirements for `React.memo` correctness (DD-010).
+     - Auto-scroll must be content-agnostic: driven by `IntersectionObserver` + `ResizeObserver` on a bottom sentinel, not `onScroll` arithmetic or streaming-awareness flags. The scroll state machine handles all content growth uniformly — streaming tokens, new messages, tool panel expansion, code block rendering.
+     - New SDK behaviors (virtualization, animation strategies) must be opt-in props with backward-compatible defaults. Auto-threshold switching mid-session is forbidden (DD-011).
 
 2. **Maintainability of the SDK Packages (and Their Public Surface):**
    * The SDK packages are not internal utilities — they are public integration surfaces. Every hook, component, and type exported from `@stigmer/react` and `@stigmer/theme` must be independently testable, documentable, and versionable.

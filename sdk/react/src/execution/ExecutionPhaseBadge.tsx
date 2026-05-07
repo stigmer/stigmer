@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 
@@ -97,7 +98,7 @@ const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
  * <ExecutionPhaseBadge phase={ExecutionPhase.EXECUTION_COMPLETED} />
  * ```
  */
-export function ExecutionPhaseBadge({
+export const ExecutionPhaseBadge = memo(function ExecutionPhaseBadge({
   phase,
   className,
 }: ExecutionPhaseBadgeProps) {
@@ -122,7 +123,7 @@ export function ExecutionPhaseBadge({
       {config.label}
     </span>
   );
-}
+});
 
 function DotIcon() {
   return (

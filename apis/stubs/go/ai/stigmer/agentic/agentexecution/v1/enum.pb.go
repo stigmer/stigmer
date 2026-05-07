@@ -720,6 +720,68 @@ func (ToolCallStreamingSource) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{7}
 }
 
+// ExecutionControlSignal is a platform-to-runner directive returned by the
+// updateStatus RPC. The runner inspects this signal after every status
+// update and acts accordingly.
+//
+// Signal sources are opaque to the runner — the platform may set STOP due
+// to credit exhaustion, an admin kill, a user-configured budget cap, or any
+// future enforcement mechanism. The runner does not know or care about the
+// source; it only reacts to the signal value.
+type ExecutionControlSignal int32
+
+const (
+	// No action required — continue execution normally.
+	ExecutionControlSignal_EXECUTION_CONTROL_SIGNAL_UNSPECIFIED ExecutionControlSignal = 0
+	// Execution must stop gracefully. The runner should block further tool
+	// calls and give the model one final turn to produce a summary.
+	ExecutionControlSignal_EXECUTION_CONTROL_SIGNAL_STOP ExecutionControlSignal = 1
+	// Informational warning (e.g. low credit balance). The runner logs the
+	// warning and continues execution.
+	ExecutionControlSignal_EXECUTION_CONTROL_SIGNAL_WARNING ExecutionControlSignal = 2
+)
+
+// Enum value maps for ExecutionControlSignal.
+var (
+	ExecutionControlSignal_name = map[int32]string{
+		0: "EXECUTION_CONTROL_SIGNAL_UNSPECIFIED",
+		1: "EXECUTION_CONTROL_SIGNAL_STOP",
+		2: "EXECUTION_CONTROL_SIGNAL_WARNING",
+	}
+	ExecutionControlSignal_value = map[string]int32{
+		"EXECUTION_CONTROL_SIGNAL_UNSPECIFIED": 0,
+		"EXECUTION_CONTROL_SIGNAL_STOP":        1,
+		"EXECUTION_CONTROL_SIGNAL_WARNING":     2,
+	}
+)
+
+func (x ExecutionControlSignal) Enum() *ExecutionControlSignal {
+	p := new(ExecutionControlSignal)
+	*p = x
+	return p
+}
+
+func (x ExecutionControlSignal) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ExecutionControlSignal) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[8].Descriptor()
+}
+
+func (ExecutionControlSignal) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[8]
+}
+
+func (x ExecutionControlSignal) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ExecutionControlSignal.Descriptor instead.
+func (ExecutionControlSignal) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{8}
+}
+
 // ApprovalAction represents the user's decision on an approval request.
 //
 // ## Action Semantics
@@ -787,11 +849,11 @@ func (x ApprovalAction) String() string {
 }
 
 func (ApprovalAction) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[8].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[9].Descriptor()
 }
 
 func (ApprovalAction) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[8]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[9]
 }
 
 func (x ApprovalAction) Number() protoreflect.EnumNumber {
@@ -800,7 +862,7 @@ func (x ApprovalAction) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ApprovalAction.Descriptor instead.
 func (ApprovalAction) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{9}
 }
 
 var File_ai_stigmer_agentic_agentexecution_v1_enum_proto protoreflect.FileDescriptor
@@ -859,7 +921,11 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x17ToolCallStreamingSource\x12*\n" +
 	"&TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED\x10\x00\x12$\n" +
 	" TOOL_CALL_STREAMING_SOURCE_INPUT\x10\x01\x12%\n" +
-	"!TOOL_CALL_STREAMING_SOURCE_OUTPUT\x10\x02*\x84\x01\n" +
+	"!TOOL_CALL_STREAMING_SOURCE_OUTPUT\x10\x02*\x8b\x01\n" +
+	"\x16ExecutionControlSignal\x12(\n" +
+	"$EXECUTION_CONTROL_SIGNAL_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dEXECUTION_CONTROL_SIGNAL_STOP\x10\x01\x12$\n" +
+	" EXECUTION_CONTROL_SIGNAL_WARNING\x10\x02*\x84\x01\n" +
 	"\x0eApprovalAction\x12\x1f\n" +
 	"\x1bAPPROVAL_ACTION_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17APPROVAL_ACTION_APPROVE\x10\x01\x12\x18\n" +
@@ -879,7 +945,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
+var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 10)
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(ExecutionPhase)(0),          // 0: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
 	(MessageType)(0),             // 1: ai.stigmer.agentic.agentexecution.v1.MessageType
@@ -889,7 +955,8 @@ var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
 	(ExecutionArtifactKind)(0),   // 5: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
 	(SummarizationSource)(0),     // 6: ai.stigmer.agentic.agentexecution.v1.SummarizationSource
 	(ToolCallStreamingSource)(0), // 7: ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
-	(ApprovalAction)(0),          // 8: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(ExecutionControlSignal)(0),  // 8: ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
+	(ApprovalAction)(0),          // 9: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
 }
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -909,7 +976,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc)),
-			NumEnums:      9,
+			NumEnums:      10,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

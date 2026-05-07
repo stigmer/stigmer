@@ -7,6 +7,38 @@ description: Hooks and components for organization-level usage reporting and cos
 
 ## Hooks
 
+### useExportCSV
+
+Behavior hook that generates and downloads usage data as CSV.
+
+Operates entirely client-side from data already in memory — no
+additional RPC calls. Supports two formats:
+- `daily_summary` — one row per day with date, executions, tokens, cost
+- `model_breakdown` — one row per model with calls, tokens, cost
+
+**Signature**
+
+```tsx
+function useExportCSV(report: GetOrgUsageReportOutput | null, orgId: string): UseExportCSVReturn
+```
+
+<TypeTable
+  type={{
+    report: { type: "GetOrgUsageReportOutput | null", description: "The org usage report data (from `useOrgUsageReport`).", required: true },
+    orgId: { type: "string", description: "Organization ID for the filename.", required: true },
+  }}
+/>
+
+**Returns** — `UseExportCSVReturn`
+
+<TypeTable
+  type={{
+    exportCSV: { type: "(format: ExportFormat) => void", description: "Trigger a CSV download for the given format." },
+    isExporting: { type: "boolean", description: "Whether an export is being generated." },
+  }}
+/>
+
+
 ### useOrgUsageReport
 
 Data hook that fetches the organization-level usage report.
@@ -51,11 +83,91 @@ if (isLoading) return <Skeleton />;
 if (error) return <ErrorMessage error={error} />;
 if (!report) return null;
 
-return <div>Total cost: {formatCost(report.totalCostUsd)}</div>;
+const costUsd = Number(report.totalBillableCostMicros) / 1_000_000;
+return <div>Total cost: {formatCost(costUsd)}</div>;
 ```
 
 
 ## Components
+
+### AgentBreakdownList
+
+Renders a ranked list of agents by cost with proportional cost bars.
+
+Each row shows the agent name, execution count, token usage,
+billable cost, and a visual bar representing cost as a percentage
+of the organization total.
+
+**Props** — `AgentBreakdownListProps`
+
+<TypeTable
+  type={{
+    agentHref: { type: "(agentId: string) => string", description: "Optional href builder for agent links. Receives the agent ID." },
+    agents: { type: "readonly AgentUsageSummary[]", description: "Top agents by cost, ordered by billable cost descending.", required: true },
+    className: { type: "string", description: "Additional CSS class names." },
+    totalBillableCostMicros: { type: "bigint", description: "Total billable cost for the org (used to compute percentages).", required: true },
+  }}
+/>
+
+
+### CreditRunwayIndicator
+
+Displays projected credit runway: "~N days at this rate".
+
+Computes runway by dividing available balance by the daily spend rate
+derived from the usage report. Color-coded by urgency:
+green (>14d), amber (7-14d), red (\<7d).
+
+Requires `useBillingAccount` — renders nothing in local mode or if
+billing data is unavailable.
+
+**Props** — `CreditRunwayIndicatorProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names." },
+    daysInRange: { type: "number", description: "Number of calendar days the report covers.", required: true },
+    totalBillableCostMicros: { type: "bigint", description: "Total billable cost in micro-USD for the report period.", required: true },
+  }}
+/>
+
+
+### ExportButton
+
+Dropdown button for exporting usage data as CSV.
+
+Presents two options: "Daily Summary" and "Model Breakdown",
+corresponding to the two CSV export formats.
+
+**Props** — `ExportButtonProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names." },
+    disabled: { type: "boolean", description: "Disable the button (e.g., when no data is loaded)." },
+    isExporting: { type: "boolean", description: "Whether an export is in progress." },
+    onExport: { type: "(format: ExportFormat) => void", description: "Callback invoked with the selected export format.", required: true },
+  }}
+/>
+
+
+### HarnessSplitCard
+
+Displays the cost split between execution harnesses as a segmented bar.
+
+Renders a two-tone horizontal bar with labels showing cost and percentage
+per harness. Designed for at-a-glance understanding of native vs cursor
+cost distribution.
+
+**Props** — `HarnessSplitCardProps`
+
+<TypeTable
+  type={{
+    breakdown: { type: "readonly HarnessCostSummary[]", description: "Harness breakdown entries from the org usage report.", required: true },
+    className: { type: "string", description: "Additional CSS class names." },
+  }}
+/>
+
 
 ### OrgUsagePanel
 
@@ -117,6 +229,11 @@ function dateRangeFromPreset(preset: DateRangePreset): DateRange
 ### DateRangePreset
 
 Supported preset window sizes for usage reports.
+
+
+### ExportFormat
+
+Export format for the CSV download.
 
 
 ### formatDateRange
