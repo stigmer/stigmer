@@ -97,7 +97,6 @@ export function ComposerToolbar({
   const hasTier2 = configureItems.length > 0;
   const showHarnessSeparate = showHarnessSelector && !showModelSelector;
   const hasExecParams = showHarnessSeparate || showModelSelector;
-  const harnessLocked = harness !== undefined;
 
   return (
     <div className="flex items-center justify-between gap-2 border-t border-border-muted px-3 py-2">
@@ -174,8 +173,8 @@ export function ComposerToolbar({
           <ModelSelector
             value={modelId}
             onValueChange={onModelChange}
-            harness={harnessLocked ? harness : undefined}
-            onHarnessResolved={harnessLocked ? undefined : onHarnessChange}
+            harness={showHarnessSelector ? undefined : harness}
+            onHarnessChange={showHarnessSelector ? onHarnessChange : undefined}
             disabled={disabled}
           />
         )}

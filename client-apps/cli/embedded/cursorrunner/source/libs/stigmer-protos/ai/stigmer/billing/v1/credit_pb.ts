@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { CreditGrantKind, CreditPurchaseStatus, LedgerEntryType, ReservationStatus } from "./enum_pb.js";
+import type { AutoRechargeEventStatus, CreditGrantKind, CreditPurchaseStatus, LedgerEntryType, ReservationStatus } from "./enum_pb.js";
 import { file_ai_stigmer_billing_v1_enum } from "./enum_pb.js";
 import type { BillingUsageRating } from "./policy_pb.js";
 import { file_ai_stigmer_billing_v1_policy } from "./policy_pb.js";
@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/billing/v1/credit.proto.
  */
 export const file_ai_stigmer_billing_v1_credit: GenFile = /*@__PURE__*/
-  fileDesc("CiJhaS9zdGlnbWVyL2JpbGxpbmcvdjEvY3JlZGl0LnByb3RvEhVhaS5zdGlnbWVyLmJpbGxpbmcudjEi3wIKEUNyZWRpdExlZGdlckVudHJ5EhAKCGVudHJ5X2lkGAEgASgJEg4KBm9yZ19pZBgCIAEoCRI0CgR0eXBlGAMgASgOMiYuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkxlZGdlckVudHJ5VHlwZRIVCg1hbW91bnRfbWljcm9zGAQgASgDEhwKFGJhbGFuY2VfYWZ0ZXJfbWljcm9zGAUgASgDEhcKD2lkZW1wb3RlbmN5X2tleRgGIAEoCRI5CgZyYXRpbmcYByABKAsyKS5haS5zdGlnbWVyLmJpbGxpbmcudjEuQmlsbGluZ1VzYWdlUmF0aW5nEjkKBnNvdXJjZRgIIAEoCzIpLmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVkaXRMZWRnZXJTb3VyY2USLgoKY3JlYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAi1AEKEkNyZWRpdExlZGdlclNvdXJjZRIUCgxleGVjdXRpb25faWQYASABKAkSEgoKc2Vzc2lvbl9pZBgCIAEoCRIQCghhZ2VudF9pZBgDIAEoCRIZChFsbG1fY2FsbF9zZXF1ZW5jZRgEIAEoBRITCgtwdXJjaGFzZV9pZBgFIAEoCRIQCghncmFudF9pZBgGIAEoCRIWCg5yZXNlcnZhdGlvbl9pZBgHIAEoCRITCgthZGp1c3RlZF9ieRgIIAEoCRITCgtkZXNjcmlwdGlvbhgJIAEoCSKYAgoLQ3JlZGl0R3JhbnQSEAoIZ3JhbnRfaWQYASABKAkSDgoGb3JnX2lkGAIgASgJEjQKBGtpbmQYAyABKA4yJi5haS5zdGlnbWVyLmJpbGxpbmcudjEuQ3JlZGl0R3JhbnRLaW5kEh4KFm9yaWdpbmFsX2Ftb3VudF9taWNyb3MYBCABKAMSHwoXcmVtYWluaW5nX2Ftb3VudF9taWNyb3MYBSABKAMSLgoKZXhwaXJlc19hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEAoIcHJpb3JpdHkYByABKAUSLgoKY3JlYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAicQoKQ3JlZGl0UGFjaxIPCgdwYWNrX2lkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRIUCgxwcmljZV9taWNyb3MYAyABKAMSFgoOY3JlZGl0c19taWNyb3MYBCABKAMSDgoGYWN0aXZlGAUgASgIIqACChRFeGVjdXRpb25SZXNlcnZhdGlvbhIWCg5yZXNlcnZhdGlvbl9pZBgBIAEoCRIOCgZvcmdfaWQYAiABKAkSFAoMZXhlY3V0aW9uX2lkGAMgASgJEhcKD3Jlc2VydmVkX21pY3JvcxgEIAEoAxIXCg9jb25zdW1lZF9taWNyb3MYBSABKAMSOAoGc3RhdHVzGAYgASgOMiguYWkuc3RpZ21lci5iaWxsaW5nLnYxLlJlc2VydmF0aW9uU3RhdHVzEi4KCmNyZWF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmV4cGlyZXNfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIvMCCg5DcmVkaXRQdXJjaGFzZRITCgtwdXJjaGFzZV9pZBgBIAEoCRIOCgZvcmdfaWQYAiABKAkSDwoHcGFja19pZBgDIAEoCRIaChJhbW91bnRfcGFpZF9taWNyb3MYBCABKAMSHgoWY3JlZGl0c19ncmFudGVkX21pY3JvcxgFIAEoAxI7CgZzdGF0dXMYBiABKA4yKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuQ3JlZGl0UHVyY2hhc2VTdGF0dXMSGgoSc3RyaXBlX2N1c3RvbWVyX2lkGAcgASgJEhsKE2NoZWNrb3V0X3Nlc3Npb25faWQYCCABKAkSGQoRcGF5bWVudF9pbnRlbnRfaWQYCSABKAkSLgoKY3JlYXRlZF9hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBiBnByb3RvMw", [file_ai_stigmer_billing_v1_enum, file_ai_stigmer_billing_v1_policy, file_google_protobuf_timestamp]);
+  fileDesc("CiJhaS9zdGlnbWVyL2JpbGxpbmcvdjEvY3JlZGl0LnByb3RvEhVhaS5zdGlnbWVyLmJpbGxpbmcudjEi3wIKEUNyZWRpdExlZGdlckVudHJ5EhAKCGVudHJ5X2lkGAEgASgJEg4KBm9yZ19pZBgCIAEoCRI0CgR0eXBlGAMgASgOMiYuYWkuc3RpZ21lci5iaWxsaW5nLnYxLkxlZGdlckVudHJ5VHlwZRIVCg1hbW91bnRfbWljcm9zGAQgASgDEhwKFGJhbGFuY2VfYWZ0ZXJfbWljcm9zGAUgASgDEhcKD2lkZW1wb3RlbmN5X2tleRgGIAEoCRI5CgZyYXRpbmcYByABKAsyKS5haS5zdGlnbWVyLmJpbGxpbmcudjEuQmlsbGluZ1VzYWdlUmF0aW5nEjkKBnNvdXJjZRgIIAEoCzIpLmFpLnN0aWdtZXIuYmlsbGluZy52MS5DcmVkaXRMZWRnZXJTb3VyY2USLgoKY3JlYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAi1AEKEkNyZWRpdExlZGdlclNvdXJjZRIUCgxleGVjdXRpb25faWQYASABKAkSEgoKc2Vzc2lvbl9pZBgCIAEoCRIQCghhZ2VudF9pZBgDIAEoCRIZChFsbG1fY2FsbF9zZXF1ZW5jZRgEIAEoBRITCgtwdXJjaGFzZV9pZBgFIAEoCRIQCghncmFudF9pZBgGIAEoCRIWCg5yZXNlcnZhdGlvbl9pZBgHIAEoCRITCgthZGp1c3RlZF9ieRgIIAEoCRITCgtkZXNjcmlwdGlvbhgJIAEoCSKYAgoLQ3JlZGl0R3JhbnQSEAoIZ3JhbnRfaWQYASABKAkSDgoGb3JnX2lkGAIgASgJEjQKBGtpbmQYAyABKA4yJi5haS5zdGlnbWVyLmJpbGxpbmcudjEuQ3JlZGl0R3JhbnRLaW5kEh4KFm9yaWdpbmFsX2Ftb3VudF9taWNyb3MYBCABKAMSHwoXcmVtYWluaW5nX2Ftb3VudF9taWNyb3MYBSABKAMSLgoKZXhwaXJlc19hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEAoIcHJpb3JpdHkYByABKAUSLgoKY3JlYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAicQoKQ3JlZGl0UGFjaxIPCgdwYWNrX2lkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRIUCgxwcmljZV9taWNyb3MYAyABKAMSFgoOY3JlZGl0c19taWNyb3MYBCABKAMSDgoGYWN0aXZlGAUgASgIIqACChRFeGVjdXRpb25SZXNlcnZhdGlvbhIWCg5yZXNlcnZhdGlvbl9pZBgBIAEoCRIOCgZvcmdfaWQYAiABKAkSFAoMZXhlY3V0aW9uX2lkGAMgASgJEhcKD3Jlc2VydmVkX21pY3JvcxgEIAEoAxIXCg9jb25zdW1lZF9taWNyb3MYBSABKAMSOAoGc3RhdHVzGAYgASgOMiguYWkuc3RpZ21lci5iaWxsaW5nLnYxLlJlc2VydmF0aW9uU3RhdHVzEi4KCmNyZWF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmV4cGlyZXNfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIvMCCg5DcmVkaXRQdXJjaGFzZRITCgtwdXJjaGFzZV9pZBgBIAEoCRIOCgZvcmdfaWQYAiABKAkSDwoHcGFja19pZBgDIAEoCRIaChJhbW91bnRfcGFpZF9taWNyb3MYBCABKAMSHgoWY3JlZGl0c19ncmFudGVkX21pY3JvcxgFIAEoAxI7CgZzdGF0dXMYBiABKA4yKy5haS5zdGlnbWVyLmJpbGxpbmcudjEuQ3JlZGl0UHVyY2hhc2VTdGF0dXMSGgoSc3RyaXBlX2N1c3RvbWVyX2lkGAcgASgJEhsKE2NoZWNrb3V0X3Nlc3Npb25faWQYCCABKAkSGQoRcGF5bWVudF9pbnRlbnRfaWQYCSABKAkSLgoKY3JlYXRlZF9hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAi7gIKEUF1dG9SZWNoYXJnZUV2ZW50EhAKCGV2ZW50X2lkGAEgASgJEg4KBm9yZ19pZBgCIAEoCRIVCg1hbW91bnRfbWljcm9zGAMgASgDEhYKDmNyZWRpdHNfbWljcm9zGAQgASgDEhkKEXBheW1lbnRfaW50ZW50X2lkGAUgASgJEj4KBnN0YXR1cxgGIAEoDjIuLmFpLnN0aWdtZXIuYmlsbGluZy52MS5BdXRvUmVjaGFyZ2VFdmVudFN0YXR1cxIWCg5mYWlsdXJlX3JlYXNvbhgHIAEoCRIXCg9pZGVtcG90ZW5jeV9rZXkYCCABKAkSGgoSc3RyaXBlX2N1c3RvbWVyX2lkGAkgASgJEi4KCmNyZWF0ZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGNvbXBsZXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBiBnByb3RvMw", [file_ai_stigmer_billing_v1_enum, file_ai_stigmer_billing_v1_policy, file_google_protobuf_timestamp]);
 
 /**
  * CreditLedgerEntry is an immutable, append-only record of a balance-affecting event.
@@ -475,4 +475,104 @@ export type CreditPurchase = Message<"ai.stigmer.billing.v1.CreditPurchase"> & {
  */
 export const CreditPurchaseSchema: GenMessage<CreditPurchase> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_billing_v1_credit, 5);
+
+/**
+ * AutoRechargeEvent tracks a single automatic recharge attempt through
+ * its lifecycle: claim → PaymentIntent creation → payment confirmation
+ * → credit provisioning.
+ *
+ * Created with status PENDING when the billing system detects a balance
+ * drop below the org's threshold and successfully claims a monthly cap
+ * slot. Transitions to SUCCEEDED when the payment_intent.succeeded
+ * webhook provisions credits, or to FAILED if payment fails.
+ *
+ * The monthly cap slot (BillingAccount.auto_recharge.current_month_charged_micros)
+ * is claimed atomically before this document is created, and released
+ * (decremented) if the event transitions to FAILED.
+ *
+ * @generated from message ai.stigmer.billing.v1.AutoRechargeEvent
+ */
+export type AutoRechargeEvent = Message<"ai.stigmer.billing.v1.AutoRechargeEvent"> & {
+  /**
+   * Unique identifier for this recharge event.
+   *
+   * @generated from field: string event_id = 1;
+   */
+  eventId: string;
+
+  /**
+   * Organization being recharged.
+   *
+   * @generated from field: string org_id = 2;
+   */
+  orgId: string;
+
+  /**
+   * Amount charged to the payment method in micro-USD.
+   *
+   * @generated from field: int64 amount_micros = 3;
+   */
+  amountMicros: bigint;
+
+  /**
+   * Credits to provision upon successful payment in micro-USD.
+   * Equal to amount_micros at launch (no volume bonus on recharges).
+   *
+   * @generated from field: int64 credits_micros = 4;
+   */
+  creditsMicros: bigint;
+
+  /**
+   * Stripe PaymentIntent ID. Set after PaymentIntent creation succeeds.
+   *
+   * @generated from field: string payment_intent_id = 5;
+   */
+  paymentIntentId: string;
+
+  /**
+   * Current lifecycle status.
+   *
+   * @generated from field: ai.stigmer.billing.v1.AutoRechargeEventStatus status = 6;
+   */
+  status: AutoRechargeEventStatus;
+
+  /**
+   * Reason for failure, if status is FAILED.
+   *
+   * @generated from field: string failure_reason = 7;
+   */
+  failureReason: string;
+
+  /**
+   * Deduplication key for the ledger entry provisioning credits.
+   * Format: "auto_recharge_{event_id}".
+   *
+   * @generated from field: string idempotency_key = 8;
+   */
+  idempotencyKey: string;
+
+  /**
+   * Stripe Customer ID used for this charge.
+   *
+   * @generated from field: string stripe_customer_id = 9;
+   */
+  stripeCustomerId: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 10;
+   */
+  createdAt?: Timestamp;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp completed_at = 11;
+   */
+  completedAt?: Timestamp;
+};
+
+/**
+ * Describes the message ai.stigmer.billing.v1.AutoRechargeEvent.
+ * Use `create(AutoRechargeEventSchema)` to create a new message.
+ */
+export const AutoRechargeEventSchema: GenMessage<AutoRechargeEvent> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_billing_v1_credit, 6);
 

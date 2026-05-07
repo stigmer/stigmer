@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, SetAutoRechargeConfigInput } from "./io_pbjs";
+import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, SetAutoRechargeConfigInput } from "./io_pbjs";
 import { BillingAccount } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { CreditLedgerEntry } from "./credit_pbjs";
@@ -62,6 +62,23 @@ export const BillingCommandController = {
       name: "authorizeExecution",
       I: AuthorizeExecutionInput,
       O: AuthorizeExecutionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Record a single LLM call's usage for billing.
+     * Computes cost server-side from the model registry, inserts an immutable
+     * LlmCallUsageRecord, and debits credits from the execution's reservation.
+     *
+     * @internal
+     * Called by the proxy after each LLM SSE stream completes.
+     * Deduplicated by (execution_id, sequence, metering_source).
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.recordLlmCallUsage
+     */
+    recordLlmCallUsage: {
+      name: "recordLlmCallUsage",
+      I: RecordLlmCallUsageInput,
+      O: RecordLlmCallUsageResponse,
       kind: MethodKind.Unary,
     },
     /**

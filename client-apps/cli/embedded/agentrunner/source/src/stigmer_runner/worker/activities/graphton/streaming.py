@@ -31,6 +31,7 @@ from stigmer_runner.worker.streaming import StreamingConfig, StreamingUpdateSche
 
 if TYPE_CHECKING:
     from graphton.core.graceful_stop import GracefulStopMiddleware
+
     from stigmer_runner.grpc_client.agent_execution_client import AgentExecutionClient
 
 _FILE_MODIFYING_TOOLS = frozenset({

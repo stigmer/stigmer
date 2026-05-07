@@ -1,8 +1,8 @@
 import datetime
 
+from ai.stigmer.agentic.agentexecution.v1 import usage_pb2 as _usage_pb2
 from ai.stigmer.billing.v1 import credit_pb2 as _credit_pb2
 from ai.stigmer.billing.v1 import enum_pb2 as _enum_pb2
-from ai.stigmer.billing.v1 import policy_pb2 as _policy_pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
@@ -58,41 +58,49 @@ class AuthorizeExecutionResponse(_message.Message):
     denial_reason: str
     def __init__(self, authorized: bool = ..., reservation_id: _Optional[str] = ..., reserved_micros: _Optional[int] = ..., available_balance_micros: _Optional[int] = ..., denial_reason: _Optional[str] = ...) -> None: ...
 
-class ReportLlmCallUsageInput(_message.Message):
-    __slots__ = ("execution_id", "sequence", "model", "harness", "cost_tier", "provider_cost_micros", "input_tokens", "output_tokens", "cache_creation_tokens", "cache_read_tokens")
+class RecordLlmCallUsageInput(_message.Message):
+    __slots__ = ("execution_id", "sequence", "provider", "resolved_model", "requested_model", "tokens", "usage_status", "provider_request_id", "http_status_code", "streaming", "finish_reason", "proxy_timing", "provider_usage_json")
     EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     SEQUENCE_FIELD_NUMBER: _ClassVar[int]
-    MODEL_FIELD_NUMBER: _ClassVar[int]
-    HARNESS_FIELD_NUMBER: _ClassVar[int]
-    COST_TIER_FIELD_NUMBER: _ClassVar[int]
-    PROVIDER_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
-    INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    OUTPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    CACHE_CREATION_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    CACHE_READ_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_FIELD_NUMBER: _ClassVar[int]
+    RESOLVED_MODEL_FIELD_NUMBER: _ClassVar[int]
+    REQUESTED_MODEL_FIELD_NUMBER: _ClassVar[int]
+    TOKENS_FIELD_NUMBER: _ClassVar[int]
+    USAGE_STATUS_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
+    HTTP_STATUS_CODE_FIELD_NUMBER: _ClassVar[int]
+    STREAMING_FIELD_NUMBER: _ClassVar[int]
+    FINISH_REASON_FIELD_NUMBER: _ClassVar[int]
+    PROXY_TIMING_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_USAGE_JSON_FIELD_NUMBER: _ClassVar[int]
     execution_id: str
     sequence: int
-    model: str
-    harness: str
-    cost_tier: str
-    provider_cost_micros: int
-    input_tokens: int
-    output_tokens: int
-    cache_creation_tokens: int
-    cache_read_tokens: int
-    def __init__(self, execution_id: _Optional[str] = ..., sequence: _Optional[int] = ..., model: _Optional[str] = ..., harness: _Optional[str] = ..., cost_tier: _Optional[str] = ..., provider_cost_micros: _Optional[int] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_creation_tokens: _Optional[int] = ..., cache_read_tokens: _Optional[int] = ...) -> None: ...
+    provider: str
+    resolved_model: str
+    requested_model: str
+    tokens: _usage_pb2.TokenUsage
+    usage_status: _usage_pb2.UsageCompletionStatus
+    provider_request_id: str
+    http_status_code: int
+    streaming: bool
+    finish_reason: str
+    proxy_timing: _usage_pb2.ProxyTiming
+    provider_usage_json: str
+    def __init__(self, execution_id: _Optional[str] = ..., sequence: _Optional[int] = ..., provider: _Optional[str] = ..., resolved_model: _Optional[str] = ..., requested_model: _Optional[str] = ..., tokens: _Optional[_Union[_usage_pb2.TokenUsage, _Mapping]] = ..., usage_status: _Optional[_Union[_usage_pb2.UsageCompletionStatus, str]] = ..., provider_request_id: _Optional[str] = ..., http_status_code: _Optional[int] = ..., streaming: bool = ..., finish_reason: _Optional[str] = ..., proxy_timing: _Optional[_Union[_usage_pb2.ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ...) -> None: ...
 
-class ReportLlmCallUsageResponse(_message.Message):
-    __slots__ = ("signal", "balance_after_micros", "billable_amount_micros", "rating")
-    SIGNAL_FIELD_NUMBER: _ClassVar[int]
-    BALANCE_AFTER_MICROS_FIELD_NUMBER: _ClassVar[int]
-    BILLABLE_AMOUNT_MICROS_FIELD_NUMBER: _ClassVar[int]
-    RATING_FIELD_NUMBER: _ClassVar[int]
-    signal: _enum_pb2.ExecutionBillingSignal
-    balance_after_micros: int
-    billable_amount_micros: int
-    rating: _policy_pb2.BillingUsageRating
-    def __init__(self, signal: _Optional[_Union[_enum_pb2.ExecutionBillingSignal, str]] = ..., balance_after_micros: _Optional[int] = ..., billable_amount_micros: _Optional[int] = ..., rating: _Optional[_Union[_policy_pb2.BillingUsageRating, _Mapping]] = ...) -> None: ...
+class RecordLlmCallUsageResponse(_message.Message):
+    __slots__ = ("usage_record_id", "provider_cost_micros", "customer_billable_amount_micros", "is_billable", "is_duplicate")
+    USAGE_RECORD_ID_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
+    CUSTOMER_BILLABLE_AMOUNT_MICROS_FIELD_NUMBER: _ClassVar[int]
+    IS_BILLABLE_FIELD_NUMBER: _ClassVar[int]
+    IS_DUPLICATE_FIELD_NUMBER: _ClassVar[int]
+    usage_record_id: str
+    provider_cost_micros: int
+    customer_billable_amount_micros: int
+    is_billable: bool
+    is_duplicate: bool
+    def __init__(self, usage_record_id: _Optional[str] = ..., provider_cost_micros: _Optional[int] = ..., customer_billable_amount_micros: _Optional[int] = ..., is_billable: bool = ..., is_duplicate: bool = ...) -> None: ...
 
 class FinalizeExecutionInput(_message.Message):
     __slots__ = ("execution_id",)
@@ -111,6 +119,56 @@ class FinalizeExecutionResponse(_message.Message):
     released_reservation_micros: int
     billed_call_count: int
     def __init__(self, total_provider_cost_micros: _Optional[int] = ..., total_billable_amount_micros: _Optional[int] = ..., released_reservation_micros: _Optional[int] = ..., billed_call_count: _Optional[int] = ...) -> None: ...
+
+class CreateCreditCheckoutSessionInput(_message.Message):
+    __slots__ = ("org_id", "pack_id", "success_url", "cancel_url")
+    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    PACK_ID_FIELD_NUMBER: _ClassVar[int]
+    SUCCESS_URL_FIELD_NUMBER: _ClassVar[int]
+    CANCEL_URL_FIELD_NUMBER: _ClassVar[int]
+    org_id: str
+    pack_id: str
+    success_url: str
+    cancel_url: str
+    def __init__(self, org_id: _Optional[str] = ..., pack_id: _Optional[str] = ..., success_url: _Optional[str] = ..., cancel_url: _Optional[str] = ...) -> None: ...
+
+class CreateCreditCheckoutSessionResponse(_message.Message):
+    __slots__ = ("checkout_url", "purchase_id", "checkout_session_id")
+    CHECKOUT_URL_FIELD_NUMBER: _ClassVar[int]
+    PURCHASE_ID_FIELD_NUMBER: _ClassVar[int]
+    CHECKOUT_SESSION_ID_FIELD_NUMBER: _ClassVar[int]
+    checkout_url: str
+    purchase_id: str
+    checkout_session_id: str
+    def __init__(self, checkout_url: _Optional[str] = ..., purchase_id: _Optional[str] = ..., checkout_session_id: _Optional[str] = ...) -> None: ...
+
+class CreateBillingPortalSessionInput(_message.Message):
+    __slots__ = ("org_id", "return_url")
+    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    RETURN_URL_FIELD_NUMBER: _ClassVar[int]
+    org_id: str
+    return_url: str
+    def __init__(self, org_id: _Optional[str] = ..., return_url: _Optional[str] = ...) -> None: ...
+
+class CreateBillingPortalSessionResponse(_message.Message):
+    __slots__ = ("portal_url",)
+    PORTAL_URL_FIELD_NUMBER: _ClassVar[int]
+    portal_url: str
+    def __init__(self, portal_url: _Optional[str] = ...) -> None: ...
+
+class SetAutoRechargeConfigInput(_message.Message):
+    __slots__ = ("org_id", "enabled", "threshold_micros", "recharge_amount_micros", "monthly_cap_micros")
+    ORG_ID_FIELD_NUMBER: _ClassVar[int]
+    ENABLED_FIELD_NUMBER: _ClassVar[int]
+    THRESHOLD_MICROS_FIELD_NUMBER: _ClassVar[int]
+    RECHARGE_AMOUNT_MICROS_FIELD_NUMBER: _ClassVar[int]
+    MONTHLY_CAP_MICROS_FIELD_NUMBER: _ClassVar[int]
+    org_id: str
+    enabled: bool
+    threshold_micros: int
+    recharge_amount_micros: int
+    monthly_cap_micros: int
+    def __init__(self, org_id: _Optional[str] = ..., enabled: bool = ..., threshold_micros: _Optional[int] = ..., recharge_amount_micros: _Optional[int] = ..., monthly_cap_micros: _Optional[int] = ...) -> None: ...
 
 class GetBillingAccountInput(_message.Message):
     __slots__ = ("org_id",)
