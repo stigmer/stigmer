@@ -39,7 +39,7 @@ class AgentExecutionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def update_status(self, input: io_pb2.AgentExecutionUpdateStatusInput) -> api_pb2.AgentExecution:
+    def update_status(self, input: io_pb2.AgentExecutionUpdateStatusInput) -> io_pb2.UpdateStatusResponse:
         try:
             return self._command.updateStatus(input)
         except grpc.RpcError as e:
@@ -127,6 +127,12 @@ class AgentExecutionClient:
     def get_artifact_content(self, input: io_pb2.GetArtifactContentRequest) -> io_pb2.GetArtifactContentResponse:
         try:
             return self._query.getArtifactContent(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_execution_usage_report(self, input: io_pb2.GetExecutionUsageReportInput) -> io_pb2.GetExecutionUsageReportOutput:
+        try:
+            return self._query.getExecutionUsageReport(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

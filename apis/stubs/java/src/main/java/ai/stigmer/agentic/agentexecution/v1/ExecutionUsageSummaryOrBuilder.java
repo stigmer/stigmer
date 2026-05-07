@@ -72,43 +72,43 @@ public interface ExecutionUsageSummaryOrBuilder extends
 
   /**
    * <pre>
-   * Total input tokens for this execution.
+   * Input tokens for this execution.
    * </pre>
    *
-   * <code>int32 prompt_tokens = 4 [json_name = "promptTokens"];</code>
-   * @return The promptTokens.
+   * <code>int64 input_tokens = 4 [json_name = "inputTokens"];</code>
+   * @return The inputTokens.
    */
-  int getPromptTokens();
+  long getInputTokens();
 
   /**
    * <pre>
-   * Total output tokens for this execution.
+   * Output tokens for this execution.
    * </pre>
    *
-   * <code>int32 completion_tokens = 5 [json_name = "completionTokens"];</code>
-   * @return The completionTokens.
+   * <code>int64 output_tokens = 5 [json_name = "outputTokens"];</code>
+   * @return The outputTokens.
    */
-  int getCompletionTokens();
+  long getOutputTokens();
 
   /**
    * <pre>
    * Cache read tokens for this execution.
    * </pre>
    *
-   * <code>int32 cache_read_tokens = 6 [json_name = "cacheReadTokens"];</code>
-   * @return The cacheReadTokens.
+   * <code>int64 cache_read_input_tokens = 6 [json_name = "cacheReadInputTokens"];</code>
+   * @return The cacheReadInputTokens.
    */
-  int getCacheReadTokens();
+  long getCacheReadInputTokens();
 
   /**
    * <pre>
-   * Estimated cost in USD for this execution.
+   * Billable cost in micro-USD for this execution.
    * </pre>
    *
-   * <code>double estimated_cost_usd = 7 [json_name = "estimatedCostUsd"];</code>
-   * @return The estimatedCostUsd.
+   * <code>int64 billable_cost_micros = 7 [json_name = "billableCostMicros"];</code>
+   * @return The billableCostMicros.
    */
-  double getEstimatedCostUsd();
+  long getBillableCostMicros();
 
   /**
    * <pre>

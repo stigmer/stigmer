@@ -107,9 +107,9 @@ func renderAgentUsageTable(report *agentexecutionv1.GetAgentUsageReportOutput, f
 	// Summary stats
 	fmt.Printf("  Sessions:     %d\n", report.GetTotalSessions())
 	fmt.Printf("  Executions:   %d\n", report.GetTotalExecutions())
-	fmt.Printf("  Total cost:   %s\n", formatCost(report.GetTotalCostUsd()))
+	fmt.Printf("  Total cost:   %s\n", formatCost(report.GetTotalBillableCostMicros()))
 	if report.GetTotalExecutions() > 0 {
-		avg := report.GetTotalCostUsd() / float64(report.GetTotalExecutions())
+		avg := report.GetTotalBillableCostMicros() / int64(report.GetTotalExecutions())
 		fmt.Printf("  Avg/exec:     %s\n", formatCost(avg))
 	}
 	fmt.Println()
@@ -123,14 +123,14 @@ func renderAgentUsageTable(report *agentexecutionv1.GetAgentUsageReportOutput, f
 			display.WithAdaptive(),
 		)
 
-		totalCost := report.GetTotalCostUsd()
+		totalCost := report.GetTotalBillableCostMicros()
 		for _, m := range report.GetModelBreakdown() {
-			totalTokens := m.GetInputTokens() + m.GetOutputTokens() + m.GetCacheCreationTokens() + m.GetCacheReadTokens()
+			totalTokens := m.GetInputTokens() + m.GetOutputTokens() + m.GetCacheCreationInputTokens() + m.GetCacheReadInputTokens()
 			tbl.AddRow(
 				m.GetModel(),
 				formatTokenCount(totalTokens),
-				formatCost(m.GetEstimatedCostUsd()),
-				formatShare(m.GetEstimatedCostUsd(), totalCost),
+				formatCost(m.GetBillableCostMicros()),
+				formatShare(m.GetBillableCostMicros(), totalCost),
 			)
 		}
 
@@ -153,7 +153,7 @@ func renderAgentUsageTable(report *agentexecutionv1.GetAgentUsageReportOutput, f
 				fmt.Sprintf("%d", i+1),
 				period,
 				fmt.Sprintf("%d", sess.GetExecutionCount()),
-				formatCost(sess.GetEstimatedCostUsd()),
+				formatCost(sess.GetBillableCostMicros()),
 			)
 		}
 

@@ -72,6 +72,12 @@ const (
 	// Platform-level permission to delete sessions.
 	// Session deletion is restricted to operators to preserve billing audit trail.
 	IamPermission_can_delete_session IamPermission = 26
+	// Billing permissions (org-scoped).
+	IamPermission_can_view_billing   IamPermission = 27
+	IamPermission_can_manage_billing IamPermission = 28
+	// Platform-level permission to execute internal billing operations
+	// (authorize, record, finalize). Gated to operator (machine account).
+	IamPermission_can_execute_billing_ops IamPermission = 29
 )
 
 // Enum value maps for IamPermission.
@@ -103,6 +109,9 @@ var (
 		22: "can_connect",
 		25: "can_create_runner",
 		26: "can_delete_session",
+		27: "can_view_billing",
+		28: "can_manage_billing",
+		29: "can_execute_billing_ops",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -131,6 +140,9 @@ var (
 		"can_connect":                  22,
 		"can_create_runner":            25,
 		"can_delete_session":           26,
+		"can_view_billing":             27,
+		"can_manage_billing":           28,
+		"can_execute_billing_ops":      29,
 	}
 )
 
@@ -234,7 +246,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xe7\x04\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xb2\x05\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -263,7 +275,10 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x14login_to_back_office\x10\x14\x12\x0f\n" +
 	"\vcan_connect\x10\x16\x12\x15\n" +
 	"\x11can_create_runner\x10\x19\x12\x16\n" +
-	"\x12can_delete_session\x10\x1a*Q\n" +
+	"\x12can_delete_session\x10\x1a\x12\x14\n" +
+	"\x10can_view_billing\x10\x1b\x12\x16\n" +
+	"\x12can_manage_billing\x10\x1c\x12\x1b\n" +
+	"\x17can_execute_billing_ops\x10\x1d*Q\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

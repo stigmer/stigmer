@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { lazy, memo, Suspense, useCallback, useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
@@ -24,6 +24,16 @@ import { ApprovalCard } from "./ApprovalCard";
 import { FilePathContext, type FilePathContextValue } from "./FilePathContext";
 import type { ResolvedPathAction } from "./file-path-resolver";
 import { SandboxContext, type SandboxContextValue } from "./SandboxContext";
+import { useRenderTracer, useKeyStability, useDomNodeCount, DevProfiler } from "../internal/dev";
+import { useAutoScroll } from "../internal/useAutoScroll";
+import { JumpToLatestButton } from "../internal/JumpToLatestButton";
+import { ThreadItemWrapper } from "../internal/ThreadItemWrapper";
+
+const LazyVirtualizedThread = lazy(() =>
+  import("../internal/VirtualizedThread").then((m) => ({
+    default: m.VirtualizedThread,
+  })),
+);
 
 /** Props for {@link MessageThread}. */
 export interface MessageThreadProps {
@@ -93,22 +103,31 @@ export interface MessageThreadProps {
    * the user's own filesystem (no normalization needed).
    */
   readonly sandboxWorkspaceRoot?: string;
+  /**
+   * Enable virtualized rendering for long conversations. Requires
+   * `react-virtuoso` to be installed as a peer dependency. When
+   * enabled, only visible items are rendered in the DOM, improving
+   * performance for threads with 100+ items.
+   *
+   * @default false
+   */
+  readonly virtualized?: boolean;
 }
-
-const AUTO_SCROLL_THRESHOLD_PX = 80;
 
 /**
  * Flattened representation of one renderable item in the thread.
  *
  * Discriminated union keeps the render loop a simple switch with no
  * type narrowing gymnastics.
+ *
+ * @internal Exported for internal use by `VirtualizedThread` — not
+ * part of the public API.
  */
-type ThreadItem =
-  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string }
+export type ThreadItem =
+  | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string; readonly isPending?: boolean }
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentExecutions: readonly SubAgentExecution[]; readonly key: string }
   | { readonly kind: "sub-agent"; readonly subAgentExecution: SubAgentExecution; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
-  | { readonly kind: "pending-message"; readonly content: string; readonly key: string }
   | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
   | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly key: string };
 
@@ -121,7 +140,15 @@ function hasAiMessages(execution: AgentExecution): boolean {
   );
 }
 
-function buildThreadItems(
+/**
+ * Builds a flat list of renderable thread items from execution data.
+ *
+ * Keys use stable execution IDs (not array indices) so React can
+ * reconcile items across renders without unnecessary remounts.
+ *
+ * @internal Exported for testing — not part of the public API.
+ */
+export function buildThreadItems(
   executions: readonly AgentExecution[],
   activeStreamExecution: AgentExecution | null | undefined,
   pendingUserMessage: string | null | undefined,
@@ -132,9 +159,14 @@ function buildThreadItems(
   const allExecutions = activeStreamExecution
     ? [...executions, activeStreamExecution]
     : executions;
+  const activeStreamIndex = activeStreamExecution
+    ? allExecutions.length - 1
+    : -1;
 
   for (let ei = 0; ei < allExecutions.length; ei++) {
     const exec = allExecutions[ei];
+    const execId = exec.metadata?.id ?? `_e${ei}`;
+    const isActiveStreamExec = ei === activeStreamIndex;
     const messages = exec.status?.messages ?? [];
     const subAgents = exec.status?.subAgentExecutions ?? [];
 
@@ -143,10 +175,19 @@ function buildThreadItems(
       const syntheticHumanMsg = create(AgentMessageSchema);
       syntheticHumanMsg.type = MessageType.MESSAGE_HUMAN;
       syntheticHumanMsg.content = specMessage;
+
+      // When the active stream execution's spec message matches the
+      // pending user message, use a shared bridging key so React
+      // updates the pending bubble in place instead of remounting.
+      const bridgePending =
+        isActiveStreamExec &&
+        pendingUserMessage != null &&
+        specMessage === pendingUserMessage;
+
       items.push({
         kind: "message",
         message: syntheticHumanMsg,
-        key: `e${ei}-spec-msg`,
+        key: bridgePending ? "pending-user-turn" : `${execId}-spec`,
       });
     }
 
@@ -164,7 +205,7 @@ function buildThreadItems(
         items.push({
           kind: "message",
           message: msg,
-          key: `e${ei}-m${mi}`,
+          key: `${execId}-m${mi}`,
         });
       }
 
@@ -172,34 +213,41 @@ function buildThreadItems(
         msg.type === MessageType.MESSAGE_AI &&
         msg.toolCalls.length > 0
       ) {
-        const regularTools: ToolCall[] = [];
-        const taskTools: ToolCall[] = [];
-        for (const tc of msg.toolCalls) {
-          if (tc.name === "task") {
-            taskTools.push(tc);
-          } else {
-            regularTools.push(tc);
+        const hasTaskTools = msg.toolCalls.some((tc) => tc.name === "task");
+
+        if (hasTaskTools) {
+          const regularTools: ToolCall[] = [];
+          const matchedSubAgents: SubAgentExecution[] = [];
+          for (const tc of msg.toolCalls) {
+            if (tc.name === "task") {
+              const matched = subAgents.find((sa) => sa.id === tc.id);
+              if (matched) matchedSubAgents.push(matched);
+            } else {
+              regularTools.push(tc);
+            }
           }
-        }
-
-        if (regularTools.length > 0) {
-          items.push({
-            kind: "tool-group",
-            toolCalls: regularTools,
-            subAgentExecutions: subAgents,
-            key: `e${ei}-m${mi}-tc`,
-          });
-        }
-
-        for (let ti = 0; ti < taskTools.length; ti++) {
-          const matched = subAgents.find((sa) => sa.id === taskTools[ti].id);
-          if (matched) {
+          if (regularTools.length > 0) {
             items.push({
-              kind: "sub-agent",
-              subAgentExecution: matched,
-              key: `e${ei}-m${mi}-sa${ti}`,
+              kind: "tool-group",
+              toolCalls: regularTools,
+              subAgentExecutions: subAgents,
+              key: `${execId}-m${mi}-tc`,
             });
           }
+          for (const sa of matchedSubAgents) {
+            items.push({
+              kind: "sub-agent",
+              subAgentExecution: sa,
+              key: `sa-${sa.id}`,
+            });
+          }
+        } else {
+          items.push({
+            kind: "tool-group",
+            toolCalls: msg.toolCalls,
+            subAgentExecutions: subAgents,
+            key: `${execId}-m${mi}-tc`,
+          });
         }
       }
     }
@@ -252,10 +300,14 @@ function buildThreadItems(
     const alreadySynthesized =
       lastExec?.spec?.message === pendingUserMessage;
     if (!alreadySynthesized) {
+      const syntheticPending = create(AgentMessageSchema);
+      syntheticPending.type = MessageType.MESSAGE_HUMAN;
+      syntheticPending.content = pendingUserMessage;
       items.push({
-        kind: "pending-message",
-        content: pendingUserMessage,
-        key: "pending-user-message",
+        kind: "message",
+        message: syntheticPending,
+        key: "pending-user-turn",
+        isPending: true,
       });
     }
   }
@@ -297,9 +349,9 @@ export function MessageThread({
   workspaceEntries,
   onFilePathClick,
   sandboxWorkspaceRoot,
+  virtualized = false,
 }: MessageThreadProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const isNearBottomRef = useRef(true);
+  useRenderTracer("MessageThread", { executions, activeStreamExecution });
 
   const includeApprovals = onApprovalSubmit != null;
   const items = useMemo(
@@ -307,19 +359,7 @@ export function MessageThread({
     [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries],
   );
 
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    isNearBottomRef.current =
-      el.scrollHeight - el.scrollTop - el.clientHeight < AUTO_SCROLL_THRESHOLD_PX;
-  }, []);
-
-  useEffect(() => {
-    if (!isNearBottomRef.current) return;
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
-  }, [items]);
+  useKeyStability(items);
 
   const filePathCtx = useMemo<FilePathContextValue>(
     () => ({
@@ -334,89 +374,226 @@ export function MessageThread({
     [sandboxWorkspaceRoot],
   );
 
+  if (virtualized) {
+    return (
+      <div className={cn("relative min-h-0", className)}>
+        <Suspense fallback={null}>
+          <LazyVirtualizedThread
+            items={items}
+            formatToolCallSummary={formatToolCallSummary}
+            onApprovalSubmit={onApprovalSubmit}
+            submittingApprovalIds={submittingApprovalIds}
+            filePathCtx={filePathCtx}
+            sandboxCtx={sandboxCtx}
+          />
+        </Suspense>
+      </div>
+    );
+  }
+
   return (
-    <div
-      ref={scrollRef}
-      role="log"
-      aria-live="polite"
-      aria-relevant="additions"
-      onScroll={handleScroll}
-      className={cn(
-        "flex flex-col gap-4 overflow-y-auto pt-6 pb-4",
-        "[scrollbar-width:thin] [scrollbar-color:var(--color-border)_transparent]",
-        "[&::-webkit-scrollbar]:w-1.5",
-        "[&::-webkit-scrollbar-track]:bg-transparent",
-        "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/40",
-        className,
-      )}
-    >
-      <SandboxContext.Provider value={sandboxCtx}>
-      <FilePathContext.Provider value={filePathCtx}>
-        {items.map((item) => {
-          switch (item.kind) {
-            case "message":
-              return <MessageEntry key={item.key} message={item.message} />;
-            case "tool-group":
-              return (
-                <ToolCallGroup
-                  key={item.key}
-                  toolCalls={item.toolCalls}
-                  subAgentExecutions={item.subAgentExecutions}
-                  formatSummary={formatToolCallSummary}
-                  className="mx-4"
+    <NonVirtualizedThread
+      items={items}
+      className={className}
+      formatToolCallSummary={formatToolCallSummary}
+      onApprovalSubmit={onApprovalSubmit}
+      submittingApprovalIds={submittingApprovalIds}
+      filePathCtx={filePathCtx}
+      sandboxCtx={sandboxCtx}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// NonVirtualizedThread — original scroll-container rendering path
+// ---------------------------------------------------------------------------
+
+interface NonVirtualizedThreadProps {
+  readonly items: readonly ThreadItem[];
+  readonly className?: string;
+  readonly formatToolCallSummary?: (toolCalls: readonly ToolCall[]) => string;
+  readonly onApprovalSubmit?: (
+    toolCallId: string,
+    action: ApprovalAction,
+    comment?: string,
+  ) => void;
+  readonly submittingApprovalIds?: ReadonlySet<string>;
+  readonly filePathCtx: FilePathContextValue;
+  readonly sandboxCtx: SandboxContextValue;
+}
+
+function NonVirtualizedThread({
+  items,
+  className,
+  formatToolCallSummary,
+  onApprovalSubmit,
+  submittingApprovalIds,
+  filePathCtx,
+  sandboxCtx,
+}: NonVirtualizedThreadProps) {
+  const { scrollRef, sentinelRef, contentRef, isFollowing, jumpToLatest } =
+    useAutoScroll();
+
+  useDomNodeCount(scrollRef, "MessageThread");
+
+  return (
+    <div className={cn("relative min-h-0", className)}>
+      <div
+        ref={scrollRef}
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+        className={cn(
+          "h-full overflow-y-auto pt-6 pb-4 [overflow-anchor:none]",
+          "[scrollbar-width:thin] [scrollbar-color:var(--color-border)_transparent]",
+          "[&::-webkit-scrollbar]:w-1.5",
+          "[&::-webkit-scrollbar-track]:bg-transparent",
+          "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/40",
+        )}
+      >
+        <SandboxContext.Provider value={sandboxCtx}>
+        <FilePathContext.Provider value={filePathCtx}>
+        <DevProfiler id="MessageThread">
+          <div ref={contentRef} className="flex flex-col gap-4">
+            {items.map((item) => (
+              <ThreadItemWrapper key={item.key} animate>
+                <ThreadItemRenderer
+                  item={item}
+                  formatToolCallSummary={formatToolCallSummary}
+                  onApprovalSubmit={onApprovalSubmit}
+                  submittingApprovalIds={submittingApprovalIds}
                 />
-              );
-            case "sub-agent":
-              return (
-                <SubAgentSection
-                  key={item.key}
-                  subAgentExecution={item.subAgentExecution}
-                  className="mx-4"
-                />
-              );
-            case "phase-badge":
-              return (
-                <div key={item.key} className="flex justify-center py-3">
-                  <ExecutionPhaseBadge phase={item.phase} />
-                </div>
-              );
-            case "approval-request":
-              return (
-                <ApprovalCard
-                  key={item.key}
-                  pendingApproval={item.pendingApproval}
-                  onSubmit={(action, comment) =>
-                    onApprovalSubmit!(item.pendingApproval.toolCallId, action, comment)
-                  }
-                  isSubmitting={submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false}
-                  className="mx-4"
-                />
-              );
-            case "setup-progress":
-              return (
-                <SetupProgress
-                  key={item.key}
-                  workspaceEntries={item.workspaceEntries}
-                  serverPhase={item.serverPhase}
-                />
-              );
-            case "pending-message":
-              return (
-                <div
-                  key={item.key}
-                  role="article"
-                  aria-label="Sending message"
-                  className="ms-[20%] rounded-lg bg-muted-subtle px-4 py-3 opacity-70"
-                >
-                  <p className="text-sm text-foreground whitespace-pre-wrap">
-                    {item.content}
-                  </p>
-                </div>
-              );
-          }
-        })}
-      </FilePathContext.Provider>
-      </SandboxContext.Provider>
+              </ThreadItemWrapper>
+            ))}
+          </div>
+        </DevProfiler>
+        </FilePathContext.Provider>
+        </SandboxContext.Provider>
+        <div ref={sentinelRef} aria-hidden="true" />
+      </div>
+      <JumpToLatestButton onClick={jumpToLatest} visible={!isFollowing} />
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// ThreadItemRenderer — renders a single ThreadItem by kind
+// ---------------------------------------------------------------------------
+
+/**
+ * Props for {@link ThreadItemRenderer}.
+ *
+ * @internal Exported for internal use by `VirtualizedThread` — not
+ * part of the public API.
+ */
+export interface ThreadItemRendererProps {
+  readonly item: ThreadItem;
+  readonly formatToolCallSummary?: (toolCalls: readonly ToolCall[]) => string;
+  readonly onApprovalSubmit?: (
+    toolCallId: string,
+    action: ApprovalAction,
+    comment?: string,
+  ) => void;
+  readonly submittingApprovalIds?: ReadonlySet<string>;
+}
+
+/**
+ * Renders a single thread item by discriminated `kind`. Used by both
+ * the non-virtualized `items.map()` path and the virtualized
+ * `Virtuoso.itemContent` callback.
+ *
+ * Does not receive a `key` prop — the caller is responsible for
+ * keying (either via `items.map` or `computeItemKey`).
+ *
+ * @internal Exported for internal use by `VirtualizedThread` — not
+ * part of the public API.
+ */
+export function ThreadItemRenderer({
+  item,
+  formatToolCallSummary,
+  onApprovalSubmit,
+  submittingApprovalIds,
+}: ThreadItemRendererProps) {
+  switch (item.kind) {
+    case "message":
+      return (
+        <MessageEntry
+          message={item.message}
+          className={item.isPending ? "opacity-70" : undefined}
+        />
+      );
+    case "tool-group":
+      return (
+        <ToolCallGroup
+          toolCalls={item.toolCalls}
+          subAgentExecutions={item.subAgentExecutions}
+          formatSummary={formatToolCallSummary}
+          className="mx-4"
+        />
+      );
+    case "sub-agent":
+      return (
+        <SubAgentSection
+          subAgentExecution={item.subAgentExecution}
+          className="mx-4"
+        />
+      );
+    case "phase-badge":
+      return (
+        <div className="flex justify-center py-3">
+          <ExecutionPhaseBadge phase={item.phase} />
+        </div>
+      );
+    case "approval-request":
+      return (
+        <ApprovalCardRow
+          pendingApproval={item.pendingApproval}
+          onApprovalSubmit={onApprovalSubmit!}
+          isSubmitting={submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false}
+        />
+      );
+    case "setup-progress":
+      return (
+        <SetupProgress
+          workspaceEntries={item.workspaceEntries}
+          serverPhase={item.serverPhase}
+        />
+      );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// ApprovalCardRow — stabilizes the onSubmit callback for React.memo
+// ---------------------------------------------------------------------------
+
+interface ApprovalCardRowProps {
+  readonly pendingApproval: PendingApproval;
+  readonly onApprovalSubmit: (
+    toolCallId: string,
+    action: ApprovalAction,
+    comment?: string,
+  ) => void;
+  readonly isSubmitting: boolean;
+}
+
+const ApprovalCardRow = memo(function ApprovalCardRow({
+  pendingApproval,
+  onApprovalSubmit,
+  isSubmitting,
+}: ApprovalCardRowProps) {
+  const handleSubmit = useCallback(
+    (action: ApprovalAction, comment?: string) => {
+      onApprovalSubmit(pendingApproval.toolCallId, action, comment);
+    },
+    [onApprovalSubmit, pendingApproval.toolCallId],
+  );
+
+  return (
+    <ApprovalCard
+      pendingApproval={pendingApproval}
+      onSubmit={handleSubmit}
+      isSubmitting={isSubmitting}
+      className="mx-4"
+    />
+  );
+});

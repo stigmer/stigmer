@@ -142,14 +142,24 @@ service AgentExecutionQueryController {
   // ─────────────────────────────────────────────────────────────────────────────
   // Usage Report Operations
   //
-  // These RPCs provide cost and token consumption visibility at session,
-  // agent, and organization levels. All data is derived from AgentExecution
-  // records with different aggregation scopes.
+  // These RPCs provide cost and token consumption visibility at execution,
+  // session, agent, and organization levels. All data is sourced from the
+  // llm_call_usage_record collection (billing domain).
   // ─────────────────────────────────────────────────────────────────────────────
+
+  // Get a usage report for a single execution.
+  //
+  // Returns aggregated tokens, cost, and per-model breakdown for one execution.
+  rpc getExecutionUsageReport(GetExecutionUsageReportInput) returns (GetExecutionUsageReportOutput) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_execution;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "execution_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view execution usage report";
+  }
 
   // Get a usage report for a session.
   //
-  // Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+  // Returns aggregated tokens, cost, and per-execution breakdown.
   rpc getSessionUsageReport(GetSessionUsageReportInput) returns (GetSessionUsageReportOutput) {
     option (ai.stigmer.commons.rpc.config).resource_kind = session;
     option (ai.stigmer.commons.rpc.config).permission = can_view;

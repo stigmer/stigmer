@@ -180,16 +180,21 @@ export function useSessionVariables(): UseSessionVariablesReturn {
     [entries],
   );
 
-  return {
-    entries,
-    addEntry,
-    removeEntry,
-    updateEntry,
-    clear,
-    isEmpty: entries.length === 0,
-    hasValidEntries,
-    toRuntimeEnv,
-    toSaveForFutureEnv,
-    hasSaveForFutureEntries,
-  };
+  const isEmpty = entries.length === 0;
+
+  return useMemo(
+    () => ({
+      entries,
+      addEntry,
+      removeEntry,
+      updateEntry,
+      clear,
+      isEmpty,
+      hasValidEntries,
+      toRuntimeEnv,
+      toSaveForFutureEnv,
+      hasSaveForFutureEntries,
+    }),
+    [entries, addEntry, removeEntry, updateEntry, clear, isEmpty, hasValidEntries, toRuntimeEnv, toSaveForFutureEnv, hasSaveForFutureEntries],
+  );
 }

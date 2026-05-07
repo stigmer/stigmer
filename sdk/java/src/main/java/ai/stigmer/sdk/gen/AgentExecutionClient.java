@@ -15,6 +15,8 @@ import ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest;
 import ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse;
 import ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest;
 import ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse;
+import ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput;
+import ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput;
 import ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput;
 import ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput;
 import ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput;
@@ -26,6 +28,7 @@ import ai.stigmer.agentic.agentexecution.v1.RecoverAgentExecutionInput;
 import ai.stigmer.agentic.agentexecution.v1.ResumeAgentExecutionInput;
 import ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput;
 import ai.stigmer.agentic.agentexecution.v1.TerminateAgentExecutionInput;
+import ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse;
 import ai.stigmer.agentic.agentexecution.v1.UploadAttachmentRequest;
 import ai.stigmer.agentic.agentexecution.v1.UploadAttachmentResponse;
 import ai.stigmer.commons.apiresource.ApiResourceId;
@@ -54,7 +57,7 @@ public final class AgentExecutionClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public AgentExecution updateStatus(AgentExecutionUpdateStatusInput input) {
+    public UpdateStatusResponse updateStatus(AgentExecutionUpdateStatusInput input) {
         try {
             return command.updateStatus(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
@@ -143,6 +146,12 @@ public final class AgentExecutionClient {
     public GetArtifactContentResponse getArtifactContent(GetArtifactContentRequest input) {
         try {
             return query.getArtifactContent(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public GetExecutionUsageReportOutput getExecutionUsageReport(GetExecutionUsageReportInput input) {
+        try {
+            return query.getExecutionUsageReport(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

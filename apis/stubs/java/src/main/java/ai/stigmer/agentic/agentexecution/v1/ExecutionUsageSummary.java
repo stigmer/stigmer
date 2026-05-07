@@ -7,9 +7,7 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 /**
  * <pre>
- * ExecutionUsageSummary is a lightweight view of a single execution's usage.
- * Used in session-level reports for per-execution breakdown without returning
- * the full AgentExecution resource.
+ * Lightweight view of a single execution's usage within a session report.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary}
@@ -200,64 +198,64 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int PROMPT_TOKENS_FIELD_NUMBER = 4;
-  private int promptTokens_ = 0;
+  public static final int INPUT_TOKENS_FIELD_NUMBER = 4;
+  private long inputTokens_ = 0L;
   /**
    * <pre>
-   * Total input tokens for this execution.
+   * Input tokens for this execution.
    * </pre>
    *
-   * <code>int32 prompt_tokens = 4 [json_name = "promptTokens"];</code>
-   * @return The promptTokens.
+   * <code>int64 input_tokens = 4 [json_name = "inputTokens"];</code>
+   * @return The inputTokens.
    */
   @java.lang.Override
-  public int getPromptTokens() {
-    return promptTokens_;
+  public long getInputTokens() {
+    return inputTokens_;
   }
 
-  public static final int COMPLETION_TOKENS_FIELD_NUMBER = 5;
-  private int completionTokens_ = 0;
+  public static final int OUTPUT_TOKENS_FIELD_NUMBER = 5;
+  private long outputTokens_ = 0L;
   /**
    * <pre>
-   * Total output tokens for this execution.
+   * Output tokens for this execution.
    * </pre>
    *
-   * <code>int32 completion_tokens = 5 [json_name = "completionTokens"];</code>
-   * @return The completionTokens.
+   * <code>int64 output_tokens = 5 [json_name = "outputTokens"];</code>
+   * @return The outputTokens.
    */
   @java.lang.Override
-  public int getCompletionTokens() {
-    return completionTokens_;
+  public long getOutputTokens() {
+    return outputTokens_;
   }
 
-  public static final int CACHE_READ_TOKENS_FIELD_NUMBER = 6;
-  private int cacheReadTokens_ = 0;
+  public static final int CACHE_READ_INPUT_TOKENS_FIELD_NUMBER = 6;
+  private long cacheReadInputTokens_ = 0L;
   /**
    * <pre>
    * Cache read tokens for this execution.
    * </pre>
    *
-   * <code>int32 cache_read_tokens = 6 [json_name = "cacheReadTokens"];</code>
-   * @return The cacheReadTokens.
+   * <code>int64 cache_read_input_tokens = 6 [json_name = "cacheReadInputTokens"];</code>
+   * @return The cacheReadInputTokens.
    */
   @java.lang.Override
-  public int getCacheReadTokens() {
-    return cacheReadTokens_;
+  public long getCacheReadInputTokens() {
+    return cacheReadInputTokens_;
   }
 
-  public static final int ESTIMATED_COST_USD_FIELD_NUMBER = 7;
-  private double estimatedCostUsd_ = 0D;
+  public static final int BILLABLE_COST_MICROS_FIELD_NUMBER = 7;
+  private long billableCostMicros_ = 0L;
   /**
    * <pre>
-   * Estimated cost in USD for this execution.
+   * Billable cost in micro-USD for this execution.
    * </pre>
    *
-   * <code>double estimated_cost_usd = 7 [json_name = "estimatedCostUsd"];</code>
-   * @return The estimatedCostUsd.
+   * <code>int64 billable_cost_micros = 7 [json_name = "billableCostMicros"];</code>
+   * @return The billableCostMicros.
    */
   @java.lang.Override
-  public double getEstimatedCostUsd() {
-    return estimatedCostUsd_;
+  public long getBillableCostMicros() {
+    return billableCostMicros_;
   }
 
   public static final int PRIMARY_MODEL_FIELD_NUMBER = 8;
@@ -371,17 +369,17 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(completedAt_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, completedAt_);
     }
-    if (promptTokens_ != 0) {
-      output.writeInt32(4, promptTokens_);
+    if (inputTokens_ != 0L) {
+      output.writeInt64(4, inputTokens_);
     }
-    if (completionTokens_ != 0) {
-      output.writeInt32(5, completionTokens_);
+    if (outputTokens_ != 0L) {
+      output.writeInt64(5, outputTokens_);
     }
-    if (cacheReadTokens_ != 0) {
-      output.writeInt32(6, cacheReadTokens_);
+    if (cacheReadInputTokens_ != 0L) {
+      output.writeInt64(6, cacheReadInputTokens_);
     }
-    if (java.lang.Double.doubleToRawLongBits(estimatedCostUsd_) != 0) {
-      output.writeDouble(7, estimatedCostUsd_);
+    if (billableCostMicros_ != 0L) {
+      output.writeInt64(7, billableCostMicros_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(primaryModel_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 8, primaryModel_);
@@ -410,21 +408,21 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(completedAt_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, completedAt_);
     }
-    if (promptTokens_ != 0) {
+    if (inputTokens_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(4, promptTokens_);
+        .computeInt64Size(4, inputTokens_);
     }
-    if (completionTokens_ != 0) {
+    if (outputTokens_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(5, completionTokens_);
+        .computeInt64Size(5, outputTokens_);
     }
-    if (cacheReadTokens_ != 0) {
+    if (cacheReadInputTokens_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(6, cacheReadTokens_);
+        .computeInt64Size(6, cacheReadInputTokens_);
     }
-    if (java.lang.Double.doubleToRawLongBits(estimatedCostUsd_) != 0) {
+    if (billableCostMicros_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
-        .computeDoubleSize(7, estimatedCostUsd_);
+        .computeInt64Size(7, billableCostMicros_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(primaryModel_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(8, primaryModel_);
@@ -458,15 +456,14 @@ private static final long serialVersionUID = 0L;
         .equals(other.getStartedAt())) return false;
     if (!getCompletedAt()
         .equals(other.getCompletedAt())) return false;
-    if (getPromptTokens()
-        != other.getPromptTokens()) return false;
-    if (getCompletionTokens()
-        != other.getCompletionTokens()) return false;
-    if (getCacheReadTokens()
-        != other.getCacheReadTokens()) return false;
-    if (java.lang.Double.doubleToLongBits(getEstimatedCostUsd())
-        != java.lang.Double.doubleToLongBits(
-            other.getEstimatedCostUsd())) return false;
+    if (getInputTokens()
+        != other.getInputTokens()) return false;
+    if (getOutputTokens()
+        != other.getOutputTokens()) return false;
+    if (getCacheReadInputTokens()
+        != other.getCacheReadInputTokens()) return false;
+    if (getBillableCostMicros()
+        != other.getBillableCostMicros()) return false;
     if (!getPrimaryModel()
         .equals(other.getPrimaryModel())) return false;
     if (getSubAgentCount()
@@ -489,15 +486,18 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getStartedAt().hashCode();
     hash = (37 * hash) + COMPLETED_AT_FIELD_NUMBER;
     hash = (53 * hash) + getCompletedAt().hashCode();
-    hash = (37 * hash) + PROMPT_TOKENS_FIELD_NUMBER;
-    hash = (53 * hash) + getPromptTokens();
-    hash = (37 * hash) + COMPLETION_TOKENS_FIELD_NUMBER;
-    hash = (53 * hash) + getCompletionTokens();
-    hash = (37 * hash) + CACHE_READ_TOKENS_FIELD_NUMBER;
-    hash = (53 * hash) + getCacheReadTokens();
-    hash = (37 * hash) + ESTIMATED_COST_USD_FIELD_NUMBER;
+    hash = (37 * hash) + INPUT_TOKENS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        java.lang.Double.doubleToLongBits(getEstimatedCostUsd()));
+        getInputTokens());
+    hash = (37 * hash) + OUTPUT_TOKENS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getOutputTokens());
+    hash = (37 * hash) + CACHE_READ_INPUT_TOKENS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getCacheReadInputTokens());
+    hash = (37 * hash) + BILLABLE_COST_MICROS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getBillableCostMicros());
     hash = (37 * hash) + PRIMARY_MODEL_FIELD_NUMBER;
     hash = (53 * hash) + getPrimaryModel().hashCode();
     hash = (37 * hash) + SUB_AGENT_COUNT_FIELD_NUMBER;
@@ -603,9 +603,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ExecutionUsageSummary is a lightweight view of a single execution's usage.
-   * Used in session-level reports for per-execution breakdown without returning
-   * the full AgentExecution resource.
+   * Lightweight view of a single execution's usage within a session report.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary}
@@ -644,10 +642,10 @@ private static final long serialVersionUID = 0L;
       executionId_ = "";
       startedAt_ = "";
       completedAt_ = "";
-      promptTokens_ = 0;
-      completionTokens_ = 0;
-      cacheReadTokens_ = 0;
-      estimatedCostUsd_ = 0D;
+      inputTokens_ = 0L;
+      outputTokens_ = 0L;
+      cacheReadInputTokens_ = 0L;
+      billableCostMicros_ = 0L;
       primaryModel_ = "";
       subAgentCount_ = 0;
       phase_ = 0;
@@ -694,16 +692,16 @@ private static final long serialVersionUID = 0L;
         result.completedAt_ = completedAt_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.promptTokens_ = promptTokens_;
+        result.inputTokens_ = inputTokens_;
       }
       if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.completionTokens_ = completionTokens_;
+        result.outputTokens_ = outputTokens_;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.cacheReadTokens_ = cacheReadTokens_;
+        result.cacheReadInputTokens_ = cacheReadInputTokens_;
       }
       if (((from_bitField0_ & 0x00000040) != 0)) {
-        result.estimatedCostUsd_ = estimatedCostUsd_;
+        result.billableCostMicros_ = billableCostMicros_;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
         result.primaryModel_ = primaryModel_;
@@ -743,17 +741,17 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000004;
         onChanged();
       }
-      if (other.getPromptTokens() != 0) {
-        setPromptTokens(other.getPromptTokens());
+      if (other.getInputTokens() != 0L) {
+        setInputTokens(other.getInputTokens());
       }
-      if (other.getCompletionTokens() != 0) {
-        setCompletionTokens(other.getCompletionTokens());
+      if (other.getOutputTokens() != 0L) {
+        setOutputTokens(other.getOutputTokens());
       }
-      if (other.getCacheReadTokens() != 0) {
-        setCacheReadTokens(other.getCacheReadTokens());
+      if (other.getCacheReadInputTokens() != 0L) {
+        setCacheReadInputTokens(other.getCacheReadInputTokens());
       }
-      if (java.lang.Double.doubleToRawLongBits(other.getEstimatedCostUsd()) != 0) {
-        setEstimatedCostUsd(other.getEstimatedCostUsd());
+      if (other.getBillableCostMicros() != 0L) {
+        setBillableCostMicros(other.getBillableCostMicros());
       }
       if (!other.getPrimaryModel().isEmpty()) {
         primaryModel_ = other.primaryModel_;
@@ -808,25 +806,25 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 26
             case 32: {
-              promptTokens_ = input.readInt32();
+              inputTokens_ = input.readInt64();
               bitField0_ |= 0x00000008;
               break;
             } // case 32
             case 40: {
-              completionTokens_ = input.readInt32();
+              outputTokens_ = input.readInt64();
               bitField0_ |= 0x00000010;
               break;
             } // case 40
             case 48: {
-              cacheReadTokens_ = input.readInt32();
+              cacheReadInputTokens_ = input.readInt64();
               bitField0_ |= 0x00000020;
               break;
             } // case 48
-            case 57: {
-              estimatedCostUsd_ = input.readDouble();
+            case 56: {
+              billableCostMicros_ = input.readInt64();
               bitField0_ |= 0x00000040;
               break;
-            } // case 57
+            } // case 56
             case 66: {
               primaryModel_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000080;
@@ -1135,119 +1133,119 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private int promptTokens_ ;
+    private long inputTokens_ ;
     /**
      * <pre>
-     * Total input tokens for this execution.
+     * Input tokens for this execution.
      * </pre>
      *
-     * <code>int32 prompt_tokens = 4 [json_name = "promptTokens"];</code>
-     * @return The promptTokens.
+     * <code>int64 input_tokens = 4 [json_name = "inputTokens"];</code>
+     * @return The inputTokens.
      */
     @java.lang.Override
-    public int getPromptTokens() {
-      return promptTokens_;
+    public long getInputTokens() {
+      return inputTokens_;
     }
     /**
      * <pre>
-     * Total input tokens for this execution.
+     * Input tokens for this execution.
      * </pre>
      *
-     * <code>int32 prompt_tokens = 4 [json_name = "promptTokens"];</code>
-     * @param value The promptTokens to set.
+     * <code>int64 input_tokens = 4 [json_name = "inputTokens"];</code>
+     * @param value The inputTokens to set.
      * @return This builder for chaining.
      */
-    public Builder setPromptTokens(int value) {
+    public Builder setInputTokens(long value) {
 
-      promptTokens_ = value;
+      inputTokens_ = value;
       bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Total input tokens for this execution.
+     * Input tokens for this execution.
      * </pre>
      *
-     * <code>int32 prompt_tokens = 4 [json_name = "promptTokens"];</code>
+     * <code>int64 input_tokens = 4 [json_name = "inputTokens"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearPromptTokens() {
+    public Builder clearInputTokens() {
       bitField0_ = (bitField0_ & ~0x00000008);
-      promptTokens_ = 0;
+      inputTokens_ = 0L;
       onChanged();
       return this;
     }
 
-    private int completionTokens_ ;
+    private long outputTokens_ ;
     /**
      * <pre>
-     * Total output tokens for this execution.
+     * Output tokens for this execution.
      * </pre>
      *
-     * <code>int32 completion_tokens = 5 [json_name = "completionTokens"];</code>
-     * @return The completionTokens.
+     * <code>int64 output_tokens = 5 [json_name = "outputTokens"];</code>
+     * @return The outputTokens.
      */
     @java.lang.Override
-    public int getCompletionTokens() {
-      return completionTokens_;
+    public long getOutputTokens() {
+      return outputTokens_;
     }
     /**
      * <pre>
-     * Total output tokens for this execution.
+     * Output tokens for this execution.
      * </pre>
      *
-     * <code>int32 completion_tokens = 5 [json_name = "completionTokens"];</code>
-     * @param value The completionTokens to set.
+     * <code>int64 output_tokens = 5 [json_name = "outputTokens"];</code>
+     * @param value The outputTokens to set.
      * @return This builder for chaining.
      */
-    public Builder setCompletionTokens(int value) {
+    public Builder setOutputTokens(long value) {
 
-      completionTokens_ = value;
+      outputTokens_ = value;
       bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Total output tokens for this execution.
+     * Output tokens for this execution.
      * </pre>
      *
-     * <code>int32 completion_tokens = 5 [json_name = "completionTokens"];</code>
+     * <code>int64 output_tokens = 5 [json_name = "outputTokens"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearCompletionTokens() {
+    public Builder clearOutputTokens() {
       bitField0_ = (bitField0_ & ~0x00000010);
-      completionTokens_ = 0;
+      outputTokens_ = 0L;
       onChanged();
       return this;
     }
 
-    private int cacheReadTokens_ ;
+    private long cacheReadInputTokens_ ;
     /**
      * <pre>
      * Cache read tokens for this execution.
      * </pre>
      *
-     * <code>int32 cache_read_tokens = 6 [json_name = "cacheReadTokens"];</code>
-     * @return The cacheReadTokens.
+     * <code>int64 cache_read_input_tokens = 6 [json_name = "cacheReadInputTokens"];</code>
+     * @return The cacheReadInputTokens.
      */
     @java.lang.Override
-    public int getCacheReadTokens() {
-      return cacheReadTokens_;
+    public long getCacheReadInputTokens() {
+      return cacheReadInputTokens_;
     }
     /**
      * <pre>
      * Cache read tokens for this execution.
      * </pre>
      *
-     * <code>int32 cache_read_tokens = 6 [json_name = "cacheReadTokens"];</code>
-     * @param value The cacheReadTokens to set.
+     * <code>int64 cache_read_input_tokens = 6 [json_name = "cacheReadInputTokens"];</code>
+     * @param value The cacheReadInputTokens to set.
      * @return This builder for chaining.
      */
-    public Builder setCacheReadTokens(int value) {
+    public Builder setCacheReadInputTokens(long value) {
 
-      cacheReadTokens_ = value;
+      cacheReadInputTokens_ = value;
       bitField0_ |= 0x00000020;
       onChanged();
       return this;
@@ -1257,56 +1255,56 @@ private static final long serialVersionUID = 0L;
      * Cache read tokens for this execution.
      * </pre>
      *
-     * <code>int32 cache_read_tokens = 6 [json_name = "cacheReadTokens"];</code>
+     * <code>int64 cache_read_input_tokens = 6 [json_name = "cacheReadInputTokens"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearCacheReadTokens() {
+    public Builder clearCacheReadInputTokens() {
       bitField0_ = (bitField0_ & ~0x00000020);
-      cacheReadTokens_ = 0;
+      cacheReadInputTokens_ = 0L;
       onChanged();
       return this;
     }
 
-    private double estimatedCostUsd_ ;
+    private long billableCostMicros_ ;
     /**
      * <pre>
-     * Estimated cost in USD for this execution.
+     * Billable cost in micro-USD for this execution.
      * </pre>
      *
-     * <code>double estimated_cost_usd = 7 [json_name = "estimatedCostUsd"];</code>
-     * @return The estimatedCostUsd.
+     * <code>int64 billable_cost_micros = 7 [json_name = "billableCostMicros"];</code>
+     * @return The billableCostMicros.
      */
     @java.lang.Override
-    public double getEstimatedCostUsd() {
-      return estimatedCostUsd_;
+    public long getBillableCostMicros() {
+      return billableCostMicros_;
     }
     /**
      * <pre>
-     * Estimated cost in USD for this execution.
+     * Billable cost in micro-USD for this execution.
      * </pre>
      *
-     * <code>double estimated_cost_usd = 7 [json_name = "estimatedCostUsd"];</code>
-     * @param value The estimatedCostUsd to set.
+     * <code>int64 billable_cost_micros = 7 [json_name = "billableCostMicros"];</code>
+     * @param value The billableCostMicros to set.
      * @return This builder for chaining.
      */
-    public Builder setEstimatedCostUsd(double value) {
+    public Builder setBillableCostMicros(long value) {
 
-      estimatedCostUsd_ = value;
+      billableCostMicros_ = value;
       bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Estimated cost in USD for this execution.
+     * Billable cost in micro-USD for this execution.
      * </pre>
      *
-     * <code>double estimated_cost_usd = 7 [json_name = "estimatedCostUsd"];</code>
+     * <code>int64 billable_cost_micros = 7 [json_name = "billableCostMicros"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearEstimatedCostUsd() {
+    public Builder clearBillableCostMicros() {
       bitField0_ = (bitField0_ & ~0x00000040);
-      estimatedCostUsd_ = 0D;
+      billableCostMicros_ = 0L;
       onChanged();
       return this;
     }

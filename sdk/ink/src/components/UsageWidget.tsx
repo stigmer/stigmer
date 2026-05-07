@@ -12,7 +12,7 @@ export interface UsageWidgetProps {
 /**
  * Compact terminal widget showing session-level token usage and cost.
  *
- * Aggregates per-message `LlmCallMetrics` across all executions
+ * Aggregates usage data from `usageSummary` across all executions
  * in the session. Renders nothing when no usage data is available.
  *
  * Uses the headless {@link useSessionUsage} hook from `@stigmer/react`.

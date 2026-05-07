@@ -35,7 +35,7 @@ func (a *AgentExecutionClient) Update(ctx context.Context, input *AgentExecution
 	return resp, wrapErr(err)
 }
 
-func (a *AgentExecutionClient) UpdateStatus(ctx context.Context, input *agentexecutionv1.AgentExecutionUpdateStatusInput) (*agentexecutionv1.AgentExecution, error) {
+func (a *AgentExecutionClient) UpdateStatus(ctx context.Context, input *agentexecutionv1.AgentExecutionUpdateStatusInput) (*agentexecutionv1.UpdateStatusResponse, error) {
 	resp, err := a.command.UpdateStatus(ctx, input)
 	return resp, wrapErr(err)
 }
@@ -126,6 +126,11 @@ func (a *AgentExecutionClient) GetArtifactDownloadUrl(ctx context.Context, input
 
 func (a *AgentExecutionClient) GetArtifactContent(ctx context.Context, input *agentexecutionv1.GetArtifactContentRequest) (*agentexecutionv1.GetArtifactContentResponse, error) {
 	resp, err := a.query.GetArtifactContent(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (a *AgentExecutionClient) GetExecutionUsageReport(ctx context.Context, input *agentexecutionv1.GetExecutionUsageReportInput) (*agentexecutionv1.GetExecutionUsageReportOutput, error) {
+	resp, err := a.query.GetExecutionUsageReport(ctx, input)
 	return resp, wrapErr(err)
 }
 

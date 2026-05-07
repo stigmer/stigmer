@@ -7,169 +7,41 @@ import (
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 )
 
-// executionTotalCost returns the all-inclusive cost for an execution
-// by summing estimated_cost_usd from every message's llm_metrics
-// (main agent + sub-agents).
-func executionTotalCost(exec *agentexecutionv1.AgentExecution) float64 {
-	u := computeUsageFromMessages(exec)
-	return u.GetEstimatedCostUsd()
-}
-
-// executionTotalSummarizationCost sums the cost of all summarization events
-// in an execution's context_info.
-func executionTotalSummarizationCost(exec *agentexecutionv1.AgentExecution) float64 {
-	var cost float64
-	for _, evt := range exec.GetStatus().GetContextInfo().GetSummarizationEvents() {
-		cost += evt.GetSummarizationCostUsd()
-	}
-	return cost
-}
+// OSS usage aggregation
+//
+// In OSS mode, runners no longer stamp per-message llm_metrics and there
+// is no llm_call_usage_record collection (that is a cloud billing concern).
+// All aggregation functions return zero-valued, structurally valid results.
+// The cloud edition provides real usage data via its billing domain.
 
 // executionSubAgentCount returns the number of sub-agent invocations.
 func executionSubAgentCount(exec *agentexecutionv1.AgentExecution) int32 {
 	return int32(len(exec.GetStatus().GetSubAgentExecutions()))
 }
 
-// collectUsageMetrics computes a single UsageMetrics from an execution's
-// per-message llm_metrics (main agent + sub-agents) and returns it as a
-// one-element slice for backward compatibility with callers that iterate.
-func collectUsageMetrics(exec *agentexecutionv1.AgentExecution) []*agentexecutionv1.UsageMetrics {
-	u := computeUsageFromMessages(exec)
-	if u.GetLlmCallCount() == 0 {
-		return nil
-	}
-	return []*agentexecutionv1.UsageMetrics{u}
+// aggregateUsageReport returns a zero-valued UsageReportAggregate.
+// In cloud mode, usage is sourced from LlmCallUsageRecord; in OSS mode,
+// no usage data is available.
+func aggregateUsageReport(_ []*agentexecutionv1.AgentExecution) *agentexecutionv1.UsageReportAggregate {
+	return &agentexecutionv1.UsageReportAggregate{}
 }
 
-// computeUsageFromMessages builds a UsageMetrics on-the-fly by walking
-// every message in the execution (main agent + sub-agents) and
-// aggregating each message's LlmCallMetrics.
-func computeUsageFromMessages(exec *agentexecutionv1.AgentExecution) *agentexecutionv1.UsageMetrics {
-	agg := &agentexecutionv1.UsageMetrics{}
-
-	allMessages := collectAllMessages(exec)
-	for _, msg := range allMessages {
-		m := msg.GetLlmMetrics()
-		if m == nil {
-			continue
-		}
-		promptTokens := m.GetInputTokens() + m.GetCacheCreationTokens() + m.GetCacheReadTokens()
-		agg.PromptTokens += promptTokens
-		agg.CompletionTokens += m.GetOutputTokens()
-		agg.CacheCreationTokens += m.GetCacheCreationTokens()
-		agg.CacheReadTokens += m.GetCacheReadTokens()
-		agg.EstimatedCostUsd += m.GetEstimatedCostUsd()
-		agg.LlmDurationMs += m.GetDurationMs()
-		agg.LlmCallCount++
-
-		if agg.PrimaryModel == "" && m.GetModel() != "" {
-			agg.PrimaryModel = m.GetModel()
-		}
-		if agg.PrimaryProvider == "" && m.GetProvider() != "" {
-			agg.PrimaryProvider = m.GetProvider()
-		}
-	}
-	agg.TotalTokens = agg.PromptTokens + agg.CompletionTokens
-	return agg
-}
-
-// collectAllMessages returns a flat slice of all messages from the main
-// agent and all sub-agent executions.
-func collectAllMessages(exec *agentexecutionv1.AgentExecution) []*agentexecutionv1.AgentMessage {
-	msgs := exec.GetStatus().GetMessages()
-	for _, sub := range exec.GetStatus().GetSubAgentExecutions() {
-		msgs = append(msgs, sub.GetMessages()...)
-	}
-	return msgs
-}
-
-// aggregateUsageMetrics sums token counts and cost across multiple
-// executions, producing a single UsageMetrics representing the total.
-// model_breakdown and llm_calls are intentionally omitted from the
-// aggregate since mergeModelBreakdowns handles model-level rollup.
-func aggregateUsageMetrics(executions []*agentexecutionv1.AgentExecution) *agentexecutionv1.UsageMetrics {
-	agg := &agentexecutionv1.UsageMetrics{}
-	for _, exec := range executions {
-		for _, u := range collectUsageMetrics(exec) {
-			agg.PromptTokens += u.GetPromptTokens()
-			agg.CompletionTokens += u.GetCompletionTokens()
-			agg.TotalTokens += u.GetTotalTokens()
-			agg.LlmCallCount += u.GetLlmCallCount()
-			agg.CacheCreationTokens += u.GetCacheCreationTokens()
-			agg.CacheReadTokens += u.GetCacheReadTokens()
-			agg.EstimatedCostUsd += u.GetEstimatedCostUsd()
-			agg.ToolResultCharsTruncated += u.GetToolResultCharsTruncated()
-			agg.TotalDurationMs += u.GetTotalDurationMs()
-			agg.LlmDurationMs += u.GetLlmDurationMs()
-			agg.ToolDurationMs += u.GetToolDurationMs()
-			agg.ApprovalWaitDurationMs += u.GetApprovalWaitDurationMs()
-		}
-	}
-	return agg
-}
-
-// mergeModelBreakdowns builds per-(model, provider) ModelUsage entries
-// by walking every message's LlmCallMetrics across all executions
-// (main agent + sub-agents).
-func mergeModelBreakdowns(executions []*agentexecutionv1.AgentExecution) []*agentexecutionv1.ModelUsage {
-	type key struct{ model, provider string }
-	merged := make(map[key]*agentexecutionv1.ModelUsage)
-
-	for _, exec := range executions {
-		for _, msg := range collectAllMessages(exec) {
-			m := msg.GetLlmMetrics()
-			if m == nil {
-				continue
-			}
-			k := key{m.GetModel(), m.GetProvider()}
-			existing, ok := merged[k]
-			if !ok {
-				merged[k] = &agentexecutionv1.ModelUsage{
-					Model:               m.GetModel(),
-					Provider:            m.GetProvider(),
-					InputTokens:         m.GetInputTokens(),
-					OutputTokens:        m.GetOutputTokens(),
-					CacheCreationTokens: m.GetCacheCreationTokens(),
-					CacheReadTokens:     m.GetCacheReadTokens(),
-					CallCount:           1,
-					EstimatedCostUsd:    m.GetEstimatedCostUsd(),
-				}
-				continue
-			}
-			existing.InputTokens += m.GetInputTokens()
-			existing.OutputTokens += m.GetOutputTokens()
-			existing.CacheCreationTokens += m.GetCacheCreationTokens()
-			existing.CacheReadTokens += m.GetCacheReadTokens()
-			existing.CallCount++
-			existing.EstimatedCostUsd += m.GetEstimatedCostUsd()
-		}
-	}
-
-	result := make([]*agentexecutionv1.ModelUsage, 0, len(merged))
-	for _, mu := range merged {
-		result = append(result, mu)
-	}
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].GetEstimatedCostUsd() > result[j].GetEstimatedCostUsd()
-	})
-	return result
+// mergeModelBreakdowns returns an empty model breakdown.
+// In OSS mode, per-model usage data is not available.
+func mergeModelBreakdowns(_ []*agentexecutionv1.AgentExecution) []*agentexecutionv1.ModelUsage {
+	return nil
 }
 
 // buildExecutionSummary projects a full AgentExecution into a lightweight
-// ExecutionUsageSummary suitable for report responses.
+// ExecutionUsageSummary suitable for report responses. Token and cost
+// fields are zero in OSS mode.
 func buildExecutionSummary(exec *agentexecutionv1.AgentExecution) *agentexecutionv1.ExecutionUsageSummary {
-	usage := computeUsageFromMessages(exec)
 	return &agentexecutionv1.ExecutionUsageSummary{
-		ExecutionId:      exec.GetMetadata().GetId(),
-		StartedAt:        exec.GetStatus().GetStartedAt(),
-		CompletedAt:      exec.GetStatus().GetCompletedAt(),
-		PromptTokens:     usage.GetPromptTokens(),
-		CompletionTokens: usage.GetCompletionTokens(),
-		CacheReadTokens:  usage.GetCacheReadTokens(),
-		EstimatedCostUsd: usage.GetEstimatedCostUsd(),
-		PrimaryModel:     usage.GetPrimaryModel(),
-		SubAgentCount:    executionSubAgentCount(exec),
-		Phase:            exec.GetStatus().GetPhase(),
+		ExecutionId:   exec.GetMetadata().GetId(),
+		StartedAt:     exec.GetStatus().GetStartedAt(),
+		CompletedAt:   exec.GetStatus().GetCompletedAt(),
+		SubAgentCount: executionSubAgentCount(exec),
+		Phase:         exec.GetStatus().GetPhase(),
 	}
 }
 
@@ -272,66 +144,38 @@ func latestStartedAt(executions []*agentexecutionv1.AgentExecution) string {
 }
 
 // buildSessionSummary creates a SessionUsageSummary from a group of
-// executions that belong to the same session.
+// executions that belong to the same session. Token and cost fields are
+// zero in OSS mode.
 func buildSessionSummary(sessionID string, executions []*agentexecutionv1.AgentExecution) *agentexecutionv1.SessionUsageSummary {
-	var totalTokens int32
-	var totalCost float64
-	for _, exec := range executions {
-		for _, u := range collectUsageMetrics(exec) {
-			totalTokens += u.GetTotalTokens()
-		}
-		totalCost += executionTotalCost(exec)
-	}
 	return &agentexecutionv1.SessionUsageSummary{
 		SessionId:        sessionID,
 		ExecutionCount:   int32(len(executions)),
-		TotalTokens:      totalTokens,
-		EstimatedCostUsd: totalCost,
 		FirstExecutionAt: earliestStartedAt(executions),
 		LastExecutionAt:  latestStartedAt(executions),
 	}
 }
 
 // buildAgentSummary creates an AgentUsageSummary from a group of
-// executions that belong to the same agent. agentName is resolved
-// externally (e.g., from the agent resource).
+// executions that belong to the same agent. Token and cost fields are
+// zero in OSS mode.
 func buildAgentSummary(agentID, agentName string, executions []*agentexecutionv1.AgentExecution) *agentexecutionv1.AgentUsageSummary {
-	var totalTokens int32
-	var totalCost float64
-	for _, exec := range executions {
-		for _, u := range collectUsageMetrics(exec) {
-			totalTokens += u.GetTotalTokens()
-		}
-		totalCost += executionTotalCost(exec)
-	}
 	return &agentexecutionv1.AgentUsageSummary{
-		AgentId:          agentID,
-		AgentName:        agentName,
-		ExecutionCount:   int32(len(executions)),
-		TotalTokens:      totalTokens,
-		EstimatedCostUsd: totalCost,
+		AgentId:        agentID,
+		AgentName:      agentName,
+		ExecutionCount: int32(len(executions)),
 	}
 }
 
 // buildDailyCostEntries creates a chronologically sorted slice of
-// DailyCostEntry from the given executions.
+// DailyCostEntry from the given executions. Cost and token fields are
+// zero in OSS mode.
 func buildDailyCostEntries(executions []*agentexecutionv1.AgentExecution) []*agentexecutionv1.DailyCostEntry {
 	byDate := groupByDate(executions)
 	entries := make([]*agentexecutionv1.DailyCostEntry, 0, len(byDate))
 	for date, group := range byDate {
-		var totalTokens int32
-		var totalCost float64
-		for _, exec := range group {
-			for _, u := range collectUsageMetrics(exec) {
-				totalTokens += u.GetTotalTokens()
-			}
-			totalCost += executionTotalCost(exec)
-		}
 		entries = append(entries, &agentexecutionv1.DailyCostEntry{
-			Date:             date,
-			ExecutionCount:   int32(len(group)),
-			TotalTokens:      totalTokens,
-			EstimatedCostUsd: totalCost,
+			Date:           date,
+			ExecutionCount: int32(len(group)),
 		})
 	}
 	sort.Slice(entries, func(i, j int) bool {
@@ -397,7 +241,7 @@ func distinctSessionIDs(executions []*agentexecutionv1.AgentExecution) []string 
 // cost descending. If n <= 0, all entries are returned.
 func topAgentsByCost(summaries []*agentexecutionv1.AgentUsageSummary, n int) []*agentexecutionv1.AgentUsageSummary {
 	sort.Slice(summaries, func(i, j int) bool {
-		return summaries[i].GetEstimatedCostUsd() > summaries[j].GetEstimatedCostUsd()
+		return summaries[i].GetBillableCostMicros() > summaries[j].GetBillableCostMicros()
 	})
 	if n > 0 && len(summaries) > n {
 		return summaries[:n]

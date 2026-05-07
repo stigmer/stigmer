@@ -113,7 +113,7 @@ func renderOrgUsageTable(report *agentexecutionv1.GetOrgUsageReportOutput, fromD
 	fmt.Printf("  Agents:       %d\n", report.GetTotalAgents())
 	fmt.Printf("  Sessions:     %d\n", report.GetTotalSessions())
 	fmt.Printf("  Executions:   %d\n", report.GetTotalExecutions())
-	fmt.Printf("  Total cost:   %s\n", formatCost(report.GetTotalCostUsd()))
+	fmt.Printf("  Total cost:   %s\n", formatCost(report.GetTotalBillableCostMicros()))
 	fmt.Println()
 
 	headerColor := color.New(color.FgCyan).SprintFunc()
@@ -126,14 +126,14 @@ func renderOrgUsageTable(report *agentexecutionv1.GetOrgUsageReportOutput, fromD
 			display.WithAdaptive(),
 		)
 
-		totalCost := report.GetTotalCostUsd()
+		totalCost := report.GetTotalBillableCostMicros()
 		for _, m := range report.GetModelBreakdown() {
-			totalTokens := m.GetInputTokens() + m.GetOutputTokens() + m.GetCacheCreationTokens() + m.GetCacheReadTokens()
+			totalTokens := m.GetInputTokens() + m.GetOutputTokens() + m.GetCacheCreationInputTokens() + m.GetCacheReadInputTokens()
 			tbl.AddRow(
 				m.GetModel(),
 				formatTokenCount(totalTokens),
-				formatCost(m.GetEstimatedCostUsd()),
-				formatShare(m.GetEstimatedCostUsd(), totalCost),
+				formatCost(m.GetBillableCostMicros()),
+				formatShare(m.GetBillableCostMicros(), totalCost),
 			)
 		}
 
@@ -149,7 +149,7 @@ func renderOrgUsageTable(report *agentexecutionv1.GetOrgUsageReportOutput, fromD
 			display.WithAdaptive(),
 		)
 
-		totalCost := report.GetTotalCostUsd()
+		totalCost := report.GetTotalBillableCostMicros()
 		for _, a := range report.GetTopAgentsByCost() {
 			name := a.GetAgentName()
 			if name == "" {
@@ -158,8 +158,8 @@ func renderOrgUsageTable(report *agentexecutionv1.GetOrgUsageReportOutput, fromD
 			tbl.AddRow(
 				name,
 				fmt.Sprintf("%d", a.GetExecutionCount()),
-				formatCost(a.GetEstimatedCostUsd()),
-				formatShare(a.GetEstimatedCostUsd(), totalCost),
+				formatCost(a.GetBillableCostMicros()),
+				formatShare(a.GetBillableCostMicros(), totalCost),
 			)
 		}
 
@@ -179,7 +179,7 @@ func renderOrgUsageTable(report *agentexecutionv1.GetOrgUsageReportOutput, fromD
 			tbl.AddRow(
 				day.GetDate(),
 				fmt.Sprintf("%d", day.GetExecutionCount()),
-				formatCost(day.GetEstimatedCostUsd()),
+				formatCost(day.GetBillableCostMicros()),
 			)
 		}
 

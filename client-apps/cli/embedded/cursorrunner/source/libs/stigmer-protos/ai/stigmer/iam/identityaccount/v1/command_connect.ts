@@ -5,7 +5,7 @@
 
 import { IdentityAccount } from "./api_pbjs";
 import { Empty, MethodKind } from "@bufbuild/protobuf";
-import { CreateFederatedAccountInput, DeprovisionFederatedAccountInput, IdentityAccountEmail, IdentityAccountId, UpdateFederatedAccountInput } from "./io_pbjs";
+import { CreateFederatedAccountInput, DeprovisionFederatedAccountInput, IdentityAccountId, UpdateFederatedAccountInput } from "./io_pbjs";
 
 /**
  * IdentityAccountCommandController handles write operations for identity accounts.
@@ -19,7 +19,7 @@ export const IdentityAccountCommandController = {
      * Create a new identity account.
      *
      * @internal
-     * System-level RPC used by Auth0 webhook flow and federated account creation.
+     * System-level RPC used by federated account creation and bootstrap migrations.
      * No FGA authorization — called via inProcessChannelAsSystem (machine account).
      * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      *
@@ -120,19 +120,19 @@ export const IdentityAccountCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
+     * Provision the caller's own identity account.
      *
-     * @internal
-     * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
-     * to Stigmer with the Auth0 payload format to trigger account provisioning.
-     * Authorization is skipped — this is a system-level operation.
+     * Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
+     * Derives all identity information from the caller's JWT and the OIDC /userinfo
+     * endpoint. Creates the IdentityAccount and a personal Organization owned by the
+     * caller. Idempotent: returns the existing account on retry.
      *
-     * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.simulateSignupWebhook
+     * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.provisionMyAccount
      */
-    simulateSignupWebhook: {
-      name: "simulateSignupWebhook",
-      I: IdentityAccountEmail,
-      O: Empty,
+    provisionMyAccount: {
+      name: "provisionMyAccount",
+      I: Empty,
+      O: IdentityAccount,
       kind: MethodKind.Unary,
     },
   }

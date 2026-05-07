@@ -44,6 +44,17 @@ export {
 } from "./iam-role";
 export { IamRole } from "@stigmer/protos/ai/stigmer/iam/v1/enum_pb";
 
+// Billing client
+export {
+  BillingClient,
+  type CreateCheckoutSessionParams,
+  type CreateBillingPortalSessionParams,
+  type SetAutoRechargeConfigParams,
+  type GetCreditLedgerParams,
+  type GetBillingUsageReportParams,
+  type GetCustomerModelPricingParams,
+} from "./billing";
+
 // Search client
 export {
   SearchClient,

@@ -26,7 +26,7 @@ const (
 	IdentityAccountCommandController_CreateFederatedAccount_FullMethodName      = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/createFederatedAccount"
 	IdentityAccountCommandController_UpdateFederatedAccount_FullMethodName      = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/updateFederatedAccount"
 	IdentityAccountCommandController_DeprovisionFederatedAccount_FullMethodName = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/deprovisionFederatedAccount"
-	IdentityAccountCommandController_SimulateSignupWebhook_FullMethodName       = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/simulateSignupWebhook"
+	IdentityAccountCommandController_ProvisionMyAccount_FullMethodName          = "/ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController/provisionMyAccount"
 )
 
 // IdentityAccountCommandControllerClient is the client API for IdentityAccountCommandController service.
@@ -38,7 +38,7 @@ type IdentityAccountCommandControllerClient interface {
 	// Create a new identity account.
 	//
 	// @internal
-	// System-level RPC used by Auth0 webhook flow and federated account creation.
+	// System-level RPC used by federated account creation and bootstrap migrations.
 	// No FGA authorization — called via inProcessChannelAsSystem (machine account).
 	// The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
 	Create(ctx context.Context, in *IdentityAccount, opts ...grpc.CallOption) (*IdentityAccount, error)
@@ -85,13 +85,13 @@ type IdentityAccountCommandControllerClient interface {
 	// Authorization: Requires can_create_identity_account on the organization
 	// that owns the identity provider.
 	DeprovisionFederatedAccount(ctx context.Context, in *DeprovisionFederatedAccountInput, opts ...grpc.CallOption) (*IdentityAccount, error)
-	// Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
+	// Provision the caller's own identity account.
 	//
-	// @internal
-	// Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
-	// to Stigmer with the Auth0 payload format to trigger account provisioning.
-	// Authorization is skipped — this is a system-level operation.
-	SimulateSignupWebhook(ctx context.Context, in *IdentityAccountEmail, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
+	// Derives all identity information from the caller's JWT and the OIDC /userinfo
+	// endpoint. Creates the IdentityAccount and a personal Organization owned by the
+	// caller. Idempotent: returns the existing account on retry.
+	ProvisionMyAccount(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IdentityAccount, error)
 }
 
 type identityAccountCommandControllerClient struct {
@@ -162,10 +162,10 @@ func (c *identityAccountCommandControllerClient) DeprovisionFederatedAccount(ctx
 	return out, nil
 }
 
-func (c *identityAccountCommandControllerClient) SimulateSignupWebhook(ctx context.Context, in *IdentityAccountEmail, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *identityAccountCommandControllerClient) ProvisionMyAccount(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IdentityAccount, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, IdentityAccountCommandController_SimulateSignupWebhook_FullMethodName, in, out, cOpts...)
+	out := new(IdentityAccount)
+	err := c.cc.Invoke(ctx, IdentityAccountCommandController_ProvisionMyAccount_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +181,7 @@ type IdentityAccountCommandControllerServer interface {
 	// Create a new identity account.
 	//
 	// @internal
-	// System-level RPC used by Auth0 webhook flow and federated account creation.
+	// System-level RPC used by federated account creation and bootstrap migrations.
 	// No FGA authorization — called via inProcessChannelAsSystem (machine account).
 	// The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
 	Create(context.Context, *IdentityAccount) (*IdentityAccount, error)
@@ -228,13 +228,13 @@ type IdentityAccountCommandControllerServer interface {
 	// Authorization: Requires can_create_identity_account on the organization
 	// that owns the identity provider.
 	DeprovisionFederatedAccount(context.Context, *DeprovisionFederatedAccountInput) (*IdentityAccount, error)
-	// Trigger account provisioning for a user who exists in Auth0 but not in Stigmer.
+	// Provision the caller's own identity account.
 	//
-	// @internal
-	// Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
-	// to Stigmer with the Auth0 payload format to trigger account provisioning.
-	// Authorization is skipped — this is a system-level operation.
-	SimulateSignupWebhook(context.Context, *IdentityAccountEmail) (*emptypb.Empty, error)
+	// Called by the console when whoAmI() returns NOT_FOUND (first login after signup).
+	// Derives all identity information from the caller's JWT and the OIDC /userinfo
+	// endpoint. Creates the IdentityAccount and a personal Organization owned by the
+	// caller. Idempotent: returns the existing account on retry.
+	ProvisionMyAccount(context.Context, *emptypb.Empty) (*IdentityAccount, error)
 }
 
 // UnimplementedIdentityAccountCommandControllerServer should be embedded to have
@@ -262,8 +262,8 @@ func (UnimplementedIdentityAccountCommandControllerServer) UpdateFederatedAccoun
 func (UnimplementedIdentityAccountCommandControllerServer) DeprovisionFederatedAccount(context.Context, *DeprovisionFederatedAccountInput) (*IdentityAccount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeprovisionFederatedAccount not implemented")
 }
-func (UnimplementedIdentityAccountCommandControllerServer) SimulateSignupWebhook(context.Context, *IdentityAccountEmail) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SimulateSignupWebhook not implemented")
+func (UnimplementedIdentityAccountCommandControllerServer) ProvisionMyAccount(context.Context, *emptypb.Empty) (*IdentityAccount, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProvisionMyAccount not implemented")
 }
 func (UnimplementedIdentityAccountCommandControllerServer) testEmbeddedByValue() {}
 
@@ -393,20 +393,20 @@ func _IdentityAccountCommandController_DeprovisionFederatedAccount_Handler(srv i
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IdentityAccountCommandController_SimulateSignupWebhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IdentityAccountEmail)
+func _IdentityAccountCommandController_ProvisionMyAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IdentityAccountCommandControllerServer).SimulateSignupWebhook(ctx, in)
+		return srv.(IdentityAccountCommandControllerServer).ProvisionMyAccount(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: IdentityAccountCommandController_SimulateSignupWebhook_FullMethodName,
+		FullMethod: IdentityAccountCommandController_ProvisionMyAccount_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IdentityAccountCommandControllerServer).SimulateSignupWebhook(ctx, req.(*IdentityAccountEmail))
+		return srv.(IdentityAccountCommandControllerServer).ProvisionMyAccount(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -443,8 +443,8 @@ var IdentityAccountCommandController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _IdentityAccountCommandController_DeprovisionFederatedAccount_Handler,
 		},
 		{
-			MethodName: "simulateSignupWebhook",
-			Handler:    _IdentityAccountCommandController_SimulateSignupWebhook_Handler,
+			MethodName: "provisionMyAccount",
+			Handler:    _IdentityAccountCommandController_ProvisionMyAccount_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

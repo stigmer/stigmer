@@ -11,6 +11,7 @@ import { AuthProvider, AuthGuard } from "@/auth";
 import { StigmerTransportBridge } from "@/providers/StigmerTransportBridge";
 import { Toaster } from "@/domain/_shared/ui/sonner";
 import { OrgGate } from "@/domain/_shared/org/OrgGate";
+import { IdentityAccountGate } from "@/domain/_shared/identity/IdentityAccountGate";
 import { loadRuntimeConfig } from "@/config/runtime-config";
 
 /**
@@ -51,9 +52,10 @@ const queryClient = new QueryClient({
  * 3. AuthGuard                — blocks rendering until auth is resolved
  * 4. QueryClientProvider      — TanStack Query cache and state management
  * 5. StigmerTransportBridge   — bridges console auth to @stigmer/* library transport
- * 6. OrgProvider              — fetches organizations and provides OrgContext
- * 7. OrgGate                  — blocks app until user has at least one organization
- * 8. Toaster                  — sonner toast container (themed, top-right)
+ * 6. IdentityAccountGate      — ensures the caller's identity account exists (provisions on first signup)
+ * 7. OrgProvider              — fetches organizations and provides OrgContext
+ * 8. OrgGate                  — blocks app until user has at least one organization
+ * 9. Toaster                  — sonner toast container (themed, top-right)
  *
  * Public routes (e.g. `/login`) receive only ConfigGate + ThemeProvider.
  * They manage their own SDK client and provider.
@@ -94,12 +96,14 @@ function ProvidersInner({ children }: { children: React.ReactNode }) {
         <AuthGuard>
           <QueryClientProvider client={queryClient}>
             <StigmerTransportBridge>
-              <OrgProvider>
-                <OrgGate>
-                  {children}
-                  <Toaster />
-                </OrgGate>
-              </OrgProvider>
+              <IdentityAccountGate>
+                <OrgProvider>
+                  <OrgGate>
+                    {children}
+                    <Toaster />
+                  </OrgGate>
+                </OrgProvider>
+              </IdentityAccountGate>
             </StigmerTransportBridge>
           </QueryClientProvider>
         </AuthGuard>

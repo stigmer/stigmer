@@ -48,6 +48,13 @@ heartbeats to stay alive, and picks up executions. The server tracks each runner
 as a resource with a thin spec and rich status — similar to how Kubernetes
 tracks Nodes.
 
+A single runner can host workers for multiple
+[Harnesses](/docs/concepts/harnesses). When you start a runner with
+`stigmer up`, it runs the native worker by default. If a Cursor API key is
+configured, it also starts a Cursor worker on a dedicated task queue. Both
+workers share the same runner identity — you don't need separate runner
+processes for each Harness.
+
 ## Three execution modes
 
 Runners operate in one of three modes. The mode determines where agent commands
@@ -166,11 +173,15 @@ depends on what you want to do:
   isolation at the runner and command level.
 - **Use cloud mode** — The [cloud mode guide](/docs/guides/runners/cloud-mode)
   explains automatic provisioning when no local runner is available.
+- **Use the Cursor harness** — The
+  [Cursor harness guide](/docs/guides/runners/cursor-harness) covers setting up
+  the Cursor execution engine for coding-focused agent capabilities.
 - **Build with runner hooks** — The
   [React SDK runner reference](/docs/sdk/react/runner) documents
   `useRunnerList`, `RunnerListPanel`, `RunnerPicker`, and the launch, stop, and
   delete hooks.
 
-The next concept page covers [Workflows](/docs/concepts/workflows) — multi-step
-automation sequences that chain Agent calls, HTTP requests, and approval gates
-into structured processes.
+The next concept page covers [Harnesses](/docs/concepts/harnesses) — the
+execution engines that power your Agent's Sessions. After that,
+[Workflows](/docs/concepts/workflows) — multi-step automation sequences that
+chain Agent calls, HTTP requests, and approval gates into structured processes.

@@ -39,6 +39,7 @@ private static final long serialVersionUID = 0L;
     modelBreakdown_ = java.util.Collections.emptyList();
     topAgentsByCost_ = java.util.Collections.emptyList();
     dailyCosts_ = java.util.Collections.emptyList();
+    harnessBreakdown_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -151,19 +152,19 @@ private static final long serialVersionUID = 0L;
     return totalExecutions_;
   }
 
-  public static final int TOTAL_COST_USD_FIELD_NUMBER = 5;
-  private double totalCostUsd_ = 0D;
+  public static final int TOTAL_BILLABLE_COST_MICROS_FIELD_NUMBER = 5;
+  private long totalBillableCostMicros_ = 0L;
   /**
    * <pre>
-   * Total cost in USD across the organization in the time range.
+   * Total billable cost in micro-USD across the organization in the time range.
    * </pre>
    *
-   * <code>double total_cost_usd = 5 [json_name = "totalCostUsd"];</code>
-   * @return The totalCostUsd.
+   * <code>int64 total_billable_cost_micros = 5 [json_name = "totalBillableCostMicros"];</code>
+   * @return The totalBillableCostMicros.
    */
   @java.lang.Override
-  public double getTotalCostUsd() {
-    return totalCostUsd_;
+  public long getTotalBillableCostMicros() {
+    return totalBillableCostMicros_;
   }
 
   public static final int MODEL_BREAKDOWN_FIELD_NUMBER = 6;
@@ -232,7 +233,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary> topAgentsByCost_;
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -243,7 +244,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -255,7 +256,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -266,7 +267,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -277,7 +278,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+   * Top agents by cost (top 10), ordered by billable_cost_micros descending.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -349,6 +350,67 @@ private static final long serialVersionUID = 0L;
     return dailyCosts_.get(index);
   }
 
+  public static final int HARNESS_BREAKDOWN_FIELD_NUMBER = 9;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary> harnessBreakdown_;
+  /**
+   * <pre>
+   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary> getHarnessBreakdownList() {
+    return harnessBreakdown_;
+  }
+  /**
+   * <pre>
+   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.HarnessCostSummaryOrBuilder> 
+      getHarnessBreakdownOrBuilderList() {
+    return harnessBreakdown_;
+  }
+  /**
+   * <pre>
+   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   */
+  @java.lang.Override
+  public int getHarnessBreakdownCount() {
+    return harnessBreakdown_.size();
+  }
+  /**
+   * <pre>
+   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary getHarnessBreakdown(int index) {
+    return harnessBreakdown_.get(index);
+  }
+  /**
+   * <pre>
+   * Cost split by execution harness (e.g., "native" vs "cursor").
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.HarnessCostSummaryOrBuilder getHarnessBreakdownOrBuilder(
+      int index) {
+    return harnessBreakdown_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -375,8 +437,8 @@ private static final long serialVersionUID = 0L;
     if (totalExecutions_ != 0) {
       output.writeInt32(4, totalExecutions_);
     }
-    if (java.lang.Double.doubleToRawLongBits(totalCostUsd_) != 0) {
-      output.writeDouble(5, totalCostUsd_);
+    if (totalBillableCostMicros_ != 0L) {
+      output.writeInt64(5, totalBillableCostMicros_);
     }
     for (int i = 0; i < modelBreakdown_.size(); i++) {
       output.writeMessage(6, modelBreakdown_.get(i));
@@ -386,6 +448,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < dailyCosts_.size(); i++) {
       output.writeMessage(8, dailyCosts_.get(i));
+    }
+    for (int i = 0; i < harnessBreakdown_.size(); i++) {
+      output.writeMessage(9, harnessBreakdown_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -411,9 +476,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(4, totalExecutions_);
     }
-    if (java.lang.Double.doubleToRawLongBits(totalCostUsd_) != 0) {
+    if (totalBillableCostMicros_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
-        .computeDoubleSize(5, totalCostUsd_);
+        .computeInt64Size(5, totalBillableCostMicros_);
     }
 
         {
@@ -442,6 +507,15 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
+
+        {
+          final int count = harnessBreakdown_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(harnessBreakdown_.get(i));
+          }
+          size += 1 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -465,15 +539,16 @@ private static final long serialVersionUID = 0L;
         != other.getTotalSessions()) return false;
     if (getTotalExecutions()
         != other.getTotalExecutions()) return false;
-    if (java.lang.Double.doubleToLongBits(getTotalCostUsd())
-        != java.lang.Double.doubleToLongBits(
-            other.getTotalCostUsd())) return false;
+    if (getTotalBillableCostMicros()
+        != other.getTotalBillableCostMicros()) return false;
     if (!getModelBreakdownList()
         .equals(other.getModelBreakdownList())) return false;
     if (!getTopAgentsByCostList()
         .equals(other.getTopAgentsByCostList())) return false;
     if (!getDailyCostsList()
         .equals(other.getDailyCostsList())) return false;
+    if (!getHarnessBreakdownList()
+        .equals(other.getHarnessBreakdownList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -493,9 +568,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getTotalSessions();
     hash = (37 * hash) + TOTAL_EXECUTIONS_FIELD_NUMBER;
     hash = (53 * hash) + getTotalExecutions();
-    hash = (37 * hash) + TOTAL_COST_USD_FIELD_NUMBER;
+    hash = (37 * hash) + TOTAL_BILLABLE_COST_MICROS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        java.lang.Double.doubleToLongBits(getTotalCostUsd()));
+        getTotalBillableCostMicros());
     if (getModelBreakdownCount() > 0) {
       hash = (37 * hash) + MODEL_BREAKDOWN_FIELD_NUMBER;
       hash = (53 * hash) + getModelBreakdownList().hashCode();
@@ -507,6 +582,10 @@ private static final long serialVersionUID = 0L;
     if (getDailyCostsCount() > 0) {
       hash = (37 * hash) + DAILY_COSTS_FIELD_NUMBER;
       hash = (53 * hash) + getDailyCostsList().hashCode();
+    }
+    if (getHarnessBreakdownCount() > 0) {
+      hash = (37 * hash) + HARNESS_BREAKDOWN_FIELD_NUMBER;
+      hash = (53 * hash) + getHarnessBreakdownList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -650,7 +729,7 @@ private static final long serialVersionUID = 0L;
       totalAgents_ = 0;
       totalSessions_ = 0;
       totalExecutions_ = 0;
-      totalCostUsd_ = 0D;
+      totalBillableCostMicros_ = 0L;
       if (modelBreakdownBuilder_ == null) {
         modelBreakdown_ = java.util.Collections.emptyList();
       } else {
@@ -672,6 +751,13 @@ private static final long serialVersionUID = 0L;
         dailyCostsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000080);
+      if (harnessBreakdownBuilder_ == null) {
+        harnessBreakdown_ = java.util.Collections.emptyList();
+      } else {
+        harnessBreakdown_ = null;
+        harnessBreakdownBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000100);
       return this;
     }
 
@@ -732,6 +818,15 @@ private static final long serialVersionUID = 0L;
       } else {
         result.dailyCosts_ = dailyCostsBuilder_.build();
       }
+      if (harnessBreakdownBuilder_ == null) {
+        if (((bitField0_ & 0x00000100) != 0)) {
+          harnessBreakdown_ = java.util.Collections.unmodifiableList(harnessBreakdown_);
+          bitField0_ = (bitField0_ & ~0x00000100);
+        }
+        result.harnessBreakdown_ = harnessBreakdown_;
+      } else {
+        result.harnessBreakdown_ = harnessBreakdownBuilder_.build();
+      }
     }
 
     private void buildPartial0(ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput result) {
@@ -749,7 +844,7 @@ private static final long serialVersionUID = 0L;
         result.totalExecutions_ = totalExecutions_;
       }
       if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.totalCostUsd_ = totalCostUsd_;
+        result.totalBillableCostMicros_ = totalBillableCostMicros_;
       }
     }
 
@@ -779,8 +874,8 @@ private static final long serialVersionUID = 0L;
       if (other.getTotalExecutions() != 0) {
         setTotalExecutions(other.getTotalExecutions());
       }
-      if (java.lang.Double.doubleToRawLongBits(other.getTotalCostUsd()) != 0) {
-        setTotalCostUsd(other.getTotalCostUsd());
+      if (other.getTotalBillableCostMicros() != 0L) {
+        setTotalBillableCostMicros(other.getTotalBillableCostMicros());
       }
       if (modelBreakdownBuilder_ == null) {
         if (!other.modelBreakdown_.isEmpty()) {
@@ -860,6 +955,32 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
+      if (harnessBreakdownBuilder_ == null) {
+        if (!other.harnessBreakdown_.isEmpty()) {
+          if (harnessBreakdown_.isEmpty()) {
+            harnessBreakdown_ = other.harnessBreakdown_;
+            bitField0_ = (bitField0_ & ~0x00000100);
+          } else {
+            ensureHarnessBreakdownIsMutable();
+            harnessBreakdown_.addAll(other.harnessBreakdown_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.harnessBreakdown_.isEmpty()) {
+          if (harnessBreakdownBuilder_.isEmpty()) {
+            harnessBreakdownBuilder_.dispose();
+            harnessBreakdownBuilder_ = null;
+            harnessBreakdown_ = other.harnessBreakdown_;
+            bitField0_ = (bitField0_ & ~0x00000100);
+            harnessBreakdownBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetHarnessBreakdownFieldBuilder() : null;
+          } else {
+            harnessBreakdownBuilder_.addAllMessages(other.harnessBreakdown_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -906,11 +1027,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 32
-            case 41: {
-              totalCostUsd_ = input.readDouble();
+            case 40: {
+              totalBillableCostMicros_ = input.readInt64();
               bitField0_ |= 0x00000010;
               break;
-            } // case 41
+            } // case 40
             case 50: {
               ai.stigmer.agentic.agentexecution.v1.ModelUsage m =
                   input.readMessage(
@@ -950,6 +1071,19 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 66
+            case 74: {
+              ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary m =
+                  input.readMessage(
+                      ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary.parser(),
+                      extensionRegistry);
+              if (harnessBreakdownBuilder_ == null) {
+                ensureHarnessBreakdownIsMutable();
+                harnessBreakdown_.add(m);
+              } else {
+                harnessBreakdownBuilder_.addMessage(m);
+              }
+              break;
+            } // case 74
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1191,46 +1325,46 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private double totalCostUsd_ ;
+    private long totalBillableCostMicros_ ;
     /**
      * <pre>
-     * Total cost in USD across the organization in the time range.
+     * Total billable cost in micro-USD across the organization in the time range.
      * </pre>
      *
-     * <code>double total_cost_usd = 5 [json_name = "totalCostUsd"];</code>
-     * @return The totalCostUsd.
+     * <code>int64 total_billable_cost_micros = 5 [json_name = "totalBillableCostMicros"];</code>
+     * @return The totalBillableCostMicros.
      */
     @java.lang.Override
-    public double getTotalCostUsd() {
-      return totalCostUsd_;
+    public long getTotalBillableCostMicros() {
+      return totalBillableCostMicros_;
     }
     /**
      * <pre>
-     * Total cost in USD across the organization in the time range.
+     * Total billable cost in micro-USD across the organization in the time range.
      * </pre>
      *
-     * <code>double total_cost_usd = 5 [json_name = "totalCostUsd"];</code>
-     * @param value The totalCostUsd to set.
+     * <code>int64 total_billable_cost_micros = 5 [json_name = "totalBillableCostMicros"];</code>
+     * @param value The totalBillableCostMicros to set.
      * @return This builder for chaining.
      */
-    public Builder setTotalCostUsd(double value) {
+    public Builder setTotalBillableCostMicros(long value) {
 
-      totalCostUsd_ = value;
+      totalBillableCostMicros_ = value;
       bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Total cost in USD across the organization in the time range.
+     * Total billable cost in micro-USD across the organization in the time range.
      * </pre>
      *
-     * <code>double total_cost_usd = 5 [json_name = "totalCostUsd"];</code>
+     * <code>int64 total_billable_cost_micros = 5 [json_name = "totalBillableCostMicros"];</code>
      * @return This builder for chaining.
      */
-    public Builder clearTotalCostUsd() {
+    public Builder clearTotalBillableCostMicros() {
       bitField0_ = (bitField0_ & ~0x00000010);
-      totalCostUsd_ = 0D;
+      totalBillableCostMicros_ = 0L;
       onChanged();
       return this;
     }
@@ -1561,7 +1695,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1575,7 +1709,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1589,7 +1723,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1603,7 +1737,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1624,7 +1758,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1642,7 +1776,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1662,7 +1796,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1683,7 +1817,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1701,7 +1835,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1719,7 +1853,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1738,7 +1872,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1755,7 +1889,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1772,7 +1906,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1783,7 +1917,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1797,7 +1931,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1812,7 +1946,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1823,7 +1957,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -1835,7 +1969,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+     * Top agents by cost (top 10), ordered by billable_cost_micros descending.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary top_agents_by_cost = 7 [json_name = "topAgentsByCost"];</code>
@@ -2169,6 +2303,318 @@ private static final long serialVersionUID = 0L;
         dailyCosts_ = null;
       }
       return dailyCostsBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary> harnessBreakdown_ =
+      java.util.Collections.emptyList();
+    private void ensureHarnessBreakdownIsMutable() {
+      if (!((bitField0_ & 0x00000100) != 0)) {
+        harnessBreakdown_ = new java.util.ArrayList<ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary>(harnessBreakdown_);
+        bitField0_ |= 0x00000100;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary, ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary.Builder, ai.stigmer.agentic.agentexecution.v1.HarnessCostSummaryOrBuilder> harnessBreakdownBuilder_;
+
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary> getHarnessBreakdownList() {
+      if (harnessBreakdownBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(harnessBreakdown_);
+      } else {
+        return harnessBreakdownBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public int getHarnessBreakdownCount() {
+      if (harnessBreakdownBuilder_ == null) {
+        return harnessBreakdown_.size();
+      } else {
+        return harnessBreakdownBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary getHarnessBreakdown(int index) {
+      if (harnessBreakdownBuilder_ == null) {
+        return harnessBreakdown_.get(index);
+      } else {
+        return harnessBreakdownBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public Builder setHarnessBreakdown(
+        int index, ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary value) {
+      if (harnessBreakdownBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureHarnessBreakdownIsMutable();
+        harnessBreakdown_.set(index, value);
+        onChanged();
+      } else {
+        harnessBreakdownBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public Builder setHarnessBreakdown(
+        int index, ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary.Builder builderForValue) {
+      if (harnessBreakdownBuilder_ == null) {
+        ensureHarnessBreakdownIsMutable();
+        harnessBreakdown_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        harnessBreakdownBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public Builder addHarnessBreakdown(ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary value) {
+      if (harnessBreakdownBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureHarnessBreakdownIsMutable();
+        harnessBreakdown_.add(value);
+        onChanged();
+      } else {
+        harnessBreakdownBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public Builder addHarnessBreakdown(
+        int index, ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary value) {
+      if (harnessBreakdownBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureHarnessBreakdownIsMutable();
+        harnessBreakdown_.add(index, value);
+        onChanged();
+      } else {
+        harnessBreakdownBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public Builder addHarnessBreakdown(
+        ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary.Builder builderForValue) {
+      if (harnessBreakdownBuilder_ == null) {
+        ensureHarnessBreakdownIsMutable();
+        harnessBreakdown_.add(builderForValue.build());
+        onChanged();
+      } else {
+        harnessBreakdownBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public Builder addHarnessBreakdown(
+        int index, ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary.Builder builderForValue) {
+      if (harnessBreakdownBuilder_ == null) {
+        ensureHarnessBreakdownIsMutable();
+        harnessBreakdown_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        harnessBreakdownBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public Builder addAllHarnessBreakdown(
+        java.lang.Iterable<? extends ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary> values) {
+      if (harnessBreakdownBuilder_ == null) {
+        ensureHarnessBreakdownIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, harnessBreakdown_);
+        onChanged();
+      } else {
+        harnessBreakdownBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public Builder clearHarnessBreakdown() {
+      if (harnessBreakdownBuilder_ == null) {
+        harnessBreakdown_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000100);
+        onChanged();
+      } else {
+        harnessBreakdownBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public Builder removeHarnessBreakdown(int index) {
+      if (harnessBreakdownBuilder_ == null) {
+        ensureHarnessBreakdownIsMutable();
+        harnessBreakdown_.remove(index);
+        onChanged();
+      } else {
+        harnessBreakdownBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary.Builder getHarnessBreakdownBuilder(
+        int index) {
+      return internalGetHarnessBreakdownFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.HarnessCostSummaryOrBuilder getHarnessBreakdownOrBuilder(
+        int index) {
+      if (harnessBreakdownBuilder_ == null) {
+        return harnessBreakdown_.get(index);  } else {
+        return harnessBreakdownBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.HarnessCostSummaryOrBuilder> 
+         getHarnessBreakdownOrBuilderList() {
+      if (harnessBreakdownBuilder_ != null) {
+        return harnessBreakdownBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(harnessBreakdown_);
+      }
+    }
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary.Builder addHarnessBreakdownBuilder() {
+      return internalGetHarnessBreakdownFieldBuilder().addBuilder(
+          ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary.Builder addHarnessBreakdownBuilder(
+        int index) {
+      return internalGetHarnessBreakdownFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Cost split by execution harness (e.g., "native" vs "cursor").
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary harness_breakdown = 9 [json_name = "harnessBreakdown"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary.Builder> 
+         getHarnessBreakdownBuilderList() {
+      return internalGetHarnessBreakdownFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary, ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary.Builder, ai.stigmer.agentic.agentexecution.v1.HarnessCostSummaryOrBuilder> 
+        internalGetHarnessBreakdownFieldBuilder() {
+      if (harnessBreakdownBuilder_ == null) {
+        harnessBreakdownBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary, ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary.Builder, ai.stigmer.agentic.agentexecution.v1.HarnessCostSummaryOrBuilder>(
+                harnessBreakdown_,
+                ((bitField0_ & 0x00000100) != 0),
+                getParentForChildren(),
+                isClean());
+        harnessBreakdown_ = null;
+      }
+      return harnessBreakdownBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput)

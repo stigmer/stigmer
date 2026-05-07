@@ -26,8 +26,10 @@ ExecutionContext and cannot access arbitrary environments.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any
 
@@ -94,10 +96,46 @@ class DiscoveredResourceTemplateResult:
 
 @dataclass
 class DiscoverMcpServerOutput:
-    """Output of the MCP server discovery activity."""
+    """Output of the MCP server discovery activity.
+
+    Includes the newly discovered tools and resource templates, plus a
+    snapshot of the previous state (tools fingerprint and tool approvals)
+    so the workflow can short-circuit classification when tools haven't
+    changed.
+    """
 
     tools: list[DiscoveredToolResult]
     resource_templates: list[DiscoveredResourceTemplateResult]
+    previous_tools_fingerprint: str = ""
+    previous_tool_approvals: list[dict[str, Any]] = field(default_factory=list)
+
+
+def tools_fingerprint(tools: list[DiscoveredToolResult]) -> str:
+    """Compute a deterministic content hash of a tool set.
+
+    The fingerprint covers name, description, and input_schema for each
+    tool, sorted by name.  Any material change (new tool, removed tool,
+    schema change, description change) produces a different hash, which
+    triggers reclassification in the connect workflow.
+
+    Safe to call from Temporal workflow code (pure, deterministic, no I/O).
+    """
+    if not tools:
+        return ""
+    canonical = sorted(
+        [
+            {
+                "name": t.name,
+                "description": t.description,
+                "input_schema": t.input_schema,
+            }
+            for t in tools
+        ],
+        key=lambda x: str(x["name"]),
+    )
+    return hashlib.sha256(
+        json.dumps(canonical, sort_keys=True).encode()
+    ).hexdigest()
 
 
 @activity.defn(name=ACTIVITY_NAME)
@@ -136,6 +174,8 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
         slug = mcp_server.metadata.slug or input.mcp_server_id
         spec = mcp_server.spec
 
+        prev_fingerprint, prev_approvals = _extract_previous_state(mcp_server)
+
         env_vars = await _resolve_env_vars_for_discovery(
             token=token,
             channel=ch,
@@ -162,11 +202,50 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
         return DiscoverMcpServerOutput(
             tools=tools,
             resource_templates=resource_templates,
+            previous_tools_fingerprint=prev_fingerprint,
+            previous_tool_approvals=prev_approvals,
         )
 
     finally:
         await grpc_provider.close()
         execution_tracker.decrement()
+
+
+def _extract_previous_state(
+    mcp_server: Any,
+) -> tuple[str, list[dict[str, Any]]]:
+    """Extract previous tools fingerprint and approvals from McpServer status.
+
+    Returns ``("", [])`` when the server has never been connected (no
+    discovered_capabilities or tool_approvals yet).
+    """
+    status = getattr(mcp_server, "status", None)
+    if not status:
+        return "", []
+
+    caps = getattr(status, "discovered_capabilities", None)
+    prev_tools: list[DiscoveredToolResult] = []
+    if caps:
+        for tool in getattr(caps, "tools", []):
+            schema = None
+            if tool.input_schema and tool.input_schema.fields:
+                from google.protobuf.json_format import MessageToDict
+                schema = MessageToDict(tool.input_schema)
+            prev_tools.append(DiscoveredToolResult(
+                name=tool.name,
+                description=tool.description,
+                input_schema=schema,
+            ))
+
+    prev_approvals: list[dict[str, Any]] = []
+    for approval in getattr(status, "tool_approvals", []):
+        prev_approvals.append({
+            "tool_name": approval.tool_name,
+            "requires_approval": approval.requires_approval,
+            "message": approval.message,
+        })
+
+    return tools_fingerprint(prev_tools), prev_approvals
 
 
 async def _resolve_env_vars_for_discovery(
@@ -347,25 +426,41 @@ class ConnectMcpServerWorkflow:
             retry_policy=RetryPolicy(maximum_attempts=1),
         )
 
-        classify_input = ClassifyToolApprovalsInput(
-            tools=[
-                {
-                    "name": t.name,
-                    "description": t.description,
-                    "input_schema": t.input_schema,
-                }
-                for t in discovery.tools
-            ],
-            server_name=input.mcp_server_id,
-            server_description="",
-        )
+        new_fingerprint = tools_fingerprint(discovery.tools)
+        if (
+            new_fingerprint
+            and new_fingerprint == discovery.previous_tools_fingerprint
+            and discovery.previous_tool_approvals
+        ):
+            workflow.logger.info(
+                "Tools unchanged for '%s' (fingerprint %s) "
+                "— reusing %d previous approval(s)",
+                input.mcp_server_id,
+                new_fingerprint[:12],
+                len(discovery.previous_tool_approvals),
+            )
+            tool_approvals = discovery.previous_tool_approvals
+        else:
+            classify_input = ClassifyToolApprovalsInput(
+                tools=[
+                    {
+                        "name": t.name,
+                        "description": t.description,
+                        "input_schema": t.input_schema,
+                    }
+                    for t in discovery.tools
+                ],
+                server_name=input.mcp_server_id,
+                server_description="",
+                mcp_server_id=input.mcp_server_id,
+            )
 
-        tool_approvals = await workflow.execute_activity(
-            classify_tool_approvals,
-            classify_input,
-            start_to_close_timeout=timedelta(seconds=60),
-            retry_policy=RetryPolicy(maximum_attempts=1),
-        )
+            tool_approvals = await workflow.execute_activity(
+                classify_tool_approvals,
+                classify_input,
+                start_to_close_timeout=timedelta(seconds=60),
+                retry_policy=RetryPolicy(maximum_attempts=1),
+            )
 
         return ConnectMcpServerOutput(
             tools=discovery.tools,

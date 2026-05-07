@@ -12,7 +12,7 @@ export interface UsageWidgetProps {
   /**
    * All executions for the current session — both completed and
    * actively streaming.  The widget aggregates cost data across
-   * every execution's per-message `llm_metrics`, presenting a
+   * every execution's `usageSummary` (proxy-maintained), presenting a
    * session-level total that never resets.
    *
    * Renders nothing when the list is empty or no execution has

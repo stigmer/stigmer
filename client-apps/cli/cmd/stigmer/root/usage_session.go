@@ -24,8 +24,7 @@ func newUsageSessionCommand() *cobra.Command {
 		Short: "View usage report for a session",
 		Long: `View token usage, cost, and model breakdown for all executions in a session.
 
-Shows per-model cost breakdown, per-execution detail, cache effectiveness,
-and summarization costs.`,
+Shows per-model cost breakdown, per-execution detail, and cache effectiveness.`,
 		Example: `  # View session usage
   stigmer usage session ses_abc123
 
@@ -105,21 +104,21 @@ func renderSessionUsageTable(report *agentexecutionv1.GetSessionUsageReportOutpu
 			display.WithAdaptive(),
 		)
 
-		var totalInput, totalOutput, totalCached int32
-		var totalCost float64
+		var totalInput, totalOutput, totalCached int64
+		var totalCost int64
 
 		for _, m := range report.GetModelBreakdown() {
 			tbl.AddRow(
 				m.GetModel(),
 				formatTokenCount(m.GetInputTokens()),
 				formatTokenCount(m.GetOutputTokens()),
-				formatTokenCount(m.GetCacheReadTokens()),
-				formatCost(m.GetEstimatedCostUsd()),
+				formatTokenCount(m.GetCacheReadInputTokens()),
+				formatCost(m.GetBillableCostMicros()),
 			)
 			totalInput += m.GetInputTokens()
 			totalOutput += m.GetOutputTokens()
-			totalCached += m.GetCacheReadTokens()
-			totalCost += m.GetEstimatedCostUsd()
+			totalCached += m.GetCacheReadInputTokens()
+			totalCost += m.GetBillableCostMicros()
 		}
 
 		if len(report.GetModelBreakdown()) > 1 {
@@ -136,14 +135,11 @@ func renderSessionUsageTable(report *agentexecutionv1.GetSessionUsageReportOutpu
 		fmt.Println()
 	}
 
-	// Cache and summarization stats
+	// Cache stats
 	if usage := report.GetTotalUsage(); usage != nil {
 		if rate := formatCacheHitRate(usage); rate != "" {
 			fmt.Printf("Cache hit rate: %s\n", rate)
 		}
-	}
-	if report.GetTotalSummarizationCostUsd() > 0 {
-		fmt.Printf("Summarization: %s\n", formatCost(report.GetTotalSummarizationCostUsd()))
 	}
 
 	// Execution breakdown table
@@ -161,8 +157,8 @@ func renderSessionUsageTable(report *agentexecutionv1.GetSessionUsageReportOutpu
 			tbl.AddRow(
 				fmt.Sprintf("%d", i+1),
 				formatDate(exec.GetStartedAt()),
-				formatTokenCount(exec.GetPromptTokens()+exec.GetCompletionTokens()),
-				formatCost(exec.GetEstimatedCostUsd()),
+				formatTokenCount(exec.GetInputTokens()+exec.GetOutputTokens()),
+				formatCost(exec.GetBillableCostMicros()),
 				exec.GetPrimaryModel(),
 				mapPhaseToString(exec.GetPhase()),
 			)

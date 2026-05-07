@@ -45,7 +45,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
    * Aggregated usage across all executions in this session.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
    * @return Whether the totalUsage field is set.
    */
   boolean hasTotalUsage();
@@ -54,18 +54,18 @@ public interface GetSessionUsageReportOutputOrBuilder extends
    * Aggregated usage across all executions in this session.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
    * @return The totalUsage.
    */
-  ai.stigmer.agentic.agentexecution.v1.UsageMetrics getTotalUsage();
+  ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate getTotalUsage();
   /**
    * <pre>
    * Aggregated usage across all executions in this session.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics total_usage = 3 [json_name = "totalUsage"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate total_usage = 3 [json_name = "totalUsage"];</code>
    */
-  ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder getTotalUsageOrBuilder();
+  ai.stigmer.agentic.agentexecution.v1.UsageReportAggregateOrBuilder getTotalUsageOrBuilder();
 
   /**
    * <pre>
@@ -157,20 +157,10 @@ public interface GetSessionUsageReportOutputOrBuilder extends
 
   /**
    * <pre>
-   * Total summarization cost across all executions.
-   * </pre>
-   *
-   * <code>double total_summarization_cost_usd = 6 [json_name = "totalSummarizationCostUsd"];</code>
-   * @return The totalSummarizationCostUsd.
-   */
-  double getTotalSummarizationCostUsd();
-
-  /**
-   * <pre>
    * ISO 8601 timestamp of the first execution in this session.
    * </pre>
    *
-   * <code>string first_execution_at = 7 [json_name = "firstExecutionAt"];</code>
+   * <code>string first_execution_at = 6 [json_name = "firstExecutionAt"];</code>
    * @return The firstExecutionAt.
    */
   java.lang.String getFirstExecutionAt();
@@ -179,7 +169,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
    * ISO 8601 timestamp of the first execution in this session.
    * </pre>
    *
-   * <code>string first_execution_at = 7 [json_name = "firstExecutionAt"];</code>
+   * <code>string first_execution_at = 6 [json_name = "firstExecutionAt"];</code>
    * @return The bytes for firstExecutionAt.
    */
   com.google.protobuf.ByteString
@@ -190,7 +180,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
    * ISO 8601 timestamp of the most recent execution in this session.
    * </pre>
    *
-   * <code>string last_execution_at = 8 [json_name = "lastExecutionAt"];</code>
+   * <code>string last_execution_at = 7 [json_name = "lastExecutionAt"];</code>
    * @return The lastExecutionAt.
    */
   java.lang.String getLastExecutionAt();
@@ -199,7 +189,7 @@ public interface GetSessionUsageReportOutputOrBuilder extends
    * ISO 8601 timestamp of the most recent execution in this session.
    * </pre>
    *
-   * <code>string last_execution_at = 8 [json_name = "lastExecutionAt"];</code>
+   * <code>string last_execution_at = 7 [json_name = "lastExecutionAt"];</code>
    * @return The bytes for lastExecutionAt.
    */
   com.google.protobuf.ByteString

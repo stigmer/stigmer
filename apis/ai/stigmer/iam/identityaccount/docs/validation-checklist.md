@@ -41,13 +41,7 @@ spec:
 
 ### Attempting to Call `create` Directly
 
-The `create` RPC is system-level. It is called by the Auth0 webhook handler and the federated account creation flow, not by end users or CLI. Direct invocation without the system machine account context will be rejected.
-
-To create an account for an existing Auth0 user that Stigmer missed, use `simulateSignupWebhook`:
-
-```bash
-stigmer identity-account simulate-signup-webhook --email alice@example.com
-```
+The `create` RPC is system-level. It is called by federated account creation and bootstrap migrations, not by end users or CLI. Direct invocation without the system machine account context will be rejected.
 
 ### Federated Account Must Be Created Before Authentication
 

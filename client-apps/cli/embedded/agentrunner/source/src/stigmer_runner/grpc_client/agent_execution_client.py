@@ -8,6 +8,7 @@ from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecution, AgentEx
 from ai.stigmer.agentic.agentexecution.v1.io_pb2 import (
     AgentExecutionId,
     AgentExecutionUpdateStatusInput,
+    UpdateStatusResponse,
 )
 
 from stigmer_runner.grpc_client.auth.client_interceptor import AuthClientInterceptor
@@ -82,20 +83,16 @@ class AgentExecutionClient:
             AgentExecutionId(value=execution_id), timeout=self._timeout,
         )
     
-    async def update_status(self, execution_id: str, status: AgentExecutionStatus) -> AgentExecution:
-        """
-        Send status update for an execution.
-        
-        This method uses AgentExecutionUpdateStatusInput to send only execution_id and status.
-        The BuildNewStateWithStatusStep in AgentExecutionUpdateStatusHandler will load the
-        existing execution, authorize, and merge the status updates.
-        
+    async def update_status(self, execution_id: str, status: AgentExecutionStatus) -> UpdateStatusResponse:
+        """Send status update for an execution.
+
         Args:
             execution_id: The execution ID to update
             status: The AgentExecutionStatus with updates (messages, tool_calls, phase, etc.)
-            
+
         Returns:
-            Updated AgentExecution protobuf object
+            UpdateStatusResponse with an optional execution control signal
+            from the platform (e.g. STOP on credit exhaustion).
         """
         if not execution_id:
             raise ValueError("execution_id cannot be empty")

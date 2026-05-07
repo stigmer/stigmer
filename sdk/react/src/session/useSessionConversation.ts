@@ -17,6 +17,7 @@ import type {
 } from "@stigmer/sdk";
 import { isTerminalPhase } from "../execution/execution-phases";
 import { useStigmer } from "../hooks";
+import { useConversationStoreRef } from "../internal/store";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
 import { useExecutionStream } from "../execution/useExecutionStream";
 import { useSubmitApproval } from "../execution/useSubmitApproval";
@@ -248,7 +249,14 @@ export function useSessionConversation(
 
   const activeExecutionId = pendingExecutionId ?? listActiveId;
 
-  const stream = useExecutionStream(activeExecutionId);
+  // The conversation store is shared between useExecutionStream (which
+  // ingests snapshots with structural sharing + rAF coalescing) and the
+  // rendering tree. This eliminates the duplicate structuralShare that
+  // was previously done in this hook.
+  const conversationStore = useConversationStoreRef();
+  const stream = useExecutionStream(activeExecutionId, {
+    store: conversationStore,
+  });
 
   // Clear pendingExecutionId once the execution appears in the fetched list
   useEffect(() => {
@@ -291,7 +299,8 @@ export function useSessionConversation(
     );
   }, [executions, activeExecutionId]);
 
-  const activeStreamExecution = stream.execution ?? fetchedActiveExecution;
+  const activeStreamExecution =
+    stream.execution ?? fetchedActiveExecution;
 
   const activePhase = useMemo<ExecutionPhase | null>(() => {
     if (!activeExecutionId) return null;

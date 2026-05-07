@@ -1,3 +1,4 @@
+import { BillingClient } from "./billing";
 import { GeneratedClient } from "./gen/client";
 import { GitHubClient } from "./github";
 import { SearchClient } from "./search";
@@ -18,6 +19,7 @@ import {
  *
  * On top of the generated resource clients, `Stigmer` adds:
  * - Configuration and transport setup ({@link StigmerConfig})
+ * - {@link billing} credit management and Stripe integration client
  * - Cross-resource {@link search} client
  * - {@link github} OAuth integration client
  *
@@ -41,6 +43,7 @@ export class Stigmer extends GeneratedClient {
    */
   readonly baseUrl: string;
 
+  readonly billing: BillingClient;
   readonly search: SearchClient;
   readonly github: GitHubClient;
 
@@ -57,6 +60,7 @@ export class Stigmer extends GeneratedClient {
       ? () => config.apiKey!
       : config.getAccessToken ?? (() => null);
 
+    this.billing = new BillingClient(transport);
     this.search = new SearchClient(transport);
     this.github = new GitHubClient(transport);
   }

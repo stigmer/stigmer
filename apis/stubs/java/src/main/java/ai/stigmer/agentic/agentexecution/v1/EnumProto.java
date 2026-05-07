@@ -69,15 +69,19 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "mingSource\022*\n&TOOL_CALL_STREAMING_SOURCE" +
       "_UNSPECIFIED\020\000\022$\n TOOL_CALL_STREAMING_SO" +
       "URCE_INPUT\020\001\022%\n!TOOL_CALL_STREAMING_SOUR" +
-      "CE_OUTPUT\020\002*\204\001\n\016ApprovalAction\022\037\n\033APPROV" +
-      "AL_ACTION_UNSPECIFIED\020\000\022\033\n\027APPROVAL_ACTI" +
-      "ON_APPROVE\020\001\022\030\n\024APPROVAL_ACTION_SKIP\020\002\022\032" +
-      "\n\026APPROVAL_ACTION_REJECT\020\003B\300\001B\tEnumProto" +
-      "P\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.Agentexec" +
-      "ution.V1\312\002$Ai\\Stigmer\\Agentic\\Agentexecu" +
-      "tion\\V1\342\0020Ai\\Stigmer\\Agentic\\Agentexecut" +
-      "ion\\V1\\GPBMetadata\352\002(Ai::Stigmer::Agenti" +
-      "c::Agentexecution::V1b\006proto3"
+      "CE_OUTPUT\020\002*\213\001\n\026ExecutionControlSignal\022(" +
+      "\n$EXECUTION_CONTROL_SIGNAL_UNSPECIFIED\020\000" +
+      "\022!\n\035EXECUTION_CONTROL_SIGNAL_STOP\020\001\022$\n E" +
+      "XECUTION_CONTROL_SIGNAL_WARNING\020\002*\204\001\n\016Ap" +
+      "provalAction\022\037\n\033APPROVAL_ACTION_UNSPECIF" +
+      "IED\020\000\022\033\n\027APPROVAL_ACTION_APPROVE\020\001\022\030\n\024AP" +
+      "PROVAL_ACTION_SKIP\020\002\022\032\n\026APPROVAL_ACTION_" +
+      "REJECT\020\003B\300\001B\tEnumProtoP\001\242\002\004ASAA\252\002$Ai.Sti" +
+      "gmer.Agentic.Agentexecution.V1\312\002$Ai\\Stig" +
+      "mer\\Agentic\\Agentexecution\\V1\342\0020Ai\\Stigm" +
+      "er\\Agentic\\Agentexecution\\V1\\GPBMetadata" +
+      "\352\002(Ai::Stigmer::Agentic::Agentexecution:" +
+      ":V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

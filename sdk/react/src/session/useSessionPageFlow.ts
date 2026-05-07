@@ -253,7 +253,7 @@ export function useSessionPageFlow(
 
       sessionVariables.clear();
     },
-    [conv, modelId, workspace, mcpServerUsages, skillRefs, sessionVariables, resolution, agentRef, sessionInstanceId, stigmer],
+    [conv.sendFollowUp, modelId, workspace, mcpServerUsages, skillRefs, sessionVariables.clear, resolution, agentRef, sessionInstanceId, stigmer],
   );
 
   // -------------------------------------------------------------------------

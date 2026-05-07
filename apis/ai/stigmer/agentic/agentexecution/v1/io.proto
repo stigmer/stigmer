@@ -67,6 +67,23 @@ message AgentExecutionUpdateStatusInput {
   AgentExecutionStatus status = 2 [(buf.validate.field).required = true];
 }
 
+// UpdateStatusResponse is the lightweight response returned by the
+// updateStatus RPC. It replaces the previous AgentExecution return type
+// to avoid serializing the full resource on every progressive update
+// (~every 2-3 seconds during streaming).
+//
+// The response carries an optional execution control signal from the
+// platform back to the runner. The signal is generic — the runner acts
+// on STOP / WARNING without knowing the source (billing, admin, budget).
+message UpdateStatusResponse {
+  // Platform-to-runner directive. UNSPECIFIED means continue normally.
+  ExecutionControlSignal signal = 1;
+
+  // Human-readable reason for the signal (optional).
+  // Logged by the runner and may be surfaced to the user in the stop summary.
+  string signal_reason = 2;
+}
+
 // Input for submitting an approval decision (HITL Phase 1).
 //
 // All required fields must be provided. The handler validates:
@@ -741,8 +758,27 @@ message GetArtifactContentResponse {
 // Usage Report Types
 //
 // Request/response messages for usage reporting RPCs that provide cost and
-// token consumption visibility at session, agent, and organization levels.
+// token consumption visibility at execution, session, agent, and organization
+// levels. All data is sourced from the llm_call_usage_record collection.
+//
+// Token counts are int64. Cost amounts are int64 micro-USD
+// (1 USD = 1,000,000 micros).
 // ─────────────────────────────────────────────────────────────────────────────
+
+// GetExecutionUsageReportInput requests a usage report for a single execution.
+message GetExecutionUsageReportInput {
+  // Execution ID to get usage report for.
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// GetExecutionUsageReportOutput returns aggregated usage for one execution.
+message GetExecutionUsageReportOutput {
+  // Aggregated token counts and cost for this execution.
+  UsageReportAggregate aggregate = 1;
+
+  // Per-model breakdown within this execution.
+  repeated ModelUsage model_breakdown = 2;
+}
 
 // GetSessionUsageReportInput requests a usage report for a single session.
 // Aggregates cost and token data across all executions in the session.
@@ -764,7 +800,7 @@ message GetSessionUsageReportOutput {
   int32 execution_count = 2;
 
   // Aggregated usage across all executions in this session.
-  UsageMetrics total_usage = 3;
+  UsageReportAggregate total_usage = 3;
 
   // Per-execution breakdown (ordered chronologically).
   repeated ExecutionUsageSummary executions = 4;
@@ -772,14 +808,11 @@ message GetSessionUsageReportOutput {
   // Per-model breakdown across the entire session.
   repeated ModelUsage model_breakdown = 5;
 
-  // Total summarization cost across all executions.
-  double total_summarization_cost_usd = 6;
-
   // ISO 8601 timestamp of the first execution in this session.
-  string first_execution_at = 7;
+  string first_execution_at = 6;
 
   // ISO 8601 timestamp of the most recent execution in this session.
-  string last_execution_at = 8;
+  string last_execution_at = 7;
 }
 
 // GetAgentUsageReportInput requests a usage report for a specific agent.
@@ -816,7 +849,7 @@ message GetAgentUsageReportOutput {
   string agent_name = 2;
 
   // Aggregated usage within the time range.
-  UsageMetrics total_usage = 3;
+  UsageReportAggregate total_usage = 3;
 
   // Per-model breakdown across the agent's executions.
   repeated ModelUsage model_breakdown = 4;
@@ -830,8 +863,8 @@ message GetAgentUsageReportOutput {
   // Total number of executions within the time range.
   int32 total_executions = 7;
 
-  // Total cost in USD within the time range.
-  double total_cost_usd = 8;
+  // Total billable cost in micro-USD within the time range.
+  int64 total_billable_cost_micros = 8;
 
   // Token for the next page of sessions (empty if no more pages).
   string next_page_token = 9;
@@ -870,28 +903,30 @@ message GetOrgUsageReportOutput {
   // Total executions across all agents in the time range.
   int32 total_executions = 4;
 
-  // Total cost in USD across the organization in the time range.
-  double total_cost_usd = 5;
+  // Total billable cost in micro-USD across the organization in the time range.
+  int64 total_billable_cost_micros = 5;
 
   // Per-model breakdown across the organization.
   repeated ModelUsage model_breakdown = 6;
 
-  // Top agents by cost (top 10), ordered by estimated_cost_usd descending.
+  // Top agents by cost (top 10), ordered by billable_cost_micros descending.
   repeated AgentUsageSummary top_agents_by_cost = 7;
 
   // Daily cost trend within the time range, ordered chronologically.
   repeated DailyCostEntry daily_costs = 8;
+
+  // Cost split by execution harness (e.g., "native" vs "cursor").
+  repeated HarnessCostSummary harness_breakdown = 9;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Usage Report Supporting Types
 //
 // Lightweight summary types used within usage report responses.
+// All token counts are int64. All cost amounts are int64 micro-USD.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ExecutionUsageSummary is a lightweight view of a single execution's usage.
-// Used in session-level reports for per-execution breakdown without returning
-// the full AgentExecution resource.
+// Lightweight view of a single execution's usage within a session report.
 message ExecutionUsageSummary {
   // Execution identifier.
   string execution_id = 1;
@@ -902,17 +937,17 @@ message ExecutionUsageSummary {
   // ISO 8601 timestamp when execution completed.
   string completed_at = 3;
 
-  // Total input tokens for this execution.
-  int32 prompt_tokens = 4;
+  // Input tokens for this execution.
+  int64 input_tokens = 4;
 
-  // Total output tokens for this execution.
-  int32 completion_tokens = 5;
+  // Output tokens for this execution.
+  int64 output_tokens = 5;
 
   // Cache read tokens for this execution.
-  int32 cache_read_tokens = 6;
+  int64 cache_read_input_tokens = 6;
 
-  // Estimated cost in USD for this execution.
-  double estimated_cost_usd = 7;
+  // Billable cost in micro-USD for this execution.
+  int64 billable_cost_micros = 7;
 
   // Primary model used for this execution.
   string primary_model = 8;
@@ -924,8 +959,7 @@ message ExecutionUsageSummary {
   ExecutionPhase phase = 10;
 }
 
-// SessionUsageSummary is a lightweight view of a session's usage.
-// Used in agent-level reports for per-session breakdown.
+// Lightweight view of a session's usage within an agent report.
 message SessionUsageSummary {
   // Session identifier.
   string session_id = 1;
@@ -933,11 +967,11 @@ message SessionUsageSummary {
   // Number of executions in this session.
   int32 execution_count = 2;
 
-  // Total tokens (prompt + completion) across all executions.
-  int32 total_tokens = 3;
+  // Total tokens (input + output) across all executions.
+  int64 total_tokens = 3;
 
-  // Total estimated cost in USD for this session.
-  double estimated_cost_usd = 4;
+  // Total billable cost in micro-USD for this session.
+  int64 billable_cost_micros = 4;
 
   // ISO 8601 timestamp of the first execution in this session.
   string first_execution_at = 5;
@@ -946,8 +980,7 @@ message SessionUsageSummary {
   string last_execution_at = 6;
 }
 
-// AgentUsageSummary is a lightweight view of an agent's usage.
-// Used in org-level reports to show top agents by cost.
+// Lightweight view of an agent's usage within an org report.
 message AgentUsageSummary {
   // Agent identifier.
   string agent_id = 1;
@@ -958,15 +991,14 @@ message AgentUsageSummary {
   // Total executions for this agent in the time range.
   int32 execution_count = 3;
 
-  // Total tokens (prompt + completion) across all executions.
-  int32 total_tokens = 4;
+  // Total tokens (input + output) across all executions.
+  int64 total_tokens = 4;
 
-  // Total estimated cost in USD for this agent.
-  double estimated_cost_usd = 5;
+  // Total billable cost in micro-USD for this agent.
+  int64 billable_cost_micros = 5;
 }
 
-// DailyCostEntry represents cost and usage for a single day.
-// Used in org-level reports to show daily cost trends.
+// Cost and usage for a single day within an org report.
 message DailyCostEntry {
   // Date in YYYY-MM-DD format.
   string date = 1;
@@ -975,8 +1007,27 @@ message DailyCostEntry {
   int32 execution_count = 2;
 
   // Total tokens consumed on this date.
-  int32 total_tokens = 3;
+  int64 total_tokens = 3;
 
-  // Total estimated cost in USD on this date.
-  double estimated_cost_usd = 4;
+  // Total billable cost in micro-USD on this date.
+  int64 billable_cost_micros = 4;
+}
+
+// Cost split by execution harness within an org report.
+//
+// Each entry represents one harness (e.g., "native" or "cursor") and
+// aggregates cost, call count, and execution count for that harness
+// within the report's time range.
+message HarnessCostSummary {
+  // Harness identifier (e.g., "native", "cursor").
+  string harness = 1;
+
+  // Total billable cost in micro-USD for this harness.
+  int64 billable_cost_micros = 2;
+
+  // Number of LLM API calls through this harness.
+  int32 call_count = 3;
+
+  // Number of distinct executions that used this harness.
+  int32 execution_count = 4;
 }

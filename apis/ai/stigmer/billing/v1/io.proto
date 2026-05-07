@@ -1,0 +1,352 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.v1;
+
+import "ai/stigmer/agentic/agentexecution/v1/usage.proto";
+import "ai/stigmer/billing/v1/credit.proto";
+import "ai/stigmer/billing/v1/enum.proto";
+import "ai/stigmer/commons/rpc/pagination.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Command Inputs & Responses
+// ─────────────────────────────────────────────────────────────────────────────
+
+// GetOrCreateBillingAccountInput initiates billing for an organization.
+// Idempotent: returns the existing account if one already exists.
+message GetOrCreateBillingAccountInput {
+  string org_id = 1 [(buf.validate.field).required = true];
+}
+
+// AdjustCreditsInput allows platform admins to manually add or remove credits.
+message AdjustCreditsInput {
+  string org_id = 1 [(buf.validate.field).required = true];
+
+  // Positive to add credits, negative to remove.
+  int64 amount_micros = 2;
+
+  // Human-readable reason for the adjustment (audit trail).
+  string reason = 3 [(buf.validate.field).required = true];
+
+  // Client-supplied deduplication key to prevent double-processing.
+  string idempotency_key = 4 [(buf.validate.field).required = true];
+}
+
+// AuthorizeExecutionInput requests a credit reservation before execution starts.
+message AuthorizeExecutionInput {
+  string org_id = 1 [(buf.validate.field).required = true];
+  string execution_id = 2 [(buf.validate.field).required = true];
+
+  // Execution harness ("native" or "cursor").
+  string harness = 3 [(buf.validate.field).required = true];
+
+  // Expected maximum cost. The system may reserve less if balance is limited.
+  int64 expected_cost_cap_micros = 4;
+}
+
+// AuthorizeExecutionResponse indicates whether the execution may proceed.
+message AuthorizeExecutionResponse {
+  // Whether the execution is authorized to start.
+  bool authorized = 1;
+
+  // Reservation ID for tracking. Empty if authorization was denied.
+  string reservation_id = 2;
+
+  // Micro-USD actually reserved (may be less than requested).
+  int64 reserved_micros = 3;
+
+  // Balance available after the reservation was placed.
+  int64 available_balance_micros = 4;
+
+  // Reason for denial, if authorized is false.
+  string denial_reason = 5;
+}
+
+// RecordLlmCallUsageInput carries proxy-observed data for a single LLM call.
+// The billing service computes cost server-side from the model registry —
+// the caller never provides cost figures.
+//
+// Deduplicated by (execution_id, sequence, metering_source).
+message RecordLlmCallUsageInput {
+  string execution_id = 1 [(buf.validate.field).required = true];
+
+  // 1-based call ordering within the execution.
+  int32 sequence = 2 [(buf.validate.field).int32.gt = 0];
+
+  // Provider identifier (e.g., "openai", "anthropic", "cursor").
+  string provider = 3 [(buf.validate.field).required = true];
+
+  // Model as reported by the provider in the response.
+  string resolved_model = 4 [(buf.validate.field).required = true];
+
+  // Model as requested by the caller (may differ from resolved_model for aliases).
+  string requested_model = 5;
+
+  // Token usage extracted from the provider's SSE stream.
+  ai.stigmer.agentic.agentexecution.v1.TokenUsage tokens = 6;
+
+  // Status of usage extraction.
+  ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus usage_status = 7;
+
+  // Provider request ID from response headers.
+  string provider_request_id = 8;
+
+  // HTTP status code from the upstream provider.
+  int32 http_status_code = 9;
+
+  // Whether the response was streamed (SSE).
+  bool streaming = 10;
+
+  // Provider's finish reason (e.g., "end_turn", "stop").
+  string finish_reason = 11;
+
+  // Proxy-observed timing for this call.
+  ai.stigmer.agentic.agentexecution.v1.ProxyTiming proxy_timing = 12;
+
+  // Raw provider usage JSON for audit/debug.
+  string provider_usage_json = 13;
+}
+
+// RecordLlmCallUsageResponse returns the cost result so callers can
+// observe what was recorded without querying separately.
+message RecordLlmCallUsageResponse {
+  // ID of the created LlmCallUsageRecord.
+  string usage_record_id = 1;
+
+  // Provider cost computed server-side from the model registry.
+  int64 provider_cost_micros = 2;
+
+  // Amount debited from customer credits (after markup policy).
+  int64 customer_billable_amount_micros = 3;
+
+  // Whether this call was billable (complete usage + non-zero cost).
+  bool is_billable = 4;
+
+  // True if this was a duplicate (idempotency key already existed).
+  bool is_duplicate = 5;
+}
+
+// FinalizeExecutionInput settles the billing for a completed execution.
+// Releases unused reservation credits and produces the final billing record.
+message FinalizeExecutionInput {
+  string execution_id = 1 [(buf.validate.field).required = true];
+}
+
+// FinalizeExecutionResponse summarizes the execution's billing outcome.
+message FinalizeExecutionResponse {
+  // Total provider cost across all LLM calls in the execution.
+  int64 total_provider_cost_micros = 1;
+
+  // Total amount charged to the customer across all LLM calls.
+  int64 total_billable_amount_micros = 2;
+
+  // Micro-USD released back to available balance from the reservation.
+  int64 released_reservation_micros = 3;
+
+  // Number of LLM calls billed in this execution.
+  int32 billed_call_count = 4;
+}
+
+// CreateCreditCheckoutSessionInput initiates a Stripe Checkout purchase
+// for a credit pack.
+//
+// The server creates a Stripe Checkout Session and returns the URL for
+// the client to redirect the user. The caller's email is resolved from
+// their identity account for Stripe Customer creation.
+message CreateCreditCheckoutSessionInput {
+  string org_id = 1 [(buf.validate.field).required = true];
+
+  // Credit pack to purchase (e.g., "starter", "growth", "team").
+  string pack_id = 2 [(buf.validate.field).required = true];
+
+  // URL to redirect to after successful payment.
+  string success_url = 3 [(buf.validate.field).required = true];
+
+  // URL to redirect to if the user cancels checkout.
+  string cancel_url = 4 [(buf.validate.field).required = true];
+}
+
+// CreateCreditCheckoutSessionResponse returns the Stripe Checkout URL
+// and purchase tracking identifiers.
+message CreateCreditCheckoutSessionResponse {
+  // Stripe-hosted checkout page URL. Redirect the user here.
+  string checkout_url = 1;
+
+  // Internal purchase ID for tracking this transaction.
+  string purchase_id = 2;
+
+  // Stripe Checkout Session ID.
+  string checkout_session_id = 3;
+}
+
+// CreateBillingPortalSessionInput opens a Stripe Customer Portal session
+// for payment method management.
+//
+// The portal allows the user to add, update, or remove payment methods
+// without leaving the Stigmer billing flow. The return_url controls where
+// Stripe redirects after the user finishes.
+message CreateBillingPortalSessionInput {
+  string org_id = 1 [(buf.validate.field).required = true];
+
+  // URL to redirect to after the user exits the Stripe Customer Portal.
+  string return_url = 2 [(buf.validate.field).required = true];
+}
+
+// CreateBillingPortalSessionResponse returns the Stripe-hosted Portal URL.
+message CreateBillingPortalSessionResponse {
+  // Stripe Customer Portal URL. Redirect the user here.
+  string portal_url = 1;
+}
+
+// SetAutoRechargeConfigInput configures automatic credit top-up for an org.
+//
+// When enabled, the billing system charges the account's saved payment
+// method whenever the available balance drops below threshold_micros.
+// The charge amount is fixed per event (recharge_amount_micros), capped
+// at monthly_cap_micros per calendar month.
+//
+// Enabling requires an active account with a saved payment method.
+// Disabling preserves the configuration for easy re-enablement.
+message SetAutoRechargeConfigInput {
+  string org_id = 1 [(buf.validate.field).required = true];
+
+  // Whether to enable auto-recharge.
+  bool enabled = 2;
+
+  // Trigger recharge when available balance drops below this amount.
+  int64 threshold_micros = 3;
+
+  // Fixed amount to charge per recharge event.
+  int64 recharge_amount_micros = 4;
+
+  // Maximum total auto-recharge spend per calendar month.
+  int64 monthly_cap_micros = 5;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Query Inputs & Responses
+// ─────────────────────────────────────────────────────────────────────────────
+
+// GetBillingAccountInput retrieves the billing account for an organization.
+message GetBillingAccountInput {
+  string org_id = 1 [(buf.validate.field).required = true];
+}
+
+// GetCreditBalanceInput retrieves just the balance breakdown.
+message GetCreditBalanceInput {
+  string org_id = 1 [(buf.validate.field).required = true];
+}
+
+// GetCreditLedgerInput retrieves paginated ledger entries with optional filters.
+message GetCreditLedgerInput {
+  string org_id = 1 [(buf.validate.field).required = true];
+
+  // Pagination parameters.
+  ai.stigmer.commons.rpc.PageInfo page = 2;
+
+  // Filter to specific entry types. Empty means all types.
+  repeated LedgerEntryType type_filter = 3;
+
+  // Filter to entries on or after this timestamp.
+  google.protobuf.Timestamp start_time = 4;
+
+  // Filter to entries on or before this timestamp.
+  google.protobuf.Timestamp end_time = 5;
+}
+
+// CreditLedgerResponse is a paginated list of ledger entries.
+message CreditLedgerResponse {
+  repeated CreditLedgerEntry entries = 1;
+  int32 total_pages = 2;
+}
+
+// GetBillingUsageReportInput requests an aggregated billing usage report.
+message GetBillingUsageReportInput {
+  string org_id = 1 [(buf.validate.field).required = true];
+
+  // Start of the reporting period.
+  google.protobuf.Timestamp start_time = 2 [(buf.validate.field).required = true];
+
+  // End of the reporting period.
+  google.protobuf.Timestamp end_time = 3 [(buf.validate.field).required = true];
+}
+
+// BillingUsageReportResponse provides aggregated spend data for the period.
+message BillingUsageReportResponse {
+  // Total provider cost in the period.
+  int64 total_provider_cost_micros = 1;
+
+  // Total amount billed to the customer in the period.
+  int64 total_billable_amount_micros = 2;
+
+  // Number of executions in the period.
+  int32 execution_count = 3;
+
+  // Number of LLM calls in the period.
+  int32 llm_call_count = 4;
+
+  // Breakdown by model.
+  repeated ModelBillingBreakdown model_breakdown = 5;
+}
+
+// ModelBillingBreakdown aggregates billing data for a single model.
+message ModelBillingBreakdown {
+  string model = 1;
+  string harness = 2;
+  string cost_tier = 3;
+  int64 provider_cost_micros = 4;
+  int64 billable_amount_micros = 5;
+  int32 call_count = 6;
+}
+
+// GetCustomerModelPricingInput requests the customer-facing price list.
+message GetCustomerModelPricingInput {
+  // Organization ID. Used to resolve org-specific policy overrides.
+  // When empty, returns default pricing.
+  string org_id = 1;
+}
+
+// CustomerModelPricingResponse returns the customer-visible price for each model.
+message CustomerModelPricingResponse {
+  repeated CustomerModelPricingEntry entries = 1;
+}
+
+// CustomerModelPricingEntry is the customer-facing price for one model.
+//
+// Prices are in micro-USD per million tokens, with markup already applied.
+// These are what the customer pays, not what Stigmer pays the provider.
+message CustomerModelPricingEntry {
+  // Model identifier matching model-registry.json.
+  string model_id = 1;
+
+  // Human-readable model name.
+  string display_name = 2;
+
+  // LLM provider (e.g., "anthropic", "openai").
+  string provider = 3;
+
+  // Execution harness ("native" or "cursor").
+  string harness = 4;
+
+  // Model cost tier ("economy", "standard", "premium").
+  string cost_tier = 5;
+
+  // Customer price per million input tokens, in micro-USD.
+  int64 input_price_micros_per_million = 6;
+
+  // Customer price per million output tokens, in micro-USD.
+  int64 output_price_micros_per_million = 7;
+
+  // Customer price per million cache write tokens, in micro-USD.
+  int64 cache_creation_price_micros_per_million = 8;
+
+  // Customer price per million cache read tokens, in micro-USD.
+  int64 cache_read_price_micros_per_million = 9;
+
+  // Billing policy that produced these prices.
+  string pricing_policy_id = 10;
+
+  // Markup applied, in basis points.
+  int32 markup_basis_points = 11;
+}

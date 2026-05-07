@@ -9,48 +9,48 @@ import (
 
 func TestRenderOrgUsageTable_FullReport(t *testing.T) {
 	report := &agentexecutionv1.GetOrgUsageReportOutput{
-		OrgId:           "org_acme",
-		TotalAgents:     12,
-		TotalSessions:   34,
-		TotalExecutions: 187,
-		TotalCostUsd:    18.42,
+		OrgId:                   "org_acme",
+		TotalAgents:             12,
+		TotalSessions:           34,
+		TotalExecutions:         187,
+		TotalBillableCostMicros: 18_420_000,
 		ModelBreakdown: []*agentexecutionv1.ModelUsage{
 			{
-				Model:            "claude-sonnet-4",
-				InputTokens:      3000000,
-				OutputTokens:     245000,
-				EstimatedCostUsd: 16.80,
+				Model:              "claude-sonnet-4",
+				InputTokens:        3000000,
+				OutputTokens:       245000,
+				BillableCostMicros: 16_800_000,
 			},
 			{
-				Model:            "gpt-4o",
-				InputTokens:      450000,
-				OutputTokens:     35000,
-				EstimatedCostUsd: 1.20,
+				Model:              "gpt-4o",
+				InputTokens:        450000,
+				OutputTokens:       35000,
+				BillableCostMicros: 1_200_000,
 			},
 			{
-				Model:            "claude-haiku-4",
-				InputTokens:      300000,
-				OutputTokens:     12000,
-				EstimatedCostUsd: 0.42,
+				Model:              "claude-haiku-4",
+				InputTokens:        300000,
+				OutputTokens:       12000,
+				BillableCostMicros: 420_000,
 			},
 		},
 		TopAgentsByCost: []*agentexecutionv1.AgentUsageSummary{
 			{
-				AgentId:          "agt_001",
-				AgentName:        "cloud-resource-assistant",
-				ExecutionCount:   52,
-				EstimatedCostUsd: 5.20,
+				AgentId:            "agt_001",
+				AgentName:          "cloud-resource-assistant",
+				ExecutionCount:     52,
+				BillableCostMicros: 5_200_000,
 			},
 			{
-				AgentId:          "agt_002",
-				AgentName:        "code-reviewer",
-				ExecutionCount:   38,
-				EstimatedCostUsd: 3.80,
+				AgentId:            "agt_002",
+				AgentName:          "code-reviewer",
+				ExecutionCount:     38,
+				BillableCostMicros: 3_800_000,
 			},
 		},
 		DailyCosts: []*agentexecutionv1.DailyCostEntry{
-			{Date: "2026-03-01", ExecutionCount: 14, EstimatedCostUsd: 1.42},
-			{Date: "2026-03-02", ExecutionCount: 12, EstimatedCostUsd: 1.18},
+			{Date: "2026-03-01", ExecutionCount: 14, BillableCostMicros: 1_420_000},
+			{Date: "2026-03-02", ExecutionCount: 12, BillableCostMicros: 1_180_000},
 		},
 	}
 
@@ -103,13 +103,13 @@ func TestRenderOrgUsageTable_EmptyReport(t *testing.T) {
 
 func TestRenderOrgUsageTable_AgentFallsBackToID(t *testing.T) {
 	report := &agentexecutionv1.GetOrgUsageReportOutput{
-		OrgId:        "org_test",
-		TotalCostUsd: 1.00,
+		OrgId:                   "org_test",
+		TotalBillableCostMicros: 1_000_000,
 		TopAgentsByCost: []*agentexecutionv1.AgentUsageSummary{
 			{
-				AgentId:          "agt_no_name",
-				ExecutionCount:   5,
-				EstimatedCostUsd: 1.00,
+				AgentId:            "agt_no_name",
+				ExecutionCount:     5,
+				BillableCostMicros: 1_000_000,
 			},
 		},
 	}

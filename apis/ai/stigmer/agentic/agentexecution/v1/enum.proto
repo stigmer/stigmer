@@ -353,6 +353,27 @@ enum ToolCallStreamingSource {
   TOOL_CALL_STREAMING_SOURCE_OUTPUT = 2;
 }
 
+// ExecutionControlSignal is a platform-to-runner directive returned by the
+// updateStatus RPC. The runner inspects this signal after every status
+// update and acts accordingly.
+//
+// Signal sources are opaque to the runner — the platform may set STOP due
+// to credit exhaustion, an admin kill, a user-configured budget cap, or any
+// future enforcement mechanism. The runner does not know or care about the
+// source; it only reacts to the signal value.
+enum ExecutionControlSignal {
+  // No action required — continue execution normally.
+  EXECUTION_CONTROL_SIGNAL_UNSPECIFIED = 0;
+
+  // Execution must stop gracefully. The runner should block further tool
+  // calls and give the model one final turn to produce a summary.
+  EXECUTION_CONTROL_SIGNAL_STOP = 1;
+
+  // Informational warning (e.g. low credit balance). The runner logs the
+  // warning and continues execution.
+  EXECUTION_CONTROL_SIGNAL_WARNING = 2;
+}
+
 // ApprovalAction represents the user's decision on an approval request.
 //
 // ## Action Semantics

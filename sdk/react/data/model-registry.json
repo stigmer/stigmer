@@ -1,8 +1,8 @@
 {
-  "$comment": "Unified model registry — single source of truth for all model metadata. Maintained by AI via @update-model-registry.",
+  "$comment": "Unified model registry \u2014 single source of truth for all model metadata. Maintained by AI via @update-model-registry.",
   "models": [
     {
-      "$comment": "═══ NATIVE HARNESS — Anthropic (direct API) ═══"
+      "$comment": "\u2550\u2550\u2550 NATIVE HARNESS \u2014 Anthropic (direct API) \u2550\u2550\u2550"
     },
     {
       "id": "claude-opus-4.6",
@@ -16,13 +16,25 @@
         "inputPricePerMillion": 5.0,
         "outputPricePerMillion": 25.0,
         "cacheWritePricePerMillion": 6.25,
-        "cacheReadPricePerMillion": 0.50
+        "cacheReadPricePerMillion": 0.5,
+        "source": "anthropic_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
       },
       "contextWindowTokens": 200000,
       "maxOutputTokens": 131072,
       "tokenCounterMethod": "anthropic_native",
-      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
-      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": false, "adaptiveThinking": true }
+      "summarization": {
+        "triggerThreshold": 180000,
+        "targetTokens": 160000,
+        "maxSummaryTokens": 2000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": true,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": true
+      }
     },
     {
       "id": "claude-sonnet-4.6",
@@ -36,13 +48,25 @@
         "inputPricePerMillion": 3.0,
         "outputPricePerMillion": 15.0,
         "cacheWritePricePerMillion": 3.75,
-        "cacheReadPricePerMillion": 0.30
+        "cacheReadPricePerMillion": 0.3,
+        "source": "anthropic_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
       },
       "contextWindowTokens": 200000,
       "maxOutputTokens": 65536,
       "tokenCounterMethod": "anthropic_native",
-      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
-      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": true, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 180000,
+        "targetTokens": 160000,
+        "maxSummaryTokens": 2000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": true,
+        "streaming": true,
+        "thinking": true,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "claude-opus-4.5",
@@ -56,13 +80,25 @@
         "inputPricePerMillion": 5.0,
         "outputPricePerMillion": 25.0,
         "cacheWritePricePerMillion": 6.25,
-        "cacheReadPricePerMillion": 0.50
+        "cacheReadPricePerMillion": 0.5,
+        "source": "anthropic_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
       },
       "contextWindowTokens": 200000,
       "maxOutputTokens": 65536,
       "tokenCounterMethod": "anthropic_native",
-      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
-      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": true, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 180000,
+        "targetTokens": 160000,
+        "maxSummaryTokens": 2000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": true,
+        "streaming": true,
+        "thinking": true,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "claude-sonnet-4.5",
@@ -76,13 +112,25 @@
         "inputPricePerMillion": 3.0,
         "outputPricePerMillion": 15.0,
         "cacheWritePricePerMillion": 3.75,
-        "cacheReadPricePerMillion": 0.30
+        "cacheReadPricePerMillion": 0.3,
+        "source": "anthropic_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
       },
       "contextWindowTokens": 200000,
       "maxOutputTokens": 65536,
       "tokenCounterMethod": "anthropic_native",
-      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
-      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": true, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 180000,
+        "targetTokens": 160000,
+        "maxSummaryTokens": 2000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": true,
+        "streaming": true,
+        "thinking": true,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "claude-opus-4",
@@ -96,13 +144,25 @@
         "inputPricePerMillion": 15.0,
         "outputPricePerMillion": 75.0,
         "cacheWritePricePerMillion": 18.75,
-        "cacheReadPricePerMillion": 1.50
+        "cacheReadPricePerMillion": 1.5,
+        "source": "anthropic_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
       },
       "contextWindowTokens": 200000,
       "maxOutputTokens": 32768,
       "tokenCounterMethod": "anthropic_native",
-      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
-      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": true, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 180000,
+        "targetTokens": 160000,
+        "maxSummaryTokens": 2000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": true,
+        "streaming": true,
+        "thinking": true,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "claude-haiku-4.5",
@@ -116,13 +176,25 @@
         "inputPricePerMillion": 1.0,
         "outputPricePerMillion": 5.0,
         "cacheWritePricePerMillion": 1.25,
-        "cacheReadPricePerMillion": 0.10
+        "cacheReadPricePerMillion": 0.1,
+        "source": "anthropic_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
       },
       "contextWindowTokens": 200000,
       "maxOutputTokens": 64000,
       "tokenCounterMethod": "anthropic_native",
-      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
-      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": false, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 180000,
+        "targetTokens": 160000,
+        "maxSummaryTokens": 2000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": true,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "claude-sonnet-3.5",
@@ -136,13 +208,25 @@
         "inputPricePerMillion": 3.0,
         "outputPricePerMillion": 15.0,
         "cacheWritePricePerMillion": 3.75,
-        "cacheReadPricePerMillion": 0.30
+        "cacheReadPricePerMillion": 0.3,
+        "source": "anthropic_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
       },
       "contextWindowTokens": 200000,
       "maxOutputTokens": 8192,
       "tokenCounterMethod": "anthropic_native",
-      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
-      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": false, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 180000,
+        "targetTokens": 160000,
+        "maxSummaryTokens": 2000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": true,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "claude-haiku-3.5",
@@ -153,20 +237,31 @@
       "costTier": "economy",
       "featured": false,
       "pricing": {
-        "inputPricePerMillion": 0.80,
+        "inputPricePerMillion": 0.8,
         "outputPricePerMillion": 4.0,
-        "cacheWritePricePerMillion": 1.00,
-        "cacheReadPricePerMillion": 0.08
+        "cacheWritePricePerMillion": 1.0,
+        "cacheReadPricePerMillion": 0.08,
+        "source": "anthropic_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
       },
       "contextWindowTokens": 200000,
       "maxOutputTokens": 8192,
       "tokenCounterMethod": "anthropic_native",
-      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
-      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": false, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 180000,
+        "targetTokens": 160000,
+        "maxSummaryTokens": 2000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": true,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": false
+      }
     },
-
     {
-      "$comment": "═══ NATIVE HARNESS — OpenAI (direct API) ═══"
+      "$comment": "\u2550\u2550\u2550 NATIVE HARNESS \u2014 OpenAI (direct API) \u2550\u2550\u2550"
     },
     {
       "id": "gpt-4",
@@ -179,13 +274,25 @@
         "inputPricePerMillion": 30.0,
         "outputPricePerMillion": 60.0,
         "cacheWritePricePerMillion": 30.0,
-        "cacheReadPricePerMillion": 15.0
+        "cacheReadPricePerMillion": 15.0,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
       },
       "contextWindowTokens": 8192,
       "maxOutputTokens": 4096,
       "tokenCounterMethod": "tiktoken_cl100k",
-      "summarization": { "triggerThreshold": 7000, "targetTokens": 6000, "maxSummaryTokens": 500 },
-      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 7000,
+        "targetTokens": 6000,
+        "maxSummaryTokens": 500
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": false,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "gpt-4-turbo",
@@ -198,13 +305,25 @@
         "inputPricePerMillion": 10.0,
         "outputPricePerMillion": 30.0,
         "cacheWritePricePerMillion": 10.0,
-        "cacheReadPricePerMillion": 5.0
+        "cacheReadPricePerMillion": 5.0,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
       },
       "contextWindowTokens": 128000,
       "maxOutputTokens": 4096,
       "tokenCounterMethod": "tiktoken_cl100k",
-      "summarization": { "triggerThreshold": 115000, "targetTokens": 100000, "maxSummaryTokens": 2000 },
-      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": false, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 115000,
+        "targetTokens": 100000,
+        "maxSummaryTokens": 2000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": true,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "gpt-4o",
@@ -217,13 +336,25 @@
         "inputPricePerMillion": 5.0,
         "outputPricePerMillion": 15.0,
         "cacheWritePricePerMillion": 5.0,
-        "cacheReadPricePerMillion": 2.50
+        "cacheReadPricePerMillion": 2.5,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
       },
       "contextWindowTokens": 128000,
       "maxOutputTokens": 16384,
       "tokenCounterMethod": "tiktoken_o200k",
-      "summarization": { "triggerThreshold": 115000, "targetTokens": 100000, "maxSummaryTokens": 2000 },
-      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": false, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 115000,
+        "targetTokens": 100000,
+        "maxSummaryTokens": 2000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": true,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "gpt-4o-mini",
@@ -234,15 +365,27 @@
       "featured": false,
       "pricing": {
         "inputPricePerMillion": 0.15,
-        "outputPricePerMillion": 0.60,
+        "outputPricePerMillion": 0.6,
         "cacheWritePricePerMillion": 0.15,
-        "cacheReadPricePerMillion": 0.075
+        "cacheReadPricePerMillion": 0.075,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
       },
       "contextWindowTokens": 128000,
       "maxOutputTokens": 16384,
       "tokenCounterMethod": "tiktoken_o200k",
-      "summarization": { "triggerThreshold": 115000, "targetTokens": 100000, "maxSummaryTokens": 2000 },
-      "capabilities": { "toolUse": true, "vision": true, "streaming": true, "thinking": false, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 115000,
+        "targetTokens": 100000,
+        "maxSummaryTokens": 2000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": true,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "gpt-3.5-turbo",
@@ -252,16 +395,28 @@
       "costTier": "economy",
       "featured": false,
       "pricing": {
-        "inputPricePerMillion": 0.50,
-        "outputPricePerMillion": 1.50,
-        "cacheWritePricePerMillion": 0.50,
-        "cacheReadPricePerMillion": 0.25
+        "inputPricePerMillion": 0.5,
+        "outputPricePerMillion": 1.5,
+        "cacheWritePricePerMillion": 0.5,
+        "cacheReadPricePerMillion": 0.25,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
       },
       "contextWindowTokens": 16385,
       "maxOutputTokens": 4096,
       "tokenCounterMethod": "tiktoken_cl100k",
-      "summarization": { "triggerThreshold": 14000, "targetTokens": 12000, "maxSummaryTokens": 1000 },
-      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 14000,
+        "targetTokens": 12000,
+        "maxSummaryTokens": 1000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": false,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "o1",
@@ -274,13 +429,25 @@
         "inputPricePerMillion": 15.0,
         "outputPricePerMillion": 60.0,
         "cacheWritePricePerMillion": 15.0,
-        "cacheReadPricePerMillion": 7.50
+        "cacheReadPricePerMillion": 7.5,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
       },
       "contextWindowTokens": 200000,
       "maxOutputTokens": 100000,
       "tokenCounterMethod": "tiktoken_o200k",
-      "summarization": { "triggerThreshold": 180000, "targetTokens": 160000, "maxSummaryTokens": 2000 },
-      "capabilities": { "toolUse": false, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 180000,
+        "targetTokens": 160000,
+        "maxSummaryTokens": 2000
+      },
+      "capabilities": {
+        "toolUse": false,
+        "vision": false,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "o1-mini",
@@ -293,17 +460,28 @@
         "inputPricePerMillion": 3.0,
         "outputPricePerMillion": 12.0,
         "cacheWritePricePerMillion": 3.0,
-        "cacheReadPricePerMillion": 1.50
+        "cacheReadPricePerMillion": 1.5,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
       },
       "contextWindowTokens": 128000,
       "maxOutputTokens": 65536,
       "tokenCounterMethod": "tiktoken_o200k",
-      "summarization": { "triggerThreshold": 115000, "targetTokens": 100000, "maxSummaryTokens": 2000 },
-      "capabilities": { "toolUse": false, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 115000,
+        "targetTokens": 100000,
+        "maxSummaryTokens": 2000
+      },
+      "capabilities": {
+        "toolUse": false,
+        "vision": false,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": false
+      }
     },
-
     {
-      "$comment": "═══ NATIVE HARNESS — Ollama (local, no cost) ═══"
+      "$comment": "\u2550\u2550\u2550 NATIVE HARNESS \u2014 Ollama (local, no cost) \u2550\u2550\u2550"
     },
     {
       "id": "qwen2.5-coder:7b",
@@ -312,12 +490,29 @@
       "harness": "native",
       "costTier": "economy",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 0, "outputPricePerMillion": 0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0 },
+      "pricing": {
+        "inputPricePerMillion": 0,
+        "outputPricePerMillion": 0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0,
+        "source": "local",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      },
       "contextWindowTokens": 32768,
       "maxOutputTokens": 8192,
       "tokenCounterMethod": "approximate",
-      "summarization": { "triggerThreshold": 28000, "targetTokens": 24000, "maxSummaryTokens": 1000 },
-      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 28000,
+        "targetTokens": 24000,
+        "maxSummaryTokens": 1000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": false,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "qwen2.5-coder:14b",
@@ -326,12 +521,29 @@
       "harness": "native",
       "costTier": "economy",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 0, "outputPricePerMillion": 0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0 },
+      "pricing": {
+        "inputPricePerMillion": 0,
+        "outputPricePerMillion": 0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0,
+        "source": "local",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      },
       "contextWindowTokens": 32768,
       "maxOutputTokens": 8192,
       "tokenCounterMethod": "approximate",
-      "summarization": { "triggerThreshold": 28000, "targetTokens": 24000, "maxSummaryTokens": 1000 },
-      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 28000,
+        "targetTokens": 24000,
+        "maxSummaryTokens": 1000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": false,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "codellama:7b",
@@ -340,12 +552,29 @@
       "harness": "native",
       "costTier": "economy",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 0, "outputPricePerMillion": 0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0 },
+      "pricing": {
+        "inputPricePerMillion": 0,
+        "outputPricePerMillion": 0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0,
+        "source": "local",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      },
       "contextWindowTokens": 16384,
       "maxOutputTokens": 4096,
       "tokenCounterMethod": "approximate",
-      "summarization": { "triggerThreshold": 14000, "targetTokens": 12000, "maxSummaryTokens": 1000 },
-      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 14000,
+        "targetTokens": 12000,
+        "maxSummaryTokens": 1000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": false,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "codellama:13b",
@@ -354,12 +583,29 @@
       "harness": "native",
       "costTier": "economy",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 0, "outputPricePerMillion": 0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0 },
+      "pricing": {
+        "inputPricePerMillion": 0,
+        "outputPricePerMillion": 0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0,
+        "source": "local",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      },
       "contextWindowTokens": 16384,
       "maxOutputTokens": 4096,
       "tokenCounterMethod": "approximate",
-      "summarization": { "triggerThreshold": 14000, "targetTokens": 12000, "maxSummaryTokens": 1000 },
-      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 14000,
+        "targetTokens": 12000,
+        "maxSummaryTokens": 1000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": false,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "deepseek-coder-v2:16b",
@@ -368,12 +614,29 @@
       "harness": "native",
       "costTier": "economy",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 0, "outputPricePerMillion": 0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0 },
+      "pricing": {
+        "inputPricePerMillion": 0,
+        "outputPricePerMillion": 0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0,
+        "source": "local",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      },
       "contextWindowTokens": 128000,
       "maxOutputTokens": 8192,
       "tokenCounterMethod": "approximate",
-      "summarization": { "triggerThreshold": 115000, "targetTokens": 100000, "maxSummaryTokens": 2000 },
-      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 115000,
+        "targetTokens": 100000,
+        "maxSummaryTokens": 2000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": false,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "llama3.2:3b",
@@ -382,12 +645,29 @@
       "harness": "native",
       "costTier": "economy",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 0, "outputPricePerMillion": 0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0 },
+      "pricing": {
+        "inputPricePerMillion": 0,
+        "outputPricePerMillion": 0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0,
+        "source": "local",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      },
       "contextWindowTokens": 128000,
       "maxOutputTokens": 8192,
       "tokenCounterMethod": "approximate",
-      "summarization": { "triggerThreshold": 115000, "targetTokens": 100000, "maxSummaryTokens": 2000 },
-      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 115000,
+        "targetTokens": 100000,
+        "maxSummaryTokens": 2000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": false,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": false
+      }
     },
     {
       "id": "mistral:7b",
@@ -396,16 +676,32 @@
       "harness": "native",
       "costTier": "economy",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 0, "outputPricePerMillion": 0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0 },
+      "pricing": {
+        "inputPricePerMillion": 0,
+        "outputPricePerMillion": 0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0,
+        "source": "local",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      },
       "contextWindowTokens": 32768,
       "maxOutputTokens": 8192,
       "tokenCounterMethod": "approximate",
-      "summarization": { "triggerThreshold": 28000, "targetTokens": 24000, "maxSummaryTokens": 1000 },
-      "capabilities": { "toolUse": true, "vision": false, "streaming": true, "thinking": false, "adaptiveThinking": false }
+      "summarization": {
+        "triggerThreshold": 28000,
+        "targetTokens": 24000,
+        "maxSummaryTokens": 1000
+      },
+      "capabilities": {
+        "toolUse": true,
+        "vision": false,
+        "streaming": true,
+        "thinking": false,
+        "adaptiveThinking": false
+      }
     },
-
     {
-      "$comment": "═══ CURSOR HARNESS — Auto pool ═══"
+      "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 Auto pool \u2550\u2550\u2550"
     },
     {
       "id": "default",
@@ -414,11 +710,17 @@
       "harness": "cursor",
       "costTier": "standard",
       "featured": true,
-      "pricing": { "inputPricePerMillion": 1.25, "outputPricePerMillion": 6.0, "cacheWritePricePerMillion": 1.25, "cacheReadPricePerMillion": 0.25 }
+      "pricing": {
+        "inputPricePerMillion": 1.25,
+        "outputPricePerMillion": 6.0,
+        "cacheWritePricePerMillion": 1.25,
+        "cacheReadPricePerMillion": 0.25,
+        "source": "cursor_pricing_page",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
-
     {
-      "$comment": "═══ CURSOR HARNESS — Cursor own models ═══"
+      "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 Cursor own models \u2550\u2550\u2550"
     },
     {
       "id": "composer-2",
@@ -427,7 +729,14 @@
       "harness": "cursor",
       "costTier": "economy",
       "featured": true,
-      "pricing": { "inputPricePerMillion": 0.5, "outputPricePerMillion": 2.5, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.2 }
+      "pricing": {
+        "inputPricePerMillion": 0.5,
+        "outputPricePerMillion": 2.5,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.2,
+        "source": "cursor_pricing_page",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "composer-1.5",
@@ -436,11 +745,17 @@
       "harness": "cursor",
       "costTier": "standard",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 3.5, "outputPricePerMillion": 17.5, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.35 }
+      "pricing": {
+        "inputPricePerMillion": 3.5,
+        "outputPricePerMillion": 17.5,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.35,
+        "source": "cursor_pricing_page",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
-
     {
-      "$comment": "═══ CURSOR HARNESS — Anthropic via Cursor ═══"
+      "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 Anthropic via Cursor \u2550\u2550\u2550"
     },
     {
       "id": "claude-opus-4-7",
@@ -449,7 +764,14 @@
       "harness": "cursor",
       "costTier": "premium",
       "featured": true,
-      "pricing": { "inputPricePerMillion": 5.0, "outputPricePerMillion": 25.0, "cacheWritePricePerMillion": 6.25, "cacheReadPricePerMillion": 0.5 }
+      "pricing": {
+        "inputPricePerMillion": 5.0,
+        "outputPricePerMillion": 25.0,
+        "cacheWritePricePerMillion": 6.25,
+        "cacheReadPricePerMillion": 0.5,
+        "source": "anthropic_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "claude-sonnet-4-6",
@@ -458,7 +780,14 @@
       "harness": "cursor",
       "costTier": "standard",
       "featured": true,
-      "pricing": { "inputPricePerMillion": 3.0, "outputPricePerMillion": 15.0, "cacheWritePricePerMillion": 3.75, "cacheReadPricePerMillion": 0.3 }
+      "pricing": {
+        "inputPricePerMillion": 3.0,
+        "outputPricePerMillion": 15.0,
+        "cacheWritePricePerMillion": 3.75,
+        "cacheReadPricePerMillion": 0.3,
+        "source": "anthropic_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "claude-opus-4-6",
@@ -467,7 +796,14 @@
       "harness": "cursor",
       "costTier": "premium",
       "featured": true,
-      "pricing": { "inputPricePerMillion": 5.0, "outputPricePerMillion": 25.0, "cacheWritePricePerMillion": 6.25, "cacheReadPricePerMillion": 0.5 }
+      "pricing": {
+        "inputPricePerMillion": 5.0,
+        "outputPricePerMillion": 25.0,
+        "cacheWritePricePerMillion": 6.25,
+        "cacheReadPricePerMillion": 0.5,
+        "source": "anthropic_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "claude-opus-4-5",
@@ -476,7 +812,14 @@
       "harness": "cursor",
       "costTier": "premium",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 5.0, "outputPricePerMillion": 25.0, "cacheWritePricePerMillion": 6.25, "cacheReadPricePerMillion": 0.5 }
+      "pricing": {
+        "inputPricePerMillion": 5.0,
+        "outputPricePerMillion": 25.0,
+        "cacheWritePricePerMillion": 6.25,
+        "cacheReadPricePerMillion": 0.5,
+        "source": "anthropic_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "claude-sonnet-4-5",
@@ -485,7 +828,14 @@
       "harness": "cursor",
       "costTier": "standard",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 3.0, "outputPricePerMillion": 15.0, "cacheWritePricePerMillion": 3.75, "cacheReadPricePerMillion": 0.3 }
+      "pricing": {
+        "inputPricePerMillion": 3.0,
+        "outputPricePerMillion": 15.0,
+        "cacheWritePricePerMillion": 3.75,
+        "cacheReadPricePerMillion": 0.3,
+        "source": "anthropic_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "claude-haiku-4-5",
@@ -494,7 +844,14 @@
       "harness": "cursor",
       "costTier": "economy",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 1.0, "outputPricePerMillion": 5.0, "cacheWritePricePerMillion": 1.25, "cacheReadPricePerMillion": 0.1 }
+      "pricing": {
+        "inputPricePerMillion": 1.0,
+        "outputPricePerMillion": 5.0,
+        "cacheWritePricePerMillion": 1.25,
+        "cacheReadPricePerMillion": 0.1,
+        "source": "anthropic_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "claude-sonnet-4",
@@ -503,11 +860,17 @@
       "harness": "cursor",
       "costTier": "standard",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 3.0, "outputPricePerMillion": 15.0, "cacheWritePricePerMillion": 3.75, "cacheReadPricePerMillion": 0.3 }
+      "pricing": {
+        "inputPricePerMillion": 3.0,
+        "outputPricePerMillion": 15.0,
+        "cacheWritePricePerMillion": 3.75,
+        "cacheReadPricePerMillion": 0.3,
+        "source": "anthropic_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
-
     {
-      "$comment": "═══ CURSOR HARNESS — OpenAI via Cursor ═══"
+      "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 OpenAI via Cursor \u2550\u2550\u2550"
     },
     {
       "id": "gpt-5.5",
@@ -516,7 +879,14 @@
       "harness": "cursor",
       "costTier": "premium",
       "featured": true,
-      "pricing": { "inputPricePerMillion": 5.0, "outputPricePerMillion": 30.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.5 }
+      "pricing": {
+        "inputPricePerMillion": 5.0,
+        "outputPricePerMillion": 30.0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.5,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "gpt-5.4",
@@ -525,7 +895,14 @@
       "harness": "cursor",
       "costTier": "standard",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 2.5, "outputPricePerMillion": 15.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.25 }
+      "pricing": {
+        "inputPricePerMillion": 2.5,
+        "outputPricePerMillion": 15.0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.25,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "gpt-5.4-mini",
@@ -534,7 +911,14 @@
       "harness": "cursor",
       "costTier": "economy",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 0.75, "outputPricePerMillion": 4.5, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.075 }
+      "pricing": {
+        "inputPricePerMillion": 0.75,
+        "outputPricePerMillion": 4.5,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.075,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "gpt-5.4-nano",
@@ -543,7 +927,14 @@
       "harness": "cursor",
       "costTier": "economy",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 0.2, "outputPricePerMillion": 1.25, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.02 }
+      "pricing": {
+        "inputPricePerMillion": 0.2,
+        "outputPricePerMillion": 1.25,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.02,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "gpt-5.3-codex",
@@ -552,7 +943,14 @@
       "harness": "cursor",
       "costTier": "standard",
       "featured": true,
-      "pricing": { "inputPricePerMillion": 1.75, "outputPricePerMillion": 14.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.175 }
+      "pricing": {
+        "inputPricePerMillion": 1.75,
+        "outputPricePerMillion": 14.0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.175,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "gpt-5.2",
@@ -561,7 +959,14 @@
       "harness": "cursor",
       "costTier": "standard",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 1.75, "outputPricePerMillion": 14.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.175 }
+      "pricing": {
+        "inputPricePerMillion": 1.75,
+        "outputPricePerMillion": 14.0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.175,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "gpt-5.2-codex",
@@ -570,7 +975,14 @@
       "harness": "cursor",
       "costTier": "standard",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 1.75, "outputPricePerMillion": 14.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.175 }
+      "pricing": {
+        "inputPricePerMillion": 1.75,
+        "outputPricePerMillion": 14.0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.175,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "gpt-5.1-codex-max",
@@ -579,7 +991,14 @@
       "harness": "cursor",
       "costTier": "standard",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 1.25, "outputPricePerMillion": 10.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.125 }
+      "pricing": {
+        "inputPricePerMillion": 1.25,
+        "outputPricePerMillion": 10.0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.125,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "gpt-5.1",
@@ -588,7 +1007,14 @@
       "harness": "cursor",
       "costTier": "standard",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 1.25, "outputPricePerMillion": 10.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.125 }
+      "pricing": {
+        "inputPricePerMillion": 1.25,
+        "outputPricePerMillion": 10.0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.125,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "gpt-5.1-codex-mini",
@@ -597,7 +1023,14 @@
       "harness": "cursor",
       "costTier": "economy",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 0.25, "outputPricePerMillion": 2.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.025 }
+      "pricing": {
+        "inputPricePerMillion": 0.25,
+        "outputPricePerMillion": 2.0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.025,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "gpt-5-mini",
@@ -606,11 +1039,17 @@
       "harness": "cursor",
       "costTier": "economy",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 0.25, "outputPricePerMillion": 2.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.025 }
+      "pricing": {
+        "inputPricePerMillion": 0.25,
+        "outputPricePerMillion": 2.0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.025,
+        "source": "openai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
-
     {
-      "$comment": "═══ CURSOR HARNESS — Google via Cursor ═══"
+      "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 Google via Cursor \u2550\u2550\u2550"
     },
     {
       "id": "gemini-3.1-pro",
@@ -619,7 +1058,14 @@
       "harness": "cursor",
       "costTier": "standard",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 2.0, "outputPricePerMillion": 12.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.2 }
+      "pricing": {
+        "inputPricePerMillion": 2.0,
+        "outputPricePerMillion": 12.0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.2,
+        "source": "google_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "gemini-3-flash",
@@ -628,7 +1074,14 @@
       "harness": "cursor",
       "costTier": "economy",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 0.5, "outputPricePerMillion": 3.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.05 }
+      "pricing": {
+        "inputPricePerMillion": 0.5,
+        "outputPricePerMillion": 3.0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.05,
+        "source": "google_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "gemini-2.5-flash",
@@ -637,11 +1090,17 @@
       "harness": "cursor",
       "costTier": "economy",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 0.3, "outputPricePerMillion": 2.5, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.03 }
+      "pricing": {
+        "inputPricePerMillion": 0.3,
+        "outputPricePerMillion": 2.5,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.03,
+        "source": "google_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
-
     {
-      "$comment": "═══ CURSOR HARNESS — xAI via Cursor ═══"
+      "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 xAI via Cursor \u2550\u2550\u2550"
     },
     {
       "id": "grok-4-20",
@@ -650,11 +1109,17 @@
       "harness": "cursor",
       "costTier": "standard",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 2.0, "outputPricePerMillion": 6.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.2 }
+      "pricing": {
+        "inputPricePerMillion": 2.0,
+        "outputPricePerMillion": 6.0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.2,
+        "source": "xai_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     },
-
     {
-      "$comment": "═══ CURSOR HARNESS — Moonshot via Cursor ═══"
+      "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 Moonshot via Cursor \u2550\u2550\u2550"
     },
     {
       "id": "kimi-k2.5",
@@ -663,7 +1128,14 @@
       "harness": "cursor",
       "costTier": "economy",
       "featured": false,
-      "pricing": { "inputPricePerMillion": 0.6, "outputPricePerMillion": 3.0, "cacheWritePricePerMillion": 0, "cacheReadPricePerMillion": 0.1 }
+      "pricing": {
+        "inputPricePerMillion": 0.6,
+        "outputPricePerMillion": 3.0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.1,
+        "source": "moonshot_api",
+        "effectiveAt": "2026-05-03T00:00:00Z"
+      }
     }
   ]
 }
