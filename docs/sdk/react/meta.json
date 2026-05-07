@@ -1,33 +1,7 @@
 {
   "title": "React SDK",
   "pages": [
-    "agent",
-    "agent-instance",
-    "api-key",
-    "attachment",
-    "billing",
-    "composer",
     "core",
-    "environment",
-    "error",
-    "execution",
-    "github",
-    "iam-policy",
-    "identity-account",
-    "identity-provider",
-    "invitation",
-    "library",
-    "mcp-server",
-    "models",
-    "oauth-app",
-    "organization",
-    "platform-client",
-    "runner",
-    "session",
-    "settings",
-    "skill",
-    "usage",
-    "user",
-    "workspace"
+    "test"
   ]
 }
