@@ -40,7 +40,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "/v1/billing_account.proto\032\"ai/stigmer/bi" +
       "lling/v1/credit.proto\032\036ai/stigmer/billin" +
       "g/v1/io.proto\032+ai/stigmer/commons/rpc/me" +
-      "thod_options.proto2\202\013\n\030BillingCommandCon" +
+      "thod_options.proto2\324\014\n\030BillingCommandCon" +
       "troller\022\301\001\n\031getOrCreateBillingAccount\0225." +
       "ai.stigmer.billing.v1.GetOrCreateBilling" +
       "AccountInput\032%.ai.stigmer.billing.v1.Bil" +
@@ -50,36 +50,41 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "ng.v1.AdjustCreditsInput\032(.ai.stigmer.bi" +
       "lling.v1.CreditLedgerEntry\"F\302\270\030B\010\034\020\036\"\006or" +
       "g_id*4unauthorized to adjust credits for" +
-      " this organization\022}\n\022authorizeExecution" +
-      "\022..ai.stigmer.billing.v1.AuthorizeExecut" +
-      "ionInput\0321.ai.stigmer.billing.v1.Authori" +
-      "zeExecutionResponse\"\004\320\270\030\001\022}\n\022recordLlmCa" +
-      "llUsage\022..ai.stigmer.billing.v1.RecordLl" +
-      "mCallUsageInput\0321.ai.stigmer.billing.v1." +
-      "RecordLlmCallUsageResponse\"\004\320\270\030\001\022z\n\021fina" +
-      "lizeExecution\022-.ai.stigmer.billing.v1.Fi" +
-      "nalizeExecutionInput\0320.ai.stigmer.billin" +
-      "g.v1.FinalizeExecutionResponse\"\004\320\270\030\001\022\334\001\n" +
-      "\033createCreditCheckoutSession\0227.ai.stigme" +
-      "r.billing.v1.CreateCreditCheckoutSession" +
-      "Input\032:.ai.stigmer.billing.v1.CreateCred" +
-      "itCheckoutSessionResponse\"H\302\270\030D\010\034\020\036\"\006org" +
-      "_id*6unauthorized to purchase credits fo" +
-      "r this organization\022\327\001\n\032createBillingPor" +
-      "talSession\0226.ai.stigmer.billing.v1.Creat" +
-      "eBillingPortalSessionInput\0329.ai.stigmer." +
-      "billing.v1.CreateBillingPortalSessionRes" +
-      "ponse\"F\302\270\030B\010\034\020\036\"\006org_id*4unauthorized to" +
-      " manage billing for this organization\022\277\001" +
-      "\n\025setAutoRechargeConfig\0221.ai.stigmer.bil" +
-      "ling.v1.SetAutoRechargeConfigInput\032%.ai." +
-      "stigmer.billing.v1.BillingAccount\"L\302\270\030H\010" +
-      "\034\020\036\"\006org_id*:unauthorized to manage auto" +
-      "-recharge for this organizationB\205\001B\014Comm" +
-      "andProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.Billing.V1" +
-      "\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\Stigmer\\Bi" +
-      "lling\\V1\\GPBMetadata\352\002\030Ai::Stigmer::Bill" +
-      "ing::V1b\006proto3"
+      " this organization\022\302\001\n\022authorizeExecutio" +
+      "n\022..ai.stigmer.billing.v1.AuthorizeExecu" +
+      "tionInput\0321.ai.stigmer.billing.v1.Author" +
+      "izeExecutionResponse\"I\302\270\030E\010\035\020\037*6only pla" +
+      "tform operators can execute billing oper" +
+      "ations2\007stigmer\022\302\001\n\022recordLlmCallUsage\022." +
+      ".ai.stigmer.billing.v1.RecordLlmCallUsag" +
+      "eInput\0321.ai.stigmer.billing.v1.RecordLlm" +
+      "CallUsageResponse\"I\302\270\030E\010\035\020\037*6only platfo" +
+      "rm operators can execute billing operati" +
+      "ons2\007stigmer\022\277\001\n\021finalizeExecution\022-.ai." +
+      "stigmer.billing.v1.FinalizeExecutionInpu" +
+      "t\0320.ai.stigmer.billing.v1.FinalizeExecut" +
+      "ionResponse\"I\302\270\030E\010\035\020\037*6only platform ope" +
+      "rators can execute billing operations2\007s" +
+      "tigmer\022\334\001\n\033createCreditCheckoutSession\0227" +
+      ".ai.stigmer.billing.v1.CreateCreditCheck" +
+      "outSessionInput\032:.ai.stigmer.billing.v1." +
+      "CreateCreditCheckoutSessionResponse\"H\302\270\030" +
+      "D\010\034\020\036\"\006org_id*6unauthorized to purchase " +
+      "credits for this organization\022\327\001\n\032create" +
+      "BillingPortalSession\0226.ai.stigmer.billin" +
+      "g.v1.CreateBillingPortalSessionInput\0329.a" +
+      "i.stigmer.billing.v1.CreateBillingPortal" +
+      "SessionResponse\"F\302\270\030B\010\034\020\036\"\006org_id*4unaut" +
+      "horized to manage billing for this organ" +
+      "ization\022\277\001\n\025setAutoRechargeConfig\0221.ai.s" +
+      "tigmer.billing.v1.SetAutoRechargeConfigI" +
+      "nput\032%.ai.stigmer.billing.v1.BillingAcco" +
+      "unt\"L\302\270\030H\010\034\020\036\"\006org_id*:unauthorized to m" +
+      "anage auto-recharge for this organizatio" +
+      "nB\205\001B\014CommandProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer." +
+      "Billing.V1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\" +
+      "Stigmer\\Billing\\V1\\GPBMetadata\352\002\030Ai::Sti" +
+      "gmer::Billing::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -97,7 +102,6 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.config);
-    registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

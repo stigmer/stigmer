@@ -185,6 +185,15 @@ public enum IamPermission
    * <code>can_manage_billing = 28;</code>
    */
   can_manage_billing(28),
+  /**
+   * <pre>
+   * Platform-level permission to execute internal billing operations
+   * (authorize, record, finalize). Gated to operator (machine account).
+   * </pre>
+   *
+   * <code>can_execute_billing_ops = 29;</code>
+   */
+  can_execute_billing_ops(29),
   UNRECOGNIZED(-1),
   ;
 
@@ -358,6 +367,15 @@ public enum IamPermission
    * <code>can_manage_billing = 28;</code>
    */
   public static final int can_manage_billing_VALUE = 28;
+  /**
+   * <pre>
+   * Platform-level permission to execute internal billing operations
+   * (authorize, record, finalize). Gated to operator (machine account).
+   * </pre>
+   *
+   * <code>can_execute_billing_ops = 29;</code>
+   */
+  public static final int can_execute_billing_ops_VALUE = 29;
 
 
   public final int getNumber() {
@@ -412,6 +430,7 @@ public enum IamPermission
       case 26: return can_delete_session;
       case 27: return can_view_billing;
       case 28: return can_manage_billing;
+      case 29: return can_execute_billing_ops;
       default: return null;
     }
   }

@@ -12,6 +12,7 @@ go_library(
         "get_agent_usage_report.go",
         "get_artifact_content.go",
         "get_artifact_download_url.go",
+        "get_execution_usage_report.go",
         "get_org_usage_report.go",
         "get_session_usage_report.go",
         "lifecycle_steps.go",
