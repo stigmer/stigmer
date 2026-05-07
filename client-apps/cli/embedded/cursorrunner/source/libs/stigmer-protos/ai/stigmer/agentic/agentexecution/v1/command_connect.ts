@@ -5,7 +5,7 @@
 
 import { AgentExecution } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { AgentExecutionUpdateStatusInput, CancelAgentExecutionInput, PauseAgentExecutionInput, RecoverAgentExecutionInput, ResumeAgentExecutionInput, SubmitApprovalInput, TerminateAgentExecutionInput, UploadAttachmentRequest, UploadAttachmentResponse } from "./io_pbjs";
+import { AgentExecutionUpdateStatusInput, CancelAgentExecutionInput, PauseAgentExecutionInput, RecoverAgentExecutionInput, ResumeAgentExecutionInput, SubmitApprovalInput, TerminateAgentExecutionInput, UpdateStatusResponse, UploadAttachmentRequest, UploadAttachmentResponse } from "./io_pbjs";
 import { ApiResourceId } from "../../../commons/apiresource/io_pbjs";
 
 /**
@@ -64,7 +64,7 @@ export const AgentExecutionCommandController = {
     updateStatus: {
       name: "updateStatus",
       I: AgentExecutionUpdateStatusInput,
-      O: AgentExecution,
+      O: UpdateStatusResponse,
       kind: MethodKind.Unary,
     },
     /**

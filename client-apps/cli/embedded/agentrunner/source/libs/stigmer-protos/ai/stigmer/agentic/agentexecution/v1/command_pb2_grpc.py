@@ -31,7 +31,7 @@ class AgentExecutionCommandControllerStub(object):
         self.updateStatus = channel.unary_unary(
                 '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/updateStatus',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.AgentExecutionUpdateStatusInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UpdateStatusResponse.FromString,
                 _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/delete',
@@ -490,7 +490,7 @@ def add_AgentExecutionCommandControllerServicer_to_server(servicer, server):
             'updateStatus': grpc.unary_unary_rpc_method_handler(
                     servicer.updateStatus,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.AgentExecutionUpdateStatusInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.SerializeToString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UpdateStatusResponse.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
                     servicer.delete,
@@ -615,7 +615,7 @@ class AgentExecutionCommandController(object):
             target,
             '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController/updateStatus',
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.AgentExecutionUpdateStatusInput.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_api__pb2.AgentExecution.FromString,
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.UpdateStatusResponse.FromString,
             options,
             channel_credentials,
             insecure,

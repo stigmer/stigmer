@@ -18,9 +18,9 @@ from langchain_core.tools import BaseTool
 from langgraph.graph.state import CompiledStateGraph
 from pydantic import ValidationError
 
-from graphton.core.graceful_stop import GracefulStopMiddleware
 from graphton.core.cost_cap import CostCapMiddleware
 from graphton.core.execution_budget import ExecutionBudgetMiddleware
+from graphton.core.graceful_stop import GracefulStopMiddleware
 from graphton.core.loop_detection import LoopDetectionMiddleware
 from graphton.core.models import parse_model_string
 from graphton.core.prompt_enhancement import enhance_user_instructions

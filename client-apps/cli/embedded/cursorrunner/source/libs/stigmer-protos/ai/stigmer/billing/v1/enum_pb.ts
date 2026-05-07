@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/billing/v1/enum.proto.
  */
 export const file_ai_stigmer_billing_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CiBhaS9zdGlnbWVyL2JpbGxpbmcvdjEvZW51bS5wcm90bxIVYWkuc3RpZ21lci5iaWxsaW5nLnYxKrYCCg9MZWRnZXJFbnRyeVR5cGUSIQodbGVkZ2VyX2VudHJ5X3R5cGVfdW5zcGVjaWZpZWQQABITCg9wdXJjaGFzZV9jcmVkaXQQARIWChJwcm9tb3Rpb25hbF9jcmVkaXQQAhIPCgt1c2FnZV9kZWJpdBADEhQKEHJlc2VydmF0aW9uX2hvbGQQBBIXChNyZXNlcnZhdGlvbl9yZWxlYXNlEAUSFQoRYWRqdXN0bWVudF9jcmVkaXQQBhIUChBhZGp1c3RtZW50X2RlYml0EAcSEwoPcmVmdW5kX3JldmVyc2FsEAgSEAoMZGlzcHV0ZV9ob2xkEAkSEwoPZGlzcHV0ZV9yZWxlYXNlEAoSEAoMZXhwaXJ5X2RlYml0EAsSGAoUYXV0b19yZWNoYXJnZV9jcmVkaXQQDCpkCg9DcmVkaXRHcmFudEtpbmQSIQodY3JlZGl0X2dyYW50X2tpbmRfdW5zcGVjaWZpZWQQABINCglwdXJjaGFzZWQQARIPCgtwcm9tb3Rpb25hbBACEg4KCmFkanVzdG1lbnQQAyqVAQoUQmlsbGluZ0FjY291bnRTdGF0dXMSJgoiYmlsbGluZ19hY2NvdW50X3N0YXR1c191bnNwZWNpZmllZBAAEhoKFmJpbGxpbmdfYWNjb3VudF9hY3RpdmUQARIdChliaWxsaW5nX2FjY291bnRfc3VzcGVuZGVkEAISGgoWYmlsbGluZ19hY2NvdW50X2Nsb3NlZBADKp4BChFSZXNlcnZhdGlvblN0YXR1cxIiCh5yZXNlcnZhdGlvbl9zdGF0dXNfdW5zcGVjaWZpZWQQABIWChJyZXNlcnZhdGlvbl9hY3RpdmUQARIZChVyZXNlcnZhdGlvbl9maW5hbGl6ZWQQAhIXChNyZXNlcnZhdGlvbl9leHBpcmVkEAMSGQoVcmVzZXJ2YXRpb25fY2FuY2VsbGVkEAQqhwEKFkV4ZWN1dGlvbkJpbGxpbmdTaWduYWwSKAokZXhlY3V0aW9uX2JpbGxpbmdfc2lnbmFsX3Vuc3BlY2lmaWVkEAASFgoSY29udGludWVfZXhlY3V0aW9uEAESFwoTbG93X2JhbGFuY2Vfd2FybmluZxACEhIKDnN0b3BfZXhlY3V0aW9uEANiBnByb3RvMw");
+  fileDesc("CiBhaS9zdGlnbWVyL2JpbGxpbmcvdjEvZW51bS5wcm90bxIVYWkuc3RpZ21lci5iaWxsaW5nLnYxKrYCCg9MZWRnZXJFbnRyeVR5cGUSIQodbGVkZ2VyX2VudHJ5X3R5cGVfdW5zcGVjaWZpZWQQABITCg9wdXJjaGFzZV9jcmVkaXQQARIWChJwcm9tb3Rpb25hbF9jcmVkaXQQAhIPCgt1c2FnZV9kZWJpdBADEhQKEHJlc2VydmF0aW9uX2hvbGQQBBIXChNyZXNlcnZhdGlvbl9yZWxlYXNlEAUSFQoRYWRqdXN0bWVudF9jcmVkaXQQBhIUChBhZGp1c3RtZW50X2RlYml0EAcSEwoPcmVmdW5kX3JldmVyc2FsEAgSEAoMZGlzcHV0ZV9ob2xkEAkSEwoPZGlzcHV0ZV9yZWxlYXNlEAoSEAoMZXhwaXJ5X2RlYml0EAsSGAoUYXV0b19yZWNoYXJnZV9jcmVkaXQQDCpkCg9DcmVkaXRHcmFudEtpbmQSIQodY3JlZGl0X2dyYW50X2tpbmRfdW5zcGVjaWZpZWQQABINCglwdXJjaGFzZWQQARIPCgtwcm9tb3Rpb25hbBACEg4KCmFkanVzdG1lbnQQAyqVAQoUQmlsbGluZ0FjY291bnRTdGF0dXMSJgoiYmlsbGluZ19hY2NvdW50X3N0YXR1c191bnNwZWNpZmllZBAAEhoKFmJpbGxpbmdfYWNjb3VudF9hY3RpdmUQARIdChliaWxsaW5nX2FjY291bnRfc3VzcGVuZGVkEAISGgoWYmlsbGluZ19hY2NvdW50X2Nsb3NlZBADKp4BChFSZXNlcnZhdGlvblN0YXR1cxIiCh5yZXNlcnZhdGlvbl9zdGF0dXNfdW5zcGVjaWZpZWQQABIWChJyZXNlcnZhdGlvbl9hY3RpdmUQARIZChVyZXNlcnZhdGlvbl9maW5hbGl6ZWQQAhIXChNyZXNlcnZhdGlvbl9leHBpcmVkEAMSGQoVcmVzZXJ2YXRpb25fY2FuY2VsbGVkEAQqhwEKFkV4ZWN1dGlvbkJpbGxpbmdTaWduYWwSKAokZXhlY3V0aW9uX2JpbGxpbmdfc2lnbmFsX3Vuc3BlY2lmaWVkEAASFgoSY29udGludWVfZXhlY3V0aW9uEAESFwoTbG93X2JhbGFuY2Vfd2FybmluZxACEhIKDnN0b3BfZXhlY3V0aW9uEAMqswEKFENyZWRpdFB1cmNoYXNlU3RhdHVzEiYKImNyZWRpdF9wdXJjaGFzZV9zdGF0dXNfdW5zcGVjaWZpZWQQABIbChdjcmVkaXRfcHVyY2hhc2VfcGVuZGluZxABEh0KGWNyZWRpdF9wdXJjaGFzZV9jb21wbGV0ZWQQAhIaChZjcmVkaXRfcHVyY2hhc2VfZmFpbGVkEAMSGwoXY3JlZGl0X3B1cmNoYXNlX2V4cGlyZWQQBCqXAQoXQXV0b1JlY2hhcmdlRXZlbnRTdGF0dXMSKgomYXV0b19yZWNoYXJnZV9ldmVudF9zdGF0dXNfdW5zcGVjaWZpZWQQABIZChVhdXRvX3JlY2hhcmdlX3BlbmRpbmcQARIbChdhdXRvX3JlY2hhcmdlX3N1Y2NlZWRlZBACEhgKFGF1dG9fcmVjaGFyZ2VfZmFpbGVkEANiBnByb3RvMw");
 
 /**
  * LedgerEntryType classifies each row in the credit ledger.
@@ -281,4 +281,99 @@ export enum ExecutionBillingSignal {
  */
 export const ExecutionBillingSignalSchema: GenEnum<ExecutionBillingSignal> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_billing_v1_enum, 4);
+
+/**
+ * CreditPurchaseStatus tracks the lifecycle of a credit pack purchase.
+ *
+ * A purchase begins as PENDING when the Checkout Session is created,
+ * transitions to COMPLETED when payment succeeds (via webhook), or
+ * to FAILED/EXPIRED if payment fails or the session expires.
+ *
+ * @generated from enum ai.stigmer.billing.v1.CreditPurchaseStatus
+ */
+export enum CreditPurchaseStatus {
+  /**
+   * @generated from enum value: credit_purchase_status_unspecified = 0;
+   */
+  credit_purchase_status_unspecified = 0,
+
+  /**
+   * Checkout session created; awaiting customer payment.
+   *
+   * @generated from enum value: credit_purchase_pending = 1;
+   */
+  credit_purchase_pending = 1,
+
+  /**
+   * Payment succeeded; credits have been provisioned.
+   *
+   * @generated from enum value: credit_purchase_completed = 2;
+   */
+  credit_purchase_completed = 2,
+
+  /**
+   * Payment failed (card declined, insufficient funds, etc.).
+   *
+   * @generated from enum value: credit_purchase_failed = 3;
+   */
+  credit_purchase_failed = 3,
+
+  /**
+   * Checkout session expired without payment completion.
+   *
+   * @generated from enum value: credit_purchase_expired = 4;
+   */
+  credit_purchase_expired = 4,
+}
+
+/**
+ * Describes the enum ai.stigmer.billing.v1.CreditPurchaseStatus.
+ */
+export const CreditPurchaseStatusSchema: GenEnum<CreditPurchaseStatus> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_billing_v1_enum, 5);
+
+/**
+ * AutoRechargeEventStatus tracks the lifecycle of an automatic recharge attempt.
+ *
+ * A recharge begins as PENDING when the billing system claims a monthly cap
+ * slot and creates a Stripe PaymentIntent. It transitions to SUCCEEDED when
+ * the payment_intent.succeeded webhook confirms payment and credits are
+ * provisioned, or to FAILED if the PaymentIntent creation fails or the
+ * payment_intent.payment_failed webhook fires.
+ *
+ * @generated from enum ai.stigmer.billing.v1.AutoRechargeEventStatus
+ */
+export enum AutoRechargeEventStatus {
+  /**
+   * @generated from enum value: auto_recharge_event_status_unspecified = 0;
+   */
+  auto_recharge_event_status_unspecified = 0,
+
+  /**
+   * PaymentIntent created; awaiting Stripe payment confirmation.
+   *
+   * @generated from enum value: auto_recharge_pending = 1;
+   */
+  auto_recharge_pending = 1,
+
+  /**
+   * Payment succeeded; credits have been provisioned.
+   *
+   * @generated from enum value: auto_recharge_succeeded = 2;
+   */
+  auto_recharge_succeeded = 2,
+
+  /**
+   * Payment failed; monthly cap slot has been released.
+   *
+   * @generated from enum value: auto_recharge_failed = 3;
+   */
+  auto_recharge_failed = 3,
+}
+
+/**
+ * Describes the enum ai.stigmer.billing.v1.AutoRechargeEventStatus.
+ */
+export const AutoRechargeEventStatusSchema: GenEnum<AutoRechargeEventStatus> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_billing_v1_enum, 6);
 

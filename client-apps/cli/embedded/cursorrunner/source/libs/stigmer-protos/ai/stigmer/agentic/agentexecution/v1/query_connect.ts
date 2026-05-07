@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AgentExecutionId, AgentExecutionList, GetAgentUsageReportInput, GetAgentUsageReportOutput, GetArtifactContentRequest, GetArtifactContentResponse, GetArtifactDownloadUrlRequest, GetArtifactDownloadUrlResponse, GetOrgUsageReportInput, GetOrgUsageReportOutput, GetSessionUsageReportInput, GetSessionUsageReportOutput, ListAgentExecutionsBySessionRequest, ListAgentExecutionsRequest } from "./io_pbjs";
+import { AgentExecutionId, AgentExecutionList, GetAgentUsageReportInput, GetAgentUsageReportOutput, GetArtifactContentRequest, GetArtifactContentResponse, GetArtifactDownloadUrlRequest, GetArtifactDownloadUrlResponse, GetExecutionUsageReportInput, GetExecutionUsageReportOutput, GetOrgUsageReportInput, GetOrgUsageReportOutput, GetSessionUsageReportInput, GetSessionUsageReportOutput, ListAgentExecutionsBySessionRequest, ListAgentExecutionsRequest } from "./io_pbjs";
 import { AgentExecution } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -162,9 +162,22 @@ export const AgentExecutionQueryController = {
       kind: MethodKind.Unary,
     },
     /**
+     * Get a usage report for a single execution.
+     *
+     * Returns aggregated tokens, cost, and per-model breakdown for one execution.
+     *
+     * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getExecutionUsageReport
+     */
+    getExecutionUsageReport: {
+      name: "getExecutionUsageReport",
+      I: GetExecutionUsageReportInput,
+      O: GetExecutionUsageReportOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
      * Get a usage report for a session.
      *
-     * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+     * Returns aggregated tokens, cost, and per-execution breakdown.
      *
      * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getSessionUsageReport
      */
