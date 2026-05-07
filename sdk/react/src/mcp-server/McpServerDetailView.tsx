@@ -383,6 +383,7 @@ export function McpServerDetailView({
             credentials.setManualOverride(false);
             setShowCredentialForm(false);
           }}
+          onCancelOAuth={oauth.clearError}
         />
 
         {showCredentialForm && credentials.missingVariables.length > 0 && (
@@ -566,6 +567,7 @@ function ConnectBar({
   manualOverride,
   onManualOverride,
   onBackToOAuth,
+  onCancelOAuth,
 }: {
   readonly isConnecting: boolean;
   readonly connectionError: Error | null;
@@ -600,6 +602,7 @@ function ConnectBar({
   readonly manualOverride: boolean;
   readonly onManualOverride: () => void;
   readonly onBackToOAuth: () => void;
+  readonly onCancelOAuth: () => void;
 }) {
   const [disconnectPhase, setDisconnectPhase] = useState<DisconnectPhase>("idle");
   const [removeOrgAppPhase, setRemoveOrgAppPhase] = useState<RemoveOrgAppPhase>("idle");
@@ -852,6 +855,18 @@ function ConnectBar({
           {buttonLabel}
         </button>
       </div>
+
+      {oauthPhase === "awaiting-callback" && (
+        <div className="flex items-center gap-3 border-t border-border px-3 py-1.5">
+          <button
+            type="button"
+            onClick={onCancelOAuth}
+            className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+          >
+            Cancel sign-in
+          </button>
+        </div>
+      )}
 
       {/* Vendor approval blocked banner with BYOA CTA */}
       {oauthSignInDisabled && (
