@@ -561,22 +561,25 @@ When starting a new session:
 - Settings nav description updated to "Credit management and usage metrics"
 - 10 gRPC RPCs now handler-wired (9 server + 1 query): getOrCreateBillingAccount, adjustCredits, getBillingAccount, getCreditBalance, getCreditLedger, authorizeExecution, reportLlmCallUsage, finalizeExecution, createCreditCheckoutSession + getBillingAccount (query)
 
-### Phase 3.5 Completed (Billing Reconciliation Cron Workflow)
-- Created the **first Temporal cron workflow** in the codebase — establishes the pattern for future scheduled jobs
-- Created `BillingReconciliationWorkflow` — `@WorkflowInterface` with cron schedule (every 5 min configurable)
+### Phase 3.5 Completed (Billing Reconciliation — Temporal Schedule)
+- Created `BillingReconciliationWorkflow` — `@WorkflowInterface` triggered by Temporal Schedule (every 5 min configurable)
 - Created `ReconciliationActivities` interface + impl with two activities:
   - `findStalePendingPurchases()` — queries PENDING purchases older than stale threshold (10 min default)
   - `reconcilePurchase(StalePurchaseRef)` — retrieves Stripe session, routes by status, provisions or marks terminal
 - Created `BillingReconciliationWorkerConfig` — dedicated `billing_reconciliation` task queue (isolated from agent execution)
-- Created `BillingReconciliationStarter` (`ApplicationRunner`) — starts cron workflow on boot, idempotent via `WorkflowExecutionAlreadyStarted`
+- Created `BillingReconciliationStarter` (`ApplicationRunner`) — ensures Temporal Schedule exists on boot via `ScheduleClient.createSchedule()`, idempotent via `ScheduleAlreadyRunningException`
 - Created `BillingReconciliationConfig` + `BillingReconciliationTemporalConfig` — Spring config properties with env-var overrides
+- Added `ScheduleClient` bean to shared `temporal-starter` library (available to all services)
 - Added `findPendingOlderThan(Instant)` to `CreditPurchaseRepo` — ordered by created_at ASC
 - Added `io.temporal:temporal-testing:1.31.0` to MODULE.bazel for workflow integration testing
 - Unit tests: `ReconciliationActivitiesImplTest` (11 tests) + `BillingReconciliationWorkflowTest` (4 Temporal integration tests) — all pass
 - Build verified: `./bazelw build` + `./bazelw test` — clean
 
 ### Key Design Decisions (Phase 3.5)
-- **Temporal cron workflow (not @Scheduled)**: Guarantees exactly-one execution globally via fixed workflow ID. No distributed lock needed. Full visibility in Temporal UI.
+- **Temporal Schedule (server-side, not app-side cron)**: Temporal owns the scheduling lifecycle. Schedule survives app restarts, is pausable/triggerable from the UI, and doesn't depend on application boot to re-establish.
+- **`ScheduleClient` bean in shared temporal-starter**: Available to all services for future scheduled workflows.
+- **Interval-based scheduling (not cron expression)**: `ScheduleIntervalSpec(Duration.ofMinutes(5))` — unambiguous, no cron syntax confusion.
+- **One-time legacy migration**: `BillingReconciliationStarter` terminates the old cron workflow (`billing/reconciliation`) on first boot before creating the schedule.
 - **Dedicated task queue (`billing_reconciliation`)**: Isolates reconciliation Stripe API calls from agent execution path. Rate limiting in one cannot starve the other.
 - **Activity-per-purchase granularity**: Each Stripe API call is an independent activity. Temporal retries individual failures without blocking others.
 - **Same idempotency key (`purchase_{id}`)**: Reconciliation and webhook handler use identical key — CreditLedgerService's unique index prevents double-crediting regardless of race order.
@@ -585,11 +588,12 @@ When starting a new session:
 - **Orphan handling**: PENDING purchases without checkout_session_id older than 60 min are marked FAILED (Stripe API call never returned).
 - **Concrete test activity impl (not Mockito mock)**: Temporal SDK rejects `@ActivityMethod` annotations on mock proxy classes. Used static inner class in workflow test.
 
-- **Phase 3.5**: First Temporal cron workflow in the codebase
+- **Phase 3.5**: Temporal Schedule (server-side) for billing reconciliation
 - New package: `ai.stigmer.domain.billing.temporal.reconciliation` — 9 source files
-- Workflow ID: `billing/reconciliation` (global singleton, cron)
+- Schedule ID: `billing-reconciliation` (Temporal Schedule, server-side)
 - Task queue: `billing_reconciliation` (env: `TEMPORAL_BILLING_RECONCILIATION_TASK_QUEUE`)
-- Config: `stigmer.billing.reconciliation.enabled/cron-schedule/stale-threshold-minutes/orphan-threshold-minutes`
+- Config: `stigmer.billing.reconciliation.enabled/interval-minutes/stale-threshold-minutes/orphan-threshold-minutes`
+- `ScheduleClient` bean in shared `temporal-starter` lib (available to all services)
 - Reconciliation logic: DB scan → per-purchase Stripe session retrieve → route by session status → provision/expire/fail/skip
 - Double-idempotent: purchase status guard + CreditLedgerService idempotency_key dedup
 - All Phase 3 (Stripe Credit Purchases) is now complete — 5/5 sub-phases done
