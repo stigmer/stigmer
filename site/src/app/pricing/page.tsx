@@ -5,11 +5,11 @@ import { PricingPage } from "@/components/pages/PricingPage";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "Stigmer pricing — Free tier for getting started, Pro for production workloads, Enterprise for teams that need dedicated support and SLAs.",
+    "Stigmer Cloud pricing — pay only for what you use. Purchase credits, run AI agents, and scale on demand. Free trial included.",
   openGraph: {
     title: `Pricing | ${SITE_CONFIG.name}`,
     description:
-      "Stigmer pricing — Free, Pro, and Enterprise tiers for AI agent workloads.",
+      "Stigmer Cloud pricing — prepaid credits for AI agent execution. Transparent per-model token pricing.",
   },
 };
 
