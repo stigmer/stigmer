@@ -3,7 +3,8 @@
 Model data is fetched from the authenticated model registry API at
 ``{STIGMER_CLOUD_API_URL}/v1/proxy/model-registry`` and cached
 in memory with a 1-hour TTL. Authentication is via the
-``STIGMER_AUTH_TOKEN`` environment variable (Bearer token).
+``STIGMER_TOKEN`` environment variable (Bearer token). Falls back to
+``STIGMER_AUTH_TOKEN`` for backward compatibility.
 
 Fallback chain (in order):
     1. ``STIGMER_MODEL_REGISTRY_PATH`` env var (explicit file override)
@@ -323,7 +324,7 @@ class ModelRegistry:
         url = f"{api_url}/v1/proxy/model-registry"
         try:
             headers = {"Accept": "application/json"}
-            auth_token = os.environ.get("STIGMER_AUTH_TOKEN")
+            auth_token = os.environ.get("STIGMER_TOKEN") or os.environ.get("STIGMER_AUTH_TOKEN")
             if auth_token:
                 headers["Authorization"] = f"Bearer {auth_token}"
             req = urllib.request.Request(url, headers=headers)
