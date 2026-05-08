@@ -122,7 +122,7 @@ export function ModelSelector({
     return HARNESS_OPTIONS.filter((h) => h === "native" || h === "cursor");
   }, [availableHarnesses]);
 
-  const selectedModel = (value ? getModel(value) : undefined) ?? defaultModel;
+  const selectedModel = (value ? getModel(value) : undefined) ?? defaultModel ?? undefined;
 
   const isSearching = searchQuery.length > 0;
   const lowerQuery = searchQuery.toLowerCase();
@@ -248,7 +248,7 @@ export function ModelSelector({
 
   const showShowAllButton = !isSearching && !showAll && featuredModels.length > 0 && featuredModels.length < models.length;
 
-  const triggerLabel = selectedModel.displayName;
+  const triggerLabel = selectedModel?.displayName ?? "Select model";
   const triggerHarness = !isHarnessLocked ? HARNESS_META[activeHarness].label : undefined;
 
   return (
@@ -393,7 +393,7 @@ export function ModelSelector({
                       <ModelRow
                         key={model.modelId}
                         model={model}
-                        isSelected={model.modelId === selectedModel.modelId}
+                        isSelected={model.modelId === selectedModel?.modelId}
                         showDescription={false}
                         showSpeedBadge={showSpeedBadge}
                         onClick={() => selectModel(model)}
@@ -406,7 +406,7 @@ export function ModelSelector({
                   <ModelRow
                     key={model.modelId}
                     model={model}
-                    isSelected={model.modelId === selectedModel.modelId}
+                    isSelected={model.modelId === selectedModel?.modelId}
                     isHighlighted={idx === highlightIdx}
                     showDescription={showDescriptions && !compact && !isSearching && !showAll}
                     showSpeedBadge={showSpeedBadge}

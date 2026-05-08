@@ -127,7 +127,7 @@ describe("useModelRegistry", () => {
 
     it("resolves defaultModel to DEFAULT_MODEL_ID", () => {
       const { result } = renderHook(() => useModelRegistry(), { wrapper: createWrapper() });
-      expect(result.current.defaultModel.modelId).toBe(DEFAULT_MODEL_ID);
+      expect(result.current.defaultModel!.modelId).toBe(DEFAULT_MODEL_ID);
     });
 
     it("groups models by provider in byProvider map", () => {
@@ -235,7 +235,7 @@ describe("useModelRegistry", () => {
       { wrapper: createWrapper() });
       const featured = result.current.featured;
       expect(featured.length).toBeGreaterThan(0);
-      expect(result.current.defaultModel.modelId).toBe(featured[0].modelId);
+      expect(result.current.defaultModel!.modelId).toBe(featured[0].modelId);
     });
   });
 
@@ -261,7 +261,7 @@ describe("useModelRegistry", () => {
       const { result } = renderHook(() =>
         useModelRegistry({ harness: "cursor" }),
       { wrapper: createWrapper() });
-      expect(result.current.defaultModel.modelId).toBe(
+      expect(result.current.defaultModel!.modelId).toBe(
         DEFAULT_CURSOR_MODEL_ID,
       );
     });
