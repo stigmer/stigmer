@@ -212,6 +212,7 @@ print('agent-runner import verification passed')"
 COPY --from=cursor-runner-builder /build/cursor-runner/dist /cursor-runner/dist
 COPY --from=cursor-runner-builder /build/cursor-runner/node_modules /cursor-runner/node_modules
 COPY --from=cursor-runner-builder /build/cursor-runner/package.json /cursor-runner/package.json
+COPY --from=cursor-runner-builder /build/cursor-runner/data /cursor-runner/data
 
 # Proto stubs required by cursor-runner. npm resolves the file: dependency
 # (@stigmer/protos) as a symlink into node_modules; the symlink target must
@@ -233,7 +234,9 @@ import './dist/config.js'; \
 console.log('cursor-runner import verification passed')" && \
     node -e "const p=require('./node_modules/@stigmer/protos/package.json'); \
     if(p.name!=='@stigmer/protos') throw new Error('bad protos package'); \
-    console.log('protos symlink verification passed: '+p.name+'@'+p.version)"
+    console.log('protos symlink verification passed: '+p.name+'@'+p.version)" && \
+    test -f /cursor-runner/data/model-registry.json && \
+    echo "model-registry.json verification passed"
 
 # Set working directory (Daytona convention — user workspace, not runner code)
 WORKDIR /workspace
