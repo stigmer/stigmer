@@ -27,13 +27,15 @@ export { CloudFeatureNotice, type CloudFeatureNoticeProps } from "./internal/Clo
 
 // Models — data hook, styled components, and registry data
 export {
-  MODEL_REGISTRY,
   DEFAULT_MODEL_ID,
   DEFAULT_CURSOR_MODEL_ID,
   DISABLED_PROVIDERS,
   modelKey,
   parseModelKey,
+  fetchModelRegistry,
+  parseRegistryJson,
   useModelRegistry,
+  ModelRegistryContext,
   ModelSelector,
   HarnessSelector,
   DEFAULT_HARNESS,
@@ -43,6 +45,7 @@ export {
 } from "./models";
 export type {
   ModelInfo,
+  ModelRegistryState,
   ParsedModelKey,
   Provider,
   CostTier,

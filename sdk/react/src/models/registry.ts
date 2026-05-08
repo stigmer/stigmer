@@ -1,15 +1,15 @@
 /**
  * Model registry — UI-relevant metadata for all platform-supported LLM models.
  *
- * Reads from the unified JSON registry at backend/libs/model-registry.json,
- * which is the single source of truth for model IDs, display names, pricing,
- * and cost tiers across all harnesses and runtimes.
+ * Fetches from the public model registry API endpoint at runtime and caches
+ * the result in the {@link StigmerProvider} context. This eliminates the
+ * static JSON file that previously shipped in the npm package.
  *
- * Update it with: @update-model-registry
+ * Platform consumers (React SDK, cursor-runner, graphton) all fetch from the
+ * same endpoint, each with their own local TTL cache.
  */
 
 import type { HarnessOption } from "./harness";
-import registryData from "../../data/model-registry.json";
 
 /**
  * Pricing bracket for a model.
@@ -33,7 +33,7 @@ export type SpeedTier = "fastest" | "fast" | "balanced" | "slow";
 /**
  * LLM provider identifier. Each provider maps to a distinct inference
  * backend (or intermediary, in the case of Cursor-served third-party
- * models). The {@link MODEL_REGISTRY} uses this for grouping in the
+ * models). The model registry uses this for grouping in the
  * "Show All" expanded view.
  */
 export type Provider =
@@ -48,7 +48,7 @@ export type Provider =
 /**
  * Providers whose models should be hidden from the UI.
  *
- * The model entries themselves stay in MODEL_REGISTRY so backend
+ * The model entries themselves stay in the registry so backend
  * compatibility is preserved. The useModelRegistry hook filters
  * them out before anything reaches a component.
  *
@@ -171,26 +171,47 @@ function isModelEntry(entry: RegistryJsonEntry): entry is Required<Pick<Registry
 }
 
 /**
- * Static catalog of all platform-supported LLM models, loaded from the
- * unified JSON registry.
+ * Parse raw registry JSON (from the API or a static file) into `ModelInfo[]`.
  *
- * {@link useModelRegistry} filters out disabled providers and provides
- * lookup helpers on top of this list.
+ * Expects the shape `{ models: RegistryJsonEntry[] }`. Filters out comment
+ * entries and invalid rows, then maps to the `ModelInfo` interface.
  */
-export const MODEL_REGISTRY: readonly ModelInfo[] = (
-  registryData.models as RegistryJsonEntry[]
-)
-  .filter(isModelEntry)
-  .map((m) => ({
-    modelId: m.id,
-    provider: m.provider as Provider,
-    displayName: m.displayName,
-    shortDescription: m.shortDescription ?? "",
-    speedTier: (VALID_SPEED_TIERS.has(m.speedTier ?? "") ? m.speedTier : "fast") as SpeedTier,
-    costTier: m.costTier as CostTier,
-    harness: m.harness as HarnessOption,
-    featured: m.featured ?? false,
-  }));
+export function parseRegistryJson(data: unknown): ModelInfo[] {
+  if (!data || typeof data !== "object") return [];
+  const models = (data as Record<string, unknown>).models;
+  if (!Array.isArray(models)) return [];
+
+  return (models as RegistryJsonEntry[])
+    .filter(isModelEntry)
+    .map((m) => ({
+      modelId: m.id,
+      provider: m.provider as Provider,
+      displayName: m.displayName,
+      shortDescription: m.shortDescription ?? "",
+      speedTier: (VALID_SPEED_TIERS.has(m.speedTier ?? "") ? m.speedTier : "fast") as SpeedTier,
+      costTier: m.costTier as CostTier,
+      harness: m.harness as HarnessOption,
+      featured: m.featured ?? false,
+    }));
+}
+
+/**
+ * Fetch the model registry from the authenticated API endpoint.
+ *
+ * @param apiUrl - Base URL of the Stigmer Cloud API (e.g. `https://api.stigmer.ai`)
+ * @param token - Bearer token for authentication (from `client.getAuthCredential()`)
+ * @returns Parsed `ModelInfo[]`.
+ */
+export async function fetchModelRegistry(apiUrl: string, token: string | null): Promise<ModelInfo[]> {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${apiUrl}/v1/proxy/model-registry`, { headers });
+  if (!res.ok) throw new Error(`Model registry fetch failed: ${res.status}`);
+  const data: unknown = await res.json();
+  return parseRegistryJson(data);
+}
 
 /**
  * Model ID used when no user preference is set (native harness).
@@ -236,6 +257,7 @@ export interface DefaultModelResolution {
  */
 export function resolveDefaultModelId(
   harness: HarnessOption,
+  models: readonly ModelInfo[],
   options?: {
     userPreference?: string;
     orgDefault?: string;
@@ -243,27 +265,27 @@ export function resolveDefaultModelId(
   },
 ): DefaultModelResolution {
   if (options?.userPreference) {
-    const model = MODEL_REGISTRY.find(
+    const model = models.find(
       (m) => m.harness === harness && m.modelId === options.userPreference,
     );
     if (model) return { modelId: model.modelId, source: "user_preference" };
   }
 
   if (options?.orgDefault) {
-    const model = MODEL_REGISTRY.find(
+    const model = models.find(
       (m) => m.harness === harness && m.modelId === options.orgDefault,
     );
     if (model) return { modelId: model.modelId, source: "org_default" };
   }
 
   if (options?.agentDefault) {
-    const model = MODEL_REGISTRY.find(
+    const model = models.find(
       (m) => m.harness === harness && m.modelId === options.agentDefault,
     );
     if (model) return { modelId: model.modelId, source: "agent_default" };
   }
 
-  const featured = MODEL_REGISTRY.find(
+  const featured = models.find(
     (m) => m.harness === harness && m.featured,
   );
   if (featured) return { modelId: featured.modelId, source: "harness_default" };
@@ -271,4 +293,3 @@ export function resolveDefaultModelId(
   const fallbackId = harness === "cursor" ? DEFAULT_CURSOR_MODEL_ID : DEFAULT_MODEL_ID;
   return { modelId: fallbackId, source: "platform_fallback" };
 }
-

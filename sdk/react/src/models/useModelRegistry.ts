@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import {
-  MODEL_REGISTRY,
   DEFAULT_MODEL_ID,
   DEFAULT_CURSOR_MODEL_ID,
   DISABLED_PROVIDERS,
@@ -12,6 +11,7 @@ import {
   type Provider,
 } from "./registry";
 import type { HarnessOption } from "./harness";
+import { useModelRegistryContext } from "./ModelRegistryContext";
 
 /** Options for {@link useModelRegistry}. */
 export interface UseModelRegistryOptions {
@@ -51,6 +51,10 @@ export interface UseModelRegistryReturn {
    * Always unambiguous, even in unified mode.
    */
   readonly getByKey: (key: string) => ModelInfo | undefined;
+  /** `true` while the model registry is being fetched from the API. */
+  readonly isLoading: boolean;
+  /** Non-null if the API fetch failed. Models will be empty in this case. */
+  readonly error: Error | null;
 }
 
 /**
@@ -61,6 +65,10 @@ export interface UseModelRegistryReturn {
  * who want full control over rendering import this hook and build
  * their own UI.
  *
+ * The model data is fetched from the public model registry API by
+ * {@link StigmerProvider} and cached in context. During loading,
+ * `isLoading` is `true` and `models` is empty.
+ *
  * **Modes:**
  * - `options.harness === "cursor"` — Cursor-harness models only
  * - `options.harness === "native"` — native models, excluding disabled providers
@@ -69,7 +77,7 @@ export interface UseModelRegistryReturn {
  * @example
  * ```tsx
  * // Unified mode — flat picker with all models
- * const { featured, models, getByKey } = useModelRegistry();
+ * const { featured, models, getByKey, isLoading } = useModelRegistry();
  *
  * // Legacy single-harness mode
  * const { models, defaultModel } = useModelRegistry({ harness: "native" });
@@ -77,11 +85,12 @@ export interface UseModelRegistryReturn {
  */
 export function useModelRegistry(options?: UseModelRegistryOptions): UseModelRegistryReturn {
   const harness = options?.harness;
+  const { models: allModels, isLoading, error } = useModelRegistryContext();
 
   return useMemo(() => {
     const isUnified = harness === undefined;
     const { modelId: defaultId } = harness
-      ? resolveDefaultModelId(harness)
+      ? resolveDefaultModelId(harness, allModels)
       : { modelId: DEFAULT_MODEL_ID };
 
     const byProvider = new Map<Provider, ModelInfo[]>();
@@ -91,7 +100,7 @@ export function useModelRegistry(options?: UseModelRegistryOptions): UseModelReg
     const featuredModels: ModelInfo[] = [];
     let defaultModel: ModelInfo | undefined;
 
-    for (const model of MODEL_REGISTRY) {
+    for (const model of allModels) {
       if (isUnified) {
         if (DISABLED_PROVIDERS.has(model.provider)) continue;
       } else {
@@ -132,6 +141,8 @@ export function useModelRegistry(options?: UseModelRegistryOptions): UseModelReg
       providers,
       featured: featuredModels,
       getByKey: (key: string) => byCompoundKey.get(key),
+      isLoading,
+      error,
     };
-  }, [harness]);
+  }, [harness, allModels, isLoading, error]);
 }

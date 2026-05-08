@@ -1,8 +1,10 @@
-export { MODEL_REGISTRY, DEFAULT_MODEL_ID, DEFAULT_CURSOR_MODEL_ID, DISABLED_PROVIDERS, modelKey, parseModelKey, resolveDefaultModelId } from "./registry";
+export { DEFAULT_MODEL_ID, DEFAULT_CURSOR_MODEL_ID, DISABLED_PROVIDERS, modelKey, parseModelKey, resolveDefaultModelId, fetchModelRegistry, parseRegistryJson } from "./registry";
 export type { ParsedModelKey, DefaultModelResolution, DefaultModelSource } from "./registry";
 export type { ModelInfo, Provider, CostTier, SpeedTier } from "./registry";
 export { useModelRegistry } from "./useModelRegistry";
 export type { UseModelRegistryReturn, UseModelRegistryOptions } from "./useModelRegistry";
+export { ModelRegistryContext, useModelRegistryContext } from "./ModelRegistryContext";
+export type { ModelRegistryState } from "./ModelRegistryContext";
 export { ModelSelector } from "./ModelSelector";
 export type { ModelSelectorProps } from "./ModelSelector";
 export { HarnessSelector } from "./HarnessSelector";

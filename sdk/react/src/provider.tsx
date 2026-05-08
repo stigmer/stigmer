@@ -9,6 +9,9 @@ import { DeploymentModeContext } from "./deployment-mode";
 import type { ColorMode, ResolvedColorMode } from "./color-mode";
 import { ColorModeContext, useSystemColorMode } from "./color-mode";
 import { PortalContainerContext } from "./portal-container";
+import { ModelRegistryContext } from "./models/ModelRegistryContext";
+import type { ModelRegistryState } from "./models/ModelRegistryContext";
+import { fetchModelRegistry } from "./models/registry";
 
 /** Props for {@link StigmerProvider}. */
 export interface StigmerProviderProps {
@@ -126,23 +129,70 @@ export function StigmerProvider({
   const presetClass = preset ? resolvePresetClass(preset) : "";
 
   const portalContainer = usePortalContainer(resolvedMode, presetClass);
+  const registryState = useModelRegistryFetch(client);
 
   return (
     <StigmerContext.Provider value={client}>
       <DeploymentModeContext.Provider value={deploymentMode}>
         <ColorModeContext.Provider value={resolvedMode}>
-          <PortalContainerContext.Provider value={portalContainer}>
-            <div
-              className={cn("stgm", presetClass, className)}
-              data-stgm-color-mode={resolvedMode}
-            >
-              {children}
-            </div>
-          </PortalContainerContext.Provider>
+          <ModelRegistryContext.Provider value={registryState}>
+            <PortalContainerContext.Provider value={portalContainer}>
+              <div
+                className={cn("stgm", presetClass, className)}
+                data-stgm-color-mode={resolvedMode}
+              >
+                {children}
+              </div>
+            </PortalContainerContext.Provider>
+          </ModelRegistryContext.Provider>
         </ColorModeContext.Provider>
       </DeploymentModeContext.Provider>
     </StigmerContext.Provider>
   );
+}
+
+/**
+ * Fetches the model registry from the authenticated API on mount and
+ * caches the result for the lifetime of the provider.
+ *
+ * Uses the client's `baseUrl` and `getAuthCredential()` so the fetch
+ * is authenticated with the same token the SDK uses for all other calls.
+ */
+function useModelRegistryFetch(client: Stigmer): ModelRegistryState {
+  const [state, setState] = useState<ModelRegistryState>({
+    models: [],
+    isLoading: true,
+    error: null,
+  });
+
+  const clientRef = useRef(client);
+  clientRef.current = client;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const c = clientRef.current;
+    c.getAuthCredential()
+      .then((token) => fetchModelRegistry(c.baseUrl, token))
+      .then((models) => {
+        if (!cancelled) {
+          setState({ models, isLoading: false, error: null });
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setState({
+            models: [],
+            isLoading: false,
+            error: err instanceof Error ? err : new Error(String(err)),
+          });
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  return state;
 }
 
 /**
