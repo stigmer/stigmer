@@ -528,12 +528,19 @@ jobs:
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
+          # actions/checkout with protocol v2 may fetch tag refs without the
+          # underlying annotated tag objects.  Re-fetch the specific tag to
+          # guarantee the object is available locally.
+          git fetch origin tag "$VERSION" --force 2>/dev/null || true
+
           PREVIOUS_TAG=$(git describe --abbrev=0 --tags "$VERSION^" 2>/dev/null || echo "")
 
-          # Try to extract the annotated tag message (skip the first "Release vX.Y.Z" subject line)
           TAG_BODY=""
-          if git cat-file -t "$VERSION" 2>/dev/null | grep -q "tag"; then
+          OBJ_TYPE=$(git cat-file -t "$VERSION" 2>/dev/null || echo "unknown")
+          echo "Tag $VERSION object type: $OBJ_TYPE"
+          if [ "$OBJ_TYPE" = "tag" ]; then
             TAG_BODY=$(git tag -l --format='%(contents:body)' "$VERSION" | sed '/^$/d' | head -c 10000)
+            echo "Extracted TAG_BODY length: ${#TAG_BODY}"
           fi
 
           INSTALL_SECTION=$(cat <<'INST'
