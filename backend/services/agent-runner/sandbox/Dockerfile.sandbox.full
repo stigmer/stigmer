@@ -106,6 +106,14 @@ WORKDIR /build
 COPY apis/stubs/ts /build/apis/stubs/ts
 RUN cd /build/apis/stubs/ts && npm install
 
+# Compile proto stubs to JS -- Node.js 22's strip-only TypeScript mode
+# cannot handle `enum` syntax. Rewrite exports to serve compiled .js at
+# runtime while keeping .ts for type-checking (mirrors sync.sh Step 2b).
+RUN cd /build/apis/stubs/ts && npx tsc -p tsconfig.build.json && \
+    node -e "const p=require('./package.json'); \
+    p.exports={'./*':{types:'./*.ts','import':'./dist/*.js'}}; \
+    require('fs').writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
+
 # Copy cursor-runner source and install deps
 COPY backend/services/cursor-runner/package.json \
      backend/services/cursor-runner/tsconfig.json \
