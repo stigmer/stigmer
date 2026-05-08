@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { DEFAULT_MODEL_ID, DEFAULT_CURSOR_MODEL_ID } from "../../models/registry";
+import type { ReactNode } from "react";
+import { DEFAULT_MODEL_ID, DEFAULT_CURSOR_MODEL_ID, parseRegistryJson } from "../../models/registry";
+import { ModelRegistryContext } from "../../models/ModelRegistryContext";
+import type { ModelRegistryState } from "../../models/ModelRegistryContext";
 import type { UseCreateSessionReturn } from "../useCreateSession";
 
 const mockCreateSession = vi.fn<UseCreateSessionReturn["create"]>();
@@ -60,6 +63,24 @@ vi.mock("../../execution/useSessionVariables", () => ({
 
 import { useNewSessionFlow } from "../useNewSessionFlow";
 
+const TEST_MODELS = parseRegistryJson({
+  models: [
+    { id: "claude-sonnet-4.6", displayName: "Claude Sonnet 4.6", shortDescription: "", speedTier: "fast", provider: "anthropic", harness: "native", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 3, outputPricePerMillion: 15, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.3 } },
+    { id: "default", displayName: "Cursor Auto", shortDescription: "", speedTier: "fast", provider: "cursor", harness: "cursor", costTier: "standard", featured: true, pricing: { inputPricePerMillion: 1.25, outputPricePerMillion: 6, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.25 } },
+  ],
+});
+
+function createWrapper() {
+  const state: ModelRegistryState = { models: TEST_MODELS, isLoading: false, error: null };
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <ModelRegistryContext.Provider value={state}>
+        {children}
+      </ModelRegistryContext.Provider>
+    );
+  };
+}
+
 const STORAGE_KEY_HARNESS = "stigmer:session:harness";
 const STORAGE_KEY_MODEL_NATIVE = "stigmer:session:model";
 const STORAGE_KEY_MODEL_CURSOR = "stigmer:session:model:cursor";
@@ -91,24 +112,24 @@ describe("useNewSessionFlow", () => {
 
   describe("harness state", () => {
     it("defaults to native when localStorage is empty", () => {
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()));
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
       expect(result.current.harness).toBe("native");
     });
 
     it("restores cursor harness from localStorage", () => {
       localStorage.setItem(STORAGE_KEY_HARNESS, "cursor");
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()));
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
       expect(result.current.harness).toBe("cursor");
     });
 
     it("falls back to native for unknown localStorage values", () => {
       localStorage.setItem(STORAGE_KEY_HARNESS, "unknown-value");
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()));
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
       expect(result.current.harness).toBe("native");
     });
 
     it("persists harness to localStorage on change", () => {
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()));
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
       act(() => result.current.setHarness("cursor"));
 
@@ -118,7 +139,7 @@ describe("useNewSessionFlow", () => {
 
     it("persists native harness to localStorage", () => {
       localStorage.setItem(STORAGE_KEY_HARNESS, "cursor");
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()));
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
       act(() => result.current.setHarness("native"));
 
@@ -128,7 +149,7 @@ describe("useNewSessionFlow", () => {
 
   describe("per-harness model persistence", () => {
     it("uses separate storage keys for native and cursor models", () => {
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()));
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
       act(() => result.current.setModelId(DEFAULT_MODEL_ID));
 
@@ -140,7 +161,7 @@ describe("useNewSessionFlow", () => {
 
     it("persists cursor model to cursor-specific key", () => {
       localStorage.setItem(STORAGE_KEY_HARNESS, "cursor");
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()));
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
       act(() => result.current.setModelId(DEFAULT_CURSOR_MODEL_ID));
 
@@ -152,7 +173,7 @@ describe("useNewSessionFlow", () => {
     it("restores per-harness model when switching harness", () => {
       localStorage.setItem(STORAGE_KEY_MODEL_CURSOR, DEFAULT_CURSOR_MODEL_ID);
 
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()));
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
       act(() => result.current.setHarness("cursor"));
 
@@ -160,7 +181,7 @@ describe("useNewSessionFlow", () => {
     });
 
     it("clears modelId when switching to a harness with no stored model", () => {
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()));
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
       act(() => result.current.setModelId(DEFAULT_MODEL_ID));
       expect(result.current.modelId).toBe(DEFAULT_MODEL_ID);
@@ -178,7 +199,7 @@ describe("useNewSessionFlow", () => {
     });
 
     it("invalidates modelId when it is not in the active harness registry", () => {
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()));
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
       // Set a native-only model
       act(() => result.current.setModelId(DEFAULT_MODEL_ID));
@@ -193,7 +214,7 @@ describe("useNewSessionFlow", () => {
 
     it("strips compound keys before persisting to localStorage", () => {
       localStorage.setItem(STORAGE_KEY_HARNESS, "cursor");
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()));
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
       // Simulate compound key from unified mode ModelSelector
       act(() => result.current.setModelId("cursor/default"));
@@ -207,7 +228,7 @@ describe("useNewSessionFlow", () => {
       // Legacy: compound key was stored before fix
       localStorage.setItem(STORAGE_KEY_MODEL_CURSOR, "cursor/default");
 
-      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()));
+      const { result } = renderHook(() => useNewSessionFlow(defaultOptions()), { wrapper: createWrapper() });
 
       // Should extract plain modelId and validate against registry
       expect(result.current.modelId).toBe(DEFAULT_CURSOR_MODEL_ID);
@@ -217,7 +238,7 @@ describe("useNewSessionFlow", () => {
   describe("submit with harness", () => {
     it("passes harness field to createSession", async () => {
       const opts = defaultOptions();
-      const { result } = renderHook(() => useNewSessionFlow(opts));
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       await act(async () => {
         await result.current.submit("Hello");
@@ -230,7 +251,7 @@ describe("useNewSessionFlow", () => {
 
     it("passes cursor harness to createSession after switching", async () => {
       const opts = defaultOptions();
-      const { result } = renderHook(() => useNewSessionFlow(opts));
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       act(() => result.current.setHarness("cursor"));
 
@@ -244,7 +265,7 @@ describe("useNewSessionFlow", () => {
 
     it("calls onSessionCreated on success", async () => {
       const opts = defaultOptions();
-      const { result } = renderHook(() => useNewSessionFlow(opts));
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       await act(async () => {
         await result.current.submit("Hello");
@@ -256,7 +277,7 @@ describe("useNewSessionFlow", () => {
     it("sets submitError and calls onError on failure", async () => {
       mockCreateSession.mockRejectedValueOnce(new Error("RPC fail"));
       const opts = defaultOptions();
-      const { result } = renderHook(() => useNewSessionFlow(opts));
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       await act(async () => {
         await result.current.submit("Hello");
@@ -268,7 +289,7 @@ describe("useNewSessionFlow", () => {
 
     it("resets isSubmitting after completion", async () => {
       const opts = defaultOptions();
-      const { result } = renderHook(() => useNewSessionFlow(opts));
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
       await act(async () => {
         await result.current.submit("Hello");
