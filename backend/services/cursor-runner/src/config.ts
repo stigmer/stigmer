@@ -158,10 +158,16 @@ function requireEnv(name: string): string {
  * Ensures the endpoint has an HTTP(S) scheme. The daemon passes raw
  * host:port for the Python agent-runner (gRPC); cursor-runner uses
  * Connect-ES (HTTP transport) and needs the scheme prefix.
+ *
+ * Port 443 implies TLS, so bare host:443 endpoints get https://.
+ * All other bare host:port endpoints get http:// (safe for local dev).
  */
 function normalizeEndpoint(endpoint: string): string {
   if (endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
     return endpoint;
+  }
+  if (endpoint.endsWith(":443")) {
+    return `https://${endpoint}`;
   }
   return `http://${endpoint}`;
 }

@@ -183,6 +183,12 @@ describe("loadConfig", () => {
       expect(config.stigmerBackendEndpoint).toBe("http://localhost:7234");
     });
 
+    it("adds https:// scheme for port 443", () => {
+      process.env.STIGMER_BACKEND_ENDPOINT = "api.stigmer.ai:443";
+      const config = loadConfig();
+      expect(config.stigmerBackendEndpoint).toBe("https://api.stigmer.ai:443");
+    });
+
     it("preserves existing http:// scheme", () => {
       process.env.STIGMER_BACKEND_ENDPOINT = "http://my-host:8080";
       const config = loadConfig();
