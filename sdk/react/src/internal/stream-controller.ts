@@ -68,11 +68,11 @@ export class StreamController {
   constructor(
     sink: StreamControllerSink,
     scheduleFlush: (cb: () => void) => number = typeof requestAnimationFrame !== "undefined"
-      ? requestAnimationFrame
-      : (cb) => setTimeout(cb, 16) as unknown as number,
+      ? (cb: () => void) => requestAnimationFrame(cb)
+      : (cb: () => void) => setTimeout(cb, 16) as unknown as number,
     cancelFlush: (id: number) => void = typeof cancelAnimationFrame !== "undefined"
-      ? cancelAnimationFrame
-      : clearTimeout,
+      ? (id: number) => cancelAnimationFrame(id)
+      : (id: number) => clearTimeout(id),
   ) {
     this._sink = sink;
     this._scheduleFlush = scheduleFlush;

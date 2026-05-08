@@ -167,6 +167,8 @@ const INFRA_NOISE_PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   [/network error/i, "A network error occurred. Check your connection."],
   [/failed to fetch/i, "Unable to reach the server. Check your connection."],
   [/load balancer/i, "The server is temporarily unavailable."],
+  [/illegal invocation/i, "A browser API call failed. Please try again."],
+  [/can only call .+ on instances of/i, "A browser API call failed. Please try again."],
 ];
 
 /**
