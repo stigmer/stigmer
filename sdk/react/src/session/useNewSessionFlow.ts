@@ -10,6 +10,7 @@ import { DEFAULT_HARNESS, type HarnessOption } from "../models/harness";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace";
 import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables";
 import type { SessionComposerSubmitContext } from "../composer";
+import { useRunnerList } from "../runner/useRunnerList";
 import { useCreateSession } from "./useCreateSession";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
 
@@ -155,7 +156,8 @@ export function useNewSessionFlow(
     return stored === "cursor" ? "cursor" : DEFAULT_HARNESS;
   });
 
-  const { getModel } = useModelRegistry({ harness });
+  const { getModel, isLoading: isModelsLoading } = useModelRegistry({ harness });
+  const { runners, isLoading: isRunnersLoading } = useRunnerList(org);
   const { create: createSession } = useCreateSession();
   const { create: createExecution } = useCreateAgentExecution();
   const {
@@ -192,8 +194,10 @@ export function useNewSessionFlow(
     [],
   );
 
-  // Restore persisted model on mount (using current harness key)
+  // Restore persisted model — only after the registry has loaded so
+  // getModel can actually validate the stored ID against live data.
   useEffect(() => {
+    if (isModelsLoading) return;
     const stored = localStorage.getItem(modelStorageKey(harness));
     if (stored) {
       const plain = parseModelKey(stored)?.modelId ?? stored;
@@ -201,7 +205,7 @@ export function useNewSessionFlow(
         setModelId(plain);
       }
     }
-  }, [getModel, harness]);
+  }, [getModel, harness, isModelsLoading]);
 
   // Persist model on change (using current harness key).
   // Strip compound keys (e.g. "cursor/default") to plain modelId before storing.
@@ -212,13 +216,20 @@ export function useNewSessionFlow(
     }
   }, [modelId, harness]);
 
-  // Restore persisted runner on mount
+  // Restore persisted runner — validate against the live runner list.
+  // If the stored runner no longer exists, discard it and clean up localStorage.
   useEffect(() => {
+    if (isRunnersLoading) return;
     const stored = localStorage.getItem(STORAGE_KEY_RUNNER);
-    if (stored) {
+    if (!stored) return;
+
+    const exists = runners.some((r) => r.metadata?.id === stored);
+    if (exists) {
       setRunnerId(stored);
+    } else {
+      localStorage.removeItem(STORAGE_KEY_RUNNER);
     }
-  }, []);
+  }, [runners, isRunnersLoading]);
 
   // Persist runner on change
   useEffect(() => {

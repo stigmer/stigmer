@@ -174,6 +174,7 @@ export function ComposerToolbar({
             value={modelId}
             onValueChange={onModelChange}
             harness={showHarnessSelector ? undefined : harness}
+            initialHarness={showHarnessSelector ? harness : undefined}
             onHarnessChange={showHarnessSelector ? onHarnessChange : undefined}
             disabled={disabled}
           />

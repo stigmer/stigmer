@@ -32,6 +32,14 @@ export interface ModelSelectorProps {
    * to that harness (dropdown hidden). When omitted, shows the harness dropdown.
    */
   readonly harness?: HarnessOption;
+  /**
+   * Initial harness value for the internal state when `harness` prop is
+   * undefined (unlocked mode). Prevents desync when the parent knows the
+   * active harness but delegates the dropdown to this component.
+   *
+   * When `harness` is provided (locked mode), this prop is ignored.
+   */
+  readonly initialHarness?: HarnessOption;
   /** Called when user changes harness in the dropdown. */
   readonly onHarnessChange?: (harness: HarnessOption) => void;
   /**
@@ -85,6 +93,7 @@ export function ModelSelector({
   value,
   onValueChange,
   harness,
+  initialHarness,
   onHarnessChange,
   onHarnessResolved,
   availableHarnesses,
@@ -99,8 +108,16 @@ export function ModelSelector({
   const portalContainer = useStigmerPortalContainer();
 
   const isHarnessLocked = harness !== undefined;
-  const [internalHarness, setInternalHarness] = useState<HarnessOption>(harness ?? "native");
+  const [internalHarness, setInternalHarness] = useState<HarnessOption>(
+    harness ?? initialHarness ?? "native",
+  );
   const activeHarness = harness ?? internalHarness;
+
+  useEffect(() => {
+    if (!isHarnessLocked && initialHarness !== undefined) {
+      setInternalHarness(initialHarness);
+    }
+  }, [initialHarness, isHarnessLocked]);
 
   const { models, featured, defaultModel, getModel, byProvider } = useModelRegistry(
     { harness: activeHarness },
