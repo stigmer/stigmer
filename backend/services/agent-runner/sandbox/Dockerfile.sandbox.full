@@ -205,9 +205,19 @@ COPY --from=cursor-runner-builder /build/cursor-runner/dist /cursor-runner/dist
 COPY --from=cursor-runner-builder /build/cursor-runner/node_modules /cursor-runner/node_modules
 COPY --from=cursor-runner-builder /build/cursor-runner/package.json /cursor-runner/package.json
 
+# Proto stubs required by cursor-runner. npm resolves the file: dependency
+# (@stigmer/protos) as a symlink into node_modules; the symlink target must
+# exist in the final image for Node.js module resolution to work.
+COPY --from=cursor-runner-builder /build/apis/stubs/ts /apis/stubs/ts
+
 # Verify cursor-runner is importable in the final image.
+# Tests the full import chain: main -> worker -> execute-cursor -> @stigmer/protos
+# and @temporalio/worker (native Rust bindings). The previous config-only check
+# missed the dangling @stigmer/protos symlink that crashed the runner at startup.
 RUN node --input-type=module -e "\
+import { NativeConnection } from '@temporalio/worker'; \
 import '/cursor-runner/dist/config.js'; \
+import '/cursor-runner/dist/activity/execute-cursor.js'; \
 console.log('cursor-runner import verification passed')"
 
 # Set working directory (Daytona convention — user workspace, not runner code)
