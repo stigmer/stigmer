@@ -4,6 +4,7 @@ import * as React from "react";
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import { cn } from "@stigmer/theme";
 import { CheckIcon } from "lucide-react";
+import { useStigmerPortalContainer } from "../portal-container";
 
 // ---------------------------------------------------------------------------
 // SDK-internal styled Menu primitives over @base-ui/react.
@@ -35,8 +36,10 @@ function MenuContent({
     MenuPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset"
   >) {
+  const portalContainer = useStigmerPortalContainer();
+
   return (
-    <MenuPrimitive.Portal>
+    <MenuPrimitive.Portal container={portalContainer}>
       <MenuPrimitive.Positioner
         className="isolate z-50 outline-none"
         align={align}

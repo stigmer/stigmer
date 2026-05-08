@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { Select } from "@base-ui/react/select";
 import { RunnerPhase } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/enum_pb";
 import type { Runner } from "@stigmer/protos/ai/stigmer/agentic/runner/v1/api_pb";
+import { useStigmerPortalContainer } from "../portal-container";
 import { useRunnerList } from "./useRunnerList";
 import {
   isActivePhase,
@@ -82,6 +83,7 @@ export function RunnerPicker({
   className,
   disabled,
 }: RunnerPickerProps) {
+  const portalContainer = useStigmerPortalContainer();
   const { runners, isLoading } = useRunnerList(org);
 
   const { active, inactive } = useMemo(() => {
@@ -138,7 +140,7 @@ export function RunnerPicker({
         <ChevronIcon />
       </Select.Trigger>
 
-      <Select.Portal>
+      <Select.Portal container={portalContainer}>
         <Select.Positioner sideOffset={4}>
           <Select.Popup
             className={[

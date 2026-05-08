@@ -13,6 +13,9 @@ export { useStigmer } from "./hooks";
 export { ColorModeContext, useColorMode } from "./color-mode";
 export type { ColorMode, ResolvedColorMode } from "./color-mode";
 
+// Portal container
+export { useStigmerPortalContainer } from "./portal-container";
+
 // Deployment mode and resource availability
 export {
   DeploymentModeContext,

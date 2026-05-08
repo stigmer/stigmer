@@ -1,5 +1,6 @@
 import { cn } from "@stigmer/theme";
 import { Popover } from "@base-ui/react/popover";
+import { useStigmerPortalContainer } from "../portal-container";
 
 export function ContextPopover({
   icon,
@@ -21,6 +22,8 @@ export function ContextPopover({
   /** When true, hides the text label on small viewports (icon-only). */
   hideLabel?: boolean;
 }) {
+  const portalContainer = useStigmerPortalContainer();
+
   return (
     <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger
@@ -39,7 +42,7 @@ export function ContextPopover({
           </span>
         )}
       </Popover.Trigger>
-      <Popover.Portal>
+      <Popover.Portal container={portalContainer}>
         <Popover.Positioner sideOffset={8} align="start">
           <Popover.Popup
             className={[

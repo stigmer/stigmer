@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
+import { useStigmerPortalContainer } from "../portal-container";
 import { useModelRegistry } from "./useModelRegistry";
 import type { ModelInfo, CostTier, SpeedTier } from "./registry";
 import { HARNESS_META, HARNESS_OPTIONS, type HarnessOption } from "./harness";
@@ -95,6 +96,8 @@ export function ModelSelector({
   className,
   disabled,
 }: ModelSelectorProps) {
+  const portalContainer = useStigmerPortalContainer();
+
   const isHarnessLocked = harness !== undefined;
   const [internalHarness, setInternalHarness] = useState<HarnessOption>(harness ?? "native");
   const activeHarness = harness ?? internalHarness;
@@ -271,7 +274,7 @@ export function ModelSelector({
         <ChevronIcon />
       </Popover.Trigger>
 
-      <Popover.Portal>
+      <Popover.Portal container={portalContainer}>
         <Popover.Positioner sideOffset={4}>
           <Popover.Popup
             role="dialog"
