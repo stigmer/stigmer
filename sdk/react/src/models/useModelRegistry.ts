@@ -31,8 +31,8 @@ export interface UseModelRegistryReturn {
   readonly models: readonly ModelInfo[];
   /** Models grouped by provider for sectioned rendering. */
   readonly byProvider: ReadonlyMap<Provider, readonly ModelInfo[]>;
-  /** The platform default model for the current mode. */
-  readonly defaultModel: ModelInfo;
+  /** The platform default model for the current mode. `undefined` while the registry is loading. */
+  readonly defaultModel: ModelInfo | undefined;
   /**
    * Look up a single model by its `modelId`.
    *
