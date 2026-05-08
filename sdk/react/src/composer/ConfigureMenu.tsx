@@ -2,6 +2,7 @@
 
 import { cn } from "@stigmer/theme";
 import { Popover } from "@base-ui/react/popover";
+import { useStigmerPortalContainer } from "../portal-container";
 import { ConfigureIcon } from "./icons";
 
 export interface ConfigureMenuItem {
@@ -60,6 +61,8 @@ export function ConfigureMenu({
     }
   };
 
+  const portalContainer = useStigmerPortalContainer();
+
   if (items.length === 0) return null;
 
   const activePanelItem = activePanel
@@ -91,7 +94,7 @@ export function ConfigureMenu({
           />
         )}
       </Popover.Trigger>
-      <Popover.Portal>
+      <Popover.Portal container={portalContainer}>
         <Popover.Positioner sideOffset={8} align="start">
           <Popover.Popup
             className={cn(

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Stigmer, DeploymentMode } from "@stigmer/sdk";
 import { cn, resolvePresetClass } from "@stigmer/theme";
 import type { ThemePresetId } from "@stigmer/theme";
@@ -8,6 +8,7 @@ import { StigmerContext } from "./context";
 import { DeploymentModeContext } from "./deployment-mode";
 import type { ColorMode, ResolvedColorMode } from "./color-mode";
 import { ColorModeContext, useSystemColorMode } from "./color-mode";
+import { PortalContainerContext } from "./portal-container";
 
 /** Props for {@link StigmerProvider}. */
 export interface StigmerProviderProps {
@@ -124,18 +125,72 @@ export function StigmerProvider({
 
   const presetClass = preset ? resolvePresetClass(preset) : "";
 
+  const portalContainer = usePortalContainer(resolvedMode, presetClass);
+
   return (
     <StigmerContext.Provider value={client}>
       <DeploymentModeContext.Provider value={deploymentMode}>
         <ColorModeContext.Provider value={resolvedMode}>
-          <div
-            className={cn("stgm", presetClass, className)}
-            data-stgm-color-mode={resolvedMode}
-          >
-            {children}
-          </div>
+          <PortalContainerContext.Provider value={portalContainer}>
+            <div
+              className={cn("stgm", presetClass, className)}
+              data-stgm-color-mode={resolvedMode}
+            >
+              {children}
+            </div>
+          </PortalContainerContext.Provider>
         </ColorModeContext.Provider>
       </DeploymentModeContext.Provider>
     </StigmerContext.Provider>
   );
+}
+
+/**
+ * Creates and manages a portal container `<div>` appended to
+ * `document.body` that mirrors the scoping attributes of the main
+ * provider container.
+ *
+ * Portaled content (popovers, dialogs, menus) that targets this
+ * element will inherit the correct `--stgm-*` token values —
+ * including dark-mode overrides — because the container carries
+ * `data-stgm-color-mode` and the preset class.
+ *
+ * The element is created once on mount and removed on unmount.
+ * Attribute values are kept in sync with prop changes via a
+ * separate effect.
+ *
+ * Returns `null` during SSR (no `document`).
+ */
+function usePortalContainer(
+  colorMode: ResolvedColorMode,
+  presetClass: string,
+): HTMLElement | null {
+  const elRef = useRef<HTMLDivElement | null>(null);
+  const [container, setContainer] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const el = document.createElement("div");
+    el.className = cn("stgm", presetClass);
+    el.setAttribute("data-stgm-color-mode", colorMode);
+    el.setAttribute("data-stgm-portal", "");
+    document.body.appendChild(el);
+    elRef.current = el;
+    setContainer(el);
+
+    return () => {
+      document.body.removeChild(el);
+      elRef.current = null;
+    };
+  // Intentionally empty deps: create once on mount, remove on unmount.
+  // Attribute syncing is handled by the effect below.
+  }, []);
+
+  useEffect(() => {
+    const el = elRef.current;
+    if (!el) return;
+    el.className = cn("stgm", presetClass);
+    el.setAttribute("data-stgm-color-mode", colorMode);
+  }, [colorMode, presetClass]);
+
+  return container;
 }

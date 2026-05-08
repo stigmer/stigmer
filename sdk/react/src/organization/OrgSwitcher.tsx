@@ -12,6 +12,7 @@ import {
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { cn } from "@stigmer/theme";
+import { useStigmerPortalContainer } from "../portal-container";
 import {
   Menu,
   MenuContent,
@@ -66,6 +67,7 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
   const { orgs, activeOrg, setActiveOrg, isLoading, error, retry, refresh } =
     useOrg();
   const [createOpen, setCreateOpen] = useState(false);
+  const portalContainer = useStigmerPortalContainer();
 
   const handleOrgSwitch = useCallback(
     (slug: string) => {
@@ -188,7 +190,7 @@ export function OrgSwitcher({ onOrgChanged, className }: OrgSwitcherProps) {
         open={createOpen}
         onOpenChange={(open) => setCreateOpen(open)}
       >
-        <DialogPrimitive.Portal>
+        <DialogPrimitive.Portal container={portalContainer}>
           <DialogPrimitive.Backdrop
             className={cn(
               "fixed inset-0 z-50 bg-black/50",
