@@ -157,7 +157,7 @@ function LedgerRow({ entry }: { entry: CreditLedgerEntry }) {
               ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
               : hold
                 ? "bg-muted text-muted-foreground"
-                : "bg-destructive/10 text-destructive",
+                : "bg-destructive-subtle text-destructive",
           )}
         >
           {ledgerEntryLabel(entryType)}

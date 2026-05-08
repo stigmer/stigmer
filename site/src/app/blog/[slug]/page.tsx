@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { InlineTOC } from "fumadocs-ui/components/inline-toc";
 import { getMDXComponents } from "@/components/mdx";
@@ -40,12 +41,13 @@ export default async function BlogPost(props: PageProps) {
         )}
         <div className="mt-4 flex items-center gap-3 text-sm text-muted-foreground">
           {page.data.github && (
-            <img
+            <Image
               src={`https://github.com/${page.data.github}.png?size=80`}
-              alt={authorName}
+              alt={authorName ?? ""}
               width={40}
               height={40}
               className="rounded-full"
+              unoptimized
             />
           )}
           <div className="flex items-center gap-2">

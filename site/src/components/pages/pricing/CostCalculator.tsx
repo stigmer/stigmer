@@ -111,7 +111,7 @@ function CostCalculator({ models }: CostCalculatorProps) {
     <div className="border border-border rounded-lg overflow-hidden">
       <div className="divide-y divide-border">
         {rows.map((row, idx) => {
-          const model = modelMap.get(row.modelId);
+          const _model = modelMap.get(row.modelId);
           const tokens = getTokens(row);
           return (
             <div key={row.id} className="p-4 sm:p-6 space-y-4">

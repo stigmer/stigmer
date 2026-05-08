@@ -44,7 +44,7 @@ export function LowBalanceBanner({
       className={cn(
         "flex items-start gap-2.5 rounded-lg border px-3.5 py-3 text-xs",
         isZeroOrNegative
-          ? "border-destructive/30 bg-destructive/5 text-destructive"
+          ? "border-destructive/30 bg-destructive-subtle text-destructive"
           : "border-warning/30 bg-warning/5 text-warning-foreground",
         className,
       )}

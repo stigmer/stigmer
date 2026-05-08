@@ -199,7 +199,7 @@ export function AutoRechargeCard({
               onClick={handleSave}
               className={cn(
                 "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                "bg-primary text-primary-foreground hover:bg-primary/90",
+                "bg-primary text-primary-foreground hover:bg-primary-hover",
                 "disabled:pointer-events-none disabled:opacity-50",
               )}
               aria-busy={isSubmitting}
@@ -263,7 +263,7 @@ function DollarInput({
           placeholder={placeholder}
           className={cn(
             "w-full rounded-md border border-input bg-background py-1.5 pl-6 pr-3 text-xs tabular-nums",
-            "text-foreground placeholder:text-muted-foreground/60",
+            "text-foreground placeholder:text-muted-foreground-subtle",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
             "disabled:cursor-not-allowed disabled:opacity-50",
           )}

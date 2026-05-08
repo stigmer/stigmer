@@ -239,19 +239,19 @@ function SummaryCards({
 
       {/* Secondary row */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-lg border border-border-muted bg-card/50 px-3.5 py-2.5">
+        <div className="rounded-lg border border-border-muted bg-muted-subtle px-3.5 py-2.5">
           <div className="text-sm font-semibold tabular-nums text-foreground">
             {formatCompactNumber(report.totalExecutions)}
           </div>
           <div className="text-[0.65rem] text-muted-foreground">Executions</div>
         </div>
-        <div className="rounded-lg border border-border-muted bg-card/50 px-3.5 py-2.5">
+        <div className="rounded-lg border border-border-muted bg-muted-subtle px-3.5 py-2.5">
           <div className="text-sm font-semibold tabular-nums text-foreground">
             {formatCompactNumber(report.totalAgents)}
           </div>
           <div className="text-[0.65rem] text-muted-foreground">Agents</div>
         </div>
-        <div className="rounded-lg border border-border-muted bg-card/50 px-3.5 py-2.5">
+        <div className="rounded-lg border border-border-muted bg-muted-subtle px-3.5 py-2.5">
           <div className="text-sm font-semibold tabular-nums text-foreground">
             {formatCompactNumber(report.totalSessions)}
           </div>
