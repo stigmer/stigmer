@@ -68,8 +68,53 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-03 09:55
-**Current Task**: Production ship — all blockers resolved, branch ready to merge.
-**Status**: All 14 billing RPCs handler-wired and secured. Production readiness complete. Phase 5.3 (Alerts) on hold. Phase 5.4 (Cost Calculator) deferred to Phase 6.4.
+**Current Task**: Phase 6 pricing page, cost calculator, and billing docs complete.
+**Status**: All 14 billing RPCs handler-wired and secured. Production readiness complete. Reservation expiry cleanup job implemented. Phase 5.3 (Alerts) on hold. Phase 6 enterprise invoicing deferred (no demand yet). Phase 6.1-6.4 (pricing page, cost calculator, public API, billing docs) complete.
+
+### Pricing Page, Cost Calculator & Billing Docs Session (2026-05-08)
+- Decided Phase 6 (enterprise invoicing) is deferred until customer demand — no enterprise billing system work needed yet
+- Identified that the sales website pricing page was stale (3-tier subscription placeholder with waitlist form) and needed a full rewrite to match the live prepaid credit model
+- **Phase 6.1 — Public Model Pricing API** (stigmer-cloud):
+  - Created `PublicBillingController` with `GET /api/v1/public/model-pricing` — unauthenticated REST endpoint
+  - Reuses `ModelPricingService` + `BillingPolicyService` + `BillingMicros` (same logic as `GetCustomerModelPricingHandler`)
+  - Added `/api/v1/public/**` to `permitAll()` in `HttpSecurityConfig`
+  - CORS configured for `stigmer.ai`, `www.stigmer.ai`, `localhost:3000`
+  - `Cache-Control: public, max-age=3600` for 1-hour browser/CDN cache
+- **Phase 6.2 — Pricing Page Rewrite** (stigmer OSS):
+  - Replaced 3-tier subscription layout with credit-based pricing page
+  - Sections: Hero, How It Works (3 steps), Credit Packs (Starter $10 / Growth $50 / Team $200), Model Pricing Table, Cost Calculator, FAQ (7 items), Enterprise CTA
+  - Removed waitlist form and "Coming Soon" messaging entirely
+  - Added `cloudApiUrl` to `SITE_CONFIG`, removed unused `waitlistUrl`
+- **Phase 6.3 — Interactive Cost Calculator** (stigmer OSS):
+  - New `CostCalculator.tsx` component in `site/src/components/pages/pricing/`
+  - Model selector (up to 5), volume presets (Light/Moderate/Heavy/Custom), real-time cost math
+  - Per-model cost breakdown + total monthly estimate, sign-up CTA
+  - `ModelPricingTable.tsx` — grouped-by-harness table with per-model input/output rates
+  - Shared `types.ts` with `ModelPricingEntry` interface and formatting utilities
+- **Phase 6.4 — Billing Docs** (stigmer OSS):
+  - Created `docs/concepts/billing.mdx` — full billing concepts page
+  - Covers: credit wallet, packs, pricing formula, billing policies, execution lifecycle (4 phases), balance model, auto-recharge, low-balance behavior, ledger entry types, payment methods, self-hosting
+  - Added to docs sidebar navigation (`docs/concepts/meta.json`)
+- Changelog: `_changelog/2026-05/2026-05-08-134755-pricing-page-rewrite-cost-calculator-billing-docs.md`
+
+### Reservation Expiry Cleanup Session (2026-05-08)
+- Identified missing reservation expiry cleanup job — the `(status, expires_at)` compound index, `reservation_expired` proto enum, and `BillingExecutionConfig.reservationExpiryHours` were all designed for a cleanup job that was never implemented
+- Built a dedicated Temporal scheduled workflow (`ReservationExpiryWorkflow`) following the exact structural pattern of `BillingReconciliationWorkflow`:
+  - New package: `billing/temporal/reservation_expiry/` (10 source files)
+  - `ReservationExpiryWorkflow` + `ReservationExpiryWorkflowImpl` — scheduled every 10 minutes, finds expired ACTIVE reservations, releases unused credits, transitions to `reservation_expired`
+  - `ReservationExpiryActivities` + `ReservationExpiryActivitiesImpl` — delegates to `ExecutionBillingService.expireReservation()`
+  - `ReservationExpiryConfig` — `@ConfigurationProperties(prefix = "stigmer.billing.reservation-expiry")` with `enabled`, `intervalMinutes`, `batchSize`
+  - `ReservationExpiryTemporalConfig` — task queue `reservation_expiry` (isolated from agent execution and Stripe reconciliation)
+  - `ReservationExpiryWorkerConfig` — registers workflow + activities on dedicated task queue
+  - `ReservationExpiryStarter` — `ApplicationRunner` that creates the Temporal schedule on boot (idempotent)
+  - `ExpiredReservationRef` — lightweight `record` for Temporal workflow history
+  - `ExpiryResult` — outcome enum (`RELEASED`, `ALREADY_SETTLED`, `SKIPPED`)
+- Added `ExecutionReservationRepo.findActiveExpiredBefore(Instant cutoff, int maxResults)` — uses existing `(status, expires_at)` compound index
+- Added `ExecutionBillingService.expireReservation(String executionId)` + `@Transactional executeExpiry()` — mirrors `executeFinalization` but uses `reservation_expired` status and `expire_{executionId}` idempotency key
+- Race safety with `finalizeExecution`: mutually exclusive by status guard — only one path wins the `reservation_active` → terminal state transition
+- Lowered `reservationExpiryHours` default from 4 to 1 hour — most executions complete in minutes; HITL scenarios correctly fall back to available-balance debit after expiry
+- Added YAML config for `stigmer.billing.reservation-expiry` (application.yaml) and `temporal.reservation-expiry` (application-temporal.yaml)
+- 16 new/modified test cases across 4 test files: repo, service, workflow, activities
 
 ### Production Ship Session (2026-05-07)
 - Added `can_view_billing` (viewer) and `can_manage_billing` (admin) to organization.fga — FGA model applied
@@ -778,7 +823,7 @@ When starting a new session:
 1. ~~Balance & Spend Dashboard (5.1) — runway, enhanced summary cards~~ ✅
 2. ~~Usage Breakdown (5.2) — per-agent, harness split~~ ✅
 3. Alerts & Notifications (5.3) — ON HOLD (requires email infrastructure)
-4. Cost Calculator (5.4) — interactive estimator for pricing page (deferred to Phase 6.4)
+4. ~~Cost Calculator (5.4) — interactive estimator for pricing page~~ ✅ (implemented as Phase 6.3)
 5. ~~CSV Export (5.5) — daily + model breakdown downloads~~ ✅
 6. ~~Deferred RPCs — getBillingUsageReport + getCustomerModelPricing~~ ✅
 
@@ -786,7 +831,7 @@ When starting a new session:
 
 After loading context:
 - "Start Phase 5.3" - Begin alerts & notifications infrastructure (requires email infra decision)
-- "Start Phase 6" - Scope enterprise invoicing
+- "Start enterprise invoicing" - Scope Phase 6 enterprise billing (deferred until demand)
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

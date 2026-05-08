@@ -10,223 +10,166 @@ import { SkipLink } from "@/components/ui/skip-link";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/ui/motion";
+import { CostCalculator } from "@/components/pages/pricing/CostCalculator";
+import { ModelPricingTable } from "@/components/pages/pricing/ModelPricingTable";
+import type { ModelPricingEntry } from "@/components/pages/pricing/types";
 
-interface Tier {
-  name: string;
-  price: string;
-  period: string;
-  description: string;
-  features: string[];
-  cta: string;
-  href: string;
-  featured: boolean;
-  waitlist?: boolean;
-}
-
-const TIERS: Tier[] = [
+const CREDIT_PACKS = [
   {
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    description: "For getting started and prototyping.",
-    features: [
-      "1 agent",
-      "1,000 executions / month",
-      "Community support",
-      "All SDKs included",
-    ],
-    cta: "Start Free",
-    href: SITE_CONFIG.cloudSignupUrl,
-    featured: false,
+    id: "starter",
+    name: "Starter",
+    price: 10,
+    credits: "1,000",
+    description: "Try it out with a small balance.",
   },
   {
-    name: "Pro",
-    price: "Coming soon",
-    period: "",
-    description: "For production workloads and growing teams.",
-    features: [
-      "Unlimited agents",
-      "Unlimited executions",
-      "Priority support",
-      "Custom domains",
-      "Advanced analytics",
-    ],
-    cta: "Join Waitlist",
-    href: SITE_CONFIG.waitlistUrl,
+    id: "growth",
+    name: "Growth",
+    price: 50,
+    credits: "5,000",
+    description: "For regular development and testing.",
     featured: true,
-    waitlist: true,
   },
   {
-    name: "Enterprise",
-    price: "Custom",
-    period: "",
-    description: "For teams that need dedicated support, SLAs, and compliance.",
-    features: [
-      "Everything in Pro",
-      "Dedicated infrastructure",
-      "SSO / SAML",
-      "99.99% SLA",
-      "Dedicated support",
-      "Custom contracts",
-    ],
-    cta: "Contact Sales",
-    href: SITE_CONFIG.contactSalesUrl,
-    featured: false,
+    id: "team",
+    name: "Team",
+    price: 200,
+    credits: "20,000",
+    description: "For production workloads and teams.",
   },
-];
+] as const;
 
-type WaitlistStatus = "idle" | "submitting" | "success" | "error";
+const HOW_IT_WORKS_STEPS = [
+  {
+    number: "1",
+    title: "Sign up and get trial credits",
+    description:
+      "Create an account and receive free credits to explore the platform. No credit card required.",
+  },
+  {
+    number: "2",
+    title: "Run agents, pay per LLM call",
+    description:
+      "Each LLM call during agent execution is metered and debited from your balance at transparent per-token rates.",
+  },
+  {
+    number: "3",
+    title: "Buy more or auto-recharge",
+    description:
+      "Purchase credit packs when you need them, or enable auto-recharge to keep your balance topped up automatically.",
+  },
+] as const;
 
-function WaitlistForm() {
-  const [status, setStatus] = React.useState<WaitlistStatus>("idle");
-  const [email, setEmail] = React.useState("");
-  const loadedAt = React.useRef(Date.now());
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setStatus("submitting");
-
-    try {
-      const res = await fetch(
-        `${SITE_CONFIG.leadsFormUrl}/submit/waitlist`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "waitlist",
-            email,
-            _t: Date.now() - loadedAt.current,
-          }),
-        },
-      );
-
-      if (!res.ok) throw new Error(`${res.status}`);
-      setStatus("success");
-    } catch {
-      setStatus("error");
-    }
-  }
-
-  if (status === "success") {
-    return (
-      <div className="flex items-center gap-2 text-sm text-foreground">
-        <Icon name="check" size="sm" />
-        <span>You are on the list. We will be in touch.</span>
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-2" id="waitlist">
-      <div className="flex gap-2">
-        <input
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@company.com"
-          className={cn(
-            "flex-1 min-w-0 rounded border border-border bg-background px-3 py-2",
-            "text-sm text-foreground placeholder:text-subtle",
-            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
-          )}
-        />
-        <Button
-          type="submit"
-          size="default"
-          disabled={status === "submitting"}
-          className="shrink-0"
-        >
-          {status === "submitting" ? "..." : "Join"}
-        </Button>
-      </div>
-      {status === "error" && (
-        <p className="text-xs text-destructive">
-          Something went wrong. Please try again.
-        </p>
-      )}
-    </form>
-  );
-}
-
-function TierCard({ tier }: { tier: Tier }) {
-  return (
-    <div
-      className={cn(
-        "bg-background p-6 sm:p-8 h-full flex flex-col",
-        tier.featured && "bg-card",
-      )}
-    >
-      <div className="mb-6">
-        <h2 className="text-xs font-mono uppercase tracking-wider text-subtle mb-3">
-          {tier.name}
-        </h2>
-        <div className="flex items-baseline gap-1.5 mb-2">
-          <span className="text-3xl font-bold text-foreground">
-            {tier.price}
-          </span>
-          {tier.period && (
-            <span className="text-sm text-subtle">/ {tier.period}</span>
-          )}
-        </div>
-        <p className="text-sm text-muted-foreground">{tier.description}</p>
-      </div>
-
-      <ul className="space-y-3 mb-8 flex-1">
-        {tier.features.map((feature) => (
-          <li
-            key={feature}
-            className="flex items-start gap-2 text-sm text-muted-foreground"
-          >
-            <Icon
-              name="check"
-              size="sm"
-              className="text-foreground shrink-0 mt-0.5"
-            />
-            {feature}
-          </li>
-        ))}
-      </ul>
-
-      {tier.waitlist ? (
-        <WaitlistForm />
-      ) : (
-        <Button
-          asChild
-          variant={tier.featured ? "default" : "outline"}
-          className="w-full"
-        >
-          {tier.href.startsWith("/") ? (
-            <Link href={tier.href}>{tier.cta}</Link>
-          ) : (
-            <a href={tier.href}>{tier.cta}</a>
-          )}
-        </Button>
-      )}
-    </div>
-  );
-}
+const FAQ_ITEMS = [
+  {
+    q: "What are credits?",
+    a: "Credits are dollar-denominated units used for Stigmer Cloud billing. 1 credit = $0.01 USD. When your AI agents make LLM calls, tokens are metered and the cost is debited from your credit balance.",
+  },
+  {
+    q: "Do credits expire?",
+    a: "Purchased credits expire 12 months after purchase. Promotional and trial credits expire after 90 days. Credits are non-refundable once used.",
+  },
+  {
+    q: "How does auto-recharge work?",
+    a: "Save a payment method during your first purchase. Then configure auto-recharge in your billing settings — set a threshold, recharge amount, and monthly cap. When your balance drops below the threshold, we automatically charge your saved card.",
+  },
+  {
+    q: "What happens when my balance runs out?",
+    a: "Running executions will finish their current LLM call, then stop gracefully. You will see low-balance warnings before that happens. New executions cannot start until credits are added.",
+  },
+  {
+    q: "Can I self-host for free?",
+    a: "Yes. Stigmer is fully open source under Apache 2.0. Self-host it anywhere — there is no vendor lock-in. Cloud billing only applies when you use Stigmer Cloud (app.stigmer.ai).",
+  },
+  {
+    q: "How is pricing calculated?",
+    a: "Each LLM call is priced based on the model used and the number of input and output tokens. Rates include a small platform margin over provider costs. See the pricing table above for exact per-model rates.",
+  },
+] as const;
 
 function PricingPage() {
+  const [pricingData, setPricingData] = React.useState<ModelPricingEntry[]>([]);
+  const [pricingLoaded, setPricingLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    fetch(`${SITE_CONFIG.cloudApiUrl}/api/v1/public/model-pricing`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+      .then((data: { entries: ModelPricingEntry[] }) => {
+        setPricingData(data.entries);
+        setPricingLoaded(true);
+      })
+      .catch(() => {
+        setPricingLoaded(true);
+      });
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <SkipLink />
       <Header />
 
       <main id="main-content" className="pt-16" tabIndex={-1}>
+        {/* Hero */}
         <section className="py-16 sm:py-24 px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <FadeInUp>
+              <p className="text-xs font-mono uppercase tracking-wider text-subtle mb-4">
+                Pricing
+              </p>
+              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground mb-6">
+                Pay only for what you use.
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Stigmer Cloud uses prepaid credits. Purchase credits, run your
+                AI agents, and only pay for the LLM calls they make.
+                Transparent per-token pricing with no hidden fees.
+              </p>
+            </FadeInUp>
+          </div>
+        </section>
+
+        {/* How It Works */}
+        <section className="py-12 sm:py-16 px-4">
           <div className="max-w-5xl mx-auto">
             <FadeInUp>
-              <div className="text-center mb-16">
-                <p className="text-xs font-mono uppercase tracking-wider text-subtle mb-4">
-                  Pricing
-                </p>
-                <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground mb-6">
-                  Start free. Scale when ready.
-                </h1>
-                <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-                  Every plan includes the full open-source platform. Cloud
-                  pricing covers hosting, execution, and support.
+              <h2 className="text-xs font-mono uppercase tracking-wider text-subtle mb-8 text-center">
+                How it works
+              </h2>
+            </FadeInUp>
+            <StaggerContainer
+              className="grid grid-cols-1 md:grid-cols-3 gap-8"
+              staggerDelay={0.1}
+              delayChildren={0.1}
+            >
+              {HOW_IT_WORKS_STEPS.map((step) => (
+                <StaggerItem key={step.number}>
+                  <div className="text-center">
+                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-border text-sm font-mono text-foreground mb-4">
+                      {step.number}
+                    </div>
+                    <h3 className="text-sm font-semibold text-foreground mb-2">
+                      {step.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {step.description}
+                    </p>
+                  </div>
+                </StaggerItem>
+              ))}
+            </StaggerContainer>
+          </div>
+        </section>
+
+        {/* Credit Packs */}
+        <section className="py-12 sm:py-16 px-4">
+          <div className="max-w-5xl mx-auto">
+            <FadeInUp>
+              <div className="text-center mb-12">
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-4">
+                  Credit Packs
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Purchase credits in packs. 1 credit = $0.01 USD.
                 </p>
               </div>
             </FadeInUp>
@@ -236,26 +179,191 @@ function PricingPage() {
               staggerDelay={0.1}
               delayChildren={0.1}
             >
-              {TIERS.map((tier) => (
-                <StaggerItem key={tier.name}>
-                  <TierCard tier={tier} />
+              {CREDIT_PACKS.map((pack) => (
+                <StaggerItem key={pack.id}>
+                  <CreditPackCard pack={pack} />
                 </StaggerItem>
               ))}
             </StaggerContainer>
 
             <FadeInUp delay={0.3}>
-              <div className="text-center mt-12">
+              <div className="text-center mt-8">
                 <p className="text-sm text-subtle">
-                  All plans include the full Apache 2.0 open-source platform.
-                  Self-host anytime — no vendor lock-in.
+                  All new accounts receive free trial credits. No credit card
+                  required to start.
                 </p>
               </div>
+            </FadeInUp>
+          </div>
+        </section>
+
+        {/* Model Pricing Table */}
+        {pricingLoaded && pricingData.length > 0 && (
+          <section className="py-12 sm:py-16 px-4">
+            <div className="max-w-5xl mx-auto">
+              <FadeInUp>
+                <div className="text-center mb-12">
+                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-4">
+                    Per-Model Pricing
+                  </h2>
+                  <p className="text-sm text-muted-foreground max-w-xl mx-auto">
+                    Prices per million tokens, including platform margin.
+                    These are what you pay — not raw provider rates.
+                  </p>
+                </div>
+              </FadeInUp>
+              <FadeInUp delay={0.1}>
+                <ModelPricingTable entries={pricingData} />
+              </FadeInUp>
+            </div>
+          </section>
+        )}
+
+        {/* Cost Calculator */}
+        {pricingLoaded && pricingData.length > 0 && (
+          <section className="py-12 sm:py-16 px-4" id="calculator">
+            <div className="max-w-4xl mx-auto">
+              <FadeInUp>
+                <div className="text-center mb-12">
+                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-4">
+                    Estimate Your Cost
+                  </h2>
+                  <p className="text-sm text-muted-foreground max-w-xl mx-auto">
+                    Select the models you plan to use and estimate your monthly
+                    token volume to see projected costs.
+                  </p>
+                </div>
+              </FadeInUp>
+              <FadeInUp delay={0.1}>
+                <CostCalculator models={pricingData} />
+              </FadeInUp>
+            </div>
+          </section>
+        )}
+
+        {/* FAQ */}
+        <section className="py-12 sm:py-16 px-4">
+          <div className="max-w-3xl mx-auto">
+            <FadeInUp>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-8 text-center">
+                Frequently Asked Questions
+              </h2>
+            </FadeInUp>
+            <div className="space-y-6">
+              {FAQ_ITEMS.map((item) => (
+                <FadeInUp key={item.q}>
+                  <div className="border border-border rounded-lg p-6">
+                    <h3 className="text-sm font-semibold text-foreground mb-2">
+                      {item.q}
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {item.a}
+                    </p>
+                  </div>
+                </FadeInUp>
+              ))}
+              <FadeInUp>
+                <div className="border border-border rounded-lg p-6">
+                  <h3 className="text-sm font-semibold text-foreground mb-2">
+                    Where can I learn more about billing?
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    See the{" "}
+                    <Link
+                      href="/docs/concepts/billing"
+                      className="text-foreground underline underline-offset-4 hover:text-foreground/80"
+                    >
+                      billing documentation
+                    </Link>{" "}
+                    for a full explanation of how credits, reservations,
+                    auto-recharge, and pricing policies work.
+                  </p>
+                </div>
+              </FadeInUp>
+            </div>
+          </div>
+        </section>
+
+        {/* Enterprise CTA */}
+        <section className="py-16 sm:py-24 px-4">
+          <div className="max-w-3xl mx-auto text-center">
+            <FadeInUp>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-4">
+                Need custom pricing?
+              </h2>
+              <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
+                For committed usage, volume discounts, invoiced billing, or
+                dedicated infrastructure — talk to our team.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button asChild size="lg">
+                  <a href={SITE_CONFIG.cloudSignupUrl}>Start Free</a>
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <Link href={SITE_CONFIG.contactSalesUrl}>
+                    Contact Sales
+                  </Link>
+                </Button>
+              </div>
+            </FadeInUp>
+            <FadeInUp delay={0.2}>
+              <p className="text-sm text-subtle mt-8">
+                All plans include the full Apache 2.0 open-source platform.
+                Self-host anytime — no vendor lock-in.
+              </p>
             </FadeInUp>
           </div>
         </section>
       </main>
 
       <Footer />
+    </div>
+  );
+}
+
+interface CreditPackCardProps {
+  pack: (typeof CREDIT_PACKS)[number];
+}
+
+function CreditPackCard({ pack }: CreditPackCardProps) {
+  const featured = "featured" in pack && pack.featured;
+  return (
+    <div
+      className={cn(
+        "bg-background p-6 sm:p-8 h-full flex flex-col",
+        featured && "bg-card",
+      )}
+    >
+      <div className="mb-6">
+        <h3 className="text-xs font-mono uppercase tracking-wider text-subtle mb-3">
+          {pack.name}
+        </h3>
+        <div className="flex items-baseline gap-1.5 mb-2">
+          <span className="text-3xl font-bold text-foreground">
+            ${pack.price}
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground">{pack.description}</p>
+      </div>
+
+      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
+        <Icon
+          name="check"
+          size="sm"
+          className="text-foreground shrink-0"
+        />
+        <span>{pack.credits} credits included</span>
+      </div>
+
+      <div className="mt-auto">
+        <Button
+          asChild
+          variant={featured ? "default" : "outline"}
+          className="w-full"
+        >
+          <a href={SITE_CONFIG.cloudSignupUrl}>Get Started</a>
+        </Button>
+      </div>
     </div>
   );
 }

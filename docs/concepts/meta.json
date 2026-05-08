@@ -12,6 +12,7 @@
     "workflows",
     "environments",
     "organizations",
-    "identity"
+    "identity",
+    "billing"
   ]
 }

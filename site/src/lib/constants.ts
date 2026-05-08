@@ -31,9 +31,9 @@ export const SITE_CONFIG = {
 
   cloudSignupUrl: "https://app.stigmer.ai",
   cloudSigninUrl: "https://app.stigmer.ai",
+  cloudApiUrl: "https://api.stigmer.ai",
 
   contactSalesUrl: "/contact-sales",
-  waitlistUrl: "/pricing#waitlist",
 
   leadsFormUrl: "https://stigmer-prod-leads-form-receiver.planton.live",
 } as const;

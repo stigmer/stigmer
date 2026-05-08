@@ -1,0 +1,180 @@
+---
+title: Billing
+description:
+  How Stigmer Cloud billing works — prepaid credits, per-token pricing,
+  execution reservations, automatic recharge, and balance management.
+---
+
+## Overview
+
+Stigmer Cloud uses a **prepaid credit wallet**. You purchase credits before
+running Agents. Each LLM call during an Agent Execution is metered and the cost
+is debited from your balance in real time.
+
+- **1 credit = $0.01 USD** (10,000 micro-USD internally)
+- Credits are dollar-denominated — no abstract unit conversion
+- Self-hosted Stigmer (OSS) has no billing — it runs on your infrastructure
+
+## Credit packs
+
+Credits are sold in fixed packs through Stripe Checkout:
+
+| Pack    | Price | Credits |
+| ------- | ----- | ------- |
+| Starter | $10   | 1,000   |
+| Growth  | $50   | 5,000   |
+| Team    | $200  | 20,000  |
+
+New accounts receive a one-time promotional credit grant to explore the
+platform. Promotional credits expire after 90 days. Purchased credits expire 12
+months from purchase.
+
+## How pricing works
+
+Each LLM call has a cost based on three factors:
+
+1. **Model** — different models have different per-token rates
+2. **Token count** — input tokens, output tokens, cache writes, and cache reads
+3. **Billing policy** — a markup multiplier applied over the raw provider rate
+
+The formula for a single call:
+
+```
+billable_amount = (input_tokens × input_rate / 1M)
+                + (output_tokens × output_rate / 1M)
+                + (cache_write_tokens × cache_write_rate / 1M)
+                + (cache_read_tokens × cache_read_rate / 1M)
+```
+
+Rates are per million tokens with the platform markup already included. You can
+see current rates on the [pricing page](https://stigmer.ai/pricing) or via the
+`getCustomerModelPricing` API.
+
+### Billing policies
+
+Rates are set by **billing policies** — versioned configurations that define the
+markup multiplier for each combination of execution harness and model cost tier.
+For example:
+
+- **Native harness, standard tier**: 1.25× provider cost
+- **Cursor harness, standard tier**: 1.05× (Cursor already includes margin)
+
+Policies are applied at billing time. Changing a policy only affects future
+usage — historical charges are immutable.
+
+## Execution billing lifecycle
+
+When an Agent Execution runs on Stigmer Cloud, billing follows a four-phase
+lifecycle:
+
+### 1. Authorization
+
+Before the Agent Runner starts, the billing system **reserves** credits from
+your available balance. This reservation ensures the execution has budget to
+operate.
+
+- Default reservation: $1.00
+- Minimum balance to start: $0.05
+- If your balance is below $1.00 but above $0.05, a partial reservation is made
+  for whatever is available
+
+### 2. Per-call debit
+
+As each LLM call completes, the proxy extracts token usage from the provider's
+response and records it. The billing system computes the cost server-side (using
+frozen rates from the model registry, not caller-provided data) and debits it
+from the reservation.
+
+After each debit, a **billing signal** is returned:
+
+- `continue` — balance is healthy
+- `low_balance_warning` — balance is getting low
+- `stop_execution` — balance is exhausted; the Agent should wrap up
+
+### 3. Finalization
+
+When the execution completes (success, failure, or cancellation), unused
+reservation credits are **released** back to your available balance. A summary
+of the execution's total cost is recorded.
+
+### 4. Reservation expiry (safety net)
+
+If an execution never finalizes (crash, network partition), reservations expire
+automatically after 1 hour. Expired reservations release unused credits back to
+the available balance.
+
+## Balance model
+
+Your billing account tracks credits in two buckets:
+
+- **Available** — credits you can use for new executions
+- **Reserved** — credits held by active execution reservations
+
+The invariant is: `total = available + reserved`.
+
+Credits are also categorized by source:
+
+- **Purchased** — from Stripe payments and automatic recharge
+- **Promotional** — from free trial grants and campaigns
+
+Promotional credits are consumed first (burn-order priority), so your purchased
+credits last longer.
+
+## Automatic recharge
+
+Save a payment method during your first purchase, then configure automatic
+recharge in your billing settings:
+
+- **Threshold** — recharge when available balance drops below this amount
+- **Recharge amount** — fixed amount to charge per event
+- **Monthly cap** — maximum total recharge spend per calendar month
+
+<!-- vale off -->
+
+Automatic recharge uses off-session Stripe PaymentIntents against your saved
+payment method. Credits appear after payment confirmation (typically a few
+seconds). The monthly cap resets on the first day of each UTC month.
+
+<!-- vale on -->
+
+## Low balance and stop behavior
+
+When your balance gets low during an execution:
+
+1. At the **low balance threshold**, a `low_balance_warning` signal is sent to
+   the Runner and automatic recharge is triggered (if configured)
+2. At **zero balance**, a `stop_execution` signal tells the Runner to finish the
+   current LLM call and stop — the Agent summarizes its progress and exits
+3. **New executions** cannot start when the available balance is below $0.05
+
+## Credit ledger
+
+Every balance-affecting operation produces an **immutable ledger entry**:
+
+- `purchase_credit` — Stripe Checkout purchase
+- `auto_recharge_credit` — automatic top-up
+- `promotional_credit` — trial or campaign grant
+- `usage_debit` — LLM call cost deduction
+- `reservation_hold` — credits reserved at execution start
+- `reservation_release` — unused credits returned after execution
+- `adjustment_credit` / `adjustment_debit` — manual admin adjustments
+- `refund_reversal` — Stripe refund reversal
+- `expiry_debit` — expired credit removal
+
+<!-- vale off -->
+
+All entries are append-only and deduplicated by an idempotency key.
+
+<!-- vale on -->
+
+## Payment methods
+
+Payment methods are managed through the **Stripe Customer Portal**. You can add,
+update, or remove cards without leaving the Stigmer billing flow. Your default
+payment method is used for automatic recharge.
+
+## Self-hosting
+
+Stigmer is fully open source under Apache 2.0. When you self-host, there is no
+billing — you pay your own LLM provider costs directly. Billing only applies
+when using Stigmer Cloud at [`app.stigmer.ai`](https://app.stigmer.ai).
