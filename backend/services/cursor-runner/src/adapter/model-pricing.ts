@@ -1,42 +1,53 @@
 /**
  * Cursor model pricing lookup, validation, and cost computation.
  *
- * PRICING_TABLE in model-pricing-data.ts is the single source of truth for
- * both which models are available and what they cost. Model discovery is
- * a simple map lookup — no runtime API calls.
- *
- * Update the data with: @update-cursor-model-pricing
+ * Pricing data is fetched from the public model registry API and cached
+ * locally with a 1-hour TTL. The pricing map is initialized on first
+ * access via {@link ensureLoaded}.
  */
 
-import { PRICING_TABLE } from "./model-pricing-data.js";
+import { getPricingTable, DEFAULT_PRICING } from "./model-pricing-data.js";
 import type { CursorModelPricing } from "./model-pricing-data.js";
 
 export type { CursorModelPricing };
 
-const pricingByModel = new Map<string, CursorModelPricing>(
-  PRICING_TABLE.map((entry) => [entry.model, entry]),
-);
+let pricingByModel: Map<string, CursorModelPricing> | null = null;
+let initPromise: Promise<void> | null = null;
 
-const DEFAULT_PRICING: CursorModelPricing = {
-  model: "unknown",
-  displayName: "Unknown",
-  costTier: "standard",
-  inputPricePerMillion: 1.25,
-  outputPricePerMillion: 6.00,
-  cacheWritePricePerMillion: 1.25,
-  cacheReadPricePerMillion: 0.25,
-};
+/**
+ * Ensure the pricing map has been populated from the API cache.
+ *
+ * Call this once at service startup or before the first pricing lookup.
+ * Subsequent calls are no-ops while the cache is fresh.
+ */
+export async function ensureLoaded(): Promise<void> {
+  if (initPromise) return initPromise;
+
+  initPromise = getPricingTable().then((table) => {
+    pricingByModel = new Map(table.map((entry) => [entry.model, entry]));
+  });
+
+  return initPromise;
+}
+
+function getMap(): Map<string, CursorModelPricing> {
+  if (!pricingByModel) {
+    console.warn("Model pricing accessed before ensureLoaded() — returning empty map");
+    return new Map();
+  }
+  return pricingByModel;
+}
 
 /**
  * Validate a requested model ID against the pricing registry.
  * Returns the model ID if it has a pricing entry, otherwise falls back
- * to "default". This is the single source of truth for model availability.
+ * to "default".
  */
 export function resolveModelId(requestedModel: string): string {
   if (!requestedModel || requestedModel === "default") return "default";
-  if (pricingByModel.has(requestedModel)) return requestedModel;
+  if (getMap().has(requestedModel)) return requestedModel;
   console.warn(
-    `Model "${requestedModel}" not in pricing registry (${pricingByModel.size} models), falling back to "default"`,
+    `Model "${requestedModel}" not in pricing registry (${getMap().size} models), falling back to "default"`,
   );
   return "default";
 }
@@ -46,7 +57,7 @@ export function resolveModelId(requestedModel: string): string {
  * unknown models (conservative default that avoids undercharging).
  */
 export function getCursorModelPricing(model: string): CursorModelPricing {
-  return pricingByModel.get(model) ?? { ...DEFAULT_PRICING, model };
+  return getMap().get(model) ?? { ...DEFAULT_PRICING, model };
 }
 
 /**
