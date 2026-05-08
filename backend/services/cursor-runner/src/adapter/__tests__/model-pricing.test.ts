@@ -1,10 +1,36 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeAll } from "vitest";
 import {
   getCursorModelPricing,
   computeTurnCost,
   resolveModelId,
+  ensureLoaded,
   type CursorModelPricing,
 } from "../model-pricing.js";
+
+const TEST_PRICING_TABLE = vi.hoisted(() => [
+  { model: "default", displayName: "Auto", costTier: "standard", inputPricePerMillion: 1.25, outputPricePerMillion: 6.0, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.25 },
+  { model: "composer-2", displayName: "Composer 2", costTier: "standard", inputPricePerMillion: 1.25, outputPricePerMillion: 6.0, cacheWritePricePerMillion: 1.25, cacheReadPricePerMillion: 0.25 },
+  { model: "composer-1.5", displayName: "Composer 1.5", costTier: "economy", inputPricePerMillion: 0.80, outputPricePerMillion: 3.0, cacheWritePricePerMillion: 0.80, cacheReadPricePerMillion: 0.15 },
+  { model: "claude-opus-4-7", displayName: "Claude Opus 4.7", costTier: "premium", inputPricePerMillion: 15.0, outputPricePerMillion: 75.0, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 1.50 },
+  { model: "claude-sonnet-4-6", displayName: "Claude Sonnet 4.6", costTier: "standard", inputPricePerMillion: 3.0, outputPricePerMillion: 15.0, cacheWritePricePerMillion: 3.75, cacheReadPricePerMillion: 0.30 },
+  { model: "gpt-5.5", displayName: "GPT-5.5", costTier: "premium", inputPricePerMillion: 10.0, outputPricePerMillion: 30.0, cacheWritePricePerMillion: 5.0, cacheReadPricePerMillion: 2.50 },
+  { model: "gpt-5.4-mini", displayName: "GPT-5.4 Mini", costTier: "economy", inputPricePerMillion: 0.40, outputPricePerMillion: 1.60, cacheWritePricePerMillion: 0.40, cacheReadPricePerMillion: 0.10 },
+  { model: "gemini-3-flash", displayName: "Gemini 3 Flash", costTier: "economy", inputPricePerMillion: 0.15, outputPricePerMillion: 0.60, cacheWritePricePerMillion: 0.04, cacheReadPricePerMillion: 0.02 },
+  { model: "grok-4-20", displayName: "Grok 4-20", costTier: "standard", inputPricePerMillion: 2.0, outputPricePerMillion: 10.0, cacheWritePricePerMillion: 2.0, cacheReadPricePerMillion: 0.50 },
+  { model: "kimi-k2.5", displayName: "Kimi K2.5", costTier: "standard", inputPricePerMillion: 1.50, outputPricePerMillion: 6.0, cacheWritePricePerMillion: 1.50, cacheReadPricePerMillion: 0.30 },
+]);
+
+vi.mock("../model-pricing-data.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../model-pricing-data.js")>();
+  return {
+    ...actual,
+    getPricingTable: vi.fn().mockResolvedValue(TEST_PRICING_TABLE),
+  };
+});
+
+beforeAll(async () => {
+  await ensureLoaded();
+});
 
 describe("getCursorModelPricing", () => {
   it.each([
