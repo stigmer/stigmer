@@ -211,15 +211,21 @@ COPY --from=cursor-runner-builder /build/cursor-runner/package.json /cursor-runn
 COPY --from=cursor-runner-builder /build/apis/stubs/ts /apis/stubs/ts
 
 # Verify cursor-runner is importable in the final image.
-# Tests @temporalio/worker (native Rust bindings), config, and @stigmer/protos
-# (file: dependency resolved as a symlink — the target must exist in the image).
-# We cannot import execute-cursor.js directly because it transitively loads
-# @cursor/sdk and gRPC clients that require runtime env vars / network.
-RUN node --input-type=module -e "\
+# Must cd into /cursor-runner so bare specifier imports (e.g. @temporalio/worker)
+# resolve from /cursor-runner/node_modules.
+# 1. @temporalio/worker: native Rust bindings must load on this platform.
+# 2. config.js: basic module resolution works.
+# 3. @stigmer/protos symlink: the file: dependency creates a symlink whose
+#    target must exist in the image. We verify via require() because the
+#    package exports .ts source files that Node.js cannot import as ESM.
+RUN cd /cursor-runner && \
+    node --input-type=module -e "\
 import { NativeConnection } from '@temporalio/worker'; \
-import '/cursor-runner/dist/config.js'; \
-import '@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb'; \
-console.log('cursor-runner import verification passed')"
+import './dist/config.js'; \
+console.log('cursor-runner import verification passed')" && \
+    node -e "const p=require('./node_modules/@stigmer/protos/package.json'); \
+    if(p.name!=='@stigmer/protos') throw new Error('bad protos package'); \
+    console.log('protos symlink verification passed: '+p.name+'@'+p.version)"
 
 # Set working directory (Daytona convention — user workspace, not runner code)
 WORKDIR /workspace
