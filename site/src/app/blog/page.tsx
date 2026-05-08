@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { blog } from "@/lib/source";
 import { getGitHubDisplayName } from "@/lib/github";
@@ -53,12 +54,13 @@ export default async function BlogIndex() {
             >
               <div className="flex items-center gap-3">
                 {post.data.github && (
-                  <img
+                  <Image
                     src={`https://github.com/${post.data.github}.png?size=64`}
-                    alt={authorName}
+                    alt={authorName ?? ""}
                     width={32}
                     height={32}
                     className="rounded-full"
+                    unoptimized
                   />
                 )}
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">

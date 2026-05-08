@@ -129,13 +129,13 @@ recharge in your billing settings:
 - **Recharge amount** — fixed amount to charge per event
 - **Monthly cap** — maximum total recharge spend per calendar month
 
-<!-- vale off -->
+{/* vale off */}
 
 Automatic recharge uses off-session Stripe PaymentIntents against your saved
 payment method. Credits appear after payment confirmation (typically a few
 seconds). The monthly cap resets on the first day of each UTC month.
 
-<!-- vale on -->
+{/* vale on */}
 
 ## Low balance and stop behavior
 
@@ -161,11 +161,7 @@ Every balance-affecting operation produces an **immutable ledger entry**:
 - `refund_reversal` — Stripe refund reversal
 - `expiry_debit` — expired credit removal
 
-<!-- vale off -->
-
 All entries are append-only and deduplicated by an idempotency key.
-
-<!-- vale on -->
 
 ## Payment methods
 
