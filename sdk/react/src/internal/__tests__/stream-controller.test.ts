@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
   AgentExecutionSchema,
@@ -390,6 +390,52 @@ describe("StreamController", () => {
       controller.reset();
       controller.handleError(new Error("stale"));
       expect(controller.state).toEqual({ stage: "idle" });
+    });
+  });
+
+  describe("default constructor (browser rAF binding)", () => {
+    let mockRaf: ReturnType<typeof vi.fn>;
+    let mockCaf: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      let nextId = 1;
+      mockRaf = vi.fn((cb: () => void) => {
+        const id = nextId++;
+        setTimeout(cb, 0);
+        return id;
+      });
+      mockCaf = vi.fn();
+
+      vi.stubGlobal("requestAnimationFrame", mockRaf);
+      vi.stubGlobal("cancelAnimationFrame", mockCaf);
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it("does not throw when using default scheduleFlush/cancelFlush", () => {
+      const defaultController = new StreamController(sink);
+      defaultController.start("exec-1");
+
+      expect(() => {
+        defaultController.handleSnapshot(
+          makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),
+        );
+      }).not.toThrow();
+
+      expect(mockRaf).toHaveBeenCalledOnce();
+    });
+
+    it("delegates cancelFlush to cancelAnimationFrame", () => {
+      const defaultController = new StreamController(sink);
+      defaultController.start("exec-1");
+      defaultController.handleSnapshot(
+        makeSnapshot(ExecutionPhase.EXECUTION_IN_PROGRESS),
+      );
+      defaultController.reset();
+
+      expect(mockCaf).toHaveBeenCalledOnce();
     });
   });
 });
