@@ -19,16 +19,18 @@ class SkillId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class PushSkillRequest(_message.Message):
-    __slots__ = ("org", "artifact", "tag", "git_provenance")
+    __slots__ = ("org", "artifact", "tag", "git_provenance", "message")
     ORG_FIELD_NUMBER: _ClassVar[int]
     ARTIFACT_FIELD_NUMBER: _ClassVar[int]
     TAG_FIELD_NUMBER: _ClassVar[int]
     GIT_PROVENANCE_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
     org: str
     artifact: bytes
     tag: str
     git_provenance: _status_pb2.GitProvenance
-    def __init__(self, org: _Optional[str] = ..., artifact: _Optional[bytes] = ..., tag: _Optional[str] = ..., git_provenance: _Optional[_Union[_status_pb2.GitProvenance, _Mapping]] = ...) -> None: ...
+    message: str
+    def __init__(self, org: _Optional[str] = ..., artifact: _Optional[bytes] = ..., tag: _Optional[str] = ..., git_provenance: _Optional[_Union[_status_pb2.GitProvenance, _Mapping]] = ..., message: _Optional[str] = ...) -> None: ...
 
 class PushSkillFromExecutionArtifactRequest(_message.Message):
     __slots__ = ("org", "execution_id", "storage_key", "tag")

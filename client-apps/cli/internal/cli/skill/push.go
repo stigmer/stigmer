@@ -14,6 +14,7 @@ type PushOptions struct {
 	Directory       string
 	OrgID           string
 	Tag             string
+	Message         string
 	DryRun          bool
 	IgnorePatterns  []string
 	IncludePatterns []string
@@ -51,6 +52,7 @@ func Push(opts PushOptions) (*artifact.SkillArtifactResult, error) {
 		Directory: opts.Directory,
 		OrgID:     opts.OrgID,
 		Tag:       opts.Tag,
+		Message:   opts.Message,
 		Client:    opts.Client,
 		Quiet:     false,
 		Ignore:    ignoreOpts,
@@ -147,6 +149,9 @@ func DisplayPushResult(result *artifact.SkillArtifactResult) {
 	climsg.Info("  Version Hash: %s", result.VersionHash)
 	if result.Tag != "" {
 		climsg.Info("  Tag:          %s", result.Tag)
+	}
+	if result.Message != "" {
+		climsg.Info("  Message:      %s", result.Message)
 	}
 	climsg.Info("  Size:         %s", formatBytes(result.ArtifactSize))
 	fmt.Println()

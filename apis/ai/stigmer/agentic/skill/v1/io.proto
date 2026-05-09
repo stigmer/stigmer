@@ -51,6 +51,12 @@ message PushSkillRequest {
 
   // Reserved field numbers from previous schema versions.
   reserved 5;
+
+  // Optional human-readable message describing what changed in this version.
+  // Stored in metadata.version.message for version history display.
+  // Analogous to a git commit message. If empty, the version timeline falls
+  // back to displaying git_provenance.commit message when available.
+  string message = 6;
 }
 
 // PushSkillFromExecutionArtifactRequest publishes a skill from an execution
