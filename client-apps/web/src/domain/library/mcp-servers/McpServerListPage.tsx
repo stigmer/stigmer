@@ -91,7 +91,8 @@ export function McpServerListPage() {
           </button>
         )}
         emptyIcon={<Server className="size-10" aria-hidden="true" />}
-        emptyTitle="No MCP servers found"
+        emptyTitle="No MCP servers yet"
+        emptyDescription="Add an MCP server to connect external tools and data sources to your agents."
         onRetry={refetch}
         aria-label="MCP server list"
       />

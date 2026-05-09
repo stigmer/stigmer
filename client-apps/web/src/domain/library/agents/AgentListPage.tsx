@@ -2,13 +2,15 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { Bot, Plus } from "lucide-react";
+import { Bot, Plus, MoreHorizontal, Copy, ExternalLink, Trash2 } from "lucide-react";
 import { getDraftSessionUrl } from "@/domain/session/draft-session";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import {
   useAgentList,
   ResourceListView,
+  ActionMenu,
   useActiveOrgSlug,
+  toast,
   type ResourceListScope,
 } from "@stigmer/react";
 
@@ -68,8 +70,45 @@ export function AgentListPage() {
         onScopeChange={handleScopeChange}
         onPageChange={setPage}
         emptyIcon={<Bot className="size-10" aria-hidden="true" />}
+        emptyTitle="No agents yet"
+        emptyDescription="Create an agent to define instructions, tools, skills, and execution behavior."
         onItemClick={(item) => navigateToDetail("agents", item.org, item.slug)}
-        emptyTitle="No agents found"
+        renderItemAction={(item) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <ActionMenu>
+              <ActionMenu.Trigger aria-label={`Actions for ${item.name || item.slug}`}>
+                <MoreHorizontal className="size-4" />
+              </ActionMenu.Trigger>
+              <ActionMenu.Content>
+                <ActionMenu.Item
+                  icon={<ExternalLink className="size-4" />}
+                  onSelect={() => navigateToDetail("agents", item.org, item.slug)}
+                >
+                  View details
+                </ActionMenu.Item>
+                <ActionMenu.Item
+                  icon={<Copy className="size-4" />}
+                  onSelect={() => {
+                    navigator.clipboard.writeText(`${item.org}/${item.slug}`);
+                    toast.success("Copied agent ID");
+                  }}
+                >
+                  Copy ID
+                </ActionMenu.Item>
+                <ActionMenu.Separator />
+                <ActionMenu.Item
+                  icon={<Trash2 className="size-4" />}
+                  variant="destructive"
+                  onSelect={() => {
+                    /* TODO: wire to delete flow in Phase 2 */
+                  }}
+                >
+                  Delete
+                </ActionMenu.Item>
+              </ActionMenu.Content>
+            </ActionMenu>
+          </div>
+        )}
         onRetry={refetch}
         aria-label="Agent list"
       />

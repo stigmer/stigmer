@@ -724,6 +724,31 @@ export type {
   UseUpdateVisibilityReturn,
 } from "./library";
 
+// Action menu — compound component for resource item actions
+export { ActionMenu } from "./action-menu";
+export type {
+  ActionMenuProps,
+  ActionMenuTriggerProps,
+  ActionMenuContentProps,
+  ActionMenuItemProps,
+  ActionMenuSeparatorProps,
+  ActionMenuGroupProps,
+} from "./action-menu";
+
+// Feedback — toast notification system wrapping Sonner
+export { StigmerToaster, toast } from "./feedback";
+export type { StigmerToasterProps } from "./feedback";
+
+// Empty state — reusable empty/zero/permission/error state primitives
+export { EmptyState, useEmptyState } from "./empty-state";
+export type {
+  EmptyStateVariant,
+  EmptyStateAction,
+  EmptyStateProps,
+  UseEmptyStateOptions,
+  UseEmptyStateReturn,
+} from "./empty-state";
+
 // Search — shared search/list/count infrastructure re-exported for public API surface
 export type {
   UseResourceSearchOptions,
