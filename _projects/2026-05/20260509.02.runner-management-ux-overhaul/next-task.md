@@ -68,8 +68,29 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-09 19:42
-**Current Task**: T03 — Phase 2: Stable machine_id identity
-**Status**: COMPLETE — committed as `90eabd4db`
+**Current Task**: T04 — Phase 3: Local control socket
+**Status**: COMPLETE
+
+## Session Progress (2026-05-09, session 4)
+
+- Implemented HTTP-over-Unix-socket control server (`controlsock` sub-package)
+- Server exposes `GET /status` and `POST /stop` on `~/.stigmer/run/runner.sock`
+- Client provides `Ping()`, `Stop()`, `IsHealthy()` with 2s timeout
+- Added `MigrateStateLayout()` to rename state files from hostname-slug to machine_id keys
+- Enhanced `isRunnerAlive()` to prefer socket health check over PID probing (PID fallback preserved)
+- Enhanced `stopNativeRunner()` to use socket-based graceful stop before SIGTERM fallback
+- Added `SocketPath` to `RunnerState` and `EnsureResult`
+- Wired socket server lifecycle into `startNativeRunner()` with channel-based stop signal
+- 67 tests pass (52 runner + 15 controlsock), full CLI binary builds clean
+
+### Key design decisions: session 4
+
+- **HTTP over Unix socket**: Docker/containerd pattern. Native Go `net/http`, debuggable with `curl --unix-socket`.
+- **Short flat socket path**: Research report's deep nested path would exceed macOS 104-byte `sun_path` limit. `~/.stigmer/run/runner.sock` is ~35 chars.
+- **Minimal RPC scope**: Only `GET /status` and `POST /stop`. Restart/pause/resume/logs deferred to future phases.
+- **Copy-then-remove migration**: `MigrateStateLayout` writes new file first, removes old only on success.
+- **Socket-preferred, PID-fallback liveness**: Backward compatible with pre-T04 runners.
+- **Desktop integration deferred to T05**: CLI-only in T04 to validate pattern before Desktop consumes it.
 
 ## Session Progress (2026-05-09, session 3)
 
@@ -124,7 +145,7 @@ Deep research report available at:
 | T01 | Phase 0: Already running = success | COMPLETE |
 | T02 | Phase 1: Idempotent runner with structured JSON output | COMPLETE |
 | T03 | Phase 2: Stable machine_id identity | COMPLETE |
-| T04 | Phase 3: Local control socket | Not started |
+| T04 | Phase 3: Local control socket | COMPLETE |
 | T05 | Phase 4: Desktop UI redesign (status card) | Not started |
 | T06 | Phase 5: Service/login integration | Not started |
 | T07 | Phase 6: Server-side RunnerSession model | Not started |

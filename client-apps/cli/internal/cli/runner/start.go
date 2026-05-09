@@ -24,6 +24,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/embedded/cursorrunner"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/runner/controlsock"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
@@ -79,6 +80,12 @@ func Ensure(ctx context.Context, opts StartOptions, onReady func(*EnsureResult))
 	if reaped := ReapStaleRunners(); len(reaped) > 0 {
 		for _, name := range reaped {
 			log.Debug().Str("name", name).Msg("Cleaned up stale runner state")
+		}
+	}
+
+	if migrated := MigrateStateLayout(); len(migrated) > 0 {
+		for _, entry := range migrated {
+			log.Debug().Str("migration", entry).Msg("Migrated runner state file")
 		}
 	}
 
@@ -334,6 +341,32 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner, onReady func(
 		state.LogFile = logFilePath
 	}
 
+	// Start the local control socket so other processes (CLI invocations,
+	// Desktop sidecar) can query status and request graceful shutdown
+	// without relying on PID probing alone.
+	stopCh := make(chan struct{}, 1)
+	sockPath, sockErr := DefaultSocketPath()
+	if sockErr != nil {
+		log.Warn().Err(sockErr).Msg("Failed to resolve control socket path (continuing without socket)")
+	}
+
+	var ctrlSrv *controlsock.Server
+	if sockErr == nil {
+		sp := &runnerStateProvider{state: state, startedAt: time.Now()}
+		ctrlSrv = controlsock.NewServer(sockPath, sp, func() {
+			select {
+			case stopCh <- struct{}{}:
+			default:
+			}
+		})
+		if err := ctrlSrv.Start(); err != nil {
+			log.Warn().Err(err).Msg("Failed to start control socket (continuing without socket)")
+			ctrlSrv = nil
+		} else {
+			state.SocketPath = sockPath
+		}
+	}
+
 	if err := SaveState(reg.name, state); err != nil {
 		log.Warn().Err(err).Msg("Failed to save runner state (non-fatal)")
 	}
@@ -388,9 +421,15 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner, onReady func(
 		}
 	}
 
-	exitErr := waitForExitOrSignal(proc)
+	exitErr := waitForExitOrSignal(proc, stopCh)
 
 	cursor.shutdown()
+
+	if ctrlSrv != nil {
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 2*time.Second)
+		_ = ctrlSrv.Shutdown(shutdownCtx)
+		shutdownCancel()
+	}
 
 	streamCancel()
 	streamWg.Wait()
@@ -922,10 +961,36 @@ func startPythonProcess(pythonBin, appDir string, env []string, logFile *os.File
 	return cmd, nil
 }
 
-// waitForExitOrSignal blocks until the Python process exits or a SIGINT/SIGTERM
-// is received. On signal, it sends SIGTERM to the child and waits up to
-// gracefulShutdownTimeout before sending SIGKILL.
-func waitForExitOrSignal(cmd *exec.Cmd) error {
+// runnerStateProvider adapts a RunnerState for the controlsock.StateProvider
+// interface. It captures the start time at construction so uptime is computed
+// from the runner's actual start, not from the on-disk state timestamp.
+type runnerStateProvider struct {
+	state     *RunnerState
+	startedAt time.Time
+}
+
+func (p *runnerStateProvider) Status() controlsock.StatusResponse {
+	return controlsock.StatusResponse{
+		OK:              true,
+		RunnerID:        p.state.RunnerID,
+		Name:            p.state.Slug,
+		MachineID:       p.state.MachineID,
+		Org:             p.state.Org,
+		BackendEndpoint: p.state.BackendEndpoint,
+		TaskQueue:       p.state.TaskQueue,
+		PID:             p.state.PID,
+		StartedAt:       p.state.StartedAt,
+		Uptime:          time.Since(p.startedAt).Truncate(time.Second).String(),
+		Runtime:         p.state.Runtime,
+		Version:         embedded.GetBuildVersion(),
+	}
+}
+
+// waitForExitOrSignal blocks until the child process exits, a system signal
+// (SIGINT/SIGTERM) is received, or the stopCh channel is signalled (from the
+// control socket's POST /stop endpoint). In all stop cases, the child is
+// given gracefulShutdownTimeout to exit before being killed.
+func waitForExitOrSignal(cmd *exec.Cmd, stopCh <-chan struct{}) error {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
@@ -946,6 +1011,10 @@ func waitForExitOrSignal(cmd *exec.Cmd) error {
 
 	case sig := <-sigCh:
 		climsg.Info("Received %s, shutting down runner ...", sig)
+		return terminateChild(cmd, exitCh)
+
+	case <-stopCh:
+		climsg.Info("Stop requested via control socket, shutting down runner ...")
 		return terminateChild(cmd, exitCh)
 	}
 }

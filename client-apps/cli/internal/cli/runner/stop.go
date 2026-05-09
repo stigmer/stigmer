@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/runner/controlsock"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
@@ -41,18 +42,35 @@ func stopNativeRunner(name string, state *RunnerState) error {
 
 	climsg.Info("Stopping runner %q (PID %d) ...", name, state.PID)
 
-	proc, err := os.FindProcess(state.PID)
-	if err != nil {
-		return errors.Wrapf(err, "failed to find process %d for runner %q", state.PID, name)
+	// Prefer the control socket for graceful shutdown — it lets the runner
+	// acknowledge the stop request and clean up its own resources before
+	// exiting. Falls back to SIGTERM for pre-T04 runners without a socket.
+	socketStopSent := false
+	if state.SocketPath != "" {
+		if err := controlsock.Stop(state.SocketPath); err != nil {
+			log.Debug().Err(err).Str("socket", state.SocketPath).
+				Msg("Control socket stop failed, falling back to SIGTERM")
+		} else {
+			socketStopSent = true
+		}
 	}
 
-	if err := proc.Signal(syscall.SIGTERM); err != nil {
-		return errors.Wrapf(err, "failed to send SIGTERM to runner %q (PID %d)", name, state.PID)
+	if !socketStopSent {
+		proc, err := os.FindProcess(state.PID)
+		if err != nil {
+			return errors.Wrapf(err, "failed to find process %d for runner %q", state.PID, name)
+		}
+		if err := proc.Signal(syscall.SIGTERM); err != nil {
+			return errors.Wrapf(err, "failed to send SIGTERM to runner %q (PID %d)", name, state.PID)
+		}
 	}
 
 	if !waitForExit(state.PID, stopTimeout) {
 		log.Warn().Int("pid", state.PID).Msg("Runner did not exit in time, sending SIGKILL")
-		_ = proc.Kill()
+		proc, _ := os.FindProcess(state.PID)
+		if proc != nil {
+			_ = proc.Kill()
+		}
 	}
 
 	if err := RemoveState(name); err != nil {

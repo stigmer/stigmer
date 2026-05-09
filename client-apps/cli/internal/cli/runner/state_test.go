@@ -176,3 +176,225 @@ func TestSaveAndLoadState_Docker(t *testing.T) {
 	assert.True(t, loaded.IsDocker())
 	assert.Equal(t, state.RunnerID, loaded.RunnerID)
 }
+
+// --- SocketPath backward compatibility ---
+
+func TestRunnerState_BackwardCompatibility_NoSocketPath(t *testing.T) {
+	oldJSON := `{
+		"runner_id": "rnr-pre-t04",
+		"slug": "my-runner",
+		"org": "acme",
+		"backend_endpoint": "api.stigmer.ai:443",
+		"pid": 12345,
+		"task_queue": "runner:rnr-pre-t04",
+		"started_at": "2026-05-09T12:00:00Z",
+		"machine_id": "mach_aabb"
+	}`
+
+	var state RunnerState
+	err := json.Unmarshal([]byte(oldJSON), &state)
+	require.NoError(t, err)
+	assert.Equal(t, "", state.SocketPath)
+}
+
+func TestRunnerState_SocketPath_RoundTrip(t *testing.T) {
+	original := &RunnerState{
+		RunnerID:   "rnr-t04",
+		Slug:       "my-runner",
+		Org:        "acme",
+		PID:        12345,
+		TaskQueue:  "runner:rnr-t04",
+		StartedAt:  time.Date(2026, 5, 9, 12, 0, 0, 0, time.UTC),
+		MachineID:  "mach_aabb",
+		SocketPath: "/home/user/.stigmer/run/runner.sock",
+	}
+
+	data, err := json.Marshal(original)
+	require.NoError(t, err)
+	assert.Contains(t, string(data), `"socket_path"`)
+
+	var restored RunnerState
+	require.NoError(t, json.Unmarshal(data, &restored))
+	assert.Equal(t, "/home/user/.stigmer/run/runner.sock", restored.SocketPath)
+}
+
+func TestRunnerState_SocketPath_OmittedWhenEmpty(t *testing.T) {
+	state := &RunnerState{
+		RunnerID:   "rnr-old",
+		Slug:       "my-runner",
+		Org:        "acme",
+		PID:        12345,
+		TaskQueue:  "runner:rnr-old",
+		StartedAt:  time.Date(2026, 5, 9, 12, 0, 0, 0, time.UTC),
+		SocketPath: "",
+	}
+
+	data, err := json.Marshal(state)
+	require.NoError(t, err)
+	assert.NotContains(t, string(data), "socket_path")
+}
+
+// --- MigrateStateLayout tests ---
+
+func TestMigrateStateLayout_RenamesSlugToMachineID(t *testing.T) {
+	dir := withTestRunnersDir(t)
+
+	writeTestState(t, dir, "old-hostname", &RunnerState{
+		RunnerID:  "rnr-migrate",
+		Slug:      "old-hostname",
+		Org:       "acme",
+		PID:       os.Getpid(),
+		TaskQueue: "runner:rnr-migrate",
+		StartedAt: time.Now(),
+		MachineID: "mach_aabbccdd11223344aabbccdd11223344",
+	})
+
+	migrated := MigrateStateLayout()
+	require.Len(t, migrated, 1)
+	assert.Contains(t, migrated[0], "old-hostname")
+	assert.Contains(t, migrated[0], "mach_aabbccdd11223344aabbccdd11223344")
+
+	// Old file should be gone.
+	_, err := os.Stat(filepath.Join(dir, "old-hostname.json"))
+	assert.True(t, os.IsNotExist(err))
+
+	// New file should exist with correct content.
+	state, err := LoadState("mach_aabbccdd11223344aabbccdd11223344")
+	require.NoError(t, err)
+	assert.Equal(t, "rnr-migrate", state.RunnerID)
+	assert.Equal(t, "mach_aabbccdd11223344aabbccdd11223344", state.MachineID)
+}
+
+func TestMigrateStateLayout_SkipsAlreadyMigrated(t *testing.T) {
+	dir := withTestRunnersDir(t)
+
+	machineID := "mach_aabbccdd11223344aabbccdd11223344"
+	writeTestState(t, dir, machineID, &RunnerState{
+		RunnerID:  "rnr-already",
+		Slug:      "my-runner",
+		Org:       "acme",
+		PID:       os.Getpid(),
+		TaskQueue: "runner:rnr-already",
+		StartedAt: time.Now(),
+		MachineID: machineID,
+	})
+
+	migrated := MigrateStateLayout()
+	assert.Empty(t, migrated)
+
+	// File should still exist under machine_id name.
+	state, err := LoadState(machineID)
+	require.NoError(t, err)
+	assert.Equal(t, "rnr-already", state.RunnerID)
+}
+
+func TestMigrateStateLayout_Idempotent(t *testing.T) {
+	dir := withTestRunnersDir(t)
+
+	writeTestState(t, dir, "old-name", &RunnerState{
+		RunnerID:  "rnr-idem",
+		Slug:      "old-name",
+		Org:       "acme",
+		PID:       os.Getpid(),
+		TaskQueue: "runner:rnr-idem",
+		StartedAt: time.Now(),
+		MachineID: "mach_1122334455667788aabbccddeeff0011",
+	})
+
+	migrated1 := MigrateStateLayout()
+	require.Len(t, migrated1, 1)
+
+	// Second call should find nothing to migrate.
+	migrated2 := MigrateStateLayout()
+	assert.Empty(t, migrated2)
+}
+
+func TestMigrateStateLayout_SkipsEmptyMachineID(t *testing.T) {
+	dir := withTestRunnersDir(t)
+
+	writeTestState(t, dir, "legacy-no-machid", &RunnerState{
+		RunnerID:  "rnr-legacy",
+		Slug:      "legacy-no-machid",
+		Org:       "acme",
+		PID:       os.Getpid(),
+		TaskQueue: "runner:rnr-legacy",
+		StartedAt: time.Now(),
+		MachineID: "",
+	})
+
+	migrated := MigrateStateLayout()
+	assert.Empty(t, migrated)
+
+	// Original file should remain.
+	_, err := os.Stat(filepath.Join(dir, "legacy-no-machid.json"))
+	assert.NoError(t, err)
+}
+
+func TestMigrateStateLayout_MigratesLogFile(t *testing.T) {
+	dir := withTestRunnersDir(t)
+
+	writeTestState(t, dir, "slug-with-log", &RunnerState{
+		RunnerID:  "rnr-log",
+		Slug:      "slug-with-log",
+		Org:       "acme",
+		PID:       os.Getpid(),
+		TaskQueue: "runner:rnr-log",
+		StartedAt: time.Now(),
+		MachineID: "mach_logtest1234567890abcdef12345678",
+	})
+
+	// Create a log file alongside the state file.
+	logPath := filepath.Join(dir, "slug-with-log.log")
+	require.NoError(t, os.WriteFile(logPath, []byte("test log"), 0600))
+
+	migrated := MigrateStateLayout()
+	require.Len(t, migrated, 1)
+
+	// Old log should be gone.
+	_, err := os.Stat(logPath)
+	assert.True(t, os.IsNotExist(err))
+
+	// New log should exist.
+	newLog := filepath.Join(dir, "mach_logtest1234567890abcdef12345678.log")
+	data, err := os.ReadFile(newLog)
+	require.NoError(t, err)
+	assert.Equal(t, "test log", string(data))
+}
+
+func TestMigrateStateLayout_DoesNotOverwriteExisting(t *testing.T) {
+	dir := withTestRunnersDir(t)
+	machineID := "mach_collision12345678901234567890ab"
+
+	// Write two state files: one under the slug, one already at the machine_id.
+	writeTestState(t, dir, "slug-name", &RunnerState{
+		RunnerID:  "rnr-slug",
+		Slug:      "slug-name",
+		Org:       "acme",
+		PID:       os.Getpid(),
+		TaskQueue: "runner:rnr-slug",
+		StartedAt: time.Now(),
+		MachineID: machineID,
+	})
+
+	writeTestState(t, dir, machineID, &RunnerState{
+		RunnerID:  "rnr-existing",
+		Slug:      "other-runner",
+		Org:       "acme",
+		PID:       os.Getpid(),
+		TaskQueue: "runner:rnr-existing",
+		StartedAt: time.Now(),
+		MachineID: machineID,
+	})
+
+	migrated := MigrateStateLayout()
+	assert.Empty(t, migrated)
+
+	// The existing file should not have been overwritten.
+	state, err := LoadState(machineID)
+	require.NoError(t, err)
+	assert.Equal(t, "rnr-existing", state.RunnerID)
+
+	// The slug file should still be there.
+	_, err = os.Stat(filepath.Join(dir, "slug-name.json"))
+	assert.NoError(t, err)
+}

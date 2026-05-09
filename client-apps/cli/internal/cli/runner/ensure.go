@@ -41,6 +41,7 @@ type EnsureResult struct {
 	TaskQueue       string       `json:"task_queue"`
 	StartedAt       time.Time    `json:"started_at"`
 	LogFile         string       `json:"log_file,omitempty"`
+	SocketPath      string       `json:"socket_path,omitempty"`
 }
 
 // EnsureError is the structured error output when --json is active and
@@ -97,6 +98,7 @@ func ensureResultFromState(name string, state *RunnerState, action EnsureAction)
 		StartedAt:       state.StartedAt,
 		Runtime:         state.Runtime,
 		LogFile:         state.LogFile,
+		SocketPath:      state.SocketPath,
 	}
 	if result.Runtime == "" {
 		result.Runtime = RuntimeNative
