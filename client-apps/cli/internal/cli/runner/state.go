@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/runner/controlsock"
 )
 
 const runnersDirName = "runners"
@@ -57,6 +59,12 @@ type RunnerState struct {
 	// Used for runner adoption across hostname changes. Empty in pre-T03
 	// state files; backfilled on first load after upgrade.
 	MachineID string `json:"machine_id,omitempty"`
+
+	// SocketPath is the absolute path to the runner's local control socket
+	// (Unix domain socket). Other processes use this to query runner status
+	// and request graceful shutdown without PID-based probing.
+	// Empty in pre-T04 state files.
+	SocketPath string `json:"socket_path,omitempty"`
 }
 
 // IsDocker returns true if this runner is managed as a Docker container.
@@ -75,6 +83,33 @@ func RunnersDir() (string, error) {
 		return "", errors.Wrap(err, "failed to create runners directory")
 	}
 	return dir, nil
+}
+
+const runDirName = "run"
+
+// RunDir returns the path to ~/.stigmer/run/, creating it if needed.
+// This directory holds ephemeral runtime artifacts (Unix sockets) that
+// are separate from the persistent state files in ~/.stigmer/runners/.
+func RunDir() (string, error) {
+	configDir, err := config.GetConfigDir()
+	if err != nil {
+		return "", errors.Wrap(err, "failed to resolve config directory")
+	}
+	dir := filepath.Join(configDir, runDirName)
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return "", errors.Wrap(err, "failed to create run directory")
+	}
+	return dir, nil
+}
+
+// DefaultSocketPath returns ~/.stigmer/run/runner.sock. This short,
+// flat path stays well within macOS's 104-byte sun_path limit.
+func DefaultSocketPath() (string, error) {
+	dir, err := RunDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "runner.sock"), nil
 }
 
 // LogFilePath returns the path to ~/.stigmer/runners/<name>.log.
@@ -121,15 +156,21 @@ func LoadState(name string) (*RunnerState, error) {
 	return &state, nil
 }
 
-// RemoveState deletes the state file for a named runner. The log file is
-// intentionally preserved so that crash diagnostics remain available to
-// the user and the desktop app's log viewer after the runner exits. The
-// log file is truncated on the next start by openRunnerLogFile, so stale
-// logs do not accumulate.
+// RemoveState deletes the state file for a named runner and cleans up
+// any associated control socket. The log file is intentionally preserved
+// so that crash diagnostics remain available to the user and the desktop
+// app's log viewer after the runner exits. The log file is truncated on
+// the next start by openRunnerLogFile, so stale logs do not accumulate.
 func RemoveState(name string) error {
 	dir, err := RunnersDir()
 	if err != nil {
 		return err
+	}
+
+	// Try to read the state first to find the socket path.
+	state, _ := LoadState(name)
+	if state != nil && state.SocketPath != "" {
+		_ = os.Remove(state.SocketPath)
 	}
 
 	path := filepath.Join(dir, name+".json")
@@ -253,12 +294,100 @@ func findStateByMachineID(machineID string) (string, *RunnerState) {
 	return "", nil
 }
 
+// MigrateStateLayout renames state files from the legacy hostname-slug
+// naming (<slug>.json) to machine_id-keyed naming (<machine_id>.json).
+// This aligns the file layout with the stable identity model introduced
+// in T03.
+//
+// The migration is idempotent: files whose name already matches their
+// MachineID are skipped. Files without a MachineID are left as-is
+// (they will be backfilled when the runner next starts via Ensure).
+//
+// Returns the names of migrated files for caller logging.
+func MigrateStateLayout() []string {
+	states, err := loadAllStates()
+	if err != nil {
+		return nil
+	}
+
+	var migrated []string
+	for name, state := range states {
+		if state.MachineID == "" {
+			continue
+		}
+		if name == state.MachineID {
+			continue
+		}
+
+		dir, err := RunnersDir()
+		if err != nil {
+			continue
+		}
+
+		oldPath := filepath.Join(dir, name+".json")
+		newPath := filepath.Join(dir, state.MachineID+".json")
+
+		// Don't overwrite an existing file at the destination.
+		if _, err := os.Stat(newPath); err == nil {
+			continue
+		}
+
+		data, err := os.ReadFile(oldPath)
+		if err != nil {
+			continue
+		}
+
+		if err := os.WriteFile(newPath, data, 0600); err != nil {
+			continue
+		}
+
+		if err := os.Remove(oldPath); err != nil {
+			// Wrote new but couldn't remove old — remove the new to
+			// avoid duplicates. Next run will retry.
+			_ = os.Remove(newPath)
+			continue
+		}
+
+		// Also migrate the log file if it exists.
+		oldLog := filepath.Join(dir, name+".log")
+		newLog := filepath.Join(dir, state.MachineID+".log")
+		if _, err := os.Stat(oldLog); err == nil {
+			_ = os.Rename(oldLog, newLog)
+		}
+
+		migrated = append(migrated, name+" -> "+state.MachineID)
+	}
+
+	return migrated
+}
+
 // isRunnerAlive checks whether a runner is still alive based on its runtime.
-// Native runners are checked via PID probe; Docker runners via container state.
+// For native runners with a control socket, a socket health check is
+// preferred over PID probing because it proves the process is actually a
+// Stigmer runner (not PID reuse) and is responsive. The PID probe remains
+// as a fallback for pre-T04 runners without a socket path.
 func isRunnerAlive(state *RunnerState) bool {
 	if state.IsDocker() {
 		return IsContainerAlive(NewDockerClient(), state.ContainerID)
 	}
+
+	if state.SocketPath != "" {
+		if controlsock.IsHealthy(state.SocketPath) {
+			return true
+		}
+		// Socket failed — fall back to PID probe. The runner may be
+		// starting up (socket not yet bound) or from a pre-T04 state
+		// file where SocketPath was set but the server crashed.
+		if isProcessAlive(state.PID) {
+			log.Debug().
+				Int("pid", state.PID).
+				Str("socket", state.SocketPath).
+				Msg("Control socket unreachable but PID is alive (startup race or stale socket path)")
+			return true
+		}
+		return false
+	}
+
 	return isProcessAlive(state.PID)
 }
 

@@ -25,6 +25,7 @@ go_library(
         "//client-apps/cli/internal/cli/daemon",
         "//client-apps/cli/internal/cli/nodert",
         "//client-apps/cli/internal/cli/pythonrt",
+        "//client-apps/cli/internal/cli/runner/controlsock",
         "//client-apps/cli/pkg/climsg",
         "@com_github_pkg_errors//:errors",
         "@com_github_rs_zerolog//log",
