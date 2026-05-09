@@ -2,12 +2,13 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { Bot, Plus, MoreHorizontal, Copy, ExternalLink, Trash2 } from "lucide-react";
+import { Bot, Plus, Upload, MoreHorizontal, Copy, ExternalLink, Trash2 } from "lucide-react";
 import { getDraftSessionUrl } from "@/domain/session/draft-session";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import {
   ResourceWorkbench,
   ActionMenu,
+  ImportResourceDialog,
   useStigmer,
   useActiveOrgSlug,
   toast,
@@ -62,6 +63,7 @@ export function AgentListPage() {
   const { navigateToDetail } = useLibraryNavigation();
 
   const [scope, setScope] = useState<"org" | "all">(readPersistedScope);
+  const [importOpen, setImportOpen] = useState(false);
 
   const handleScopeChange = useCallback((newScope: "org" | "all") => {
     setScope(newScope);
@@ -99,13 +101,23 @@ export function AgentListPage() {
         emptyTitle="No agents yet"
         emptyDescription="Create an agent to define instructions, tools, skills, and execution behavior."
         headerAction={
-          <Link
-            href={createUrl}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Plus className="size-3.5" aria-hidden="true" />
-            Create agent
-          </Link>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setImportOpen(true)}
+              aria-label="Import from file"
+              className="inline-flex items-center justify-center rounded-md border border-input bg-background p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Upload className="size-3.5" aria-hidden="true" />
+            </button>
+            <Link
+              href={createUrl}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Plus className="size-3.5" aria-hidden="true" />
+              Create agent
+            </Link>
+          </div>
         }
         emptyAction={
           <Link
@@ -154,6 +166,12 @@ export function AgentListPage() {
           </div>
         )}
         aria-label="Agent workbench"
+      />
+
+      <ImportResourceDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        org={org ?? ""}
       />
     </>
   );
