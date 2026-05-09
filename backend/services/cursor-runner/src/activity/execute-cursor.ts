@@ -44,6 +44,7 @@ import { writeHooksToWorkspace } from "../hitl/workspace-setup.js";
 import { buildApprovalState } from "../hitl/approval-state.js";
 import { setInterceptorExecutionId } from "../proxy/fetch-interceptor.js";
 import { resolveModelId } from "../adapter/model-pricing.js";
+import { buildSessionMemory, persistSessionMemory } from "../adapter/session-memory.js";
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -77,16 +78,21 @@ async function executeCursor(
     startedAt: utcTimestamp(),
   });
 
+  let sessionId: string | undefined;
+  let session: import("@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb").Session | undefined;
+  let userMessage: string | undefined;
+
   try {
     // Phase 1: Hydrate execution from DB
     await reportSetupProgress(client, executionId, "Fetching execution");
     const execution = await client.getExecution(executionId);
     const spec = execution.spec!;
-    const sessionId = spec.sessionId;
+    sessionId = spec.sessionId;
+    userMessage = spec.message;
 
     // Phase 2: Load session and resolve full agent blueprint
     await reportSetupProgress(client, executionId, "Resolving agent blueprint");
-    const session = await client.getSession(sessionId);
+    session = await client.getSession(sessionId);
     const blueprint = await resolveBlueprint(client, session, config.workspaceRootDir);
     heartbeat();
 
@@ -269,6 +275,7 @@ async function executeCursor(
         timestamp: utcTimestamp(),
       }));
       await persistStatus(client, executionId, status);
+      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
       console.log(`ExecuteCursor completed (platform stop): execution=${executionId}`);
       return slimStatus(status);
     }
@@ -320,6 +327,10 @@ async function executeCursor(
     }
 
     await persistStatus(client, executionId, status);
+
+    // Phase 14: Build and persist session memory
+    await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
+
     console.log(
       `ExecuteCursor completed: execution=${executionId}, phase=${ExecutionPhase[status.phase]}` +
         (status.error ? `, error=${status.error}` : ""),
@@ -354,7 +365,43 @@ async function executeCursor(
       console.error("Failed to persist error status (best-effort):", persistErr);
     }
 
+    await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
+
     return slimStatus(status);
+  }
+}
+
+/**
+ * Build and persist session memory if the execution is in a terminal phase.
+ *
+ * Skips WAITING_FOR_APPROVAL (that is a pause, not a completion) and
+ * cases where session/spec are not yet available (very early failures).
+ * Best-effort: errors are logged and swallowed.
+ */
+async function maybePeristSessionMemory(
+  client: StigmerClient,
+  sessionId: string | undefined,
+  session: import("@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb").Session | undefined,
+  status: AgentExecutionStatus,
+  userMessage: string | undefined,
+): Promise<void> {
+  if (!sessionId) return;
+  if (status.phase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL) return;
+
+  try {
+    const previousMemory = session?.status?.sessionMemory;
+    const memory = buildSessionMemory({
+      previousMemory,
+      messages: status.messages,
+      todos: status.todos,
+      userMessage: userMessage ?? "",
+    });
+    await persistSessionMemory(client, sessionId, memory);
+  } catch (err) {
+    console.warn(
+      "Failed to build/persist session memory (non-fatal):",
+      err instanceof Error ? err.message : err,
+    );
   }
 }
 

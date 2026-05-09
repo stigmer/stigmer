@@ -68,9 +68,37 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-09 18:15
-**Current Task**: Task 5 COMPLETED — pick Task 6 or Task 2a next
-**Status**: Tasks 1 and 5 complete. Proto foundation landed. Ready for service-side persistence (Task 6) or runner-side memory extraction (Task 2a).
-**Tasks**: 8 tasks total (T1 ✅, T2a, T2b, T3, T4, T5 ✅, T6, T7)
+**Current Task**: Task 2a COMPLETED — pick Task 6 or Task 2b next
+**Status**: Tasks 1, 5, and 2a complete. Proto foundation landed, session memory extraction layer built. Ready for service-side persistence (Task 6) or continuation prompt builder (Task 2b).
+**Tasks**: 8 tasks total (T1 ✅, T2a ✅, T2b, T3, T4, T5 ✅, T6, T7)
+
+## Session Progress (2026-05-09, Session 3)
+
+### Completed: Task 2a — Session Memory Extraction Layer
+- **New `session-memory.ts`** (475 lines) — Extraction module with 8 exported functions and 2 token budget utilities:
+  - `extractChangedFiles` — scans completed Write/Edit/StrReplace/Delete/EditNotebook tool calls, deduplicates and sorts
+  - `extractToolObservations` — captures completed/failed Shell commands with FIFO pruning to 10, 1k token budget
+  - `extractRecentTurns` — merges previous turns with current, FIFO to 6, per-turn 1k and total 4k token budgets
+  - `extractDecisions` — captures `Decision:` / `Design choice:` markers, deduplicates, caps at 20
+  - `extractFailedAttempts` — captures `TOOL_CALL_FAILED` entries, deduplicates, caps at 20
+  - `extractOpenTasks` — filters TodoTracker for PENDING/IN_PROGRESS items
+  - `buildDurableSummary` — uses last AI message, truncated to 2k tokens
+  - `buildSessionMemory` — orchestrator calling all extractors, merges with previous memory
+  - `persistSessionMemory` — read-modify-write via getSession + updateSession, best-effort
+  - `estimateTokens` / `truncateToTokenBudget` — character-based approximation (~4 chars/token)
+- **Modified `execute-cursor.ts`** (+49 lines) — Added Phase 14 session memory wiring:
+  - Hoisted `sessionId`, `session`, `userMessage` above try block for catch-block accessibility
+  - Added `maybePeristSessionMemory` helper with guards for undefined inputs and WAITING_FOR_APPROVAL
+  - Memory persisted in 3 paths: normal completion, platform stop, unexpected error catch block
+  - NOT persisted on WAITING_FOR_APPROVAL (that's a pause, not a completion)
+- **New `session-memory.test.ts`** (851 lines, 60 tests) — Comprehensive unit tests for all extraction functions, token budgets, orchestrator, and persistence (mocked client). All 280 tests pass (60 new + 220 existing).
+
+### Key Design Decisions (Task 2a)
+- **DD: Extract from finalized messages, not raw stream events** — MessageAccumulator already merges token-level events into coherent messages. Extracting from `status.messages` after `finalize()` gives clean, complete data.
+- **DD: Single extraction point, not inline** — Memory built once after execution completes, not incrementally during streaming. Keeps hot streaming loop unchanged.
+- **DD: Character-based token approximation** — ~4 chars/token avoids a tokenizer dependency (tiktoken is 3MB+). Sufficient for v1 structured extraction.
+- **DD: Explicit decision markers only** — Only `Decision:` / `Design choice:` line-start patterns. No broad NLP heuristics. Forward-compatible with Task 2b prompt engineering.
+- **DD: Memory persisted even on failure** — Failed executions produce valuable `failed_attempts` data. Next agent benefits from knowing what broke.
 
 ## Session Progress (2026-05-09, Session 2)
 
@@ -103,24 +131,25 @@ When starting a new session:
 
 **Now unblocked (parallelizable):**
 1. **Task 6: Session Memory Persistence (stigmer-service, Java)** — Extend `readSessionThreadId` to also return `session_memory` and `cursor_mode`. Add merge logic in `UpdateExecutionStatusActivity`.
-2. **Task 2a: Session Memory Extraction (cursor-runner, TS)** — Build `buildSessionMemory()` and `persistSessionMemory()` using the new TS stubs from Task 5.
+2. **Task 2b: Continuation Prompt Builder (cursor-runner, TS)** — Build `buildContinuationPrompt()` using SessionMemory from Task 2a. Depends on Task 2a ✅.
 
 **Then sequential:**
 3. **Task 7: Workflow Integration (Java)** — Depends on Task 6. Pass memory + mode to `ExecuteCursor` activity.
-4. **Task 2b: Continuation Prompt Builder (TS)** — Depends on Task 2a.
-5. **Task 3: Graceful Resume-or-Create (TS)** — Depends on Tasks 1 + 2a + 2b.
-6. **Task 4: Cloud Agent Path (TS)** — Depends on Task 3 + 5, feature-flagged.
+4. **Task 3: Graceful Resume-or-Create (TS)** — Depends on Tasks 1 ✅ + 2a ✅ + 2b.
+5. **Task 4: Cloud Agent Path (TS)** — Depends on Task 3 + 5 ✅, feature-flagged.
 
 ## Context for Resume
 - stigmer-cloud has regenerated stubs but **no Java service code changes yet** — that's Task 6
 - The `PendingApprovalComputer` in Java server-side **recomputes** pending approvals from tool calls on every status write. The HITL diagnostic fields (agent_rationale, branch/sha at deny) will need to survive this recomputation — addressed in Task 6/7 implementation.
 - Existing `ExecuteCursorActivity` Java interface has 3 params (executionId, threadId, invokerIdentityAccountId) but TS runner only declares 2. Task 7 will extend both.
+- **Session memory extraction layer is complete** — `session-memory.ts` is wired into `execute-cursor.ts` Phase 14. The `persistSessionMemory` function does read-modify-write via existing `getSession`/`updateSession`. Task 6 will add proper server-side merge.
+- **Token budgets are enforced with char approximation** (~4 chars/token). If v2 adds LLM summarization, proper tokenization should be added then.
 
 ## Quick Commands
 
 After loading context:
 - "Continue with Task 6" - Start session memory persistence in Java
-- "Continue with Task 2a" - Start session memory extraction in TS
+- "Continue with Task 2b" - Start continuation prompt builder in TS
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 
