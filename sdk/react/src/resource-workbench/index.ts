@@ -68,3 +68,6 @@ export type { ResourceInspectorProps } from "./components/ResourceInspector";
 
 export { ResourceWorkbench } from "./components/ResourceWorkbench";
 export type { ResourceWorkbenchProps } from "./components/ResourceWorkbench";
+
+export { ResourceAvatar } from "./components/ResourceAvatar";
+export type { ResourceAvatarProps } from "./components/ResourceAvatar";

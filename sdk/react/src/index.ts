@@ -934,6 +934,7 @@ export {
   ViewSwitcher,
   ResourceInspector,
   ResourceWorkbench,
+  ResourceAvatar,
 } from "./resource-workbench";
 export type {
   ViewMode,
@@ -967,4 +968,5 @@ export type {
   ViewSwitcherProps,
   ResourceInspectorProps,
   ResourceWorkbenchProps,
+  ResourceAvatarProps,
 } from "./resource-workbench";
