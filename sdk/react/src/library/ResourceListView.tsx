@@ -7,6 +7,7 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ScopeToggle } from "./ScopeToggle";
 import type { ResourceListScope } from "../search";
+import { EmptyState } from "../empty-state";
 
 const DEBOUNCE_MS = 300;
 const SKELETON_COUNT = 5;
@@ -379,6 +380,7 @@ export function ResourceListView({
 
       {showEmpty && (
         <EmptyState
+          variant="zero-results"
           icon={emptyIcon}
           title={emptyTitle}
           description={emptyDescription}
@@ -698,26 +700,6 @@ function SkeletonCards() {
   );
 }
 
-function EmptyState({
-  icon,
-  title,
-  description,
-}: {
-  readonly icon?: React.ReactNode;
-  readonly title: string;
-  readonly description: string;
-}) {
-  return (
-    <div
-      role="status"
-      className="flex flex-col items-center gap-2 py-8 text-center"
-    >
-      {icon && <div className="text-muted-foreground-faint">{icon}</div>}
-      <p className="text-sm font-medium text-muted-foreground">{title}</p>
-      <p className="text-xs text-muted-foreground-subtle">{description}</p>
-    </div>
-  );
-}
 
 function ErrorState({
   message,
