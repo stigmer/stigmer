@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import {
@@ -342,6 +343,9 @@ export default function RunnersPage() {
           endpoint: opts.endpoint || toGrpcTarget(cred.endpoint),
           org,
         });
+        if (localRunners.has(runnerName)) {
+          toast.success(`Connected to existing runner "${runnerName}"`);
+        }
         lastStartedRef.current = runnerName;
         restartGraceRef.current = Date.now();
         setDialogOpen(false);
@@ -351,7 +355,7 @@ export default function RunnersPage() {
         setIsLaunching(false);
       }
     },
-    [getCredential, org, startRunner],
+    [getCredential, localRunners, org, startRunner],
   );
 
   const handleStop = useCallback(

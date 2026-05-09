@@ -276,7 +276,7 @@ pub async fn start_runner(
     {
         let runners = state.runners.lock().await;
         if runners.contains_key(&runner_name) {
-            return Err(format!("Runner '{runner_name}' is already managed by this desktop instance"));
+            return Ok(runner_name);
         }
     }
 
@@ -370,6 +370,11 @@ pub async fn start_runner(
             };
             return Err(detail);
         }
+        // CLI exited 0 during grace period — adoption case (runner already active).
+        // The child process has already terminated so we must NOT register it in
+        // ProcessManager. The runner is tracked via on-disk state files and will
+        // appear in list_local_runners.
+        return Ok(runner_name);
     }
 
     // CLI survived the grace period — register it as managed.
