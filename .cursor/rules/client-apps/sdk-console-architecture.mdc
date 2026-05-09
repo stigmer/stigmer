@@ -1,14 +1,14 @@
 ---
-description: SDK-first architecture standards for Stigmer web console and React SDK
-globs: client-apps/web/src/**/*.{tsx,ts}, sdk/react/src/**/*.{tsx,ts}
+description: SDK-first architecture standards for Stigmer client apps (web console, desktop) and React SDK
+globs: client-apps/web/src/**/*.{tsx,ts}, client-apps/desktop/src/**/*.{tsx,ts}, sdk/react/src/**/*.{tsx,ts}
 alwaysApply: false
 ---
 
 # SDK / Console Architecture
 
-Stigmer is a platform for platforms. Every line of UI code must answer one question: **"Would a platform builder embedding Stigmer into their product need this?"** If yes, it belongs in the SDK packages — not `client-apps/web`.
+Stigmer is a platform for platforms. Every line of UI code must answer one question: **"Would a platform builder embedding Stigmer into their product need this?"** If yes, it belongs in the SDK packages — not the client apps.
 
-The Console is a reference implementation. The SDK packages are the product.
+The client apps (`client-apps/web`, `client-apps/desktop`) are reference implementations. The SDK packages are the product.
 
 ## The Layered Architecture (Non-Negotiable)
 
@@ -17,21 +17,22 @@ The Console is a reference implementation. The SDK packages are the product.
 | `@stigmer/sdk` | Typed API clients from protobuf | `@stigmer/protos` |
 | `@stigmer/react` | Data hooks, behavior hooks, styled components | `@stigmer/sdk`, `@stigmer/theme`, `react` |
 | `@stigmer/theme` | `--stgm-*` tokens, presets, `cn()` utility | None (CSS-only + `clsx`/`tailwind-merge`) |
-| `client-apps/web` | Console: routing, app shell, page layout | All SDK packages, `next/*` |
+| `client-apps/web` | Web console: Next.js routing, app shell, page layout | All SDK packages, `next/*` |
+| `client-apps/desktop` | Desktop app: Tauri + Vite + React Router, native integrations | All SDK packages, `@tauri-apps/*` |
 
-Dependencies flow downward only. The SDK never imports from the Console.
+Dependencies flow downward only. The SDK never imports from client apps. Client apps never import from each other.
 
 ## Design Decisions
 
 These are the formal architectural decisions governing this codebase. Each is documented in detail in `_projects/2026-04/20260423.01.web-sdk-architecture-standards/design-decisions/`.
 
-**DD-001 — SDK-first development.** Build every feature in `@stigmer/react` first (data hook → behavior hook → styled component), consume from the Console second. Default to the SDK when placement is uncertain — extraction later is harder than inclusion now.
+**DD-001 — SDK-first development.** Build every feature in `@stigmer/react` first (data hook → behavior hook → styled component), consume from client apps second. Default to the SDK when placement is uncertain — extraction later is harder than inclusion now.
 
-**DD-002 — Console is a thin shell.** `app/` is routes and page layout only. Zero domain logic in the Console. If a page file exceeds ~50 lines beyond layout and imports, that logic likely belongs in the SDK.
+**DD-002 — Client apps are thin shells.** Page files are routes and layout only. Zero domain logic in client apps. If a page file exceeds ~50 lines beyond layout and imports, that logic likely belongs in the SDK.
 
 **DD-003 — Headless-first.** Three layers, each independently importable: data hooks (API data via `@stigmer/sdk`), behavior hooks (interaction logic, state machines), styled components (hooks + `@stigmer/theme` tokens). Platform builders adopt at the level that fits their needs.
 
-**DD-004 — Zero framework deps in SDK.** `@stigmer/react` has no `next/*` imports, no Console routing, no app-shell auth, no framework-specific assumptions. It works in any React environment. Navigation and image optimization are the consumer's responsibility — use callback props.
+**DD-004 — Zero framework deps in SDK.** `@stigmer/react` has no `next/*` imports, no `@tauri-apps/*` imports, no routing, no app-shell auth, no framework-specific assumptions. It works in any React environment. Navigation and image optimization are the consumer's responsibility — use callback props.
 
 **DD-005 — Theme token compliance.** All visual properties via `--stgm-*` tokens, scoped to `.stgm` container and `@layer stgm`. Use correct token families per context (sidebar-*, popover-*, standard). See `theme-token-guidelines.mdc` for the complete reference.
 
@@ -47,7 +48,7 @@ These are the formal architectural decisions governing this codebase. Each is do
 
 **DD-011 — Opt-in SDK behavior changes.** New behaviors that change DOM structure, scroll behavior, rendering strategy, or bundle dependencies must be opt-in via props with backward-compatible defaults (e.g., `virtualized?: boolean` defaults to `false`). Auto-threshold switching mid-session is forbidden — it causes remount, state loss, and scroll reset.
 
-**DD-012 — SDK dependency license policy.** SDK packages (`@stigmer/sdk`, `@stigmer/react`, `@stigmer/theme`) must only use MIT or Apache-2.0 compatible dependencies. Commercial-license dependencies must be isolated to `client-apps/web`. A dependency that imposes license obligations on SDK consumers is a blocker.
+**DD-012 — SDK dependency license policy.** SDK packages (`@stigmer/sdk`, `@stigmer/react`, `@stigmer/theme`) must only use MIT or Apache-2.0 compatible dependencies. Commercial-license dependencies must be isolated to client apps. A dependency that imposes license obligations on SDK consumers is a blocker.
 
 **DD-013 — React.lazy for optional heavy dependencies.** When an SDK feature depends on a large library that many consumers will not use (e.g., `react-virtuoso`), import it via `React.lazy` + `Suspense`. Declare it as an optional peer dependency. This ensures the dependency is never bundled when the feature is not used.
 
@@ -55,18 +56,21 @@ These are the formal architectural decisions governing this codebase. Each is do
 
 **DD-015 — Animation accessibility.** All animations must respect `prefers-reduced-motion`. Use `0.01ms` duration (not `0ms`) to ensure JS event callbacks (`animationEnd`, `transitionEnd`) still fire. Use class-based animation (not `@starting-style`) when virtualization recycles DOM nodes. All animation CSS lives in `@layer stgm` with `--stgm-motion-*` custom properties.
 
+**DD-016 — Client app parity.** All client apps consuming the same SDK component must wire its props identically (accounting for platform-appropriate differences like routing or native APIs). When a bug fix or feature change modifies how one client app wires props to an SDK component, all other client apps consuming that component must be reviewed and updated in the same changeset. The SDK is the shared foundation; unexplained client-app divergence is a defect, not a feature. The parity check applies to every shared SDK component, but is especially critical for `SessionComposer`, `MessageThread`, `ModelSelector`, and flow hooks like `useSessionPageFlow` and `useNewSessionFlow`.
+
 ## Dont-Dos
 
 These anti-patterns are documented in detail in `_projects/2026-04/20260423.01.web-sdk-architecture-standards/dont-dos/`.
 
-1. **No Console imports in SDK.** `@stigmer/react` never imports from `client-apps/web` or uses `@/` paths.
-2. **No framework deps in SDK.** No `next/*`, `next-themes`, or framework-specific packages in `@stigmer/react`.
+1. **No client-app imports in SDK.** `@stigmer/react` never imports from `client-apps/web`, `client-apps/desktop`, or uses `@/` paths.
+2. **No framework deps in SDK.** No `next/*`, `next-themes`, `@tauri-apps/*`, or framework-specific packages in `@stigmer/react`.
 3. **No hardcoded colors or sizes.** Every visual property flows through `--stgm-*` tokens. No hex values, no `text-[14px]`, no `bg-white`.
 4. **No opacity modifiers on tokens.** Use dedicated token variants (`text-sidebar-muted-foreground`), not `/60` suffixes. If no variant exists, propose a new token.
-5. **No technical-function grouping.** Console code is organized by domain (`src/domain/session/`), not by technical role (`src/hooks/`, `src/services/`).
+5. **No technical-function grouping.** Client-app code is organized by domain (`src/domain/session/`, `src/pages/`), not by technical role (`src/hooks/`, `src/services/`).
 6. **No `useState(snapshot)` for streaming data.** Storing full stream snapshots in `useState` causes full-tree re-renders on every frame. Use the StreamController → ConversationStore → `useSyncExternalStore` pipeline (DD-009).
 7. **No full-object dependencies in useCallback/useMemo.** Depending on `conv` (new object every render) instead of `conv.sendFollowUp` (stable ref) defeats all downstream memoization. Narrow deps to the specific property or method actually used (DD-010).
 8. **No `@starting-style` in virtualized contexts.** It fires on every DOM insertion, including Virtuoso's recycled node mounts. Use class-based animation with explicit control over which items animate (DD-015).
+9. **No single-client-app bug fixes for shared SDK wiring.** When fixing a bug that requires passing a new or corrected prop from a client app to an SDK component, never fix only one client app. Search for all consumers of that component across `client-apps/web` and `client-apps/desktop` and apply the fix to all of them. A fix applied to web but not desktop (or vice versa) is an incomplete fix.
 
 ## Integration Ergonomics
 
@@ -80,8 +84,9 @@ SDK APIs are user interfaces. Method names, hook return types, component props, 
 
 ## Before Writing Any Component
 
-1. Does it belong in the SDK or the Console? (Default to SDK — DD-001)
+1. Does it belong in the SDK or a client app? (Default to SDK — DD-001)
 2. Can it be themed via `--stgm-*` tokens without leaking styles? (DD-005, Dont-Do 003)
 3. Does it work identically embedded in a third-party dashboard as in the Console? (DD-004)
 4. Are hooks exported independently from styled components? (DD-003)
 5. Does it use generated types from `@stigmer/sdk`, not hand-written types? (DD-007)
+6. If it's a client-app change to SDK component wiring, have all client apps been updated? (DD-016, Dont-Do 009)

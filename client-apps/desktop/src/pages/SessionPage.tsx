@@ -9,6 +9,7 @@ import {
   useSessionPageFlow,
   useActiveOrgSlug,
   MessageThread,
+  ThreadSkeleton,
   SessionComposer,
   ExecutionProgress,
   UsageWidget,
@@ -67,6 +68,7 @@ function SessionPageInner({ id }: { id: string }) {
               isSubmitting={conv.isSending}
               disabled={!conv.canSendFollowUp}
               org={org}
+              harness={flow.harness}
               defaultModelId={modelId}
               onModelChange={setModelId}
               workspace={flow.workspace}
@@ -109,17 +111,8 @@ function SessionPageInner({ id }: { id: string }) {
 
 function SessionSkeleton() {
   return (
-    <div className="flex h-full flex-col gap-4 p-4" aria-busy="true">
-      <div className="animate-pulse space-y-4">
-        <div className="rounded-lg bg-muted-subtle px-4 py-3">
-          <div className="h-4 w-3/5 rounded bg-muted" />
-        </div>
-        <div className="space-y-2 px-4">
-          <div className="h-4 w-4/5 rounded bg-muted" />
-          <div className="h-4 w-3/5 rounded bg-muted" />
-          <div className="h-4 w-2/5 rounded bg-muted" />
-        </div>
-      </div>
+    <div className="flex h-full w-full flex-col pl-[220px]">
+      <ThreadSkeleton className="flex-1 px-0" />
     </div>
   );
 }
