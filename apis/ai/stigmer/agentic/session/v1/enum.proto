@@ -54,3 +54,44 @@ enum Harness {
   // both local and cloud runtimes. Premium billing tier.
   HARNESS_CURSOR = 2;
 }
+
+// CursorMode selects the Cursor SDK agent type for sessions using
+// HARNESS_CURSOR.
+//
+// Determined once at session creation based on workspace entries and never
+// changed mid-session. Switching would lose Cursor-side conversation state
+// because local agents (agent- prefix) and cloud agents (bc- prefix) maintain
+// separate, incompatible conversation stores.
+//
+// Ignored when harness is not HARNESS_CURSOR.
+//
+// @internal
+// Mode selection logic (when feature flag STIGMER_CURSOR_CLOUD_MODE_ENABLED
+// is true):
+//   - All workspace entries are GitRepoSource -> CURSOR_MODE_CLOUD
+//   - Any workspace entry is LocalPathSource  -> CURSOR_MODE_LOCAL
+//   - Feature flag disabled                   -> CURSOR_MODE_LOCAL (forced)
+//
+// When UNSPECIFIED on an existing session, the runner treats it as LOCAL
+// for backward compatibility with sessions created before this field existed.
+enum CursorMode {
+  // Not yet determined or not applicable (non-Cursor harness).
+  // Runner defaults to LOCAL for backward compatibility.
+  CURSOR_MODE_UNSPECIFIED = 0;
+
+  // Local Cursor agent via Agent.create({ local: { cwd } }).
+  //
+  // Works with any workspace source (git or local path). Stigmer owns
+  // the durable conversation layer — always sends continuation prompts
+  // because Cursor local agents do not reliably retain context across
+  // Agent.send() calls.
+  CURSOR_MODE_LOCAL = 1;
+
+  // Cloud Cursor agent via Agent.create({ cloud: { repos } }).
+  //
+  // Requires all workspace entries to be GitRepoSource (HTTPS URLs).
+  // Cursor natively manages conversation state for cloud agents, but
+  // Stigmer persists session memory as backup because cloud agents can
+  // expire. Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED.
+  CURSOR_MODE_CLOUD = 2;
+}
