@@ -68,9 +68,31 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-09 18:15
-**Current Task**: Task 2a COMPLETED — pick Task 6 or Task 2b next
-**Status**: Tasks 1, 5, and 2a complete. Proto foundation landed, session memory extraction layer built. Ready for service-side persistence (Task 6) or continuation prompt builder (Task 2b).
-**Tasks**: 8 tasks total (T1 ✅, T2a ✅, T2b, T3, T4, T5 ✅, T6, T7)
+**Current Task**: Task 2b COMPLETED — pick Task 6 or Task 3 next
+**Status**: Tasks 1, 5, 2a, and 2b complete. Proto foundation, session memory extraction, and continuation prompt builder all landed. Ready for service-side persistence (Task 6) or graceful resume-or-create (Task 3).
+**Tasks**: 8 tasks total (T1 ✅, T2a ✅, T2b ✅, T3, T4, T5 ✅, T6, T7)
+
+## Session Progress (2026-05-09, Session 4)
+
+### Completed: Task 2b — Continuation Prompt Builder
+- **New `continuation-prompt.ts`** (538 lines) — Two prompt builders + deny-time utilities:
+  - `buildContinuationPrompt` — complete prompt for fresh/unreliable agents: continuation contract + agent identity (instructions, skills, workspace) + session memory (summary, decisions, failures, files, turns, observations) + user message
+  - `buildHitlContinuationPrompt` — HITL reinvocation prompt: approval details with tool/args/rationale/decision + deny-time git diagnostics + agent identity + memory subset + confirm/revise/refuse protocol
+  - `extractAgentRationale` — heuristic extraction of last AI message content (500 char cap)
+  - `getGitBranch` / `getGitHeadSha` — best-effort git state capture, never throws
+  - Progressive token budget enforcement: 8k ceiling, truncation priority (turns → observations → summary)
+- **Modified `prompt-builder.ts`** — Exported 7 internal formatting helpers for reuse without duplication
+- **Modified `execute-cursor.ts`** (Phase 12) — Added HITL diagnostic capture at tool-deny time: `agentRationale`, `branchAtDeny`, `headShaAtDeny` on every PendingApproval
+- **New `continuation-prompt.test.ts`** (564 lines, 50 tests) — Comprehensive coverage for both prompt builders, token budget enforcement, rationale extraction, and git utilities
+- All 330 cursor-runner tests pass (50 new + 280 existing)
+- Committed: `9263587ca` — `feat(cursor-runner): add continuation prompt builder for durable agent context`
+
+### Key Design Decisions (Task 2b)
+- **DD: New file, not extension of prompt-builder.ts** — `prompt-builder.ts` handles "what the agent IS" (blueprint identity). `continuation-prompt.ts` handles "what the agent HAS DONE" (durable memory). Orthogonal concerns with shared helpers.
+- **DD: Task 2b delivers pure functions only; Task 3 wires the prompt selection** — The mode/resumed/isCloudAgentExpired signals come from Task 3's changes to resolveAgent(). Task 2b stays independently testable.
+- **DD: Agent rationale = last AI message, truncated to 500 chars** — Heuristic extraction, no LLM. The last AI message typically contains the agent's explanation of its intent. Good enough for v1.
+- **DD: Continuation prompt is a COMPLETE prompt** — Fresh agents know nothing. Includes full agent identity sections (reuses exported helpers) + memory + user message. Not a supplement to buildEnhancedPrompt.
+- **DD: HITL subset excludes changed_files/open_tasks/tool_observations** — HITL reinvocation only needs the approval context + enough memory to orient. Full memory would bloat the prompt for a narrowly-scoped task (confirm/revise/refuse one tool call).
 
 ## Session Progress (2026-05-09, Session 3)
 
@@ -131,12 +153,11 @@ When starting a new session:
 
 **Now unblocked (parallelizable):**
 1. **Task 6: Session Memory Persistence (stigmer-service, Java)** — Extend `readSessionThreadId` to also return `session_memory` and `cursor_mode`. Add merge logic in `UpdateExecutionStatusActivity`.
-2. **Task 2b: Continuation Prompt Builder (cursor-runner, TS)** — Build `buildContinuationPrompt()` using SessionMemory from Task 2a. Depends on Task 2a ✅.
+2. **Task 3: Graceful Resume-or-Create (cursor-runner, TS)** — Depends on Tasks 1 ✅ + 2a ✅ + 2b ✅. Change `resolveAgent()` to gracefully fall back to fresh agent + continuation prompt on resume failure.
 
 **Then sequential:**
 3. **Task 7: Workflow Integration (Java)** — Depends on Task 6. Pass memory + mode to `ExecuteCursor` activity.
-4. **Task 3: Graceful Resume-or-Create (TS)** — Depends on Tasks 1 ✅ + 2a ✅ + 2b.
-5. **Task 4: Cloud Agent Path (TS)** — Depends on Task 3 + 5 ✅, feature-flagged.
+4. **Task 4: Cloud Agent Path (TS)** — Depends on Task 3 + 5 ✅, feature-flagged.
 
 ## Context for Resume
 - stigmer-cloud has regenerated stubs but **no Java service code changes yet** — that's Task 6
