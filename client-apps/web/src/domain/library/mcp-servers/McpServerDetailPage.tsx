@@ -4,11 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   McpServerDetailView,
+  useMcpServer,
   useUpdateVisibility,
   useActiveOrgSlug,
   useCopyResource,
   useConfirmAction,
   useDeleteResource,
+  useExportResource,
   ConfirmDialog,
   useBreadcrumbOverride,
   type DetailAction,
@@ -32,6 +34,11 @@ export function McpServerDetailPageInner({
   const { copyId, copyQualifiedSlug } = useCopyResource();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
   const { deleteResource, isDeleting } = useDeleteResource("mcpServer", resourceId, resourceName);
+  const { mcpServer } = useMcpServer(org, slug);
+  const { copyYaml, copyJson, downloadYaml } = useExportResource({
+    kind: "McpServer",
+    resource: mcpServer,
+  });
 
   const { updateVisibility, isPending } = useUpdateVisibility(
     "mcpServer",
@@ -82,6 +89,27 @@ export function McpServerDetailPageInner({
         onAction: () => copyQualifiedSlug(org, slug),
       },
       {
+        id: "export-yaml",
+        label: "Export YAML",
+        group: "export",
+        onAction: copyYaml,
+        disabled: !mcpServer,
+      },
+      {
+        id: "export-json",
+        label: "Export JSON",
+        group: "export",
+        onAction: copyJson,
+        disabled: !mcpServer,
+      },
+      {
+        id: "download-yaml",
+        label: "Download YAML",
+        group: "export",
+        onAction: downloadYaml,
+        disabled: !mcpServer,
+      },
+      {
         id: "delete",
         label: "Delete",
         variant: "destructive" as const,
@@ -90,7 +118,7 @@ export function McpServerDetailPageInner({
         disabled: isDeleting,
       },
     ],
-    [resourceId, copyId, copyQualifiedSlug, org, slug, handleDelete, isDeleting],
+    [resourceId, copyId, copyQualifiedSlug, org, slug, copyYaml, copyJson, downloadYaml, mcpServer, handleDelete, isDeleting],
   );
 
   return (

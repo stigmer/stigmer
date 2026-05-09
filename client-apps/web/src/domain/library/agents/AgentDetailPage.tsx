@@ -4,10 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AgentDetailView,
+  useAgent,
   useUpdateVisibility,
   useCopyResource,
   useConfirmAction,
   useDeleteResource,
+  useExportResource,
   ConfirmDialog,
   useBreadcrumbOverride,
   type DetailAction,
@@ -30,6 +32,11 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   const { copyId, copyQualifiedSlug } = useCopyResource();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
   const { deleteResource, isDeleting } = useDeleteResource("agent", resourceId, resourceName);
+  const { agent } = useAgent(org, slug);
+  const { copyYaml, copyJson, downloadYaml } = useExportResource({
+    kind: "Agent",
+    resource: agent,
+  });
 
   const { updateVisibility, isPending } = useUpdateVisibility(
     "agent",
@@ -90,6 +97,27 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         onAction: () => copyQualifiedSlug(org, slug),
       },
       {
+        id: "export-yaml",
+        label: "Export YAML",
+        group: "export",
+        onAction: copyYaml,
+        disabled: !agent,
+      },
+      {
+        id: "export-json",
+        label: "Export JSON",
+        group: "export",
+        onAction: copyJson,
+        disabled: !agent,
+      },
+      {
+        id: "download-yaml",
+        label: "Download YAML",
+        group: "export",
+        onAction: downloadYaml,
+        disabled: !agent,
+      },
+      {
         id: "delete",
         label: "Delete",
         variant: "destructive" as const,
@@ -98,7 +126,7 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         disabled: isDeleting,
       },
     ],
-    [resourceId, copyId, copyQualifiedSlug, org, slug, handleDelete, isDeleting],
+    [resourceId, copyId, copyQualifiedSlug, org, slug, copyYaml, copyJson, downloadYaml, agent, handleDelete, isDeleting],
   );
 
   return (

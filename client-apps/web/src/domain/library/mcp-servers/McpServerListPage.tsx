@@ -2,12 +2,13 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, Server } from "lucide-react";
+import { Plus, Upload, Server } from "lucide-react";
 import { getDraftSessionUrl } from "@/domain/session/draft-session";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import {
   ResourceWorkbench,
   McpServerConnectDialog,
+  ImportResourceDialog,
   useStigmer,
   useActiveOrgSlug,
   type WorkbenchColumnDef,
@@ -67,6 +68,7 @@ export function McpServerListPage() {
 
   const [scope, setScope] = useState<"org" | "all">(readPersistedScope);
   const [connectTarget, setConnectTarget] = useState<ConnectTarget | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const handleScopeChange = useCallback((newScope: "org" | "all") => {
     setScope(newScope);
@@ -104,13 +106,23 @@ export function McpServerListPage() {
         emptyTitle="No MCP servers yet"
         emptyDescription="Add an MCP server to connect external tools and data sources to your agents."
         headerAction={
-          <Link
-            href={createUrl}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Plus className="size-3.5" aria-hidden="true" />
-            Add MCP server
-          </Link>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setImportOpen(true)}
+              aria-label="Import from file"
+              className="inline-flex items-center justify-center rounded-md border border-input bg-background p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Upload className="size-3.5" aria-hidden="true" />
+            </button>
+            <Link
+              href={createUrl}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Plus className="size-3.5" aria-hidden="true" />
+              Add MCP server
+            </Link>
+          </div>
         }
         emptyAction={
           <Link
@@ -146,6 +158,12 @@ export function McpServerListPage() {
         activeOrg={org}
         open={connectTarget !== null}
         onClose={() => setConnectTarget(null)}
+      />
+
+      <ImportResourceDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        org={org ?? ""}
       />
     </>
   );
