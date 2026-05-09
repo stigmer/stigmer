@@ -900,6 +900,7 @@
   resolved "file:sdk/react"
   dependencies:
     "@stigmer/theme" "*"
+    fflate "^0.8.2"
     react-markdown "^10.1.0"
     remark-gfm "^4.0.1"
     sonner "^2.0.0"
@@ -2947,7 +2948,7 @@ devlop@^1.0.0, devlop@^1.1.0:
   dependencies:
     dequal "^2.0.0"
 
-diff@^8.0.2:
+diff@^8.0.2, diff@^8.0.3:
   version "8.0.3"
   resolved "https://registry.npmjs.org/diff/-/diff-8.0.3.tgz"
   integrity sha512-qejHi7bcSD4hQAZE0tNAawRK1ZtafHDmMTMkrrIGgSLl7hTnQHmKCeB45xAcbfTqK2zowkM3j3bHt/4b/ARbYQ==
