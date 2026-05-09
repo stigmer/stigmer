@@ -94,3 +94,5 @@ export type {
   McpServerCreationWizardProps,
   McpServerCreationResult,
 } from "./McpServerCreationWizard";
+
+export type { McpServerWizardData } from "./steps/types";

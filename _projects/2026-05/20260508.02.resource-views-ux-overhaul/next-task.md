@@ -14,8 +14,25 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-05-09 — UX polish: resource card icons + input visibility token
-- **Active Task**: UX polish complete. Next up: T04-F (Template Gallery) or T04-G (AI Sidecar, needs backend spike)
+- **Last Session**: 2026-05-09 — T04-F Template Gallery implementation
+- **Active Task**: T04-F complete. Next up: T04-G (AI Sidecar, needs backend spike) or Phase 4 planning
+
+## Session Progress (2026-05-09, Session 11)
+
+- Completed Phase 3 sub-task T04-F: Template Gallery
+- Built `ResourceTemplate<TData>` generic type with `TemplateCategory` union and `TEMPLATE_CATEGORY_LABELS` map
+- Created 5 agent templates: Customer Support, Code Review, Data Analysis, Content Writer, DevOps Assistant
+- Created 4 MCP server templates: GitHub, Slack, PostgreSQL, Filesystem
+- Built `useTemplateFilter` headless hook — category filtering + text search, memoized, independently importable
+- Built `TemplateCard` — clickable card with deterministic colored initial avatar, category badge, keyboard a11y
+- Built `TemplateGallery` — searchable card grid with category tabs, arrow-key navigation between tabs
+- Built `CreationPicker` — "step 0" landing with scratch/template/import option cards, inline gallery transition
+- Added `initialData?: Partial<TData>` prop to both `AgentCreationWizard` and `McpServerCreationWizard`
+- Exported `AgentWizardData` and `McpServerWizardData` types from SDK barrel
+- Updated Console `AgentNewPage` and `McpServerNewPage` with picking -> wizard state machine
+- Removed planned string-based icon field — SDK has zero lucide-react dependency; uses initial avatars instead
+- Fixed `hover:bg-accent/50` opacity modifier violations (lint rule `stigmer/no-token-opacity-modifiers`)
+- All typecheck + lint pass clean (only pre-existing tsdoc ActionMenu warning)
 
 ## Session Progress (2026-05-09, Session 10)
 
@@ -114,6 +131,11 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Key Decisions Made (This Session)
 
+- **DD-T04F-001**: Creation landing page as "step 0" — local state transition in Console page, not a route change. Consolidates blank/template/import paths.
+- **DD-T04F-002**: Templates are static TypeScript objects in the SDK — no backend API, platform builders pass own arrays.
+- **DD-T04F-003**: Wizard `initialData` prop merges with defaults via spread — non-breaking, enables template pre-fill and future duplicate flows.
+- **DD-T04F-004**: No template provenance tracking yet — deferred to reduce complexity; core value is pre-filling.
+- **DD-T04F-ICON**: Removed planned string-based icon field from `ResourceTemplate` — SDK has zero lucide-react dependency; uses deterministic colored initials matching `ResourceAvatar` pattern.
 - **DD-INPUT-BG-001**: New `--stgm-input-bg` design token for form input backgrounds — applied via theme tokens, not hardcoded classes. Platform builders can override.
 - **DD-AVATAR-001**: ResourceAvatar uses `bg-muted` container + `object-contain` for SVG icons, ensuring visibility regardless of SVG fill color. Skills are hidden (no icon, no placeholder).
 - **DD-T04C-001**: Skills are upload-only on web. No in-browser editor. Users author skills locally (IDE with proper tooling) and upload the finished ZIP package. Console role is upload + view, not authoring.
@@ -128,8 +150,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **T04-F: Template Gallery** — Depends on T04-B (done) and T04-D (done). Static template definitions for agent and MCP server creation
-2. **T04-G: AI Sidecar** — Needs backend design spike first
+1. **T04-G: AI Sidecar** — Needs backend design spike first. Last remaining Phase 3 sub-task.
+2. **Phase 4 planning** — Version history, dependency graphs, and operational enhancements
 
 ## Context for Resume
 
@@ -150,6 +172,13 @@ Drop this file into your conversation to quickly resume work on this project.
 - Key discovery: `McpServerAuthInput` is not exported from `@stigmer/sdk` — use `NonNullable<McpServerInput["auth"]>` for auth serialization
 
 ## Essential Files to Review
+
+### 0x. Template Gallery (Phase 3 T04-F)
+```
+sdk/react/src/resource-creation/
+  templates/types.ts, templates/agent-templates.ts, templates/mcp-server-templates.ts, templates/index.ts
+  useTemplateFilter.ts, TemplateCard.tsx, TemplateGallery.tsx, CreationPicker.tsx
+```
 
 ### 0y. MCP Server Creation Wizard (Phase 3 T04-D)
 ```
