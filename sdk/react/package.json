@@ -76,7 +76,8 @@
     "lucide-react": ">=0.400.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-virtuoso": "^4.0.0"
+    "react-virtuoso": "^4.0.0",
+    "@tanstack/react-table": "^8.20.0"
   },
   "peerDependenciesMeta": {
     "@base-ui/react": {
@@ -84,9 +85,13 @@
     },
     "react-virtuoso": {
       "optional": true
+    },
+    "@tanstack/react-table": {
+      "optional": true
     }
   },
   "devDependencies": {
+    "@tanstack/react-table": "^8.21.3",
     "@testing-library/react": "^16.3.2",
     "@typescript-eslint/parser": "^8.57.0",
     "eslint": "^9.39.4",
