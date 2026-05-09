@@ -1,6 +1,30 @@
 import type { ReactNode } from "react";
 
 // ---------------------------------------------------------------------------
+// Shared form entry types — reusable across all resource creation wizards
+// ---------------------------------------------------------------------------
+
+/** A single env var declaration entry in a wizard form. */
+export interface EnvVarEntry {
+  /** Environment variable name (e.g. GITHUB_TOKEN). */
+  readonly key: string;
+  /** Human-readable description. */
+  readonly description: string;
+  /** Whether this variable holds a secret value. */
+  readonly isSecret: boolean;
+  /** Whether the variable is optional. */
+  readonly optional: boolean;
+}
+
+/** A generic key-value pair entry for wizard forms (e.g. HTTP headers). */
+export interface KeyValueEntry {
+  /** The key (e.g. header name). */
+  readonly key: string;
+  /** The value (e.g. header value). */
+  readonly value: string;
+}
+
+// ---------------------------------------------------------------------------
 // Wizard step definition — describes a single step in the wizard
 // ---------------------------------------------------------------------------
 

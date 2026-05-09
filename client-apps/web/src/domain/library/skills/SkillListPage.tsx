@@ -94,14 +94,14 @@ export function SkillListPage() {
         searchPlaceholder="Search skills…"
         emptyIcon={<Sparkles className="size-10" aria-hidden="true" />}
         emptyTitle="No skills yet"
-        emptyDescription="Create a skill to package reusable instructions and context for your agents."
+        emptyDescription="Upload a skill package to provide reusable instructions and context for your agents."
         headerAction={
           <Link
             href="/library/skills/new"
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Plus className="size-3.5" aria-hidden="true" />
-            Create skill
+            Upload skill
           </Link>
         }
         emptyAction={
@@ -110,7 +110,7 @@ export function SkillListPage() {
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Plus className="size-3.5" aria-hidden="true" />
-            Create skill
+            Upload skill
           </Link>
         }
         onItemClick={(item) => navigateToDetail("skills", item.org, item.slug)}

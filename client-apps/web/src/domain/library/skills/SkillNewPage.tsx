@@ -3,16 +3,16 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  SkillEditor,
+  SkillUploader,
   useActiveOrgSlug,
   useBreadcrumbOverride,
 } from "@stigmer/react";
 
 /**
- * Console page for creating a new skill via the editor.
+ * Console page for uploading a new skill package.
  *
  * Mounted at `/library/skills/new`. Renders the SDK's
- * `SkillEditor` component and handles routing on
+ * `SkillUploader` component and handles routing on
  * completion (navigate to detail) and cancellation (navigate to list).
  */
 export function SkillNewPage() {
@@ -21,13 +21,13 @@ export function SkillNewPage() {
   const { setLabel } = useBreadcrumbOverride();
 
   useEffect(() => {
-    setLabel("New skill");
+    setLabel("Upload skill");
   }, [setLabel]);
 
   if (!org) return null;
 
   return (
-    <SkillEditor
+    <SkillUploader
       org={org}
       onComplete={(skill) =>
         router.push(
@@ -35,7 +35,7 @@ export function SkillNewPage() {
         )
       }
       onCancel={() => router.push("/library/skills")}
-      className="min-h-[480px]"
+      className="min-h-[320px]"
     />
   );
 }

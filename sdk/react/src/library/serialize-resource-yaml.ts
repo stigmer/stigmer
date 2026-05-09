@@ -1,6 +1,7 @@
 import { stringify as stringifyYaml } from "yaml";
 import type {
   AgentInput,
+  McpServerInput,
   McpServerUsageInput,
   SubAgentInput,
   McpAccessInput,
@@ -610,6 +611,145 @@ function serializeInputEnv(
     }
 
     result[key] = entry;
+  }
+
+  return result;
+}
+
+// ===========================================================================
+// McpServerInput serialization (from SDK input type, not proto)
+// ===========================================================================
+
+/**
+ * Serializes a {@link McpServerInput} (SDK input type) into the canonical
+ * Stigmer YAML format.
+ *
+ * Unlike {@link serializeMcpServerYaml} which takes a proto `McpServer`,
+ * this function works from the SDK input type — the same shape used by
+ * `stigmer.mcpServer.apply()`. This is used by the creation wizard to
+ * preview the YAML before submission.
+ *
+ * The output is round-trip compatible with {@link parseResourceYaml}.
+ *
+ * @param input - The SDK `McpServerInput` to serialize.
+ * @returns A YAML string in the canonical Stigmer resource format.
+ *
+ * @example
+ * ```ts
+ * import { serializeMcpServerInputYaml } from "@stigmer/react";
+ *
+ * const yaml = serializeMcpServerInputYaml({
+ *   name: "github",
+ *   org: "acme",
+ *   http: { url: "https://mcp.github.com/sse" },
+ * });
+ * ```
+ */
+export function serializeMcpServerInputYaml(input: McpServerInput): string {
+  const doc: Record<string, unknown> = {
+    apiVersion: "agentic.stigmer.ai/v1",
+    kind: "McpServer",
+    metadata: buildMcpServerInputMetadata(input),
+    spec: buildMcpServerInputSpec(input),
+  };
+
+  return stringifyYaml(doc, { lineWidth: 0, blockQuote: "literal" });
+}
+
+function buildMcpServerInputMetadata(
+  input: McpServerInput,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {
+    name: input.name,
+  };
+
+  if (input.org) {
+    result.org = input.org;
+  }
+
+  if (input.slug && input.slug !== input.name) {
+    result.slug = input.slug;
+  }
+
+  if (input.labels && Object.keys(input.labels).length > 0) {
+    result.labels = { ...input.labels };
+  }
+
+  return result;
+}
+
+function buildMcpServerInputSpec(
+  input: McpServerInput,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  if (input.description) {
+    result.description = input.description;
+  }
+
+  if (input.iconUrl) {
+    result.icon_url = input.iconUrl;
+  }
+
+  if (input.stdio) {
+    const stdio: Record<string, unknown> = {
+      command: input.stdio.command,
+    };
+    if (input.stdio.args && input.stdio.args.length > 0) {
+      stdio.args = [...input.stdio.args];
+    }
+    if (input.stdio.workingDir) {
+      stdio.working_dir = input.stdio.workingDir;
+    }
+    result.stdio = stdio;
+  }
+
+  if (input.http) {
+    const http: Record<string, unknown> = {
+      url: input.http.url,
+    };
+    if (input.http.headers && Object.keys(input.http.headers).length > 0) {
+      http.headers = { ...input.http.headers };
+    }
+    if (input.http.queryParams && Object.keys(input.http.queryParams).length > 0) {
+      http.query_params = { ...input.http.queryParams };
+    }
+    if (input.http.timeoutSeconds && input.http.timeoutSeconds > 0) {
+      http.timeout_seconds = input.http.timeoutSeconds;
+    }
+    result.http = http;
+  }
+
+  if (input.env && Object.keys(input.env).length > 0) {
+    result.env = serializeInputEnv(input.env);
+  }
+
+  if (input.auth) {
+    result.auth = serializeInputMcpServerAuth(input.auth);
+  }
+
+  return result;
+}
+
+function serializeInputMcpServerAuth(
+  auth: NonNullable<McpServerInput["auth"]>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  if (auth.oauthAppRef) {
+    result.oauth_app_ref = serializeInputRef(auth.oauthAppRef);
+  }
+  if (auth.targetEnvVar) {
+    result.target_env_var = auth.targetEnvVar;
+  }
+  if (auth.tokenLifetimeHint) {
+    result.token_lifetime_hint = auth.tokenLifetimeHint;
+  }
+  if (auth.scopeHints && auth.scopeHints.length > 0) {
+    result.scope_hints = [...auth.scopeHints];
+  }
+  if (auth.discoveryUrl) {
+    result.discovery_url = auth.discoveryUrl;
   }
 
   return result;

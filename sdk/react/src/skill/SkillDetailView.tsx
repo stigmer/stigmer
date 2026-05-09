@@ -9,6 +9,7 @@ import type { GitProvenance } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/
 import { SkillState } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/status_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useSkill } from "./useSkill";
+import { SkillFileBrowser } from "./SkillFileBrowser";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components";
@@ -159,9 +160,11 @@ export function SkillDetailView({
           </div>
         )}
 
-        {spec?.skillMd && (
+        {status?.artifactStorageKey ? (
+          <SkillFileBrowser artifactStorageKey={status.artifactStorageKey} />
+        ) : spec?.skillMd ? (
           <SkillContentSection content={spec.skillMd} />
-        )}
+        ) : null}
 
         {status && (status.versionHash || status.gitProvenance) && (
           <VersionSection

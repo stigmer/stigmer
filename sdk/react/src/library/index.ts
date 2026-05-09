@@ -40,6 +40,7 @@ export {
   serializeAgentYaml,
   serializeMcpServerYaml,
   serializeAgentInputYaml,
+  serializeMcpServerInputYaml,
 } from "./serialize-resource-yaml";
 
 export { useApplyResource } from "./useApplyResource";

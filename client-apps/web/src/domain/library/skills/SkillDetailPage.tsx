@@ -61,15 +61,6 @@ export function SkillDetailPageInner({ org, slug }: SkillDetailPageInnerProps) {
     }
   }, [confirm, deleteResource, router, resourceName]);
 
-  const primaryAction: DetailAction = useMemo(
-    () => ({
-      id: "edit",
-      label: "Edit",
-      onAction: () => router.push(`/library/skills/${org}/${slug}/edit`),
-    }),
-    [router, org, slug],
-  );
-
   const actions: DetailAction[] = useMemo(
     () => [
       {
@@ -105,7 +96,6 @@ export function SkillDetailPageInner({ org, slug }: SkillDetailPageInnerProps) {
         onResourceLoad={handleResourceLoad}
         onVisibilityChange={updateVisibility}
         isVisibilityPending={isPending}
-        primaryAction={primaryAction}
         actions={actions}
       />
       <ConfirmDialog

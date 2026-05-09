@@ -1,4 +1,7 @@
 import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
+import type { EnvVarEntry } from "../../resource-creation/types";
+
+export type { EnvVarEntry } from "../../resource-creation/types";
 
 /**
  * Accumulated form state for the agent creation wizard.
@@ -31,18 +34,6 @@ export interface AgentWizardData {
   readonly skillRefs: ResourceRef[];
   /** Environment variable declarations. */
   readonly env: EnvVarEntry[];
-}
-
-/** A single env var declaration entry in the wizard form. */
-export interface EnvVarEntry {
-  /** Environment variable name (e.g. GITHUB_TOKEN). */
-  readonly key: string;
-  /** Human-readable description. */
-  readonly description: string;
-  /** Whether this variable holds a secret value. */
-  readonly isSecret: boolean;
-  /** Whether the variable is optional. */
-  readonly optional: boolean;
 }
 
 /** Creates the initial empty wizard data. */
