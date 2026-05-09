@@ -220,9 +220,58 @@ func TestWriteJSONError_NoHint(t *testing.T) {
 	assert.False(t, hasHint, "hint should be omitted when empty")
 }
 
+func TestEnsureResult_MachineID_IncludedInJSON(t *testing.T) {
+	result := &EnsureResult{
+		OK:              true,
+		Action:          ActionStartedFresh,
+		RunnerID:        "rnr-t03",
+		Name:            "my-runner",
+		MachineID:       "mach_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+		Org:             "acme",
+		PID:             1234,
+		Runtime:         RuntimeNative,
+		BackendEndpoint: "api.stigmer.ai:443",
+		TaskQueue:       "runner:rnr-t03",
+		StartedAt:       time.Date(2026, 5, 9, 12, 0, 0, 0, time.UTC),
+	}
+
+	var buf bytes.Buffer
+	require.NoError(t, result.WriteJSON(&buf))
+
+	var parsed map[string]interface{}
+	require.NoError(t, json.Unmarshal(buf.Bytes(), &parsed))
+
+	assert.Equal(t, "mach_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6", parsed["machine_id"])
+}
+
+func TestEnsureResult_MachineID_OmittedWhenEmpty(t *testing.T) {
+	result := &EnsureResult{
+		OK:              true,
+		Action:          ActionAdoptedExisting,
+		RunnerID:        "rnr-old",
+		Name:            "old-runner",
+		MachineID:       "",
+		Org:             "acme",
+		PID:             5678,
+		Runtime:         RuntimeNative,
+		BackendEndpoint: "api.stigmer.ai:443",
+		TaskQueue:       "runner:rnr-old",
+		StartedAt:       time.Date(2026, 5, 9, 12, 0, 0, 0, time.UTC),
+	}
+
+	var buf bytes.Buffer
+	require.NoError(t, result.WriteJSON(&buf))
+
+	var parsed map[string]interface{}
+	require.NoError(t, json.Unmarshal(buf.Bytes(), &parsed))
+
+	_, hasMachineID := parsed["machine_id"]
+	assert.False(t, hasMachineID, "machine_id should be omitted when empty")
+}
+
 func TestCheckOrAdopt_NoState(t *testing.T) {
 	name := "nonexistent-runner-" + t.Name()
-	state, err := checkOrAdopt(name, StartOptions{})
+	state, err := checkOrAdopt(name, "", StartOptions{})
 
 	assert.Nil(t, state)
 	assert.Nil(t, err)
@@ -243,7 +292,7 @@ func TestCheckOrAdopt_OrgMismatch(t *testing.T) {
 	require.NoError(t, SaveState(name, tmpState))
 	t.Cleanup(func() { _ = RemoveState(name) })
 
-	state, err := checkOrAdopt(name, StartOptions{OrgOverride: "org-b"})
+	state, err := checkOrAdopt(name, "", StartOptions{OrgOverride: "org-b"})
 
 	if isProcessAlive(1) {
 		assert.Nil(t, state)
@@ -267,7 +316,7 @@ func TestCheckOrAdopt_EndpointMismatch(t *testing.T) {
 	require.NoError(t, SaveState(name, tmpState))
 	t.Cleanup(func() { _ = RemoveState(name) })
 
-	state, err := checkOrAdopt(name, StartOptions{EndpointOverride: "staging.stigmer.ai:443"})
+	state, err := checkOrAdopt(name, "", StartOptions{EndpointOverride: "staging.stigmer.ai:443"})
 
 	if isProcessAlive(1) {
 		assert.Nil(t, state)

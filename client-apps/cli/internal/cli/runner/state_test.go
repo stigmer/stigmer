@@ -84,6 +84,66 @@ func TestRunnerState_NativeOmitsDockerFields(t *testing.T) {
 	assert.NotContains(t, string(data), "container_id")
 }
 
+func TestRunnerState_BackwardCompatibility_NoMachineID(t *testing.T) {
+	// State files from before T03 have no machine_id field.
+	// They must deserialize with MachineID="" without error.
+	oldJSON := `{
+		"runner_id": "rnr-pre-t03",
+		"slug": "my-runner",
+		"org": "acme",
+		"backend_endpoint": "api.stigmer.ai:443",
+		"pid": 12345,
+		"task_queue": "runner:rnr-pre-t03",
+		"started_at": "2026-05-09T12:00:00Z",
+		"runtime": "native"
+	}`
+
+	var state RunnerState
+	err := json.Unmarshal([]byte(oldJSON), &state)
+	require.NoError(t, err)
+
+	assert.Equal(t, "rnr-pre-t03", state.RunnerID)
+	assert.Equal(t, "", state.MachineID)
+}
+
+func TestRunnerState_MachineID_RoundTrip(t *testing.T) {
+	original := &RunnerState{
+		RunnerID:        "rnr-t03",
+		Slug:            "my-runner",
+		Org:             "acme",
+		BackendEndpoint: "api.stigmer.ai:443",
+		PID:             12345,
+		TaskQueue:       "runner:rnr-t03",
+		StartedAt:       time.Date(2026, 5, 9, 12, 0, 0, 0, time.UTC),
+		Runtime:         RuntimeNative,
+		MachineID:       "mach_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+	}
+
+	data, err := json.Marshal(original)
+	require.NoError(t, err)
+	assert.Contains(t, string(data), `"machine_id":"mach_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"`)
+
+	var restored RunnerState
+	require.NoError(t, json.Unmarshal(data, &restored))
+	assert.Equal(t, "mach_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6", restored.MachineID)
+}
+
+func TestRunnerState_MachineID_OmittedWhenEmpty(t *testing.T) {
+	state := &RunnerState{
+		RunnerID:  "rnr-old",
+		Slug:      "my-runner",
+		Org:       "acme",
+		PID:       12345,
+		TaskQueue: "runner:rnr-old",
+		StartedAt: time.Date(2026, 5, 9, 12, 0, 0, 0, time.UTC),
+		MachineID: "",
+	}
+
+	data, err := json.Marshal(state)
+	require.NoError(t, err)
+	assert.NotContains(t, string(data), "machine_id")
+}
+
 func TestSaveAndLoadState_Docker(t *testing.T) {
 	tmpDir := t.TempDir()
 

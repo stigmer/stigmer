@@ -127,4 +127,10 @@ message RunnerConnectionInfo {
   // Version of the runner software.
   // Example: "0.4.2"
   string runner_version = 4;
+
+  // Stable machine identifier, generated once per Stigmer CLI installation
+  // and persisted at ~/.stigmer/machine.json. Used for runner deduplication
+  // across hostname changes. Format: "mach_" + 32 hex chars.
+  // Example: "mach_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
+  string machine_id = 5;
 }
