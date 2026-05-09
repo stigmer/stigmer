@@ -117,8 +117,27 @@ export interface ResourceWorkbenchProps<TData = SearchResult> {
   readonly emptyTitle?: string;
   /** Description for the empty state. */
   readonly emptyDescription?: string;
+  /**
+   * Custom CTA rendered in the first-use empty state (no items, no
+   * active filters). Use this to provide a creation entry point that
+   * is visually co-located with the "no resources yet" message.
+   *
+   * Accepts any ReactNode — typically a `<Link>` or `<button>`.
+   */
+  readonly emptyAction?: ReactNode;
   /** Called when the user clicks "Retry" after an error. */
   readonly onRetry?: () => void;
+
+  // --- Header action -----------------------------------------------------
+
+  /**
+   * Primary action rendered right-aligned in the toolbar, after the
+   * view mode switcher. Use this for the workbench's main creation
+   * entry point — e.g. a "Create agent" button or link.
+   *
+   * Accepts any ReactNode so consumers control routing and styling.
+   */
+  readonly headerAction?: ReactNode;
 
   // --- Layout ------------------------------------------------------------
 
@@ -191,7 +210,9 @@ export function ResourceWorkbench<TData = SearchResult>({
   emptyIcon,
   emptyTitle = "No resources found",
   emptyDescription = "Try adjusting your search or filters.",
+  emptyAction,
   onRetry,
+  headerAction,
   searchPlaceholder = "Search\u2026",
   "aria-label": ariaLabel = "Resource workbench",
   className,
@@ -290,6 +311,7 @@ export function ResourceWorkbench<TData = SearchResult>({
             modes={viewModes}
           />
         )}
+        {headerAction}
       </div>
 
       {/* --- Active filter chips --- */}
@@ -349,7 +371,11 @@ export function ResourceWorkbench<TData = SearchResult>({
                     }
                   : undefined
               }
-            />
+            >
+              {!filtersHook.hasActiveFilters && !filtersHook.debouncedQuery
+                ? emptyAction
+                : undefined}
+            </EmptyState>
           )}
 
           {showContent && viewMode === "table" && collection.table && (

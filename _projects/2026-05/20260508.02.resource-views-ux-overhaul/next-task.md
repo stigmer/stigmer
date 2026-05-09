@@ -14,8 +14,18 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-05-09 — Phase 2 Detail Pages as Operational Hubs complete
-- **Active Task**: Phase 2 complete. Next up: Phase 3 (Creation/Edit Modernization)
+- **Last Session**: 2026-05-09 — Phase 3 T04-A (ResourceWorkbench Creation Slot) complete
+- **Active Task**: Phase 3 T04-A complete. Next up: T04-E (YAML/JSON Import/Export) or T04-B (Agent Creation Wizard)
+
+## Session Progress (2026-05-09, Session 4)
+
+- Completed Phase 3 sub-task T04-A: ResourceWorkbench Creation Slot
+- Added `children?: ReactNode` prop to `EmptyState` (SDK public API — non-breaking)
+- Added `headerAction?: ReactNode` and `emptyAction?: ReactNode` props to `ResourceWorkbench`
+- Refactored all 3 Console list pages (Agent, Skill, MCP Server) to use the new workbench slots
+- Moved "Add X" buttons from page-level headers into the workbench toolbar + empty state CTA
+- Buttons still route to existing draft session URLs (will point to `/library/*/new` when T04-B/C/D land)
+- All typecheck + lint pass clean (`make check` — only pre-existing tsdoc ActionMenu warning)
 
 ## Session Progress (2026-05-09, Session 3)
 
@@ -39,10 +49,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 3: Creation/Edit Modernization** — Manual creation wizards, AI sidecar, skill editor, import/export, templates
-2. **Enhance ResourceWorkbench** — Add scope toggle integration (org/all), keyboard navigation for table rows, density preferences
-3. **Wire real column data** — Status, visibility, tags, timestamps, relationship counts in table columns (requires richer `SearchResult` or separate metadata fetch)
-4. **Saved views** — "Failed agents", "Public skills" etc. (requires backend API)
+1. **T04-E: YAML/JSON Import/Export** — Quick win building on existing `parseResourceYaml`/`serializeAgentYaml` code (no deps on T04-A)
+2. **T04-B: Agent Creation Wizard** — The centerpiece of Phase 3, including shared wizard infrastructure (`WizardShell`, `useWizardState`)
+3. **T04-C: Skill Editor with Preview** — Split-pane Markdown editor + live preview
+4. **T04-D: MCP Server Creation Wizard** — Visual MCP server configuration flow
+5. **T04-F: Template Gallery** — Depends on T04-B and T04-D
+6. **T04-G: AI Sidecar** — Needs backend design spike first
 
 ## Context for Resume
 

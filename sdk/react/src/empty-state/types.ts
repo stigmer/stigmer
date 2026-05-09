@@ -69,6 +69,13 @@ export interface EmptyStateProps {
   readonly errorMessage?: string;
   /** Primary action button. */
   readonly action?: EmptyStateAction;
+  /**
+   * Custom action slot content. When provided, renders in the action
+   * area (centered, below the description) instead of the `action` button.
+   * Use this when you need full control over the CTA element — e.g. a
+   * `<Link>` for client-side routing or a button with an icon.
+   */
+  readonly children?: ReactNode;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
