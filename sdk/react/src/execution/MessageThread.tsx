@@ -129,7 +129,7 @@ export type ThreadItem =
   | { readonly kind: "sub-agent"; readonly subAgentExecution: SubAgentExecution; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
   | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
-  | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly key: string };
+  | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string };
 
 function hasAiMessages(execution: AgentExecution): boolean {
   const messages = execution.status?.messages;
@@ -257,20 +257,30 @@ export function buildThreadItems(
   const lastPhase =
     lastExec?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
 
-  if (
-    activeStreamExecution &&
-    (lastPhase === ExecutionPhase.EXECUTION_PENDING ||
-      lastPhase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) &&
-    !hasAiMessages(activeStreamExecution)
-  ) {
-    const serverPhase =
-      activeStreamExecution.status?.setupProgress?.currentPhase || undefined;
-    items.push({
-      kind: "setup-progress",
-      workspaceEntries: workspaceEntries ?? [],
-      serverPhase,
-      key: "setup-progress",
-    });
+  if (activeStreamExecution && !hasAiMessages(activeStreamExecution)) {
+    const isPending =
+      lastPhase === ExecutionPhase.EXECUTION_PENDING ||
+      lastPhase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+    const isInProgressNoMessages =
+      lastPhase === ExecutionPhase.EXECUTION_IN_PROGRESS;
+
+    if (isPending) {
+      const serverPhase =
+        activeStreamExecution.status?.setupProgress?.currentPhase || undefined;
+      items.push({
+        kind: "setup-progress",
+        workspaceEntries: workspaceEntries ?? [],
+        serverPhase,
+        key: "setup-progress",
+      });
+    } else if (isInProgressNoMessages) {
+      items.push({
+        kind: "setup-progress",
+        workspaceEntries: workspaceEntries ?? [],
+        isAwaitingResponse: true,
+        key: "setup-progress",
+      });
+    }
   }
 
   if (
@@ -557,6 +567,7 @@ export function ThreadItemRenderer({
         <SetupProgress
           workspaceEntries={item.workspaceEntries}
           serverPhase={item.serverPhase}
+          isAwaitingResponse={item.isAwaitingResponse}
         />
       );
   }

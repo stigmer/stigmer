@@ -22,6 +22,13 @@ export interface SetupProgressProps {
    * step sequence derived from `workspaceEntries`.
    */
   readonly serverPhase?: string;
+  /**
+   * When `true`, the execution has moved past `PENDING` into
+   * `IN_PROGRESS` but the agent has not yet produced any AI messages.
+   * Renders a static "Thinking\u2026" label instead of the setup
+   * phase sequence or server-reported phase.
+   */
+  readonly isAwaitingResponse?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -66,33 +73,41 @@ function buildSteps(
 
 /**
  * Animated inline indicator shown in the message thread while an
- * execution is in the `PENDING` phase and no AI messages have arrived.
+ * execution has not yet produced AI messages.
  *
- * **Server-driven mode** — when the backend reports
- * `setup_progress.current_phase` through the execution stream, the
- * component renders the server-reported label directly.
+ * Operates in three modes (highest-priority first):
  *
- * **Timer-based fallback** — when `serverPhase` is absent (older
- * backends), the component cycles through contextual status messages
- * derived from the session configuration on a fixed interval.
+ * 1. **Awaiting response** — `isAwaitingResponse` is `true`. The
+ *    execution has moved past `PENDING` into `IN_PROGRESS` but no AI
+ *    messages have arrived yet. Shows a static "Thinking\u2026" label.
+ *
+ * 2. **Server-driven** — `serverPhase` is non-empty. Renders the
+ *    server-reported `setup_progress.current_phase` label directly.
+ *
+ * 3. **Timer-based fallback** — neither of the above. Cycles through
+ *    contextual status messages derived from `workspaceEntries`.
  *
  * All visual properties flow through `--stgm-*` tokens.
  *
  * @example
  * ```tsx
- * // Server-driven (preferred)
+ * // Awaiting response (IN_PROGRESS, no messages yet)
+ * <SetupProgress isAwaitingResponse />
+ *
+ * // Server-driven (preferred during PENDING)
  * <SetupProgress serverPhase={execution.status?.setupProgress?.currentPhase} />
  *
- * // Fallback (no server phase available)
+ * // Timer fallback (PENDING, no server phase available)
  * <SetupProgress workspaceEntries={session.spec?.workspaceEntries} />
  * ```
  */
 export const SetupProgress = memo(function SetupProgress({
   workspaceEntries,
   serverPhase,
+  isAwaitingResponse,
   className,
 }: SetupProgressProps) {
-  const useServerPhase = !!serverPhase;
+  const useServerPhase = !isAwaitingResponse && !!serverPhase;
 
   /* ── Timer-based fallback state ─────────────────────────────────── */
   const steps = useMemo(() => buildSteps(workspaceEntries), [workspaceEntries]);
@@ -103,7 +118,7 @@ export const SetupProgress = memo(function SetupProgress({
   }, [steps]);
 
   useEffect(() => {
-    if (useServerPhase) return;
+    if (isAwaitingResponse || useServerPhase) return;
     if (stepIndex >= steps.length - 1) return;
 
     const timer = setTimeout(() => {
@@ -111,11 +126,17 @@ export const SetupProgress = memo(function SetupProgress({
     }, steps[stepIndex].durationMs);
 
     return () => clearTimeout(timer);
-  }, [useServerPhase, stepIndex, steps]);
+  }, [isAwaitingResponse, useServerPhase, stepIndex, steps]);
 
   /* ── Resolve display message ────────────────────────────────────── */
-  const currentMessage =
-    serverPhase || steps[Math.min(stepIndex, steps.length - 1)].message;
+  let currentMessage: string;
+  if (isAwaitingResponse) {
+    currentMessage = "Thinking\u2026";
+  } else if (serverPhase) {
+    currentMessage = serverPhase;
+  } else {
+    currentMessage = steps[Math.min(stepIndex, steps.length - 1)].message;
+  }
 
   return (
     <div
