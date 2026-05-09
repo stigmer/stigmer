@@ -50,6 +50,7 @@ type registeredRunner struct {
 	org         string
 	runnerID    string
 	taskQueue   string
+	machineID   string
 	cfg         *config.Config
 	backendInfo *BackendInfo
 	client      *stigmer.Client
@@ -81,6 +82,12 @@ func Ensure(ctx context.Context, opts StartOptions, onReady func(*EnsureResult))
 		}
 	}
 
+	machine, err := LoadOrCreateMachineID()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to load machine identity (continuing without stable ID)")
+		machine = &MachineIdentity{}
+	}
+
 	runtime := resolveRuntime(opts.Runtime)
 
 	if runtime == RuntimeDocker {
@@ -95,12 +102,18 @@ func Ensure(ctx context.Context, opts StartOptions, onReady func(*EnsureResult))
 		return errors.Wrap(err, "failed to resolve runner name")
 	}
 
-	adopted, err := checkOrAdopt(name, opts)
+	adopted, err := checkOrAdopt(name, machine.MachineID, opts)
 	if err != nil {
 		return err
 	}
 	if adopted != nil {
-		onReady(ensureResultFromState(name, adopted, ActionAdoptedExisting))
+		if adopted.MachineID == "" && machine.MachineID != "" {
+			adopted.MachineID = machine.MachineID
+			_ = SaveState(name, adopted)
+		}
+		result := ensureResultFromState(name, adopted, ActionAdoptedExisting)
+		result.MachineID = machine.MachineID
+		onReady(result)
 		return nil
 	}
 
@@ -162,6 +175,7 @@ func Ensure(ctx context.Context, opts StartOptions, onReady func(*EnsureResult))
 		org:         org,
 		runnerID:    runnerID,
 		taskQueue:   taskQueue,
+		machineID:   machine.MachineID,
 		cfg:         cfg,
 		backendInfo: backendInfo,
 		client:      client,
@@ -236,6 +250,7 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner, onReady func(
 
 	rsc := daemon.NewRunnerStreamClient(daemon.RunnerStreamConfig{
 		RunnerID:     reg.runnerID,
+		MachineID:    reg.machineID,
 		InitialPhase: runnerv1.RunnerPhase_RUNNER_PHASE_STARTING,
 		ConnectFn: func(ctx context.Context) (daemon.CommandStream, error) {
 			s, err := reg.client.Runner.Connect(ctx)
@@ -313,6 +328,7 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner, onReady func(
 		TaskQueue:       reg.taskQueue,
 		StartedAt:       time.Now(),
 		Runtime:         RuntimeNative,
+		MachineID:       reg.machineID,
 	}
 	if logFilePath != "" {
 		state.LogFile = logFilePath
@@ -324,7 +340,9 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner, onReady func(
 
 	rsc.SetPhase(runnerv1.RunnerPhase_RUNNER_PHASE_READY)
 
-	onReady(ensureResultFromState(reg.name, state, ActionStartedFresh))
+	result := ensureResultFromState(reg.name, state, ActionStartedFresh)
+	result.MachineID = reg.machineID
+	onReady(result)
 
 	// Start the cursor-runner using the bootstrap result from the parallel
 	// goroutine. If the Node.js bootstrap finished before the Python
@@ -471,6 +489,7 @@ func startDockerRunner(ctx context.Context, reg *registeredRunner, imageOverride
 		StartedAt:       time.Now(),
 		Runtime:         RuntimeDocker,
 		ContainerID:     containerID,
+		MachineID:       reg.machineID,
 	}
 	if logFilePath != "" {
 		state.LogFile = logFilePath
@@ -479,13 +498,16 @@ func startDockerRunner(ctx context.Context, reg *registeredRunner, imageOverride
 		log.Warn().Err(err).Msg("Failed to save runner state (non-fatal)")
 	}
 
-	onReady(ensureResultFromState(reg.name, state, ActionStartedFresh))
+	result := ensureResultFromState(reg.name, state, ActionStartedFresh)
+	result.MachineID = reg.machineID
+	onReady(result)
 
 	streamCtx, streamCancel := context.WithCancel(context.Background())
 	var streamWg sync.WaitGroup
 
 	rsc := daemon.NewRunnerStreamClient(daemon.RunnerStreamConfig{
-		RunnerID: reg.runnerID,
+		RunnerID:  reg.runnerID,
+		MachineID: reg.machineID,
 		ConnectFn: func(ctx context.Context) (daemon.CommandStream, error) {
 			s, err := reg.client.Runner.Connect(ctx)
 			if err != nil {
@@ -678,21 +700,48 @@ func sanitizeToSlug(hostname string) string {
 }
 
 // checkOrAdopt examines whether a runner with the given name is already active.
+// If no runner is found by name, it falls back to scanning all state files for
+// one matching the given machineID (handles hostname changes gracefully).
 //
 // Returns:
 //   - (*RunnerState, nil) — runner is alive and compatible; caller should adopt
 //   - (nil, nil) — no conflict; caller should proceed with a fresh start
 //   - (nil, error) — real conflict (org/endpoint mismatch); caller should abort
-func checkOrAdopt(name string, opts StartOptions) (*RunnerState, error) {
+func checkOrAdopt(name string, machineID string, opts StartOptions) (*RunnerState, error) {
 	state, err := LoadState(name)
 	if err != nil {
-		return nil, nil
+		// No state file for this slug — try machine_id fallback.
+		return checkOrAdoptByMachineID(machineID, opts)
 	}
 	if !isRunnerAlive(state) {
 		_ = RemoveState(name)
+		// Dead runner at this slug — try machine_id fallback in case
+		// there's a live runner under a different (old hostname) slug.
+		return checkOrAdoptByMachineID(machineID, opts)
+	}
+
+	return validateAdoptionCompat(name, state, opts)
+}
+
+// checkOrAdoptByMachineID scans all state files for a live runner that matches
+// the local machine identity. This covers the hostname-change scenario where
+// the state file exists under the old slug.
+func checkOrAdoptByMachineID(machineID string, opts StartOptions) (*RunnerState, error) {
+	if machineID == "" {
 		return nil, nil
 	}
 
+	foundName, state := findStateByMachineID(machineID)
+	if state == nil {
+		return nil, nil
+	}
+
+	return validateAdoptionCompat(foundName, state, opts)
+}
+
+// validateAdoptionCompat checks org/endpoint compatibility for an adoption
+// candidate. Returns the state if compatible, or an error if conflicting.
+func validateAdoptionCompat(name string, state *RunnerState, opts StartOptions) (*RunnerState, error) {
 	if opts.OrgOverride != "" && state.Org != "" && opts.OrgOverride != state.Org {
 		return nil, fmt.Errorf(
 			"runner %q is already running for organization %q\n"+

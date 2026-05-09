@@ -32,6 +32,7 @@ type EnsureResult struct {
 	Action          EnsureAction `json:"action"`
 	RunnerID        string       `json:"runner_id"`
 	Name            string       `json:"name"`
+	MachineID       string       `json:"machine_id,omitempty"`
 	Org             string       `json:"org"`
 	PID             int          `json:"pid,omitempty"`
 	ContainerID     string       `json:"container_id,omitempty"`

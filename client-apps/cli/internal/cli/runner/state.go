@@ -52,6 +52,11 @@ type RunnerState struct {
 	// the desktop app) can tail logs for any local runner, not just
 	// runners managed as child processes.
 	LogFile string `json:"log_file,omitempty"`
+
+	// MachineID is the stable machine identifier from ~/.stigmer/machine.json.
+	// Used for runner adoption across hostname changes. Empty in pre-T03
+	// state files; backfilled on first load after upgrade.
+	MachineID string `json:"machine_id,omitempty"`
 }
 
 // IsDocker returns true if this runner is managed as a Docker container.
@@ -223,6 +228,29 @@ func loadAllStates() (map[string]*RunnerState, error) {
 		states[name] = state
 	}
 	return states, nil
+}
+
+// findStateByMachineID scans all runner state files for one matching the
+// given machine ID. Returns the state file name and state, or ("", nil) if
+// no match is found. Dead runners are cleaned up as a side effect.
+func findStateByMachineID(machineID string) (string, *RunnerState) {
+	if machineID == "" {
+		return "", nil
+	}
+	states, err := loadAllStates()
+	if err != nil {
+		return "", nil
+	}
+	for name, state := range states {
+		if !isRunnerAlive(state) {
+			_ = RemoveState(name)
+			continue
+		}
+		if state.MachineID == machineID {
+			return name, state
+		}
+	}
+	return "", nil
 }
 
 // isRunnerAlive checks whether a runner is still alive based on its runtime.
