@@ -723,7 +723,6 @@ export {
   useBreadcrumbLabel,
   useBreadcrumbOverride,
   ScopeToggle,
-  ResourceListView,
   ResourceCountCard,
   detectStigmerResource,
   useDetectStigmerResource,
@@ -744,10 +743,7 @@ export {
 } from "./library";
 export type {
   ScopeToggleProps,
-  ResourceListViewProps,
-  ResourceListLayout,
   ResourceCountCardProps,
-  ResourceListScope,
   StigmerResourceKind,
   StigmerResourceDetection,
   SkillPackageDetection,

@@ -9,6 +9,8 @@ import {
   ActionMenu,
   useStigmer,
   useActiveOrgSlug,
+  useConfirmAction,
+  ConfirmDialog,
   toast,
   type WorkbenchColumnDef,
 } from "@stigmer/react";
@@ -59,8 +61,31 @@ export function SkillListPage() {
   const org = useActiveOrgSlug();
   const stigmer = useStigmer();
   const { navigateToDetail } = useLibraryNavigation();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
   const [scope, setScope] = useState<"org" | "all">(readPersistedScope);
+  const [listVersion, setListVersion] = useState(0);
+
+  const handleDeleteItem = useCallback(
+    async (item: SearchResult) => {
+      const confirmed = await confirm({
+        title: `Delete ${item.name || item.slug}?`,
+        description:
+          "This action cannot be undone. The skill and its content will be permanently removed.",
+        confirmLabel: "Delete",
+        variant: "destructive",
+      });
+      if (!confirmed) return;
+      try {
+        await stigmer.skill.delete(item.id);
+        toast.success(`${item.name || item.slug} deleted`);
+        setListVersion((v) => v + 1);
+      } catch {
+        toast.error("Failed to delete skill");
+      }
+    },
+    [confirm, stigmer],
+  );
 
   const handleScopeChange = useCallback((newScope: "org" | "all") => {
     setScope(newScope);
@@ -83,6 +108,7 @@ export function SkillListPage() {
       </div>
 
       <ResourceWorkbench
+        key={listVersion}
         listFn={listFn}
         org={org}
         columns={SKILL_COLUMNS}
@@ -140,9 +166,7 @@ export function SkillListPage() {
                 <ActionMenu.Item
                   icon={<Trash2 className="size-4" />}
                   variant="destructive"
-                  onSelect={() => {
-                    /* TODO: wire to delete flow in Phase 2 */
-                  }}
+                  onSelect={() => handleDeleteItem(item)}
                 >
                   Delete
                 </ActionMenu.Item>
@@ -151,6 +175,12 @@ export function SkillListPage() {
           </div>
         )}
         aria-label="Skill workbench"
+      />
+
+      <ConfirmDialog
+        state={confirmState}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
       />
     </>
   );

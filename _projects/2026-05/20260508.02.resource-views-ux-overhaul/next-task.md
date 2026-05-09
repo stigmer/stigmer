@@ -13,11 +13,39 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: Phase 4 COMPLETE
-- **Last Session**: 2026-05-09 (Session 16) — Phase 4 T05-E completed (Backend API Requirements Doc)
-- **Active Task**: None — Phase 4 complete. All deferred items require backend work or separate project scoping.
+- **Status**: Phase 4 COMPLETE + Desktop Parity COMPLETE + Backend Action Items COMPLETE
+- **Last Session**: 2026-05-09 (Session 18) — Skill version history backend implementation
+- **Active Task**: None — All phases and backend action items complete.
 - **Phase 3 status**: T04-A through T04-F complete. T04-G (AI Sidecar) deferred pending backend spike.
 - **Phase 4 status**: T05-A through T05-E all complete.
+- **Desktop parity**: All 9 gaps identified and closed. `ResourceListView` deleted.
+- **Backend**: All 4 action items from T05-E implemented across OSS (Go) and Cloud (Java).
+
+## Session Progress (2026-05-09, Session 18)
+
+- **T1**: Added `string message = 6` to `PushSkillRequest` proto, ran `make codegen` (OSS) and `make protos` (Cloud)
+- **T2**: Wired `metadata.version` population (id, message, previous_version_id) in OSS Go `PopulateSkillFieldsStep` and Cloud Java `UpdateSkillState`
+- **T3**: Aligned Cloud archival — renamed `ArchiveCurrentVersion` → `ArchiveNewVersion`, moved after `UpdateSkillState`, removed isNew/same-hash skips
+- **T4**: Implemented `listVersions` handler in OSS Go (`list_versions.go`) and Cloud Java (`SkillListVersionsHandler.java`) with field mapping, pagination, auth
+- **T5**: Added `-m`/`--message` flag to `stigmer push skill` CLI, threaded through to `PushSkillRequest.Message`
+- **Key decision**: Used existing `ApiResourceMetadataVersion` instead of adding `version_message` to `SkillStatus` — cleaner, sets pattern for future Agent/MCP versioning
+- **Surprise #1**: Cloud archival diverged from OSS (archived previous vs new, skipped first/same-hash) — aligned both to archive new on every push
+- **Surprise #2**: Cloud `SkillPushHandler` had `normalizeToSlug` duplicated in 3 inner classes — extracted to shared `private static` method
+- **Surprise #3**: OSS `ArchiveCurrentSkillStep` used `fmt.Printf` for warnings — replaced with structured `log.Warn()`
+
+## Session Progress (2026-05-09, Session 17)
+
+- **Desktop Parity Review & Implementation** — Full audit revealed desktop app was untouched across 16 sessions (DD-016 violation)
+- Migrated 3 desktop list pages from `ResourceListView` → `ResourceWorkbench` (table/cards, action menus, import, scope toggle)
+- Updated 3 desktop detail pages with action bars (copy, export, delete + `ConfirmDialog`)
+- Created 3 desktop creation pages (`AgentNewPage`, `SkillNewPage`, `McpServerNewPage`) with `CreationPicker` → wizard flow
+- Created `RunnerDetailPage` for desktop with stop/delete actions
+- Added fleet row click-through in `OrgFleetSection` → `/runners/:id`
+- Added `FetchCacheProvider` to desktop `App.tsx`
+- Fixed web list page delete TODOs (Agent + Skill)
+- Clarified DD-004: `"use client"` is React standard, not framework-specific
+- **Deleted** `ResourceListView` + all exports (no consumers, SDK not yet published)
+- Added 4 new routes to desktop `routes.tsx` (3 creation + 1 runner detail)
 
 ## Session Progress (2026-05-09, Session 16)
 
@@ -237,6 +265,7 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Next Steps
 
 **Phase 4 is complete.** All sub-tasks (T05-A through T05-E) are done.
+**Backend action items are complete.** All 4 items from T05-E spec are implemented (Session 18).
 
 1. ~~**T05-A: Detail Page Tabbed Infrastructure**~~ — Done (Session 12).
 2. ~~**T05-B: Agent Dependency Graph**~~ — Done (Session 13).
@@ -244,11 +273,11 @@ Drop this file into your conversation to quickly resume work on this project.
 4. ~~**T05-D: Diff Viewer**~~ — Done (Session 15).
 5. ~~**T05-E: Backend API Requirements Doc**~~ — Done (Session 16). Formal spec at `design-decisions/DD-T05E-backend-api-requirements.md`.
 
-**Backend action items** (from T05-E spec):
-1. Add `message` field to `PushSkillRequest` proto + `version_message` to `SkillStatus` → `make codegen` / `make protos`
-2. Implement `listVersions` handler in Go (`stigmer-server`) and Java (`stigmer-service`)
-3. Align Cloud archival semantics with OSS (archive new version, every push)
-4. Add `-m` flag to `stigmer skill push` CLI command
+~~**Backend action items**~~ (from T05-E spec) — All done (Session 18):
+1. ~~Add `message` field to `PushSkillRequest` proto → `make codegen` / `make protos`~~
+2. ~~Implement `listVersions` handler in Go (`stigmer-server`) and Java (`stigmer-service`)~~
+3. ~~Align Cloud archival semantics with OSS (archive new version, every push)~~
+4. ~~Add `-m` flag to `stigmer skill push` CLI command~~
 
 **Deferred**: T04-G (AI Sidecar), Agent/MCP versioning, audit log, usage charts, RBAC.
 
@@ -264,7 +293,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - Phase 0 plan is at `_projects/2026-05/20260508.02.resource-views-ux-overhaul/tasks/T01_0_plan.md`
 - Research report at `_projects/2026-05/20260508.02.resource-views-ux-overhaul/research.resource-views-ux-overhaul/04.report.gpt.md`
 - Research report dependency graphs section ~line 948, version history ~line 1255
-- `ResourceListView` is deprecated but still in the codebase — can be removed once all references are gone
+- `ResourceListView` has been **deleted** from the codebase (Session 17)
 - The `resource-workbench/` module is the canonical resource collection architecture
 - The `resource-detail/` module is the canonical resource detail architecture
 - The `resource-creation/` module is the canonical wizard/creation architecture (shared by agent + MCP server wizards)

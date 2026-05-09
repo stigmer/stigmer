@@ -7,12 +7,6 @@ export {
 export { ScopeToggle } from "./ScopeToggle";
 export type { ScopeToggleProps } from "./ScopeToggle";
 
-export { ResourceListView } from "./ResourceListView";
-export type {
-  ResourceListViewProps,
-  ResourceListLayout,
-} from "./ResourceListView";
-
 export { ResourceCountCard } from "./ResourceCountCard";
 export type { ResourceCountCardProps } from "./ResourceCountCard";
 
@@ -74,5 +68,3 @@ export type {
   VisibilityResourceKind,
   UseUpdateVisibilityReturn,
 } from "./useUpdateVisibility";
-
-export type { ResourceListScope } from "../search";
