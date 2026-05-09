@@ -797,8 +797,10 @@ export type {
   UseCreateAgentInstanceReturn,
 } from "./agent-instance";
 
-// Runner — data hooks, action hooks, styled picker, admin list panel, and phase utilities
+// Runner — data hooks, action hooks, styled picker, admin list panel, detail view, and phase utilities
 export {
+  useRunner,
+  RunnerDetailView,
   useRunnerList,
   useLaunchLocalRunner,
   useRunnerCredential,
@@ -815,6 +817,9 @@ export {
   PHASE_SORT_ORDER,
 } from "./runner";
 export type {
+  UseRunnerReturn,
+  UseRunnerOptions,
+  RunnerDetailViewProps,
   UseRunnerListOptions,
   UseRunnerListReturn,
   UseLaunchLocalRunnerOptions,
@@ -831,6 +836,33 @@ export type {
   RunnerFileBrowserProps,
   RunnerListPanelProps,
 } from "./runner";
+
+// Tabs — accessible tabbed panel primitive
+export { Tabs } from "./tabs";
+export type { TabsProps, TabItem } from "./tabs";
+
+// Resource Detail — headless hooks, action bar, and composed shell for resource detail pages
+export {
+  useCopyResource,
+  useConfirmAction,
+  useDeleteResource,
+  ResourceActionBar,
+  ResourceDetailShell,
+  ConfirmDialog,
+} from "./resource-detail";
+export type {
+  DetailAction,
+  ResourceHeaderMeta,
+  ConfirmOptions,
+  ConfirmState,
+  ResourceDetailShellProps,
+  UseCopyResourceReturn,
+  UseConfirmActionReturn,
+  DeletableResourceKind,
+  UseDeleteResourceReturn,
+  ResourceActionBarProps,
+  ConfirmDialogProps,
+} from "./resource-detail";
 
 // Resource Workbench — headless hooks, view components, and composed shell for resource collection management
 export {

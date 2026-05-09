@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type {
   McpServerUsage,
   SubAgent,
@@ -14,6 +13,8 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import { useAgent } from "./useAgent";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
+import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
+import type { DetailAction, ResourceHeaderMeta } from "../resource-detail/types";
 
 const INSTRUCTIONS_COLLAPSED_LINES = 8;
 
@@ -53,18 +54,33 @@ export interface AgentDetailViewProps {
   readonly onVisibilityChange?: (v: ApiResourceVisibility) => void;
   /** `true` while a visibility update RPC is in flight. */
   readonly isVisibilityPending?: boolean;
+  /**
+   * Primary action rendered as a visible button in the header area.
+   * Typically "Edit" for agent detail pages.
+   */
+  readonly primaryAction?: DetailAction;
+  /**
+   * Secondary actions rendered in the kebab overflow menu.
+   * Typically: Copy ID, Copy slug, Export JSON, Duplicate, Delete.
+   */
+  readonly actions?: readonly DetailAction[];
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
 
 /**
- * Read-only detail view for an Agent blueprint.
+ * Operational detail hub for an Agent blueprint.
  *
  * Fetches the agent via {@link useAgent} internally and renders its
- * full configuration in structured sections: header, instructions,
- * MCP server usages, skills, sub-agents, and environment variables.
- * Sections with no data are omitted entirely — reducing visual noise
- * per the aesthetic-minimalist design heuristic (Nielsen #8).
+ * full configuration inside a {@link ResourceDetailShell}: a
+ * standardized header with action bar, followed by structured content
+ * sections (instructions, MCP server usages, skills, sub-agents, and
+ * environment variables). Sections with no data are omitted entirely
+ * — reducing visual noise per Nielsen heuristic #8.
+ *
+ * The action bar transforms this from a read-only view into an
+ * operational hub. Actions are provided by the consumer via
+ * `primaryAction` and `actions` props.
  *
  * Handles loading, error, and not-found states automatically.
  * Zero Console dependencies — safe for platform builder embedding.
@@ -78,12 +94,17 @@ export interface AgentDetailViewProps {
  *
  * @example
  * ```tsx
- * // With cross-resource linking in a Console page
+ * // Operational hub with actions in a Console page
  * <AgentDetailView
  *   org={org}
  *   slug={slug}
- *   onMcpServerClick={({ org, slug }) => router.push(`/library/mcp-servers/${org}/${slug}`)}
- *   onSkillClick={({ org, slug }) => router.push(`/library/skills/${org}/${slug}`)}
+ *   primaryAction={{ id: "edit", label: "Edit", onAction: handleEdit }}
+ *   actions={[
+ *     { id: "copy-id", label: "Copy ID", onAction: () => copyId(id) },
+ *     { id: "delete", label: "Delete", variant: "destructive", onAction: handleDelete },
+ *   ]}
+ *   onMcpServerClick={({ org, slug }) => navigateToDetail("mcp-servers", org, slug)}
+ *   onSkillClick={({ org, slug }) => navigateToDetail("skills", org, slug)}
  * />
  * ```
  */
@@ -95,6 +116,8 @@ export function AgentDetailView({
   onResourceLoad,
   onVisibilityChange,
   isVisibilityPending,
+  primaryAction,
+  actions,
   className,
 }: AgentDetailViewProps) {
   const { agent, isLoading, error, refetch } = useAgent(org, slug);
@@ -113,24 +136,72 @@ export function AgentDetailView({
     return <ErrorMessage error={error} retry={refetch} className={className} />;
   if (!agent) return <NotFoundState className={className} />;
 
+  const meta = agent.metadata;
   const spec = agent.spec;
   const specAudit = agent.status?.audit?.specAudit;
-  const agentOrg = agent.metadata?.org || org;
+  const agentOrg = meta?.org || org;
+
+  const headerMeta: ResourceHeaderMeta = {
+    name: meta?.name || meta?.slug || "Untitled",
+    id: meta?.id || "",
+    org: meta?.org,
+    slug: meta?.slug,
+    description: spec?.description,
+    iconUrl: spec?.iconUrl,
+    icon: spec?.iconUrl ? undefined : <AgentIcon className="size-6 text-muted-foreground" />,
+    createdAt: specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null,
+    updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
+  };
+
+  const isPublic = meta?.visibility === ApiResourceVisibility.visibility_public;
+  const visibilityControl =
+    onVisibilityChange && meta ? (
+      <VisibilityToggle
+        visibility={meta.visibility}
+        onVisibilityChange={onVisibilityChange}
+        isPending={isVisibilityPending}
+      />
+    ) : isPublic ? (
+      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+        Public
+      </span>
+    ) : undefined;
 
   return (
-    <div className={cn("flex flex-col gap-6", className)}>
-      <Header
-        agent={agent}
-        createdAt={
-          specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null
-        }
-        updatedAt={
-          specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null
-        }
-        onVisibilityChange={onVisibilityChange}
-        isVisibilityPending={isVisibilityPending}
+    <ResourceDetailShell
+      header={headerMeta}
+      visibilityControl={visibilityControl}
+      primaryAction={primaryAction}
+      actions={actions}
+      className={className}
+    >
+      <AgentOverview
+        spec={spec}
+        agentOrg={agentOrg}
+        onMcpServerClick={onMcpServerClick}
+        onSkillClick={onSkillClick}
       />
+    </ResourceDetailShell>
+  );
+}
 
+// ---------------------------------------------------------------------------
+// Overview content — the agent's configuration sections
+// ---------------------------------------------------------------------------
+
+function AgentOverview({
+  spec,
+  agentOrg,
+  onMcpServerClick,
+  onSkillClick,
+}: {
+  readonly spec: NonNullable<ReturnType<typeof useAgent>["agent"]>["spec"];
+  readonly agentOrg: string;
+  readonly onMcpServerClick?: (ref: { org: string; slug: string }) => void;
+  readonly onSkillClick?: (ref: { org: string; slug: string }) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-6 pt-2">
       {spec?.instructions && (
         <InstructionsSection text={spec.instructions} />
       )}
@@ -165,80 +236,6 @@ export function AgentDetailView({
 // ---------------------------------------------------------------------------
 // Internal section components
 // ---------------------------------------------------------------------------
-
-function Header({
-  agent,
-  createdAt,
-  updatedAt,
-  onVisibilityChange,
-  isVisibilityPending,
-}: {
-  readonly agent: Agent;
-  readonly createdAt: Date | null;
-  readonly updatedAt: Date | null;
-  readonly onVisibilityChange?: (v: ApiResourceVisibility) => void;
-  readonly isVisibilityPending?: boolean;
-}) {
-  const meta = agent.metadata;
-  const spec = agent.spec;
-  const displayName = meta?.name || meta?.slug || "Untitled";
-  const isPublic =
-    meta?.visibility === ApiResourceVisibility.visibility_public;
-
-  return (
-    <div className="flex items-start gap-3">
-      {spec?.iconUrl ? (
-        <img
-          src={spec.iconUrl}
-          alt=""
-          className="mt-0.5 size-8 shrink-0 rounded object-cover"
-        />
-      ) : (
-        <AgentIcon className="mt-1 size-6 shrink-0 text-muted-foreground" />
-      )}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <h2 className="truncate text-lg font-semibold text-foreground">
-            {displayName}
-          </h2>
-          {onVisibilityChange && meta ? (
-            <VisibilityToggle
-              visibility={meta.visibility}
-              onVisibilityChange={onVisibilityChange}
-              isPending={isVisibilityPending}
-            />
-          ) : (
-            isPublic && (
-              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                Public
-              </span>
-            )
-          )}
-        </div>
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
-          {meta?.org && <span>{meta.org}</span>}
-          {createdAt && (
-            <>
-              <Dot />
-              <span>Created {formatDate(createdAt)}</span>
-            </>
-          )}
-          {updatedAt && (
-            <>
-              <Dot />
-              <span>Updated {formatDate(updatedAt)}</span>
-            </>
-          )}
-        </div>
-        {spec?.description && (
-          <p className="mt-2 text-sm text-muted-foreground">
-            {spec.description}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function InstructionsSection({ text }: { readonly text: string }) {
   const lines = text.split("\n");
@@ -589,14 +586,6 @@ function Section({
   );
 }
 
-function Dot() {
-  return (
-    <span className="shrink-0" aria-hidden="true">
-      {"\u00B7"}
-    </span>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Non-happy states
 // ---------------------------------------------------------------------------
@@ -647,18 +636,6 @@ function NotFoundState({ className }: { readonly className?: string }) {
       </p>
     </div>
   );
-}
-
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 // ---------------------------------------------------------------------------
