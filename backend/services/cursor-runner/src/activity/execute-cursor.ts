@@ -45,6 +45,7 @@ import { buildApprovalState } from "../hitl/approval-state.js";
 import { setInterceptorExecutionId } from "../proxy/fetch-interceptor.js";
 import { resolveModelId } from "../adapter/model-pricing.js";
 import { buildSessionMemory, persistSessionMemory } from "../adapter/session-memory.js";
+import { extractAgentRationale, getGitBranch, getGitHeadSha } from "../adapter/continuation-prompt.js";
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -284,11 +285,21 @@ async function executeCursor(
     const deniedCalls = extractDeniedToolCalls(collectedEvents);
     if (deniedCalls.length > 0) {
       status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
+
+      // Capture HITL diagnostics at deny-time for intelligent reinvocation
+      const [gitBranch, gitHead] = await Promise.all([
+        getGitBranch(primaryWorkspaceDir),
+        getGitHeadSha(primaryWorkspaceDir),
+      ]);
+
       status.pendingApprovals = deniedCalls.map((dc) =>
         create(PendingApprovalSchema, {
           toolCallId: dc.callId,
           toolName: dc.name,
           argsPreview: dc.argsPreview,
+          agentRationale: extractAgentRationale(status.messages, dc.callId),
+          branchAtDeny: gitBranch,
+          headShaAtDeny: gitHead,
         }),
       );
       status.messages.push(create(AgentMessageSchema, {
