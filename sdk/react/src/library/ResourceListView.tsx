@@ -110,6 +110,11 @@ export interface ResourceListViewProps {
 /**
  * Paginated, searchable view for browsing Stigmer resources.
  *
+ * @deprecated Use {@link ResourceWorkbench} from `@stigmer/react` instead.
+ * `ResourceWorkbench` provides table/cards/list views, headless hooks,
+ * filter bar, selection, bulk actions, and a split inspector.
+ * This component will be removed in a future release.
+ *
  * Supports two layout modes:
  *
  * - **`"list"`** (default) — vertical single-column rows, same as
