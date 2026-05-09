@@ -119,4 +119,30 @@ public interface PushSkillRequestOrBuilder extends
    * <code>.ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 4 [json_name = "gitProvenance"];</code>
    */
   ai.stigmer.agentic.skill.v1.GitProvenanceOrBuilder getGitProvenanceOrBuilder();
+
+  /**
+   * <pre>
+   * Optional human-readable message describing what changed in this version.
+   * Stored in metadata.version.message for version history display.
+   * Analogous to a git commit message. If empty, the version timeline falls
+   * back to displaying git_provenance.commit message when available.
+   * </pre>
+   *
+   * <code>string message = 6 [json_name = "message"];</code>
+   * @return The message.
+   */
+  java.lang.String getMessage();
+  /**
+   * <pre>
+   * Optional human-readable message describing what changed in this version.
+   * Stored in metadata.version.message for version history display.
+   * Analogous to a git commit message. If empty, the version timeline falls
+   * back to displaying git_provenance.commit message when available.
+   * </pre>
+   *
+   * <code>string message = 6 [json_name = "message"];</code>
+   * @return The bytes for message.
+   */
+  com.google.protobuf.ByteString
+      getMessageBytes();
 }

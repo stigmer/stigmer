@@ -137,6 +137,16 @@
           },
           "description": "Git provenance for this skill version.\n Absent when pushed from a non-git directory.\n\n @internal\n Populated by CLI during push:\n - For local pushes: auto-detected if directory is within a git repository\n - For git pushes: resolved from user-provided URL/ref\n Stored in SkillStatus.git_provenance for traceability.",
           "required": false
+        },
+        {
+          "name": "Message",
+          "jsonName": "message",
+          "protoField": "message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional human-readable message describing what changed in this version.\n Stored in metadata.version.message for version history display.\n Analogous to a git commit message. If empty, the version timeline falls\n back to displaying git_provenance.commit message when available.",
+          "required": false
         }
       ]
     },

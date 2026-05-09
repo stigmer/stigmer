@@ -387,8 +387,9 @@ func (s *ArchiveCurrentSkillStep) Execute(ctx *pipeline.RequestContext[*skillv1.
 
 	// Archive the current skill (with all new data populated)
 	if err := s.archiveSkill(ctx.Context(), skill); err != nil {
-		// Log warning but don't fail - archival is best-effort
-		fmt.Printf("Warning: failed to archive skill %s: %v\n", skill.Metadata.Id, err)
+		log.Warn().Err(err).
+			Str("skill_id", skill.Metadata.Id).
+			Msg("ArchiveCurrentSkill: failed to archive skill (best-effort)")
 	}
 
 	return nil
@@ -471,7 +472,20 @@ func (s *PopulateSkillFieldsStep) Execute(ctx *pipeline.RequestContext[*skillv1.
 	skill.Status.ArtifactStorageKey = storageKey
 	skill.Status.State = skillv1.SkillState_SKILL_STATE_READY
 
-	// 6. Set audit fields using common library helpers
+	// 6. Populate metadata.version for version history tracking
+	previousVersionHash := ""
+	if !shouldCreate {
+		if existing, ok := ctx.Get(ExistingSkillKey).(*skillv1.Skill); ok && existing.Status != nil {
+			previousVersionHash = existing.Status.VersionHash
+		}
+	}
+	skill.Metadata.Version = &apiresourcepb.ApiResourceMetadataVersion{
+		Id:                extractResult.Hash,
+		Message:           req.Message,
+		PreviousVersionId: previousVersionHash,
+	}
+
+	// 7. Set audit fields using common library helpers
 	if shouldCreate {
 		// Creating new skill - use common helper to set audit fields
 		if err := steps.SetAuditFieldsForCreate(skill); err != nil {

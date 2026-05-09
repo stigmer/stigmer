@@ -28,7 +28,7 @@ from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/skill/v1/io.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a(ai/stigmer/agentic/skill/v1/status.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\'\n\x07SkillId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xd8\x01\n\x10PushSkillRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\"\n\x08\x61rtifact\x18\x02 \x01(\x0c\x42\x06\xbaH\x03\xc8\x01\x01R\x08\x61rtifact\x12-\n\x03tag\x18\x03 \x01(\tB\x1b\xbaH\x18r\x16\x32\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12Q\n\x0egit_provenance\x18\x04 \x01(\x0b\x32*.ai.stigmer.agentic.skill.v1.GitProvenanceR\rgitProvenanceJ\x04\x08\x05\x10\x06\"\xc6\x01\n%PushSkillFromExecutionArtifactRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12*\n\x0c\x65xecution_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\x12(\n\x0bstorage_key\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\nstorageKey\x12-\n\x03tag\x18\x04 \x01(\tB\x1b\xbaH\x18r\x16\x32\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\"N\n\x12GetArtifactRequest\x12\x38\n\x14\x61rtifact_storage_key\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x12\x61rtifactStorageKey\"1\n\x13GetArtifactResponse\x12\x1a\n\x08\x61rtifact\x18\x01 \x01(\x0cR\x08\x61rtifact\"\x8a\x01\n\x16ListSkillVersionsInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\x12\x1b\n\tpage_size\x18\x04 \x01(\x05R\x08pageSize\"\x93\x03\n\x11SkillVersionEntry\x12!\n\x0cversion_hash\x18\x01 \x01(\tR\x0bversionHash\x12\x37\n\tpushed_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x08pushedAt\x12R\n\tpushed_by\x18\x03 \x01(\x0b\x32\x35.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\x08pushedBy\x12\x10\n\x03tag\x18\x04 \x01(\tR\x03tag\x12\x1d\n\nis_current\x18\x05 \x01(\x08R\tisCurrent\x12Q\n\x0egit_provenance\x18\x06 \x01(\x0b\x32*.ai.stigmer.agentic.skill.v1.GitProvenanceR\rgitProvenance\x12\x18\n\x07message\x18\x07 \x01(\tR\x07message\x12\x30\n\x14\x61rtifact_storage_key\x18\x08 \x01(\tR\x12\x61rtifactStorageKey\"\xb0\x01\n\x19ListSkillVersionsResponse\x12J\n\x08versions\x18\x01 \x03(\x0b\x32..ai.stigmer.agentic.skill.v1.SkillVersionEntryR\x08versions\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n\x0btotal_count\x18\x03 \x01(\x05R\ntotalCountB\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/skill/v1/io.proto\x12\x1b\x61i.stigmer.agentic.skill.v1\x1a(ai/stigmer/agentic/skill/v1/status.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\'\n\x07SkillId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xf2\x01\n\x10PushSkillRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\"\n\x08\x61rtifact\x18\x02 \x01(\x0c\x42\x06\xbaH\x03\xc8\x01\x01R\x08\x61rtifact\x12-\n\x03tag\x18\x03 \x01(\tB\x1b\xbaH\x18r\x16\x32\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12Q\n\x0egit_provenance\x18\x04 \x01(\x0b\x32*.ai.stigmer.agentic.skill.v1.GitProvenanceR\rgitProvenance\x12\x18\n\x07message\x18\x06 \x01(\tR\x07messageJ\x04\x08\x05\x10\x06\"\xc6\x01\n%PushSkillFromExecutionArtifactRequest\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12*\n\x0c\x65xecution_id\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x65xecutionId\x12(\n\x0bstorage_key\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\nstorageKey\x12-\n\x03tag\x18\x04 \x01(\tB\x1b\xbaH\x18r\x16\x32\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\"N\n\x12GetArtifactRequest\x12\x38\n\x14\x61rtifact_storage_key\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x12\x61rtifactStorageKey\"1\n\x13GetArtifactResponse\x12\x1a\n\x08\x61rtifact\x18\x01 \x01(\x0cR\x08\x61rtifact\"\x8a\x01\n\x16ListSkillVersionsInput\x12\x18\n\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12\x1d\n\npage_token\x18\x03 \x01(\tR\tpageToken\x12\x1b\n\tpage_size\x18\x04 \x01(\x05R\x08pageSize\"\x93\x03\n\x11SkillVersionEntry\x12!\n\x0cversion_hash\x18\x01 \x01(\tR\x0bversionHash\x12\x37\n\tpushed_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x08pushedAt\x12R\n\tpushed_by\x18\x03 \x01(\x0b\x32\x35.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\x08pushedBy\x12\x10\n\x03tag\x18\x04 \x01(\tR\x03tag\x12\x1d\n\nis_current\x18\x05 \x01(\x08R\tisCurrent\x12Q\n\x0egit_provenance\x18\x06 \x01(\x0b\x32*.ai.stigmer.agentic.skill.v1.GitProvenanceR\rgitProvenance\x12\x18\n\x07message\x18\x07 \x01(\tR\x07message\x12\x30\n\x14\x61rtifact_storage_key\x18\x08 \x01(\tR\x12\x61rtifactStorageKey\"\xb0\x01\n\x19ListSkillVersionsResponse\x12J\n\x08versions\x18\x01 \x03(\x0b\x32..ai.stigmer.agentic.skill.v1.SkillVersionEntryR\x08versions\x12&\n\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n\x0btotal_count\x18\x03 \x01(\x05R\ntotalCountB\xbb\x01\n\x1f\x63om.ai.stigmer.agentic.skill.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1b\x41i.Stigmer.Agentic.Skill.V1\xca\x02\x1b\x41i\\Stigmer\\Agentic\\Skill\\V1\xe2\x02\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1f\x41i::Stigmer::Agentic::Skill::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -61,17 +61,17 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SKILLID']._serialized_start=218
   _globals['_SKILLID']._serialized_end=257
   _globals['_PUSHSKILLREQUEST']._serialized_start=260
-  _globals['_PUSHSKILLREQUEST']._serialized_end=476
-  _globals['_PUSHSKILLFROMEXECUTIONARTIFACTREQUEST']._serialized_start=479
-  _globals['_PUSHSKILLFROMEXECUTIONARTIFACTREQUEST']._serialized_end=677
-  _globals['_GETARTIFACTREQUEST']._serialized_start=679
-  _globals['_GETARTIFACTREQUEST']._serialized_end=757
-  _globals['_GETARTIFACTRESPONSE']._serialized_start=759
-  _globals['_GETARTIFACTRESPONSE']._serialized_end=808
-  _globals['_LISTSKILLVERSIONSINPUT']._serialized_start=811
-  _globals['_LISTSKILLVERSIONSINPUT']._serialized_end=949
-  _globals['_SKILLVERSIONENTRY']._serialized_start=952
-  _globals['_SKILLVERSIONENTRY']._serialized_end=1355
-  _globals['_LISTSKILLVERSIONSRESPONSE']._serialized_start=1358
-  _globals['_LISTSKILLVERSIONSRESPONSE']._serialized_end=1534
+  _globals['_PUSHSKILLREQUEST']._serialized_end=502
+  _globals['_PUSHSKILLFROMEXECUTIONARTIFACTREQUEST']._serialized_start=505
+  _globals['_PUSHSKILLFROMEXECUTIONARTIFACTREQUEST']._serialized_end=703
+  _globals['_GETARTIFACTREQUEST']._serialized_start=705
+  _globals['_GETARTIFACTREQUEST']._serialized_end=783
+  _globals['_GETARTIFACTRESPONSE']._serialized_start=785
+  _globals['_GETARTIFACTRESPONSE']._serialized_end=834
+  _globals['_LISTSKILLVERSIONSINPUT']._serialized_start=837
+  _globals['_LISTSKILLVERSIONSINPUT']._serialized_end=975
+  _globals['_SKILLVERSIONENTRY']._serialized_start=978
+  _globals['_SKILLVERSIONENTRY']._serialized_end=1381
+  _globals['_LISTSKILLVERSIONSRESPONSE']._serialized_start=1384
+  _globals['_LISTSKILLVERSIONSRESPONSE']._serialized_end=1560
 # @@protoc_insertion_point(module_scope)

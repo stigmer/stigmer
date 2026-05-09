@@ -335,6 +335,7 @@ const skill = await stigmer.skill.push({
   artifact: "...",
   tag: "...",
   gitProvenance: {},
+  message: "...",
 });
 ```
 </Tab>
@@ -345,6 +346,7 @@ skill, err := client.Skill.Push(ctx, &stigmer.PushSkillRequest{
   Artifact:      "...",
   Tag:           "...",
   GitProvenance: &stigmer.GitProvenanceInput{},
+  Message:       "...",
 })
 ```
 </Tab>
@@ -355,6 +357,7 @@ skill = client.skills.push(PushSkillRequest(
     artifact="...",
     tag="...",
     git_provenance=None,
+    message="...",
 ))
 ```
 </Tab>
@@ -365,6 +368,7 @@ Skill skill = client.skills().push(PushSkillRequest.builder()
     .artifact("...")
     .tag("...")
     .gitProvenance(null)
+    .message("...")
     .build());
 ```
 </Tab>
@@ -453,6 +457,7 @@ PushSkillRequest contains the skill artifact and metadata for upload.
     artifact: { type: "Uint8Array", description: "Skill artifact as a ZIP file (binary content).", required: true },
     tag: { type: "string", description: "Optional tag to associate with this version." },
     gitProvenance: { type: "GitProvenanceInput", description: "Git provenance for this skill version." },
+    message: { type: "string", description: "Optional human-readable message describing what changed in this version." },
   }}
 />
 
