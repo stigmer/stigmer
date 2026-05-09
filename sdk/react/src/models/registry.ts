@@ -200,14 +200,22 @@ export function parseRegistryJson(data: unknown): ModelInfo[] {
  *
  * @param apiUrl - Base URL of the Stigmer Cloud API (e.g. `https://api.stigmer.ai`)
  * @param token - Bearer token for authentication (from `client.getAuthCredential()`)
+ * @param customFetch - Optional custom `fetch` implementation. Required in
+ *   Tauri where the global `fetch` is restricted by webview CSP/CORS policies.
+ *   When omitted, the global `fetch` is used.
  * @returns Parsed `ModelInfo[]`.
  */
-export async function fetchModelRegistry(apiUrl: string, token: string | null): Promise<ModelInfo[]> {
+export async function fetchModelRegistry(
+  apiUrl: string,
+  token: string | null,
+  customFetch?: typeof globalThis.fetch,
+): Promise<ModelInfo[]> {
+  const doFetch = customFetch ?? globalThis.fetch;
   const headers: Record<string, string> = {};
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
-  const res = await fetch(`${apiUrl}/v1/proxy/model-registry`, { headers });
+  const res = await doFetch(`${apiUrl}/v1/proxy/model-registry`, { headers });
   if (!res.ok) throw new Error(`Model registry fetch failed: ${res.status}`);
   const data: unknown = await res.json();
   return parseRegistryJson(data);
