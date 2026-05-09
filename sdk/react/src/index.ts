@@ -935,6 +935,17 @@ export type {
   CreationPath,
 } from "./resource-creation";
 
+// Dependency Graph — visual tree of agent dependencies (MCP servers, skills, sub-agents)
+export { DependencyGraph, useDependencyGraph } from "./dependency-graph";
+export type {
+  NodeKind,
+  DependencyNode,
+  DependencyTree,
+  DependencyGraphProps,
+  UseDependencyGraphOptions,
+  UseDependencyGraphReturn,
+} from "./dependency-graph";
+
 // Resource Workbench — headless hooks, view components, and composed shell for resource collection management
 export {
   useViewPreference,
