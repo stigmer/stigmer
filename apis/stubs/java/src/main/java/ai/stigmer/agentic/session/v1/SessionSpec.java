@@ -45,6 +45,7 @@ private static final long serialVersionUID = 0L;
     runnerId_ = "";
     skillRefs_ = java.util.Collections.emptyList();
     harness_ = 0;
+    cursorMode_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -812,6 +813,64 @@ java.lang.String defaultValue) {
     return result == null ? ai.stigmer.agentic.session.v1.Harness.UNRECOGNIZED : result;
   }
 
+  public static final int CURSOR_MODE_FIELD_NUMBER = 11;
+  private int cursorMode_ = 0;
+  /**
+   * <pre>
+   * Cursor SDK agent mode for this session.
+   *
+   * Determines whether the Cursor agent runs locally (Agent.create with
+   * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
+   * at session creation based on workspace entries and never changed —
+   * switching mid-session would lose Cursor-side conversation state.
+   *
+   * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
+   * harness types.
+   *
+   * &#64;internal
+   * Set by the cursor-runner on the first execution when cursor_mode is
+   * UNSPECIFIED. The workflow reads it back on subsequent executions to
+   * route to the correct Agent.create / Agent.resume path.
+   *
+   * When UNSPECIFIED on an existing CURSOR session, the runner defaults
+   * to LOCAL for backward compatibility.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
+   * @return The enum numeric value on the wire for cursorMode.
+   */
+  @java.lang.Override public int getCursorModeValue() {
+    return cursorMode_;
+  }
+  /**
+   * <pre>
+   * Cursor SDK agent mode for this session.
+   *
+   * Determines whether the Cursor agent runs locally (Agent.create with
+   * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
+   * at session creation based on workspace entries and never changed —
+   * switching mid-session would lose Cursor-side conversation state.
+   *
+   * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
+   * harness types.
+   *
+   * &#64;internal
+   * Set by the cursor-runner on the first execution when cursor_mode is
+   * UNSPECIFIED. The workflow reads it back on subsequent executions to
+   * route to the correct Agent.create / Agent.resume path.
+   *
+   * When UNSPECIFIED on an existing CURSOR session, the runner defaults
+   * to LOCAL for backward compatibility.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
+   * @return The cursorMode.
+   */
+  @java.lang.Override public ai.stigmer.agentic.session.v1.CursorMode getCursorMode() {
+    ai.stigmer.agentic.session.v1.CursorMode result = ai.stigmer.agentic.session.v1.CursorMode.forNumber(cursorMode_);
+    return result == null ? ai.stigmer.agentic.session.v1.CursorMode.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -858,6 +917,9 @@ java.lang.String defaultValue) {
     }
     if (harness_ != ai.stigmer.agentic.session.v1.Harness.HARNESS_UNSPECIFIED.getNumber()) {
       output.writeEnum(10, harness_);
+    }
+    if (cursorMode_ != ai.stigmer.agentic.session.v1.CursorMode.CURSOR_MODE_UNSPECIFIED.getNumber()) {
+      output.writeEnum(11, cursorMode_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -924,6 +986,10 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(10, harness_);
     }
+    if (cursorMode_ != ai.stigmer.agentic.session.v1.CursorMode.CURSOR_MODE_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(11, cursorMode_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -958,6 +1024,7 @@ java.lang.String defaultValue) {
     if (!getSkillRefsList()
         .equals(other.getSkillRefsList())) return false;
     if (harness_ != other.harness_) return false;
+    if (cursorMode_ != other.cursorMode_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -997,6 +1064,8 @@ java.lang.String defaultValue) {
     }
     hash = (37 * hash) + HARNESS_FIELD_NUMBER;
     hash = (53 * hash) + harness_;
+    hash = (37 * hash) + CURSOR_MODE_FIELD_NUMBER;
+    hash = (53 * hash) + cursorMode_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1186,6 +1255,7 @@ java.lang.String defaultValue) {
       }
       bitField0_ = (bitField0_ & ~0x00000100);
       harness_ = 0;
+      cursorMode_ = 0;
       return this;
     }
 
@@ -1271,6 +1341,9 @@ java.lang.String defaultValue) {
       }
       if (((from_bitField0_ & 0x00000200) != 0)) {
         result.harness_ = harness_;
+      }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.cursorMode_ = cursorMode_;
       }
     }
 
@@ -1395,6 +1468,9 @@ java.lang.String defaultValue) {
       if (other.harness_ != 0) {
         setHarnessValue(other.getHarnessValue());
       }
+      if (other.cursorMode_ != 0) {
+        setCursorModeValue(other.getCursorModeValue());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1499,6 +1575,11 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000200;
               break;
             } // case 80
+            case 88: {
+              cursorMode_ = input.readEnum();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 88
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3757,6 +3838,158 @@ java.lang.String defaultValue) {
     public Builder clearHarness() {
       bitField0_ = (bitField0_ & ~0x00000200);
       harness_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private int cursorMode_ = 0;
+    /**
+     * <pre>
+     * Cursor SDK agent mode for this session.
+     *
+     * Determines whether the Cursor agent runs locally (Agent.create with
+     * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
+     * at session creation based on workspace entries and never changed —
+     * switching mid-session would lose Cursor-side conversation state.
+     *
+     * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
+     * harness types.
+     *
+     * &#64;internal
+     * Set by the cursor-runner on the first execution when cursor_mode is
+     * UNSPECIFIED. The workflow reads it back on subsequent executions to
+     * route to the correct Agent.create / Agent.resume path.
+     *
+     * When UNSPECIFIED on an existing CURSOR session, the runner defaults
+     * to LOCAL for backward compatibility.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
+     * @return The enum numeric value on the wire for cursorMode.
+     */
+    @java.lang.Override public int getCursorModeValue() {
+      return cursorMode_;
+    }
+    /**
+     * <pre>
+     * Cursor SDK agent mode for this session.
+     *
+     * Determines whether the Cursor agent runs locally (Agent.create with
+     * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
+     * at session creation based on workspace entries and never changed —
+     * switching mid-session would lose Cursor-side conversation state.
+     *
+     * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
+     * harness types.
+     *
+     * &#64;internal
+     * Set by the cursor-runner on the first execution when cursor_mode is
+     * UNSPECIFIED. The workflow reads it back on subsequent executions to
+     * route to the correct Agent.create / Agent.resume path.
+     *
+     * When UNSPECIFIED on an existing CURSOR session, the runner defaults
+     * to LOCAL for backward compatibility.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
+     * @param value The enum numeric value on the wire for cursorMode to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setCursorModeValue(int value) {
+      cursorMode_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Cursor SDK agent mode for this session.
+     *
+     * Determines whether the Cursor agent runs locally (Agent.create with
+     * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
+     * at session creation based on workspace entries and never changed —
+     * switching mid-session would lose Cursor-side conversation state.
+     *
+     * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
+     * harness types.
+     *
+     * &#64;internal
+     * Set by the cursor-runner on the first execution when cursor_mode is
+     * UNSPECIFIED. The workflow reads it back on subsequent executions to
+     * route to the correct Agent.create / Agent.resume path.
+     *
+     * When UNSPECIFIED on an existing CURSOR session, the runner defaults
+     * to LOCAL for backward compatibility.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
+     * @return The cursorMode.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.CursorMode getCursorMode() {
+      ai.stigmer.agentic.session.v1.CursorMode result = ai.stigmer.agentic.session.v1.CursorMode.forNumber(cursorMode_);
+      return result == null ? ai.stigmer.agentic.session.v1.CursorMode.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Cursor SDK agent mode for this session.
+     *
+     * Determines whether the Cursor agent runs locally (Agent.create with
+     * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
+     * at session creation based on workspace entries and never changed —
+     * switching mid-session would lose Cursor-side conversation state.
+     *
+     * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
+     * harness types.
+     *
+     * &#64;internal
+     * Set by the cursor-runner on the first execution when cursor_mode is
+     * UNSPECIFIED. The workflow reads it back on subsequent executions to
+     * route to the correct Agent.create / Agent.resume path.
+     *
+     * When UNSPECIFIED on an existing CURSOR session, the runner defaults
+     * to LOCAL for backward compatibility.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
+     * @param value The cursorMode to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCursorMode(ai.stigmer.agentic.session.v1.CursorMode value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000400;
+      cursorMode_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Cursor SDK agent mode for this session.
+     *
+     * Determines whether the Cursor agent runs locally (Agent.create with
+     * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
+     * at session creation based on workspace entries and never changed —
+     * switching mid-session would lose Cursor-side conversation state.
+     *
+     * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
+     * harness types.
+     *
+     * &#64;internal
+     * Set by the cursor-runner on the first execution when cursor_mode is
+     * UNSPECIFIED. The workflow reads it back on subsequent executions to
+     * route to the correct Agent.create / Agent.resume path.
+     *
+     * When UNSPECIFIED on an existing CURSOR session, the runner defaults
+     * to LOCAL for backward compatibility.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearCursorMode() {
+      bitField0_ = (bitField0_ & ~0x00000400);
+      cursorMode_ = 0;
       onChanged();
       return this;
     }

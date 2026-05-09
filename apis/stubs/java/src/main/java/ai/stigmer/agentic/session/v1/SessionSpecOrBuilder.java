@@ -510,4 +510,55 @@ java.lang.String defaultValue);
    * @return The harness.
    */
   ai.stigmer.agentic.session.v1.Harness getHarness();
+
+  /**
+   * <pre>
+   * Cursor SDK agent mode for this session.
+   *
+   * Determines whether the Cursor agent runs locally (Agent.create with
+   * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
+   * at session creation based on workspace entries and never changed —
+   * switching mid-session would lose Cursor-side conversation state.
+   *
+   * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
+   * harness types.
+   *
+   * &#64;internal
+   * Set by the cursor-runner on the first execution when cursor_mode is
+   * UNSPECIFIED. The workflow reads it back on subsequent executions to
+   * route to the correct Agent.create / Agent.resume path.
+   *
+   * When UNSPECIFIED on an existing CURSOR session, the runner defaults
+   * to LOCAL for backward compatibility.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
+   * @return The enum numeric value on the wire for cursorMode.
+   */
+  int getCursorModeValue();
+  /**
+   * <pre>
+   * Cursor SDK agent mode for this session.
+   *
+   * Determines whether the Cursor agent runs locally (Agent.create with
+   * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
+   * at session creation based on workspace entries and never changed —
+   * switching mid-session would lose Cursor-side conversation state.
+   *
+   * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
+   * harness types.
+   *
+   * &#64;internal
+   * Set by the cursor-runner on the first execution when cursor_mode is
+   * UNSPECIFIED. The workflow reads it back on subsequent executions to
+   * route to the correct Agent.create / Agent.resume path.
+   *
+   * When UNSPECIFIED on an existing CURSOR session, the runner defaults
+   * to LOCAL for backward compatibility.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.CursorMode cursor_mode = 11 [json_name = "cursorMode"];</code>
+   * @return The cursorMode.
+   */
+  ai.stigmer.agentic.session.v1.CursorMode getCursorMode();
 }

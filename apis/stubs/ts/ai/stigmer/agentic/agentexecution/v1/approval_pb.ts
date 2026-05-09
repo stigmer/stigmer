@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/approval.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_approval: GenFile = /*@__PURE__*/
-  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSLbAQoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCSKDAQoZQ2hpbGRBcHByb3ZhbE5vdGlmaWNhdGlvbhIUCgxleGVjdXRpb25faWQYASABKAkSUAoRcGVuZGluZ19hcHByb3ZhbHMYAiADKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUGVuZGluZ0FwcHJvdmFsYgZwcm90bzM");
+  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKmAgoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCRIXCg9hZ2VudF9yYXRpb25hbGUYCiABKAkSFgoOYnJhbmNoX2F0X2RlbnkYCyABKAkSGAoQaGVhZF9zaGFfYXRfZGVueRgMIAEoCSKDAQoZQ2hpbGRBcHByb3ZhbE5vdGlmaWNhdGlvbhIUCgxleGVjdXRpb25faWQYASABKAkSUAoRcGVuZGluZ19hcHByb3ZhbHMYAiADKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUGVuZGluZ0FwcHJvdmFsYgZwcm90bzM");
 
 /**
  * A pending approval request for a tool call that requires user consent before execution.
@@ -133,6 +133,49 @@ export type PendingApproval = Message<"ai.stigmer.agentic.agentexecution.v1.Pend
    * @generated from field: string sub_agent_subject = 9;
    */
   subAgentSubject: string;
+
+  /**
+   * Why the agent wanted to execute this tool.
+   *
+   * Extracted from the last assistant message before the tool call.
+   * Gives the reinvocation agent context for the original intent, enabling
+   * it to decide whether the action still makes sense.
+   *
+   * Example: "Need to install the missing dependency to fix the build"
+   * Empty when rationale extraction was not possible.
+   *
+   * @generated from field: string agent_rationale = 10;
+   */
+  agentRationale: string;
+
+  /**
+   * Git branch name at the time the tool was denied.
+   *
+   * Diagnostic metadata only — the reinvocation agent inspects the actual
+   * current workspace state rather than relying on this value. Included
+   * in the HITL continuation prompt as a reference point for the agent
+   * to detect whether workspace state has drifted.
+   *
+   * Example: "feature/add-auth"
+   * Empty when the workspace is not git-backed.
+   *
+   * @generated from field: string branch_at_deny = 11;
+   */
+  branchAtDeny: string;
+
+  /**
+   * Git HEAD SHA at the time the tool was denied.
+   *
+   * Diagnostic metadata only — same purpose as branch_at_deny. Allows
+   * the reinvocation agent to compare against current HEAD to understand
+   * whether commits have landed since the tool was proposed.
+   *
+   * Example: "a1b2c3d4e5f6..."
+   * Empty when the workspace is not git-backed.
+   *
+   * @generated from field: string head_sha_at_deny = 12;
+   */
+  headShaAtDeny: string;
 };
 
 /**
