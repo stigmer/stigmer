@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { TodoItemSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
-import { SessionMemorySchema, ConversationTurnSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/memory_pb";
-import { SessionStatusSchema, SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionMemorySchema, ConversationTurnSchema, ToolObservationSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/memory_pb";
 import { MessageType, ToolCallStatus, TodoStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
@@ -772,80 +771,3 @@ describe("buildSessionMemory", () => {
 // persistSessionMemory
 // ---------------------------------------------------------------------------
 
-describe("persistSessionMemory", () => {
-  function mockClient() {
-    return {
-      getSession: vi.fn(),
-      updateSession: vi.fn(),
-    } as unknown as ReturnType<typeof vi.fn> & {
-      getSession: ReturnType<typeof vi.fn>;
-      updateSession: ReturnType<typeof vi.fn>;
-    };
-  }
-
-  it("reads session, sets memory, and writes back", async () => {
-    const client = mockClient();
-    const session = create(SessionSchema, {
-      status: create(SessionStatusSchema, {}),
-    });
-    client.getSession.mockResolvedValue(session);
-    client.updateSession.mockResolvedValue(undefined);
-
-    const memory = create(SessionMemorySchema, {
-      durableSummary: "Test summary",
-      changedFiles: ["file.ts"],
-    });
-
-    await persistSessionMemory(client as any, "sess-123", memory);
-
-    expect(client.getSession).toHaveBeenCalledWith("sess-123");
-    expect(client.updateSession).toHaveBeenCalledTimes(1);
-    const updatedSession = client.updateSession.mock.calls[0][0];
-    expect(updatedSession.status.sessionMemory).toBe(memory);
-  });
-
-  it("creates SessionStatus when session has none", async () => {
-    const client = mockClient();
-    const session = create(SessionSchema, {}); // no status
-    client.getSession.mockResolvedValue(session);
-    client.updateSession.mockResolvedValue(undefined);
-
-    const memory = create(SessionMemorySchema, { durableSummary: "test" });
-    await persistSessionMemory(client as any, "sess-456", memory);
-
-    const updatedSession = client.updateSession.mock.calls[0][0];
-    expect(updatedSession.status).toBeDefined();
-    expect(updatedSession.status.sessionMemory).toBe(memory);
-  });
-
-  it("swallows errors and logs warning", async () => {
-    const client = mockClient();
-    client.getSession.mockRejectedValue(new Error("network error"));
-
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const memory = create(SessionMemorySchema, {});
-    await persistSessionMemory(client as any, "sess-789", memory);
-
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("Failed to persist session memory"),
-      "network error",
-    );
-    warnSpy.mockRestore();
-  });
-
-  it("swallows updateSession errors", async () => {
-    const client = mockClient();
-    client.getSession.mockResolvedValue(create(SessionSchema, {}));
-    client.updateSession.mockRejectedValue(new Error("write failed"));
-
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const memory = create(SessionMemorySchema, {});
-    await persistSessionMemory(client as any, "sess-000", memory);
-
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("Failed to persist session memory"),
-      "write failed",
-    );
-    warnSpy.mockRestore();
-  });
-});

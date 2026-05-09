@@ -19,11 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SessionCommandController_Apply_FullMethodName         = "/ai.stigmer.agentic.session.v1.SessionCommandController/apply"
-	SessionCommandController_Create_FullMethodName        = "/ai.stigmer.agentic.session.v1.SessionCommandController/create"
-	SessionCommandController_Update_FullMethodName        = "/ai.stigmer.agentic.session.v1.SessionCommandController/update"
-	SessionCommandController_UpdateSubject_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionCommandController/updateSubject"
-	SessionCommandController_Delete_FullMethodName        = "/ai.stigmer.agentic.session.v1.SessionCommandController/delete"
+	SessionCommandController_Apply_FullMethodName               = "/ai.stigmer.agentic.session.v1.SessionCommandController/apply"
+	SessionCommandController_Create_FullMethodName              = "/ai.stigmer.agentic.session.v1.SessionCommandController/create"
+	SessionCommandController_Update_FullMethodName              = "/ai.stigmer.agentic.session.v1.SessionCommandController/update"
+	SessionCommandController_UpdateSubject_FullMethodName       = "/ai.stigmer.agentic.session.v1.SessionCommandController/updateSubject"
+	SessionCommandController_UpdateSessionMemory_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionCommandController/updateSessionMemory"
+	SessionCommandController_Delete_FullMethodName              = "/ai.stigmer.agentic.session.v1.SessionCommandController/delete"
 )
 
 // SessionCommandControllerClient is the client API for SessionCommandController service.
@@ -55,6 +56,15 @@ type SessionCommandControllerClient interface {
 	// Server-side field-level update, race-safe. Atomically modifies only
 	// spec.subject without touching other fields.
 	UpdateSubject(ctx context.Context, in *UpdateSessionSubjectRequest, opts ...grpc.CallOption) (*Session, error)
+	// Persist session memory after execution.
+	//
+	// Atomically updates only status.session_memory, leaving all other
+	// session fields untouched. Called by the cursor-runner after each
+	// completed execution turn.
+	//
+	// @internal
+	// Server-side field-level update, race-safe. No full-document replace.
+	UpdateSessionMemory(ctx context.Context, in *UpdateSessionMemoryRequest, opts ...grpc.CallOption) (*Session, error)
 	// Delete a session.
 	//
 	// @internal
@@ -111,6 +121,16 @@ func (c *sessionCommandControllerClient) UpdateSubject(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *sessionCommandControllerClient) UpdateSessionMemory(ctx context.Context, in *UpdateSessionMemoryRequest, opts ...grpc.CallOption) (*Session, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Session)
+	err := c.cc.Invoke(ctx, SessionCommandController_UpdateSessionMemory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *sessionCommandControllerClient) Delete(ctx context.Context, in *SessionId, opts ...grpc.CallOption) (*Session, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Session)
@@ -150,6 +170,15 @@ type SessionCommandControllerServer interface {
 	// Server-side field-level update, race-safe. Atomically modifies only
 	// spec.subject without touching other fields.
 	UpdateSubject(context.Context, *UpdateSessionSubjectRequest) (*Session, error)
+	// Persist session memory after execution.
+	//
+	// Atomically updates only status.session_memory, leaving all other
+	// session fields untouched. Called by the cursor-runner after each
+	// completed execution turn.
+	//
+	// @internal
+	// Server-side field-level update, race-safe. No full-document replace.
+	UpdateSessionMemory(context.Context, *UpdateSessionMemoryRequest) (*Session, error)
 	// Delete a session.
 	//
 	// @internal
@@ -176,6 +205,9 @@ func (UnimplementedSessionCommandControllerServer) Update(context.Context, *Sess
 }
 func (UnimplementedSessionCommandControllerServer) UpdateSubject(context.Context, *UpdateSessionSubjectRequest) (*Session, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateSubject not implemented")
+}
+func (UnimplementedSessionCommandControllerServer) UpdateSessionMemory(context.Context, *UpdateSessionMemoryRequest) (*Session, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateSessionMemory not implemented")
 }
 func (UnimplementedSessionCommandControllerServer) Delete(context.Context, *SessionId) (*Session, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -272,6 +304,24 @@ func _SessionCommandController_UpdateSubject_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SessionCommandController_UpdateSessionMemory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateSessionMemoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionCommandControllerServer).UpdateSessionMemory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionCommandController_UpdateSessionMemory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionCommandControllerServer).UpdateSessionMemory(ctx, req.(*UpdateSessionMemoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _SessionCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SessionId)
 	if err := dec(in); err != nil {
@@ -312,6 +362,10 @@ var SessionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "updateSubject",
 			Handler:    _SessionCommandController_UpdateSubject_Handler,
+		},
+		{
+			MethodName: "updateSessionMemory",
+			Handler:    _SessionCommandController_UpdateSessionMemory_Handler,
 		},
 		{
 			MethodName: "delete",

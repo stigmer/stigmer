@@ -68,6 +68,7 @@ Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`apply`](#apply) | Create or update a session. |
 | [`create`](#create) | Create a session. |
 | [`update`](#update) | Update an existing session (e.g., subject, thread_id). |
+| [`updateSessionMemory`](#updatesessionmemory) | Persist session memory after execution. |
 | [`updateSubject`](#updatesubject) | Set the session subject. |
 | [`delete`](#delete) | Delete a session. |
 
@@ -485,6 +486,51 @@ Session session = client.sessions().update(SessionInput.builder()
 
 **Returns**: [`Session`](#session)
 
+### updateSessionMemory
+
+Persist session memory after execution.
+
+Atomically updates only status.session_memory, leaving all other session fields untouched. Called by the cursor-runner after each completed execution turn.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const session = await stigmer.session.updateSessionMemory({
+  id: "...",
+  sessionMemory: {},
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+session, err := client.Session.UpdateSessionMemory(ctx, &stigmer.UpdateSessionMemoryRequest{
+  Id:            "...",
+  SessionMemory: &stigmer.SessionMemoryInput{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+session = client.sessions.update_session_memory(UpdateSessionMemoryRequest(
+    id="...",
+    session_memory=None,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Session session = client.sessions().updateSessionMemory(UpdateSessionMemoryRequest.builder()
+    .id("...")
+    .sessionMemory(null)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`UpdateSessionMemoryRequest`](#updatesessionmemoryrequest)
+
+**Returns**: [`Session`](#session)
+
 ### updateSubject
 
 Set the session subject.
@@ -682,6 +728,17 @@ UpdateSessionSubjectRequest sets the conversation title for a session.
   type={{
     id: { type: "string", description: "Session ID to update.", required: true },
     subject: { type: "string", description: "New subject value." },
+  }}
+/>
+
+### UpdateSessionMemoryRequest
+
+UpdateSessionMemoryRequest persists durable session memory after each completed execution turn.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Session ID to update.", required: true },
+    sessionMemory: { type: "SessionMemoryInput", description: "The session memory to persist." },
   }}
 />
 
