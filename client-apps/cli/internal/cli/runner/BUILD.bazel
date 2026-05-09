@@ -8,6 +8,7 @@ go_library(
         "copydir.go",
         "cursor.go",
         "docker.go",
+        "ensure.go",
         "runner_env.go",
         "start.go",
         "state.go",
@@ -36,6 +37,7 @@ go_test(
     name = "runner_test",
     srcs = [
         "docker_test.go",
+        "ensure_test.go",
         "state_test.go",
     ],
     embed = [":runner"],
