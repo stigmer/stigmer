@@ -68,10 +68,24 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-09 19:42
-**Current Task**: T01 — Phase 0: Immediate UX Fix (already running = success)
-**Status**: COMPLETE — committed as `4db26fe36`
+**Current Task**: T02 — Phase 1: Idempotent runner with structured JSON output
+**Status**: COMPLETE — committed as `c7a70977e`
 
-## Session Progress (2026-05-09)
+## Session Progress (2026-05-09, session 2)
+
+- Extracted `Ensure()` from `Start()` with `onReady` callback pattern
+- Added `EnsureResult`/`EnsureError` typed JSON contract in new `ensure.go`
+- Wired `--json` flag on `stigmer up [runner]` to write structured JSON to stdout
+- Extended `stigmer status` to show standalone runners from `~/.stigmer/runners/`
+- Updated Tauri sidecar to pass `--json` and parse structured output in adoption path
+- Wrote 13 new unit tests (36 total pass)
+- All checks pass: `go build`, `go vet`, `go test`, `cargo check`
+
+### Key design decision: verb-first CLI preserved
+
+The research report originally proposed a `stigmer runner ensure` noun-first command group. During planning, we decided to keep the verb-first CLI design language (`stigmer up`/`stigmer down`/`stigmer status`) and express ensure semantics through `stigmer up --json` instead. The internal `Ensure()` function exists as the programmatic API; the CLI surface stays consistent.
+
+## Session Progress (2026-05-09, session 1)
 
 - Implemented `checkOrAdopt` replacing `checkNameConflict` in CLI
 - Fixed Tauri sidecar to handle adoption (ProcessManager + grace period)
@@ -91,7 +105,7 @@ Deep research report available at:
 | Task | Phase | Status |
 |------|-------|--------|
 | T01 | Phase 0: Already running = success | COMPLETE |
-| T02 | Phase 1: Idempotent `runner ensure` command | Not started |
+| T02 | Phase 1: Idempotent runner with structured JSON output | COMPLETE |
 | T03 | Phase 2: Stable machine_id identity | Not started |
 | T04 | Phase 3: Local control socket | Not started |
 | T05 | Phase 4: Desktop UI redesign (status card) | Not started |
@@ -101,7 +115,7 @@ Deep research report available at:
 ## Quick Commands
 
 After loading context:
-- "Continue with T01" - Resume the current task
+- "Continue with T03" - Start stable machine_id identity
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
