@@ -14,8 +14,20 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-05-09 — Phase 3 T04-A (ResourceWorkbench Creation Slot) complete
-- **Active Task**: Phase 3 T04-A complete. Next up: T04-E (YAML/JSON Import/Export) or T04-B (Agent Creation Wizard)
+- **Last Session**: 2026-05-09 — Phase 3 T04-E (YAML/JSON Import/Export) complete
+- **Active Task**: Phase 3 T04-E complete. Next up: T04-B (Agent Creation Wizard)
+
+## Session Progress (2026-05-09, Session 5)
+
+- Completed Phase 3 sub-task T04-E: YAML/JSON Import/Export
+- Created `useExportResource` hook — headless export with copyYaml, copyJson, downloadYaml, downloadJson + memoized serialized strings
+- Created `useImportResource` hook — file reading, format detection (YAML/JSON), validation preview, apply via SDK
+- Created `ImportResourceDialog` — native `<dialog>` styled component with file picker, preview card, error display
+- Wired export actions into AgentDetailPage and McpServerDetailPage (kebab "export" group)
+- Wired import button (Upload icon) into AgentListPage and McpServerListPage workbench toolbars
+- Updated SDK barrel exports in `library/index.ts` and root `index.ts`
+- All typecheck + lint pass clean (only pre-existing tsdoc ActionMenu warning)
+- Design decisions: DD-T04E-001 through DD-T04E-005 documented in plan
 
 ## Session Progress (2026-05-09, Session 4)
 
@@ -42,6 +54,11 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Key Decisions Made (This Session)
 
+- **DD-T04E-001**: Export is client-side only — serializers run from already-fetched proto, zero additional API calls
+- **DD-T04E-002**: Import reuses existing `parseResourceYaml` + SDK `apply()` pipeline
+- **DD-T04E-003**: Import shows validation preview before applying (Nielsen heuristics #3, #5)
+- **DD-T04E-004**: Export hook returns four stable callbacks (copyYaml, copyJson, downloadYaml, downloadJson) — headless layer
+- **DD-T04E-005**: ImportResourceDialog uses native `<dialog>` (consistent with DD-T03-002), HTML file picker (no drag-drop library)
 - **DD-T03-001**: ResourceDetailShell receives pre-fetched data via props, not own data fetching — resource-specific hooks already exist with different parameters
 - **DD-T03-002**: ConfirmDialog uses native `<dialog>` element for modals — consistent with existing McpServerDetailView BYOA dialog pattern, no new dependency needed
 - **DD-T03-003**: McpServerDetailView uses ResourceActionBar directly (not full ResourceDetailShell) — preserves its complex MCP-specific header with validation state, slug display, lastDiscoveredAt
@@ -49,15 +66,15 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **T04-E: YAML/JSON Import/Export** — Quick win building on existing `parseResourceYaml`/`serializeAgentYaml` code (no deps on T04-A)
-2. **T04-B: Agent Creation Wizard** — The centerpiece of Phase 3, including shared wizard infrastructure (`WizardShell`, `useWizardState`)
-3. **T04-C: Skill Editor with Preview** — Split-pane Markdown editor + live preview
-4. **T04-D: MCP Server Creation Wizard** — Visual MCP server configuration flow
-5. **T04-F: Template Gallery** — Depends on T04-B and T04-D
-6. **T04-G: AI Sidecar** — Needs backend design spike first
+1. **T04-B: Agent Creation Wizard** — The centerpiece of Phase 3, including shared wizard infrastructure (`WizardShell`, `useWizardState`)
+2. **T04-C: Skill Editor with Preview** — Split-pane Markdown editor + live preview
+3. **T04-D: MCP Server Creation Wizard** — Visual MCP server configuration flow
+4. **T04-F: Template Gallery** — Depends on T04-B and T04-D
+5. **T04-G: AI Sidecar** — Needs backend design spike first
 
 ## Context for Resume
 
+- T04-E plan is at `.cursor/plans/t04-e_import_export_0a7026b6.plan.md`
 - Phase 2 plan is at `.cursor/plans/phase_2_detail_hubs_cd21ecab.plan.md`
 - Phase 1 plan is at `.cursor/plans/t02_resource_workbench_927d6980.plan.md`
 - Phase 0 plan is at `_projects/2026-05/20260508.02.resource-views-ux-overhaul/tasks/T01_0_plan.md`
@@ -68,6 +85,12 @@ Drop this file into your conversation to quickly resume work on this project.
 - The `resource-detail/` module is the canonical resource detail architecture
 
 ## Essential Files to Review
+
+### 0. Import/Export Module (Phase 3 T04-E)
+```
+sdk/react/src/library/
+  useExportResource.ts, useImportResource.ts, ImportResourceDialog.tsx
+```
 
 ### 1. Resource Detail Module (Phase 2)
 ```
