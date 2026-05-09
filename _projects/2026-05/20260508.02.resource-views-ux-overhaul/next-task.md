@@ -14,10 +14,25 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-05-09 — Phase 4 T05-C implemented (skill version timeline)
-- **Active Task**: **T05-D** — Diff Viewer (next). T05-A, T05-B, and T05-C complete.
+- **Last Session**: 2026-05-09 (Session 15) — Phase 4 T05-D implemented (multi-file diff viewer)
+- **Active Task**: **T05-E** — Backend API Requirements Doc (next). T05-A through T05-D complete.
 - **Phase 3 status**: T04-A through T04-F complete. T04-G (AI Sidecar) deferred pending backend spike.
-- **Phase 4 status**: T05-A, T05-B, and T05-C complete. T05-D and T05-E remaining.
+- **Phase 4 status**: T05-A, T05-B, T05-C, and T05-D complete. T05-E remaining.
+
+## Session Progress (2026-05-09, Session 15)
+
+- Completed Phase 4 sub-task **T05-D: Multi-File Diff Viewer for Skill Versions**
+- 6 new `--stgm-diff-*` theme tokens (light + dark) mapped to Tailwind via `--color-diff-*`
+- Extracted `fetchAndUnpackArtifact()` shared utility; refactored `useSkillArtifact` to use it
+- `computeDiff()` and `computeMultiFileDiff()` — pure functions wrapping jsdiff, producing typed hunk/file-level diffs
+- 4 new generic diff UI components: `DiffViewer` (accessible table), `DiffFileList` (M/A/D badges), `DiffSummary` (live region), `MultiFileDiffView` (composed with file navigation)
+- `useSkillVersions` extended with `getArtifactKey(versionHash)` lookup from proto data
+- `useSkillDiff(fromKey, toKey)` — parallel artifact fetch + multi-file diff with 10MB size guard
+- `SkillDiffDialog` — native `<dialog>` composing `useSkillDiff` + `MultiFileDiffView`
+- `SkillDetailView` wired: `onCompare` → artifact key lookup → open dialog
+- Enhanced `VersionTimeline` compare-mode: info bar ("Select another version...") + cancel button + first-selection dashed border + "A" badge
+- All new types, hooks, components exported from `@stigmer/react` barrel
+- Verify: `npm run typecheck -w @stigmer/react` + `npm run lint -w @stigmer/react` + `npm run lint -w client-apps/web` all clean
 
 ## Session Progress (2026-05-09, Session 14)
 
@@ -168,6 +183,13 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Key Decisions Made (This Session)
 
+- **DD-T05D-001**: `useSkillDiff` takes artifact storage keys directly. Consumer (SkillDetailView) does hash-to-key lookup via `getArtifactKey()`. Keeps diff hook simple and independently usable.
+- **DD-T05D-002**: `diff` (jsdiff) as direct dependency (~8KB gzip, MIT). `structuredPatch()` returns hunks with line-level changes.
+- **DD-T05D-003**: Multi-file diff with file navigation. SKILL.md prioritized. Summary bar + file list + per-file unified diff.
+- **DD-T05D-004**: Shared `fetchAndUnpackArtifact()` extracted. Both `useSkillArtifact` and `useSkillDiff` use it.
+- **DD-T05D-005**: Unified diff only in v1. Side-by-side deferred. `DiffViewer` accepts `mode` prop for future extension.
+- **DD-T05D-006**: Compare-mode UX — info bar with cancel, dashed border + "A" badge on first selection.
+- **DD-T05D-TOKENS**: Diff tokens inherit from `tokens.css`, not per-preset — diff colors carry universal semantic meaning.
 - **DD-T05C-001**: Conditional tab visibility — "Versions" only appears when `useSkillVersions` returns non-empty data. Avoids broken state before backend ships.
 - **DD-T05C-002**: Generic `VersionEntry` is a presentation-layer type owned by the SDK, not a proto-generated type. The hook maps FROM proto TO generic. This enables reuse across resource types.
 - **DD-T05C-003**: `VersionTimeline` supports `onCompare` from day one (for T05-D), but the compare UI is not wired until T05-D ships. The prop exists, the callback fires, but no visual indication of compare-mode selection yet.
@@ -202,7 +224,7 @@ Drop this file into your conversation to quickly resume work on this project.
 1. ~~**T05-A: Detail Page Tabbed Infrastructure**~~ — Done (Session 12).
 2. ~~**T05-B: Agent Dependency Graph**~~ — Done (Session 13). Built-in conditional tab with CSS tree, zero Console changes.
 3. ~~**T05-C: Skill Version Timeline**~~ — Done (Session 14). Proto-first: `listVersions` RPC + generic `VersionTimeline` component + conditional built-in tab. Graceful degradation until backend ships.
-4. **T05-D: Diff Viewer** — Text diff between two skill versions. Depends on T05-C (done). Uses `VersionTimeline`'s `onCompare` callback, fetches two historical artifacts via `getArtifact`, computes and renders unified diff.
+4. ~~**T05-D: Diff Viewer**~~ — Done (Session 15). Multi-file diff with file navigation, shared artifact utility, generic diff infrastructure, compare-mode UX.
 5. **T05-E: Backend API Requirements Doc** — Design spike documenting what backend needs to deliver.
 
 **Deferred**: T04-G (AI Sidecar), Agent/MCP versioning, audit log, usage charts, RBAC.
@@ -230,7 +252,11 @@ Drop this file into your conversation to quickly resume work on this project.
 - Key decision: Dependency graph uses CSS tree (not SVG spatial graph) — agents typically have 3-15 dependency nodes; CSS is accessible and responsive
 - Key decision: Dependency graph is a built-in conditional tab, not `additionalTab` — intrinsic agent data, all SDK consumers benefit
 - The `dependency-graph/` module is the canonical dependency visualization architecture
-- The `version-history/` module is the canonical version timeline architecture (generic — works for any versioned resource)
+- The `version-history/` module is the canonical version timeline AND diff architecture (generic — works for any versioned resource)
+- The diff infrastructure (`computeDiff`, `computeMultiFileDiff`, `DiffViewer`, `MultiFileDiffView`) is generic and ready for Agent/MCP versioning
+- Key discovery: `diff` (jsdiff) v8 ships own TypeScript types — no `@types/diff` needed
+- Key decision: Diff theme tokens inherit from `tokens.css`, not per-preset — universal semantic meaning
+- T05-D plan is at `.cursor/plans/t05-d_diff_viewer_bfd02016.plan.md`
 - T05-C plan is at `.cursor/plans/t05-c_skill_version_timeline_503bef68.plan.md`
 - T05-B plan is at `.cursor/plans/t05-b_dependency_graph_4bba9a9f.plan.md`
 - Key discovery: `StigmerError.connectCode` preserves the raw gRPC code — use `connectCode === 12` to detect UNIMPLEMENTED
@@ -238,6 +264,18 @@ Drop this file into your conversation to quickly resume work on this project.
 - Key decision: Version timeline is generic (`VersionEntry` type) — skill-specific hook maps proto → generic, enabling future Agent/MCP versioning with the same component
 
 ## Essential Files to Review
+
+### 0u. Multi-File Diff Viewer (Phase 4 T05-D)
+```
+sdk/react/src/version-history/
+  types.ts (DiffLine, DiffHunk, FileDiffEntry, MultiFileDiffResult)
+  computeDiff.ts, computeMultiFileDiff.ts
+  DiffViewer.tsx, DiffFileList.tsx, DiffSummary.tsx, MultiFileDiffView.tsx
+
+sdk/react/src/skill/
+  internal/fetchAndUnpackArtifact.ts
+  useSkillDiff.ts, SkillDiffDialog.tsx
+```
 
 ### 0v. Skill Version Timeline (Phase 4 T05-C)
 ```
@@ -376,12 +414,12 @@ When starting a new session:
 3. [ ] Review any new design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with Phase 4 (T05-D Diff viewer, then T05-E)
+6. [ ] Continue with Phase 4 (T05-E Backend API Requirements Doc — final sub-task)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 4 T05-D" - Diff viewer for skill versions (depends on T05-C which is done)
+- "Continue with Phase 4 T05-E" - Backend API requirements doc (final sub-task)
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

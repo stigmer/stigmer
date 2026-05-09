@@ -25,6 +25,7 @@ import type { VersionTimelineEntryProps } from "./types";
 export function VersionTimelineEntry({
   entry,
   isSelected,
+  isCompareSource,
   isLast,
   onSelect,
   trailing,
@@ -49,9 +50,11 @@ export function VersionTimelineEntry({
             "size-2.5 shrink-0 rounded-full border-2",
             entry.isCurrent
               ? "border-primary bg-primary"
-              : isSelected
-                ? "border-primary bg-background"
-                : "border-border bg-background",
+              : isCompareSource
+                ? "border-primary border-dashed bg-background"
+                : isSelected
+                  ? "border-primary bg-background"
+                  : "border-border bg-background",
           )}
           aria-hidden="true"
         />
@@ -70,9 +73,11 @@ export function VersionTimelineEntry({
         className={cn(
           "mb-4 flex min-w-0 flex-1 flex-col gap-1 rounded-md px-2.5 py-2 text-left transition-colors",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          isSelected
-            ? "bg-accent-hover"
-            : "hover:bg-accent-hover",
+          isCompareSource
+            ? "border border-dashed border-primary bg-primary-subtle"
+            : isSelected
+              ? "bg-accent-hover"
+              : "hover:bg-accent-hover",
         )}
       >
         {/* Top line: hash + tag + current badge */}
@@ -83,6 +88,12 @@ export function VersionTimelineEntry({
           >
             {entry.label}
           </code>
+
+          {isCompareSource && (
+            <span className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">
+              A
+            </span>
+          )}
 
           {entry.tag && (
             <span className="shrink-0 rounded-full bg-primary-subtle px-1.5 py-0.5 text-[10px] font-medium text-primary">

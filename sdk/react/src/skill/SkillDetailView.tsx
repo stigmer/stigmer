@@ -20,6 +20,7 @@ import type { TabItem } from "../tabs/Tabs";
 import type { StatusPhase } from "../resource-workbench/types";
 import { useSkillVersions } from "./useSkillVersions";
 import { VersionTimeline } from "../version-history/VersionTimeline";
+import { SkillDiffDialog, type SkillDiffDialogState } from "./SkillDiffDialog";
 
 const CONTENT_TAB: TabItem = { id: "content", label: "Content" };
 const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
@@ -149,7 +150,8 @@ export function SkillDetailView({
   className,
 }: SkillDetailViewProps) {
   const { skill, isLoading, error, refetch } = useSkill(org, slug, version);
-  const { versions, isEmpty: noVersions } = useSkillVersions(org, slug);
+  const { versions, isEmpty: noVersions, getArtifactKey } = useSkillVersions(org, slug);
+  const [diffState, setDiffState] = useState<SkillDiffDialogState | null>(null);
 
   const builtInTabs = useMemo<readonly TabItem[]>(
     () => (noVersions ? [CONTENT_TAB] : [CONTENT_TAB, VERSIONS_TAB]),
@@ -173,6 +175,24 @@ export function SkillDetailView({
     (id: string) => onVersionSelect?.(id),
     [onVersionSelect],
   );
+
+  const handleCompare = useCallback(
+    (fromId: string, toId: string) => {
+      const fromKey = getArtifactKey(fromId);
+      const toKey = getArtifactKey(toId);
+      if (!fromKey || !toKey) return;
+
+      setDiffState({
+        fromArtifactKey: fromKey,
+        toArtifactKey: toKey,
+        fromLabel: fromId.slice(0, 12),
+        toLabel: toId.slice(0, 12),
+      });
+    },
+    [getArtifactKey],
+  );
+
+  const closeDiff = useCallback(() => setDiffState(null), []);
 
   const onResourceLoadRef = useRef(onResourceLoad);
   onResourceLoadRef.current = onResourceLoad;
@@ -228,6 +248,7 @@ export function SkillDetailView({
       <VersionTimeline
         entries={versions}
         onEntrySelect={handleVersionSelect}
+        onCompare={handleCompare}
       />
     );
   } else {
@@ -235,19 +256,22 @@ export function SkillDetailView({
   }
 
   return (
-    <ResourceDetailShell
-      header={headerMeta}
-      visibilityControl={visibilityControl}
-      primaryAction={primaryAction}
-      actions={actions}
-      tabs={effectiveTabs}
-      activeTab={effectiveTabs ? effectiveActiveTab : undefined}
-      onTabChange={effectiveTabs ? effectiveOnTabChange : undefined}
-      tabsAriaLabel="Skill detail sections"
-      className={className}
-    >
-      {tabContent}
-    </ResourceDetailShell>
+    <>
+      <ResourceDetailShell
+        header={headerMeta}
+        visibilityControl={visibilityControl}
+        primaryAction={primaryAction}
+        actions={actions}
+        tabs={effectiveTabs}
+        activeTab={effectiveTabs ? effectiveActiveTab : undefined}
+        onTabChange={effectiveTabs ? effectiveOnTabChange : undefined}
+        tabsAriaLabel="Skill detail sections"
+        className={className}
+      >
+        {tabContent}
+      </ResourceDetailShell>
+      <SkillDiffDialog state={diffState} onClose={closeDiff} />
+    </>
   );
 }
 

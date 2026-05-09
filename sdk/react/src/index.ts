@@ -327,8 +327,10 @@ export {
   useSkillUpload,
   useSkillArtifact,
   useSkillVersions,
+  useSkillDiff,
   SkillUploader,
   SkillFileBrowser,
+  SkillDiffDialog,
 } from "./skill";
 export type {
   UseSkillReturn,
@@ -347,6 +349,9 @@ export type {
   UseSkillUploadReturn,
   UseSkillArtifactReturn,
   UseSkillVersionsReturn,
+  UseSkillDiffReturn,
+  SkillDiffDialogProps,
+  SkillDiffDialogState,
   SkillUploaderProps,
   SkillFileBrowserProps,
 } from "./skill";
@@ -948,12 +953,30 @@ export type {
   UseDependencyGraphReturn,
 } from "./dependency-graph";
 
-// Version History — generic timeline component for versioned resources
-export { VersionTimeline, VersionTimelineEntry } from "./version-history";
+// Version History — generic timeline, diff infrastructure for versioned resources
+export {
+  VersionTimeline,
+  VersionTimelineEntry,
+  DiffViewer,
+  DiffFileList,
+  DiffSummary,
+  MultiFileDiffView,
+  computeDiff,
+  computeMultiFileDiff,
+} from "./version-history";
 export type {
   VersionEntry,
   VersionTimelineProps,
   VersionTimelineEntryProps,
+  DiffViewerProps,
+  DiffFileListProps,
+  DiffSummaryProps,
+  MultiFileDiffViewProps,
+  DiffLine,
+  DiffHunk,
+  FileDiffEntry,
+  MultiFileDiffResult,
+  DiffViewMode,
 } from "./version-history";
 
 // Resource Workbench — headless hooks, view components, and composed shell for resource collection management
