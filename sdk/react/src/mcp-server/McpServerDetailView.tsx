@@ -26,7 +26,9 @@ import { ErrorMessage } from "../error/ErrorMessage";
 import { EnvVarForm } from "../environment/EnvVarForm";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm";
 import { VisibilityToggle } from "../library/VisibilityToggle";
-import { Tabs, type TabItem } from "../internal/Tabs";
+import { Tabs, type TabItem } from "../tabs/Tabs";
+import { ResourceActionBar } from "../resource-detail/ResourceActionBar";
+import type { DetailAction } from "../resource-detail/types";
 
 /** Tab identifier for the MCP server capability panel. */
 export type CapabilityTab = "tools" | "policies" | "resources";
@@ -85,6 +87,14 @@ export interface McpServerDetailViewProps {
    * When omitted, falls back to the `org` prop (MCP server's org).
    */
   readonly activeOrg?: string;
+  /**
+   * Primary action rendered as a visible button in the header area.
+   */
+  readonly primaryAction?: DetailAction;
+  /**
+   * Secondary actions rendered in the kebab overflow menu.
+   */
+  readonly actions?: readonly DetailAction[];
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -123,6 +133,8 @@ export function McpServerDetailView({
   defaultShowCredentialForm = false,
   credentialPoolValues,
   activeOrg,
+  primaryAction,
+  actions,
   className,
 }: McpServerDetailViewProps) {
   const { mcpServer, isLoading, error, refetch } = useMcpServer(org, slug);
@@ -312,22 +324,29 @@ export function McpServerDetailView({
           <ValidationBanner message={status.validationMessage} />
         )}
 
-      <Header
-        server={mcpServer}
-        createdAt={
-          specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null
-        }
-        updatedAt={
-          specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null
-        }
-        lastDiscoveredAt={
-          capabilities?.lastDiscoveredAt
-            ? timestampDate(capabilities.lastDiscoveredAt)
-            : null
-        }
-        onVisibilityChange={onVisibilityChange}
-        isVisibilityPending={isVisibilityPending}
-      />
+      <div className="flex items-start justify-between gap-4">
+        <Header
+          server={mcpServer}
+          createdAt={
+            specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null
+          }
+          updatedAt={
+            specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null
+          }
+          lastDiscoveredAt={
+            capabilities?.lastDiscoveredAt
+              ? timestampDate(capabilities.lastDiscoveredAt)
+              : null
+          }
+          onVisibilityChange={onVisibilityChange}
+          isVisibilityPending={isVisibilityPending}
+        />
+        <ResourceActionBar
+          primaryAction={primaryAction}
+          actions={actions}
+          className="shrink-0"
+        />
+      </div>
 
       {hasSource && <SourceSection spec={spec} />}
 
