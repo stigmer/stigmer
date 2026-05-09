@@ -15,7 +15,6 @@ import {
   PlatformClientsSection,
   UsageSection,
 } from "@stigmer/react";
-import { CreditCard } from "lucide-react";
 import { AppShell } from "./shell/AppShell";
 import { SessionLauncher } from "./pages/SessionLauncher";
 
@@ -30,6 +29,7 @@ const McpServerListPage = lazy(() => import("./pages/library/McpServerListPage")
 const McpServerDetailPage = lazy(() => import("./pages/library/McpServerDetailPage"));
 const SettingsLayout = lazy(() => import("./pages/settings/SettingsLayout"));
 const SettingsLanding = lazy(() => import("./pages/settings/SettingsLanding"));
+const BillingPage = lazy(() => import("./pages/settings/BillingPage"));
 const RunnersPage = lazy(() => import("./pages/runners/RunnersPage"));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
@@ -166,11 +166,9 @@ const routes: RouteObject[] = [
               {
                 path: "billing",
                 element: (
-                  <div className="flex flex-col items-center justify-center py-24 text-center">
-                    <CreditCard className="mb-4 size-10 text-muted-foreground" />
-                    <h2 className="mb-2 text-lg font-semibold text-foreground">Billing</h2>
-                    <p className="text-sm text-muted-foreground">This feature is coming soon.</p>
-                  </div>
+                  <LazyPage>
+                    <BillingPage />
+                  </LazyPage>
                 ),
               },
               {

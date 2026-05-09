@@ -43,6 +43,17 @@ export class Stigmer extends GeneratedClient {
    */
   readonly baseUrl: string;
 
+  /**
+   * Custom `fetch` implementation provided at construction time.
+   *
+   * `undefined` when the caller did not supply one (the global
+   * `fetch` should be used instead). Exposed so non-transport
+   * HTTP calls (e.g., model registry fetch) can use the same
+   * implementation that the gRPC transport uses, which is critical
+   * in Tauri where the global `fetch` is restricted by CSP/CORS.
+   */
+  readonly fetch: typeof globalThis.fetch | undefined;
+
   readonly billing: BillingClient;
   readonly search: SearchClient;
   readonly github: GitHubClient;
@@ -56,6 +67,7 @@ export class Stigmer extends GeneratedClient {
     super(transport);
 
     this.baseUrl = config.baseUrl;
+    this.fetch = config.fetch;
     this._tokenProvider = config.apiKey
       ? () => config.apiKey!
       : config.getAccessToken ?? (() => null);

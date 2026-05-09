@@ -173,7 +173,7 @@ function useModelRegistryFetch(client: Stigmer): ModelRegistryState {
 
     const c = clientRef.current;
     c.getAuthCredential()
-      .then((token) => fetchModelRegistry(c.baseUrl, token))
+      .then((token) => fetchModelRegistry(c.baseUrl, token, c.fetch))
       .then((models) => {
         if (!cancelled) {
           setState({ models, isLoading: false, error: null });
