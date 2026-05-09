@@ -13,11 +13,22 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: In Progress
-- **Last Session**: 2026-05-09 (Session 15) — Phase 4 T05-D implemented (multi-file diff viewer)
-- **Active Task**: **T05-E** — Backend API Requirements Doc (next). T05-A through T05-D complete.
+- **Status**: Phase 4 COMPLETE
+- **Last Session**: 2026-05-09 (Session 16) — Phase 4 T05-E completed (Backend API Requirements Doc)
+- **Active Task**: None — Phase 4 complete. All deferred items require backend work or separate project scoping.
 - **Phase 3 status**: T04-A through T04-F complete. T04-G (AI Sidecar) deferred pending backend spike.
-- **Phase 4 status**: T05-A, T05-B, T05-C, and T05-D complete. T05-E remaining.
+- **Phase 4 status**: T05-A through T05-E all complete.
+
+## Session Progress (2026-05-09, Session 16)
+
+- Completed Phase 4 sub-task **T05-E: Backend API Requirements Doc**
+- Wrote formal API requirements document at `design-decisions/DD-T05E-backend-api-requirements.md`
+- **Discovery: Archival semantics divergence** — OSS Go archives the NEW version (every push), Cloud Java archives the PREVIOUS version (updates only, skips first push). Document recommends aligning Cloud to match OSS.
+- Specified `listVersions` RPC handler logic for both editions: field mapping, authorization, pagination, edge cases, error contract
+- Proposed `message` field addition to `PushSkillRequest` proto (field 6) + `version_message` on `SkillStatus` for storage
+- Documented artifact retention policy: retain artifacts as long as audit records reference them
+- Captured informational sections on future Agent/MCP versioning and audit log API shape
+- Phase 4 is now fully complete (T05-A through T05-E)
 
 ## Session Progress (2026-05-09, Session 15)
 
@@ -183,6 +194,10 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Key Decisions Made (This Session)
 
+- **DD-T05E-001**: Add `message` field (field 6) to `PushSkillRequest` proto + `version_message` to `SkillStatus`. Enables human-authored version descriptions in the timeline. CLI will expose as `-m` flag.
+- **DD-T05E-002**: `listVersions` handler prepends current live skill (with `is_current=true`) then appends audit history. Handles both archival semantics until Cloud alignment.
+- **DD-T05E-003**: Artifact retention — retain as long as audit records exist. No GC. Future retention limits must atomically delete audit + artifact (respecting content-addressable dedup).
+- **DD-T05E-DIVERGENCE**: OSS archives new version (every push), Cloud archives previous version (updates only). Recommended alignment: Cloud should match OSS. If deferred, handler compensates with dedup logic.
 - **DD-T05D-001**: `useSkillDiff` takes artifact storage keys directly. Consumer (SkillDetailView) does hash-to-key lookup via `getArtifactKey()`. Keeps diff hook simple and independently usable.
 - **DD-T05D-002**: `diff` (jsdiff) as direct dependency (~8KB gzip, MIT). `structuredPatch()` returns hunks with line-level changes.
 - **DD-T05D-003**: Multi-file diff with file navigation. SKILL.md prioritized. Summary bar + file list + per-file unified diff.
@@ -221,11 +236,19 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
+**Phase 4 is complete.** All sub-tasks (T05-A through T05-E) are done.
+
 1. ~~**T05-A: Detail Page Tabbed Infrastructure**~~ — Done (Session 12).
-2. ~~**T05-B: Agent Dependency Graph**~~ — Done (Session 13). Built-in conditional tab with CSS tree, zero Console changes.
-3. ~~**T05-C: Skill Version Timeline**~~ — Done (Session 14). Proto-first: `listVersions` RPC + generic `VersionTimeline` component + conditional built-in tab. Graceful degradation until backend ships.
-4. ~~**T05-D: Diff Viewer**~~ — Done (Session 15). Multi-file diff with file navigation, shared artifact utility, generic diff infrastructure, compare-mode UX.
-5. **T05-E: Backend API Requirements Doc** — Design spike documenting what backend needs to deliver.
+2. ~~**T05-B: Agent Dependency Graph**~~ — Done (Session 13).
+3. ~~**T05-C: Skill Version Timeline**~~ — Done (Session 14).
+4. ~~**T05-D: Diff Viewer**~~ — Done (Session 15).
+5. ~~**T05-E: Backend API Requirements Doc**~~ — Done (Session 16). Formal spec at `design-decisions/DD-T05E-backend-api-requirements.md`.
+
+**Backend action items** (from T05-E spec):
+1. Add `message` field to `PushSkillRequest` proto + `version_message` to `SkillStatus` → `make codegen` / `make protos`
+2. Implement `listVersions` handler in Go (`stigmer-server`) and Java (`stigmer-service`)
+3. Align Cloud archival semantics with OSS (archive new version, every push)
+4. Add `-m` flag to `stigmer skill push` CLI command
 
 **Deferred**: T04-G (AI Sidecar), Agent/MCP versioning, audit log, usage charts, RBAC.
 
@@ -256,14 +279,25 @@ Drop this file into your conversation to quickly resume work on this project.
 - The diff infrastructure (`computeDiff`, `computeMultiFileDiff`, `DiffViewer`, `MultiFileDiffView`) is generic and ready for Agent/MCP versioning
 - Key discovery: `diff` (jsdiff) v8 ships own TypeScript types — no `@types/diff` needed
 - Key decision: Diff theme tokens inherit from `tokens.css`, not per-preset — universal semantic meaning
+- T05-E backend API requirements doc is at `design-decisions/DD-T05E-backend-api-requirements.md`
 - T05-D plan is at `.cursor/plans/t05-d_diff_viewer_bfd02016.plan.md`
 - T05-C plan is at `.cursor/plans/t05-c_skill_version_timeline_503bef68.plan.md`
 - T05-B plan is at `.cursor/plans/t05-b_dependency_graph_4bba9a9f.plan.md`
 - Key discovery: `StigmerError.connectCode` preserves the raw gRPC code — use `connectCode === 12` to detect UNIMPLEMENTED
 - Key discovery: `make codegen` on OSS generates TS types + all SDK clients; `make protos` on cloud generates Go stubs for backend
 - Key decision: Version timeline is generic (`VersionEntry` type) — skill-specific hook maps proto → generic, enabling future Agent/MCP versioning with the same component
+- Key discovery: OSS Go archives the NEW version on every push (audit has all versions). Cloud Java archives the PREVIOUS version on updates only (audit missing current + first push). Documented in DD-T05E.
+- Key discovery: Only Skills have audit archival in either codebase. Agents and MCP Servers have no audit/version history in either edition.
+- Key discovery: `ListAuditHistory` in OSS returns `[][]byte` ordered by `archived_at DESC, id DESC`
+- Key discovery: `SkillAuditRepo.findAllBySkillId()` in Cloud returns `List<Skill>` from BSON ordered by `archivedAt DESC`
 
 ## Essential Files to Review
+
+### 0t. Backend API Requirements Doc (Phase 4 T05-E)
+```
+_projects/2026-05/20260508.02.resource-views-ux-overhaul/design-decisions/
+  DD-T05E-backend-api-requirements.md
+```
 
 ### 0u. Multi-File Diff Viewer (Phase 4 T05-D)
 ```
@@ -414,15 +448,15 @@ When starting a new session:
 3. [ ] Review any new design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with Phase 4 (T05-E Backend API Requirements Doc — final sub-task)
+6. [ ] Phase 4 is complete. Check backend action items or deferred items for next work.
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 4 T05-E" - Backend API requirements doc (final sub-task)
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
+- "Show backend action items" - List remaining backend work from T05-E spec
 
 ---
 
