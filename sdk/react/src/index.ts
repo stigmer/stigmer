@@ -273,7 +273,9 @@ export {
   McpServerConfigPanel,
   McpServerDetailView,
   McpServerConnectDialog,
+  McpServerCreationWizard,
   McpToolSelector,
+  useCreateMcpServer,
   toServerKey,
 } from "./mcp-server";
 export type {
@@ -307,9 +309,12 @@ export type {
   UseOAuthGrantStatusReturn,
   UseDisconnectOAuthReturn,
   McpServerAuthMode,
+  UseCreateMcpServerReturn,
+  McpServerCreationWizardProps,
+  McpServerCreationResult,
 } from "./mcp-server";
 
-// Skill — data hook, count hook, list hook, search hook, picker, detail view, editor, and mutation
+// Skill — data hooks, upload, file browser, and mutation
 export {
   useSkill,
   useSkillCount,
@@ -318,11 +323,10 @@ export {
   SkillPicker,
   SkillDetailView,
   usePushSkill,
-  useSkillEditor,
-  parseSkillMd,
-  buildSkillMdContent,
-  createEditorOptionsFromSkillMd,
-  SkillEditor,
+  useSkillUpload,
+  useSkillArtifact,
+  SkillUploader,
+  SkillFileBrowser,
 } from "./skill";
 export type {
   UseSkillReturn,
@@ -336,10 +340,12 @@ export type {
   SkillDetailViewProps,
   PushSkillInput,
   UsePushSkillReturn,
-  SkillEditorMeta,
-  UseSkillEditorOptions,
-  UseSkillEditorReturn,
-  SkillEditorProps,
+  SkillUploadPreview,
+  SkillFileEntry,
+  UseSkillUploadReturn,
+  UseSkillArtifactReturn,
+  SkillUploaderProps,
+  SkillFileBrowserProps,
 } from "./skill";
 
 // GitHub — OAuth connection, repo picker, and hooks
@@ -719,6 +725,7 @@ export {
   serializeAgentYaml,
   serializeMcpServerYaml,
   serializeAgentInputYaml,
+  serializeMcpServerInputYaml,
   useApplyResource,
   useExportResource,
   useImportResource,
@@ -899,6 +906,8 @@ export {
   StepIndicator,
 } from "./resource-creation";
 export type {
+  EnvVarEntry,
+  KeyValueEntry,
   WizardStepDef,
   WizardState,
   WizardShellProps,

@@ -14,23 +14,40 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-05-09 — Phase 3 T04-C (Skill Editor with Preview) complete
-- **Active Task**: Phase 3 T04-C complete. Next up: T04-D (MCP Server Creation Wizard) or T04-F (Template Gallery, requires T04-D)
+- **Last Session**: 2026-05-09 — Phase 3 T04-D (MCP Server Creation Wizard) complete
+- **Active Task**: Phase 3 T04-D complete. Next up: T04-F (Template Gallery) or T04-G (AI Sidecar, needs backend spike)
+
+## Session Progress (2026-05-09, Session 9)
+
+- Completed Phase 3 sub-task T04-D: MCP Server Creation Wizard
+- Architectural decision DD-T04D-001: Blueprint-only wizard — tool discovery stays as a post-creation detail-page concern (blueprint/runtime separation)
+- Built `useCreateMcpServer` mutation hook wrapping `stigmer.mcpServer.apply()`
+- Built `McpServerCreationWizard` — 3-step wizard reusing shared `WizardShell` from T04-B
+- Step 1: IdentityTransportStep — name, slug, description, icon, visibility, transport type radio (HTTP vs Stdio), conditional transport fields
+- Step 2: EnvironmentAuthStep — env var declarations + collapsible OAuth auth config
+- Step 3: ReviewStep — summary card + YAML preview via `serializeMcpServerInputYaml()`
+- Extracted `EnvVarEntry` and `KeyValueEntry` types to shared `resource-creation/types.ts`
+- Created Console route `/library/mcp-servers/new` with `McpServerNewPage`
+- Updated `McpServerListPage` create button to route to wizard
+- All typecheck + lint pass clean (only pre-existing tsdoc ActionMenu warning)
+
+## Session Progress (2026-05-09, Session 8)
+
+- Revised T04-C: Replaced in-browser Skill editor with upload-only flow + file browser
+- Key UX decision: Skills are Anthropic Agent Skills spec directory packages. Users author locally (IDE) and upload the finished ZIP. Console is for upload + view, not authoring.
+- Removed: `SkillEditor`, `useSkillEditor`, `SkillEditPage`, edit route, "Edit" action from detail page
+- Rewrote `usePushSkill` — now accepts raw `Uint8Array` ZIP bytes (simpler, no SKILL.md construction)
+- Built `useSkillUpload` — upload validation hook (ZIP magic bytes, SKILL.md extraction, frontmatter parsing, Anthropic spec name/description validation)
+- Built `SkillUploader` — two-phase UI (drag-and-drop zone → preview with file list + rendered SKILL.md → confirm push)
+- Built `useSkillArtifact` — data hook fetching skill ZIP via `getArtifact` RPC using `status.artifactStorageKey`, unpacks with fflate
+- Built `SkillFileBrowser` — file tree + content viewer split pane (Markdown rendered for .md files, raw code for others)
+- Updated `SkillDetailView` to show `SkillFileBrowser` when `artifactStorageKey` is available (replaces the simple source/rendered toggle for the full package browser)
+- Updated `SkillListPage` button text to "Upload skill"
+- All skill-specific files pass typecheck + lint clean
 
 ## Session Progress (2026-05-09, Session 7)
 
-- Completed Phase 3 sub-task T04-C: Skill Editor with Preview
-- Key domain insight: Skills are Anthropic Agent Skills spec directories (not just a single file). The web editor serves the "content author" persona (SKILL.md-only skills — 80% case); complex multi-file skills remain a CLI/Git concern.
-- Built `useSkillEditor` behavior hook — content state, metadata form state, dirty tracking, Anthropic spec validation (name format, length limits), frontmatter serialization/parsing with round-trip safety for unknown fields
-- Built `usePushSkill` mutation hook — dynamic `import('fflate')` for lazy ZIP creation, packages SKILL.md into a single-entry ZIP artifact, calls `stigmer.skill.push()`
-- Built `SkillEditor` component — split-pane layout (textarea editor | live Markdown preview), metadata form (name + description), formatting toolbar (B/I/H/Code/Link/List), keyboard shortcuts (Cmd+B/I/S, Tab indent), 250ms debounced preview with `startTransition`, responsive stacked layout on mobile
-- Created Console routes: `/library/skills/new` (create) and `/library/skills/[org]/[slug]/edit` (edit)
-- Built `SkillNewPage` and `SkillEditPage` domain components (thin shells mounting SDK component)
-- Updated `SkillListPage` "Create skill" button to route to `/library/skills/new` (was `getDraftSessionUrl("skill")`)
-- Updated `SkillDetailPage` with "Edit" primary action routing to `/library/skills/[org]/[slug]/edit`
-- Added `fflate ^0.8.2` (MIT, ~13KB gzip) as dependency to `@stigmer/react` — dynamically imported, zero cost unless push is called
-- All typecheck + lint pass clean (only pre-existing tsdoc ActionMenu warning)
-- Design decision: No new backend RPC needed — existing `push` RPC with browser-side ZIP is architecturally correct since skills ARE packages (even single-file ones)
+- Initial T04-C implementation (Skill Editor with Preview) — subsequently replaced in Session 8
 
 ## Session Progress (2026-05-09, Session 6)
 
@@ -84,12 +101,11 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Key Decisions Made (This Session)
 
-- **DD-T04C-001**: No new backend RPC for skill creation. The existing `push` RPC with browser-side ZIP is architecturally correct — skills ARE directory packages, even single-file ones. An `apply`-style RPC would be domain-incorrect.
-- **DD-T04C-002**: `fflate` (MIT, ~13KB) added as dependency to `@stigmer/react`, dynamically imported inside `usePushSkill.push()` — zero cost for consumers who only read skills.
-- **DD-T04C-003**: The web editor serves "content author" persona (SKILL.md-only, 80% case). Complex multi-file skills are a CLI/Git concern, viewable but not editable on web.
-- **DD-T04C-004**: Metadata (name, description) is a form, not raw frontmatter. Users never see YAML — the hook handles serialization. Unknown frontmatter fields are preserved on round-trip.
-- **DD-T04C-005**: Single-screen editor (not a wizard). Skills are documents, not multi-step configurations. The `WizardShell` infra is not the right fit here.
-- **DD-T04C-006**: Preview uses the same `MARKDOWN_COMPONENTS` + `REMARK_PLUGINS` pipeline as `SkillDetailView` — WYSIWYG fidelity between editor and detail view.
+- **DD-T04C-001**: Skills are upload-only on web. No in-browser editor. Users author skills locally (IDE with proper tooling) and upload the finished ZIP package. Console role is upload + view, not authoring.
+- **DD-T04C-002**: `fflate` (MIT, ~13KB) used for ZIP decompression — reading uploaded ZIPs for validation and reading artifact ZIPs for the file browser.
+- **DD-T04C-003**: The upload flow validates against Anthropic spec before push: SKILL.md must exist at root, frontmatter must have valid name (lowercase+hyphens, max 64 chars).
+- **DD-T04C-004**: File browser on detail page uses `status.artifactStorageKey` → `getArtifact()` RPC → fflate unzip → navigable file tree with content viewer.
+- **DD-T04C-005**: No edit page. No "Edit" action. If users want to update a skill, they modify locally and re-upload.
 - **DD-T03-001**: ResourceDetailShell receives pre-fetched data via props, not own data fetching — resource-specific hooks already exist with different parameters
 - **DD-T03-002**: ConfirmDialog uses native `<dialog>` element for modals — consistent with existing McpServerDetailView BYOA dialog pattern, no new dependency needed
 - **DD-T03-003**: McpServerDetailView uses ResourceActionBar directly (not full ResourceDetailShell) — preserves its complex MCP-specific header with validation state, slug display, lastDiscoveredAt
@@ -97,12 +113,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **T04-D: MCP Server Creation Wizard** — Visual MCP server configuration flow (reuses `WizardShell` from T04-B)
-2. **T04-F: Template Gallery** — Depends on T04-B (done) and T04-D
-3. **T04-G: AI Sidecar** — Needs backend design spike first
+1. **T04-F: Template Gallery** — Depends on T04-B (done) and T04-D (done). Static template definitions for agent and MCP server creation
+2. **T04-G: AI Sidecar** — Needs backend design spike first
 
 ## Context for Resume
 
+- T04-D plan is at `.cursor/plans/t04-d_mcp_server_wizard_dd816c0c.plan.md`
 - T04-C plan is at `.cursor/plans/t04-c_skill_editor_d5bb689b.plan.md`
 - T04-B plan is at `.cursor/plans/t04-b_agent_creation_wizard_2144757f.plan.md`
 - T04-E plan is at `.cursor/plans/t04-e_import_export_0a7026b6.plan.md`
@@ -114,20 +130,30 @@ Drop this file into your conversation to quickly resume work on this project.
 - `ResourceListView` is deprecated but still in the codebase — can be removed once all references are gone
 - The `resource-workbench/` module is the canonical resource collection architecture
 - The `resource-detail/` module is the canonical resource detail architecture
-- The `resource-creation/` module is the canonical wizard/creation architecture (reusable by T04-D)
+- The `resource-creation/` module is the canonical wizard/creation architecture (shared by agent + MCP server wizards)
 - Key discovery: `AgentSpec` proto has no model field — model is a runtime concern at execution/instance level
+- Key discovery: `McpServerAuthInput` is not exported from `@stigmer/sdk` — use `NonNullable<McpServerInput["auth"]>` for auth serialization
 
 ## Essential Files to Review
 
-### 0z. Skill Editor with Preview (Phase 3 T04-C)
+### 0y. MCP Server Creation Wizard (Phase 3 T04-D)
+```
+sdk/react/src/mcp-server/
+  useCreateMcpServer.ts, McpServerCreationWizard.tsx
+  steps/types.ts, steps/IdentityTransportStep.tsx, steps/EnvironmentAuthStep.tsx, steps/ReviewStep.tsx
+
+client-apps/web/src/app/library/mcp-servers/new/page.tsx
+client-apps/web/src/domain/library/mcp-servers/McpServerNewPage.tsx
+```
+
+### 0z. Skill Upload + File Browser (Phase 3 T04-C)
 ```
 sdk/react/src/skill/
-  useSkillEditor.ts, usePushSkill.ts, SkillEditor.tsx
+  usePushSkill.ts, useSkillUpload.ts, useSkillArtifact.ts
+  SkillUploader.tsx, SkillFileBrowser.tsx
 
 client-apps/web/src/app/library/skills/new/page.tsx
-client-apps/web/src/app/library/skills/[org]/[slug]/edit/page.tsx
 client-apps/web/src/domain/library/skills/SkillNewPage.tsx
-client-apps/web/src/domain/library/skills/SkillEditPage.tsx
 ```
 
 ### 0a. Agent Creation Wizard (Phase 3 T04-B)

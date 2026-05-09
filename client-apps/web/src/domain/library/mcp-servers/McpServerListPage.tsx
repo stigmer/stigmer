@@ -3,7 +3,6 @@
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { Plus, Upload, Server } from "lucide-react";
-import { getDraftSessionUrl } from "@/domain/session/draft-session";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import {
   ResourceWorkbench,
@@ -81,7 +80,7 @@ export function McpServerListPage() {
     [stigmer],
   );
 
-  const createUrl = getDraftSessionUrl("mcp-server");
+  const createUrl = "/library/mcp-servers/new";
 
   return (
     <>

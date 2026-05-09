@@ -28,17 +28,18 @@ export type { SkillDetailViewProps } from "./SkillDetailView";
 export { usePushSkill } from "./usePushSkill";
 export type { PushSkillInput, UsePushSkillReturn } from "./usePushSkill";
 
-export {
-  useSkillEditor,
-  parseSkillMd,
-  buildSkillMdContent,
-  createEditorOptionsFromSkillMd,
-} from "./useSkillEditor";
+export { useSkillUpload } from "./useSkillUpload";
 export type {
-  SkillEditorMeta,
-  UseSkillEditorOptions,
-  UseSkillEditorReturn,
-} from "./useSkillEditor";
+  SkillUploadPreview,
+  SkillFileEntry,
+  UseSkillUploadReturn,
+} from "./useSkillUpload";
 
-export { SkillEditor } from "./SkillEditor";
-export type { SkillEditorProps } from "./SkillEditor";
+export { useSkillArtifact } from "./useSkillArtifact";
+export type { UseSkillArtifactReturn } from "./useSkillArtifact";
+
+export { SkillUploader } from "./SkillUploader";
+export type { SkillUploaderProps } from "./SkillUploader";
+
+export { SkillFileBrowser } from "./SkillFileBrowser";
+export type { SkillFileBrowserProps } from "./SkillFileBrowser";

@@ -1,5 +1,7 @@
 // Types
 export type {
+  EnvVarEntry,
+  KeyValueEntry,
   WizardStepDef,
   WizardState,
   WizardShellProps,
