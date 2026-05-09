@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type {
@@ -14,9 +14,15 @@ import { useAgent } from "./useAgent";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
-import type { DetailAction, ResourceHeaderMeta } from "../resource-detail/types";
+import { useDetailTabs } from "../resource-detail/useDetailTabs";
+import type { AdditionalTab, DetailAction, ResourceHeaderMeta } from "../resource-detail/types";
+import type { TabItem } from "../tabs/Tabs";
 
 const INSTRUCTIONS_COLLAPSED_LINES = 8;
+
+const AGENT_BUILT_IN_TABS: readonly TabItem[] = [
+  { id: "overview", label: "Overview" },
+];
 
 /** Props for {@link AgentDetailView}. */
 export interface AgentDetailViewProps {
@@ -64,6 +70,42 @@ export interface AgentDetailViewProps {
    * Typically: Copy ID, Copy slug, Export JSON, Duplicate, Delete.
    */
   readonly actions?: readonly DetailAction[];
+  /**
+   * Additional tabs to render alongside the built-in "Overview" tab.
+   * When provided (with at least one entry), a tab bar appears.
+   * When omitted or empty, no tab bar is shown (single-tab suppression).
+   *
+   * Each entry provides both the tab metadata and the content to render.
+   * The SDK manages the tab switching logic internally.
+   *
+   * @example
+   * ```tsx
+   * <AgentDetailView
+   *   org="acme"
+   *   slug="my-agent"
+   *   additionalTabs={[
+   *     { id: "dependencies", label: "Dependencies", content: <DependencyGraph /> },
+   *   ]}
+   * />
+   * ```
+   */
+  readonly additionalTabs?: readonly AdditionalTab[];
+  /**
+   * Controlled active tab ID. When provided together with `onTabChange`,
+   * the component operates in controlled mode — the consumer owns tab state.
+   * When omitted, the component manages its own internal tab state.
+   */
+  readonly activeTab?: string;
+  /**
+   * Controlled tab change handler. When provided together with `activeTab`,
+   * the component operates in controlled mode.
+   */
+  readonly onTabChange?: (tabId: string) => void;
+  /**
+   * Default active tab ID when in uncontrolled mode.
+   * @default "overview"
+   */
+  readonly defaultTab?: string;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -118,9 +160,26 @@ export function AgentDetailView({
   isVisibilityPending,
   primaryAction,
   actions,
+  additionalTabs,
+  activeTab,
+  onTabChange,
+  defaultTab,
   className,
 }: AgentDetailViewProps) {
   const { agent, isLoading, error, refetch } = useAgent(org, slug);
+
+  const {
+    effectiveTabs,
+    effectiveActiveTab,
+    effectiveOnTabChange,
+    activeAdditionalTab,
+  } = useDetailTabs({
+    builtInTabs: AGENT_BUILT_IN_TABS,
+    additionalTabs,
+    activeTab,
+    onTabChange,
+    defaultTab,
+  });
 
   const onResourceLoadRef = useRef(onResourceLoad);
   onResourceLoadRef.current = onResourceLoad;
@@ -167,20 +226,30 @@ export function AgentDetailView({
       </span>
     ) : undefined;
 
+  const tabContent = activeAdditionalTab ? (
+    activeAdditionalTab.content
+  ) : (
+    <AgentOverview
+      spec={spec}
+      agentOrg={agentOrg}
+      onMcpServerClick={onMcpServerClick}
+      onSkillClick={onSkillClick}
+    />
+  );
+
   return (
     <ResourceDetailShell
       header={headerMeta}
       visibilityControl={visibilityControl}
       primaryAction={primaryAction}
       actions={actions}
+      tabs={effectiveTabs}
+      activeTab={effectiveTabs ? effectiveActiveTab : undefined}
+      onTabChange={effectiveTabs ? effectiveOnTabChange : undefined}
+      tabsAriaLabel="Agent detail sections"
       className={className}
     >
-      <AgentOverview
-        spec={spec}
-        agentOrg={agentOrg}
-        onMcpServerClick={onMcpServerClick}
-        onSkillClick={onSkillClick}
-      />
+      {tabContent}
     </ResourceDetailShell>
   );
 }

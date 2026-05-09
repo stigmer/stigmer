@@ -3,6 +3,36 @@ import type { StatusPhase } from "../resource-workbench/types";
 import type { TabItem } from "../tabs/Tabs";
 
 // ---------------------------------------------------------------------------
+// Additional tab — consumer-provided extension tabs for detail views
+// ---------------------------------------------------------------------------
+
+/**
+ * Describes a consumer-provided tab that extends a detail view's built-in
+ * tabs. Used by {@link AgentDetailView} and {@link SkillDetailView} to let
+ * platform builders (or the Console) add custom tabs without forking the
+ * component.
+ *
+ * The SDK component defines its own built-in tabs (e.g., "Overview" for
+ * agents, "Content" for skills). Consumers extend via `additionalTabs` —
+ * providing both the tab metadata and the content to render.
+ *
+ * @example
+ * ```tsx
+ * <AgentDetailView
+ *   org="acme"
+ *   slug="my-agent"
+ *   additionalTabs={[
+ *     { id: "dependencies", label: "Dependencies", content: <DependencyGraph /> },
+ *   ]}
+ * />
+ * ```
+ */
+export interface AdditionalTab extends TabItem {
+  /** Content rendered in the tab panel when this tab is active. */
+  readonly content: ReactNode;
+}
+
+// ---------------------------------------------------------------------------
 // Detail action — a single operation available on the detail page
 // ---------------------------------------------------------------------------
 

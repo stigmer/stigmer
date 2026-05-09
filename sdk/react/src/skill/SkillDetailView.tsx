@@ -14,8 +14,14 @@ import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
-import type { DetailAction, ResourceHeaderMeta } from "../resource-detail/types";
+import { useDetailTabs } from "../resource-detail/useDetailTabs";
+import type { AdditionalTab, DetailAction, ResourceHeaderMeta } from "../resource-detail/types";
+import type { TabItem } from "../tabs/Tabs";
 import type { StatusPhase } from "../resource-workbench/types";
+
+const SKILL_BUILT_IN_TABS: readonly TabItem[] = [
+  { id: "content", label: "Content" },
+];
 
 /** Props for {@link SkillDetailView}. */
 export interface SkillDetailViewProps {
@@ -51,6 +57,42 @@ export interface SkillDetailViewProps {
    * Secondary actions rendered in the kebab overflow menu.
    */
   readonly actions?: readonly DetailAction[];
+  /**
+   * Additional tabs to render alongside the built-in "Content" tab.
+   * When provided (with at least one entry), a tab bar appears.
+   * When omitted or empty, no tab bar is shown (single-tab suppression).
+   *
+   * Each entry provides both the tab metadata and the content to render.
+   * The SDK manages the tab switching logic internally.
+   *
+   * @example
+   * ```tsx
+   * <SkillDetailView
+   *   org="acme"
+   *   slug="code-style-guide"
+   *   additionalTabs={[
+   *     { id: "versions", label: "Versions", content: <VersionTimeline /> },
+   *   ]}
+   * />
+   * ```
+   */
+  readonly additionalTabs?: readonly AdditionalTab[];
+  /**
+   * Controlled active tab ID. When provided together with `onTabChange`,
+   * the component operates in controlled mode — the consumer owns tab state.
+   * When omitted, the component manages its own internal tab state.
+   */
+  readonly activeTab?: string;
+  /**
+   * Controlled tab change handler. When provided together with `activeTab`,
+   * the component operates in controlled mode.
+   */
+  readonly onTabChange?: (tabId: string) => void;
+  /**
+   * Default active tab ID when in uncontrolled mode.
+   * @default "content"
+   */
+  readonly defaultTab?: string;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -92,9 +134,26 @@ export function SkillDetailView({
   isVisibilityPending,
   primaryAction,
   actions,
+  additionalTabs,
+  activeTab,
+  onTabChange,
+  defaultTab,
   className,
 }: SkillDetailViewProps) {
   const { skill, isLoading, error, refetch } = useSkill(org, slug, version);
+
+  const {
+    effectiveTabs,
+    effectiveActiveTab,
+    effectiveOnTabChange,
+    activeAdditionalTab,
+  } = useDetailTabs({
+    builtInTabs: SKILL_BUILT_IN_TABS,
+    additionalTabs,
+    activeTab,
+    onTabChange,
+    defaultTab,
+  });
 
   const onResourceLoadRef = useRef(onResourceLoad);
   onResourceLoadRef.current = onResourceLoad;
@@ -142,38 +201,64 @@ export function SkillDetailView({
       </span>
     ) : undefined;
 
+  const tabContent = activeAdditionalTab ? (
+    activeAdditionalTab.content
+  ) : (
+    <SkillOverview spec={spec} status={status} />
+  );
+
   return (
     <ResourceDetailShell
       header={headerMeta}
       visibilityControl={visibilityControl}
       primaryAction={primaryAction}
       actions={actions}
+      tabs={effectiveTabs}
+      activeTab={effectiveTabs ? effectiveActiveTab : undefined}
+      onTabChange={effectiveTabs ? effectiveOnTabChange : undefined}
+      tabsAriaLabel="Skill detail sections"
       className={className}
     >
-      <div className="flex flex-col gap-6 pt-2">
-        {spec?.tag && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Tag</span>
-            <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium">
-              {spec.tag}
-            </span>
-          </div>
-        )}
-
-        {status?.artifactStorageKey ? (
-          <SkillFileBrowser artifactStorageKey={status.artifactStorageKey} />
-        ) : spec?.skillMd ? (
-          <SkillContentSection content={spec.skillMd} />
-        ) : null}
-
-        {status && (status.versionHash || status.gitProvenance) && (
-          <VersionSection
-            versionHash={status.versionHash}
-            gitProvenance={status.gitProvenance}
-          />
-        )}
-      </div>
+      {tabContent}
     </ResourceDetailShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Overview content — the skill's built-in "Content" tab
+// ---------------------------------------------------------------------------
+
+function SkillOverview({
+  spec,
+  status,
+}: {
+  readonly spec: NonNullable<Skill["spec"]> | undefined;
+  readonly status: Skill["status"] | undefined;
+}) {
+  return (
+    <div className="flex flex-col gap-6 pt-2">
+      {spec?.tag && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>Tag</span>
+          <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium">
+            {spec.tag}
+          </span>
+        </div>
+      )}
+
+      {status?.artifactStorageKey ? (
+        <SkillFileBrowser artifactStorageKey={status.artifactStorageKey} />
+      ) : spec?.skillMd ? (
+        <SkillContentSection content={spec.skillMd} />
+      ) : null}
+
+      {status && (status.versionHash || status.gitProvenance) && (
+        <VersionSection
+          versionHash={status.versionHash}
+          gitProvenance={status.gitProvenance}
+        />
+      )}
+    </div>
   );
 }
 

@@ -1,5 +1,6 @@
 // Types
 export type {
+  AdditionalTab,
   DetailAction,
   ResourceHeaderMeta,
   ConfirmOptions,
