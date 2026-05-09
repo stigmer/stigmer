@@ -83,7 +83,10 @@ export function StepIndicator({
                 </div>
               )}
               {index < steps.length - 1 && (
-                <div className="ml-[18px] h-4 w-px bg-border" aria-hidden="true" />
+                <div
+                  className="ml-[18px] h-4 w-px bg-border"
+                  aria-hidden="true"
+                />
               )}
             </li>
           );

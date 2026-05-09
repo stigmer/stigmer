@@ -69,10 +69,7 @@ export function WizardShell({
     >
       {/* Mobile step indicator (visible < sm) */}
       <div className="flex items-center gap-2 border-b border-border px-4 py-3 sm:hidden">
-        <MobileProgress
-          current={currentStepIndex + 1}
-          total={steps.length}
-        />
+        <MobileProgress current={currentStepIndex + 1} total={steps.length} />
         <span className="text-sm font-medium text-foreground">
           {steps[currentStepIndex]?.label}
         </span>
@@ -106,7 +103,6 @@ export function WizardShell({
       />
     </div>
   );
-
 }
 
 // ---------------------------------------------------------------------------

@@ -56,3 +56,5 @@ export type {
   AgentCreationWizardProps,
   AgentCreationResult,
 } from "./AgentCreationWizard";
+
+export type { AgentWizardData } from "./steps/types";

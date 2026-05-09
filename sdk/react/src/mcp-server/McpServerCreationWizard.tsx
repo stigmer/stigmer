@@ -29,6 +29,14 @@ export interface McpServerCreationResult {
 export interface McpServerCreationWizardProps {
   /** Organization to create the MCP server in. */
   readonly org: string;
+  /**
+   * Optional partial data to pre-fill the wizard with.
+   *
+   * Merged with defaults via `{ ...createInitialMcpServerWizardData(), ...initialData }`.
+   * Use this for template-based creation, resource duplication, or any
+   * flow that starts the wizard with pre-populated fields.
+   */
+  readonly initialData?: Partial<McpServerWizardData>;
   /** Called after the MCP server is successfully created. */
   readonly onComplete: (result: McpServerCreationResult) => void;
   /** Called when the user cancels the wizard. */
@@ -96,13 +104,20 @@ const STEPS: WizardStepDef<McpServerWizardData>[] = [
  */
 export function McpServerCreationWizard({
   org,
+  initialData,
   onComplete,
   onCancel,
   className,
 }: McpServerCreationWizardProps) {
+  const mergedInitialData = useMemo(
+    () => ({ ...createInitialMcpServerWizardData(), ...initialData }),
+    // initialData is consumed once at mount — not reactive by design
+    [initialData],
+  );
+
   const wizard = useWizardState({
     steps: STEPS,
-    initialData: createInitialMcpServerWizardData(),
+    initialData: mergedInitialData,
   });
 
   const { create, isCreating, error, clearError } = useCreateMcpServer();

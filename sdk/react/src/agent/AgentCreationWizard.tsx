@@ -29,6 +29,14 @@ export interface AgentCreationResult {
 export interface AgentCreationWizardProps {
   /** Organization to create the agent in. */
   readonly org: string;
+  /**
+   * Optional partial data to pre-fill the wizard with.
+   *
+   * Merged with defaults via `{ ...createInitialWizardData(), ...initialData }`.
+   * Use this for template-based creation, resource duplication, or any
+   * flow that starts the wizard with pre-populated fields.
+   */
+  readonly initialData?: Partial<AgentWizardData>;
   /** Called after the agent is successfully created. */
   readonly onComplete: (result: AgentCreationResult) => void;
   /** Called when the user cancels the wizard. */
@@ -90,13 +98,20 @@ const STEPS: WizardStepDef<AgentWizardData>[] = [
  */
 export function AgentCreationWizard({
   org,
+  initialData,
   onComplete,
   onCancel,
   className,
 }: AgentCreationWizardProps) {
+  const mergedInitialData = useMemo(
+    () => ({ ...createInitialWizardData(), ...initialData }),
+    // initialData is consumed once at mount — not reactive by design
+    [initialData],
+  );
+
   const wizard = useWizardState({
     steps: STEPS,
-    initialData: createInitialWizardData(),
+    initialData: mergedInitialData,
   });
 
   const { create, isCreating, error, clearError } = useCreateAgent();

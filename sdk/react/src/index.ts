@@ -312,6 +312,7 @@ export type {
   UseCreateMcpServerReturn,
   McpServerCreationWizardProps,
   McpServerCreationResult,
+  McpServerWizardData,
 } from "./mcp-server";
 
 // Skill — data hooks, upload, file browser, and mutation
@@ -407,6 +408,7 @@ export type {
   UseCreateAgentReturn,
   AgentCreationWizardProps,
   AgentCreationResult,
+  AgentWizardData,
 } from "./agent";
 
 // Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, env var form, system env vars, and styled components
@@ -901,9 +903,16 @@ export type {
 // Resource Creation — shared wizard infrastructure for multi-step creation flows
 export {
   useWizardState,
+  useTemplateFilter,
   WizardShell,
   WizardNav,
   StepIndicator,
+  TemplateCard,
+  TemplateGallery,
+  CreationPicker,
+  TEMPLATE_CATEGORY_LABELS,
+  AGENT_TEMPLATES,
+  MCP_SERVER_TEMPLATES,
 } from "./resource-creation";
 export type {
   EnvVarEntry,
@@ -913,8 +922,16 @@ export type {
   WizardShellProps,
   UseWizardStateOptions,
   UseWizardStateReturn,
+  UseTemplateFilterOptions,
+  UseTemplateFilterReturn,
   WizardNavProps,
   StepIndicatorProps,
+  ResourceTemplate,
+  TemplateCategory,
+  TemplateCardProps,
+  TemplateGalleryProps,
+  CreationPickerProps,
+  CreationPath,
 } from "./resource-creation";
 
 // Resource Workbench — headless hooks, view components, and composed shell for resource collection management
