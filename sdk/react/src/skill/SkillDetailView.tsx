@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -18,10 +18,11 @@ import { useDetailTabs } from "../resource-detail/useDetailTabs";
 import type { AdditionalTab, DetailAction, ResourceHeaderMeta } from "../resource-detail/types";
 import type { TabItem } from "../tabs/Tabs";
 import type { StatusPhase } from "../resource-workbench/types";
+import { useSkillVersions } from "./useSkillVersions";
+import { VersionTimeline } from "../version-history/VersionTimeline";
 
-const SKILL_BUILT_IN_TABS: readonly TabItem[] = [
-  { id: "content", label: "Content" },
-];
+const CONTENT_TAB: TabItem = { id: "content", label: "Content" };
+const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
 
 /** Props for {@link SkillDetailView}. */
 export interface SkillDetailViewProps {
@@ -93,6 +94,12 @@ export interface SkillDetailViewProps {
    * @default "content"
    */
   readonly defaultTab?: string;
+  /**
+   * Called when the user selects a version in the Versions tab timeline.
+   * Provides the version hash for use cases like navigation to a
+   * version-specific detail view or triggering a diff comparison.
+   */
+  readonly onVersionSelect?: (versionHash: string) => void;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -138,9 +145,16 @@ export function SkillDetailView({
   activeTab,
   onTabChange,
   defaultTab,
+  onVersionSelect,
   className,
 }: SkillDetailViewProps) {
   const { skill, isLoading, error, refetch } = useSkill(org, slug, version);
+  const { versions, isEmpty: noVersions } = useSkillVersions(org, slug);
+
+  const builtInTabs = useMemo<readonly TabItem[]>(
+    () => (noVersions ? [CONTENT_TAB] : [CONTENT_TAB, VERSIONS_TAB]),
+    [noVersions],
+  );
 
   const {
     effectiveTabs,
@@ -148,12 +162,17 @@ export function SkillDetailView({
     effectiveOnTabChange,
     activeAdditionalTab,
   } = useDetailTabs({
-    builtInTabs: SKILL_BUILT_IN_TABS,
+    builtInTabs,
     additionalTabs,
     activeTab,
     onTabChange,
     defaultTab,
   });
+
+  const handleVersionSelect = useCallback(
+    (id: string) => onVersionSelect?.(id),
+    [onVersionSelect],
+  );
 
   const onResourceLoadRef = useRef(onResourceLoad);
   onResourceLoadRef.current = onResourceLoad;
@@ -201,11 +220,19 @@ export function SkillDetailView({
       </span>
     ) : undefined;
 
-  const tabContent = activeAdditionalTab ? (
-    activeAdditionalTab.content
-  ) : (
-    <SkillOverview spec={spec} status={status} />
-  );
+  let tabContent: React.ReactNode;
+  if (activeAdditionalTab) {
+    tabContent = activeAdditionalTab.content;
+  } else if (effectiveActiveTab === "versions" && versions.length > 0) {
+    tabContent = (
+      <VersionTimeline
+        entries={versions}
+        onEntrySelect={handleVersionSelect}
+      />
+    );
+  } else {
+    tabContent = <SkillOverview spec={spec} status={status} />;
+  }
 
   return (
     <ResourceDetailShell

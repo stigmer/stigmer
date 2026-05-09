@@ -14,10 +14,35 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-05-09 — Phase 4 T05-A implemented (detail tab infrastructure)
-- **Active Task**: **T05-B** — Agent Dependency Graph (next). T05-A complete.
+- **Last Session**: 2026-05-09 — Phase 4 T05-C implemented (skill version timeline)
+- **Active Task**: **T05-D** — Diff Viewer (next). T05-A, T05-B, and T05-C complete.
 - **Phase 3 status**: T04-A through T04-F complete. T04-G (AI Sidecar) deferred pending backend spike.
-- **Phase 4 status**: T05-A complete. T05-B through T05-E remaining.
+- **Phase 4 status**: T05-A, T05-B, and T05-C complete. T05-D and T05-E remaining.
+
+## Session Progress (2026-05-09, Session 14)
+
+- Completed Phase 4 sub-task **T05-C: Skill Version Timeline**
+- Proto-first approach: Added `ListSkillVersionsInput`, `SkillVersionEntry`, `ListSkillVersionsResponse` messages to `io.proto` and `listVersions` RPC to `query.proto`
+- Ran `make codegen` (OSS) and `make protos` (Cloud) — generated TS, Go, Python, Java stubs. `SkillClient.listVersions()` now exists across all SDKs.
+- New `version-history/` module in `@stigmer/react` with 4 files: `types.ts`, `VersionTimeline.tsx`, `VersionTimelineEntry.tsx`, `index.ts`
+- **`VersionTimeline`** — generic accessible timeline component with WAI-ARIA `role="list"`, loading skeleton, empty state, compare-mode selection support (for T05-D), keyboard navigation
+- **`VersionTimelineEntry`** — single row: truncated hash badge, relative time, actor avatar, tag badge, "current" indicator, git provenance with commit link
+- **`useSkillVersions`** — data hook using `useFetch` + generated `listVersions` RPC. Maps proto `SkillVersionEntry` to generic `VersionEntry`. Catches gRPC `UNIMPLEMENTED` (code 12) and returns empty state (graceful degradation).
+- **`SkillDetailView`** — conditional "Versions" built-in tab (same pattern as Agent's "Dependencies" tab). Tab appears only when `useSkillVersions` returns non-empty data. New `onVersionSelect` prop for consumer navigation.
+- All new types, hook, and components exported from `@stigmer/react` barrel
+- Verify: `npm run typecheck -w @stigmer/react` + `npm run lint -w @stigmer/react` + `npm run lint -w client-apps/web` all clean
+
+## Session Progress (2026-05-09, Session 13)
+
+- Completed Phase 4 sub-task **T05-B: Agent Dependency Graph**
+- New `dependency-graph/` module in `@stigmer/react` with 5 files: `types.ts`, `useDependencyGraph.ts`, `DependencyGraph.tsx`, `DependencyTreeNode.tsx`, `index.ts`
+- **`useDependencyGraph`** — pure transformation hook: `AgentSpec` → `DependencyTree`. Memoized, zero fetching. Handles asymmetry where sub-agents reference MCP servers by slug string (`mcpAccess.mcpServer`) vs parent's `ApiResourceReference`.
+- **`DependencyGraph`** — accessible CSS tree container with WAI-ARIA tree roles (`role="tree"`, `role="treeitem"`, `role="group"`), arrow-key navigation, `Home`/`End` jump
+- **`DependencyTreeNode`** — recursive node component. Root agent node always expands children. Sub-agent nodes are collapsible with chevron. MCP servers and skills are clickable leaf nodes. Kind-specific colored badges using `--stgm-status-*` tokens.
+- **`AgentDetailView`** — `AGENT_BUILT_IN_TABS` replaced with dynamic `builtInTabs` memoized on `noDeps`. Conditional "Dependencies" tab appears only when agent has MCP servers, skills, or sub-agents. Single-tab suppression preserved for agents with zero dependencies.
+- **`handleNodeClick`** routes `mcp-server` nodes to `onMcpServerClick` and `skill` nodes to `onSkillClick` — reusing existing callbacks, zero Console changes
+- All new types, hook, and component exported from `@stigmer/react` barrel
+- Verify: `npm run typecheck -w @stigmer/react` + `npm run lint -w @stigmer/react` + `npm run lint -w client-apps/web` all clean
 
 ## Session Progress (2026-05-09, Session 12)
 
@@ -143,6 +168,15 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Key Decisions Made (This Session)
 
+- **DD-T05C-001**: Conditional tab visibility — "Versions" only appears when `useSkillVersions` returns non-empty data. Avoids broken state before backend ships.
+- **DD-T05C-002**: Generic `VersionEntry` is a presentation-layer type owned by the SDK, not a proto-generated type. The hook maps FROM proto TO generic. This enables reuse across resource types.
+- **DD-T05C-003**: `VersionTimeline` supports `onCompare` from day one (for T05-D), but the compare UI is not wired until T05-D ships. The prop exists, the callback fires, but no visual indication of compare-mode selection yet.
+- **DD-T05C-004**: Hook catches gRPC UNIMPLEMENTED (code 12) and treats it as empty — not as an error. This is the graceful degradation contract with the backend team.
+- **DD-T05C-005**: The `SkillVersionEntry` proto includes `artifact_storage_key` per version — enables T05-D to fetch historical artifacts for diffing without a new RPC.
+- **DD-T05B-001**: Dependency graph is a built-in conditional tab in `AgentDetailView`, not a Console `additionalTab`. Data is intrinsic to `AgentSpec`; all SDK consumers benefit; existing click callbacks flow naturally.
+- **DD-T05B-002**: CSS tree rendering (not SVG spatial graph). Accessible, responsive, zero-dep, right-sized for typical 3-15 node trees.
+- **DD-T05B-003**: No status indicators in v1. Would require N+1 fetches for each referenced resource. Defer until batch status endpoint exists.
+- **DD-T05B-004**: Tree semantics, not DAG. Same MCP server in parent and sub-agent shown in both locations — matches user mental model.
 - **DD-T05A-001**: Tab state — uncontrolled by default; controlled when both `activeTab` and `onTabChange` are provided (Console can sync to URL later).
 - **DD-T05A-002**: Single-tab suppression — no tab strip when only the built-in tab exists (no visual regression).
 - **DD-T05A-003**: `additionalTabs` carries both `TabItem` metadata and `content` for consumer-provided panels (T05-B/C mount points).
@@ -166,9 +200,9 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Next Steps
 
 1. ~~**T05-A: Detail Page Tabbed Infrastructure**~~ — Done (Session 12).
-2. **T05-B: Agent Dependency Graph** — Visual tree of Agent → MCP Servers, Skills, Sub-Agents. Highest-value deliverable, no backend needed. Mount via `additionalTabs` on `AgentDetailView`.
-3. **T05-C: Skill Version Timeline** — Timeline of push history. Needs `ListSkillVersions` backend RPC.
-4. **T05-D: Diff Viewer** — Text diff between two skill versions. Depends on T05-C.
+2. ~~**T05-B: Agent Dependency Graph**~~ — Done (Session 13). Built-in conditional tab with CSS tree, zero Console changes.
+3. ~~**T05-C: Skill Version Timeline**~~ — Done (Session 14). Proto-first: `listVersions` RPC + generic `VersionTimeline` component + conditional built-in tab. Graceful degradation until backend ships.
+4. **T05-D: Diff Viewer** — Text diff between two skill versions. Depends on T05-C (done). Uses `VersionTimeline`'s `onCompare` callback, fetches two historical artifacts via `getArtifact`, computes and renders unified diff.
 5. **T05-E: Backend API Requirements Doc** — Design spike documenting what backend needs to deliver.
 
 **Deferred**: T04-G (AI Sidecar), Agent/MCP versioning, audit log, usage charts, RBAC.
@@ -193,9 +227,32 @@ Drop this file into your conversation to quickly resume work on this project.
 - Key discovery: `McpServerAuthInput` is not exported from `@stigmer/sdk` — use `NonNullable<McpServerInput["auth"]>` for auth serialization
 - Key discovery: `SkillAuditRepo.findAllBySkillId()` already stores version history — just needs RPC surface
 - Key decision: Agent/MCP versioning deferred — GitOps covers most users; validate UX with Skills first
-- Key decision: Dependency graph starts with custom SVG tree (no heavy graph library) — agents typically have 3-15 dependency nodes
+- Key decision: Dependency graph uses CSS tree (not SVG spatial graph) — agents typically have 3-15 dependency nodes; CSS is accessible and responsive
+- Key decision: Dependency graph is a built-in conditional tab, not `additionalTab` — intrinsic agent data, all SDK consumers benefit
+- The `dependency-graph/` module is the canonical dependency visualization architecture
+- The `version-history/` module is the canonical version timeline architecture (generic — works for any versioned resource)
+- T05-C plan is at `.cursor/plans/t05-c_skill_version_timeline_503bef68.plan.md`
+- T05-B plan is at `.cursor/plans/t05-b_dependency_graph_4bba9a9f.plan.md`
+- Key discovery: `StigmerError.connectCode` preserves the raw gRPC code — use `connectCode === 12` to detect UNIMPLEMENTED
+- Key discovery: `make codegen` on OSS generates TS types + all SDK clients; `make protos` on cloud generates Go stubs for backend
+- Key decision: Version timeline is generic (`VersionEntry` type) — skill-specific hook maps proto → generic, enabling future Agent/MCP versioning with the same component
 
 ## Essential Files to Review
+
+### 0v. Skill Version Timeline (Phase 4 T05-C)
+```
+sdk/react/src/version-history/
+  types.ts, VersionTimeline.tsx, VersionTimelineEntry.tsx, index.ts
+
+sdk/react/src/skill/
+  useSkillVersions.ts
+```
+
+### 0w. Agent Dependency Graph (Phase 4 T05-B)
+```
+sdk/react/src/dependency-graph/
+  types.ts, useDependencyGraph.ts, DependencyGraph.tsx, DependencyTreeNode.tsx, index.ts
+```
 
 ### 0x. Template Gallery (Phase 3 T04-F)
 ```
@@ -319,12 +376,12 @@ When starting a new session:
 3. [ ] Review any new design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with Phase 4 (T05-B Agent dependency graph, then T05-C+)
+6. [ ] Continue with Phase 4 (T05-D Diff viewer, then T05-E)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 4 T05-B" - Agent dependency graph (`additionalTabs` on `AgentDetailView`)
+- "Continue with Phase 4 T05-D" - Diff viewer for skill versions (depends on T05-C which is done)
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

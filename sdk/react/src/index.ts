@@ -326,6 +326,7 @@ export {
   usePushSkill,
   useSkillUpload,
   useSkillArtifact,
+  useSkillVersions,
   SkillUploader,
   SkillFileBrowser,
 } from "./skill";
@@ -345,6 +346,7 @@ export type {
   SkillFileEntry,
   UseSkillUploadReturn,
   UseSkillArtifactReturn,
+  UseSkillVersionsReturn,
   SkillUploaderProps,
   SkillFileBrowserProps,
 } from "./skill";
@@ -945,6 +947,14 @@ export type {
   UseDependencyGraphOptions,
   UseDependencyGraphReturn,
 } from "./dependency-graph";
+
+// Version History — generic timeline component for versioned resources
+export { VersionTimeline, VersionTimelineEntry } from "./version-history";
+export type {
+  VersionEntry,
+  VersionTimelineProps,
+  VersionTimelineEntryProps,
+} from "./version-history";
 
 // Resource Workbench — headless hooks, view components, and composed shell for resource collection management
 export {
