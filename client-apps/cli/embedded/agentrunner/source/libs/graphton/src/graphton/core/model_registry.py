@@ -1,18 +1,21 @@
 """Model Registry — runtime configuration for all native-harness LLM models.
 
-Pricing data is loaded from the unified JSON registry at
-``backend/libs/model-registry.json`` (the single source of truth for IDs,
-display names, pricing, and cost tiers across all harnesses).
-Runtime-specific fields (context windows, token counting, capabilities,
-summarization thresholds) are defined here and merged with the JSON pricing.
+Model data is fetched from the authenticated model registry API at
+``{STIGMER_CLOUD_API_URL}/v1/proxy/model-registry`` and cached
+in memory with a 1-hour TTL. Authentication is via the
+``STIGMER_TOKEN`` environment variable (Bearer token). Falls back to
+``STIGMER_AUTH_TOKEN`` for backward compatibility.
 
-Update the JSON registry with: @update-model-registry
+Fallback chain (in order):
+    1. ``STIGMER_MODEL_REGISTRY_PATH`` env var (explicit file override)
+    2. Authenticated model registry API fetch with TTL cache
+    3. Conservative defaults for unknown models (8K context)
 
 Design Principles:
-    1. Single Source of Truth - Pricing and IDs live in the shared JSON
+    1. Single Source of Truth - All model data served by the cloud API
     2. Fail-Safe Defaults - Unknown models get conservative defaults (8K context)
     3. Cost-Aware - Summarization uses economy-tier models by default
-    4. Extensible - Adding new models = JSON entry + runtime config here
+    4. Extensible - Adding new models = updating the cloud JSON, auto-propagates
     5. Immutable - ModelMetadata is frozen to prevent accidental mutations
 
 Example:
@@ -30,10 +33,11 @@ Example:
 
 from __future__ import annotations
 
-import importlib.resources
 import json
 import logging
 import os
+import time
+import urllib.request
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -292,27 +296,20 @@ class ModelRegistry:
     _MODELS: ClassVar[dict[str, ModelMetadata]] = {}
     _MODELS_LOADED: ClassVar[bool] = False
 
+    _DEFAULT_API_URL: ClassVar[str] = "https://api.stigmer.ai"
+    _CACHE_TTL: ClassVar[float] = 3600.0  # 1 hour
+    _cache_text: ClassVar[str | None] = None
+    _cache_expires_at: ClassVar[float] = 0.0
+
     @classmethod
     def _load_registry_text(cls) -> str | None:
-        """Locate and read model-registry.json from available sources.
+        """Fetch model-registry.json with TTL caching.
 
-        Search order:
-        1. Package data (importlib.resources — works in standard pip installs)
-        2. STIGMER_MODEL_REGISTRY_PATH env var (explicit override)
-        3. Sibling of the app directory (embedded runtimes place it at app/model-registry.json)
-
-        Returns the file contents as a string, or None if not found.
+        Priority:
+        1. STIGMER_MODEL_REGISTRY_PATH env var (offline/air-gapped override)
+        2. In-memory cache (if still fresh)
+        3. Public model registry API fetch
         """
-        # Source 1: Package data (standard Python packaging)
-        try:
-            registry_ref = importlib.resources.files("graphton.data").joinpath(
-                "model-registry.json"
-            )
-            return registry_ref.read_text(encoding="utf-8")
-        except (OSError, ModuleNotFoundError):
-            pass
-
-        # Source 2: Explicit path via environment variable
         env_path = os.environ.get("STIGMER_MODEL_REGISTRY_PATH")
         if env_path:
             path = Path(env_path)
@@ -320,34 +317,43 @@ class ModelRegistry:
                 logger.info("Loading model-registry.json from STIGMER_MODEL_REGISTRY_PATH: %s", path)
                 return path.read_text(encoding="utf-8")
 
-        # Source 3: Adjacent to this file's ancestor directories (embedded runtime layout)
-        # Embedded runtimes place the app at {runtime}/app/ and venv at {runtime}/venv/.
-        # Walk up from this module's location looking for model-registry.json.
-        module_dir = Path(__file__).resolve().parent
-        for ancestor in [module_dir, *module_dir.parents]:
-            candidate = ancestor / "model-registry.json"
-            if candidate.is_file():
-                logger.info("Loading model-registry.json from filesystem: %s", candidate)
-                return candidate.read_text(encoding="utf-8")
-            # Also check sibling "app" directory (common in embedded runtimes)
-            app_candidate = ancestor / "app" / "model-registry.json"
-            if app_candidate.is_file():
-                logger.info("Loading model-registry.json from app directory: %s", app_candidate)
-                return app_candidate.read_text(encoding="utf-8")
-            # Stop at filesystem root
-            if ancestor == ancestor.parent:
-                break
+        if cls._cache_text is not None and time.monotonic() < cls._cache_expires_at:
+            return cls._cache_text
 
-        logger.warning(
-            "model-registry.json not found in package data, "
-            "STIGMER_MODEL_REGISTRY_PATH, or filesystem ancestors"
-        )
-        return None
+        api_url = os.environ.get("STIGMER_CLOUD_API_URL", cls._DEFAULT_API_URL)
+        url = f"{api_url}/v1/proxy/model-registry"
+        try:
+            headers = {"Accept": "application/json"}
+            auth_token = os.environ.get("STIGMER_TOKEN") or os.environ.get("STIGMER_AUTH_TOKEN")
+            if auth_token:
+                headers["Authorization"] = f"Bearer {auth_token}"
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                text = resp.read().decode("utf-8")
+                cls._cache_text = text
+                cls._cache_expires_at = time.monotonic() + cls._CACHE_TTL
+                logger.info("Fetched model registry from API (%d bytes)", len(text))
+                return text
+        except Exception as exc:
+            if cls._cache_text is not None:
+                logger.warning(
+                    "API fetch failed (%s), using stale cache", exc,
+                )
+                return cls._cache_text
+            logger.warning(
+                "Failed to fetch model registry from %s: %s", url, exc,
+            )
+            return None
 
     @classmethod
     def _ensure_loaded(cls) -> None:
-        """Build _MODELS entirely from model-registry.json (native harness entries)."""
-        if cls._MODELS_LOADED:
+        """Build _MODELS from the registry (native harness entries only).
+
+        Re-fetches when the API cache TTL has expired so long-running
+        processes pick up model changes without a restart.
+        """
+        cache_fresh = cls._cache_text is not None and time.monotonic() < cls._cache_expires_at
+        if cls._MODELS_LOADED and cache_fresh:
             return
 
         registry_text = cls._load_registry_text()
@@ -362,6 +368,7 @@ class ModelRegistry:
             cls._MODELS_LOADED = True
             return
 
+        new_models: dict[str, ModelMetadata] = {}
         for entry in registry.get("models", []):
             model_id = entry.get("id")
             if not model_id or entry.get("harness") != "native":
@@ -371,7 +378,7 @@ class ModelRegistry:
             summarization = entry.get("summarization", {})
             capabilities = entry.get("capabilities", {})
 
-            cls._MODELS[model_id] = ModelMetadata(
+            new_models[model_id] = ModelMetadata(
                 model_id=model_id,
                 provider=entry.get("provider", "unknown"),
                 display_name=entry.get("displayName", model_id),
@@ -399,6 +406,8 @@ class ModelRegistry:
                 supports_adaptive_thinking=capabilities.get("adaptiveThinking", False),
             )
 
+        cls._MODELS = new_models
+        cls._API_MODEL_ID_INDEX = None  # invalidate reverse index
         cls._MODELS_LOADED = True
     
     _API_MODEL_ID_INDEX: ClassVar[dict[str, ModelMetadata] | None] = None
