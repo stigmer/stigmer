@@ -22,6 +22,8 @@ import {
   phaseDotColor,
   PHASE_SORT_ORDER,
 } from "./phase";
+import { EmptyState } from "../empty-state";
+import { RunnerIcon, PhaseBadge, formatRelativeTime } from "./shared";
 
 const SYSTEM_MANAGED_LABEL = "stigmer.ai/system-managed";
 const TRANSITIONAL_POLL_MS = 5_000;
@@ -34,6 +36,9 @@ type ConfirmingState = {
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
+
+/** Sort key for the runner list. */
+export type RunnerSortKey = "phase" | "name" | "heartbeat" | "executions";
 
 /** Props for {@link RunnerListPanel}. */
 export interface RunnerListPanelProps {
@@ -50,6 +55,28 @@ export interface RunnerListPanelProps {
    * @default false
    */
   readonly includeSystemManaged?: boolean;
+  /**
+   * Restrict the list to runners in the specified phases.
+   *
+   * When provided, only runners whose phase is in this array are shown.
+   * When omitted or empty, all phases are included.
+   */
+  readonly filterPhases?: readonly RunnerPhase[];
+  /**
+   * Client-side text filter. When provided, only runners whose name
+   * or hostname contains this substring (case-insensitive) are shown.
+   */
+  readonly searchQuery?: string;
+  /**
+   * Sort key for ordering the runner list.
+   * @default "phase"
+   */
+  readonly sortBy?: RunnerSortKey;
+  /**
+   * Sort direction.
+   * @default "asc"
+   */
+  readonly sortDirection?: "asc" | "desc";
   /** Expose refetch so parent components can trigger a list refresh. */
   readonly onRefetchRef?: (refetch: () => void) => void;
   /**
@@ -106,6 +133,10 @@ export interface RunnerListPanelProps {
 export function RunnerListPanel({
   org,
   includeSystemManaged = false,
+  filterPhases,
+  searchQuery,
+  sortBy = "phase",
+  sortDirection = "asc",
   onRefetchRef,
   onStopped,
   onDeleted,
@@ -130,10 +161,33 @@ export function RunnerListPanel({
     onRefetchRef(refetch);
   }
 
-  const sorted = useMemo(
-    () => [...runners].sort(phaseThenName),
-    [runners],
-  );
+  const hasActiveFilters =
+    (filterPhases != null && filterPhases.length > 0) ||
+    (searchQuery != null && searchQuery.trim().length > 0);
+
+  const sorted = useMemo(() => {
+    let result = [...runners];
+
+    if (filterPhases != null && filterPhases.length > 0) {
+      const phaseSet = new Set(filterPhases);
+      result = result.filter((r) =>
+        phaseSet.has(r.status?.phase ?? RunnerPhase.UNSPECIFIED),
+      );
+    }
+
+    if (searchQuery != null && searchQuery.trim().length > 0) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter((r) => {
+        const name = (r.metadata?.name ?? "").toLowerCase();
+        const hostname = (r.status?.connectionInfo?.hostname ?? "").toLowerCase();
+        return name.includes(q) || hostname.includes(q);
+      });
+    }
+
+    const comparator = buildComparator(sortBy, sortDirection);
+    result.sort(comparator);
+    return result;
+  }, [runners, filterPhases, searchQuery, sortBy, sortDirection]);
 
   const handleRequestConfirm = useCallback(
     (runnerId: string, action: "stop" | "delete") => {
@@ -175,31 +229,35 @@ export function RunnerListPanel({
 
   if (error) {
     return (
-      <p className={cn("text-destructive text-xs", className)} role="alert">
-        {getUserMessage(error)}
-      </p>
+      <div className={className}>
+        <EmptyState
+          variant="error"
+          resourceLabel="runners"
+          errorMessage={getUserMessage(error)}
+          action={{ label: "Retry", onClick: refetch }}
+        />
+      </div>
     );
   }
 
   if (sorted.length === 0) {
     return (
-      <div
-        className={cn(
-          "flex flex-col items-center gap-2 py-8 text-center",
-          className,
-        )}
-      >
-        <RunnerIcon size={24} />
-        <p className="text-muted-foreground text-xs">
-          No runners registered.
-        </p>
-        <p className="text-muted-foreground-subtle max-w-xs text-[0.65rem]">
-          Start a runner with{" "}
-          <code className="bg-muted rounded px-1 py-0.5 font-mono text-[0.6rem]">
-            stigmer up
-          </code>{" "}
-          or launch one from your browser with the button above.
-        </p>
+      <div className={className}>
+        <EmptyState
+          variant={hasActiveFilters ? "zero-results" : "first-use"}
+          resourceLabel="runners"
+          icon={hasActiveFilters ? undefined : <RunnerIcon size={24} />}
+          title={
+            hasActiveFilters
+              ? "No runners match your filters"
+              : undefined
+          }
+          description={
+            hasActiveFilters
+              ? "Try adjusting your search or removing some filters."
+              : "Start a runner with stigmer up or launch one from your browser."
+          }
+        />
       </div>
     );
   }
@@ -572,104 +630,61 @@ function ActionMenu({
 }
 
 // ---------------------------------------------------------------------------
-// PhaseBadge (internal)
-// ---------------------------------------------------------------------------
-
-function PhaseBadge({ phase }: { phase: RunnerPhase }) {
-  const starting = phase === RunnerPhase.STARTING;
-  return (
-    <span className="inline-flex shrink-0 items-center gap-1">
-      {starting ? (
-        <span
-          className="inline-block h-2.5 w-2.5 animate-spin rounded-full border border-primary border-t-transparent"
-          aria-hidden="true"
-        />
-      ) : (
-        <span
-          className={`inline-block h-1.5 w-1.5 rounded-full ${phaseDotColor(phase)}`}
-          aria-hidden="true"
-        />
-      )}
-      <span className={cn("text-[0.65rem]", starting ? "text-primary" : "text-muted-foreground")}>
-        {phaseLabel(phase)}
-      </span>
-    </span>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
 
-function phaseThenName(a: Runner, b: Runner): number {
-  const pa = a.status?.phase ?? RunnerPhase.UNSPECIFIED;
-  const pb = b.status?.phase ?? RunnerPhase.UNSPECIFIED;
-  const order = PHASE_SORT_ORDER[pa] - PHASE_SORT_ORDER[pb];
-  if (order !== 0) return order;
-  return (a.metadata?.name ?? "").localeCompare(b.metadata?.name ?? "");
-}
+function buildComparator(
+  sortBy: RunnerSortKey,
+  direction: "asc" | "desc",
+): (a: Runner, b: Runner) => number {
+  const dir = direction === "desc" ? -1 : 1;
 
-function formatRelativeTime(date: Date): string {
-  const diffMs = Date.now() - date.getTime();
+  return (a, b) => {
+    let order: number;
 
-  if (diffMs < 0) return "just now";
+    switch (sortBy) {
+      case "name":
+        order = (a.metadata?.name ?? "").localeCompare(
+          b.metadata?.name ?? "",
+        );
+        break;
 
-  const seconds = Math.floor(diffMs / 1000);
-  if (seconds < 60) return "just now";
+      case "heartbeat": {
+        const ha = a.status?.lastHeartbeatAt;
+        const hb = b.status?.lastHeartbeatAt;
+        const ta = ha ? timestampDate(ha).getTime() : 0;
+        const tb = hb ? timestampDate(hb).getTime() : 0;
+        order = ta - tb;
+        break;
+      }
 
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+      case "executions":
+        order =
+          (a.status?.currentExecutions ?? 0) -
+          (b.status?.currentExecutions ?? 0);
+        break;
 
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+      case "phase":
+      default: {
+        const pa = a.status?.phase ?? RunnerPhase.UNSPECIFIED;
+        const pb = b.status?.phase ?? RunnerPhase.UNSPECIFIED;
+        order = PHASE_SORT_ORDER[pa] - PHASE_SORT_ORDER[pb];
+        if (order !== 0) return order * dir;
+        return (a.metadata?.name ?? "").localeCompare(
+          b.metadata?.name ?? "",
+        );
+      }
+    }
 
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+    if (order !== 0) return order * dir;
+    // Stable secondary sort by name
+    return (a.metadata?.name ?? "").localeCompare(b.metadata?.name ?? "");
+  };
 }
 
 // ---------------------------------------------------------------------------
-// Icons
+// Icons (internal to RunnerListPanel)
 // ---------------------------------------------------------------------------
-
-function RunnerIcon({
-  size = 14,
-  className,
-}: {
-  size?: number;
-  className?: string;
-}) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className={cn("shrink-0 text-muted-foreground", className)}
-    >
-      <rect x="4" y="4" width="16" height="16" rx="2" />
-      <rect x="9" y="9" width="6" height="6" />
-      <path d="M15 2v2" />
-      <path d="M15 20v2" />
-      <path d="M2 15h2" />
-      <path d="M2 9h2" />
-      <path d="M20 15h2" />
-      <path d="M20 9h2" />
-      <path d="M9 2v2" />
-      <path d="M9 20v2" />
-    </svg>
-  );
-}
 
 function MoreVerticalIcon() {
   return (
