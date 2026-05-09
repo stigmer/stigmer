@@ -39,6 +39,7 @@ export type { ParsedResource } from "./parse-resource-yaml";
 export {
   serializeAgentYaml,
   serializeMcpServerYaml,
+  serializeAgentInputYaml,
 } from "./serialize-resource-yaml";
 
 export { useApplyResource } from "./useApplyResource";

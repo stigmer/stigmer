@@ -3,7 +3,6 @@
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { Bot, Plus, Upload, MoreHorizontal, Copy, ExternalLink, Trash2 } from "lucide-react";
-import { getDraftSessionUrl } from "@/domain/session/draft-session";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import {
   ResourceWorkbench,
@@ -76,7 +75,7 @@ export function AgentListPage() {
     [stigmer],
   );
 
-  const createUrl = getDraftSessionUrl("agent");
+  const createUrl = "/library/agents/new";
 
   return (
     <>
