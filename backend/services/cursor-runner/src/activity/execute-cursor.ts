@@ -162,6 +162,7 @@ async function executeCursor(
       apiKey: config.cursorApiKey,
       model: validatedModel,
       workspaceDirs: blueprint.workspaceDirs,
+      sessionId,
       mcpServers: mcpConfig,
     });
 

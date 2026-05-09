@@ -7,24 +7,59 @@
  *
  * Key SDK limitation: mcpServers are NOT persisted across Agent.resume().
  * They must be passed again on every resume call.
+ *
+ * Platform store keying: The Cursor SDK defaults to process.cwd() for its
+ * internal state root lookup. In Daytona sandboxes, process.cwd() is the
+ * runner's app directory, not the workspace — causing Agent.resume() to
+ * fail with "Agent not found". We pass explicit platform.workspaceRef and
+ * platform.stateRoot derived from the Stigmer sessionId to ensure
+ * deterministic store lookup regardless of process.cwd().
  */
 
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
+
 import { Agent } from "@cursor/sdk";
-import type { SDKAgent } from "@cursor/sdk";
+import type { SDKAgent, CursorAgentPlatformOptions } from "@cursor/sdk";
 import type { CursorMcpServerConfig } from "./mcp-resolver.js";
+
+const CURSOR_SDK_STATE_DIR = ".stigmer/cursor-sdk-state";
 
 export interface CreateAgentOptions {
   apiKey: string;
   model: string;
   workspaceDirs: string[];
+  sessionId: string;
   mcpServers?: Record<string, CursorMcpServerConfig>;
 }
 
 export interface ResumeAgentOptions {
   apiKey: string;
   agentId: string;
+  sessionId: string;
   model?: string;
   mcpServers?: Record<string, CursorMcpServerConfig>;
+}
+
+/**
+ * Compute deterministic platform options from a Stigmer sessionId.
+ *
+ * workspaceRef is a synthetic identifier (not a filesystem path) that
+ * ensures the SDK's platform cache key is stable across activity
+ * invocations regardless of process.cwd().
+ *
+ * stateRoot is a session-isolated directory under ~/.stigmer/ where
+ * the SDK persists SQLite stores (agent records, runs, checkpoints).
+ * Created eagerly to prevent ENOENT on first SDK write.
+ */
+export function resolvePlatformOptions(sessionId: string): CursorAgentPlatformOptions {
+  const stateRoot = join(homedir(), CURSOR_SDK_STATE_DIR, sessionId);
+  mkdirSync(stateRoot, { recursive: true });
+  return {
+    workspaceRef: `stigmer-session:${sessionId}`,
+    stateRoot,
+  };
 }
 
 /**
@@ -38,11 +73,18 @@ export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent
     ? options.workspaceDirs[0]
     : options.workspaceDirs;
 
+  const platform = resolvePlatformOptions(options.sessionId);
+  console.log(
+    `createAgent: sessionId=${options.sessionId}, workspaceRef=${platform.workspaceRef}, ` +
+    `stateRoot=${platform.stateRoot}, process.cwd=${process.cwd()}`,
+  );
+
   return Agent.create({
     apiKey: options.apiKey,
     model: { id: options.model },
     local: { cwd },
     mcpServers: options.mcpServers as Record<string, any>,
+    platform,
   });
 }
 
@@ -54,10 +96,18 @@ export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent
  * lose conversation context without any indication to the user.
  */
 export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent> {
+  const platform = resolvePlatformOptions(options.sessionId);
+  console.log(
+    `resumeAgent: agentId=${options.agentId}, sessionId=${options.sessionId}, ` +
+    `workspaceRef=${platform.workspaceRef}, stateRoot=${platform.stateRoot}, ` +
+    `process.cwd=${process.cwd()}`,
+  );
+
   return Agent.resume(options.agentId, {
     apiKey: options.apiKey,
     model: options.model ? { id: options.model } : undefined,
     mcpServers: options.mcpServers as Record<string, any>,
+    platform,
   });
 }
 
@@ -80,6 +130,7 @@ export async function resolveAgent(
       const agent = await resumeAgent({
         apiKey: createOptions.apiKey,
         agentId: threadId,
+        sessionId: createOptions.sessionId,
         model: createOptions.model,
         mcpServers: createOptions.mcpServers,
       });

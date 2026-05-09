@@ -18,6 +18,7 @@ import { createAgent, resumeAgent, resolveAgent } from "../session-lifecycle.js"
 const API_KEY = process.env.CURSOR_API_KEY;
 const SKIP = !API_KEY;
 const TIMEOUT = 120_000; // 2 minutes per test — Cursor agents can be slow
+const TEST_SESSION_ID = "integration-test-session-001";
 
 describe.skipIf(SKIP)("session-lifecycle integration (real Cursor API)", () => {
   let createdAgentId: string;
@@ -27,6 +28,7 @@ describe.skipIf(SKIP)("session-lifecycle integration (real Cursor API)", () => {
       apiKey: API_KEY!,
       model: "default",
       workspaceDirs: ["/tmp/stigmer-test-workspace"],
+      sessionId: TEST_SESSION_ID,
     });
 
     expect(agent).toBeDefined();
@@ -54,6 +56,7 @@ describe.skipIf(SKIP)("session-lifecycle integration (real Cursor API)", () => {
     const resumed: SDKAgent = await resumeAgent({
       apiKey: API_KEY!,
       agentId: createdAgentId,
+      sessionId: TEST_SESSION_ID,
     });
 
     // The SDK requires model on send() for local agents — this is the bug:
@@ -100,6 +103,7 @@ describe.skipIf(SKIP)("session-lifecycle integration (real Cursor API)", () => {
       apiKey: API_KEY!,
       model: "default",
       workspaceDirs: ["/tmp/stigmer-test-workspace"],
+      sessionId: TEST_SESSION_ID,
     });
 
     expect(isNew).toBe(true);
@@ -123,6 +127,7 @@ describe.skipIf(SKIP)("session-lifecycle integration (real Cursor API)", () => {
       apiKey: API_KEY!,
       model: "default",
       workspaceDirs: ["/tmp/stigmer-test-workspace"],
+      sessionId: TEST_SESSION_ID,
     });
 
     expect(isNew).toBe(false);
