@@ -3,7 +3,6 @@
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { Plus, Sparkles, MoreHorizontal, Copy, ExternalLink, Trash2 } from "lucide-react";
-import { getDraftSessionUrl } from "@/domain/session/draft-session";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import {
   ResourceWorkbench,
@@ -74,8 +73,6 @@ export function SkillListPage() {
     [stigmer],
   );
 
-  const createUrl = getDraftSessionUrl("skill");
-
   return (
     <>
       <div className="mb-6">
@@ -100,7 +97,7 @@ export function SkillListPage() {
         emptyDescription="Create a skill to package reusable instructions and context for your agents."
         headerAction={
           <Link
-            href={createUrl}
+            href="/library/skills/new"
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Plus className="size-3.5" aria-hidden="true" />
@@ -109,7 +106,7 @@ export function SkillListPage() {
         }
         emptyAction={
           <Link
-            href={createUrl}
+            href="/library/skills/new"
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Plus className="size-3.5" aria-hidden="true" />

@@ -14,8 +14,23 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-05-09 — Phase 3 T04-B (Agent Creation Wizard) complete
-- **Active Task**: Phase 3 T04-B complete. Next up: T04-C (Skill Editor with Preview) or T04-D (MCP Server Creation Wizard)
+- **Last Session**: 2026-05-09 — Phase 3 T04-C (Skill Editor with Preview) complete
+- **Active Task**: Phase 3 T04-C complete. Next up: T04-D (MCP Server Creation Wizard) or T04-F (Template Gallery, requires T04-D)
+
+## Session Progress (2026-05-09, Session 7)
+
+- Completed Phase 3 sub-task T04-C: Skill Editor with Preview
+- Key domain insight: Skills are Anthropic Agent Skills spec directories (not just a single file). The web editor serves the "content author" persona (SKILL.md-only skills — 80% case); complex multi-file skills remain a CLI/Git concern.
+- Built `useSkillEditor` behavior hook — content state, metadata form state, dirty tracking, Anthropic spec validation (name format, length limits), frontmatter serialization/parsing with round-trip safety for unknown fields
+- Built `usePushSkill` mutation hook — dynamic `import('fflate')` for lazy ZIP creation, packages SKILL.md into a single-entry ZIP artifact, calls `stigmer.skill.push()`
+- Built `SkillEditor` component — split-pane layout (textarea editor | live Markdown preview), metadata form (name + description), formatting toolbar (B/I/H/Code/Link/List), keyboard shortcuts (Cmd+B/I/S, Tab indent), 250ms debounced preview with `startTransition`, responsive stacked layout on mobile
+- Created Console routes: `/library/skills/new` (create) and `/library/skills/[org]/[slug]/edit` (edit)
+- Built `SkillNewPage` and `SkillEditPage` domain components (thin shells mounting SDK component)
+- Updated `SkillListPage` "Create skill" button to route to `/library/skills/new` (was `getDraftSessionUrl("skill")`)
+- Updated `SkillDetailPage` with "Edit" primary action routing to `/library/skills/[org]/[slug]/edit`
+- Added `fflate ^0.8.2` (MIT, ~13KB gzip) as dependency to `@stigmer/react` — dynamically imported, zero cost unless push is called
+- All typecheck + lint pass clean (only pre-existing tsdoc ActionMenu warning)
+- Design decision: No new backend RPC needed — existing `push` RPC with browser-side ZIP is architecturally correct since skills ARE packages (even single-file ones)
 
 ## Session Progress (2026-05-09, Session 6)
 
@@ -69,12 +84,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Key Decisions Made (This Session)
 
-- **DD-T04B-001**: Wizard is CREATE-only. No edit mode. Editing uses a future settings-style page.
-- **DD-T04B-002**: 3 condensed steps (Identity+Instructions, Capabilities, Review). No model step — model is a runtime concern, not a blueprint field.
-- **DD-T04B-003**: Sub-agents excluded from V1 wizard (power users use YAML import).
-- **DD-T04B-004**: Wizard state lives in a `useReducer` with per-step data slices (following `agentSetupReducer` precedent).
-- **DD-T04B-005**: `WizardShell` is resource-agnostic reusable infrastructure. Agent-specific content is in step components.
-- **DD-T04B-006**: `useCreateAgent` is a standalone mutation hook (following `useCreateApiKey` pattern) — usable independently from the wizard.
+- **DD-T04C-001**: No new backend RPC for skill creation. The existing `push` RPC with browser-side ZIP is architecturally correct — skills ARE directory packages, even single-file ones. An `apply`-style RPC would be domain-incorrect.
+- **DD-T04C-002**: `fflate` (MIT, ~13KB) added as dependency to `@stigmer/react`, dynamically imported inside `usePushSkill.push()` — zero cost for consumers who only read skills.
+- **DD-T04C-003**: The web editor serves "content author" persona (SKILL.md-only, 80% case). Complex multi-file skills are a CLI/Git concern, viewable but not editable on web.
+- **DD-T04C-004**: Metadata (name, description) is a form, not raw frontmatter. Users never see YAML — the hook handles serialization. Unknown frontmatter fields are preserved on round-trip.
+- **DD-T04C-005**: Single-screen editor (not a wizard). Skills are documents, not multi-step configurations. The `WizardShell` infra is not the right fit here.
+- **DD-T04C-006**: Preview uses the same `MARKDOWN_COMPONENTS` + `REMARK_PLUGINS` pipeline as `SkillDetailView` — WYSIWYG fidelity between editor and detail view.
 - **DD-T03-001**: ResourceDetailShell receives pre-fetched data via props, not own data fetching — resource-specific hooks already exist with different parameters
 - **DD-T03-002**: ConfirmDialog uses native `<dialog>` element for modals — consistent with existing McpServerDetailView BYOA dialog pattern, no new dependency needed
 - **DD-T03-003**: McpServerDetailView uses ResourceActionBar directly (not full ResourceDetailShell) — preserves its complex MCP-specific header with validation state, slug display, lastDiscoveredAt
@@ -82,13 +97,13 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **T04-C: Skill Editor with Preview** — Split-pane Markdown editor + live preview (no dependencies)
-2. **T04-D: MCP Server Creation Wizard** — Visual MCP server configuration flow (reuses `WizardShell` from T04-B)
-3. **T04-F: Template Gallery** — Depends on T04-B (done) and T04-D
-4. **T04-G: AI Sidecar** — Needs backend design spike first
+1. **T04-D: MCP Server Creation Wizard** — Visual MCP server configuration flow (reuses `WizardShell` from T04-B)
+2. **T04-F: Template Gallery** — Depends on T04-B (done) and T04-D
+3. **T04-G: AI Sidecar** — Needs backend design spike first
 
 ## Context for Resume
 
+- T04-C plan is at `.cursor/plans/t04-c_skill_editor_d5bb689b.plan.md`
 - T04-B plan is at `.cursor/plans/t04-b_agent_creation_wizard_2144757f.plan.md`
 - T04-E plan is at `.cursor/plans/t04-e_import_export_0a7026b6.plan.md`
 - Phase 2 plan is at `.cursor/plans/phase_2_detail_hubs_cd21ecab.plan.md`
@@ -103,6 +118,17 @@ Drop this file into your conversation to quickly resume work on this project.
 - Key discovery: `AgentSpec` proto has no model field — model is a runtime concern at execution/instance level
 
 ## Essential Files to Review
+
+### 0z. Skill Editor with Preview (Phase 3 T04-C)
+```
+sdk/react/src/skill/
+  useSkillEditor.ts, usePushSkill.ts, SkillEditor.tsx
+
+client-apps/web/src/app/library/skills/new/page.tsx
+client-apps/web/src/app/library/skills/[org]/[slug]/edit/page.tsx
+client-apps/web/src/domain/library/skills/SkillNewPage.tsx
+client-apps/web/src/domain/library/skills/SkillEditPage.tsx
+```
 
 ### 0a. Agent Creation Wizard (Phase 3 T04-B)
 ```
