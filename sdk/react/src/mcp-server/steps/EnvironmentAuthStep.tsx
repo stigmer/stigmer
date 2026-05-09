@@ -76,7 +76,7 @@ export function EnvironmentAuthStep({
                 }
                 placeholder="e.g. stigmer"
                 className={cn(
-                  "w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm text-foreground",
+                  "w-full rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
                   "placeholder:text-muted-foreground",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 )}
@@ -99,7 +99,7 @@ export function EnvironmentAuthStep({
                 }
                 placeholder="e.g. github-oauth"
                 className={cn(
-                  "w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm text-foreground",
+                  "w-full rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
                   "placeholder:text-muted-foreground",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 )}
@@ -123,7 +123,7 @@ export function EnvironmentAuthStep({
               }
               placeholder="e.g. GITHUB_TOKEN"
               className={cn(
-                "w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm text-foreground",
+                "w-full rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
                 "placeholder:text-muted-foreground",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               )}
@@ -150,7 +150,7 @@ export function EnvironmentAuthStep({
                 }
                 placeholder="e.g. 1h, 8h, never"
                 className={cn(
-                  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground",
+                  "w-full rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
                   "placeholder:text-muted-foreground",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 )}
@@ -173,7 +173,7 @@ export function EnvironmentAuthStep({
                 }
                 placeholder="e.g. repo, read:org"
                 className={cn(
-                  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground",
+                  "w-full rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
                   "placeholder:text-muted-foreground",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 )}
@@ -200,7 +200,7 @@ export function EnvironmentAuthStep({
               }
               placeholder="https://provider.com/.well-known/openid-configuration"
               className={cn(
-                "w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm text-foreground",
+                "w-full rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
                 "placeholder:text-muted-foreground",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               )}
@@ -330,7 +330,7 @@ function EnvVarEditor({
                 placeholder="VARIABLE_NAME"
                 aria-label={`Environment variable name ${index + 1}`}
                 className={cn(
-                  "w-full rounded-md border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground",
+                  "w-full rounded-md border border-input bg-input-bg px-2.5 py-1.5 font-mono text-xs text-foreground",
                   "placeholder:text-muted-foreground",
                   "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                 )}
@@ -344,7 +344,7 @@ function EnvVarEditor({
                 placeholder="Description (optional)"
                 aria-label={`Description for ${entry.key || `variable ${index + 1}`}`}
                 className={cn(
-                  "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
+                  "w-full rounded-md border border-input bg-input-bg px-2.5 py-1.5 text-xs text-foreground",
                   "placeholder:text-muted-foreground",
                   "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                 )}

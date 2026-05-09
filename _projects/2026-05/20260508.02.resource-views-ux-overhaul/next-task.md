@@ -14,8 +14,21 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-05-09 — Phase 3 T04-D (MCP Server Creation Wizard) complete
-- **Active Task**: Phase 3 T04-D complete. Next up: T04-F (Template Gallery) or T04-G (AI Sidecar, needs backend spike)
+- **Last Session**: 2026-05-09 — UX polish: resource card icons + input visibility token
+- **Active Task**: UX polish complete. Next up: T04-F (Template Gallery) or T04-G (AI Sidecar, needs backend spike)
+
+## Session Progress (2026-05-09, Session 10)
+
+- UX polish pass: resource card icons and form input visibility
+- Created `ResourceAvatar` component — icon image with `bg-muted` container + `object-contain`, colored initial fallback, hidden for skills
+- Added `--stgm-input-bg` design token to `sdk/theme` (light: white, dark: card-level gray `oklch(0.205)`)
+- Mapped as `--color-input-bg` in Tailwind theme → `bg-input-bg` utility class
+- Applied `bg-input-bg` to all wizard step form inputs (IdentityStep, CapabilitiesStep, IdentityTransportStep, EnvironmentAuthStep)
+- Added token to all 5 theme presets (corporate, fintech, friendly, monochrome, startup)
+- Wired `ResourceAvatar` into `DefaultCardContent` and `DefaultRowContent` in `ResourceWorkbench.tsx`
+- Exported `ResourceAvatar` and `ResourceAvatarProps` from SDK barrel
+- Design rule established: `--stgm-input-bg` is for inputs on page-level backgrounds; inputs inside popovers/dialogs/cards keep `bg-background`
+- All typecheck + lint pass clean
 
 ## Session Progress (2026-05-09, Session 9)
 
@@ -101,6 +114,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Key Decisions Made (This Session)
 
+- **DD-INPUT-BG-001**: New `--stgm-input-bg` design token for form input backgrounds — applied via theme tokens, not hardcoded classes. Platform builders can override.
+- **DD-AVATAR-001**: ResourceAvatar uses `bg-muted` container + `object-contain` for SVG icons, ensuring visibility regardless of SVG fill color. Skills are hidden (no icon, no placeholder).
 - **DD-T04C-001**: Skills are upload-only on web. No in-browser editor. Users author skills locally (IDE with proper tooling) and upload the finished ZIP package. Console role is upload + view, not authoring.
 - **DD-T04C-002**: `fflate` (MIT, ~13KB) used for ZIP decompression — reading uploaded ZIPs for validation and reading artifact ZIPs for the file browser.
 - **DD-T04C-003**: The upload flow validates against Anthropic spec before push: SKILL.md must exist at root, frontmatter must have valid name (lowercase+hyphens, max 64 chars).

@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState, type ReactNode } from "react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ListParams, ListResult } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import type {
@@ -24,6 +25,7 @@ import { ViewSwitcher } from "./ViewSwitcher";
 import { BulkActionBar } from "./BulkActionBar";
 import { ResourceInspector } from "./ResourceInspector";
 import { EmptyState } from "../../empty-state";
+import { ResourceAvatar } from "./ResourceAvatar";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -465,26 +467,43 @@ function defaultGetId(item: unknown): string {
 }
 
 function DefaultCardContent({ item }: { readonly item: SearchResult }) {
+  const isSkill = item.kind === ApiResourceKind.skill;
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-sm font-medium text-foreground">
-        {item.name || item.slug}
-      </span>
-      {item.org && (
-        <span className="text-xs text-muted-foreground">{item.org}</span>
-      )}
-      {item.description && (
-        <p className="line-clamp-2 text-xs text-muted-foreground">
-          {item.description}
-        </p>
-      )}
+    <div className="flex items-start gap-3">
+      <ResourceAvatar
+        name={item.name || item.slug}
+        slug={item.slug}
+        iconUrl={item.iconUrl || undefined}
+        hidden={isSkill}
+      />
+      <div className="min-w-0 flex-1">
+        <span className="text-sm font-medium text-foreground">
+          {item.name || item.slug}
+        </span>
+        {item.org && (
+          <p className="text-xs text-muted-foreground">{item.org}</p>
+        )}
+        {item.description && (
+          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+            {item.description}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
 
 function DefaultRowContent({ item }: { readonly item: SearchResult }) {
+  const isSkill = item.kind === ApiResourceKind.skill;
   return (
     <div className="flex items-center gap-2">
+      <ResourceAvatar
+        name={item.name || item.slug}
+        slug={item.slug}
+        iconUrl={item.iconUrl || undefined}
+        hidden={isSkill}
+        size="sm"
+      />
       <span className="text-sm font-medium text-foreground">
         {item.name || item.slug}
       </span>

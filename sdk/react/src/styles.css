@@ -38,6 +38,7 @@
   --color-info-foreground: var(--stgm-info-foreground);
   --color-border: var(--stgm-border);
   --color-input: var(--stgm-input);
+  --color-input-bg: var(--stgm-input-bg);
   --color-ring: var(--stgm-ring);
   --color-chart-1: var(--stgm-chart-1);
   --color-chart-2: var(--stgm-chart-2);

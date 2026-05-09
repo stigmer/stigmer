@@ -237,7 +237,7 @@ function EnvVarEditor({
                 placeholder="VARIABLE_NAME"
                 aria-label={`Environment variable name ${index + 1}`}
                 className={cn(
-                  "w-full rounded-md border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground",
+                  "w-full rounded-md border border-input bg-input-bg px-2.5 py-1.5 font-mono text-xs text-foreground",
                   "placeholder:text-muted-foreground",
                   "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                 )}
@@ -249,7 +249,7 @@ function EnvVarEditor({
                 placeholder="Description (optional)"
                 aria-label={`Description for ${entry.key || `variable ${index + 1}`}`}
                 className={cn(
-                  "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
+                  "w-full rounded-md border border-input bg-input-bg px-2.5 py-1.5 text-xs text-foreground",
                   "placeholder:text-muted-foreground",
                   "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                 )}

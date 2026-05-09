@@ -86,7 +86,7 @@ export function IdentityTransportStep({
             placeholder="e.g. GitHub"
             autoFocus
             className={cn(
-              "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground",
+              "w-full rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
               "placeholder:text-muted-foreground",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             )}
@@ -109,8 +109,8 @@ export function IdentityTransportStep({
             className={cn(
               "w-full rounded-md border px-3 py-2 font-mono text-sm text-foreground",
               slugError
-                ? "border-destructive bg-background"
-                : "border-input bg-background",
+                ? "border-destructive bg-input-bg"
+                : "border-input bg-input-bg",
               "placeholder:text-muted-foreground",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             )}
@@ -142,7 +142,7 @@ export function IdentityTransportStep({
           placeholder="A brief description of this MCP server"
           maxLength={200}
           className={cn(
-            "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground",
+            "w-full rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
             "placeholder:text-muted-foreground",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           )}
@@ -165,7 +165,7 @@ export function IdentityTransportStep({
             onChange={(e) => updateData({ iconUrl: e.target.value })}
             placeholder="https://example.com/icon.png"
             className={cn(
-              "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground",
+              "w-full rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
               "placeholder:text-muted-foreground",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             )}
@@ -195,7 +195,6 @@ export function IdentityTransportStep({
         </fieldset>
       </div>
 
-      {/* Transport Type */}
       <fieldset className="space-y-3">
         <legend className="text-sm font-medium text-foreground">
           Transport <span className="text-destructive">*</span>
@@ -234,7 +233,7 @@ export function IdentityTransportStep({
                 onChange={(e) => updateData({ httpUrl: e.target.value })}
                 placeholder="https://mcp.example.com/sse"
                 className={cn(
-                  "w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm text-foreground",
+                  "w-full rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
                   "placeholder:text-muted-foreground",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 )}
@@ -280,7 +279,7 @@ export function IdentityTransportStep({
                 }
                 placeholder="Default"
                 className={cn(
-                  "w-32 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground",
+                  "w-32 rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
                   "placeholder:text-muted-foreground",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 )}
@@ -306,7 +305,7 @@ export function IdentityTransportStep({
                 onChange={(e) => updateData({ stdioCommand: e.target.value })}
                 placeholder="e.g. npx, python, node"
                 className={cn(
-                  "w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm text-foreground",
+                  "w-full rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
                   "placeholder:text-muted-foreground",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 )}
@@ -327,7 +326,7 @@ export function IdentityTransportStep({
                 onChange={(e) => updateData({ stdioArgs: e.target.value })}
                 placeholder="e.g. -y @modelcontextprotocol/server-github"
                 className={cn(
-                  "w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm text-foreground",
+                  "w-full rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
                   "placeholder:text-muted-foreground",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 )}
@@ -353,7 +352,7 @@ export function IdentityTransportStep({
                 }
                 placeholder="/path/to/working/directory"
                 className={cn(
-                  "w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm text-foreground",
+                  "w-full rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
                   "placeholder:text-muted-foreground",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 )}
@@ -389,7 +388,7 @@ function RadioOption({
         "inline-flex cursor-pointer items-center rounded-md border px-3 py-1.5 text-sm transition-colors",
         checked
           ? "border-primary bg-primary-subtle text-primary font-medium"
-          : "border-input bg-background text-muted-foreground hover:border-border hover:text-foreground",
+          : "border-input bg-input-bg text-muted-foreground hover:border-border hover:text-foreground",
       )}
     >
       <input
@@ -446,7 +445,7 @@ function KeyValueEditor({
             placeholder={keyPlaceholder}
             aria-label={`Header key ${index + 1}`}
             className={cn(
-              "flex-1 rounded-md border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground",
+              "flex-1 rounded-md border border-input bg-input-bg px-2.5 py-1.5 font-mono text-xs text-foreground",
               "placeholder:text-muted-foreground",
               "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
             )}
@@ -458,7 +457,7 @@ function KeyValueEditor({
             placeholder={valuePlaceholder}
             aria-label={`Header value ${index + 1}`}
             className={cn(
-              "flex-1 rounded-md border border-input bg-background px-2.5 py-1.5 font-mono text-xs text-foreground",
+              "flex-1 rounded-md border border-input bg-input-bg px-2.5 py-1.5 font-mono text-xs text-foreground",
               "placeholder:text-muted-foreground",
               "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
             )}

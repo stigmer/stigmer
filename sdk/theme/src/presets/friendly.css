@@ -20,6 +20,7 @@
   --stgm-accent-foreground: oklch(0.30 0.03 50);
   --stgm-border: oklch(0.88 0.02 65);
   --stgm-input: oklch(0.88 0.02 65);
+  --stgm-input-bg: oklch(0.99 0.01 65);
   --stgm-ring: oklch(0.62 0.15 40);
   --stgm-chart-1: oklch(0.62 0.20 40);
   --stgm-chart-2: oklch(0.58 0.16 150);
@@ -75,6 +76,7 @@
   --stgm-accent-foreground: oklch(0.93 0.01 65);
   --stgm-border: oklch(0.38 0.04 50);
   --stgm-input: oklch(0.38 0.04 50);
+  --stgm-input-bg: oklch(0.24 0.04 50);
   --stgm-ring: oklch(0.60 0.14 40);
   --stgm-chart-1: oklch(0.68 0.20 40);
   --stgm-chart-2: oklch(0.62 0.17 150);

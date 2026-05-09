@@ -85,7 +85,7 @@ export function IdentityStep({
             placeholder="e.g. PR Review Bot"
             autoFocus
             className={cn(
-              "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground",
+              "w-full rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
               "placeholder:text-muted-foreground",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             )}
@@ -109,8 +109,8 @@ export function IdentityStep({
             className={cn(
               "w-full rounded-md border px-3 py-2 font-mono text-sm text-foreground",
               slugError
-                ? "border-destructive bg-background"
-                : "border-input bg-background",
+                ? "border-destructive bg-input-bg"
+                : "border-input bg-input-bg",
               "placeholder:text-muted-foreground",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             )}
@@ -142,7 +142,7 @@ export function IdentityStep({
           placeholder="A brief description of what this agent does"
           maxLength={200}
           className={cn(
-            "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground",
+            "w-full rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
             "placeholder:text-muted-foreground",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           )}
@@ -165,7 +165,7 @@ export function IdentityStep({
             onChange={(e) => updateData({ iconUrl: e.target.value })}
             placeholder="https://example.com/icon.png"
             className={cn(
-              "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground",
+              "w-full rounded-md border border-input bg-input-bg px-3 py-2 text-sm text-foreground",
               "placeholder:text-muted-foreground",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             )}
@@ -211,7 +211,7 @@ export function IdentityStep({
           placeholder="You are a helpful assistant that..."
           rows={12}
           className={cn(
-            "w-full resize-y rounded-md border border-input bg-background px-3 py-2 font-mono text-sm text-foreground",
+            "w-full resize-y rounded-md border border-input bg-input-bg px-3 py-2 font-mono text-sm text-foreground",
             "placeholder:text-muted-foreground",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           )}
@@ -242,7 +242,7 @@ function VisibilityOption({
         "inline-flex cursor-pointer items-center rounded-md border px-3 py-1.5 text-sm transition-colors",
         checked
           ? "border-primary bg-primary-subtle text-primary font-medium"
-          : "border-input bg-background text-muted-foreground hover:border-border hover:text-foreground",
+          : "border-input bg-input-bg text-muted-foreground hover:border-border hover:text-foreground",
       )}
     >
       <input
