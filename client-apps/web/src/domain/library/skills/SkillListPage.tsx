@@ -74,22 +74,15 @@ export function SkillListPage() {
     [stigmer],
   );
 
+  const createUrl = getDraftSessionUrl("skill");
+
   return (
     <>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-foreground text-xl font-semibold">Skills</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Browse and manage skills in your organization.
-          </p>
-        </div>
-        <Link
-          href={getDraftSessionUrl("skill")}
-          className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Plus className="size-3.5" aria-hidden="true" />
-          Add Skill
-        </Link>
+      <div className="mb-6">
+        <h1 className="text-foreground text-xl font-semibold">Skills</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Browse and manage skills in your organization.
+        </p>
       </div>
 
       <ResourceWorkbench
@@ -105,6 +98,24 @@ export function SkillListPage() {
         emptyIcon={<Sparkles className="size-10" aria-hidden="true" />}
         emptyTitle="No skills yet"
         emptyDescription="Create a skill to package reusable instructions and context for your agents."
+        headerAction={
+          <Link
+            href={createUrl}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Plus className="size-3.5" aria-hidden="true" />
+            Create skill
+          </Link>
+        }
+        emptyAction={
+          <Link
+            href={createUrl}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Plus className="size-3.5" aria-hidden="true" />
+            Create skill
+          </Link>
+        }
         onItemClick={(item) => navigateToDetail("skills", item.org, item.slug)}
         renderItemAction={(item) => (
           <div onClick={(e) => e.stopPropagation()}>

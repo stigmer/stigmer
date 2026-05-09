@@ -79,22 +79,15 @@ export function McpServerListPage() {
     [stigmer],
   );
 
+  const createUrl = getDraftSessionUrl("mcp-server");
+
   return (
     <>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-foreground text-xl font-semibold">MCP Servers</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Browse and manage MCP servers in your organization.
-          </p>
-        </div>
-        <Link
-          href={getDraftSessionUrl("mcp-server")}
-          className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Plus className="size-3.5" aria-hidden="true" />
-          Add MCP Server
-        </Link>
+      <div className="mb-6">
+        <h1 className="text-foreground text-xl font-semibold">MCP Servers</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Browse and manage MCP servers in your organization.
+        </p>
       </div>
 
       <ResourceWorkbench
@@ -110,6 +103,24 @@ export function McpServerListPage() {
         emptyIcon={<Server className="size-10" aria-hidden="true" />}
         emptyTitle="No MCP servers yet"
         emptyDescription="Add an MCP server to connect external tools and data sources to your agents."
+        headerAction={
+          <Link
+            href={createUrl}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Plus className="size-3.5" aria-hidden="true" />
+            Add MCP server
+          </Link>
+        }
+        emptyAction={
+          <Link
+            href={createUrl}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Plus className="size-3.5" aria-hidden="true" />
+            Add MCP server
+          </Link>
+        }
         onItemClick={(item) =>
           navigateToDetail("mcp-servers", item.org, item.slug)
         }

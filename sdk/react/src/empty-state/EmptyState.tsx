@@ -38,6 +38,7 @@ export function EmptyState({
   description,
   errorMessage,
   action,
+  children,
   className,
 }: EmptyStateProps) {
   const resolved = useEmptyState({
@@ -67,21 +68,23 @@ export function EmptyState({
           {resolved.description}
         </p>
       </div>
-      {action && (
-        <button
-          type="button"
-          onClick={action.onClick}
-          className={cn(
-            "mt-1 inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium",
-            variant === "error"
-              ? "border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
-              : "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          )}
-        >
-          {action.label}
-        </button>
-      )}
+      {children
+        ? <div className="mt-1">{children}</div>
+        : action && (
+          <button
+            type="button"
+            onClick={action.onClick}
+            className={cn(
+              "mt-1 inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium",
+              variant === "error"
+                ? "border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
+                : "bg-primary text-primary-foreground hover:bg-primary-hover",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            )}
+          >
+            {action.label}
+          </button>
+        )}
     </div>
   );
 }
