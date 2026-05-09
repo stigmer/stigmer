@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type {
@@ -17,12 +17,14 @@ import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
 import { useDetailTabs } from "../resource-detail/useDetailTabs";
 import type { AdditionalTab, DetailAction, ResourceHeaderMeta } from "../resource-detail/types";
 import type { TabItem } from "../tabs/Tabs";
+import { DependencyGraph } from "../dependency-graph/DependencyGraph";
+import { useDependencyGraph } from "../dependency-graph/useDependencyGraph";
+import type { DependencyNode } from "../dependency-graph/types";
 
 const INSTRUCTIONS_COLLAPSED_LINES = 8;
 
-const AGENT_BUILT_IN_TABS: readonly TabItem[] = [
-  { id: "overview", label: "Overview" },
-];
+const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
+const DEPENDENCIES_TAB: TabItem = { id: "dependencies", label: "Dependencies" };
 
 /** Props for {@link AgentDetailView}. */
 export interface AgentDetailViewProps {
@@ -168,18 +170,41 @@ export function AgentDetailView({
 }: AgentDetailViewProps) {
   const { agent, isLoading, error, refetch } = useAgent(org, slug);
 
+  const { tree, isEmpty: noDeps } = useDependencyGraph({
+    agentName: agent?.metadata?.name || agent?.metadata?.slug || slug,
+    agentOrg: agent?.metadata?.org || org,
+    spec: agent?.spec,
+  });
+
+  const builtInTabs = useMemo<readonly TabItem[]>(
+    () => (noDeps ? [OVERVIEW_TAB] : [OVERVIEW_TAB, DEPENDENCIES_TAB]),
+    [noDeps],
+  );
+
   const {
     effectiveTabs,
     effectiveActiveTab,
     effectiveOnTabChange,
     activeAdditionalTab,
   } = useDetailTabs({
-    builtInTabs: AGENT_BUILT_IN_TABS,
+    builtInTabs,
     additionalTabs,
     activeTab,
     onTabChange,
     defaultTab,
   });
+
+  const handleNodeClick = useCallback(
+    (node: DependencyNode) => {
+      if (!node.ref) return;
+      if (node.kind === "mcp-server") {
+        onMcpServerClick?.(node.ref);
+      } else if (node.kind === "skill") {
+        onSkillClick?.(node.ref);
+      }
+    },
+    [onMcpServerClick, onSkillClick],
+  );
 
   const onResourceLoadRef = useRef(onResourceLoad);
   onResourceLoadRef.current = onResourceLoad;
@@ -226,16 +251,26 @@ export function AgentDetailView({
       </span>
     ) : undefined;
 
-  const tabContent = activeAdditionalTab ? (
-    activeAdditionalTab.content
-  ) : (
-    <AgentOverview
-      spec={spec}
-      agentOrg={agentOrg}
-      onMcpServerClick={onMcpServerClick}
-      onSkillClick={onSkillClick}
-    />
-  );
+  let tabContent: React.ReactNode;
+  if (activeAdditionalTab) {
+    tabContent = activeAdditionalTab.content;
+  } else if (effectiveActiveTab === "dependencies" && tree) {
+    tabContent = (
+      <DependencyGraph
+        tree={tree}
+        onNodeClick={handleNodeClick}
+      />
+    );
+  } else {
+    tabContent = (
+      <AgentOverview
+        spec={spec}
+        agentOrg={agentOrg}
+        onMcpServerClick={onMcpServerClick}
+        onSkillClick={onSkillClick}
+      />
+    );
+  }
 
   return (
     <ResourceDetailShell
