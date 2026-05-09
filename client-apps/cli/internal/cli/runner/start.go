@@ -79,8 +79,15 @@ func Start(ctx context.Context, opts StartOptions) error {
 		return errors.Wrap(err, "failed to resolve runner name")
 	}
 
-	if err := checkNameConflict(name); err != nil {
+	adopted, err := checkOrAdopt(name, opts)
+	if err != nil {
 		return err
+	}
+	if adopted != nil {
+		climsg.Success("Runner %q is already active (PID %d)", name, adopted.PID)
+		climsg.Info("  Backend: %s", adopted.BackendEndpoint)
+		climsg.Info("  Started: %s", formatRelativeTime(adopted.StartedAt))
+		return nil
 	}
 
 	if config.IsStandalone() && opts.TokenOverride == "" {
@@ -656,32 +663,47 @@ func sanitizeToSlug(hostname string) string {
 	return s
 }
 
-func checkNameConflict(name string) error {
+// checkOrAdopt examines whether a runner with the given name is already active.
+//
+// Returns:
+//   - (*RunnerState, nil) — runner is alive and compatible; caller should adopt
+//   - (nil, nil) — no conflict; caller should proceed with a fresh start
+//   - (nil, error) — real conflict (org/endpoint mismatch); caller should abort
+func checkOrAdopt(name string, opts StartOptions) (*RunnerState, error) {
 	state, err := LoadState(name)
 	if err != nil {
-		return nil
+		return nil, nil
 	}
 	if !isRunnerAlive(state) {
 		_ = RemoveState(name)
-		return nil
+		return nil, nil
 	}
 
-	detail := fmt.Sprintf("PID %d", state.PID)
-	if state.IsDocker() {
-		detail = fmt.Sprintf("container %s", state.ContainerID[:12])
+	if opts.OrgOverride != "" && state.Org != "" && opts.OrgOverride != state.Org {
+		return nil, fmt.Errorf(
+			"runner %q is already running for organization %q\n"+
+				"  You are trying to start for organization %q\n\n"+
+				"Stop the existing runner first:\n"+
+				"  stigmer down runner --name %s\n\n"+
+				"Or start a runner with a different name:\n"+
+				"  stigmer up --name <name>",
+			name, state.Org, opts.OrgOverride, name,
+		)
 	}
 
-	return fmt.Errorf(
-		"runner %q is already running\n"+
-			"  %s\n"+
-			"  Backend: %s\n"+
-			"  Started: %s\n\n"+
-			"To start another runner, provide a different name:\n"+
-			"  stigmer up --name <name>\n\n"+
-			"To see all active runners:\n"+
-			"  stigmer list runners",
-		name, detail, state.BackendEndpoint, formatRelativeTime(state.StartedAt),
-	)
+	if opts.EndpointOverride != "" && state.BackendEndpoint != "" && opts.EndpointOverride != state.BackendEndpoint {
+		return nil, fmt.Errorf(
+			"runner %q is already running against %s\n"+
+				"  You are trying to connect to %s\n\n"+
+				"Stop the existing runner first:\n"+
+				"  stigmer down runner --name %s\n\n"+
+				"Or start a runner with a different name:\n"+
+				"  stigmer up --name <name>",
+			name, state.BackendEndpoint, opts.EndpointOverride, name,
+		)
+	}
+
+	return state, nil
 }
 
 func formatRelativeTime(t time.Time) string {
