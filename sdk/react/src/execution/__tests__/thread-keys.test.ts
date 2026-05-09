@@ -406,4 +406,105 @@ describe("buildThreadItems key generation", () => {
 
     expect(items[0].key).toBe("_e0-m0");
   });
+
+  describe("setup-progress indicator lifecycle", () => {
+    it("shows setup-progress during PENDING with no AI messages", () => {
+      const exec = makeExecution({
+        id: "exec-pending",
+        specMessage: "Hello",
+        phase: ExecutionPhase.EXECUTION_PENDING,
+      });
+
+      const items = buildThreadItems([], exec, null, false, undefined);
+      const setupItem = items.find((i) => i.kind === "setup-progress");
+
+      expect(setupItem).toBeDefined();
+      expect(setupItem!.key).toBe("setup-progress");
+      if (setupItem?.kind === "setup-progress") {
+        expect(setupItem.isAwaitingResponse).toBeFalsy();
+      }
+    });
+
+    it("shows setup-progress with isAwaitingResponse during IN_PROGRESS with no AI messages", () => {
+      const exec = makeExecution({
+        id: "exec-in-progress",
+        specMessage: "Hello",
+        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      });
+
+      const items = buildThreadItems([], exec, null, false, undefined);
+      const setupItem = items.find((i) => i.kind === "setup-progress");
+
+      expect(setupItem).toBeDefined();
+      expect(setupItem!.key).toBe("setup-progress");
+      if (setupItem?.kind === "setup-progress") {
+        expect(setupItem.isAwaitingResponse).toBe(true);
+      }
+    });
+
+    it("hides setup-progress once AI messages arrive during IN_PROGRESS", () => {
+      const exec = makeExecution({
+        id: "exec-streaming",
+        specMessage: "Hello",
+        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+        messages: [
+          makeMessage(MessageType.MESSAGE_AI, "Here's my response"),
+        ],
+      });
+
+      const items = buildThreadItems([], exec, null, false, undefined);
+      const setupItem = items.find((i) => i.kind === "setup-progress");
+
+      expect(setupItem).toBeUndefined();
+    });
+
+    it("hides setup-progress for terminal phases even without AI messages", () => {
+      const exec = makeExecution({
+        id: "exec-failed",
+        specMessage: "Hello",
+        phase: ExecutionPhase.EXECUTION_FAILED,
+      });
+
+      const items = buildThreadItems([], exec, null, false, undefined);
+      const setupItem = items.find((i) => i.kind === "setup-progress");
+
+      expect(setupItem).toBeUndefined();
+    });
+
+    it("does not show setup-progress for completed executions (not active stream)", () => {
+      const exec = makeExecution({
+        id: "exec-done",
+        specMessage: "Hello",
+        phase: ExecutionPhase.EXECUTION_PENDING,
+      });
+
+      const items = buildThreadItems([exec], null, null, false, undefined);
+      const setupItem = items.find((i) => i.kind === "setup-progress");
+
+      expect(setupItem).toBeUndefined();
+    });
+
+    it("preserves stable key across PENDING → IN_PROGRESS transition", () => {
+      const pendingExec = makeExecution({
+        id: "exec-transition",
+        specMessage: "Hello",
+        phase: ExecutionPhase.EXECUTION_PENDING,
+      });
+      const itemsPending = buildThreadItems([], pendingExec, null, false, undefined);
+
+      const inProgressExec = makeExecution({
+        id: "exec-transition",
+        specMessage: "Hello",
+        phase: ExecutionPhase.EXECUTION_IN_PROGRESS,
+      });
+      const itemsInProgress = buildThreadItems([], inProgressExec, null, false, undefined);
+
+      const pendingSetup = itemsPending.find((i) => i.kind === "setup-progress");
+      const inProgressSetup = itemsInProgress.find((i) => i.kind === "setup-progress");
+
+      expect(pendingSetup).toBeDefined();
+      expect(inProgressSetup).toBeDefined();
+      expect(pendingSetup!.key).toBe(inProgressSetup!.key);
+    });
+  });
 });
