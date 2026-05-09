@@ -68,9 +68,31 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-09 18:15
-**Current Task**: Task 2b COMPLETED — pick Task 6 or Task 3 next
-**Status**: Tasks 1, 5, 2a, and 2b complete. Proto foundation, session memory extraction, and continuation prompt builder all landed. Ready for service-side persistence (Task 6) or graceful resume-or-create (Task 3).
-**Tasks**: 8 tasks total (T1 ✅, T2a ✅, T2b ✅, T3, T4, T5 ✅, T6, T7)
+**Current Task**: Task 3 COMPLETED — pick Task 6 or Task 4 next
+**Status**: Tasks 1, 5, 2a, 2b, and 3 complete. Full client-side durability story landed: local agent store → session memory extraction → continuation prompt builder → graceful resume-or-create. Ready for server-side persistence (Task 6) or cloud agent path (Task 4).
+**Tasks**: 8 tasks total (T1 ✅, T2a ✅, T2b ✅, T3 ✅, T4, T5 ✅, T6, T7)
+
+## Session Progress (2026-05-09, Session 5)
+
+### Completed: Task 3 — Graceful Resume-or-Create Flow
+- **Rewritten `session-lifecycle.ts`** — `resolveAgent()` returns `AgentResolution` type; catches resume failures and gracefully falls back to fresh agent creation
+  - New `AgentResolution` interface: `agent`, `agentId`, `isNew`, `resumed`, `mode`, `reason`, `resumeFailureDetail?`
+  - New `AgentResolutionReason` union: `"created_first_execution" | "resumed_successfully" | "created_after_resume_failure"`
+  - Diagnostic logging on fallback: old agent ID, new agent ID, session ID, cwd, error message
+- **Modified `execute-cursor.ts`** — Phase 7/9/10 updated for new resolution type:
+  - Phase 7: Destructures `AgentResolution`, logs diagnostic context (mode, reason, resumed, agentId)
+  - Phase 9: Uses `resolution.isNew` / `resolution.agentId` for thread_id persistence
+  - Phase 10: New `buildPrompt()` helper selects between `buildEnhancedPrompt`, `buildContinuationPrompt`, `buildHitlContinuationPrompt`, `buildReinvocationPrompt`
+- **Rewritten `session-lifecycle.test.ts`** — 28 tests covering all resolution paths, graceful fallback scenarios, and diagnostic logging verification
+- **New `prompt-selection.test.ts`** — 13 tests covering all prompt routing scenarios with mocked prompt builders
+- All 353 cursor-runner tests pass
+- 3 files changed, 415 insertions, 78 deletions
+
+### Key Design Decisions (Task 3)
+- **DD: All resume errors are recoverable** — Network errors, auth failures, "Agent not found" all trigger graceful fallback. Only `createAgent` failures propagate as infrastructure errors.
+- **DD: Mode field starts as `"local"` only** — Ready for `| "cloud"` in Task 4. No dead code paths.
+- **DD: Continuation prompt on ALL subsequent turns with memory** — Even successful resumes benefit from memory context (agent may have been evicted from in-memory cache but still resumable from disk).
+- **DD: HITL takes precedence over continuation in prompt selection** — HITL reinvocation after agent death still routes to `buildHitlContinuationPrompt`, not generic continuation.
 
 ## Session Progress (2026-05-09, Session 4)
 
@@ -153,24 +175,25 @@ When starting a new session:
 
 **Now unblocked (parallelizable):**
 1. **Task 6: Session Memory Persistence (stigmer-service, Java)** — Extend `readSessionThreadId` to also return `session_memory` and `cursor_mode`. Add merge logic in `UpdateExecutionStatusActivity`.
-2. **Task 3: Graceful Resume-or-Create (cursor-runner, TS)** — Depends on Tasks 1 ✅ + 2a ✅ + 2b ✅. Change `resolveAgent()` to gracefully fall back to fresh agent + continuation prompt on resume failure.
+2. **Task 4: Cloud Agent Path (cursor-runner, TS)** — Depends on Task 3 ✅ + 5 ✅. Add `"cloud"` to `AgentResolution.mode`, feature-flagged cloud agent creation.
 
 **Then sequential:**
 3. **Task 7: Workflow Integration (Java)** — Depends on Task 6. Pass memory + mode to `ExecuteCursor` activity.
-4. **Task 4: Cloud Agent Path (TS)** — Depends on Task 3 + 5 ✅, feature-flagged.
 
 ## Context for Resume
 - stigmer-cloud has regenerated stubs but **no Java service code changes yet** — that's Task 6
 - The `PendingApprovalComputer` in Java server-side **recomputes** pending approvals from tool calls on every status write. The HITL diagnostic fields (agent_rationale, branch/sha at deny) will need to survive this recomputation — addressed in Task 6/7 implementation.
 - Existing `ExecuteCursorActivity` Java interface has 3 params (executionId, threadId, invokerIdentityAccountId) but TS runner only declares 2. Task 7 will extend both.
-- **Session memory extraction layer is complete** — `session-memory.ts` is wired into `execute-cursor.ts` Phase 14. The `persistSessionMemory` function does read-modify-write via existing `getSession`/`updateSession`. Task 6 will add proper server-side merge.
+- **Full client-side durability story is done** — session memory extraction (2a) → prompt builder (2b) → graceful fallback (3). The wire-up is complete: resolveAgent() catches failures, creates fresh agent, execute-cursor.ts selects the right prompt.
+- **`buildPrompt()` exported from execute-cursor.ts** — enables isolated testing. Decision matrix: HITL+memory → hitlContinuation; HITL → reinvocation; subsequent+memory → continuation; first → enhanced.
 - **Token budgets are enforced with char approximation** (~4 chars/token). If v2 adds LLM summarization, proper tokenization should be added then.
+- **`AgentResolution.mode` is "local" only** — Task 4 extends to `| "cloud"`. No dead code paths committed.
 
 ## Quick Commands
 
 After loading context:
 - "Continue with Task 6" - Start session memory persistence in Java
-- "Continue with Task 2b" - Start continuation prompt builder in TS
+- "Continue with Task 4" - Start cloud agent path in TS
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 

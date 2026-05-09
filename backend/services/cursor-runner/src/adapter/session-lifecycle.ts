@@ -3,7 +3,8 @@
  *
  * SessionSpec.thread_id stores the Cursor agentId. This module handles
  * creating new agents (first execution), resuming existing agents
- * (subsequent executions), and cleaning up agents (session deletion).
+ * (subsequent executions), graceful fallback on resume failure, and
+ * cleaning up agents (session deletion).
  *
  * Key SDK limitation: mcpServers are NOT persisted across Agent.resume().
  * They must be passed again on every resume call.
@@ -14,6 +15,12 @@
  * fail with "Agent not found". We pass explicit platform.workspaceRef and
  * platform.stateRoot derived from the Stigmer sessionId to ensure
  * deterministic store lookup regardless of process.cwd().
+ *
+ * Durability model: When Agent.resume() fails (agent expired, deleted, or
+ * Cursor service error), this module creates a fresh agent instead of
+ * propagating the error. The caller receives a reason discriminant that
+ * triggers injection of a continuation prompt built from persisted
+ * SessionMemory — making the conversation durable across agent evictions.
  */
 
 import { mkdirSync } from "node:fs";
@@ -24,7 +31,15 @@ import { Agent } from "@cursor/sdk";
 import type { SDKAgent, CursorAgentPlatformOptions } from "@cursor/sdk";
 import type { CursorMcpServerConfig } from "./mcp-resolver.js";
 
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
 const CURSOR_SDK_STATE_DIR = ".stigmer/cursor-sdk-state";
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
 
 export interface CreateAgentOptions {
   apiKey: string;
@@ -41,6 +56,39 @@ export interface ResumeAgentOptions {
   model?: string;
   mcpServers?: Record<string, CursorMcpServerConfig>;
 }
+
+/**
+ * Discriminated reason explaining how the agent was resolved.
+ *
+ * Drives prompt selection in execute-cursor.ts:
+ * - created_first_execution: first turn, no prior memory -> buildEnhancedPrompt
+ * - resumed_successfully: subsequent turn, agent alive -> buildContinuationPrompt
+ * - created_after_resume_failure: agent died, fallback -> buildContinuationPrompt
+ */
+export type AgentResolutionReason =
+  | "created_first_execution"
+  | "resumed_successfully"
+  | "created_after_resume_failure";
+
+/**
+ * Result of resolveAgent() — carries the agent handle plus metadata that
+ * downstream phases use for prompt selection, thread_id persistence, and
+ * diagnostic logging.
+ */
+export interface AgentResolution {
+  agent: SDKAgent;
+  agentId: string;
+  isNew: boolean;
+  resumed: boolean;
+  mode: "local";
+  reason: AgentResolutionReason;
+  /** Non-empty only when reason is "created_after_resume_failure". */
+  resumeFailureDetail?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Public functions
+// ---------------------------------------------------------------------------
 
 /**
  * Compute deterministic platform options from a Stigmer sessionId.
@@ -91,9 +139,8 @@ export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent
 /**
  * Resume an existing Cursor Agent for subsequent executions.
  *
- * If the agent is not found (expired, deleted on Cursor's side), this
- * throws. The caller must NOT silently create a new agent — that would
- * lose conversation context without any indication to the user.
+ * Throws on failure — the caller (resolveAgent) decides whether to
+ * propagate or fall back to a fresh agent with continuation context.
  */
 export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent> {
   const platform = resolvePlatformOptions(options.sessionId);
@@ -112,19 +159,27 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent
 }
 
 /**
- * Resolve agent: resume if threadId exists, create if first execution.
+ * Resolve a Cursor Agent for execution: resume if possible, create with
+ * graceful fallback if resume fails.
  *
- * When threadId is non-empty (subsequent execution), the agent MUST be
- * resumed successfully. If resume fails (agent expired, deleted, or
- * Cursor service error), the error propagates — creating a new agent
- * would silently discard the entire conversation history.
+ * When threadId is non-empty (subsequent execution):
+ *   1. Attempt Agent.resume with platform options.
+ *   2. On success: return { resumed: true, reason: "resumed_successfully" }.
+ *   3. On failure: log warning, create a fresh agent, return
+ *      { resumed: false, reason: "created_after_resume_failure" }.
+ *      The caller injects a continuation prompt from SessionMemory so
+ *      the fresh agent inherits conversational context.
  *
- * When threadId is empty (first execution), a new agent is created.
+ * When threadId is empty (first execution):
+ *   Create a new agent; return { reason: "created_first_execution" }.
+ *
+ * Agent creation failures always propagate — if we cannot create an agent
+ * at all, that is an unrecoverable infrastructure error.
  */
 export async function resolveAgent(
   threadId: string,
   createOptions: CreateAgentOptions,
-): Promise<{ agent: SDKAgent; isNew: boolean }> {
+): Promise<AgentResolution> {
   if (threadId) {
     try {
       const agent = await resumeAgent({
@@ -134,20 +189,51 @@ export async function resolveAgent(
         model: createOptions.model,
         mcpServers: createOptions.mcpServers,
       });
-      return { agent, isNew: false };
+      return {
+        agent,
+        agentId: agent.agentId,
+        isNew: false,
+        resumed: true,
+        mode: "local",
+        reason: "resumed_successfully",
+      };
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
-      throw new Error(
-        `Failed to resume Cursor agent "${threadId}" for this session. ` +
-        `The agent may have expired or been deleted on Cursor's side. ` +
-        `Please start a new session to continue. ` +
-        `Original error: ${detail}`,
+      console.warn(
+        `resolveAgent: resume failed for agent "${threadId}", ` +
+        `creating fresh agent with continuation context. ` +
+        `sessionId=${createOptions.sessionId}, process.cwd=${process.cwd()}, ` +
+        `error: ${detail}`,
       );
+
+      const agent = await createAgent(createOptions);
+      console.log(
+        `resolveAgent: fallback agent created. ` +
+        `oldAgentId=${threadId}, newAgentId=${agent.agentId}, ` +
+        `sessionId=${createOptions.sessionId}`,
+      );
+
+      return {
+        agent,
+        agentId: agent.agentId,
+        isNew: true,
+        resumed: false,
+        mode: "local",
+        reason: "created_after_resume_failure",
+        resumeFailureDetail: detail,
+      };
     }
   }
 
   const agent = await createAgent(createOptions);
-  return { agent, isNew: true };
+  return {
+    agent,
+    agentId: agent.agentId,
+    isNew: true,
+    resumed: false,
+    mode: "local",
+    reason: "created_first_execution",
+  };
 }
 
 /**

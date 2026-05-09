@@ -16,6 +16,14 @@
  * Cursor Agent and prompts it to execute the approved tool.
  *
  * This is identical to the LangGraph flow from the workflow's perspective.
+ *
+ * Durable Continuation Model:
+ * When Agent.resume() fails (agent expired or evicted), resolveAgent()
+ * gracefully creates a fresh agent. The prompt selection logic detects
+ * the resolution reason and injects a continuation prompt built from
+ * persisted SessionMemory, making the conversation durable across
+ * agent evictions. Local mode always uses continuation prompts on
+ * subsequent executions because local SDK context loading is unreliable.
  */
 
 import { heartbeat } from "@temporalio/activity";
@@ -32,6 +40,7 @@ import type { SDKMessage } from "@cursor/sdk";
 import type { Config } from "../config.js";
 import { StigmerClient } from "../client/stigmer-client.js";
 import { resolveAgent } from "../adapter/session-lifecycle.js";
+import type { AgentResolution } from "../adapter/session-lifecycle.js";
 import { MessageAccumulator, extractDeniedToolCalls, utcTimestamp } from "../adapter/message-translator.js";
 import { DeltaEnricher } from "../adapter/delta-enricher.js";
 import { TodoTracker } from "../adapter/todo-tracker.js";
@@ -40,12 +49,13 @@ import { resolveBlueprint } from "../adapter/blueprint-resolver.js";
 import { resolveSkills } from "../adapter/skill-resolver.js";
 import { resolveAttachments } from "../adapter/attachment-resolver.js";
 import { buildEnhancedPrompt, buildReinvocationPrompt } from "../adapter/prompt-builder.js";
+import { buildContinuationPrompt, buildHitlContinuationPrompt } from "../adapter/continuation-prompt.js";
+import { extractAgentRationale, getGitBranch, getGitHeadSha } from "../adapter/continuation-prompt.js";
 import { writeHooksToWorkspace } from "../hitl/workspace-setup.js";
 import { buildApprovalState } from "../hitl/approval-state.js";
 import { setInterceptorExecutionId } from "../proxy/fetch-interceptor.js";
 import { resolveModelId } from "../adapter/model-pricing.js";
 import { buildSessionMemory, persistSessionMemory } from "../adapter/session-memory.js";
-import { extractAgentRationale, getGitBranch, getGitHeadSha } from "../adapter/continuation-prompt.js";
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -163,9 +173,9 @@ async function executeCursor(
     }
     heartbeat();
 
-    // Phase 7: Resolve Cursor Agent (create or resume)
+    // Phase 7: Resolve Cursor Agent (create, resume, or graceful fallback)
     await reportSetupProgress(client, executionId, "Initializing Cursor agent");
-    const { agent, isNew } = await resolveAgent(threadId, {
+    const resolution: AgentResolution = await resolveAgent(threadId, {
       apiKey: config.cursorApiKey,
       model: validatedModel,
       workspaceDirs: blueprint.workspaceDirs,
@@ -173,36 +183,45 @@ async function executeCursor(
       mcpServers: mcpConfig,
     });
 
+    console.log(
+      `ExecuteCursor agent resolved: execution=${executionId}, ` +
+      `reason=${resolution.reason}, mode=${resolution.mode}, ` +
+      `agentId=${resolution.agentId}, resumed=${resolution.resumed}` +
+      (resolution.resumeFailureDetail ? `, failureDetail=${resolution.resumeFailureDetail}` : ""),
+    );
+
     // Phase 8: Write hooks for HITL
     const approvalState = buildApprovalState(approvalDecisions);
     await writeHooksToWorkspace(primaryWorkspaceDir, approvalState);
 
     // Phase 9: Store new agentId as thread_id if this is a new agent
-    if (isNew && agent.agentId) {
+    if (resolution.isNew && resolution.agentId) {
       try {
-        blueprint.sessionSpec.threadId = agent.agentId;
+        blueprint.sessionSpec.threadId = resolution.agentId;
         await client.updateSession(blueprint.session);
-        console.log(`Stored Cursor agentId=${agent.agentId} as thread_id on session ${sessionId}`);
+        console.log(`Stored Cursor agentId=${resolution.agentId} as thread_id on session ${sessionId}`);
       } catch (err) {
         console.warn("Failed to persist thread_id on session (non-fatal):", err);
       }
     }
 
     // Phase 10: Build the prompt
-    let prompt: string;
-    if (isReinvocation && approvalDecisions?.size) {
-      prompt = buildReinvocationPrompt(approvalDecisions);
-    } else {
-      prompt = buildEnhancedPrompt({
-        instructions: blueprint.instructions,
-        userMessage: spec.message,
-        skills: skillMetadata,
-        subAgents: blueprint.subAgents,
-        workspaceDirs: blueprint.workspaceDirs,
-        workspaceFileRefs: spec.workspaceFileRefs ?? [],
-        attachmentPaths,
-      });
-    }
+    const sessionMemory = session?.status?.sessionMemory;
+    const prompt = buildPrompt({
+      resolution,
+      approvalDecisions,
+      sessionMemory,
+      instructions: blueprint.instructions,
+      userMessage: spec.message,
+      skills: skillMetadata,
+      subAgents: blueprint.subAgents,
+      workspaceDirs: blueprint.workspaceDirs,
+      workspaceFileRefs: spec.workspaceFileRefs ?? [],
+      attachmentPaths,
+      pendingApprovals: status.pendingApprovals.length > 0
+        ? status.pendingApprovals
+        : (execution.status?.pendingApprovals ?? []),
+    });
 
     // Phase 11: Send message and stream events
     status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
@@ -213,7 +232,7 @@ async function executeCursor(
 
     let platformStopSignaled = false;
 
-    const run = await agent.send(prompt, {
+    const run = await resolution.agent.send(prompt, {
       onDelta: ({ update }) => {
         if (update.type === "turn-ended" && update.usage) {
         }
@@ -381,6 +400,99 @@ async function executeCursor(
     return slimStatus(status);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Prompt selection
+// ---------------------------------------------------------------------------
+
+export interface BuildPromptInput {
+  resolution: AgentResolution;
+  approvalDecisions: Map<string, ApprovalAction> | undefined;
+  sessionMemory: import("@stigmer/protos/ai/stigmer/agentic/session/v1/memory_pb").SessionMemory | undefined;
+  instructions: string;
+  userMessage: string;
+  skills: import("../adapter/prompt-builder.js").SkillMetadata[];
+  subAgents: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent[];
+  workspaceDirs: string[];
+  workspaceFileRefs: string[];
+  attachmentPaths: string[];
+  pendingApprovals: import("@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb").PendingApproval[];
+}
+
+/**
+ * Select and build the appropriate prompt based on resolution reason,
+ * HITL state, and available session memory.
+ *
+ * Decision matrix:
+ * 1. HITL reinvocation + session memory -> buildHitlContinuationPrompt
+ * 2. HITL reinvocation + no memory     -> buildReinvocationPrompt (legacy)
+ * 3. First execution (no memory)       -> buildEnhancedPrompt
+ * 4. Subsequent execution (has memory) -> buildContinuationPrompt
+ *
+ * "Subsequent execution" means reason is "resumed_successfully" or
+ * "created_after_resume_failure" — both indicate prior turns exist and
+ * session memory should be available.
+ */
+export function buildPrompt(input: BuildPromptInput): string {
+  const {
+    resolution,
+    approvalDecisions,
+    sessionMemory,
+    instructions,
+    userMessage,
+    skills,
+    subAgents,
+    workspaceDirs,
+    workspaceFileRefs,
+    attachmentPaths,
+    pendingApprovals,
+  } = input;
+
+  const isHitlReinvocation = approvalDecisions !== undefined && approvalDecisions.size > 0;
+
+  if (isHitlReinvocation && sessionMemory) {
+    return buildHitlContinuationPrompt({
+      instructions,
+      skills,
+      subAgents,
+      workspaceDirs,
+      sessionMemory,
+      pendingApprovals,
+      approvalDecisions,
+    });
+  }
+
+  if (isHitlReinvocation) {
+    return buildReinvocationPrompt(approvalDecisions);
+  }
+
+  if (resolution.reason !== "created_first_execution" && sessionMemory) {
+    return buildContinuationPrompt({
+      instructions,
+      skills,
+      subAgents,
+      workspaceDirs,
+      workspaceFileRefs,
+      attachmentPaths,
+      sessionMemory,
+      userMessage,
+    });
+  }
+
+  return buildEnhancedPrompt({
+    instructions,
+    userMessage,
+    skills,
+    subAgents,
+    workspaceDirs,
+    workspaceFileRefs,
+    attachmentPaths,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 /**
  * Build and persist session memory if the execution is in a terminal phase.
