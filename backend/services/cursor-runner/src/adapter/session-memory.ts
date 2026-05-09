@@ -27,7 +27,6 @@ import {
   ToolObservationSchema,
   ConversationTurnSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/session/v1/memory_pb";
-import { SessionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type {
   SessionMemory,
   ToolObservation,
@@ -359,15 +358,15 @@ export function buildSessionMemory(options: BuildSessionMemoryOptions): SessionM
 // ---------------------------------------------------------------------------
 
 /**
- * Persist session memory to the session status via read-modify-write.
+ * Persist session memory via the atomic updateSessionMemory RPC.
  *
- * Uses the same best-effort pattern as thread_id persistence: reads a
- * fresh session, sets the memory field, and writes it back. Errors are
- * logged and swallowed — memory loss is acceptable (next execution will
- * rebuild from whatever is available), but execution failure is not.
+ * This uses a dedicated field-level update that atomically sets only
+ * status.session_memory on the server — no read-before-write, no race
+ * with concurrent subject generation or thread_id writes.
  *
- * Task 6 will add a proper server-side merge endpoint to replace this
- * read-modify-write with an atomic field-level update.
+ * Errors are logged and swallowed — memory loss is acceptable (next
+ * execution will rebuild from whatever is available), but execution
+ * failure is not.
  */
 export async function persistSessionMemory(
   client: StigmerClient,
@@ -375,12 +374,7 @@ export async function persistSessionMemory(
   memory: SessionMemory,
 ): Promise<void> {
   try {
-    const session = await client.getSession(sessionId);
-    const status = session.status ?? create(SessionStatusSchema, {});
-    status.sessionMemory = memory;
-    session.status = status;
-
-    await client.updateSession(session);
+    await client.updateSessionMemory(sessionId, memory);
     console.log(
       `Session memory persisted: session=${sessionId}, ` +
       `turns=${memory.recentTurns.length}, ` +
@@ -394,7 +388,6 @@ export async function persistSessionMemory(
     );
   }
 }
-
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------

@@ -139,6 +139,37 @@ public final class SessionCommandControllerGrpc {
     return getUpdateSubjectMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest,
+      ai.stigmer.agentic.session.v1.Session> getUpdateSessionMemoryMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateSessionMemory",
+      requestType = ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest.class,
+      responseType = ai.stigmer.agentic.session.v1.Session.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest,
+      ai.stigmer.agentic.session.v1.Session> getUpdateSessionMemoryMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest, ai.stigmer.agentic.session.v1.Session> getUpdateSessionMemoryMethod;
+    if ((getUpdateSessionMemoryMethod = SessionCommandControllerGrpc.getUpdateSessionMemoryMethod) == null) {
+      synchronized (SessionCommandControllerGrpc.class) {
+        if ((getUpdateSessionMemoryMethod = SessionCommandControllerGrpc.getUpdateSessionMemoryMethod) == null) {
+          SessionCommandControllerGrpc.getUpdateSessionMemoryMethod = getUpdateSessionMemoryMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest, ai.stigmer.agentic.session.v1.Session>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateSessionMemory"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.Session.getDefaultInstance()))
+              .setSchemaDescriptor(new SessionCommandControllerMethodDescriptorSupplier("updateSessionMemory"))
+              .build();
+        }
+      }
+    }
+    return getUpdateSessionMemoryMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.SessionId,
       ai.stigmer.agentic.session.v1.Session> getDeleteMethod;
 
@@ -289,6 +320,21 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Persist session memory after execution.
+     * Atomically updates only status.session_memory, leaving all other
+     * session fields untouched. Called by the cursor-runner after each
+     * completed execution turn.
+     * &#64;internal
+     * Server-side field-level update, race-safe. No full-document replace.
+     * </pre>
+     */
+    default void updateSessionMemory(ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateSessionMemoryMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a session.
      * &#64;internal
      * Restricted to platform operators to preserve the billing and audit trail.
@@ -391,6 +437,22 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Persist session memory after execution.
+     * Atomically updates only status.session_memory, leaving all other
+     * session fields untouched. Called by the cursor-runner after each
+     * completed execution turn.
+     * &#64;internal
+     * Server-side field-level update, race-safe. No full-document replace.
+     * </pre>
+     */
+    public void updateSessionMemory(ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateSessionMemoryMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a session.
      * &#64;internal
      * Restricted to platform operators to preserve the billing and audit trail.
@@ -476,6 +538,21 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Persist session memory after execution.
+     * Atomically updates only status.session_memory, leaving all other
+     * session fields untouched. Called by the cursor-runner after each
+     * completed execution turn.
+     * &#64;internal
+     * Server-side field-level update, race-safe. No full-document replace.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.Session updateSessionMemory(ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateSessionMemoryMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete a session.
      * &#64;internal
      * Restricted to platform operators to preserve the billing and audit trail.
@@ -556,6 +633,21 @@ public final class SessionCommandControllerGrpc {
     public ai.stigmer.agentic.session.v1.Session updateSubject(ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateSubjectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Persist session memory after execution.
+     * Atomically updates only status.session_memory, leaving all other
+     * session fields untouched. Called by the cursor-runner after each
+     * completed execution turn.
+     * &#64;internal
+     * Server-side field-level update, race-safe. No full-document replace.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.Session updateSessionMemory(ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateSessionMemoryMethod(), getCallOptions(), request);
     }
 
     /**
@@ -648,6 +740,22 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Persist session memory after execution.
+     * Atomically updates only status.session_memory, leaving all other
+     * session fields untouched. Called by the cursor-runner after each
+     * completed execution turn.
+     * &#64;internal
+     * Server-side field-level update, race-safe. No full-document replace.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.Session> updateSessionMemory(
+        ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateSessionMemoryMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Delete a session.
      * &#64;internal
      * Restricted to platform operators to preserve the billing and audit trail.
@@ -665,7 +773,8 @@ public final class SessionCommandControllerGrpc {
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_UPDATE_SUBJECT = 3;
-  private static final int METHODID_DELETE = 4;
+  private static final int METHODID_UPDATE_SESSION_MEMORY = 4;
+  private static final int METHODID_DELETE = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -698,6 +807,10 @@ public final class SessionCommandControllerGrpc {
           break;
         case METHODID_UPDATE_SUBJECT:
           serviceImpl.updateSubject((ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session>) responseObserver);
+          break;
+        case METHODID_UPDATE_SESSION_MEMORY:
+          serviceImpl.updateSessionMemory((ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -750,6 +863,13 @@ public final class SessionCommandControllerGrpc {
               ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest,
               ai.stigmer.agentic.session.v1.Session>(
                 service, METHODID_UPDATE_SUBJECT)))
+        .addMethod(
+          getUpdateSessionMemoryMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest,
+              ai.stigmer.agentic.session.v1.Session>(
+                service, METHODID_UPDATE_SESSION_MEMORY)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -809,6 +929,7 @@ public final class SessionCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getUpdateSubjectMethod())
+              .addMethod(getUpdateSessionMemoryMethod())
               .addMethod(getDeleteMethod())
               .build();
         }

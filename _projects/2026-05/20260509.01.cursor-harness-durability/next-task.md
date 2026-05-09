@@ -68,9 +68,27 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-09 18:15
-**Current Task**: Task 3 COMPLETED — pick Task 6 or Task 4 next
-**Status**: Tasks 1, 5, 2a, 2b, and 3 complete. Full client-side durability story landed: local agent store → session memory extraction → continuation prompt builder → graceful resume-or-create. Ready for server-side persistence (Task 6) or cloud agent path (Task 4).
-**Tasks**: 8 tasks total (T1 ✅, T2a ✅, T2b ✅, T3 ✅, T4, T5 ✅, T6, T7)
+**Current Task**: Task 6 COMPLETED — pick Task 4 or Task 7 next
+**Status**: Tasks 1, 5, 2a, 2b, 3, and 6 complete. Full durability story landed end-to-end: client-side extraction + continuation prompts + graceful fallback + server-side atomic persistence. Ready for cloud agent path (Task 4) or workflow integration (Task 7).
+**Tasks**: 8 tasks total (T1 ✅, T2a ✅, T2b ✅, T3 ✅, T4, T5 ✅, T6 ✅, T7)
+
+## Session Progress (2026-05-09, Session 6)
+
+### Completed: Task 6 — Session Memory Persistence
+- **Proto contract** — Added `UpdateSessionMemoryRequest` message to `io.proto` + `updateSessionMemory` RPC to `SessionCommandController` in `command.proto`. Ran codegen in both repos.
+- **Java handler** — `SessionUpdateMemoryHandler.java` — pipeline: ValidateFieldConstraints → Authorize → LoadAndSetMemory → SendResponse. Atomically sets `status.session_memory` and bumps `status_audit.updated_at`. Follows the `updateSubject` handler pattern exactly.
+- **SessionContext DTO** — `SessionContext.java` record: `(threadId, sessionMemory, cursorMode)`. Carries everything the workflow needs in a single DB read.
+- **Activity methods** — Added `readSessionContext(sessionId)` and `updateSessionMemory(sessionId, memory)` to `UpdateExecutionStatusActivity` interface + impl. `readSessionContext` extracts threadId + memory + cursorMode in one query. `updateSessionMemory` uses `JsonFormat` + `$set` via `updateFields` for atomic field-level persistence.
+- **Cursor-runner migration** — `persistSessionMemory` rewritten from `getSession → set memory → updateSession` to a single `updateSessionMemory(id, memory)` call. No more read-before-write, no race condition.
+- **Tests** — `UpdateExecutionStatusActivitySessionTest.java` (10 tests), `SessionUpdateMemoryHandlerTest.java` (5 tests), updated `session-memory.test.ts` (all 349 cursor-runner tests pass)
+- Files changed: 2 protos + all regenerated stubs + 3 new Java files + 2 modified Java files + 2 new Java test files + 3 TS files
+
+### Key Design Decisions (Task 6)
+- **DD: Dedicated RPC, not full-document replace** — Eliminates the lost-update race between memory persistence, subject generation, and thread_id writes. Each concern gets its own RPC with atomic semantics.
+- **DD: Full replacement semantics on session_memory** — The runner builds the complete `SessionMemory` each time (incorporating previous via FIFO/append). Server does wholesale replace — no field-level merge needed.
+- **DD: Activity method mirrors the RPC** — Gives the workflow a local-activity path for server-side use (Task 7) with same semantics. Different caller, same atomic write.
+- **DD: readSessionContext returns everything in one read** — threadId + memory + cursorMode. No separate calls. Single DB query, single return. Task 7 migrates from `readSessionThreadId` to this.
+- **DD: cursorMode as int in SessionContext** — Proto enums serialize as numeric values in Temporal's Jackson converter. Using int avoids cross-language deserialization issues.
 
 ## Session Progress (2026-05-09, Session 5)
 
@@ -174,19 +192,16 @@ When starting a new session:
 ## Next Steps
 
 **Now unblocked (parallelizable):**
-1. **Task 6: Session Memory Persistence (stigmer-service, Java)** — Extend `readSessionThreadId` to also return `session_memory` and `cursor_mode`. Add merge logic in `UpdateExecutionStatusActivity`.
-2. **Task 4: Cloud Agent Path (cursor-runner, TS)** — Depends on Task 3 ✅ + 5 ✅. Add `"cloud"` to `AgentResolution.mode`, feature-flagged cloud agent creation.
-
-**Then sequential:**
-3. **Task 7: Workflow Integration (Java)** — Depends on Task 6. Pass memory + mode to `ExecuteCursor` activity.
+1. **Task 4: Cloud Agent Path (cursor-runner, TS)** — Depends on Task 3 ✅ + 5 ✅. Add `"cloud"` to `AgentResolution.mode`, feature-flagged cloud agent creation.
+2. **Task 7: Workflow Integration (Java)** — Depends on Task 6 ✅. Pass memory + mode to `ExecuteCursor` activity via `readSessionContext`. Wire continuation prompt selection into the workflow.
 
 ## Context for Resume
-- stigmer-cloud has regenerated stubs but **no Java service code changes yet** — that's Task 6
-- The `PendingApprovalComputer` in Java server-side **recomputes** pending approvals from tool calls on every status write. The HITL diagnostic fields (agent_rationale, branch/sha at deny) will need to survive this recomputation — addressed in Task 6/7 implementation.
-- Existing `ExecuteCursorActivity` Java interface has 3 params (executionId, threadId, invokerIdentityAccountId) but TS runner only declares 2. Task 7 will extend both.
-- **Full client-side durability story is done** — session memory extraction (2a) → prompt builder (2b) → graceful fallback (3). The wire-up is complete: resolveAgent() catches failures, creates fresh agent, execute-cursor.ts selects the right prompt.
-- **`buildPrompt()` exported from execute-cursor.ts** — enables isolated testing. Decision matrix: HITL+memory → hitlContinuation; HITL → reinvocation; subsequent+memory → continuation; first → enhanced.
-- **Token budgets are enforced with char approximation** (~4 chars/token). If v2 adds LLM summarization, proper tokenization should be added then.
+- **Task 6 is fully implemented in both repos** — proto + codegen + handler + activities + cursor-runner migration. stigmer-cloud has the new handler + activities. stigmer OSS has the migrated cursor-runner.
+- The `PendingApprovalComputer` in Java server-side **recomputes** pending approvals from tool calls on every status write. The HITL diagnostic fields (agent_rationale, branch/sha at deny) will need to survive this recomputation — addressed in Task 7 implementation.
+- Existing `ExecuteCursorActivity` Java interface has 3 params (executionId, threadId, invokerIdentityAccountId) but TS runner only declares 2. Task 7 will extend both to pass `SessionContext`.
+- **Full end-to-end durability story is done** — extraction (2a) → prompt builder (2b) → graceful fallback (3) → atomic server-side persistence (6). The only gap is workflow-level wiring (Task 7) to pass context to the activity.
+- **`readSessionContext` replaces `readSessionThreadId`** for Task 7 — but `readSessionThreadId` is preserved for backward compatibility with in-flight workflows.
+- **Two write paths for session memory** — RPC (cursor-runner direct) and Activity (workflow-internal). Both use atomic `$set`. Task 7 decides if the activity path is needed or if the RPC path from cursor-runner is sufficient.
 - **`AgentResolution.mode` is "local" only** — Task 4 extends to `| "cloud"`. No dead code paths committed.
 
 ## Quick Commands

@@ -56,6 +56,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_session_v1_UpdateSessionSubjectRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_session_v1_UpdateSessionMemoryRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_session_v1_UpdateSessionMemoryRequest_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -67,30 +72,36 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n&ai/stigmer/agentic/session/v1/io.proto" +
       "\022\035ai.stigmer.agentic.session.v1\032\'ai/stig" +
-      "mer/agentic/session/v1/api.proto\032\033buf/va" +
-      "lidate/validate.proto\")\n\tSessionId\022\034\n\005va" +
-      "lue\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\'\n\007AgentId\022\034\n\005v" +
-      "alue\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"p\n\013SessionList" +
-      "\022\037\n\013total_pages\030\001 \001(\005R\ntotalPages\022@\n\007ent" +
-      "ries\030\002 \003(\0132&.ai.stigmer.agentic.session." +
-      "v1.SessionR\007entries\"e\n\023ListSessionsReque" +
-      "st\022\033\n\tpage_size\030\001 \001(\005R\010pageSize\022\035\n\npage_" +
-      "token\030\002 \001(\tR\tpageToken\022\022\n\004tags\030\003 \003(\tR\004ta" +
-      "gs\"{\n\032ListSessionsByAgentRequest\022!\n\010agen" +
-      "t_id\030\001 \001(\tB\006\272H\003\310\001\001R\007agentId\022\033\n\tpage_size" +
-      "\030\002 \001(\005R\010pageSize\022\035\n\npage_token\030\003 \001(\tR\tpa" +
-      "geToken\"O\n\033UpdateSessionSubjectRequest\022\026" +
-      "\n\002id\030\001 \001(\tB\006\272H\003\310\001\001R\002id\022\030\n\007subject\030\002 \001(\tR" +
-      "\007subjectB\242\001B\007IoProtoP\001\242\002\004ASAS\252\002\035Ai.Stigm" +
-      "er.Agentic.Session.V1\312\002\035Ai\\Stigmer\\Agent" +
-      "ic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Sessi" +
-      "on\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agentic" +
-      "::Session::V1b\006proto3"
+      "mer/agentic/session/v1/api.proto\032*ai/sti" +
+      "gmer/agentic/session/v1/memory.proto\032\033bu" +
+      "f/validate/validate.proto\")\n\tSessionId\022\034" +
+      "\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\'\n\007AgentId\022" +
+      "\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"p\n\013Session" +
+      "List\022\037\n\013total_pages\030\001 \001(\005R\ntotalPages\022@\n" +
+      "\007entries\030\002 \003(\0132&.ai.stigmer.agentic.sess" +
+      "ion.v1.SessionR\007entries\"e\n\023ListSessionsR" +
+      "equest\022\033\n\tpage_size\030\001 \001(\005R\010pageSize\022\035\n\np" +
+      "age_token\030\002 \001(\tR\tpageToken\022\022\n\004tags\030\003 \003(\t" +
+      "R\004tags\"{\n\032ListSessionsByAgentRequest\022!\n\010" +
+      "agent_id\030\001 \001(\tB\006\272H\003\310\001\001R\007agentId\022\033\n\tpage_" +
+      "size\030\002 \001(\005R\010pageSize\022\035\n\npage_token\030\003 \001(\t" +
+      "R\tpageToken\"O\n\033UpdateSessionSubjectReque" +
+      "st\022\026\n\002id\030\001 \001(\tB\006\272H\003\310\001\001R\002id\022\030\n\007subject\030\002 " +
+      "\001(\tR\007subject\"\211\001\n\032UpdateSessionMemoryRequ" +
+      "est\022\026\n\002id\030\001 \001(\tB\006\272H\003\310\001\001R\002id\022S\n\016session_m" +
+      "emory\030\002 \001(\0132,.ai.stigmer.agentic.session" +
+      ".v1.SessionMemoryR\rsessionMemoryB\242\001B\007IoP" +
+      "rotoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Sessi" +
+      "on.V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002)" +
+      "Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadat" +
+      "a\352\002!Ai::Stigmer::Agentic::Session::V1b\006p" +
+      "roto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.session.v1.ApiProto.getDescriptor(),
+          ai.stigmer.agentic.session.v1.MemoryProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_session_v1_SessionId_descriptor =
@@ -129,8 +140,15 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_UpdateSessionSubjectRequest_descriptor,
         new java.lang.String[] { "Id", "Subject", });
+    internal_static_ai_stigmer_agentic_session_v1_UpdateSessionMemoryRequest_descriptor =
+      getDescriptor().getMessageType(6);
+    internal_static_ai_stigmer_agentic_session_v1_UpdateSessionMemoryRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_session_v1_UpdateSessionMemoryRequest_descriptor,
+        new java.lang.String[] { "Id", "SessionMemory", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.session.v1.ApiProto.getDescriptor();
+    ai.stigmer.agentic.session.v1.MemoryProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();

@@ -9,6 +9,7 @@ import ai.stigmer.agentic.session.v1.SessionCommandControllerGrpc;
 import ai.stigmer.agentic.session.v1.SessionId;
 import ai.stigmer.agentic.session.v1.SessionList;
 import ai.stigmer.agentic.session.v1.SessionQueryControllerGrpc;
+import ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest;
 import ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
@@ -44,6 +45,12 @@ public final class SessionClient {
     public Session updateSubject(UpdateSessionSubjectRequest input) {
         try {
             return command.updateSubject(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public Session updateSessionMemory(UpdateSessionMemoryRequest input) {
+        try {
+            return command.updateSessionMemory(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

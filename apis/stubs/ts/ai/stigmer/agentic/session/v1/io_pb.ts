@@ -6,6 +6,8 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { Session } from "./api_pb.js";
 import { file_ai_stigmer_agentic_session_v1_api } from "./api_pb.js";
+import type { SessionMemory } from "./memory_pb.js";
+import { file_ai_stigmer_agentic_session_v1_memory } from "./memory_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -13,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIlsKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIkoKE0xpc3RTZXNzaW9uc1JlcXVlc3QSEQoJcGFnZV9zaXplGAEgASgFEhIKCnBhZ2VfdG9rZW4YAiABKAkSDAoEdGFncxgDIAMoCSJdChpMaXN0U2Vzc2lvbnNCeUFnZW50UmVxdWVzdBIYCghhZ2VudF9pZBgBIAEoCUIGukgDyAEBEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIkIKG1VwZGF0ZVNlc3Npb25TdWJqZWN0UmVxdWVzdBISCgJpZBgBIAEoCUIGukgDyAEBEg8KB3N1YmplY3QYAiABKAliBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_api, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIlsKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIkoKE0xpc3RTZXNzaW9uc1JlcXVlc3QSEQoJcGFnZV9zaXplGAEgASgFEhIKCnBhZ2VfdG9rZW4YAiABKAkSDAoEdGFncxgDIAMoCSJdChpMaXN0U2Vzc2lvbnNCeUFnZW50UmVxdWVzdBIYCghhZ2VudF9pZBgBIAEoCUIGukgDyAEBEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIkIKG1VwZGF0ZVNlc3Npb25TdWJqZWN0UmVxdWVzdBISCgJpZBgBIAEoCUIGukgDyAEBEg8KB3N1YmplY3QYAiABKAkidgoaVXBkYXRlU2Vzc2lvbk1lbW9yeVJlcXVlc3QSEgoCaWQYASABKAlCBrpIA8gBARJECg5zZXNzaW9uX21lbW9yeRgCIAEoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25NZW1vcnliBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_memory, file_buf_validate_validate]);
 
 /**
  * SessionId wraps a session identifier.
@@ -183,4 +185,40 @@ export type UpdateSessionSubjectRequest = Message<"ai.stigmer.agentic.session.v1
  */
 export const UpdateSessionSubjectRequestSchema: GenMessage<UpdateSessionSubjectRequest> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_session_v1_io, 5);
+
+/**
+ * UpdateSessionMemoryRequest persists durable session memory after each
+ * completed execution turn.
+ *
+ * @internal
+ * Field-level update that atomically modifies only the status.session_memory
+ * field, avoiding the lost-update race condition that occurs when the
+ * cursor-runner performs full-session updates concurrently with subject
+ * generation and other parallel activities.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest
+ */
+export type UpdateSessionMemoryRequest = Message<"ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest"> & {
+  /**
+   * Session ID to update.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * The session memory to persist. Replaces the entire existing memory
+   * (not a merge — the runner builds the complete memory each time).
+   *
+   * @generated from field: ai.stigmer.agentic.session.v1.SessionMemory session_memory = 2;
+   */
+  sessionMemory?: SessionMemory;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest.
+ * Use `create(UpdateSessionMemoryRequestSchema)` to create a new message.
+ */
+export const UpdateSessionMemoryRequestSchema: GenMessage<UpdateSessionMemoryRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 6);
 
