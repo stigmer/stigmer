@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_shell::process::CommandChild;
 use tauri_plugin_shell::ShellExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::Mutex;
 
 const LOG_BUFFER_CAPACITY: usize = 2000;
@@ -28,6 +29,12 @@ pub struct RunnerStateFile {
     pub managed_by_daemon: bool,
     #[serde(default)]
     pub log_file: Option<String>,
+    #[serde(default)]
+    pub machine_id: Option<String>,
+    #[serde(default)]
+    pub socket_path: Option<String>,
+    #[serde(default)]
+    pub runtime: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -89,6 +96,195 @@ struct CliEnsureError {
     error: String,
     #[allow(dead_code)]
     hint: Option<String>,
+}
+
+// ---------------------------------------------------------------------------
+// Control socket client — queries the T04 Unix socket for live runner state
+// ---------------------------------------------------------------------------
+
+/// Live status returned by `query_runner_socket`. The `source` field
+/// indicates how the data was obtained so the frontend can show
+/// appropriate confidence indicators.
+#[derive(Debug, Clone, Serialize)]
+pub struct LocalRunnerStatus {
+    pub source: String,
+    pub running: bool,
+    pub name: Option<String>,
+    pub runner_id: Option<String>,
+    pub machine_id: Option<String>,
+    pub org: Option<String>,
+    pub backend_endpoint: Option<String>,
+    pub pid: Option<i64>,
+    pub started_at: Option<String>,
+    pub uptime: Option<String>,
+    pub runtime: Option<String>,
+    pub version: Option<String>,
+}
+
+/// JSON shape returned by the Go control socket's `GET /status`.
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct SocketStatusResponse {
+    ok: bool,
+    runner_id: Option<String>,
+    name: Option<String>,
+    machine_id: Option<String>,
+    org: Option<String>,
+    backend_endpoint: Option<String>,
+    task_queue: Option<String>,
+    pid: Option<i64>,
+    started_at: Option<String>,
+    uptime: Option<String>,
+    runtime: Option<String>,
+    version: Option<String>,
+}
+
+/// JSON shape returned by the Go control socket's `POST /stop`.
+#[derive(Debug, Deserialize)]
+struct SocketStopResponse {
+    ok: bool,
+    message: Option<String>,
+}
+
+/// Default socket path used by the CLI runner (T04).
+fn default_socket_path() -> PathBuf {
+    let home = dirs::home_dir().unwrap_or_default();
+    home.join(".stigmer").join("run").join("runner.sock")
+}
+
+/// Discovers the socket path by checking: (1) the well-known default,
+/// (2) `socket_path` entries in on-disk runner state files.
+fn discover_socket_path() -> Option<PathBuf> {
+    let default = default_socket_path();
+    if default.exists() {
+        return Some(default);
+    }
+
+    let dir = runners_dir().ok()?;
+    if !dir.exists() {
+        return None;
+    }
+
+    for entry in fs::read_dir(&dir).ok()?.flatten() {
+        let path = entry.path();
+        if path.extension().is_some_and(|ext| ext == "json") {
+            if let Ok(data) = fs::read_to_string(&path) {
+                if let Ok(state) = serde_json::from_str::<RunnerStateFile>(&data) {
+                    if let Some(ref sp) = state.socket_path {
+                        let sp = PathBuf::from(sp);
+                        if sp.exists() {
+                            return Some(sp);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+const SOCKET_TIMEOUT_MS: u64 = 2000;
+
+/// Sends a raw HTTP/1.1 request over a Unix socket and returns the
+/// response body (everything after the `\r\n\r\n` header terminator).
+async fn unix_http_request(socket_path: &std::path::Path, request: &[u8]) -> Result<String, String> {
+    let stream = tokio::time::timeout(
+        tokio::time::Duration::from_millis(SOCKET_TIMEOUT_MS),
+        tokio::net::UnixStream::connect(socket_path),
+    )
+    .await
+    .map_err(|_| "socket connect timed out".to_string())?
+    .map_err(|e| format!("socket connect failed: {e}"))?;
+
+    let (mut reader, mut writer) = stream.into_split();
+
+    writer
+        .write_all(request)
+        .await
+        .map_err(|e| format!("socket write failed: {e}"))?;
+    writer
+        .shutdown()
+        .await
+        .map_err(|e| format!("socket shutdown failed: {e}"))?;
+
+    let mut buf = Vec::with_capacity(4096);
+    tokio::time::timeout(
+        tokio::time::Duration::from_millis(SOCKET_TIMEOUT_MS),
+        reader.read_to_end(&mut buf),
+    )
+    .await
+    .map_err(|_| "socket read timed out".to_string())?
+    .map_err(|e| format!("socket read failed: {e}"))?;
+
+    let raw = String::from_utf8_lossy(&buf);
+
+    let body_start = raw
+        .find("\r\n\r\n")
+        .map(|i| i + 4)
+        .unwrap_or(0);
+    Ok(raw[body_start..].to_string())
+}
+
+/// Builds a `LocalRunnerStatus` from on-disk state files as a fallback
+/// when the socket is unavailable.
+fn status_from_disk() -> LocalRunnerStatus {
+    let dir = match runners_dir() {
+        Ok(d) => d,
+        Err(_) => return unavailable_status(),
+    };
+    if !dir.exists() {
+        return unavailable_status();
+    }
+
+    for entry in fs::read_dir(&dir).into_iter().flatten().flatten() {
+        let path = entry.path();
+        if path.extension().is_some_and(|ext| ext == "json") {
+            let name = path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or_default()
+                .to_string();
+
+            if let Ok(data) = fs::read_to_string(&path) {
+                if let Ok(state) = serde_json::from_str::<RunnerStateFile>(&data) {
+                    if is_process_alive(state.pid) {
+                        return LocalRunnerStatus {
+                            source: "disk".into(),
+                            running: true,
+                            name: Some(name),
+                            runner_id: Some(state.runner_id),
+                            machine_id: state.machine_id,
+                            org: Some(state.org),
+                            backend_endpoint: Some(state.backend_endpoint),
+                            pid: Some(state.pid),
+                            started_at: Some(state.started_at),
+                            uptime: None,
+                            runtime: state.runtime,
+                            version: None,
+                        };
+                    }
+                }
+            }
+        }
+    }
+    unavailable_status()
+}
+
+fn unavailable_status() -> LocalRunnerStatus {
+    LocalRunnerStatus {
+        source: "unavailable".into(),
+        running: false,
+        name: None,
+        runner_id: None,
+        machine_id: None,
+        org: None,
+        backend_endpoint: None,
+        pid: None,
+        started_at: None,
+        uptime: None,
+        runtime: None,
+        version: None,
+    }
 }
 
 /// Attempt to parse the combined early stdout lines as the CLI's JSON
@@ -790,4 +986,67 @@ pub async fn watch_runner_log_file(
     });
 
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Control socket Tauri commands
+// ---------------------------------------------------------------------------
+
+/// Queries the local runner's control socket for live status.
+/// Falls back to on-disk state files when the socket is unavailable.
+#[tauri::command]
+pub async fn query_runner_socket() -> Result<LocalRunnerStatus, String> {
+    let socket_path = match discover_socket_path() {
+        Some(p) => p,
+        None => return Ok(status_from_disk()),
+    };
+
+    let request = b"GET /status HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n";
+
+    match unix_http_request(&socket_path, request).await {
+        Ok(body) => {
+            match serde_json::from_str::<SocketStatusResponse>(&body) {
+                Ok(resp) if resp.ok => Ok(LocalRunnerStatus {
+                    source: "socket".into(),
+                    running: true,
+                    name: resp.name,
+                    runner_id: resp.runner_id,
+                    machine_id: resp.machine_id,
+                    org: resp.org,
+                    backend_endpoint: resp.backend_endpoint,
+                    pid: resp.pid,
+                    started_at: resp.started_at,
+                    uptime: resp.uptime,
+                    runtime: resp.runtime,
+                    version: resp.version,
+                }),
+                Ok(_) | Err(_) => Ok(status_from_disk()),
+            }
+        }
+        Err(_) => Ok(status_from_disk()),
+    }
+}
+
+/// Sends a graceful stop request to the runner via its control socket.
+/// Falls back to the existing SIGTERM-based stop path when the socket
+/// is unavailable.
+#[tauri::command]
+pub async fn stop_runner_via_socket() -> Result<(), String> {
+    let socket_path = match discover_socket_path() {
+        Some(p) => p,
+        None => return Err("no runner socket found".into()),
+    };
+
+    let request = b"POST /stop HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+
+    let body = unix_http_request(&socket_path, request).await?;
+
+    match serde_json::from_str::<SocketStopResponse>(&body) {
+        Ok(resp) if resp.ok => Ok(()),
+        Ok(resp) => Err(format!(
+            "stop not accepted: {}",
+            resp.message.unwrap_or_default()
+        )),
+        Err(e) => Err(format!("failed to parse stop response: {e}")),
+    }
 }

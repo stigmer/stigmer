@@ -68,8 +68,40 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-09 19:42
-**Current Task**: T04 — Phase 3: Local control socket
-**Status**: COMPLETE
+**Current Task**: T06 — Phase 5: Fleet view polish
+**Status**: NOT STARTED
+
+## Next Steps
+
+1. **T06**: Fleet view polish — sorting, filtering, empty states for the OrgFleetSection
+2. **T07**: End-to-end testing — verify the full auto-ensure lifecycle from first-run prompt through active runner to disable
+
+## Quick Resume
+
+To continue this project, drag this file into chat:
+`@_projects/2026-05/20260509.02.runner-management-ux-overhaul/next-task.md`
+
+## Session Progress (2026-05-09, session 5)
+
+- Completed T05 Phase 4: Desktop UI redesign — status card replaces Start Runner modal
+- **Rust layer**: New `query_runner_socket` and `stop_runner_via_socket` Tauri commands (HTTP/1.1 over Unix socket, 2s timeout, disk-state fallback)
+- **Rust layer**: New `preferences.rs` module with `get_runner_preference` / `set_runner_preference` (persisted to `~/.stigmer/desktop/preferences.json`)
+- **Updated `RunnerStateFile`** to include T03/T04 fields: `machine_id`, `socket_path`, `runtime`
+- **TypeScript IPC**: 4 new typed invoke wrappers in `tauri.ts` (`invokeQueryRunnerSocket`, `invokeStopRunnerViaSocket`, `invokeGetRunnerPreference`, `invokeSetRunnerPreference`)
+- **New hooks**: `useLocalRunnerStatus` (socket-polling with adaptive intervals), `useAutoEnsure` (lifecycle state machine with preference persistence)
+- **New UI components**: `ThisMachineCard` (5-state status card), `FirstRunPrompt` (one-time opt-in), `OrgFleetSection` (fleet list with topology)
+- **RunnersPage rewritten**: 917-line monolith decomposed into 5 focused files. StartRunnerDialog deleted.
+- Both Rust (`cargo check`) and TypeScript (`tsc --noEmit`) compile clean, no linter errors
+
+### Key design decisions: session 5
+
+- **Minimal HTTP client over Unix socket**: Hand-rolled HTTP/1.1 request/response over `tokio::net::UnixStream` instead of adding `hyper`/`hyperlocal` — two trivial endpoints don't justify a heavy dependency.
+- **File-based preferences over tauri-plugin-store**: Two booleans (`enabled`, `prompted`) stored as plain JSON at `~/.stigmer/desktop/preferences.json`. No plugin dependency for a trivial persistence need.
+- **Callback-based ensure**: `useAutoEnsure` accepts an `onEnsure` callback rather than building credentials internally — keeps credential management in the page component where auth context is available.
+- **Socket-first, disk-fallback, server-merge**: `query_runner_socket` tries Unix socket for live status, falls back to disk state files, and the UI merges with server-side `Runner` resource for execution count and phase. Socket = truth for local liveness, server = truth for backend awareness.
+- **First-run opt-in then auto-enabled**: New users see an inline prompt on first visit. After consent, runner auto-ensures on Desktop launch + sign-in. Preference survives browser cache clears.
+- **Split-view page**: "This Machine" card at top (primary), "Organization Runners" list below (secondary, this-machine deduplicated).
+- **StartRunnerDialog removed**: Custom name/endpoint/token fields are power-user concerns served by `stigmer up` CLI. Desktop auto-ensures with session credentials and hostname defaults.
 
 ## Session Progress (2026-05-09, session 4)
 
@@ -146,7 +178,7 @@ Deep research report available at:
 | T02 | Phase 1: Idempotent runner with structured JSON output | COMPLETE |
 | T03 | Phase 2: Stable machine_id identity | COMPLETE |
 | T04 | Phase 3: Local control socket | COMPLETE |
-| T05 | Phase 4: Desktop UI redesign (status card) | Not started |
+| T05 | Phase 4: Desktop UI redesign (status card) | COMPLETE |
 | T06 | Phase 5: Service/login integration | Not started |
 | T07 | Phase 6: Server-side RunnerSession model | Not started |
 
