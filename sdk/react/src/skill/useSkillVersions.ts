@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { StigmerError } from "@stigmer/sdk";
@@ -31,6 +31,12 @@ export interface UseSkillVersionsReturn {
   readonly error: Error | null;
   /** Discard cached data and re-fetch from the server. */
   readonly refetch: () => void;
+  /**
+   * Look up the artifact storage key for a version by its hash.
+   * Used by diff flows to fetch historical artifacts via `getArtifact()`.
+   * Returns `null` if the version hash is not found or has no artifact key.
+   */
+  readonly getArtifactKey: (versionHash: string) => string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -97,11 +103,27 @@ export function useSkillVersions(
     [rawVersions],
   );
 
+  const artifactKeyMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const entry of rawVersions) {
+      if (entry.versionHash && entry.artifactStorageKey) {
+        map.set(entry.versionHash, entry.artifactStorageKey);
+      }
+    }
+    return map;
+  }, [rawVersions]);
+
+  const getArtifactKey = useCallback(
+    (versionHash: string): string | null =>
+      artifactKeyMap.get(versionHash) ?? null,
+    [artifactKeyMap],
+  );
+
   const isEmpty = versions.length === 0;
 
   return useMemo(
-    () => ({ versions, isEmpty, isLoading, error, refetch }),
-    [versions, isEmpty, isLoading, error, refetch],
+    () => ({ versions, isEmpty, isLoading, error, refetch, getArtifactKey }),
+    [versions, isEmpty, isLoading, error, refetch, getArtifactKey],
   );
 }
 

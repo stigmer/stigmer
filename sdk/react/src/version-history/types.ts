@@ -1,6 +1,47 @@
 import type { ReactNode } from "react";
 
 // ---------------------------------------------------------------------------
+// Diff types — generic text diff primitives for any versioned resource
+// ---------------------------------------------------------------------------
+
+/** A single line within a diff hunk. */
+export interface DiffLine {
+  readonly type: "added" | "removed" | "context";
+  readonly content: string;
+  readonly oldLineNumber?: number;
+  readonly newLineNumber?: number;
+}
+
+/** A contiguous group of changed/context lines in a unified diff. */
+export interface DiffHunk {
+  readonly oldStart: number;
+  readonly oldLines: number;
+  readonly newStart: number;
+  readonly newLines: number;
+  readonly lines: readonly DiffLine[];
+}
+
+/** Summary of changes to a single file between two versions. */
+export interface FileDiffEntry {
+  readonly path: string;
+  readonly changeType: "added" | "removed" | "modified";
+  readonly additions: number;
+  readonly deletions: number;
+}
+
+/** Aggregated diff result across all files in two version snapshots. */
+export interface MultiFileDiffResult {
+  readonly files: readonly FileDiffEntry[];
+  readonly totalAdditions: number;
+  readonly totalDeletions: number;
+  /** Retrieve the hunk-level diff for a specific file path. */
+  readonly getDiff: (path: string) => readonly DiffHunk[];
+}
+
+/** Display mode for the diff viewer. */
+export type DiffViewMode = "unified";
+
+// ---------------------------------------------------------------------------
 // Generic version entry — presentation-layer type for the timeline component
 // ---------------------------------------------------------------------------
 
@@ -77,6 +118,8 @@ export interface VersionTimelineEntryProps {
   readonly entry: VersionEntry;
   /** Whether this entry is currently selected. */
   readonly isSelected?: boolean;
+  /** Whether this entry is the first pick in compare mode (dashed border, "A" badge). */
+  readonly isCompareSource?: boolean;
   /** Whether this is the last entry in the timeline (no connecting line below). */
   readonly isLast?: boolean;
   /** Called when this entry is clicked. */

@@ -92,6 +92,12 @@
   --color-status-draft: var(--stgm-status-draft);
   --color-status-draft-foreground: var(--stgm-status-draft-foreground);
   --color-status-draft-subtle: var(--stgm-status-draft-subtle);
+  --color-diff-added-bg: var(--stgm-diff-added-bg);
+  --color-diff-added-fg: var(--stgm-diff-added-fg);
+  --color-diff-removed-bg: var(--stgm-diff-removed-bg);
+  --color-diff-removed-fg: var(--stgm-diff-removed-fg);
+  --color-diff-hunk-header-bg: var(--stgm-diff-hunk-header-bg);
+  --color-diff-hunk-header-fg: var(--stgm-diff-hunk-header-fg);
   --shadow-sm: var(--stgm-shadow-sm);
   --shadow-md: var(--stgm-shadow-md);
   --shadow-lg: var(--stgm-shadow-lg);

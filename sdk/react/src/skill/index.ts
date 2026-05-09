@@ -46,3 +46,12 @@ export type { SkillFileBrowserProps } from "./SkillFileBrowser";
 
 export { useSkillVersions } from "./useSkillVersions";
 export type { UseSkillVersionsReturn } from "./useSkillVersions";
+
+export { useSkillDiff } from "./useSkillDiff";
+export type { UseSkillDiffReturn } from "./useSkillDiff";
+
+export { SkillDiffDialog } from "./SkillDiffDialog";
+export type {
+  SkillDiffDialogProps,
+  SkillDiffDialogState,
+} from "./SkillDiffDialog";

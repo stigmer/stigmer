@@ -60,6 +60,10 @@ export function VersionTimeline({
     [onCompare, onEntrySelect, compareSelection],
   );
 
+  const cancelCompare = useCallback(() => {
+    setCompareSelection(null);
+  }, []);
+
   if (isLoading) {
     return <TimelineSkeleton className={className} />;
   }
@@ -68,24 +72,88 @@ export function VersionTimeline({
     return <EmptyState message={emptyMessage} className={className} />;
   }
 
+  const compareLabel = compareSelection
+    ? entries.find((e) => e.id === compareSelection)?.label ?? compareSelection.slice(0, 12)
+    : null;
+
+  return (
+    <div className={cn("flex flex-col pt-2", className)}>
+      {compareSelection && (
+        <CompareInfoBar
+          selectedLabel={compareLabel!}
+          onCancel={cancelCompare}
+        />
+      )}
+
+      <div role="list" aria-label="Version history">
+        {entries.map((entry, index) => (
+          <VersionTimelineEntry
+            key={entry.id}
+            entry={entry}
+            isSelected={entry.id === selectedId}
+            isCompareSource={entry.id === compareSelection}
+            isLast={index === entries.length - 1}
+            onSelect={() => handleSelect(entry.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Compare-mode info bar
+// ---------------------------------------------------------------------------
+
+function CompareInfoBar({
+  selectedLabel,
+  onCancel,
+}: {
+  readonly selectedLabel: string;
+  readonly onCancel: () => void;
+}) {
   return (
     <div
-      role="list"
-      aria-label="Version history"
-      className={cn("flex flex-col pt-2", className)}
+      role="status"
+      aria-live="polite"
+      className="mb-3 flex items-center gap-2 rounded-md border border-dashed border-primary bg-primary-subtle px-3 py-2 text-xs"
     >
-      {entries.map((entry, index) => (
-        <VersionTimelineEntry
-          key={entry.id}
-          entry={entry}
-          isSelected={
-            entry.id === selectedId || entry.id === compareSelection
-          }
-          isLast={index === entries.length - 1}
-          onSelect={() => handleSelect(entry.id)}
-        />
-      ))}
+      <CompareIcon className="size-3.5 shrink-0 text-primary" />
+      <span className="flex-1 text-foreground">
+        Select another version to compare with{" "}
+        <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px] font-medium">
+          {selectedLabel}
+        </code>
+      </span>
+      <button
+        type="button"
+        onClick={onCancel}
+        className={cn(
+          "rounded px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors",
+          "hover:bg-accent-hover hover:text-foreground",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        )}
+      >
+        Cancel
+      </button>
     </div>
+  );
+}
+
+function CompareIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M5 12V4M5 4l-3 3M11 4v8M11 12l3-3" />
+    </svg>
   );
 }
 
