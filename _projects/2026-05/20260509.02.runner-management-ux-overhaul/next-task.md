@@ -68,8 +68,25 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-09 19:42
-**Current Task**: T02 — Phase 1: Idempotent runner with structured JSON output
-**Status**: COMPLETE — committed as `c7a70977e`
+**Current Task**: T03 — Phase 2: Stable machine_id identity
+**Status**: COMPLETE — committed as `90eabd4db`
+
+## Session Progress (2026-05-09, session 3)
+
+- Implemented stable `machine_id` identity (`~/.stigmer/machine.json`)
+- Added `machine_id` field to `RunnerConnectionInfo` proto (field 5)
+- Updated `checkOrAdopt` with machine_id fallback scan for hostname-change adoption
+- Wired machine_id into heartbeat stream, `EnsureResult`, and `RunnerState`
+- Wrote 11 new tests (47 total pass in runner package)
+- All checks pass: `go build`, `go vet`, `go test`, `buf lint`
+- Committed as `90eabd4db`
+
+### Key design decisions: session 3
+
+- **crypto/rand over ULID**: No new dependency needed. Format is `mach_` + 32 hex chars (128-bit randomness). Self-describing prefix, no dashes, universally safe in paths/labels/URLs.
+- **RunnerConnectionInfo over RunnerSpec**: `machine_id` is auto-generated host metadata (same category as hostname, os, arch), not user-declared desired state. Sent on every heartbeat automatically.
+- **Client+proto only (server deferred to T07)**: Ship value incrementally — local adoption works now, server enforcement comes later with proper migration planning.
+- **Daemon embedded runner omits machine_id**: Circular dependency prevents daemon from importing runner package. Empty string is fine (server ignores the field until T07).
 
 ## Session Progress (2026-05-09, session 2)
 
@@ -106,7 +123,7 @@ Deep research report available at:
 |------|-------|--------|
 | T01 | Phase 0: Already running = success | COMPLETE |
 | T02 | Phase 1: Idempotent runner with structured JSON output | COMPLETE |
-| T03 | Phase 2: Stable machine_id identity | Not started |
+| T03 | Phase 2: Stable machine_id identity | COMPLETE |
 | T04 | Phase 3: Local control socket | Not started |
 | T05 | Phase 4: Desktop UI redesign (status card) | Not started |
 | T06 | Phase 5: Service/login integration | Not started |
