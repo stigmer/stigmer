@@ -309,7 +309,7 @@ export type {
   McpServerAuthMode,
 } from "./mcp-server";
 
-// Skill — data hook, count hook, list hook, search hook, picker, and detail view component
+// Skill — data hook, count hook, list hook, search hook, picker, detail view, editor, and mutation
 export {
   useSkill,
   useSkillCount,
@@ -317,6 +317,12 @@ export {
   useSkillSearch,
   SkillPicker,
   SkillDetailView,
+  usePushSkill,
+  useSkillEditor,
+  parseSkillMd,
+  buildSkillMdContent,
+  createEditorOptionsFromSkillMd,
+  SkillEditor,
 } from "./skill";
 export type {
   UseSkillReturn,
@@ -328,6 +334,12 @@ export type {
   UseSkillSearchReturn,
   SkillPickerProps,
   SkillDetailViewProps,
+  PushSkillInput,
+  UsePushSkillReturn,
+  SkillEditorMeta,
+  UseSkillEditorOptions,
+  UseSkillEditorReturn,
+  SkillEditorProps,
 } from "./skill";
 
 // GitHub — OAuth connection, repo picker, and hooks
