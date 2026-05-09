@@ -10,6 +10,8 @@ import {
   ImportResourceDialog,
   useStigmer,
   useActiveOrgSlug,
+  useConfirmAction,
+  ConfirmDialog,
   toast,
   type WorkbenchColumnDef,
 } from "@stigmer/react";
@@ -60,9 +62,32 @@ export function AgentListPage() {
   const org = useActiveOrgSlug();
   const stigmer = useStigmer();
   const { navigateToDetail } = useLibraryNavigation();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
   const [scope, setScope] = useState<"org" | "all">(readPersistedScope);
   const [importOpen, setImportOpen] = useState(false);
+  const [listVersion, setListVersion] = useState(0);
+
+  const handleDeleteItem = useCallback(
+    async (item: SearchResult) => {
+      const confirmed = await confirm({
+        title: `Delete ${item.name || item.slug}?`,
+        description:
+          "This action cannot be undone. The agent and its configuration will be permanently removed.",
+        confirmLabel: "Delete",
+        variant: "destructive",
+      });
+      if (!confirmed) return;
+      try {
+        await stigmer.agent.delete(item.id);
+        toast.success(`${item.name || item.slug} deleted`);
+        setListVersion((v) => v + 1);
+      } catch {
+        toast.error("Failed to delete agent");
+      }
+    },
+    [confirm, stigmer],
+  );
 
   const handleScopeChange = useCallback((newScope: "org" | "all") => {
     setScope(newScope);
@@ -87,6 +112,7 @@ export function AgentListPage() {
       </div>
 
       <ResourceWorkbench
+        key={listVersion}
         listFn={listFn}
         org={org}
         columns={AGENT_COLUMNS}
@@ -154,9 +180,7 @@ export function AgentListPage() {
                 <ActionMenu.Item
                   icon={<Trash2 className="size-4" />}
                   variant="destructive"
-                  onSelect={() => {
-                    /* TODO: wire to delete flow in Phase 2 */
-                  }}
+                  onSelect={() => handleDeleteItem(item)}
                 >
                   Delete
                 </ActionMenu.Item>
@@ -171,6 +195,12 @@ export function AgentListPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
         org={org ?? ""}
+      />
+
+      <ConfirmDialog
+        state={confirmState}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
       />
     </>
   );

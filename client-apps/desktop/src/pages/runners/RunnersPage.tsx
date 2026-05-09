@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getUserMessage } from "@stigmer/sdk";
 import {
   useRunnerList,
@@ -60,6 +61,7 @@ function persistRatio(ratio: number): void {
 }
 
 export default function RunnersPage() {
+  const navigate = useNavigate();
   const { getCredential } = useRunnerCredential();
   const org = useActiveOrgSlug();
 
@@ -80,7 +82,7 @@ export default function RunnersPage() {
   const { stopRunner, isStopping } = useStopLocalRunner();
 
   // ---- Local runner status (control socket) ----
-  const { status: localStatus } = useLocalRunnerStatus();
+  const { status: localStatus, setUrgent } = useLocalRunnerStatus();
 
   // ---- Auto-ensure ----
   const onEnsure = useCallback(async (): Promise<string> => {
@@ -96,6 +98,11 @@ export default function RunnersPage() {
 
   const { state: autoEnsureState, error: autoEnsureError, enable, disable, retry } =
     useAutoEnsure(localStatus, org ? onEnsure : null);
+
+  // Accelerate polling during startup ensure
+  useEffect(() => {
+    setUrgent(autoEnsureState === "ensuring");
+  }, [autoEnsureState, setUrgent]);
 
   // ---- UI state ----
   const [logRunnerName, setLogRunnerName] = useState<string | null>(null);
@@ -452,6 +459,7 @@ export default function RunnersPage() {
               onStop={handleFleetStop}
               onStart={handleFleetStart}
               onShowLogs={handleShowLogs}
+              onViewDetail={(runnerId) => navigate(`/runners/${runnerId}`)}
               selectedLogRunner={logRunnerName}
             />
           )}

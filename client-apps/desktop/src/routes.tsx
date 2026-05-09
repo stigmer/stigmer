@@ -27,10 +27,14 @@ const SkillListPage = lazy(() => import("./pages/library/SkillListPage"));
 const SkillDetailPage = lazy(() => import("./pages/library/SkillDetailPage"));
 const McpServerListPage = lazy(() => import("./pages/library/McpServerListPage"));
 const McpServerDetailPage = lazy(() => import("./pages/library/McpServerDetailPage"));
+const AgentNewPage = lazy(() => import("./pages/library/AgentNewPage"));
+const SkillNewPage = lazy(() => import("./pages/library/SkillNewPage"));
+const McpServerNewPage = lazy(() => import("./pages/library/McpServerNewPage"));
 const SettingsLayout = lazy(() => import("./pages/settings/SettingsLayout"));
 const SettingsLanding = lazy(() => import("./pages/settings/SettingsLanding"));
 const BillingPage = lazy(() => import("./pages/settings/BillingPage"));
 const RunnersPage = lazy(() => import("./pages/runners/RunnersPage"));
+const RunnerDetailPage = lazy(() => import("./pages/runners/RunnerDetailPage"));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -87,6 +91,14 @@ const routes: RouteObject[] = [
             ),
           },
           {
+            path: "agents/new",
+            element: (
+              <LazyPage>
+                <AgentNewPage />
+              </LazyPage>
+            ),
+          },
+          {
             path: "agents/:org/:slug",
             element: (
               <LazyPage>
@@ -99,6 +111,14 @@ const routes: RouteObject[] = [
             element: (
               <LazyPage>
                 <SkillListPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: "skills/new",
+            element: (
+              <LazyPage>
+                <SkillNewPage />
               </LazyPage>
             ),
           },
@@ -119,6 +139,14 @@ const routes: RouteObject[] = [
             ),
           },
           {
+            path: "mcp-servers/new",
+            element: (
+              <LazyPage>
+                <McpServerNewPage />
+              </LazyPage>
+            ),
+          },
+          {
             path: "mcp-servers/:org/:slug",
             element: (
               <LazyPage>
@@ -133,6 +161,14 @@ const routes: RouteObject[] = [
         element: (
           <LazyPage>
             <RunnersPage />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "runners/:id",
+        element: (
+          <LazyPage>
+            <RunnerDetailPage />
           </LazyPage>
         ),
       },
