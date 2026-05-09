@@ -24,7 +24,7 @@ tauri-plugin-window-state = "2"
 tauri-plugin-deep-link = "2"
 tauri-plugin-http = "2"
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
-tokio = { version = "1", features = ["sync"] }
+tokio = { version = "1", features = ["sync", "net", "io-util"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 dirs = "6"
