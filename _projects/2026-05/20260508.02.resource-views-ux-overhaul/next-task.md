@@ -14,8 +14,20 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-05-09 — T04-F Template Gallery implementation
-- **Active Task**: T04-F complete. Next up: T04-G (AI Sidecar, needs backend spike) or Phase 4 planning
+- **Last Session**: 2026-05-09 — Phase 4 T05-A implemented (detail tab infrastructure)
+- **Active Task**: **T05-B** — Agent Dependency Graph (next). T05-A complete.
+- **Phase 3 status**: T04-A through T04-F complete. T04-G (AI Sidecar) deferred pending backend spike.
+- **Phase 4 status**: T05-A complete. T05-B through T05-E remaining.
+
+## Session Progress (2026-05-09, Session 12)
+
+- Completed Phase 4 sub-task **T05-A: Detail Page Tabbed Infrastructure**
+- Added `AdditionalTab` type (`TabItem` + `content`) in `resource-detail/types.ts`; exported from `resource-detail/index.ts` and root `@stigmer/react` barrel
+- Added internal `useDetailTabs` hook — uncontrolled-by-default, controlled when both `activeTab` + `onTabChange`; single-tab suppression (no tab bar until 2+ tabs)
+- **`AgentDetailView`**: built-in tab `overview`; props `additionalTabs`, `activeTab`, `onTabChange`, `defaultTab`; wires `ResourceDetailShell` tabs when extensions exist
+- **`SkillDetailView`**: built-in tab `content`; extracted `SkillOverview` for main body; same extension API as agent
+- Console pages unchanged — zero UI regression until consumers pass `additionalTabs`
+- Verify: `npm run lint -w @stigmer/react` + `npm run typecheck -w @stigmer/react` clean (full `make check` still hits pre-existing tsdoc ActionMenu warnings)
 
 ## Session Progress (2026-05-09, Session 11)
 
@@ -131,6 +143,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Key Decisions Made (This Session)
 
+- **DD-T05A-001**: Tab state — uncontrolled by default; controlled when both `activeTab` and `onTabChange` are provided (Console can sync to URL later).
+- **DD-T05A-002**: Single-tab suppression — no tab strip when only the built-in tab exists (no visual regression).
+- **DD-T05A-003**: `additionalTabs` carries both `TabItem` metadata and `content` for consumer-provided panels (T05-B/C mount points).
 - **DD-T04F-001**: Creation landing page as "step 0" — local state transition in Console page, not a route change. Consolidates blank/template/import paths.
 - **DD-T04F-002**: Templates are static TypeScript objects in the SDK — no backend API, platform builders pass own arrays.
 - **DD-T04F-003**: Wizard `initialData` prop merges with defaults via spread — non-breaking, enables template pre-fill and future duplicate flows.
@@ -150,11 +165,17 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **T04-G: AI Sidecar** — Needs backend design spike first. Last remaining Phase 3 sub-task.
-2. **Phase 4 planning** — Version history, dependency graphs, and operational enhancements
+1. ~~**T05-A: Detail Page Tabbed Infrastructure**~~ — Done (Session 12).
+2. **T05-B: Agent Dependency Graph** — Visual tree of Agent → MCP Servers, Skills, Sub-Agents. Highest-value deliverable, no backend needed. Mount via `additionalTabs` on `AgentDetailView`.
+3. **T05-C: Skill Version Timeline** — Timeline of push history. Needs `ListSkillVersions` backend RPC.
+4. **T05-D: Diff Viewer** — Text diff between two skill versions. Depends on T05-C.
+5. **T05-E: Backend API Requirements Doc** — Design spike documenting what backend needs to deliver.
+
+**Deferred**: T04-G (AI Sidecar), Agent/MCP versioning, audit log, usage charts, RBAC.
 
 ## Context for Resume
 
+- **Phase 4 plan** is at `_projects/2026-05/20260508.02.resource-views-ux-overhaul/tasks/T05_0_plan.md`
 - T04-D plan is at `.cursor/plans/t04-d_mcp_server_wizard_dd816c0c.plan.md`
 - T04-C plan is at `.cursor/plans/t04-c_skill_editor_d5bb689b.plan.md`
 - T04-B plan is at `.cursor/plans/t04-b_agent_creation_wizard_2144757f.plan.md`
@@ -163,13 +184,16 @@ Drop this file into your conversation to quickly resume work on this project.
 - Phase 1 plan is at `.cursor/plans/t02_resource_workbench_927d6980.plan.md`
 - Phase 0 plan is at `_projects/2026-05/20260508.02.resource-views-ux-overhaul/tasks/T01_0_plan.md`
 - Research report at `_projects/2026-05/20260508.02.resource-views-ux-overhaul/research.resource-views-ux-overhaul/04.report.gpt.md`
-- The research report's Phase 3 roadmap (after line 1191) defines the Creation/Edit Modernization deliverables
+- Research report dependency graphs section ~line 948, version history ~line 1255
 - `ResourceListView` is deprecated but still in the codebase — can be removed once all references are gone
 - The `resource-workbench/` module is the canonical resource collection architecture
 - The `resource-detail/` module is the canonical resource detail architecture
 - The `resource-creation/` module is the canonical wizard/creation architecture (shared by agent + MCP server wizards)
 - Key discovery: `AgentSpec` proto has no model field — model is a runtime concern at execution/instance level
 - Key discovery: `McpServerAuthInput` is not exported from `@stigmer/sdk` — use `NonNullable<McpServerInput["auth"]>` for auth serialization
+- Key discovery: `SkillAuditRepo.findAllBySkillId()` already stores version history — just needs RPC surface
+- Key decision: Agent/MCP versioning deferred — GitOps covers most users; validate UX with Skills first
+- Key decision: Dependency graph starts with custom SVG tree (no heavy graph library) — agents typically have 3-15 dependency nodes
 
 ## Essential Files to Review
 
@@ -295,12 +319,12 @@ When starting a new session:
 3. [ ] Review any new design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with Phase 3: Creation/Edit Modernization
+6. [ ] Continue with Phase 4 (T05-B Agent dependency graph, then T05-C+)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 3" - Start the Creation/Edit Modernization implementation
+- "Continue with Phase 4 T05-B" - Agent dependency graph (`additionalTabs` on `AgentDetailView`)
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

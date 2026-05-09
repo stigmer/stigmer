@@ -887,6 +887,7 @@ export {
   ConfirmDialog,
 } from "./resource-detail";
 export type {
+  AdditionalTab,
   DetailAction,
   ResourceHeaderMeta,
   ConfirmOptions,
