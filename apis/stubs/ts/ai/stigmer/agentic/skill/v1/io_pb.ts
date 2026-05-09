@@ -6,14 +6,18 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { GitProvenance } from "./status_pb.js";
 import { file_ai_stigmer_agentic_skill_v1_status } from "./status_pb.js";
+import type { ApiResourceAuditActor } from "../../../commons/apiresource/status_pb.js";
+import { file_ai_stigmer_commons_apiresource_status } from "../../../commons/apiresource/status_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/skill/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_skill_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MSIgCgdTa2lsbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEitQEKEFB1c2hTa2lsbFJlcXVlc3QSEwoDb3JnGAEgASgJQga6SAPIAQESGAoIYXJ0aWZhY3QYAiABKAxCBrpIA8gBARIoCgN0YWcYAyABKAlCG7pIGHIWMhReJHxeW2EtekEtWjAtOS5fLV0rJBJCCg5naXRfcHJvdmVuYW5jZRgEIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5HaXRQcm92ZW5hbmNlSgQIBRAGIqMBCiVQdXNoU2tpbGxGcm9tRXhlY3V0aW9uQXJ0aWZhY3RSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEh0KDGV4ZWN1dGlvbl9pZBgCIAEoCUIHukgEcgIQARIcCgtzdG9yYWdlX2tleRgDIAEoCUIHukgEcgIQARIoCgN0YWcYBCABKAlCG7pIGHIWMhReJHxeW2EtekEtWjAtOS5fLV0rJCI6ChJHZXRBcnRpZmFjdFJlcXVlc3QSJAoUYXJ0aWZhY3Rfc3RvcmFnZV9rZXkYASABKAlCBrpIA8gBASInChNHZXRBcnRpZmFjdFJlc3BvbnNlEhAKCGFydGlmYWN0GAEgASgMYgZwcm90bzM", [file_ai_stigmer_agentic_skill_v1_status, file_buf_validate_validate]);
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MSIgCgdTa2lsbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEitQEKEFB1c2hTa2lsbFJlcXVlc3QSEwoDb3JnGAEgASgJQga6SAPIAQESGAoIYXJ0aWZhY3QYAiABKAxCBrpIA8gBARIoCgN0YWcYAyABKAlCG7pIGHIWMhReJHxeW2EtekEtWjAtOS5fLV0rJBJCCg5naXRfcHJvdmVuYW5jZRgEIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5HaXRQcm92ZW5hbmNlSgQIBRAGIqMBCiVQdXNoU2tpbGxGcm9tRXhlY3V0aW9uQXJ0aWZhY3RSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEh0KDGV4ZWN1dGlvbl9pZBgCIAEoCUIHukgEcgIQARIcCgtzdG9yYWdlX2tleRgDIAEoCUIHukgEcgIQARIoCgN0YWcYBCABKAlCG7pIGHIWMhReJHxeW2EtekEtWjAtOS5fLV0rJCI6ChJHZXRBcnRpZmFjdFJlcXVlc3QSJAoUYXJ0aWZhY3Rfc3RvcmFnZV9rZXkYASABKAlCBrpIA8gBASInChNHZXRBcnRpZmFjdFJlc3BvbnNlEhAKCGFydGlmYWN0GAEgASgMImoKFkxpc3RTa2lsbFZlcnNpb25zSW5wdXQSEwoDb3JnGAEgASgJQga6SAPIAQESFAoEc2x1ZxgCIAEoCUIGukgDyAEBEhIKCnBhZ2VfdG9rZW4YAyABKAkSEQoJcGFnZV9zaXplGAQgASgFIrYCChFTa2lsbFZlcnNpb25FbnRyeRIUCgx2ZXJzaW9uX2hhc2gYASABKAkSLQoJcHVzaGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBJICglwdXNoZWRfYnkYAyABKAsyNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdEFjdG9yEgsKA3RhZxgEIAEoCRISCgppc19jdXJyZW50GAUgASgIEkIKDmdpdF9wcm92ZW5hbmNlGAYgASgLMiouYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLkdpdFByb3ZlbmFuY2USDwoHbWVzc2FnZRgHIAEoCRIcChRhcnRpZmFjdF9zdG9yYWdlX2tleRgIIAEoCSKLAQoZTGlzdFNraWxsVmVyc2lvbnNSZXNwb25zZRJACgh2ZXJzaW9ucxgBIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbFZlcnNpb25FbnRyeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkSEwoLdG90YWxfY291bnQYAyABKAViBnByb3RvMw", [file_ai_stigmer_agentic_skill_v1_status, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * SkillId wraps a skill identifier.
@@ -209,4 +213,163 @@ export type GetArtifactResponse = Message<"ai.stigmer.agentic.skill.v1.GetArtifa
  */
 export const GetArtifactResponseSchema: GenMessage<GetArtifactResponse> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_skill_v1_io, 4);
+
+/**
+ * ListSkillVersionsInput requests the version history for a skill.
+ *
+ * Returns all historical versions of the skill ordered by push time
+ * (newest first). Used by the Console and SDK to render version
+ * timelines and enable version comparison.
+ *
+ * @generated from message ai.stigmer.agentic.skill.v1.ListSkillVersionsInput
+ */
+export type ListSkillVersionsInput = Message<"ai.stigmer.agentic.skill.v1.ListSkillVersionsInput"> & {
+  /**
+   * Organization that owns the skill.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * Skill slug (unique within the organization).
+   *
+   * @generated from field: string slug = 2;
+   */
+  slug: string;
+
+  /**
+   * Opaque token for cursor-based pagination.
+   * Empty string or omitted for the first page.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
+
+  /**
+   * Maximum number of versions to return per page.
+   * Server may return fewer. Default is 50.
+   *
+   * @generated from field: int32 page_size = 4;
+   */
+  pageSize: number;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.skill.v1.ListSkillVersionsInput.
+ * Use `create(ListSkillVersionsInputSchema)` to create a new message.
+ */
+export const ListSkillVersionsInputSchema: GenMessage<ListSkillVersionsInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 5);
+
+/**
+ * SkillVersionEntry represents a single historical version of a skill.
+ *
+ * Each push creates a new version entry. The version is immutably
+ * identified by its content hash (SHA256 of the artifact ZIP).
+ *
+ * @generated from message ai.stigmer.agentic.skill.v1.SkillVersionEntry
+ */
+export type SkillVersionEntry = Message<"ai.stigmer.agentic.skill.v1.SkillVersionEntry"> & {
+  /**
+   * SHA256 hash of the artifact — the immutable version identifier.
+   *
+   * @generated from field: string version_hash = 1;
+   */
+  versionHash: string;
+
+  /**
+   * Timestamp when this version was pushed.
+   *
+   * @generated from field: google.protobuf.Timestamp pushed_at = 2;
+   */
+  pushedAt?: Timestamp;
+
+  /**
+   * Actor who pushed this version.
+   *
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAuditActor pushed_by = 3;
+   */
+  pushedBy?: ApiResourceAuditActor;
+
+  /**
+   * Tag associated with this version at push time.
+   * May be empty if the version was pushed without a tag.
+   *
+   * @generated from field: string tag = 4;
+   */
+  tag: string;
+
+  /**
+   * Whether this is the currently active version of the skill.
+   *
+   * @generated from field: bool is_current = 5;
+   */
+  isCurrent: boolean;
+
+  /**
+   * Git provenance tracking where this version's artifacts originated.
+   * Absent when pushed from a non-git directory.
+   *
+   * @generated from field: ai.stigmer.agentic.skill.v1.GitProvenance git_provenance = 6;
+   */
+  gitProvenance?: GitProvenance;
+
+  /**
+   * Optional human-readable message describing the change.
+   *
+   * @generated from field: string message = 7;
+   */
+  message: string;
+
+  /**
+   * Storage key for this version's artifact ZIP.
+   * Can be passed to getArtifact() to download the historical artifact.
+   *
+   * @generated from field: string artifact_storage_key = 8;
+   */
+  artifactStorageKey: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.skill.v1.SkillVersionEntry.
+ * Use `create(SkillVersionEntrySchema)` to create a new message.
+ */
+export const SkillVersionEntrySchema: GenMessage<SkillVersionEntry> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 6);
+
+/**
+ * ListSkillVersionsResponse contains a page of skill version history.
+ *
+ * @generated from message ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse
+ */
+export type ListSkillVersionsResponse = Message<"ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse"> & {
+  /**
+   * Ordered list of versions (newest first).
+   *
+   * @generated from field: repeated ai.stigmer.agentic.skill.v1.SkillVersionEntry versions = 1;
+   */
+  versions: SkillVersionEntry[];
+
+  /**
+   * Token for fetching the next page. Empty when no more pages exist.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+
+  /**
+   * Total number of versions across all pages.
+   *
+   * @generated from field: int32 total_count = 3;
+   */
+  totalCount: number;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse.
+ * Use `create(ListSkillVersionsResponseSchema)` to create a new message.
+ */
+export const ListSkillVersionsResponseSchema: GenMessage<ListSkillVersionsResponse> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 7);
 

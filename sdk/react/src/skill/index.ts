@@ -43,3 +43,6 @@ export type { SkillUploaderProps } from "./SkillUploader";
 
 export { SkillFileBrowser } from "./SkillFileBrowser";
 export type { SkillFileBrowserProps } from "./SkillFileBrowser";
+
+export { useSkillVersions } from "./useSkillVersions";
+export type { UseSkillVersionsReturn } from "./useSkillVersions";

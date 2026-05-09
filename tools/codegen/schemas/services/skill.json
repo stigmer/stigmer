@@ -68,6 +68,14 @@
           "outputType": "GetArtifactResponse",
           "outputFullType": "ai.stigmer.agentic.skill.v1.GetArtifactResponse",
           "description": "Download skill artifact from storage by its storage key.\n Returns the ZIP file containing SKILL.md and implementation files.\n\n @internal\n Used by the agent-runner to download and extract skill artifacts into the\n sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the\n storage key itself acts as a capability token."
+        },
+        {
+          "name": "ListVersions",
+          "inputType": "ListSkillVersionsInput",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.ListSkillVersionsInput",
+          "outputType": "ListSkillVersionsResponse",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse",
+          "description": "List version history for a skill.\n\n Returns all historical versions ordered by push time (newest first).\n Each entry includes the version hash, push timestamp, actor, tag,\n git provenance, and artifact storage key for historical artifact access.\n\n @internal\n Authorization is handled in the handler after resolving the skill.\n (Input uses org+slug, not skill ID, so proto-level auth cannot work)"
         }
       ]
     }
@@ -350,6 +358,102 @@
             "kind": "bytes"
           },
           "description": "The skill artifact as a ZIP file (binary content).\n Contains SKILL.md and implementation files.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListSkillVersionsInput",
+      "description": "ListSkillVersionsInput requests the version history for a skill.\n\n Returns all historical versions of the skill ordered by push time\n (newest first). Used by the Console and SDK to render version\n timelines and enable version comparison.",
+      "protoType": "ai.stigmer.agentic.skill.v1.ListSkillVersionsInput",
+      "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the skill.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Skill slug (unique within the organization).",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Opaque token for cursor-based pagination.\n Empty string or omitted for the first page.",
+          "required": false
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of versions to return per page.\n Server may return fewer. Default is 50.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListSkillVersionsResponse",
+      "description": "ListSkillVersionsResponse contains a page of skill version history.",
+      "protoType": "ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse",
+      "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
+      "fields": [
+        {
+          "name": "Versions",
+          "jsonName": "versions",
+          "protoField": "versions",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "SkillVersionEntry"
+            }
+          },
+          "description": "Ordered list of versions (newest first).",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token for fetching the next page. Empty when no more pages exist.",
+          "required": false
+        },
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of versions across all pages.",
           "required": false
         }
       ]

@@ -51,6 +51,21 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_skill_v1_GetArtifactResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_skill_v1_ListSkillVersionsInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_skill_v1_ListSkillVersionsInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_skill_v1_SkillVersionEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_skill_v1_SkillVersionEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_skill_v1_ListSkillVersionsResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_skill_v1_ListSkillVersionsResponse_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -62,33 +77,55 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n$ai/stigmer/agentic/skill/v1/io.proto\022\033" +
       "ai.stigmer.agentic.skill.v1\032(ai/stigmer/" +
-      "agentic/skill/v1/status.proto\032\033buf/valid" +
-      "ate/validate.proto\"\'\n\007SkillId\022\034\n\005value\030\001" +
-      " \001(\tB\006\272H\003\310\001\001R\005value\"\330\001\n\020PushSkillRequest" +
-      "\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\"\n\010artifact\030\002" +
-      " \001(\014B\006\272H\003\310\001\001R\010artifact\022-\n\003tag\030\003 \001(\tB\033\272H\030" +
-      "r\0262\024^$|^[a-zA-Z0-9._-]+$R\003tag\022Q\n\016git_pro" +
-      "venance\030\004 \001(\0132*.ai.stigmer.agentic.skill" +
-      ".v1.GitProvenanceR\rgitProvenanceJ\004\010\005\020\006\"\306" +
-      "\001\n%PushSkillFromExecutionArtifactRequest" +
-      "\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022*\n\014execution_" +
-      "id\030\002 \001(\tB\007\272H\004r\002\020\001R\013executionId\022(\n\013storag" +
-      "e_key\030\003 \001(\tB\007\272H\004r\002\020\001R\nstorageKey\022-\n\003tag\030" +
-      "\004 \001(\tB\033\272H\030r\0262\024^$|^[a-zA-Z0-9._-]+$R\003tag\"" +
-      "N\n\022GetArtifactRequest\0228\n\024artifact_storag" +
-      "e_key\030\001 \001(\tB\006\272H\003\310\001\001R\022artifactStorageKey\"" +
-      "1\n\023GetArtifactResponse\022\032\n\010artifact\030\001 \001(\014" +
-      "R\010artifactB\232\001B\007IoProtoP\001\242\002\004ASAS\252\002\033Ai.Sti" +
-      "gmer.Agentic.Skill.V1\312\002\033Ai\\Stigmer\\Agent" +
-      "ic\\Skill\\V1\342\002\'Ai\\Stigmer\\Agentic\\Skill\\V" +
-      "1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Sk" +
-      "ill::V1b\006proto3"
+      "agentic/skill/v1/status.proto\032+ai/stigme" +
+      "r/commons/apiresource/status.proto\032\033buf/" +
+      "validate/validate.proto\032\037google/protobuf" +
+      "/timestamp.proto\"\'\n\007SkillId\022\034\n\005value\030\001 \001" +
+      "(\tB\006\272H\003\310\001\001R\005value\"\330\001\n\020PushSkillRequest\022\030" +
+      "\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\"\n\010artifact\030\002 \001" +
+      "(\014B\006\272H\003\310\001\001R\010artifact\022-\n\003tag\030\003 \001(\tB\033\272H\030r\026" +
+      "2\024^$|^[a-zA-Z0-9._-]+$R\003tag\022Q\n\016git_prove" +
+      "nance\030\004 \001(\0132*.ai.stigmer.agentic.skill.v" +
+      "1.GitProvenanceR\rgitProvenanceJ\004\010\005\020\006\"\306\001\n" +
+      "%PushSkillFromExecutionArtifactRequest\022\030" +
+      "\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022*\n\014execution_id" +
+      "\030\002 \001(\tB\007\272H\004r\002\020\001R\013executionId\022(\n\013storage_" +
+      "key\030\003 \001(\tB\007\272H\004r\002\020\001R\nstorageKey\022-\n\003tag\030\004 " +
+      "\001(\tB\033\272H\030r\0262\024^$|^[a-zA-Z0-9._-]+$R\003tag\"N\n" +
+      "\022GetArtifactRequest\0228\n\024artifact_storage_" +
+      "key\030\001 \001(\tB\006\272H\003\310\001\001R\022artifactStorageKey\"1\n" +
+      "\023GetArtifactResponse\022\032\n\010artifact\030\001 \001(\014R\010" +
+      "artifact\"\212\001\n\026ListSkillVersionsInput\022\030\n\003o" +
+      "rg\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022\032\n\004slug\030\002 \001(\tB\006\272H\003" +
+      "\310\001\001R\004slug\022\035\n\npage_token\030\003 \001(\tR\tpageToken" +
+      "\022\033\n\tpage_size\030\004 \001(\005R\010pageSize\"\223\003\n\021SkillV" +
+      "ersionEntry\022!\n\014version_hash\030\001 \001(\tR\013versi" +
+      "onHash\0227\n\tpushed_at\030\002 \001(\0132\032.google.proto" +
+      "buf.TimestampR\010pushedAt\022R\n\tpushed_by\030\003 \001" +
+      "(\01325.ai.stigmer.commons.apiresource.ApiR" +
+      "esourceAuditActorR\010pushedBy\022\020\n\003tag\030\004 \001(\t" +
+      "R\003tag\022\035\n\nis_current\030\005 \001(\010R\tisCurrent\022Q\n\016" +
+      "git_provenance\030\006 \001(\0132*.ai.stigmer.agenti" +
+      "c.skill.v1.GitProvenanceR\rgitProvenance\022" +
+      "\030\n\007message\030\007 \001(\tR\007message\0220\n\024artifact_st" +
+      "orage_key\030\010 \001(\tR\022artifactStorageKey\"\260\001\n\031" +
+      "ListSkillVersionsResponse\022J\n\010versions\030\001 " +
+      "\003(\0132..ai.stigmer.agentic.skill.v1.SkillV" +
+      "ersionEntryR\010versions\022&\n\017next_page_token" +
+      "\030\002 \001(\tR\rnextPageToken\022\037\n\013total_count\030\003 \001" +
+      "(\005R\ntotalCountB\232\001B\007IoProtoP\001\242\002\004ASAS\252\002\033Ai" +
+      ".Stigmer.Agentic.Skill.V1\312\002\033Ai\\Stigmer\\A" +
+      "gentic\\Skill\\V1\342\002\'Ai\\Stigmer\\Agentic\\Ski" +
+      "ll\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic" +
+      "::Skill::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.skill.v1.StatusProto.getDescriptor(),
+          ai.stigmer.commons.apiresource.StatusProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
+          com.google.protobuf.TimestampProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_skill_v1_SkillId_descriptor =
       getDescriptor().getMessageType(0);
@@ -120,9 +157,29 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_skill_v1_GetArtifactResponse_descriptor,
         new java.lang.String[] { "Artifact", });
+    internal_static_ai_stigmer_agentic_skill_v1_ListSkillVersionsInput_descriptor =
+      getDescriptor().getMessageType(5);
+    internal_static_ai_stigmer_agentic_skill_v1_ListSkillVersionsInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_skill_v1_ListSkillVersionsInput_descriptor,
+        new java.lang.String[] { "Org", "Slug", "PageToken", "PageSize", });
+    internal_static_ai_stigmer_agentic_skill_v1_SkillVersionEntry_descriptor =
+      getDescriptor().getMessageType(6);
+    internal_static_ai_stigmer_agentic_skill_v1_SkillVersionEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_skill_v1_SkillVersionEntry_descriptor,
+        new java.lang.String[] { "VersionHash", "PushedAt", "PushedBy", "Tag", "IsCurrent", "GitProvenance", "Message", "ArtifactStorageKey", });
+    internal_static_ai_stigmer_agentic_skill_v1_ListSkillVersionsResponse_descriptor =
+      getDescriptor().getMessageType(7);
+    internal_static_ai_stigmer_agentic_skill_v1_ListSkillVersionsResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_skill_v1_ListSkillVersionsResponse_descriptor,
+        new java.lang.String[] { "Versions", "NextPageToken", "TotalCount", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.skill.v1.StatusProto.getDescriptor();
+    ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
+    com.google.protobuf.TimestampProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);
