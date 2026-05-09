@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import {
   phaseDotColor,
@@ -132,6 +133,24 @@ function DisabledCard({ onEnable }: { readonly onEnable: () => void }) {
 }
 
 function EnsuringCard() {
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef(Date.now());
+
+  useEffect(() => {
+    startRef.current = Date.now();
+    const timer = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const subtitle =
+    elapsed >= 30
+      ? `Setting up runtime environment\u2026 ${elapsed}s elapsed`
+      : elapsed >= 10
+        ? "This may take a minute on first run\u2026"
+        : "Connecting this computer to your organization.";
+
   return (
     <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary-subtle px-4 py-3">
       <Loader2
@@ -144,7 +163,7 @@ function EnsuringCard() {
           Starting runner&hellip;
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Connecting this computer to your organization.
+          {subtitle}
         </p>
       </div>
     </div>
@@ -200,6 +219,8 @@ function ErrorCard({
   );
 }
 
+const HEALTH_WARNING_GRACE_MS = 30_000;
+
 function ActiveCard({
   localStatus,
   serverRunner,
@@ -215,6 +236,16 @@ function ActiveCard({
   readonly onRestart: () => void;
   readonly isRestarting: boolean;
 }) {
+  const [pastGrace, setPastGrace] = useState(false);
+  const graceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    graceTimerRef.current = setTimeout(() => setPastGrace(true), HEALTH_WARNING_GRACE_MS);
+    return () => {
+      if (graceTimerRef.current) clearTimeout(graceTimerRef.current);
+    };
+  }, []);
+
   const name =
     localStatus.name ??
     serverRunner?.metadata?.name ??
@@ -242,7 +273,7 @@ function ActiveCard({
 
   const socketHealthy = localStatus.source === "socket" && localStatus.running;
   const serverHealthy = isActivePhase(phase);
-  const showHealthWarning = !socketHealthy && serverHealthy;
+  const showHealthWarning = pastGrace && !socketHealthy && serverHealthy;
 
   return (
     <div className="rounded-lg border border-success/30 bg-success-subtle px-4 py-3">

@@ -8,12 +8,14 @@ import {
 
 const ACTIVE_POLL_MS = 5_000;
 const INACTIVE_POLL_MS = 10_000;
+const URGENT_POLL_MS = 2_000;
 
 export interface UseLocalRunnerStatusReturn {
   readonly status: LocalRunnerStatus;
   readonly isLoading: boolean;
   readonly error: string | null;
   readonly refetch: () => void;
+  readonly setUrgent: (urgent: boolean) => void;
 }
 
 const INITIAL_STATUS: LocalRunnerStatus = {
@@ -38,15 +40,25 @@ const INITIAL_STATUS: LocalRunnerStatus = {
  * (source: "socket"), falls back to on-disk state (source: "disk"),
  * or reports unavailable. Subscribes to Tauri lifecycle events for
  * immediate refetch on start/stop.
+ *
+ * When `urgent` is true (during startup ensure), polls every 2s instead
+ * of the default 10s inactive interval to reduce perceived startup latency.
  */
 export function useLocalRunnerStatus(): UseLocalRunnerStatusReturn {
   const [status, setStatus] = useState<LocalRunnerStatus>(INITIAL_STATUS);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
+  const [urgent, setUrgentState] = useState(false);
   const mountedRef = useRef(true);
+  const urgentRef = useRef(false);
 
   const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
+
+  const setUrgent = useCallback((value: boolean) => {
+    urgentRef.current = value;
+    setUrgentState(value);
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -60,13 +72,16 @@ export function useLocalRunnerStatus(): UseLocalRunnerStatusReturn {
         setError(null);
         setIsLoading(false);
 
-        const interval = result.running ? ACTIVE_POLL_MS : INACTIVE_POLL_MS;
+        const interval = result.running
+          ? ACTIVE_POLL_MS
+          : urgentRef.current ? URGENT_POLL_MS : INACTIVE_POLL_MS;
         timer = setTimeout(poll, interval);
       } catch (err) {
         if (!mountedRef.current) return;
         setError(String(err));
         setIsLoading(false);
-        timer = setTimeout(poll, INACTIVE_POLL_MS);
+        const interval = urgentRef.current ? URGENT_POLL_MS : INACTIVE_POLL_MS;
+        timer = setTimeout(poll, interval);
       }
     }
 
@@ -76,7 +91,7 @@ export function useLocalRunnerStatus(): UseLocalRunnerStatusReturn {
       mountedRef.current = false;
       if (timer !== null) clearTimeout(timer);
     };
-  }, [fetchKey]);
+  }, [fetchKey, urgent]);
 
   useEffect(() => {
     const unsubs: Array<Promise<() => void>> = [];
@@ -87,5 +102,5 @@ export function useLocalRunnerStatus(): UseLocalRunnerStatusReturn {
     };
   }, [refetch]);
 
-  return { status, isLoading, error, refetch };
+  return { status, isLoading, error, refetch, setUrgent };
 }

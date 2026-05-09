@@ -187,8 +187,12 @@ const SOCKET_TIMEOUT_MS: u64 = 2000;
 
 /// Sends a raw HTTP/1.1 request over a Unix socket and returns the
 /// response body (everything after the `\r\n\r\n` header terminator).
+///
+/// Uses a single stream without half-closing the write side. The server
+/// processes the request (delimited by Content-Length: 0 or Connection: close)
+/// and closes the connection after responding, which unblocks our read.
 async fn unix_http_request(socket_path: &std::path::Path, request: &[u8]) -> Result<String, String> {
-    let stream = tokio::time::timeout(
+    let mut stream = tokio::time::timeout(
         tokio::time::Duration::from_millis(SOCKET_TIMEOUT_MS),
         tokio::net::UnixStream::connect(socket_path),
     )
@@ -196,21 +200,15 @@ async fn unix_http_request(socket_path: &std::path::Path, request: &[u8]) -> Res
     .map_err(|_| "socket connect timed out".to_string())?
     .map_err(|e| format!("socket connect failed: {e}"))?;
 
-    let (mut reader, mut writer) = stream.into_split();
-
-    writer
+    stream
         .write_all(request)
         .await
         .map_err(|e| format!("socket write failed: {e}"))?;
-    writer
-        .shutdown()
-        .await
-        .map_err(|e| format!("socket shutdown failed: {e}"))?;
 
     let mut buf = Vec::with_capacity(4096);
     tokio::time::timeout(
         tokio::time::Duration::from_millis(SOCKET_TIMEOUT_MS),
-        reader.read_to_end(&mut buf),
+        stream.read_to_end(&mut buf),
     )
     .await
     .map_err(|_| "socket read timed out".to_string())?

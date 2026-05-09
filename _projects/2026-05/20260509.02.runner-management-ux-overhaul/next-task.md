@@ -69,17 +69,33 @@ When starting a new session:
 
 **Created**: 2026-05-09 19:42
 **Current Task**: T07 — End-to-end testing
-**Status**: NOT STARTED
+**Status**: NOT STARTED (startup latency + socket bugs fixed in session 7)
 
 ## Next Steps
 
 1. **T07**: End-to-end testing — verify the full auto-ensure lifecycle from first-run prompt through active runner to disable
-2. Polish pass — review all T01-T06 work for consistency, token compliance, accessibility
+2. Verify socket communication works end-to-end after the half-close fix
+3. Polish pass — review all T01-T06 work for consistency, token compliance, accessibility
 
 ## Quick Resume
 
 To continue this project, drag this file into chat:
 `@_projects/2026-05/20260509.02.runner-management-ux-overhaul/next-task.md`
+
+## Session Progress (2026-05-09, session 7)
+
+- Fixed runner startup latency: urgent 2s polling during ensure (was 10s inactive interval)
+- Fixed Unix socket communication in Rust Desktop layer: removed `writer.shutdown()` half-close pattern that caused macOS race condition with Go's `net/http` server
+- Added progressive bootstrap feedback in EnsuringCard: "This may take a minute on first run..." (10s), then live elapsed counter (30s+)
+- Added 30s grace period in ActiveCard before showing "socket unreachable" health warning
+- 4 files changed, 68 insertions, 16 deletions
+- `cargo check` passes clean, linter reports zero errors
+
+### Key design decisions: session 7
+
+- **Single-stream over split+shutdown**: Go's `net/http` server relies on `Connection: close` to know when to close; half-closing the write side before reading the response creates a race on macOS Unix domain sockets where the server may detect the FIN before writing its response. Sequential write-then-read on a single stream is simpler and reliable.
+- **`setUrgent()` callback over hook parameter**: Avoids circular dependency between `useLocalRunnerStatus` (provides `localStatus`) and `useAutoEnsure` (consumes `localStatus`, produces `autoEnsureState` that drives urgency). The page component syncs the two via a `useEffect`.
+- **30s health warning grace**: Covers the normal startup window where disk-state detection precedes socket availability. Still surfaces genuine socket failures within a reasonable time for debugging.
 
 ## Session Progress (2026-05-09, session 6)
 
