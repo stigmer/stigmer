@@ -180,10 +180,6 @@ async def _perform_setup_core(
     # Step 0: Hydrate AgentExecution from database via gRPC
     # ─────────────────────────────────────────────────────────────────────
     setup_timer.start("execution_fetch")
-    await report_setup_progress(
-        execution_client, execution_id,
-        "Loading execution\u2026", logger,
-    )
     logger.info("Fetching execution %s from database via gRPC", execution_id)
     execution = await execution_query_client.get(execution_id)
 
@@ -204,10 +200,6 @@ async def _perform_setup_core(
     # Step 1: Resolve chain — execution → session → agent_instance → agent
     # ─────────────────────────────────────────────────────────────────────
     setup_timer.start("chain_resolution")
-    await report_setup_progress(
-        execution_client, execution_id,
-        "Resolving agent configuration\u2026", logger,
-    )
     logger.info("Resolving execution chain for execution: %s", execution_id)
 
     session_id = execution.spec.session_id
@@ -260,10 +252,6 @@ async def _perform_setup_core(
     # Step 2: Worker config & checkpointer
     # ─────────────────────────────────────────────────────────────────────
     setup_timer.start("config_and_checkpointer")
-    await report_setup_progress(
-        execution_client, execution_id,
-        "Preparing runtime\u2026", logger,
-    )
     from stigmer_runner.worker.config import Config
 
     worker_config = Config.load_from_env()
