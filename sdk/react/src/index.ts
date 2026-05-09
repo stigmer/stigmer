@@ -853,6 +853,9 @@ export {
   RunnerPicker,
   RunnerFileBrowser,
   RunnerListPanel,
+  RunnerIcon,
+  PhaseBadge,
+  formatRelativeTime,
   phaseLabel,
   phaseDotColor,
   isActivePhase,
@@ -878,6 +881,9 @@ export type {
   RunnerPickerProps,
   RunnerFileBrowserProps,
   RunnerListPanelProps,
+  RunnerSortKey,
+  RunnerIconProps,
+  PhaseBadgeProps,
 } from "./runner";
 
 // Tabs — accessible tabbed panel primitive

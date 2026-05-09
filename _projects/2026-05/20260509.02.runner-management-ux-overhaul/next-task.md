@@ -68,18 +68,35 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-09 19:42
-**Current Task**: T06 — Phase 5: Fleet view polish
+**Current Task**: T07 — End-to-end testing
 **Status**: NOT STARTED
 
 ## Next Steps
 
-1. **T06**: Fleet view polish — sorting, filtering, empty states for the OrgFleetSection
-2. **T07**: End-to-end testing — verify the full auto-ensure lifecycle from first-run prompt through active runner to disable
+1. **T07**: End-to-end testing — verify the full auto-ensure lifecycle from first-run prompt through active runner to disable
+2. Polish pass — review all T01-T06 work for consistency, token compliance, accessibility
 
 ## Quick Resume
 
 To continue this project, drag this file into chat:
 `@_projects/2026-05/20260509.02.runner-management-ux-overhaul/next-task.md`
+
+## Session Progress (2026-05-09, session 6)
+
+- Completed T06 Phase 5: Fleet view polish — sorting, filtering, empty states across SDK and Desktop
+- **SDK `shared.tsx`** (new): Extracted `RunnerIcon`, `PhaseBadge`, `formatRelativeTime` into a shared module, eliminating triple duplication across `RunnerListPanel`, `OrgFleetSection`, and `ThisMachineCard`
+- **SDK `RunnerListPanel`**: Replaced custom inline empty/error JSX with shared `EmptyState` component (`first-use`, `zero-results`, `error` variants). Added optional `filterPhases`, `searchQuery`, `sortBy`, `sortDirection` props with backward-compatible defaults. New `buildComparator` supports sorting by phase, name, heartbeat, or executions.
+- **SDK exports**: New public API: `RunnerSortKey`, `RunnerIcon`, `RunnerIconProps`, `PhaseBadge`, `PhaseBadgeProps`, `formatRelativeTime`
+- **Desktop `OrgFleetSection`**: Major polish — fleet summary line ("X of Y active"), toggleable phase filter chips with per-phase counts, debounced name/hostname search (shown when fleet > 5), compact sort dropdown (phase/name/heartbeat/executions), proper empty states (first-use + zero-results with "Clear filters" action)
+- **Desktop `ThisMachineCard`**: Deduped — imports `formatRelativeTime` from SDK instead of local copy, removed unused `useCallback` import
+- Both `tsc --noEmit` passes (SDK and Desktop) compile clean, zero errors
+
+### Key design decisions: session 6
+
+- **Lightweight filter over ResourceWorkbench**: Runner fleet is a monitoring view for ~5-20 items. Phase chips + search + sort dropdown is proportional to the data model (Hick's Law). Full workbench deferred until runner counts meaningfully grow.
+- **Section heading persists when empty**: "Organization Runners" heading stays visible with an `EmptyState` inside — disappearing headings are disorienting (Nielsen heuristic #1).
+- **Search threshold at 5 runners**: Search input only appears for fleets with >5 runners to avoid UI clutter for solo developers.
+- **Shared utilities over copy-paste**: `formatRelativeTime`, `PhaseBadge`, `RunnerIcon` extracted to `sdk/react/src/runner/shared.tsx` and exported from `@stigmer/react` — Desktop imports instead of maintaining local copies.
 
 ## Session Progress (2026-05-09, session 5)
 
@@ -179,8 +196,8 @@ Deep research report available at:
 | T03 | Phase 2: Stable machine_id identity | COMPLETE |
 | T04 | Phase 3: Local control socket | COMPLETE |
 | T05 | Phase 4: Desktop UI redesign (status card) | COMPLETE |
-| T06 | Phase 5: Service/login integration | Not started |
-| T07 | Phase 6: Server-side RunnerSession model | Not started |
+| T06 | Phase 5: Fleet view polish | COMPLETE |
+| T07 | Phase 6: End-to-end testing | Not started |
 
 ## Quick Commands
 
