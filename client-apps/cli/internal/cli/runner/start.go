@@ -55,10 +55,26 @@ type registeredRunner struct {
 	client      *stigmer.Client
 }
 
-// Start is the main orchestration for `stigmer up` / `stigmer up runner`.
-// It resolves the backend, registers the runner, and then dispatches to
-// the runtime-specific path (native Python process or Docker container).
+// Start is the human-output entry point for `stigmer up` / `stigmer up runner`.
+// It calls Ensure internally and renders the result as colored CLI messages.
 func Start(ctx context.Context, opts StartOptions) error {
+	return Ensure(ctx, opts, func(r *EnsureResult) {
+		PrintHumanResult(r)
+	})
+}
+
+// Ensure guarantees a compatible runner is available. It either adopts an
+// existing runner or starts a fresh one.
+//
+// The onReady callback is invoked as soon as the runner is live:
+//   - Adoption: called immediately, then Ensure returns nil.
+//   - Fresh start: called after SaveState + phase=READY, then Ensure
+//     blocks until the runner process exits (returning the exit error).
+//
+// This callback model lets the command handler write JSON to stdout before
+// the blocking wait, which is how the Desktop sidecar reads structured
+// output during its 8-second grace window.
+func Ensure(ctx context.Context, opts StartOptions, onReady func(*EnsureResult)) error {
 	if reaped := ReapStaleRunners(); len(reaped) > 0 {
 		for _, name := range reaped {
 			log.Debug().Str("name", name).Msg("Cleaned up stale runner state")
@@ -84,9 +100,7 @@ func Start(ctx context.Context, opts StartOptions) error {
 		return err
 	}
 	if adopted != nil {
-		climsg.Success("Runner %q is already active (PID %d)", name, adopted.PID)
-		climsg.Info("  Backend: %s", adopted.BackendEndpoint)
-		climsg.Info("  Started: %s", formatRelativeTime(adopted.StartedAt))
+		onReady(ensureResultFromState(name, adopted, ActionAdoptedExisting))
 		return nil
 	}
 
@@ -155,9 +169,9 @@ func Start(ctx context.Context, opts StartOptions) error {
 
 	switch runtime {
 	case RuntimeDocker:
-		return startDockerRunner(ctx, reg, opts.Image)
+		return startDockerRunner(ctx, reg, opts.Image, onReady)
 	default:
-		return startNativeRunner(ctx, reg)
+		return startNativeRunner(ctx, reg, onReady)
 	}
 }
 
@@ -216,7 +230,7 @@ type cursorBootstrapOutcome struct {
 // The cursor-runner bootstrap (Node.js download + npm install) runs in a
 // background goroutine concurrently with the Python bootstrap so the two
 // potentially slow operations overlap.
-func startNativeRunner(ctx context.Context, reg *registeredRunner) error {
+func startNativeRunner(ctx context.Context, reg *registeredRunner, onReady func(*EnsureResult)) error {
 	streamCtx, streamCancel := context.WithCancel(context.Background())
 	var streamWg sync.WaitGroup
 
@@ -308,9 +322,9 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner) error {
 		log.Warn().Err(err).Msg("Failed to save runner state (non-fatal)")
 	}
 
-	climsg.Success("Runner %q started (PID %d)", reg.name, proc.Process.Pid)
-
 	rsc.SetPhase(runnerv1.RunnerPhase_RUNNER_PHASE_READY)
+
+	onReady(ensureResultFromState(reg.name, state, ActionStartedFresh))
 
 	// Start the cursor-runner using the bootstrap result from the parallel
 	// goroutine. If the Node.js bootstrap finished before the Python
@@ -411,7 +425,7 @@ func launchCursorRunnerProcess(result *CursorRunnerBootstrapResult, reg *registe
 
 // startDockerRunner starts the agent-runner inside a Docker container and
 // blocks until the container exits or a shutdown signal is received.
-func startDockerRunner(ctx context.Context, reg *registeredRunner, imageOverride string) error {
+func startDockerRunner(ctx context.Context, reg *registeredRunner, imageOverride string, onReady func(*EnsureResult)) error {
 	dc := NewDockerClient()
 
 	image := imageOverride
@@ -465,7 +479,7 @@ func startDockerRunner(ctx context.Context, reg *registeredRunner, imageOverride
 		log.Warn().Err(err).Msg("Failed to save runner state (non-fatal)")
 	}
 
-	climsg.Success("Runner %q started (container %s)", reg.name, containerID[:12])
+	onReady(ensureResultFromState(reg.name, state, ActionStartedFresh))
 
 	streamCtx, streamCancel := context.WithCancel(context.Background())
 	var streamWg sync.WaitGroup

@@ -57,6 +57,53 @@ pub struct RunnerLogEntry {
 }
 
 // ---------------------------------------------------------------------------
+// Structured JSON output from `stigmer up --json` (CLI → sidecar contract)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+enum CliEnsureOutput {
+    Success(CliEnsureResult),
+    Error(CliEnsureError),
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
+struct CliEnsureResult {
+    ok: bool,
+    action: String,
+    runner_id: String,
+    name: String,
+    org: String,
+    pid: Option<i64>,
+    runtime: String,
+    backend_endpoint: String,
+    task_queue: String,
+    started_at: String,
+    log_file: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct CliEnsureError {
+    ok: bool,
+    error: String,
+    #[allow(dead_code)]
+    hint: Option<String>,
+}
+
+/// Attempt to parse the combined early stdout lines as the CLI's JSON
+/// ensure result. Returns None if the output is not valid JSON or does
+/// not match the expected shape.
+fn try_parse_ensure_output(stdout_lines: &[String]) -> Option<CliEnsureOutput> {
+    let combined = stdout_lines.join("");
+    let trimmed = combined.trim();
+    if trimmed.is_empty() || !trimmed.starts_with('{') {
+        return None;
+    }
+    serde_json::from_str(trimmed).ok()
+}
+
+// ---------------------------------------------------------------------------
 // Events emitted to the frontend via Tauri's event system
 // ---------------------------------------------------------------------------
 
@@ -280,7 +327,7 @@ pub async fn start_runner(
         }
     }
 
-    let mut args: Vec<String> = vec!["up".into(), "runner".into(), "--standalone".into()];
+    let mut args: Vec<String> = vec!["up".into(), "runner".into(), "--standalone".into(), "--json".into()];
     if let Some(ref n) = name {
         args.push("--name".into());
         args.push(n.clone());
@@ -317,6 +364,7 @@ pub async fn start_runner(
     let grace_deadline = tokio::time::Instant::now()
         + tokio::time::Duration::from_millis(STARTUP_GRACE_MS);
     let mut early_output: Vec<String> = Vec::new();
+    let mut early_stdout: Vec<String> = Vec::new();
     let mut early_stderr: Vec<String> = Vec::new();
     let mut early_exit: Option<Option<i32>> = None;
 
@@ -337,6 +385,7 @@ pub async fn start_runner(
                     }
                     Some(CommandEvent::Stdout(bytes)) => {
                         let line = String::from_utf8_lossy(&bytes).to_string();
+                        early_stdout.push(line.clone());
                         early_output.push(line);
                     }
                     Some(CommandEvent::Terminated(payload)) => {
@@ -362,6 +411,20 @@ pub async fn start_runner(
 
     if let Some(code) = early_exit {
         let exit_code = code.unwrap_or(-1);
+
+        // Try to parse structured JSON from stdout (available when --json is active).
+        if let Some(parsed) = try_parse_ensure_output(&early_stdout) {
+            match parsed {
+                CliEnsureOutput::Success(result) if result.ok => {
+                    return Ok(result.name);
+                }
+                CliEnsureOutput::Error(err) if !err.ok => {
+                    return Err(err.error);
+                }
+                _ => {}
+            }
+        }
+
         if exit_code != 0 {
             let detail = if early_stderr.is_empty() {
                 format!("CLI exited with code {exit_code}")
