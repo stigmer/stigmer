@@ -350,7 +350,7 @@ export type {
   GitHubRepoPickerProps,
 } from "./github";
 
-// Agent — data hook, count hook, list hook, search hook, picker, detail view, env form, setup orchestration, env diffing, and default agent
+// Agent — data hook, count hook, list hook, search hook, picker, detail view, env form, setup orchestration, env diffing, default agent, creation wizard
 export {
   useAgent,
   useAgentCount,
@@ -362,6 +362,8 @@ export {
   diffEnv,
   useAgentSetup,
   useDefaultAgent,
+  useCreateAgent,
+  AgentCreationWizard,
 } from "./agent";
 export type {
   UseAgentReturn,
@@ -384,6 +386,9 @@ export type {
   SubmitEnvVarsOptions,
   UseAgentSetupReturn,
   UseDefaultAgentReturn,
+  UseCreateAgentReturn,
+  AgentCreationWizardProps,
+  AgentCreationResult,
 } from "./agent";
 
 // Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, env var form, system env vars, and styled components
@@ -701,6 +706,7 @@ export {
   parseResourceYaml,
   serializeAgentYaml,
   serializeMcpServerYaml,
+  serializeAgentInputYaml,
   useApplyResource,
   useExportResource,
   useImportResource,
@@ -872,6 +878,23 @@ export type {
   ResourceActionBarProps,
   ConfirmDialogProps,
 } from "./resource-detail";
+
+// Resource Creation — shared wizard infrastructure for multi-step creation flows
+export {
+  useWizardState,
+  WizardShell,
+  WizardNav,
+  StepIndicator,
+} from "./resource-creation";
+export type {
+  WizardStepDef,
+  WizardState,
+  WizardShellProps,
+  UseWizardStateOptions,
+  UseWizardStateReturn,
+  WizardNavProps,
+  StepIndicatorProps,
+} from "./resource-creation";
 
 // Resource Workbench — headless hooks, view components, and composed shell for resource collection management
 export {

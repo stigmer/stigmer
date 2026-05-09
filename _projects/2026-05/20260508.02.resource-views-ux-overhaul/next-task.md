@@ -14,8 +14,23 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-05-09 — Phase 3 T04-E (YAML/JSON Import/Export) complete
-- **Active Task**: Phase 3 T04-E complete. Next up: T04-B (Agent Creation Wizard)
+- **Last Session**: 2026-05-09 — Phase 3 T04-B (Agent Creation Wizard) complete
+- **Active Task**: Phase 3 T04-B complete. Next up: T04-C (Skill Editor with Preview) or T04-D (MCP Server Creation Wizard)
+
+## Session Progress (2026-05-09, Session 6)
+
+- Completed Phase 3 sub-task T04-B: Agent Creation Wizard
+- Built shared `resource-creation/` module: `WizardShell`, `WizardNav`, `StepIndicator`, `useWizardState` (generic reducer-based state machine)
+- Built `useCreateAgent` mutation hook wrapping `stigmer.agent.apply()`
+- Built `AgentCreationWizard` — 3-step condensed wizard (Identity+Instructions, Capabilities, Review)
+- Step 1: name, slug (auto-derived), description, icon, visibility, instructions textarea
+- Step 2: collapsible sections for MCP servers (uses existing `McpServerPicker`), skills (uses `SkillPicker`), env var declarations (custom key-value editor)
+- Step 3: summary card + full YAML preview using new `serializeAgentInputYaml` utility
+- Created Console route at `/library/agents/new` with `AgentNewPage` domain component
+- Updated `AgentListPage` create button to route to `/library/agents/new` (was `/?draft=agent`)
+- Key architectural discovery: `AgentSpec` proto has NO model field — model selection is a runtime concern, not a blueprint field
+- All typecheck + lint pass clean (only pre-existing tsdoc ActionMenu warning)
+- Design decisions: DD-T04B-001 through DD-T04B-006 documented in plan
 
 ## Session Progress (2026-05-09, Session 5)
 
@@ -54,11 +69,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Key Decisions Made (This Session)
 
-- **DD-T04E-001**: Export is client-side only — serializers run from already-fetched proto, zero additional API calls
-- **DD-T04E-002**: Import reuses existing `parseResourceYaml` + SDK `apply()` pipeline
-- **DD-T04E-003**: Import shows validation preview before applying (Nielsen heuristics #3, #5)
-- **DD-T04E-004**: Export hook returns four stable callbacks (copyYaml, copyJson, downloadYaml, downloadJson) — headless layer
-- **DD-T04E-005**: ImportResourceDialog uses native `<dialog>` (consistent with DD-T03-002), HTML file picker (no drag-drop library)
+- **DD-T04B-001**: Wizard is CREATE-only. No edit mode. Editing uses a future settings-style page.
+- **DD-T04B-002**: 3 condensed steps (Identity+Instructions, Capabilities, Review). No model step — model is a runtime concern, not a blueprint field.
+- **DD-T04B-003**: Sub-agents excluded from V1 wizard (power users use YAML import).
+- **DD-T04B-004**: Wizard state lives in a `useReducer` with per-step data slices (following `agentSetupReducer` precedent).
+- **DD-T04B-005**: `WizardShell` is resource-agnostic reusable infrastructure. Agent-specific content is in step components.
+- **DD-T04B-006**: `useCreateAgent` is a standalone mutation hook (following `useCreateApiKey` pattern) — usable independently from the wizard.
 - **DD-T03-001**: ResourceDetailShell receives pre-fetched data via props, not own data fetching — resource-specific hooks already exist with different parameters
 - **DD-T03-002**: ConfirmDialog uses native `<dialog>` element for modals — consistent with existing McpServerDetailView BYOA dialog pattern, no new dependency needed
 - **DD-T03-003**: McpServerDetailView uses ResourceActionBar directly (not full ResourceDetailShell) — preserves its complex MCP-specific header with validation state, slug display, lastDiscoveredAt
@@ -66,14 +82,14 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **T04-B: Agent Creation Wizard** — The centerpiece of Phase 3, including shared wizard infrastructure (`WizardShell`, `useWizardState`)
-2. **T04-C: Skill Editor with Preview** — Split-pane Markdown editor + live preview
-3. **T04-D: MCP Server Creation Wizard** — Visual MCP server configuration flow
-4. **T04-F: Template Gallery** — Depends on T04-B and T04-D
-5. **T04-G: AI Sidecar** — Needs backend design spike first
+1. **T04-C: Skill Editor with Preview** — Split-pane Markdown editor + live preview (no dependencies)
+2. **T04-D: MCP Server Creation Wizard** — Visual MCP server configuration flow (reuses `WizardShell` from T04-B)
+3. **T04-F: Template Gallery** — Depends on T04-B (done) and T04-D
+4. **T04-G: AI Sidecar** — Needs backend design spike first
 
 ## Context for Resume
 
+- T04-B plan is at `.cursor/plans/t04-b_agent_creation_wizard_2144757f.plan.md`
 - T04-E plan is at `.cursor/plans/t04-e_import_export_0a7026b6.plan.md`
 - Phase 2 plan is at `.cursor/plans/phase_2_detail_hubs_cd21ecab.plan.md`
 - Phase 1 plan is at `.cursor/plans/t02_resource_workbench_927d6980.plan.md`
@@ -83,10 +99,25 @@ Drop this file into your conversation to quickly resume work on this project.
 - `ResourceListView` is deprecated but still in the codebase — can be removed once all references are gone
 - The `resource-workbench/` module is the canonical resource collection architecture
 - The `resource-detail/` module is the canonical resource detail architecture
+- The `resource-creation/` module is the canonical wizard/creation architecture (reusable by T04-D)
+- Key discovery: `AgentSpec` proto has no model field — model is a runtime concern at execution/instance level
 
 ## Essential Files to Review
 
-### 0. Import/Export Module (Phase 3 T04-E)
+### 0a. Agent Creation Wizard (Phase 3 T04-B)
+```
+sdk/react/src/resource-creation/
+  types.ts, index.ts, useWizardState.ts, WizardShell.tsx, WizardNav.tsx, StepIndicator.tsx
+
+sdk/react/src/agent/
+  AgentCreationWizard.tsx, useCreateAgent.ts
+  steps/types.ts, steps/IdentityStep.tsx, steps/CapabilitiesStep.tsx, steps/ReviewStep.tsx
+
+client-apps/web/src/app/library/agents/new/page.tsx
+client-apps/web/src/domain/library/agents/AgentNewPage.tsx
+```
+
+### 0b. Import/Export Module (Phase 3 T04-E)
 ```
 sdk/react/src/library/
   useExportResource.ts, useImportResource.ts, ImportResourceDialog.tsx
