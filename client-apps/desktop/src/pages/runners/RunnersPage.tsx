@@ -492,7 +492,7 @@ export default function RunnersPage() {
           onPointerDown={handleResizeStart}
           className="group relative flex h-2 flex-none cursor-row-resize items-center justify-center border-y border-border bg-background hover:bg-accent-hover"
         >
-          <div className="h-0.5 w-8 rounded-full bg-muted-foreground/30 transition-colors group-hover:bg-muted-foreground/60" />
+          <div className="h-0.5 w-8 rounded-full bg-border transition-colors group-hover:bg-muted-foreground" />
         </div>
       )}
 

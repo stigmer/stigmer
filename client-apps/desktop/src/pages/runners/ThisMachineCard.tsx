@@ -123,6 +123,7 @@ function DisabledCard({ onEnable }: { readonly onEnable: () => void }) {
         className={cn(
           "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
           "bg-primary text-primary-foreground hover:bg-primary-hover",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         )}
       >
         <Power size={12} />
@@ -152,7 +153,7 @@ function EnsuringCard() {
         : "Connecting this computer to your organization.";
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary-subtle px-4 py-3">
+    <div className="flex items-center gap-3 rounded-lg border border-border bg-primary-subtle px-4 py-3">
       <Loader2
         size={16}
         className="shrink-0 animate-spin text-primary"
@@ -180,7 +181,7 @@ function ErrorCard({
   readonly onDisable: () => void;
 }) {
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive-subtle px-4 py-3">
+    <div className="rounded-lg border border-border bg-destructive-subtle px-4 py-3">
       <div className="flex items-start gap-3">
         <AlertTriangle
           size={16}
@@ -200,6 +201,7 @@ function ErrorCard({
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
                 "bg-primary text-primary-foreground hover:bg-primary-hover",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               )}
             >
               <RotateCw size={12} />
@@ -208,7 +210,7 @@ function ErrorCard({
             <button
               type="button"
               onClick={onDisable}
-              className="rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+              className="rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               Disable
             </button>
@@ -276,7 +278,7 @@ function ActiveCard({
   const showHealthWarning = pastGrace && !socketHealthy && serverHealthy;
 
   return (
-    <div className="rounded-lg border border-success/30 bg-success-subtle px-4 py-3">
+    <div className="rounded-lg border border-border bg-success-subtle px-4 py-3">
       <div className="flex items-start gap-3">
         {/* Status indicator */}
         <div className="mt-1 flex shrink-0 flex-col items-center">
@@ -374,6 +376,7 @@ function ActionButton({
       aria-label={label}
       className={cn(
         "rounded p-1.5 transition-colors disabled:opacity-50",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         variant === "muted"
           ? "text-muted-foreground hover:bg-muted hover:text-foreground"
           : "text-muted-foreground hover:bg-muted-subtle hover:text-foreground",
