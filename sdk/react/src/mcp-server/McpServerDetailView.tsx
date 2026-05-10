@@ -253,20 +253,16 @@ export function McpServerDetailView({
           credentials.refetch();
         }
 
-        setShowCredentialForm(false);
-
         if (mcpServer?.metadata?.id) {
           const envKeys = Object.keys(mcpServer.spec?.env ?? {});
           const connectOrg = activeOrg ?? org;
-          if (options.saveForFuture) {
-            await connection.connect(mcpServer.metadata.id, connectOrg, undefined, envKeys);
-          } else {
-            await connection.connect(mcpServer.metadata.id, connectOrg, values, envKeys);
-          }
+          await connection.connect(mcpServer.metadata.id, connectOrg, values, envKeys);
           refetch();
         }
+
+        setShowCredentialForm(false);
       } catch {
-        // error state is managed by the hooks
+        // error state is managed by the hooks — form stays open for retry
       }
     },
     [credentials, mcpServer, connection, refetch],
