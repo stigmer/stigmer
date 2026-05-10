@@ -69,18 +69,35 @@ When starting a new session:
 
 **Created**: 2026-05-09 19:42
 **Current Task**: T07 — End-to-end testing
-**Status**: NOT STARTED (startup latency + socket bugs fixed in session 7)
+**Status**: COMPLETE
 
 ## Next Steps
 
-1. **T07**: End-to-end testing — verify the full auto-ensure lifecycle from first-run prompt through active runner to disable
-2. Verify socket communication works end-to-end after the half-close fix
-3. Polish pass — review all T01-T06 work for consistency, token compliance, accessibility
+All phases (T01-T07) are complete. The runner management UX overhaul is ready for production. Remaining work is optional:
+1. Server-side `RunnerSession` model with structured `ALREADY_CONNECTED` (deferred — separate project)
+2. LaunchAgent/systemd service integration for auto-start on login (deferred — separate project)
 
 ## Quick Resume
 
 To continue this project, drag this file into chat:
 `@_projects/2026-05/20260509.02.runner-management-ux-overhaul/next-task.md`
+
+## Session Progress (2026-05-10, session 8)
+
+- Completed T07: End-to-end verification and systematic polish pass
+- **Build verification**: All targets pass — Go build/vet/test (67+ tests), Rust cargo check, TypeScript tsc, make verify-desktop
+- **Manual E2E walkthrough**: Verified full auto-ensure lifecycle on live Desktop — first-run prompt → enable → active → disable → re-enable, all transitions correct
+- **Go polish (16 files)**: Removed dead code (unused `hintForOrgConflict`/`hintForEndpointConflict` and orphaned `fmt` import in ensure.go)
+- **Rust polish (3 files)**: Clean — no issues found
+- **Desktop TypeScript polish (8 files)**: Fixed missing `--stgm-success-subtle` token (ActiveCard green bg was transparent), replaced 6 opacity modifier violations with proper tokens, added focus-visible ring styles to all runner page buttons
+- **SDK React polish (3 files)**: Clean — zero framework imports, all T06 exports in barrel, TSDoc present
+- 7 files changed, 15 insertions, 18 deletions
+- Committed as `8072f076b`, all checks pass
+
+### Key design decisions: session 8
+
+- **`border-border` over tinted border tokens**: Card borders use the neutral `border-border` token instead of opacity-modified semantic borders (`border-primary/30`). The background color (`bg-primary-subtle`, `bg-success-subtle`) already carries the semantic tint — the border just provides structure. This avoids creating new border-specific tokens for each semantic color.
+- **`--stgm-success-subtle` follows existing pattern**: Light `oklch(0.95 0.03 150)` and dark `oklch(0.24 0.04 150)` match the formula used by `--stgm-primary-subtle` and `--stgm-destructive-subtle` (same L/C, different hue angle).
 
 ## Session Progress (2026-05-09, session 7)
 
@@ -213,7 +230,7 @@ Deep research report available at:
 | T04 | Phase 3: Local control socket | COMPLETE |
 | T05 | Phase 4: Desktop UI redesign (status card) | COMPLETE |
 | T06 | Phase 5: Fleet view polish | COMPLETE |
-| T07 | Phase 6: End-to-end testing | Not started |
+| T07 | Phase 6: End-to-end testing | COMPLETE |
 
 ## Quick Commands
 
