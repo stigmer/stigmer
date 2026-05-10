@@ -317,9 +317,17 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner, onReady func(
 		defer logFile.Close()
 	}
 
+	// Shared capped writer for the unified log file. Both the agent-runner
+	// and cursor-runner write to this single file with [agent]/[cursor]
+	// prefixes so the Desktop log viewer shows a single interleaved stream.
+	var sharedLogWriter io.Writer
+	if logFile != nil {
+		sharedLogWriter = &cappedWriter{w: logFile, limit: maxLogFileBytes}
+	}
+
 	climsg.Info("Starting agent runner ...")
 
-	proc, err := startPythonProcess(pythonBin, appDir, env, logFile)
+	proc, err := startPythonProcess(pythonBin, appDir, env, sharedLogWriter)
 	if err != nil {
 		streamCancel()
 		streamWg.Wait()
@@ -391,7 +399,7 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner, onReady func(
 				return
 			}
 
-			cursorProc := launchCursorRunnerProcess(cb.result, reg, dataDir)
+			cursorProc := launchCursorRunnerProcess(cb.result, reg, dataDir, sharedLogWriter)
 			if cursorProc == nil {
 				return
 			}
@@ -405,6 +413,10 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner, onReady func(
 			}
 
 			climsg.Info("Cursor runner ready (PID %d)", cursorProc.Process.Pid)
+			if sharedLogWriter != nil {
+				fmt.Fprintf(sharedLogWriter, "[cursor] Cursor runner ready (PID %d), polling on %s:cursor\n",
+					cursorProc.Process.Pid, reg.taskQueue)
+			}
 
 			if waitErr := cursorProc.Wait(); waitErr != nil {
 				log.Warn().Err(waitErr).Int("pid", cursorProc.Process.Pid).Msg("Cursor runner exited with error")
@@ -444,7 +456,11 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner, onReady func(
 // launchCursorRunnerProcess starts the cursor-runner TypeScript process using
 // an already-completed bootstrap result. Returns the process handle, or nil
 // if the process fails to start (non-fatal).
-func launchCursorRunnerProcess(result *CursorRunnerBootstrapResult, reg *registeredRunner, dataDir string) *exec.Cmd {
+//
+// sharedLogWriter is the unified log writer shared with the agent-runner.
+// Cursor-runner output is prefixed with [cursor] so the Desktop log viewer
+// can display both components in a single interleaved stream.
+func launchCursorRunnerProcess(result *CursorRunnerBootstrapResult, reg *registeredRunner, dataDir string, sharedLogWriter io.Writer) *exec.Cmd {
 	cursorEnvParams := CursorEnvParams{
 		BackendInfo: reg.backendInfo,
 		RunnerID:    reg.runnerID,
@@ -458,14 +474,10 @@ func launchCursorRunnerProcess(result *CursorRunnerBootstrapResult, reg *registe
 	cmd.Dir = result.AppDir
 	cmd.Env = cursorEnv
 
-	cursorLogFile, _, logErr := openRunnerLogFile(reg.name + "-cursor")
-	if logErr != nil {
-		log.Warn().Err(logErr).Msg("Failed to open cursor-runner log file")
-	}
-	if cursorLogFile != nil {
-		capped := &cappedWriter{w: cursorLogFile, limit: maxLogFileBytes}
-		cmd.Stdout = io.MultiWriter(os.Stdout, capped)
-		cmd.Stderr = io.MultiWriter(os.Stderr, capped)
+	if sharedLogWriter != nil {
+		pw := newPrefixWriter("[cursor] ", sharedLogWriter)
+		cmd.Stdout = io.MultiWriter(os.Stdout, pw)
+		cmd.Stderr = io.MultiWriter(os.Stderr, pw)
 	} else {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -876,6 +888,59 @@ func (cw *cappedWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
+// prefixWriter prepends a component label at the start of each new line
+// written to the underlying writer. Used to distinguish agent-runner and
+// cursor-runner output in the shared log file.
+//
+// The writer tracks newlines in the byte stream so the prefix is inserted
+// only at line boundaries, not mid-line. Partial writes (no trailing
+// newline) are handled correctly — the prefix is deferred until the next
+// write that follows a newline.
+type prefixWriter struct {
+	prefix []byte
+	w      io.Writer
+	atBOL  bool // at beginning of line (next byte starts a new line)
+}
+
+func newPrefixWriter(prefix string, w io.Writer) *prefixWriter {
+	return &prefixWriter{prefix: []byte(prefix), w: w, atBOL: true}
+}
+
+func (pw *prefixWriter) Write(p []byte) (int, error) {
+	total := len(p)
+	for len(p) > 0 {
+		if pw.atBOL {
+			if _, err := pw.w.Write(pw.prefix); err != nil {
+				return total - len(p), err
+			}
+			pw.atBOL = false
+		}
+		idx := indexByte(p, '\n')
+		if idx < 0 {
+			if _, err := pw.w.Write(p); err != nil {
+				return total - len(p), err
+			}
+			break
+		}
+		// Write through the newline, then mark next write as BOL.
+		if _, err := pw.w.Write(p[:idx+1]); err != nil {
+			return total - len(p), err
+		}
+		p = p[idx+1:]
+		pw.atBOL = true
+	}
+	return total, nil
+}
+
+func indexByte(b []byte, c byte) int {
+	for i, v := range b {
+		if v == c {
+			return i
+		}
+	}
+	return -1
+}
+
 func createClient(info *BackendInfo) (*stigmer.Client, error) {
 	opts := []stigmer.ClientOption{
 		stigmer.WithBaseURL(info.Endpoint),
@@ -937,7 +1002,7 @@ func buildEnvParams(
 	return params
 }
 
-func startPythonProcess(pythonBin, appDir string, env []string, logFile *os.File) (*exec.Cmd, error) {
+func startPythonProcess(pythonBin, appDir string, env []string, sharedLogWriter io.Writer) (*exec.Cmd, error) {
 	mainPy := filepath.Join(appDir, "main.py")
 	if _, err := os.Stat(mainPy); err != nil {
 		return nil, errors.Wrapf(err, "agent-runner entry point not found at %s", mainPy)
@@ -947,10 +1012,10 @@ func startPythonProcess(pythonBin, appDir string, env []string, logFile *os.File
 	cmd.Dir = appDir
 	cmd.Env = env
 
-	if logFile != nil {
-		capped := &cappedWriter{w: logFile, limit: maxLogFileBytes}
-		cmd.Stdout = io.MultiWriter(os.Stdout, capped)
-		cmd.Stderr = io.MultiWriter(os.Stderr, capped)
+	if sharedLogWriter != nil {
+		pw := newPrefixWriter("[agent] ", sharedLogWriter)
+		cmd.Stdout = io.MultiWriter(os.Stdout, pw)
+		cmd.Stderr = io.MultiWriter(os.Stderr, pw)
 	} else {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr

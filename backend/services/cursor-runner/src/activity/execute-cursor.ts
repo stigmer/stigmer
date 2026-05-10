@@ -58,6 +58,7 @@ import { buildApprovalState } from "../hitl/approval-state.js";
 import { setInterceptorExecutionId } from "../proxy/fetch-interceptor.js";
 import { resolveModelId } from "../adapter/model-pricing.js";
 import { buildSessionMemory, persistSessionMemory } from "../adapter/session-memory.js";
+import { activityStarted, activityFinished } from "../idle-watchdog.js";
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -71,7 +72,12 @@ export function createActivities(config: Config) {
 
   return {
     ExecuteCursor: async (executionId: string, threadId: string): Promise<unknown> => {
-      return executeCursor(config, client, executionId, threadId);
+      activityStarted();
+      try {
+        return await executeCursor(config, client, executionId, threadId);
+      } finally {
+        activityFinished();
+      }
     },
   };
 }
