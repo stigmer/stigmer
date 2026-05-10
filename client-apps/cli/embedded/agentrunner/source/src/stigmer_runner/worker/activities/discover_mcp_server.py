@@ -455,11 +455,14 @@ class ConnectMcpServerWorkflow:
                 mcp_server_id=input.mcp_server_id,
             )
 
+            num_tools = len(discovery.tools)
+            classify_timeout = max(120, (num_tools // 40 + 1) * 60)
+
             tool_approvals = await workflow.execute_activity(
                 classify_tool_approvals,
                 classify_input,
-                start_to_close_timeout=timedelta(seconds=60),
-                retry_policy=RetryPolicy(maximum_attempts=1),
+                start_to_close_timeout=timedelta(seconds=classify_timeout),
+                retry_policy=RetryPolicy(maximum_attempts=2),
             )
 
         return ConnectMcpServerOutput(
