@@ -184,6 +184,7 @@ export function usePersonalEnvironment(
           data,
         });
 
+        environmentRef.current = created;
         refetch();
         return created;
       } catch (err) {

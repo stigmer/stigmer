@@ -241,7 +241,7 @@ def _extract_previous_state(
     for approval in getattr(status, "tool_approvals", []):
         prev_approvals.append({
             "tool_name": approval.tool_name,
-            "requires_approval": approval.requires_approval,
+            "requires_approval": True,
             "message": approval.message,
         })
 
