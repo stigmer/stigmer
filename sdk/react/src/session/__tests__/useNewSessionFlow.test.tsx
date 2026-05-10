@@ -82,7 +82,7 @@ const TEST_MODELS = parseRegistryJson({
 });
 
 function createWrapper() {
-  const state: ModelRegistryState = { models: TEST_MODELS, isLoading: false, error: null };
+  const state: ModelRegistryState = { models: TEST_MODELS, isLoading: false, error: null, refetch: () => {} };
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <ModelRegistryContext.Provider value={state}>
@@ -284,7 +284,7 @@ describe("useNewSessionFlow", () => {
   describe("model validation timing", () => {
     it("does not restore model while registry is loading", () => {
       localStorage.setItem(STORAGE_KEY_MODEL_NATIVE, DEFAULT_MODEL_ID);
-      const loadingState: ModelRegistryState = { models: [], isLoading: true, error: null };
+      const loadingState: ModelRegistryState = { models: [], isLoading: true, error: null, refetch: () => {} };
 
       function LoadingWrapper({ children }: { children: ReactNode }) {
         return (

@@ -90,8 +90,10 @@ const TEST_REGISTRY_JSON = {
 
 const TEST_MODELS: readonly ModelInfo[] = parseRegistryJson(TEST_REGISTRY_JSON);
 
+const noopRefetch = () => {};
+
 function createWrapper(models: readonly ModelInfo[] = TEST_MODELS) {
-  const state: ModelRegistryState = { models, isLoading: false, error: null };
+  const state: ModelRegistryState = { models, isLoading: false, error: null, refetch: noopRefetch };
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <ModelRegistryContext.Provider value={state}>
@@ -285,7 +287,7 @@ describe("useModelRegistry", () => {
 
   describe("loading state", () => {
     it("exposes isLoading from context", () => {
-      const loadingState: ModelRegistryState = { models: [], isLoading: true, error: null };
+      const loadingState: ModelRegistryState = { models: [], isLoading: true, error: null, refetch: noopRefetch };
       const wrapper = ({ children }: { children: ReactNode }) => (
         <ModelRegistryContext.Provider value={loadingState}>
           {children}
@@ -298,7 +300,7 @@ describe("useModelRegistry", () => {
 
     it("exposes error from context", () => {
       const err = new Error("fetch failed");
-      const errorState: ModelRegistryState = { models: [], isLoading: false, error: err };
+      const errorState: ModelRegistryState = { models: [], isLoading: false, error: err, refetch: noopRefetch };
       const wrapper = ({ children }: { children: ReactNode }) => (
         <ModelRegistryContext.Provider value={errorState}>
           {children}

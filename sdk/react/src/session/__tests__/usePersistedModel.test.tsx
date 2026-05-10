@@ -14,7 +14,7 @@ const TEST_MODELS = parseRegistryJson({
 });
 
 function createWrapper() {
-  const state: ModelRegistryState = { models: TEST_MODELS, isLoading: false, error: null };
+  const state: ModelRegistryState = { models: TEST_MODELS, isLoading: false, error: null, refetch: () => {} };
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <ModelRegistryContext.Provider value={state}>
