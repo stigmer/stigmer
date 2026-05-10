@@ -53,6 +53,7 @@ export interface Config {
   readonly proxyEndpoint: string | null;
   readonly maxConcurrentActivities: number;
   readonly idleTimeoutSeconds: number | null;
+  readonly cloudModeEnabled: boolean;
 }
 
 export function loadConfig(): Config {
@@ -109,6 +110,7 @@ export function loadConfig(): Config {
     proxyEndpoint,
     maxConcurrentActivities,
     idleTimeoutSeconds,
+    cloudModeEnabled: process.env.STIGMER_CURSOR_CLOUD_MODE_ENABLED === "true",
   };
 }
 
