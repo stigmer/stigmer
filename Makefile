@@ -301,6 +301,7 @@ verify-desktop: lint-desktop typecheck-desktop ## Lint + typecheck desktop (TS +
 	cd client-apps/desktop/src-tauri && cargo check --quiet
 
 release-desktop-local: ## Debug build + install to /Applications
+	client-apps/desktop/scripts/setup-sidecar-dev.sh
 	cd client-apps/desktop && \
 		cp src-tauri/tauri.conf.json src-tauri/tauri.conf.json.bak && \
 		python3 -c "import json; f=open('src-tauri/tauri.conf.json','r+'); c=json.load(f); c.get('bundle',{}).pop('createUpdaterArtifacts',None); f.seek(0); json.dump(c,f,indent=2); f.truncate()" && \
