@@ -347,4 +347,130 @@ describe("buildPrompt — prompt selection logic", () => {
       expect(buildContinuationPrompt).not.toHaveBeenCalled();
     });
   });
+
+
+  describe("cloud mode — prompt selection", () => {
+    it("returns raw userMessage when cloud agent is resumed successfully", () => {
+      const resolution = makeResolution({
+        reason: "resumed_successfully",
+        mode: "cloud",
+        isNew: false,
+        resumed: true,
+      });
+      const memory = makeSessionMemory();
+
+      const result = buildPrompt({
+        resolution,
+        approvalDecisions: undefined,
+        sessionMemory: memory,
+        ...BASE_INPUT,
+        userMessage: "Fix the bug",
+      });
+
+      expect(result).toBe("Fix the bug");
+      expect(buildContinuationPrompt).not.toHaveBeenCalled();
+      expect(buildEnhancedPrompt).not.toHaveBeenCalled();
+    });
+
+    it("returns raw userMessage on cloud first execution", () => {
+      const resolution = makeResolution({
+        reason: "created_first_execution",
+        mode: "cloud",
+        isNew: true,
+        resumed: false,
+      });
+
+      const result = buildPrompt({
+        resolution,
+        approvalDecisions: undefined,
+        sessionMemory: undefined,
+        ...BASE_INPUT,
+        userMessage: "Start working",
+      });
+
+      expect(result).toBe("Start working");
+      expect(buildEnhancedPrompt).not.toHaveBeenCalled();
+    });
+
+    it("uses buildContinuationPrompt when cloud agent expired (resume failure + memory)", () => {
+      const resolution = makeResolution({
+        reason: "created_after_resume_failure",
+        mode: "cloud",
+        isNew: true,
+        resumed: false,
+        resumeFailureDetail: "Agent expired",
+      });
+      const memory = makeSessionMemory();
+
+      const result = buildPrompt({
+        resolution,
+        approvalDecisions: undefined,
+        sessionMemory: memory,
+        ...BASE_INPUT,
+      });
+
+      expect(result).toBe("CONTINUATION_PROMPT");
+      expect(buildContinuationPrompt).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns raw userMessage when cloud resume fails but no memory available", () => {
+      const resolution = makeResolution({
+        reason: "created_after_resume_failure",
+        mode: "cloud",
+        isNew: true,
+        resumed: false,
+      });
+
+      const result = buildPrompt({
+        resolution,
+        approvalDecisions: undefined,
+        sessionMemory: undefined,
+        ...BASE_INPUT,
+        userMessage: "Continue anyway",
+      });
+
+      expect(result).toBe("Continue anyway");
+      expect(buildContinuationPrompt).not.toHaveBeenCalled();
+    });
+
+    it("HITL takes precedence over cloud raw message", () => {
+      const resolution = makeResolution({
+        reason: "resumed_successfully",
+        mode: "cloud",
+      });
+      const memory = makeSessionMemory();
+      const approvalDecisions = new Map([
+        ["tc-1", ApprovalAction.APPROVE],
+      ]);
+
+      const result = buildPrompt({
+        resolution,
+        approvalDecisions,
+        sessionMemory: memory,
+        ...BASE_INPUT,
+      });
+
+      expect(result).toBe("HITL_CONTINUATION_PROMPT");
+      expect(buildHitlContinuationPrompt).toHaveBeenCalledTimes(1);
+    });
+
+    it("HITL without memory falls back to buildReinvocationPrompt in cloud mode", () => {
+      const resolution = makeResolution({
+        reason: "resumed_successfully",
+        mode: "cloud",
+      });
+      const approvalDecisions = new Map([
+        ["tc-1", ApprovalAction.APPROVE],
+      ]);
+
+      const result = buildPrompt({
+        resolution,
+        approvalDecisions,
+        sessionMemory: undefined,
+        ...BASE_INPUT,
+      });
+
+      expect(result).toBe("REINVOCATION_PROMPT");
+    });
+  });
 });

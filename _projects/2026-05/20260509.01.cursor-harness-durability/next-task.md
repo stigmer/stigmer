@@ -68,9 +68,24 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-09 18:15
-**Current Task**: Task 7 COMPLETED — pick Task 4 next
-**Status**: Tasks 1, 5, 2a, 2b, 3, 6, and 7 complete. Full durability story landed end-to-end: client-side extraction + continuation prompts + graceful fallback + server-side atomic persistence + workflow integration. Only Task 4 (cloud agent path, feature-flagged) remains.
-**Tasks**: 8 tasks total (T1 ✅, T2a ✅, T2b ✅, T3 ✅, T4, T5 ✅, T6 ✅, T7 ✅)
+**Current Task**: ALL TASKS COMPLETE
+**Status**: All 8 tasks complete. Full durability story + cloud agent path landed end-to-end.
+**Tasks**: 8 tasks total (T1 ✅, T2a ✅, T2b ✅, T3 ✅, T4 ✅, T5 ✅, T6 ✅, T7 ✅)
+
+## Session Progress (2026-05-10, Session 8)
+
+### Completed: Task 4 — Cloud Agent Path (Feature-Flagged)
+- **New `cursor-mode.ts`** — Pure function module: `determineCursorMode(workspaceEntries, flagEnabled)` returns CursorMode enum, `isCloudMode(mode)` predicate. Feature flag check + workspace entry inspection.
+- **Extended `session-lifecycle.ts`** — Widened `AgentResolution.mode` to `"local" | "cloud"`. Added `createCloudAgent()` (Agent.create with `cloud: { repos }`, no platform options), `resumeCloudAgent()` (Agent.resume without platform options). Updated `resolveAgent()` to accept mode parameter dispatching to correct create/resume functions.
+- **Extended `blueprint-resolver.ts`** — Added `resolveCloudRepos(workspaceEntries)` mapping Stigmer's `GitRepoSource` to Cursor SDK's `CloudAgentOptions.repos`. Added `cloudRepos` to `ResolvedBlueprint`.
+- **Wired mode into `execute-cursor.ts`** — Phase 2: mode determination (persisted or computed). Phase 7: branching agent resolution. Phase 9: persist cursorMode alongside threadId. Phase 10: updated prompt selection matrix for cloud mode.
+- **Config** — Added `cloudModeEnabled` from `STIGMER_CURSOR_CLOUD_MODE_ENABLED` env var (default: false).
+- **Tests** — 30 new tests: 11 cursor-mode, 13 session-lifecycle cloud, 6 prompt-selection cloud. All 379 tests pass, tsc clean.
+
+### Key Design Decisions (Task 4)
+- **DD: Skip platform options for cloud agents** — `resolvePlatformOptions` solves a local-only problem (SQLite store keying). Cloud state lives on Cursor's servers. Semantic separation, not code convenience.
+- **DD: Raw user message for live cloud agents** — Cloud agents natively retain conversation history. Continuation prompts only on fallback (expired agent + Stigmer memory backup). Avoids context duplication and contradictions.
+- **DD: Feature flag gating** — `STIGMER_CURSOR_CLOUD_MODE_ENABLED` defaults to false. All sessions use local mode until explicitly enabled.
 
 ## Session Progress (2026-05-10, Session 7)
 
@@ -205,8 +220,9 @@ When starting a new session:
 
 ## Next Steps
 
-**Remaining:**
-1. **Task 4: Cloud Agent Path (cursor-runner, TS)** — Depends on Task 3 ✅ + 5 ✅ + 7 ✅. Add `"cloud"` to `AgentResolution.mode`, feature-flagged cloud agent creation. The workflow now reads and logs `cursorMode` via `readSessionContext`; Task 4 will use this for dispatch decisions.
+**All tasks complete.** The cursor-harness-durability project is done.
+- Run `sync.sh` to update embedded dist artifacts
+- Create PR for the full durability feature set
 
 ## Context for Resume
 - **Task 6 is fully implemented in both repos** — proto + codegen + handler + activities + cursor-runner migration. stigmer-cloud has the new handler + activities. stigmer OSS has the migrated cursor-runner.

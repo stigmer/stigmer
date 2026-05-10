@@ -6,15 +6,25 @@
  * (subsequent executions), graceful fallback on resume failure, and
  * cleaning up agents (session deletion).
  *
+ * Two execution modes:
+ *
+ * - Local mode: Agent.create({ local: { cwd } }) with explicit
+ *   platform.workspaceRef/stateRoot for deterministic store keying.
+ *   Produces agent- prefixed IDs.
+ *
+ * - Cloud mode (feature-flagged): Agent.create({ cloud: { repos } })
+ *   for git-backed workspaces. Produces bc- prefixed IDs. No platform
+ *   options — cloud state lives on Cursor's servers, not local SQLite.
+ *
  * Key SDK limitation: mcpServers are NOT persisted across Agent.resume().
  * They must be passed again on every resume call.
  *
- * Platform store keying: The Cursor SDK defaults to process.cwd() for its
- * internal state root lookup. In Daytona sandboxes, process.cwd() is the
- * runner's app directory, not the workspace — causing Agent.resume() to
- * fail with "Agent not found". We pass explicit platform.workspaceRef and
- * platform.stateRoot derived from the Stigmer sessionId to ensure
- * deterministic store lookup regardless of process.cwd().
+ * Platform store keying (local only): The Cursor SDK defaults to
+ * process.cwd() for its internal state root lookup. In Daytona sandboxes,
+ * process.cwd() is the runner's app directory, not the workspace — causing
+ * Agent.resume() to fail with "Agent not found". We pass explicit
+ * platform.workspaceRef and platform.stateRoot derived from the Stigmer
+ * sessionId to ensure deterministic store lookup regardless of process.cwd().
  *
  * Durability model: When Agent.resume() fails (agent expired, deleted, or
  * Cursor service error), this module creates a fresh agent instead of
@@ -38,7 +48,7 @@ import type { CursorMcpServerConfig } from "./mcp-resolver.js";
 const CURSOR_SDK_STATE_DIR = ".stigmer/cursor-sdk-state";
 
 // ---------------------------------------------------------------------------
-// Public types
+// Public types — local mode
 // ---------------------------------------------------------------------------
 
 export interface CreateAgentOptions {
@@ -57,13 +67,41 @@ export interface ResumeAgentOptions {
   mcpServers?: Record<string, CursorMcpServerConfig>;
 }
 
+// ---------------------------------------------------------------------------
+// Public types — cloud mode
+// ---------------------------------------------------------------------------
+
+export interface CloudRepo {
+  url: string;
+  startingRef?: string;
+}
+
+export interface CreateCloudAgentOptions {
+  apiKey: string;
+  model?: string;
+  repos: CloudRepo[];
+  sessionId: string;
+  mcpServers?: Record<string, CursorMcpServerConfig>;
+}
+
+export interface ResumeCloudAgentOptions {
+  apiKey: string;
+  agentId: string;
+  model?: string;
+  mcpServers?: Record<string, CursorMcpServerConfig>;
+}
+
+// ---------------------------------------------------------------------------
+// Public types — resolution result
+// ---------------------------------------------------------------------------
+
 /**
  * Discriminated reason explaining how the agent was resolved.
  *
  * Drives prompt selection in execute-cursor.ts:
- * - created_first_execution: first turn, no prior memory -> buildEnhancedPrompt
- * - resumed_successfully: subsequent turn, agent alive -> buildContinuationPrompt
- * - created_after_resume_failure: agent died, fallback -> buildContinuationPrompt
+ * - created_first_execution: first turn, no prior memory
+ * - resumed_successfully: subsequent turn, agent alive
+ * - created_after_resume_failure: agent died, fallback with continuation
  */
 export type AgentResolutionReason =
   | "created_first_execution"
@@ -80,14 +118,14 @@ export interface AgentResolution {
   agentId: string;
   isNew: boolean;
   resumed: boolean;
-  mode: "local";
+  mode: "local" | "cloud";
   reason: AgentResolutionReason;
   /** Non-empty only when reason is "created_after_resume_failure". */
   resumeFailureDetail?: string;
 }
 
 // ---------------------------------------------------------------------------
-// Public functions
+// Local agent functions
 // ---------------------------------------------------------------------------
 
 /**
@@ -111,8 +149,7 @@ export function resolvePlatformOptions(sessionId: string): CursorAgentPlatformOp
 }
 
 /**
- * Create a new Cursor Agent for the first execution in a session.
- * Returns the agent handle and its durable agentId (to be stored as thread_id).
+ * Create a new local Cursor Agent for the first execution in a session.
  *
  * Supports multi-workspace: passes string[] when multiple dirs, string when single.
  */
@@ -137,7 +174,7 @@ export async function createAgent(options: CreateAgentOptions): Promise<SDKAgent
 }
 
 /**
- * Resume an existing Cursor Agent for subsequent executions.
+ * Resume an existing local Cursor Agent for subsequent executions.
  *
  * Throws on failure — the caller (resolveAgent) decides whether to
  * propagate or fall back to a fresh agent with continuation context.
@@ -158,12 +195,65 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent
   });
 }
 
+// ---------------------------------------------------------------------------
+// Cloud agent functions
+// ---------------------------------------------------------------------------
+
+/**
+ * Create a new cloud Cursor Agent for git-backed sessions.
+ *
+ * Cloud agents (bc- prefix) run on Cursor's servers with cloned repos.
+ * No platform options — cloud state lives server-side, not in local SQLite.
+ * Model is optional — Cursor resolves the caller's configured default
+ * when omitted.
+ */
+export async function createCloudAgent(options: CreateCloudAgentOptions): Promise<SDKAgent> {
+  console.log(
+    `createCloudAgent: sessionId=${options.sessionId}, ` +
+    `repos=${options.repos.map((r) => r.url).join(", ")}`,
+  );
+
+  return Agent.create({
+    apiKey: options.apiKey,
+    model: options.model ? { id: options.model } : undefined,
+    cloud: { repos: options.repos },
+    mcpServers: options.mcpServers as Record<string, any>,
+  });
+}
+
+/**
+ * Resume an existing cloud Cursor Agent for subsequent executions.
+ *
+ * Throws on failure — the caller (resolveAgent) decides whether to
+ * propagate or fall back to a fresh cloud agent with continuation context.
+ * No platform options — cloud state lives server-side.
+ */
+export async function resumeCloudAgent(options: ResumeCloudAgentOptions): Promise<SDKAgent> {
+  console.log(
+    `resumeCloudAgent: agentId=${options.agentId}`,
+  );
+
+  return Agent.resume(options.agentId, {
+    apiKey: options.apiKey,
+    model: options.model ? { id: options.model } : undefined,
+    mcpServers: options.mcpServers as Record<string, any>,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Unified resolution
+// ---------------------------------------------------------------------------
+
 /**
  * Resolve a Cursor Agent for execution: resume if possible, create with
  * graceful fallback if resume fails.
  *
+ * The mode parameter determines which create/resume functions are used:
+ * - "local": createAgent / resumeAgent (with platform options)
+ * - "cloud": createCloudAgent / resumeCloudAgent (no platform options)
+ *
  * When threadId is non-empty (subsequent execution):
- *   1. Attempt Agent.resume with platform options.
+ *   1. Attempt Agent.resume with mode-appropriate options.
  *   2. On success: return { resumed: true, reason: "resumed_successfully" }.
  *   3. On failure: log warning, create a fresh agent, return
  *      { resumed: false, reason: "created_after_resume_failure" }.
@@ -178,39 +268,50 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<SDKAgent
  */
 export async function resolveAgent(
   threadId: string,
-  createOptions: CreateAgentOptions,
+  options: CreateAgentOptions | CreateCloudAgentOptions,
+  mode: "local" | "cloud" = "local",
 ): Promise<AgentResolution> {
   if (threadId) {
     try {
-      const agent = await resumeAgent({
-        apiKey: createOptions.apiKey,
-        agentId: threadId,
-        sessionId: createOptions.sessionId,
-        model: createOptions.model,
-        mcpServers: createOptions.mcpServers,
-      });
+      const agent = mode === "cloud"
+        ? await resumeCloudAgent({
+            apiKey: options.apiKey,
+            agentId: threadId,
+            model: options.model,
+            mcpServers: options.mcpServers,
+          })
+        : await resumeAgent({
+            apiKey: options.apiKey,
+            agentId: threadId,
+            sessionId: (options as CreateAgentOptions).sessionId,
+            model: options.model,
+            mcpServers: options.mcpServers,
+          });
+
       return {
         agent,
         agentId: agent.agentId,
         isNew: false,
         resumed: true,
-        mode: "local",
+        mode,
         reason: "resumed_successfully",
       };
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
       console.warn(
-        `resolveAgent: resume failed for agent "${threadId}", ` +
+        `resolveAgent: resume failed for ${mode} agent "${threadId}", ` +
         `creating fresh agent with continuation context. ` +
-        `sessionId=${createOptions.sessionId}, process.cwd=${process.cwd()}, ` +
-        `error: ${detail}`,
+        `sessionId=${options.sessionId}, error: ${detail}`,
       );
 
-      const agent = await createAgent(createOptions);
+      const agent = mode === "cloud"
+        ? await createCloudAgent(options as CreateCloudAgentOptions)
+        : await createAgent(options as CreateAgentOptions);
+
       console.log(
-        `resolveAgent: fallback agent created. ` +
+        `resolveAgent: fallback ${mode} agent created. ` +
         `oldAgentId=${threadId}, newAgentId=${agent.agentId}, ` +
-        `sessionId=${createOptions.sessionId}`,
+        `sessionId=${options.sessionId}`,
       );
 
       return {
@@ -218,20 +319,23 @@ export async function resolveAgent(
         agentId: agent.agentId,
         isNew: true,
         resumed: false,
-        mode: "local",
+        mode,
         reason: "created_after_resume_failure",
         resumeFailureDetail: detail,
       };
     }
   }
 
-  const agent = await createAgent(createOptions);
+  const agent = mode === "cloud"
+    ? await createCloudAgent(options as CreateCloudAgentOptions)
+    : await createAgent(options as CreateAgentOptions);
+
   return {
     agent,
     agentId: agent.agentId,
     isNew: true,
     resumed: false,
-    mode: "local",
+    mode,
     reason: "created_first_execution",
   };
 }

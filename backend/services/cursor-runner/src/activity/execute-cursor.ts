@@ -40,7 +40,9 @@ import type { SDKMessage } from "@cursor/sdk";
 import type { Config } from "../config.js";
 import { StigmerClient } from "../client/stigmer-client.js";
 import { resolveAgent } from "../adapter/session-lifecycle.js";
-import type { AgentResolution } from "../adapter/session-lifecycle.js";
+import type { AgentResolution, CreateAgentOptions, CreateCloudAgentOptions } from "../adapter/session-lifecycle.js";
+import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { determineCursorMode, isCloudMode } from "../adapter/cursor-mode.js";
 import { MessageAccumulator, extractDeniedToolCalls, utcTimestamp } from "../adapter/message-translator.js";
 import { DeltaEnricher } from "../adapter/delta-enricher.js";
 import { TodoTracker } from "../adapter/todo-tracker.js";
@@ -105,6 +107,17 @@ async function executeCursor(
     await reportSetupProgress(client, executionId, "Resolving agent blueprint");
     session = await client.getSession(sessionId);
     const blueprint = await resolveBlueprint(client, session, config.workspaceRootDir);
+
+    // Determine cursor mode: use persisted value on subsequent executions,
+    // compute from workspace entries on first execution.
+    const cursorMode = blueprint.sessionSpec.cursorMode !== CursorMode.UNSPECIFIED
+      ? blueprint.sessionSpec.cursorMode
+      : determineCursorMode(
+          blueprint.sessionSpec.workspaceEntries,
+          config.cloudModeEnabled,
+        );
+    const agentMode = isCloudMode(cursorMode) ? "cloud" as const : "local" as const;
+
     heartbeat();
 
     // Phase 3: Check if this is a reinvocation after approval
@@ -175,13 +188,28 @@ async function executeCursor(
 
     // Phase 7: Resolve Cursor Agent (create, resume, or graceful fallback)
     await reportSetupProgress(client, executionId, "Initializing Cursor agent");
-    const resolution: AgentResolution = await resolveAgent(threadId, {
-      apiKey: config.cursorApiKey,
-      model: validatedModel,
-      workspaceDirs: blueprint.workspaceDirs,
-      sessionId,
-      mcpServers: mcpConfig,
-    });
+
+    const createOptions: CreateAgentOptions | CreateCloudAgentOptions = agentMode === "cloud"
+      ? {
+          apiKey: config.cursorApiKey,
+          model: validatedModel || undefined,
+          repos: blueprint.cloudRepos,
+          sessionId,
+          mcpServers: mcpConfig,
+        }
+      : {
+          apiKey: config.cursorApiKey,
+          model: validatedModel,
+          workspaceDirs: blueprint.workspaceDirs,
+          sessionId,
+          mcpServers: mcpConfig,
+        };
+
+    const resolution: AgentResolution = await resolveAgent(
+      threadId,
+      createOptions,
+      agentMode,
+    );
 
     console.log(
       `ExecuteCursor agent resolved: execution=${executionId}, ` +
@@ -194,14 +222,20 @@ async function executeCursor(
     const approvalState = buildApprovalState(approvalDecisions);
     await writeHooksToWorkspace(primaryWorkspaceDir, approvalState);
 
-    // Phase 9: Store new agentId as thread_id if this is a new agent
+    // Phase 9: Store new agentId as thread_id and persist cursor_mode
     if (resolution.isNew && resolution.agentId) {
       try {
         blueprint.sessionSpec.threadId = resolution.agentId;
+        if (blueprint.sessionSpec.cursorMode === CursorMode.UNSPECIFIED) {
+          blueprint.sessionSpec.cursorMode = cursorMode;
+        }
         await client.updateSession(blueprint.session);
-        console.log(`Stored Cursor agentId=${resolution.agentId} as thread_id on session ${sessionId}`);
+        console.log(
+          `Stored Cursor agentId=${resolution.agentId} as thread_id, ` +
+          `cursorMode=${CursorMode[cursorMode]} on session ${sessionId}`,
+        );
       } catch (err) {
-        console.warn("Failed to persist thread_id on session (non-fatal):", err);
+        console.warn("Failed to persist thread_id/cursorMode on session (non-fatal):", err);
       }
     }
 
@@ -420,18 +454,24 @@ export interface BuildPromptInput {
 }
 
 /**
- * Select and build the appropriate prompt based on resolution reason,
- * HITL state, and available session memory.
+ * Select and build the appropriate prompt based on resolution mode,
+ * resolution reason, HITL state, and available session memory.
  *
  * Decision matrix:
- * 1. HITL reinvocation + session memory -> buildHitlContinuationPrompt
- * 2. HITL reinvocation + no memory     -> buildReinvocationPrompt (legacy)
- * 3. First execution (no memory)       -> buildEnhancedPrompt
- * 4. Subsequent execution (has memory) -> buildContinuationPrompt
  *
- * "Subsequent execution" means reason is "resumed_successfully" or
- * "created_after_resume_failure" — both indicate prior turns exist and
- * session memory should be available.
+ * HITL reinvocations (both modes):
+ * 1. HITL + session memory -> buildHitlContinuationPrompt
+ * 2. HITL + no memory     -> buildReinvocationPrompt (legacy)
+ *
+ * Cloud mode:
+ * 3. Cloud + resumed / first execution -> raw userMessage (trust native context)
+ * 4. Cloud + resume failure + memory   -> buildContinuationPrompt (agent expired)
+ * 5. Cloud + resume failure, no memory -> raw userMessage (best effort)
+ *
+ * Local mode:
+ * 6. Local + first execution           -> buildEnhancedPrompt
+ * 7. Local + subsequent + memory       -> buildContinuationPrompt
+ * 8. Local + subsequent, no memory     -> buildEnhancedPrompt (fallback)
  */
 export function buildPrompt(input: BuildPromptInput): string {
   const {
@@ -450,6 +490,7 @@ export function buildPrompt(input: BuildPromptInput): string {
 
   const isHitlReinvocation = approvalDecisions !== undefined && approvalDecisions.size > 0;
 
+  // HITL takes precedence regardless of mode
   if (isHitlReinvocation && sessionMemory) {
     return buildHitlContinuationPrompt({
       instructions,
@@ -466,6 +507,26 @@ export function buildPrompt(input: BuildPromptInput): string {
     return buildReinvocationPrompt(approvalDecisions);
   }
 
+  // Cloud mode: trust native Cursor context for live agents.
+  // Only inject continuation prompt when the agent expired (fallback).
+  if (resolution.mode === "cloud") {
+    if (resolution.reason === "created_after_resume_failure" && sessionMemory) {
+      return buildContinuationPrompt({
+        instructions,
+        skills,
+        subAgents,
+        workspaceDirs,
+        workspaceFileRefs,
+        attachmentPaths,
+        sessionMemory,
+        userMessage,
+      });
+    }
+    return userMessage;
+  }
+
+  // Local mode: always use continuation prompt on subsequent executions
+  // because local SDK context loading is unreliable.
   if (resolution.reason !== "created_first_execution" && sessionMemory) {
     return buildContinuationPrompt({
       instructions,
