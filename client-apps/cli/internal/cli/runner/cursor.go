@@ -43,9 +43,15 @@ func IsCursorRunnerAvailable(backendInfo *BackendInfo) bool {
 // BootstrapCursorRunnerRuntime prepares the Node.js runtime and installs
 // dependencies for the cursor-runner.
 //
-// Two modes:
-//   - Dev mode (SourceDir != ""): system Node.js + tsx, source from repo tree
-//   - Embed mode (SourceFS != nil, SourceDir == ""): managed Node.js + compiled JS
+// Both modes use a hermetic managed Node.js runtime (downloaded to
+// ~/.stigmer/runtimes/) so the cursor-runner works identically in CLI
+// terminals, Desktop sidecars (where PATH lacks nvm), CI, and production.
+// The modes differ only in where the application source comes from:
+//
+//   - Dev mode (SourceDir != ""): TypeScript source from the repo tree,
+//     executed via tsx. Dependencies installed in the repo's node_modules.
+//   - Embed mode (SourceFS != nil, SourceDir == ""): compiled JS extracted
+//     from the binary. Dependencies installed in the managed app directory.
 func BootstrapCursorRunnerRuntime(ctx context.Context) (*CursorRunnerBootstrapResult, error) {
 	if cursorrunner.SourceDir() != "" {
 		return bootstrapCursorRunnerDevMode(ctx)
@@ -59,15 +65,17 @@ func bootstrapCursorRunnerDevMode(ctx context.Context) (*CursorRunnerBootstrapRe
 		return nil, errors.Wrapf(err, "cursor-runner package.json not found at %s", appDir)
 	}
 
-	nodeBin, err := nodert.EnsureNodeAvailable()
+	mgr, err := ensureManagedNodeRuntime(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	nodeBin := mgr.NodeBin()
+
 	installCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
-	if err := nodert.EnsureDepsInstalled(installCtx, appDir); err != nil {
+	if err := nodert.EnsureDepsInstalledWith(installCtx, appDir, nodeBin, mgr.NpmBin()); err != nil {
 		return nil, errors.Wrap(err, "failed to install cursor-runner dependencies")
 	}
 
@@ -86,6 +94,33 @@ func bootstrapCursorRunnerDevMode(ctx context.Context) (*CursorRunnerBootstrapRe
 		AppDir:    appDir,
 		EntryArgs: tsxArgs,
 	}, nil
+}
+
+// ensureManagedNodeRuntime provisions the hermetic Node.js runtime shared
+// by both dev and embed modes. The managed runtime is downloaded once to
+// ~/.stigmer/runtimes/cursor-runner/ and cached across CLI invocations.
+func ensureManagedNodeRuntime(ctx context.Context) (*nodert.Manager, error) {
+	configDir, err := cliconfig.GetConfigDir()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to resolve config directory")
+	}
+
+	mgr, err := nodert.NewManager(nodert.Config{
+		BaseDir:    filepath.Join(configDir, "runtimes", "cursor-runner"),
+		CLIVersion: embedded.GetBuildVersion(),
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create Node.js runtime manager")
+	}
+
+	bootstrapCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	defer cancel()
+
+	if err := mgr.EnsureReady(bootstrapCtx); err != nil {
+		return nil, errors.Wrap(err, "failed to bootstrap Node.js runtime")
+	}
+
+	return mgr, nil
 }
 
 func bootstrapCursorRunnerEmbedMode(ctx context.Context) (*CursorRunnerBootstrapResult, error) {
@@ -111,7 +146,7 @@ func bootstrapCursorRunnerEmbedMode(ctx context.Context) (*CursorRunnerBootstrap
 
 	log.Info().
 		Str("runtime_dir", mgr.RuntimeDir()).
-		Msg("Bootstrapping Node.js runtime for cursor-runner")
+		Msg("Bootstrapping Node.js runtime for cursor-runner (embed mode)")
 
 	bootstrapCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
