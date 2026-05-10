@@ -3,7 +3,9 @@ syntax = "proto3";
 package ai.stigmer.agentic.skill.v1;
 
 import "ai/stigmer/agentic/skill/v1/status.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
 
 // SkillId wraps a skill identifier.
 message SkillId {
@@ -49,6 +51,12 @@ message PushSkillRequest {
 
   // Reserved field numbers from previous schema versions.
   reserved 5;
+
+  // Optional human-readable message describing what changed in this version.
+  // Stored in metadata.version.message for version history display.
+  // Analogous to a git commit message. If empty, the version timeline falls
+  // back to displaying git_provenance.commit message when available.
+  string message = 6;
 }
 
 // PushSkillFromExecutionArtifactRequest publishes a skill from an execution
@@ -103,4 +111,70 @@ message GetArtifactResponse {
   // The skill artifact as a ZIP file (binary content).
   // Contains SKILL.md and implementation files.
   bytes artifact = 1;
+}
+
+// ListSkillVersionsInput requests the version history for a skill.
+//
+// Returns all historical versions of the skill ordered by push time
+// (newest first). Used by the Console and SDK to render version
+// timelines and enable version comparison.
+message ListSkillVersionsInput {
+  // Organization that owns the skill.
+  string org = 1 [(buf.validate.field).required = true];
+
+  // Skill slug (unique within the organization).
+  string slug = 2 [(buf.validate.field).required = true];
+
+  // Opaque token for cursor-based pagination.
+  // Empty string or omitted for the first page.
+  string page_token = 3;
+
+  // Maximum number of versions to return per page.
+  // Server may return fewer. Default is 50.
+  int32 page_size = 4;
+}
+
+// SkillVersionEntry represents a single historical version of a skill.
+//
+// Each push creates a new version entry. The version is immutably
+// identified by its content hash (SHA256 of the artifact ZIP).
+message SkillVersionEntry {
+  // SHA256 hash of the artifact — the immutable version identifier.
+  string version_hash = 1;
+
+  // Timestamp when this version was pushed.
+  google.protobuf.Timestamp pushed_at = 2;
+
+  // Actor who pushed this version.
+  ai.stigmer.commons.apiresource.ApiResourceAuditActor pushed_by = 3;
+
+  // Tag associated with this version at push time.
+  // May be empty if the version was pushed without a tag.
+  string tag = 4;
+
+  // Whether this is the currently active version of the skill.
+  bool is_current = 5;
+
+  // Git provenance tracking where this version's artifacts originated.
+  // Absent when pushed from a non-git directory.
+  GitProvenance git_provenance = 6;
+
+  // Optional human-readable message describing the change.
+  string message = 7;
+
+  // Storage key for this version's artifact ZIP.
+  // Can be passed to getArtifact() to download the historical artifact.
+  string artifact_storage_key = 8;
+}
+
+// ListSkillVersionsResponse contains a page of skill version history.
+message ListSkillVersionsResponse {
+  // Ordered list of versions (newest first).
+  repeated SkillVersionEntry versions = 1;
+
+  // Token for fetching the next page. Empty when no more pages exist.
+  string next_page_token = 2;
+
+  // Total number of versions across all pages.
+  int32 total_count = 3;
 }

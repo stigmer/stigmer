@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { SkillSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_skill_v1_api } from "./api_pb.js";
-import type { GetArtifactRequestSchema, GetArtifactResponseSchema, SkillIdSchema } from "./io_pb.js";
+import type { GetArtifactRequestSchema, GetArtifactResponseSchema, ListSkillVersionsInputSchema, ListSkillVersionsResponseSchema, SkillIdSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_skill_v1_io } from "./io_pb.js";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/skill/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_skill_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MTKDAwoUU2tpbGxRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsSWQaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiKsK4GCYIARArIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBza2lsbBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbCIE0LgYARJ2CgtnZXRBcnRpZmFjdBIvLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5HZXRBcnRpZmFjdFJlcXVlc3QaMC5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuR2V0QXJ0aWZhY3RSZXNwb25zZSIE0LgYARoEoP8rK2IGcHJvdG8z", [file_ai_stigmer_agentic_skill_v1_api, file_ai_stigmer_agentic_skill_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MTKHBAoUU2tpbGxRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsSWQaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiKsK4GCYIARArIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBza2lsbBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbCIE0LgYARJ2CgtnZXRBcnRpZmFjdBIvLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5HZXRBcnRpZmFjdFJlcXVlc3QaMC5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuR2V0QXJ0aWZhY3RSZXNwb25zZSIE0LgYARKBAQoMbGlzdFZlcnNpb25zEjMuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLkxpc3RTa2lsbFZlcnNpb25zSW5wdXQaNi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuTGlzdFNraWxsVmVyc2lvbnNSZXNwb25zZSIE0LgYARoEoP8rK2IGcHJvdG8z", [file_ai_stigmer_agentic_skill_v1_api, file_ai_stigmer_agentic_skill_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * SkillQueryController handles read operations for skills.
@@ -69,6 +69,24 @@ export const SkillQueryController: GenService<{
     methodKind: "unary";
     input: typeof GetArtifactRequestSchema;
     output: typeof GetArtifactResponseSchema;
+  },
+  /**
+   * List version history for a skill.
+   *
+   * Returns all historical versions ordered by push time (newest first).
+   * Each entry includes the version hash, push timestamp, actor, tag,
+   * git provenance, and artifact storage key for historical artifact access.
+   *
+   * @internal
+   * Authorization is handled in the handler after resolving the skill.
+   * (Input uses org+slug, not skill ID, so proto-level auth cannot work)
+   *
+   * @generated from rpc ai.stigmer.agentic.skill.v1.SkillQueryController.listVersions
+   */
+  listVersions: {
+    methodKind: "unary";
+    input: typeof ListSkillVersionsInputSchema;
+    output: typeof ListSkillVersionsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_skill_v1_query, 0);

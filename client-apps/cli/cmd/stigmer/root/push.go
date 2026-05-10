@@ -19,6 +19,7 @@ import (
 // NewPushCommand creates the unified push command for pushing artifacts.
 func NewPushCommand() *cobra.Command {
 	var tag string
+	var message string
 	var dryRun bool
 	var gitURL string
 	var gitRef string
@@ -86,6 +87,7 @@ SOURCE MODES:
 				TypeArg:         typeArg,
 				Path:            path,
 				Tag:             tag,
+				Message:         message,
 				OrgOverride:     GetOrgFlag(cmd),
 				DryRun:          dryRun,
 				GitURL:          gitURL,
@@ -102,6 +104,7 @@ SOURCE MODES:
 
 	// Core flags
 	cmd.Flags().StringVar(&tag, "tag", "latest", "version tag for the artifact")
+	cmd.Flags().StringVarP(&message, "message", "m", "", "version message describing what changed")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate without pushing")
 
 	// Git source flags
@@ -123,6 +126,7 @@ type pushOptions struct {
 	TypeArg         string
 	Path            string
 	Tag             string
+	Message         string
 	OrgOverride     string
 	DryRun          bool
 	GitURL          string
@@ -217,6 +221,7 @@ func pushSkillLocal(opts pushOptions, orgID string, client *stigmer.Client) erro
 		Directory:       directory,
 		OrgID:           orgID,
 		Tag:             opts.Tag,
+		Message:         opts.Message,
 		DryRun:          opts.DryRun,
 		IgnorePatterns:  opts.IgnorePatterns,
 		IncludePatterns: opts.IncludePatterns,
@@ -243,6 +248,7 @@ func pushSkillRemote(opts pushOptions, orgID string, client *stigmer.Client) err
 		GitSubdir:       opts.GitSubdir,
 		OrgID:           orgID,
 		Tag:             opts.Tag,
+		Message:         opts.Message,
 		DryRun:          opts.DryRun,
 		IgnorePatterns:  opts.IgnorePatterns,
 		IncludePatterns: opts.IncludePatterns,

@@ -8,8 +8,10 @@ package skillv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	apiresource "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -102,6 +104,11 @@ type PushSkillRequest struct {
 	// - For git pushes: resolved from user-provided URL/ref
 	// Stored in SkillStatus.git_provenance for traceability.
 	GitProvenance *GitProvenance `protobuf:"bytes,4,opt,name=git_provenance,json=gitProvenance,proto3" json:"git_provenance,omitempty"`
+	// Optional human-readable message describing what changed in this version.
+	// Stored in metadata.version.message for version history display.
+	// Analogous to a git commit message. If empty, the version timeline falls
+	// back to displaying git_provenance.commit message when available.
+	Message       string `protobuf:"bytes,6,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -162,6 +169,13 @@ func (x *PushSkillRequest) GetGitProvenance() *GitProvenance {
 		return x.GitProvenance
 	}
 	return nil
+}
+
+func (x *PushSkillRequest) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
 }
 
 // PushSkillFromExecutionArtifactRequest publishes a skill from an execution
@@ -356,18 +370,277 @@ func (x *GetArtifactResponse) GetArtifact() []byte {
 	return nil
 }
 
+// ListSkillVersionsInput requests the version history for a skill.
+//
+// Returns all historical versions of the skill ordered by push time
+// (newest first). Used by the Console and SDK to render version
+// timelines and enable version comparison.
+type ListSkillVersionsInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization that owns the skill.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// Skill slug (unique within the organization).
+	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
+	// Opaque token for cursor-based pagination.
+	// Empty string or omitted for the first page.
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Maximum number of versions to return per page.
+	// Server may return fewer. Default is 50.
+	PageSize      int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSkillVersionsInput) Reset() {
+	*x = ListSkillVersionsInput{}
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSkillVersionsInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSkillVersionsInput) ProtoMessage() {}
+
+func (x *ListSkillVersionsInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSkillVersionsInput.ProtoReflect.Descriptor instead.
+func (*ListSkillVersionsInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ListSkillVersionsInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *ListSkillVersionsInput) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *ListSkillVersionsInput) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ListSkillVersionsInput) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+// SkillVersionEntry represents a single historical version of a skill.
+//
+// Each push creates a new version entry. The version is immutably
+// identified by its content hash (SHA256 of the artifact ZIP).
+type SkillVersionEntry struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// SHA256 hash of the artifact — the immutable version identifier.
+	VersionHash string `protobuf:"bytes,1,opt,name=version_hash,json=versionHash,proto3" json:"version_hash,omitempty"`
+	// Timestamp when this version was pushed.
+	PushedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=pushed_at,json=pushedAt,proto3" json:"pushed_at,omitempty"`
+	// Actor who pushed this version.
+	PushedBy *apiresource.ApiResourceAuditActor `protobuf:"bytes,3,opt,name=pushed_by,json=pushedBy,proto3" json:"pushed_by,omitempty"`
+	// Tag associated with this version at push time.
+	// May be empty if the version was pushed without a tag.
+	Tag string `protobuf:"bytes,4,opt,name=tag,proto3" json:"tag,omitempty"`
+	// Whether this is the currently active version of the skill.
+	IsCurrent bool `protobuf:"varint,5,opt,name=is_current,json=isCurrent,proto3" json:"is_current,omitempty"`
+	// Git provenance tracking where this version's artifacts originated.
+	// Absent when pushed from a non-git directory.
+	GitProvenance *GitProvenance `protobuf:"bytes,6,opt,name=git_provenance,json=gitProvenance,proto3" json:"git_provenance,omitempty"`
+	// Optional human-readable message describing the change.
+	Message string `protobuf:"bytes,7,opt,name=message,proto3" json:"message,omitempty"`
+	// Storage key for this version's artifact ZIP.
+	// Can be passed to getArtifact() to download the historical artifact.
+	ArtifactStorageKey string `protobuf:"bytes,8,opt,name=artifact_storage_key,json=artifactStorageKey,proto3" json:"artifact_storage_key,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *SkillVersionEntry) Reset() {
+	*x = SkillVersionEntry{}
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SkillVersionEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SkillVersionEntry) ProtoMessage() {}
+
+func (x *SkillVersionEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SkillVersionEntry.ProtoReflect.Descriptor instead.
+func (*SkillVersionEntry) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *SkillVersionEntry) GetVersionHash() string {
+	if x != nil {
+		return x.VersionHash
+	}
+	return ""
+}
+
+func (x *SkillVersionEntry) GetPushedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.PushedAt
+	}
+	return nil
+}
+
+func (x *SkillVersionEntry) GetPushedBy() *apiresource.ApiResourceAuditActor {
+	if x != nil {
+		return x.PushedBy
+	}
+	return nil
+}
+
+func (x *SkillVersionEntry) GetTag() string {
+	if x != nil {
+		return x.Tag
+	}
+	return ""
+}
+
+func (x *SkillVersionEntry) GetIsCurrent() bool {
+	if x != nil {
+		return x.IsCurrent
+	}
+	return false
+}
+
+func (x *SkillVersionEntry) GetGitProvenance() *GitProvenance {
+	if x != nil {
+		return x.GitProvenance
+	}
+	return nil
+}
+
+func (x *SkillVersionEntry) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *SkillVersionEntry) GetArtifactStorageKey() string {
+	if x != nil {
+		return x.ArtifactStorageKey
+	}
+	return ""
+}
+
+// ListSkillVersionsResponse contains a page of skill version history.
+type ListSkillVersionsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Ordered list of versions (newest first).
+	Versions []*SkillVersionEntry `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
+	// Token for fetching the next page. Empty when no more pages exist.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	// Total number of versions across all pages.
+	TotalCount    int32 `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSkillVersionsResponse) Reset() {
+	*x = ListSkillVersionsResponse{}
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSkillVersionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSkillVersionsResponse) ProtoMessage() {}
+
+func (x *ListSkillVersionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSkillVersionsResponse.ProtoReflect.Descriptor instead.
+func (*ListSkillVersionsResponse) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ListSkillVersionsResponse) GetVersions() []*SkillVersionEntry {
+	if x != nil {
+		return x.Versions
+	}
+	return nil
+}
+
+func (x *ListSkillVersionsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+func (x *ListSkillVersionsResponse) GetTotalCount() int32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
+}
+
 var File_ai_stigmer_agentic_skill_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/skill/v1/io.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a(ai/stigmer/agentic/skill/v1/status.proto\x1a\x1bbuf/validate/validate.proto\"'\n" +
+	"$ai/stigmer/agentic/skill/v1/io.proto\x12\x1bai.stigmer.agentic.skill.v1\x1a(ai/stigmer/agentic/skill/v1/status.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"'\n" +
 	"\aSkillId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xd8\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xf2\x01\n" +
 	"\x10PushSkillRequest\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\"\n" +
 	"\bartifact\x18\x02 \x01(\fB\x06\xbaH\x03\xc8\x01\x01R\bartifact\x12-\n" +
 	"\x03tag\x18\x03 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x12Q\n" +
-	"\x0egit_provenance\x18\x04 \x01(\v2*.ai.stigmer.agentic.skill.v1.GitProvenanceR\rgitProvenanceJ\x04\b\x05\x10\x06\"\xc6\x01\n" +
+	"\x0egit_provenance\x18\x04 \x01(\v2*.ai.stigmer.agentic.skill.v1.GitProvenanceR\rgitProvenance\x12\x18\n" +
+	"\amessage\x18\x06 \x01(\tR\amessageJ\x04\b\x05\x10\x06\"\xc6\x01\n" +
 	"%PushSkillFromExecutionArtifactRequest\x12\x18\n" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12*\n" +
 	"\fexecution_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12(\n" +
@@ -377,7 +650,28 @@ const file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc = "" +
 	"\x12GetArtifactRequest\x128\n" +
 	"\x14artifact_storage_key\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x12artifactStorageKey\"1\n" +
 	"\x13GetArtifactResponse\x12\x1a\n" +
-	"\bartifact\x18\x01 \x01(\fR\bartifactB\x8c\x02\n" +
+	"\bartifact\x18\x01 \x01(\fR\bartifact\"\x8a\x01\n" +
+	"\x16ListSkillVersionsInput\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1a\n" +
+	"\x04slug\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04slug\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\"\x93\x03\n" +
+	"\x11SkillVersionEntry\x12!\n" +
+	"\fversion_hash\x18\x01 \x01(\tR\vversionHash\x127\n" +
+	"\tpushed_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\bpushedAt\x12R\n" +
+	"\tpushed_by\x18\x03 \x01(\v25.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\bpushedBy\x12\x10\n" +
+	"\x03tag\x18\x04 \x01(\tR\x03tag\x12\x1d\n" +
+	"\n" +
+	"is_current\x18\x05 \x01(\bR\tisCurrent\x12Q\n" +
+	"\x0egit_provenance\x18\x06 \x01(\v2*.ai.stigmer.agentic.skill.v1.GitProvenanceR\rgitProvenance\x12\x18\n" +
+	"\amessage\x18\a \x01(\tR\amessage\x120\n" +
+	"\x14artifact_storage_key\x18\b \x01(\tR\x12artifactStorageKey\"\xb0\x01\n" +
+	"\x19ListSkillVersionsResponse\x12J\n" +
+	"\bversions\x18\x01 \x03(\v2..ai.stigmer.agentic.skill.v1.SkillVersionEntryR\bversions\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
+	"\vtotal_count\x18\x03 \x01(\x05R\n" +
+	"totalCountB\x8c\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.skill.v1B\aIoProtoP\x01ZOgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
 
 var (
@@ -392,22 +686,31 @@ func file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ai_stigmer_agentic_skill_v1_io_proto_goTypes = []any{
 	(*SkillId)(nil),                               // 0: ai.stigmer.agentic.skill.v1.SkillId
 	(*PushSkillRequest)(nil),                      // 1: ai.stigmer.agentic.skill.v1.PushSkillRequest
 	(*PushSkillFromExecutionArtifactRequest)(nil), // 2: ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest
 	(*GetArtifactRequest)(nil),                    // 3: ai.stigmer.agentic.skill.v1.GetArtifactRequest
 	(*GetArtifactResponse)(nil),                   // 4: ai.stigmer.agentic.skill.v1.GetArtifactResponse
-	(*GitProvenance)(nil),                         // 5: ai.stigmer.agentic.skill.v1.GitProvenance
+	(*ListSkillVersionsInput)(nil),                // 5: ai.stigmer.agentic.skill.v1.ListSkillVersionsInput
+	(*SkillVersionEntry)(nil),                     // 6: ai.stigmer.agentic.skill.v1.SkillVersionEntry
+	(*ListSkillVersionsResponse)(nil),             // 7: ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse
+	(*GitProvenance)(nil),                         // 8: ai.stigmer.agentic.skill.v1.GitProvenance
+	(*timestamppb.Timestamp)(nil),                 // 9: google.protobuf.Timestamp
+	(*apiresource.ApiResourceAuditActor)(nil),     // 10: ai.stigmer.commons.apiresource.ApiResourceAuditActor
 }
 var file_ai_stigmer_agentic_skill_v1_io_proto_depIdxs = []int32{
-	5, // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest.git_provenance:type_name -> ai.stigmer.agentic.skill.v1.GitProvenance
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	8,  // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest.git_provenance:type_name -> ai.stigmer.agentic.skill.v1.GitProvenance
+	9,  // 1: ai.stigmer.agentic.skill.v1.SkillVersionEntry.pushed_at:type_name -> google.protobuf.Timestamp
+	10, // 2: ai.stigmer.agentic.skill.v1.SkillVersionEntry.pushed_by:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	8,  // 3: ai.stigmer.agentic.skill.v1.SkillVersionEntry.git_provenance:type_name -> ai.stigmer.agentic.skill.v1.GitProvenance
+	6,  // 4: ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse.versions:type_name -> ai.stigmer.agentic.skill.v1.SkillVersionEntry
+	5,  // [5:5] is the sub-list for method output_type
+	5,  // [5:5] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_skill_v1_io_proto_init() }
@@ -422,7 +725,7 @@ func file_ai_stigmer_agentic_skill_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

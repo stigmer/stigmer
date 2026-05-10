@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetArtifactRequest, GetArtifactResponse, SkillId } from "./io_pbjs";
+import { GetArtifactRequest, GetArtifactResponse, ListSkillVersionsInput, ListSkillVersionsResponse, SkillId } from "./io_pbjs";
 import { Skill } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -62,6 +62,25 @@ export const SkillQueryController = {
       name: "getArtifact",
       I: GetArtifactRequest,
       O: GetArtifactResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List version history for a skill.
+     *
+     * Returns all historical versions ordered by push time (newest first).
+     * Each entry includes the version hash, push timestamp, actor, tag,
+     * git provenance, and artifact storage key for historical artifact access.
+     *
+     * @internal
+     * Authorization is handled in the handler after resolving the skill.
+     * (Input uses org+slug, not skill ID, so proto-level auth cannot work)
+     *
+     * @generated from rpc ai.stigmer.agentic.skill.v1.SkillQueryController.listVersions
+     */
+    listVersions: {
+      name: "listVersions",
+      I: ListSkillVersionsInput,
+      O: ListSkillVersionsResponse,
       kind: MethodKind.Unary,
     },
   }

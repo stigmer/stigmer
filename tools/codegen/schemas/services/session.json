@@ -40,6 +40,14 @@
           "description": "Set the session subject.\n\n This is a targeted update that modifies only the subject field,\n leaving other session fields untouched. Use this instead of the full\n update RPC when you only need to change the session subject.\n\n @internal\n Server-side field-level update, race-safe. Atomically modifies only\n spec.subject without touching other fields."
         },
         {
+          "name": "UpdateSessionMemory",
+          "inputType": "UpdateSessionMemoryRequest",
+          "inputFullType": "ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest",
+          "outputType": "Session",
+          "outputFullType": "ai.stigmer.agentic.session.v1.Session",
+          "description": "Persist session memory after execution.\n\n Atomically updates only status.session_memory, leaving all other\n session fields untouched. Called by the cursor-runner after each\n completed execution turn.\n\n @internal\n Server-side field-level update, race-safe. No full-document replace."
+        },
+        {
           "name": "Delete",
           "inputType": "SessionId",
           "inputFullType": "ai.stigmer.agentic.session.v1.SessionId",
@@ -108,6 +116,38 @@
             "kind": "string"
           },
           "description": "New subject value. Empty string clears the subject.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "UpdateSessionMemoryRequest",
+      "description": "UpdateSessionMemoryRequest persists durable session memory after each\n completed execution turn.\n\n @internal\n Field-level update that atomically modifies only the status.session_memory\n field, avoiding the lost-update race condition that occurs when the\n cursor-runner performs full-session updates concurrently with subject\n generation and other parallel activities.",
+      "protoType": "ai.stigmer.agentic.session.v1.UpdateSessionMemoryRequest",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Session ID to update.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "SessionMemory",
+          "jsonName": "sessionMemory",
+          "protoField": "session_memory",
+          "type": {
+            "kind": "message",
+            "messageType": "SessionMemory"
+          },
+          "description": "The session memory to persist. Replaces the entire existing memory\n (not a merge — the runner builds the complete memory each time).",
           "required": false
         }
       ]
@@ -263,6 +303,23 @@
       ]
     },
     {
+      "name": "CursorMode",
+      "description": "CursorMode selects the Cursor SDK agent type for sessions using\n HARNESS_CURSOR.\n\n Determined once at session creation based on workspace entries and never\n changed mid-session. Switching would lose Cursor-side conversation state\n because local agents (agent- prefix) and cloud agents (bc- prefix) maintain\n separate, incompatible conversation stores.\n\n Ignored when harness is not HARNESS_CURSOR.\n\n @internal\n Mode selection logic (when feature flag STIGMER_CURSOR_CLOUD_MODE_ENABLED\n is true):\n   - All workspace entries are GitRepoSource -\u003e CURSOR_MODE_CLOUD\n   - Any workspace entry is LocalPathSource  -\u003e CURSOR_MODE_LOCAL\n   - Feature flag disabled                   -\u003e CURSOR_MODE_LOCAL (forced)\n\n When UNSPECIFIED on an existing session, the runner treats it as LOCAL\n for backward compatibility with sessions created before this field existed.",
+      "protoType": "ai.stigmer.agentic.session.v1.CursorMode",
+      "values": [
+        {
+          "name": "CURSOR_MODE_LOCAL",
+          "number": 1,
+          "description": "Local Cursor agent created with a local cwd configuration.\n\n Works with any workspace source (git or local path). Stigmer owns\n the durable conversation layer — always sends continuation prompts\n because Cursor local agents do not reliably retain context across\n Agent.send() calls."
+        },
+        {
+          "name": "CURSOR_MODE_CLOUD",
+          "number": 2,
+          "description": "Cloud Cursor agent created with a cloud repos configuration.\n\n Requires all workspace entries to be GitRepoSource (HTTPS URLs).\n Cursor natively manages conversation state for cloud agents, but\n Stigmer persists session memory as backup because cloud agents can\n expire. Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED."
+        }
+      ]
+    },
+    {
       "name": "GitWriteBackMode",
       "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.\n\n @internal\n The platform enables write-back by default when credentials are\n available. Users can override this per-session by setting an\n explicit mode. The agent never sees or controls this setting.",
       "protoType": "ai.stigmer.agentic.session.v1.GitWriteBackMode",
@@ -397,5 +454,349 @@
       ]
     }
   ],
-  "resourceDescription": "Session represents a multi-turn conversation thread with an agent."
+  "resourceDescription": "Session represents a multi-turn conversation thread with an agent.",
+  "statusType": {
+    "name": "SessionStatus",
+    "description": "SessionStatus contains system-managed runtime state for a session.\n\n This follows the same pattern as AgentExecutionStatus: domain-specific\n status fields alongside the standard audit at field 99.\n\n Previously Session.status was ApiResourceAuditStatus (audit-only). The\n introduction of session memory required a proper status message. The\n wire format is backward-compatible: ApiResourceAuditStatus.audit was at\n field 99, and SessionStatus.audit is at the same field number, so\n existing MongoDB documents deserialize correctly.",
+    "protoType": "ai.stigmer.agentic.session.v1.SessionStatus",
+    "protoFile": "apis/ai/stigmer/agentic/session/v1/api.proto",
+    "fields": [
+      {
+        "name": "SessionMemory",
+        "jsonName": "sessionMemory",
+        "protoField": "session_memory",
+        "type": {
+          "kind": "message",
+          "messageType": "SessionMemory"
+        },
+        "description": "Durable session memory for continuation across agent evictions.\n\n Updated after each completed execution turn by the runner. When a\n fresh agent is created (because the previous one expired or the local\n store lookup failed), the continuation prompt is built from this\n memory.\n\n Empty until the first execution completes. Never cleared — only\n overwritten with newer state.",
+        "required": false
+      },
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.)",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ConversationTurn",
+      "description": "ConversationTurn captures a single message in the conversation for replay.\n\n Used in the continuation prompt to give the fresh agent recent context.\n Content may be truncated if the original message exceeded the per-turn\n token limit.",
+      "protoType": "ai.stigmer.agentic.session.v1.ConversationTurn",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/memory.proto",
+      "fields": [
+        {
+          "name": "Role",
+          "jsonName": "role",
+          "protoField": "role",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The role of the message author.\n Values: \"user\" or \"assistant\"",
+          "required": false
+        },
+        {
+          "name": "Content",
+          "jsonName": "content",
+          "protoField": "content",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The message content, potentially truncated.\n\n If the original message exceeded 1k tokens, this contains the last\n 1k tokens prefixed with \"[truncated]\".",
+          "required": false
+        },
+        {
+          "name": "Timestamp",
+          "jsonName": "timestamp",
+          "protoField": "timestamp",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the message was sent.\n Example: \"2026-05-09T15:30:00Z\"\n\n Uses string (not google.protobuf.Timestamp) for consistency with\n AgentMessage.timestamp and other operational timestamps in this domain.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SessionMemory",
+      "description": "SessionMemory captures durable conversation state that survives agent\n eviction, process restarts, and Cursor SDK \"agent not found\" failures.\n\n Updated after each completed execution turn and stored in SessionStatus.\n When a fresh agent is created (because the previous one expired or the\n local store lookup failed), the continuation prompt is built from this\n memory — giving the new agent the full context of the prior conversation.\n\n Design: Structured extraction, not LLM summarization. The cursor-runner\n parses stream events (tool calls, file edits, command outputs) and\n populates these fields directly. No separate LLM call is made in v1.\n\n Token budgets (enforced at persist-time by the runner):\n   durable_summary:    max 2k tokens\n   recent_turns:       max 4k tokens (last 6 turns, FIFO)\n   tool_observations:  max 1k tokens (most recent, FIFO)\n   Total continuation prompt ceiling: 8k tokens\n\n @internal\n Persisted in MongoDB as part of the Session document under status.\n The runner reads it from the activity input (passed by the workflow)\n and writes it back via gRPC after each completed turn.",
+      "protoType": "ai.stigmer.agentic.session.v1.SessionMemory",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/memory.proto",
+      "fields": [
+        {
+          "name": "DurableSummary",
+          "jsonName": "durableSummary",
+          "protoField": "durable_summary",
+          "type": {
+            "kind": "string"
+          },
+          "description": "High-level narrative of what has been accomplished so far.\n\n Includes the original goal, current progress, and next steps.\n Built by the runner from assistant messages — not a verbatim transcript.\n\n Token budget: max 2k tokens. Truncated at persist-time if exceeded.",
+          "required": false
+        },
+        {
+          "name": "WorkspaceDigest",
+          "jsonName": "workspaceDigest",
+          "protoField": "workspace_digest",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Digest of the workspace state at the time of last persistence.\n\n Free-form string capturing relevant workspace context (e.g., git branch,\n HEAD SHA, working directory). Used by the continuation prompt to help\n the fresh agent orient itself.",
+          "required": false
+        },
+        {
+          "name": "ChangedFiles",
+          "jsonName": "changedFiles",
+          "protoField": "changed_files",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Files created or modified during the session.\n\n Extracted from tool-call events (file_edit, file_create, etc.).\n Helps the continuation prompt tell the fresh agent what has changed.",
+          "required": false
+        },
+        {
+          "name": "OpenTasks",
+          "jsonName": "openTasks",
+          "protoField": "open_tasks",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Outstanding tasks or questions the agent identified but has not completed.\n\n Parsed from the agent's final message or todo-list tool calls.\n Gives the continuation prompt a \"pick up where you left off\" list.",
+          "required": false
+        },
+        {
+          "name": "ToolObservations",
+          "jsonName": "toolObservations",
+          "protoField": "tool_observations",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ToolObservation"
+            }
+          },
+          "description": "Summaries of significant tool executions during the session.\n\n Captures command, working directory, exit code, and a short output summary.\n Most recent observations first, FIFO-pruned to ~10 entries.\n\n Token budget: max 1k tokens total across all observations.",
+          "required": false
+        },
+        {
+          "name": "RecentTurns",
+          "jsonName": "recentTurns",
+          "protoField": "recent_turns",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ConversationTurn"
+            }
+          },
+          "description": "Recent conversation turns for verbatim replay in the continuation prompt.\n\n Last 6 turns (3 user + 3 assistant), FIFO. Individual turns exceeding\n 1k tokens are truncated to the last 1k tokens with a \"[truncated]\" prefix.\n\n Token budget: max 4k tokens total across all turns.",
+          "required": false
+        },
+        {
+          "name": "Decisions",
+          "jsonName": "decisions",
+          "protoField": "decisions",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Explicit decisions the agent made during the session.\n\n Extracted from assistant messages where the agent explains a choice\n (e.g., \"chose library X over Y because...\"). Append-only, never pruned,\n capped at 20 entries.\n\n These survive summary regeneration — even if durable_summary is\n rewritten, the individual decision records are preserved.",
+          "required": false
+        },
+        {
+          "name": "FailedAttempts",
+          "jsonName": "failedAttempts",
+          "protoField": "failed_attempts",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Approaches that were tried and failed during the session.\n\n Extracted from tool failures, error recoveries, and explicit agent\n statements about abandoned approaches. Append-only, never pruned,\n capped at 20 entries.\n\n Prevents the continuation agent from repeating mistakes the previous\n agent already learned from.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ToolObservation",
+      "description": "ToolObservation captures the outcome of a significant tool execution.\n\n Not every tool call produces an observation — only commands with meaningful\n output (shell commands, file operations with errors, etc.) are recorded.\n The runner decides which tool calls are \"significant\" based on tool type\n and outcome.",
+      "protoType": "ai.stigmer.agentic.session.v1.ToolObservation",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/memory.proto",
+      "fields": [
+        {
+          "name": "Command",
+          "jsonName": "command",
+          "protoField": "command",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The command or tool invocation that was executed.\n Example: \"npm install\", \"git checkout -b feature/foo\"",
+          "required": false
+        },
+        {
+          "name": "Cwd",
+          "jsonName": "cwd",
+          "protoField": "cwd",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Working directory where the command was executed.\n Example: \"/workspace/stigmer\"",
+          "required": false
+        },
+        {
+          "name": "ExitCode",
+          "jsonName": "exitCode",
+          "protoField": "exit_code",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Process exit code (0 = success).\n Meaningful for shell commands; may be 0 for non-shell tools.",
+          "required": false
+        },
+        {
+          "name": "Summary",
+          "jsonName": "summary",
+          "protoField": "summary",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Short summary of the tool output.\n\n Not the full stdout/stderr — a concise description of what happened.\n Example: \"Installed 42 packages, 0 vulnerabilities\"\n Example: \"Command failed: permission denied on /etc/hosts\"",
+          "required": false
+        }
+      ]
+    }
+  ]
 }

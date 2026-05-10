@@ -59,6 +59,9 @@ private static final long serialVersionUID = 0L;
     subAgentName_ = "";
     mcpServerSlug_ = "";
     subAgentSubject_ = "";
+    agentRationale_ = "";
+    branchAtDeny_ = "";
+    headShaAtDeny_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -535,6 +538,191 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int AGENT_RATIONALE_FIELD_NUMBER = 10;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object agentRationale_ = "";
+  /**
+   * <pre>
+   * Why the agent wanted to execute this tool.
+   *
+   * Extracted from the last assistant message before the tool call.
+   * Gives the reinvocation agent context for the original intent, enabling
+   * it to decide whether the action still makes sense.
+   *
+   * Example: "Need to install the missing dependency to fix the build"
+   * Empty when rationale extraction was not possible.
+   * </pre>
+   *
+   * <code>string agent_rationale = 10 [json_name = "agentRationale"];</code>
+   * @return The agentRationale.
+   */
+  @java.lang.Override
+  public java.lang.String getAgentRationale() {
+    java.lang.Object ref = agentRationale_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      agentRationale_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Why the agent wanted to execute this tool.
+   *
+   * Extracted from the last assistant message before the tool call.
+   * Gives the reinvocation agent context for the original intent, enabling
+   * it to decide whether the action still makes sense.
+   *
+   * Example: "Need to install the missing dependency to fix the build"
+   * Empty when rationale extraction was not possible.
+   * </pre>
+   *
+   * <code>string agent_rationale = 10 [json_name = "agentRationale"];</code>
+   * @return The bytes for agentRationale.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getAgentRationaleBytes() {
+    java.lang.Object ref = agentRationale_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      agentRationale_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int BRANCH_AT_DENY_FIELD_NUMBER = 11;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object branchAtDeny_ = "";
+  /**
+   * <pre>
+   * Git branch name at the time the tool was denied.
+   *
+   * Diagnostic metadata only — the reinvocation agent inspects the actual
+   * current workspace state rather than relying on this value. Included
+   * in the HITL continuation prompt as a reference point for the agent
+   * to detect whether workspace state has drifted.
+   *
+   * Example: "feature/add-auth"
+   * Empty when the workspace is not git-backed.
+   * </pre>
+   *
+   * <code>string branch_at_deny = 11 [json_name = "branchAtDeny"];</code>
+   * @return The branchAtDeny.
+   */
+  @java.lang.Override
+  public java.lang.String getBranchAtDeny() {
+    java.lang.Object ref = branchAtDeny_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      branchAtDeny_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Git branch name at the time the tool was denied.
+   *
+   * Diagnostic metadata only — the reinvocation agent inspects the actual
+   * current workspace state rather than relying on this value. Included
+   * in the HITL continuation prompt as a reference point for the agent
+   * to detect whether workspace state has drifted.
+   *
+   * Example: "feature/add-auth"
+   * Empty when the workspace is not git-backed.
+   * </pre>
+   *
+   * <code>string branch_at_deny = 11 [json_name = "branchAtDeny"];</code>
+   * @return The bytes for branchAtDeny.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getBranchAtDenyBytes() {
+    java.lang.Object ref = branchAtDeny_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      branchAtDeny_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int HEAD_SHA_AT_DENY_FIELD_NUMBER = 12;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object headShaAtDeny_ = "";
+  /**
+   * <pre>
+   * Git HEAD SHA at the time the tool was denied.
+   *
+   * Diagnostic metadata only — same purpose as branch_at_deny. Allows
+   * the reinvocation agent to compare against current HEAD to understand
+   * whether commits have landed since the tool was proposed.
+   *
+   * Example: "a1b2c3d4e5f6..."
+   * Empty when the workspace is not git-backed.
+   * </pre>
+   *
+   * <code>string head_sha_at_deny = 12 [json_name = "headShaAtDeny"];</code>
+   * @return The headShaAtDeny.
+   */
+  @java.lang.Override
+  public java.lang.String getHeadShaAtDeny() {
+    java.lang.Object ref = headShaAtDeny_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      headShaAtDeny_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Git HEAD SHA at the time the tool was denied.
+   *
+   * Diagnostic metadata only — same purpose as branch_at_deny. Allows
+   * the reinvocation agent to compare against current HEAD to understand
+   * whether commits have landed since the tool was proposed.
+   *
+   * Example: "a1b2c3d4e5f6..."
+   * Empty when the workspace is not git-backed.
+   * </pre>
+   *
+   * <code>string head_sha_at_deny = 12 [json_name = "headShaAtDeny"];</code>
+   * @return The bytes for headShaAtDeny.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getHeadShaAtDenyBytes() {
+    java.lang.Object ref = headShaAtDeny_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      headShaAtDeny_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -576,6 +764,15 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subAgentSubject_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 9, subAgentSubject_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentRationale_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 10, agentRationale_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(branchAtDeny_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 11, branchAtDeny_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(headShaAtDeny_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 12, headShaAtDeny_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -613,6 +810,15 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subAgentSubject_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(9, subAgentSubject_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentRationale_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(10, agentRationale_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(branchAtDeny_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(11, branchAtDeny_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(headShaAtDeny_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(12, headShaAtDeny_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -646,6 +852,12 @@ private static final long serialVersionUID = 0L;
         .equals(other.getMcpServerSlug())) return false;
     if (!getSubAgentSubject()
         .equals(other.getSubAgentSubject())) return false;
+    if (!getAgentRationale()
+        .equals(other.getAgentRationale())) return false;
+    if (!getBranchAtDeny()
+        .equals(other.getBranchAtDeny())) return false;
+    if (!getHeadShaAtDeny()
+        .equals(other.getHeadShaAtDeny())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -676,6 +888,12 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getMcpServerSlug().hashCode();
     hash = (37 * hash) + SUB_AGENT_SUBJECT_FIELD_NUMBER;
     hash = (53 * hash) + getSubAgentSubject().hashCode();
+    hash = (37 * hash) + AGENT_RATIONALE_FIELD_NUMBER;
+    hash = (53 * hash) + getAgentRationale().hashCode();
+    hash = (37 * hash) + BRANCH_AT_DENY_FIELD_NUMBER;
+    hash = (53 * hash) + getBranchAtDeny().hashCode();
+    hash = (37 * hash) + HEAD_SHA_AT_DENY_FIELD_NUMBER;
+    hash = (53 * hash) + getHeadShaAtDeny().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -839,6 +1057,9 @@ private static final long serialVersionUID = 0L;
       subAgentName_ = "";
       mcpServerSlug_ = "";
       subAgentSubject_ = "";
+      agentRationale_ = "";
+      branchAtDeny_ = "";
+      headShaAtDeny_ = "";
       return this;
     }
 
@@ -899,6 +1120,15 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000100) != 0)) {
         result.subAgentSubject_ = subAgentSubject_;
       }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.agentRationale_ = agentRationale_;
+      }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.branchAtDeny_ = branchAtDeny_;
+      }
+      if (((from_bitField0_ & 0x00000800) != 0)) {
+        result.headShaAtDeny_ = headShaAtDeny_;
+      }
     }
 
     @java.lang.Override
@@ -954,6 +1184,21 @@ private static final long serialVersionUID = 0L;
       if (!other.getSubAgentSubject().isEmpty()) {
         subAgentSubject_ = other.subAgentSubject_;
         bitField0_ |= 0x00000100;
+        onChanged();
+      }
+      if (!other.getAgentRationale().isEmpty()) {
+        agentRationale_ = other.agentRationale_;
+        bitField0_ |= 0x00000200;
+        onChanged();
+      }
+      if (!other.getBranchAtDeny().isEmpty()) {
+        branchAtDeny_ = other.branchAtDeny_;
+        bitField0_ |= 0x00000400;
+        onChanged();
+      }
+      if (!other.getHeadShaAtDeny().isEmpty()) {
+        headShaAtDeny_ = other.headShaAtDeny_;
+        bitField0_ |= 0x00000800;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -1027,6 +1272,21 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000100;
               break;
             } // case 74
+            case 82: {
+              agentRationale_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 82
+            case 90: {
+              branchAtDeny_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 90
+            case 98: {
+              headShaAtDeny_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000800;
+              break;
+            } // case 98
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1984,6 +2244,392 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       subAgentSubject_ = value;
       bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object agentRationale_ = "";
+    /**
+     * <pre>
+     * Why the agent wanted to execute this tool.
+     *
+     * Extracted from the last assistant message before the tool call.
+     * Gives the reinvocation agent context for the original intent, enabling
+     * it to decide whether the action still makes sense.
+     *
+     * Example: "Need to install the missing dependency to fix the build"
+     * Empty when rationale extraction was not possible.
+     * </pre>
+     *
+     * <code>string agent_rationale = 10 [json_name = "agentRationale"];</code>
+     * @return The agentRationale.
+     */
+    public java.lang.String getAgentRationale() {
+      java.lang.Object ref = agentRationale_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        agentRationale_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Why the agent wanted to execute this tool.
+     *
+     * Extracted from the last assistant message before the tool call.
+     * Gives the reinvocation agent context for the original intent, enabling
+     * it to decide whether the action still makes sense.
+     *
+     * Example: "Need to install the missing dependency to fix the build"
+     * Empty when rationale extraction was not possible.
+     * </pre>
+     *
+     * <code>string agent_rationale = 10 [json_name = "agentRationale"];</code>
+     * @return The bytes for agentRationale.
+     */
+    public com.google.protobuf.ByteString
+        getAgentRationaleBytes() {
+      java.lang.Object ref = agentRationale_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        agentRationale_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Why the agent wanted to execute this tool.
+     *
+     * Extracted from the last assistant message before the tool call.
+     * Gives the reinvocation agent context for the original intent, enabling
+     * it to decide whether the action still makes sense.
+     *
+     * Example: "Need to install the missing dependency to fix the build"
+     * Empty when rationale extraction was not possible.
+     * </pre>
+     *
+     * <code>string agent_rationale = 10 [json_name = "agentRationale"];</code>
+     * @param value The agentRationale to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAgentRationale(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      agentRationale_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Why the agent wanted to execute this tool.
+     *
+     * Extracted from the last assistant message before the tool call.
+     * Gives the reinvocation agent context for the original intent, enabling
+     * it to decide whether the action still makes sense.
+     *
+     * Example: "Need to install the missing dependency to fix the build"
+     * Empty when rationale extraction was not possible.
+     * </pre>
+     *
+     * <code>string agent_rationale = 10 [json_name = "agentRationale"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAgentRationale() {
+      agentRationale_ = getDefaultInstance().getAgentRationale();
+      bitField0_ = (bitField0_ & ~0x00000200);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Why the agent wanted to execute this tool.
+     *
+     * Extracted from the last assistant message before the tool call.
+     * Gives the reinvocation agent context for the original intent, enabling
+     * it to decide whether the action still makes sense.
+     *
+     * Example: "Need to install the missing dependency to fix the build"
+     * Empty when rationale extraction was not possible.
+     * </pre>
+     *
+     * <code>string agent_rationale = 10 [json_name = "agentRationale"];</code>
+     * @param value The bytes for agentRationale to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAgentRationaleBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      agentRationale_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object branchAtDeny_ = "";
+    /**
+     * <pre>
+     * Git branch name at the time the tool was denied.
+     *
+     * Diagnostic metadata only — the reinvocation agent inspects the actual
+     * current workspace state rather than relying on this value. Included
+     * in the HITL continuation prompt as a reference point for the agent
+     * to detect whether workspace state has drifted.
+     *
+     * Example: "feature/add-auth"
+     * Empty when the workspace is not git-backed.
+     * </pre>
+     *
+     * <code>string branch_at_deny = 11 [json_name = "branchAtDeny"];</code>
+     * @return The branchAtDeny.
+     */
+    public java.lang.String getBranchAtDeny() {
+      java.lang.Object ref = branchAtDeny_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        branchAtDeny_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Git branch name at the time the tool was denied.
+     *
+     * Diagnostic metadata only — the reinvocation agent inspects the actual
+     * current workspace state rather than relying on this value. Included
+     * in the HITL continuation prompt as a reference point for the agent
+     * to detect whether workspace state has drifted.
+     *
+     * Example: "feature/add-auth"
+     * Empty when the workspace is not git-backed.
+     * </pre>
+     *
+     * <code>string branch_at_deny = 11 [json_name = "branchAtDeny"];</code>
+     * @return The bytes for branchAtDeny.
+     */
+    public com.google.protobuf.ByteString
+        getBranchAtDenyBytes() {
+      java.lang.Object ref = branchAtDeny_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        branchAtDeny_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Git branch name at the time the tool was denied.
+     *
+     * Diagnostic metadata only — the reinvocation agent inspects the actual
+     * current workspace state rather than relying on this value. Included
+     * in the HITL continuation prompt as a reference point for the agent
+     * to detect whether workspace state has drifted.
+     *
+     * Example: "feature/add-auth"
+     * Empty when the workspace is not git-backed.
+     * </pre>
+     *
+     * <code>string branch_at_deny = 11 [json_name = "branchAtDeny"];</code>
+     * @param value The branchAtDeny to set.
+     * @return This builder for chaining.
+     */
+    public Builder setBranchAtDeny(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      branchAtDeny_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Git branch name at the time the tool was denied.
+     *
+     * Diagnostic metadata only — the reinvocation agent inspects the actual
+     * current workspace state rather than relying on this value. Included
+     * in the HITL continuation prompt as a reference point for the agent
+     * to detect whether workspace state has drifted.
+     *
+     * Example: "feature/add-auth"
+     * Empty when the workspace is not git-backed.
+     * </pre>
+     *
+     * <code>string branch_at_deny = 11 [json_name = "branchAtDeny"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearBranchAtDeny() {
+      branchAtDeny_ = getDefaultInstance().getBranchAtDeny();
+      bitField0_ = (bitField0_ & ~0x00000400);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Git branch name at the time the tool was denied.
+     *
+     * Diagnostic metadata only — the reinvocation agent inspects the actual
+     * current workspace state rather than relying on this value. Included
+     * in the HITL continuation prompt as a reference point for the agent
+     * to detect whether workspace state has drifted.
+     *
+     * Example: "feature/add-auth"
+     * Empty when the workspace is not git-backed.
+     * </pre>
+     *
+     * <code>string branch_at_deny = 11 [json_name = "branchAtDeny"];</code>
+     * @param value The bytes for branchAtDeny to set.
+     * @return This builder for chaining.
+     */
+    public Builder setBranchAtDenyBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      branchAtDeny_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object headShaAtDeny_ = "";
+    /**
+     * <pre>
+     * Git HEAD SHA at the time the tool was denied.
+     *
+     * Diagnostic metadata only — same purpose as branch_at_deny. Allows
+     * the reinvocation agent to compare against current HEAD to understand
+     * whether commits have landed since the tool was proposed.
+     *
+     * Example: "a1b2c3d4e5f6..."
+     * Empty when the workspace is not git-backed.
+     * </pre>
+     *
+     * <code>string head_sha_at_deny = 12 [json_name = "headShaAtDeny"];</code>
+     * @return The headShaAtDeny.
+     */
+    public java.lang.String getHeadShaAtDeny() {
+      java.lang.Object ref = headShaAtDeny_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        headShaAtDeny_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Git HEAD SHA at the time the tool was denied.
+     *
+     * Diagnostic metadata only — same purpose as branch_at_deny. Allows
+     * the reinvocation agent to compare against current HEAD to understand
+     * whether commits have landed since the tool was proposed.
+     *
+     * Example: "a1b2c3d4e5f6..."
+     * Empty when the workspace is not git-backed.
+     * </pre>
+     *
+     * <code>string head_sha_at_deny = 12 [json_name = "headShaAtDeny"];</code>
+     * @return The bytes for headShaAtDeny.
+     */
+    public com.google.protobuf.ByteString
+        getHeadShaAtDenyBytes() {
+      java.lang.Object ref = headShaAtDeny_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        headShaAtDeny_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Git HEAD SHA at the time the tool was denied.
+     *
+     * Diagnostic metadata only — same purpose as branch_at_deny. Allows
+     * the reinvocation agent to compare against current HEAD to understand
+     * whether commits have landed since the tool was proposed.
+     *
+     * Example: "a1b2c3d4e5f6..."
+     * Empty when the workspace is not git-backed.
+     * </pre>
+     *
+     * <code>string head_sha_at_deny = 12 [json_name = "headShaAtDeny"];</code>
+     * @param value The headShaAtDeny to set.
+     * @return This builder for chaining.
+     */
+    public Builder setHeadShaAtDeny(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      headShaAtDeny_ = value;
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Git HEAD SHA at the time the tool was denied.
+     *
+     * Diagnostic metadata only — same purpose as branch_at_deny. Allows
+     * the reinvocation agent to compare against current HEAD to understand
+     * whether commits have landed since the tool was proposed.
+     *
+     * Example: "a1b2c3d4e5f6..."
+     * Empty when the workspace is not git-backed.
+     * </pre>
+     *
+     * <code>string head_sha_at_deny = 12 [json_name = "headShaAtDeny"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearHeadShaAtDeny() {
+      headShaAtDeny_ = getDefaultInstance().getHeadShaAtDeny();
+      bitField0_ = (bitField0_ & ~0x00000800);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Git HEAD SHA at the time the tool was denied.
+     *
+     * Diagnostic metadata only — same purpose as branch_at_deny. Allows
+     * the reinvocation agent to compare against current HEAD to understand
+     * whether commits have landed since the tool was proposed.
+     *
+     * Example: "a1b2c3d4e5f6..."
+     * Empty when the workspace is not git-backed.
+     * </pre>
+     *
+     * <code>string head_sha_at_deny = 12 [json_name = "headShaAtDeny"];</code>
+     * @param value The bytes for headShaAtDeny to set.
+     * @return This builder for chaining.
+     */
+    public Builder setHeadShaAtDenyBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      headShaAtDeny_ = value;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }

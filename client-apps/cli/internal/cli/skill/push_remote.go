@@ -20,6 +20,7 @@ type RemotePushOptions struct {
 	GitSubdir       string
 	OrgID           string
 	Tag             string
+	Message         string
 	DryRun          bool
 	IgnorePatterns  []string
 	IncludePatterns []string
@@ -126,6 +127,7 @@ func cloneAndPush(opts RemotePushOptions) (*artifact.SkillArtifactResult, error)
 		Directory: skillDir,
 		OrgID:     opts.OrgID,
 		Tag:       opts.Tag,
+		Message:   opts.Message,
 		Client:    opts.Client,
 		Quiet:     false,
 		GitURL:    opts.GitURL,

@@ -64,6 +64,11 @@ func (s *SkillClient) GetArtifact(ctx context.Context, input *skillv1.GetArtifac
 	return resp, wrapErr(err)
 }
 
+func (s *SkillClient) ListVersions(ctx context.Context, input *skillv1.ListSkillVersionsInput) (*skillv1.ListSkillVersionsResponse, error) {
+	resp, err := s.query.ListVersions(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (s *SkillClient) List(ctx context.Context, params *ListParams) (*ListResult, error) {
 	req := &searchv1.SearchRequest{
 		Kinds:          []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_skill},

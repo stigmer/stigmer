@@ -44,6 +44,11 @@ func (s *SessionClient) UpdateSubject(ctx context.Context, input *sessionv1.Upda
 	return resp, wrapErr(err)
 }
 
+func (s *SessionClient) UpdateSessionMemory(ctx context.Context, input *sessionv1.UpdateSessionMemoryRequest) (*sessionv1.Session, error) {
+	resp, err := s.command.UpdateSessionMemory(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (s *SessionClient) Delete(ctx context.Context, id string) (*sessionv1.Session, error) {
 	resp, err := s.command.Delete(ctx, &sessionv1.SessionId{Value: id})
 	return resp, wrapErr(err)
@@ -80,6 +85,7 @@ type SessionInput struct {
 	RunnerId         string
 	SkillRefs        []ResourceRef
 	Harness          sessionv1.Harness
+	CursorMode       sessionv1.CursorMode
 }
 
 // WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
@@ -138,6 +144,7 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 		resource.Spec.SkillRefs = append(resource.Spec.SkillRefs, ref)
 	}
 	resource.Spec.Harness = i.Harness
+	resource.Spec.CursorMode = i.CursorMode
 	return resource
 }
 
@@ -180,6 +187,7 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 			input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
 		}
 		input.Harness = s.GetHarness()
+		input.CursorMode = s.GetCursorMode()
 	}
 	return input
 }

@@ -89,6 +89,47 @@ message PendingApproval {
   // instead of the generic agent type name.
   // Empty when from_sub_agent is false or subject is not available.
   string sub_agent_subject = 9;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // HITL Continuation Diagnostics (Cursor Harness)
+  //
+  // Captured at tool-deny time to support intelligent reinvocation after
+  // delayed human approval. When a fresh agent is created for reinvocation,
+  // these fields are included in the HITL continuation prompt so the agent
+  // can verify whether the approved action is still appropriate given
+  // potentially changed workspace state.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Why the agent wanted to execute this tool.
+  //
+  // Extracted from the last assistant message before the tool call.
+  // Gives the reinvocation agent context for the original intent, enabling
+  // it to decide whether the action still makes sense.
+  //
+  // Example: "Need to install the missing dependency to fix the build"
+  // Empty when rationale extraction was not possible.
+  string agent_rationale = 10;
+
+  // Git branch name at the time the tool was denied.
+  //
+  // Diagnostic metadata only — the reinvocation agent inspects the actual
+  // current workspace state rather than relying on this value. Included
+  // in the HITL continuation prompt as a reference point for the agent
+  // to detect whether workspace state has drifted.
+  //
+  // Example: "feature/add-auth"
+  // Empty when the workspace is not git-backed.
+  string branch_at_deny = 11;
+
+  // Git HEAD SHA at the time the tool was denied.
+  //
+  // Diagnostic metadata only — same purpose as branch_at_deny. Allows
+  // the reinvocation agent to compare against current HEAD to understand
+  // whether commits have landed since the tool was proposed.
+  //
+  // Example: "a1b2c3d4e5f6..."
+  // Empty when the workspace is not git-backed.
+  string head_sha_at_deny = 12;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

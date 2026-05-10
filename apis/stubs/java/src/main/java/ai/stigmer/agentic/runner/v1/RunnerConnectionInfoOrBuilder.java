@@ -97,4 +97,30 @@ public interface RunnerConnectionInfoOrBuilder extends
    */
   com.google.protobuf.ByteString
       getRunnerVersionBytes();
+
+  /**
+   * <pre>
+   * Stable machine identifier, generated once per Stigmer CLI installation
+   * and persisted at ~/.stigmer/machine.json. Used for runner deduplication
+   * across hostname changes. Format: "mach_" + 32 hex chars.
+   * Example: "mach_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
+   * </pre>
+   *
+   * <code>string machine_id = 5 [json_name = "machineId"];</code>
+   * @return The machineId.
+   */
+  java.lang.String getMachineId();
+  /**
+   * <pre>
+   * Stable machine identifier, generated once per Stigmer CLI installation
+   * and persisted at ~/.stigmer/machine.json. Used for runner deduplication
+   * across hostname changes. Format: "mach_" + 32 hex chars.
+   * Example: "mach_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
+   * </pre>
+   *
+   * <code>string machine_id = 5 [json_name = "machineId"];</code>
+   * @return The bytes for machineId.
+   */
+  com.google.protobuf.ByteString
+      getMachineIdBytes();
 }

@@ -119,6 +119,56 @@ export function invokeWatchRunnerLogFile(
 }
 
 // ---------------------------------------------------------------------------
+// Control socket types and commands (T05)
+// ---------------------------------------------------------------------------
+
+export interface LocalRunnerStatus {
+  source: "socket" | "disk" | "unavailable";
+  running: boolean;
+  name: string | null;
+  runner_id: string | null;
+  machine_id: string | null;
+  org: string | null;
+  backend_endpoint: string | null;
+  pid: number | null;
+  started_at: string | null;
+  uptime: string | null;
+  runtime: string | null;
+  version: string | null;
+}
+
+export function invokeQueryRunnerSocket(): Promise<LocalRunnerStatus> {
+  return invoke<LocalRunnerStatus>("query_runner_socket");
+}
+
+export function invokeStopRunnerViaSocket(): Promise<void> {
+  return invoke<void>("stop_runner_via_socket");
+}
+
+// ---------------------------------------------------------------------------
+// Runner preference commands (T05)
+// ---------------------------------------------------------------------------
+
+export interface RunnerPreference {
+  enabled: boolean;
+  prompted: boolean;
+}
+
+export function invokeGetRunnerPreference(): Promise<RunnerPreference> {
+  return invoke<RunnerPreference>("get_runner_preference");
+}
+
+export function invokeSetRunnerPreference(pref: {
+  enabled?: boolean;
+  prompted?: boolean;
+}): Promise<void> {
+  return invoke<void>("set_runner_preference", {
+    enabled: pref.enabled ?? null,
+    prompted: pref.prompted ?? null,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Typed event listeners
 // ---------------------------------------------------------------------------
 

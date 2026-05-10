@@ -8,6 +8,8 @@ go_library(
         "copydir.go",
         "cursor.go",
         "docker.go",
+        "ensure.go",
+        "machine.go",
         "runner_env.go",
         "start.go",
         "state.go",
@@ -23,6 +25,7 @@ go_library(
         "//client-apps/cli/internal/cli/daemon",
         "//client-apps/cli/internal/cli/nodert",
         "//client-apps/cli/internal/cli/pythonrt",
+        "//client-apps/cli/internal/cli/runner/controlsock",
         "//client-apps/cli/pkg/climsg",
         "@com_github_pkg_errors//:errors",
         "@com_github_rs_zerolog//log",
@@ -35,7 +38,10 @@ go_library(
 go_test(
     name = "runner_test",
     srcs = [
+        "adopt_test.go",
         "docker_test.go",
+        "ensure_test.go",
+        "machine_test.go",
         "state_test.go",
     ],
     embed = [":runner"],

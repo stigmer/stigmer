@@ -59,6 +59,7 @@ Skill skill = client.skills().get("skl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`get`](#get) | Get a single skill by ID. |
 | [`getArtifact`](#getartifact) | Download skill artifact from storage by its storage key. |
 | [`getByReference`](#getbyreference) | Get a skill by API resource reference with version support. |
+| [`listVersions`](#listversions) | List version history for a skill. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an existing skill. |
 | [`delete`](#delete) | Delete a skill and all its versions. |
 | [`push`](#push) | Push a skill artifact. |
@@ -191,6 +192,59 @@ Skill skill = client.skills().getByReference(ApiResourceReference.builder()
 
 **Returns**: [`Skill`](#skill)
 
+### listVersions
+
+List version history for a skill.
+
+Returns all historical versions ordered by push time (newest first). Each entry includes the version hash, push timestamp, actor, tag, git provenance, and artifact storage key for historical artifact access.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const listSkillVersionsResponse = await stigmer.skill.listVersions({
+  org: "...",
+  slug: "...",
+  pageToken: "...",
+  pageSize: 0,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+listSkillVersionsResponse, err := client.Skill.ListVersions(ctx, &stigmer.ListSkillVersionsInput{
+  Org:       "...",
+  Slug:      "...",
+  PageToken: "...",
+  PageSize:  0,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+list_skill_versions_response = client.skills.list_versions(ListSkillVersionsInput(
+    org="...",
+    slug="...",
+    page_token="...",
+    page_size=0,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ListSkillVersionsResponse listSkillVersionsResponse = client.skills().listVersions(ListSkillVersionsInput.builder()
+    .org("...")
+    .slug("...")
+    .pageToken("...")
+    .pageSize(0)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListSkillVersionsInput`](#listskillversionsinput)
+
+**Returns**: [`ListSkillVersionsResponse`](#listskillversionsresponse)
+
 ### updateVisibility
 
 Update the visibility of an existing skill. Only modifies metadata.visibility, leaving spec, status, and other metadata fields untouched. Use this to make a skill publicly accessible or to revoke public access.
@@ -281,6 +335,7 @@ const skill = await stigmer.skill.push({
   artifact: "...",
   tag: "...",
   gitProvenance: {},
+  message: "...",
 });
 ```
 </Tab>
@@ -291,6 +346,7 @@ skill, err := client.Skill.Push(ctx, &stigmer.PushSkillRequest{
   Artifact:      "...",
   Tag:           "...",
   GitProvenance: &stigmer.GitProvenanceInput{},
+  Message:       "...",
 })
 ```
 </Tab>
@@ -301,6 +357,7 @@ skill = client.skills.push(PushSkillRequest(
     artifact="...",
     tag="...",
     git_provenance=None,
+    message="...",
 ))
 ```
 </Tab>
@@ -311,6 +368,7 @@ Skill skill = client.skills().push(PushSkillRequest.builder()
     .artifact("...")
     .tag("...")
     .gitProvenance(null)
+    .message("...")
     .build());
 ```
 </Tab>
@@ -399,6 +457,7 @@ PushSkillRequest contains the skill artifact and metadata for upload.
     artifact: { type: "Uint8Array", description: "Skill artifact as a ZIP file (binary content).", required: true },
     tag: { type: "string", description: "Optional tag to associate with this version." },
     gitProvenance: { type: "GitProvenanceInput", description: "Git provenance for this skill version." },
+    message: { type: "string", description: "Optional human-readable message describing what changed in this version." },
   }}
 />
 
@@ -456,6 +515,31 @@ GetArtifactResponse contains the skill artifact content.
 <TypeTable
   type={{
     artifact: { type: "Uint8Array", description: "The skill artifact as a ZIP file (binary content)." },
+  }}
+/>
+
+### ListSkillVersionsInput
+
+ListSkillVersionsInput requests the version history for a skill.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the skill.", required: true },
+    slug: { type: "string", description: "Skill slug (unique within the organization).", required: true },
+    pageToken: { type: "string", description: "Opaque token for cursor-based pagination." },
+    pageSize: { type: "number", description: "Maximum number of versions to return per page." },
+  }}
+/>
+
+### ListSkillVersionsResponse
+
+ListSkillVersionsResponse contains a page of skill version history.
+
+<TypeTable
+  type={{
+    versions: { type: "SkillVersionEntryInput[]", description: "Ordered list of versions (newest first)." },
+    nextPageToken: { type: "string", description: "Token for fetching the next page." },
+    totalCount: { type: "number", description: "Total number of versions across all pages." },
   }}
 />
 

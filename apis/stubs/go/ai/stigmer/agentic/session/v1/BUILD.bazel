@@ -8,6 +8,7 @@ go_library(
         "command_grpc.pb.go",
         "enum.pb.go",
         "io.pb.go",
+        "memory.pb.go",
         "query.pb.go",
         "query_grpc.pb.go",
         "spec.pb.go",

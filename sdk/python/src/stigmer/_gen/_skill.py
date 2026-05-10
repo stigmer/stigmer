@@ -74,6 +74,12 @@ class SkillClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list_versions(self, input: io_pb2.ListSkillVersionsInput) -> io_pb2.ListSkillVersionsResponse:
+        try:
+            return self._query.listVersions(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def list(self, params: ListParams) -> ListResult:
         try:
             req = search_io_pb2.SearchRequest(

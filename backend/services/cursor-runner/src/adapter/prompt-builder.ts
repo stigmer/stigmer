@@ -148,11 +148,11 @@ function isRunnerInternalPath(absolutePath: string): boolean {
   return RUNNER_PATH_MARKERS.some((marker) => absolutePath.includes(marker));
 }
 
-function formatInstructions(instructions: string): string {
+export function formatInstructions(instructions: string): string {
   return `<agent_instructions>\n${instructions}\n</agent_instructions>`;
 }
 
-function formatSkillsSection(skills: SkillMetadata[]): string {
+export function formatSkillsSection(skills: SkillMetadata[]): string {
   const entries = skills.map(
     (s) => `- **${s.name}**: ${s.description}\n  Path: \`${s.path}\``,
   );
@@ -165,7 +165,7 @@ function formatSkillsSection(skills: SkillMetadata[]): string {
   ].join("\n");
 }
 
-function formatSubAgentsSection(subAgents: SubAgent[]): string {
+export function formatSubAgentsSection(subAgents: SubAgent[]): string {
   const entries = subAgents.map((sa) => {
     const parts = [`- **${sa.name}**: ${sa.description}`];
     if (sa.mcpAccess.length > 0) {
@@ -193,7 +193,7 @@ function formatSubAgentsSection(subAgents: SubAgent[]): string {
   ].join("\n");
 }
 
-function formatWorkspaceContext(dirs: string[]): string {
+export function formatWorkspaceContext(dirs: string[]): string {
   if (dirs.length === 1) {
     return `<workspace>\nWorking directory: ${dirs[0]}\n</workspace>`;
   }
@@ -207,7 +207,7 @@ function formatWorkspaceContext(dirs: string[]): string {
   ].join("\n");
 }
 
-function formatInputFiles(paths: string[]): string {
+export function formatInputFiles(paths: string[]): string {
   const entries = paths.map((p) => `- \`${p}\``);
   return [
     "<input_files>",
@@ -217,7 +217,7 @@ function formatInputFiles(paths: string[]): string {
   ].join("\n");
 }
 
-function formatReferencedFiles(refs: string[]): string {
+export function formatReferencedFiles(refs: string[]): string {
   const entries = refs.map((r) => `- \`${r}\``);
   return [
     "<referenced_files>",
@@ -227,7 +227,7 @@ function formatReferencedFiles(refs: string[]): string {
   ].join("\n");
 }
 
-function formatResponseRules(): string {
+export function formatResponseRules(): string {
   return [
     "<response_rules>",
     "- Be concise and direct in your responses",

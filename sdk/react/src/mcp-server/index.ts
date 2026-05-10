@@ -85,3 +85,19 @@ export type {
 
 export { McpServerConnectDialog } from "./McpServerConnectDialog";
 export type { McpServerConnectDialogProps } from "./McpServerConnectDialog";
+
+export { useCreateMcpServer } from "./useCreateMcpServer";
+export type { UseCreateMcpServerReturn } from "./useCreateMcpServer";
+
+export { useUpdateMcpServer } from "./useUpdateMcpServer";
+export type { UseUpdateMcpServerReturn } from "./useUpdateMcpServer";
+
+export { mcpServerToInput } from "./internal/mcpServerToInput";
+
+export { McpServerCreationWizard } from "./McpServerCreationWizard";
+export type {
+  McpServerCreationWizardProps,
+  McpServerCreationResult,
+} from "./McpServerCreationWizard";
+
+export type { McpServerWizardData } from "./steps/types";

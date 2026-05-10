@@ -32,6 +32,11 @@ class SkillQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactResponse.FromString,
                 _registered_method=True)
+        self.listVersions = channel.unary_unary(
+                '/ai.stigmer.agentic.skill.v1.SkillQueryController/listVersions',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.ListSkillVersionsInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.ListSkillVersionsResponse.FromString,
+                _registered_method=True)
 
 
 class SkillQueryControllerServicer(object):
@@ -74,6 +79,21 @@ class SkillQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def listVersions(self, request, context):
+        """List version history for a skill.
+
+        Returns all historical versions ordered by push time (newest first).
+        Each entry includes the version hash, push timestamp, actor, tag,
+        git provenance, and artifact storage key for historical artifact access.
+
+        @internal
+        Authorization is handled in the handler after resolving the skill.
+        (Input uses org+slug, not skill ID, so proto-level auth cannot work)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SkillQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -91,6 +111,11 @@ def add_SkillQueryControllerServicer_to_server(servicer, server):
                     servicer.getArtifact,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactResponse.SerializeToString,
+            ),
+            'listVersions': grpc.unary_unary_rpc_method_handler(
+                    servicer.listVersions,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.ListSkillVersionsInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.ListSkillVersionsResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -175,6 +200,33 @@ class SkillQueryController(object):
             '/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifact',
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.GetArtifactResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def listVersions(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.skill.v1.SkillQueryController/listVersions',
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.ListSkillVersionsInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.ListSkillVersionsResponse.FromString,
             options,
             channel_credentials,
             insecure,

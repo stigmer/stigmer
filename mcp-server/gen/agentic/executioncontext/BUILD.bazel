@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "executioncontext",
+    srcs = ["execution_context_gen.go"],
+    importpath = "github.com/stigmer/stigmer/mcp-server/gen/agentic/executioncontext",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//mcp-server/internal/convert",
+        "//mcp-server/proto/ai/stigmer/agentic/executioncontext/v1:executioncontext",
+        "//mcp-server/proto/ai/stigmer/commons/apiresource",
+    ],
+)

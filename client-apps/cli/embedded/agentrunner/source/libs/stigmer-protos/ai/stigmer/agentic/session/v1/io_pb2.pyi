@@ -1,4 +1,5 @@
 from ai.stigmer.agentic.session.v1 import api_pb2 as _api_pb2
+from ai.stigmer.agentic.session.v1 import memory_pb2 as _memory_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
@@ -55,3 +56,11 @@ class UpdateSessionSubjectRequest(_message.Message):
     id: str
     subject: str
     def __init__(self, id: _Optional[str] = ..., subject: _Optional[str] = ...) -> None: ...
+
+class UpdateSessionMemoryRequest(_message.Message):
+    __slots__ = ("id", "session_memory")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    SESSION_MEMORY_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    session_memory: _memory_pb2.SessionMemory
+    def __init__(self, id: _Optional[str] = ..., session_memory: _Optional[_Union[_memory_pb2.SessionMemory, _Mapping]] = ...) -> None: ...

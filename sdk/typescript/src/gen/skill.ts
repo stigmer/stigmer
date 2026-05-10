@@ -7,7 +7,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { SkillSchema, type Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
-import { SkillIdSchema, PushSkillRequestSchema, PushSkillFromExecutionArtifactRequestSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, type PushSkillRequest, type PushSkillFromExecutionArtifactRequest, type GetArtifactRequest, type GetArtifactResponse } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+import { SkillIdSchema, PushSkillRequestSchema, PushSkillFromExecutionArtifactRequestSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, ListSkillVersionsInputSchema, ListSkillVersionsResponseSchema, type PushSkillRequest, type PushSkillFromExecutionArtifactRequest, type GetArtifactRequest, type GetArtifactResponse, type ListSkillVersionsInput, type ListSkillVersionsResponse } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { SkillSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -68,6 +68,12 @@ export class SkillClient {
   async getArtifact(input: GetArtifactRequest): Promise<GetArtifactResponse> {
     try {
       return await this.query.getArtifact(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async listVersions(input: ListSkillVersionsInput): Promise<ListSkillVersionsResponse> {
+    try {
+      return await this.query.listVersions(input);
     } catch (e) { throw wrapError(e); }
   }
 

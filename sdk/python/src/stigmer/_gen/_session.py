@@ -49,6 +49,12 @@ class SessionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def update_session_memory(self, input: io_pb2.UpdateSessionMemoryRequest) -> api_pb2.Session:
+        try:
+            return self._command.updateSessionMemory(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def delete(self, id: str) -> api_pb2.Session:
         try:
             return self._command.delete(io_pb2.SessionId(value=id))
@@ -92,6 +98,7 @@ class SessionInput:
     runner_id: str = ""
     skill_refs: list[ResourceRef] = field(default_factory=list)
     harness: int = 0
+    cursor_mode: int = 0
 
     def _to_proto(self) -> api_pb2.Session:
         spec = spec_pb2.SessionSpec(
@@ -101,6 +108,7 @@ class SessionInput:
             sandbox_id=self.sandbox_id,
             runner_id=self.runner_id,
             harness=self.harness,
+            cursor_mode=self.cursor_mode,
         )
         if self.metadata:
             spec.metadata.update(self.metadata)

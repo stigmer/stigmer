@@ -36,6 +36,11 @@ class SessionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionSubjectRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.FromString,
                 _registered_method=True)
+        self.updateSessionMemory = channel.unary_unary(
+                '/ai.stigmer.agentic.session.v1.SessionCommandController/updateSessionMemory',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionMemoryRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.FromString,
+                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.session.v1.SessionCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionId.SerializeToString,
@@ -90,6 +95,20 @@ class SessionCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def updateSessionMemory(self, request, context):
+        """Persist session memory after execution.
+
+        Atomically updates only status.session_memory, leaving all other
+        session fields untouched. Called by the cursor-runner after each
+        completed execution turn.
+
+        @internal
+        Server-side field-level update, race-safe. No full-document replace.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def delete(self, request, context):
         """Delete a session.
 
@@ -122,6 +141,11 @@ def add_SessionCommandControllerServicer_to_server(servicer, server):
             'updateSubject': grpc.unary_unary_rpc_method_handler(
                     servicer.updateSubject,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionSubjectRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.SerializeToString,
+            ),
+            'updateSessionMemory': grpc.unary_unary_rpc_method_handler(
+                    servicer.updateSessionMemory,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionMemoryRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -238,6 +262,33 @@ class SessionCommandController(object):
             target,
             '/ai.stigmer.agentic.session.v1.SessionCommandController/updateSubject',
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionSubjectRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def updateSessionMemory(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.session.v1.SessionCommandController/updateSessionMemory',
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.UpdateSessionMemoryRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_api__pb2.Session.FromString,
             options,
             channel_credentials,

@@ -2,10 +2,12 @@ package root
 
 import (
 	"context"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/clierr"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/runner"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/clioutput"
 )
 
 // NewUpCommand creates the 'stigmer up' command. The default (no subcommand)
@@ -40,7 +42,7 @@ Use 'stigmer up server' to start the full local development stack
   # Start the full local development stack
   stigmer up server`,
 		Run: func(cmd *cobra.Command, args []string) {
-			handleUpRunner(cmd)
+			handleUpRunner(cmd, resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
 
@@ -58,7 +60,7 @@ Use 'stigmer up server' to start the full local development stack
 	return cmd
 }
 
-func handleUpRunner(cmd *cobra.Command) {
+func handleUpRunner(cmd *cobra.Command, format clioutput.OutputFormat) {
 	name, _ := cmd.Flags().GetString("name")
 	endpoint, _ := cmd.Flags().GetString("endpoint")
 	token, _ := cmd.Flags().GetString("token")
@@ -66,15 +68,27 @@ func handleUpRunner(cmd *cobra.Command) {
 	runtime, _ := cmd.Flags().GetString("runtime")
 	image, _ := cmd.Flags().GetString("image")
 
-	err := runner.Start(context.Background(), runner.StartOptions{
+	opts := runner.StartOptions{
 		Name:             name,
 		EndpointOverride: endpoint,
 		TokenOverride:    token,
 		OrgOverride:      org,
 		Runtime:          runtime,
 		Image:            image,
-	})
-	if err != nil {
+	}
+
+	if format == clioutput.FormatJSON {
+		err := runner.Ensure(context.Background(), opts, func(r *runner.EnsureResult) {
+			_ = r.WriteJSON(os.Stdout)
+		})
+		if err != nil {
+			_ = runner.WriteJSONError(os.Stdout, err, "")
+			clierr.Handle(err)
+		}
+		return
+	}
+
+	if err := runner.Start(context.Background(), opts); err != nil {
 		clierr.Handle(err)
 	}
 }
@@ -141,7 +155,7 @@ Identical to 'stigmer up' — provided for clarity when used alongside
   # Use a specific Docker image
   stigmer up runner --runtime docker --image ghcr.io/stigmer/agent-runner:latest`,
 		Run: func(cmd *cobra.Command, args []string) {
-			handleUpRunner(cmd)
+			handleUpRunner(cmd, resolveResultFormat(jsonOutput, quietOutput))
 		},
 	}
 

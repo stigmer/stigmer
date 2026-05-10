@@ -5,7 +5,7 @@
 
 import { Session } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { SessionId, UpdateSessionSubjectRequest } from "./io_pbjs";
+import { SessionId, UpdateSessionMemoryRequest, UpdateSessionSubjectRequest } from "./io_pbjs";
 
 /**
  * SessionCommandController handles write operations for agent sessions.
@@ -71,6 +71,24 @@ export const SessionCommandController = {
     updateSubject: {
       name: "updateSubject",
       I: UpdateSessionSubjectRequest,
+      O: Session,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Persist session memory after execution.
+     *
+     * Atomically updates only status.session_memory, leaving all other
+     * session fields untouched. Called by the cursor-runner after each
+     * completed execution turn.
+     *
+     * @internal
+     * Server-side field-level update, race-safe. No full-document replace.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.updateSessionMemory
+     */
+    updateSessionMemory: {
+      name: "updateSessionMemory",
+      I: UpdateSessionMemoryRequest,
       O: Session,
       kind: MethodKind.Unary,
     },

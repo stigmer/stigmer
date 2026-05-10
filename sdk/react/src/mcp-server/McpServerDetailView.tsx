@@ -15,6 +15,8 @@ import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useMcpServer } from "./useMcpServer";
+import { useUpdateMcpServer } from "./useUpdateMcpServer";
+import { mcpServerToInput } from "./internal/mcpServerToInput";
 import { useMcpServerConnect } from "./useMcpServerConnect";
 import { useMcpServerCredentials } from "./useMcpServerCredentials";
 import { useMcpServerOAuthConnect } from "./useMcpServerOAuthConnect";
@@ -26,7 +28,16 @@ import { ErrorMessage } from "../error/ErrorMessage";
 import { EnvVarForm } from "../environment/EnvVarForm";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm";
 import { VisibilityToggle } from "../library/VisibilityToggle";
-import { Tabs, type TabItem } from "../internal/Tabs";
+import { Tabs, type TabItem } from "../tabs/Tabs";
+import { ResourceActionBar } from "../resource-detail/ResourceActionBar";
+import { Section } from "../resource-detail/Section";
+import type { DetailAction } from "../resource-detail/types";
+import { InlineEditText } from "../inline-edit/InlineEditText";
+import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea";
+import { InlineEditImage } from "../inline-edit/InlineEditImage";
+import { InlineEditSelect } from "../inline-edit/InlineEditSelect";
+import { InlineEditKeyValue } from "../inline-edit/InlineEditKeyValue";
+import type { KeyValueRow, SelectOption } from "../inline-edit/types";
 
 /** Tab identifier for the MCP server capability panel. */
 export type CapabilityTab = "tools" | "policies" | "resources";
@@ -85,6 +96,24 @@ export interface McpServerDetailViewProps {
    * When omitted, falls back to the `org` prop (MCP server's org).
    */
   readonly activeOrg?: string;
+  /**
+   * Primary action rendered as a visible button in the header area.
+   */
+  readonly primaryAction?: DetailAction;
+  /**
+   * Secondary actions rendered in the kebab overflow menu.
+   */
+  readonly actions?: readonly DetailAction[];
+  /**
+   * When `true`, fields on the detail view become click-to-edit.
+   * Each field saves independently via `stigmer.mcpServer.update()`.
+   * @default false
+   */
+  readonly editable?: boolean;
+  /**
+   * Called after a successful inline field save with the updated server.
+   */
+  readonly onResourceUpdated?: (server: McpServer) => void;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -123,9 +152,34 @@ export function McpServerDetailView({
   defaultShowCredentialForm = false,
   credentialPoolValues,
   activeOrg,
+  primaryAction,
+  actions,
+  editable = false,
+  onResourceUpdated,
   className,
 }: McpServerDetailViewProps) {
   const { mcpServer, isLoading, error, refetch } = useMcpServer(org, slug);
+  const { update: updateMcpServer, isUpdating } = useUpdateMcpServer();
+
+  const saveMcpField = useCallback(
+    async <K extends keyof import("@stigmer/sdk").McpServerInput>(
+      field: K,
+      value: import("@stigmer/sdk").McpServerInput[K],
+    ): Promise<boolean> => {
+      if (!mcpServer) return false;
+      const input = mcpServerToInput(mcpServer);
+      (input as unknown as Record<string, unknown>)[field] = value;
+      try {
+        const updated = await updateMcpServer(input);
+        onResourceUpdated?.(updated);
+        refetch();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [mcpServer, updateMcpServer, onResourceUpdated, refetch],
+  );
   const credentials = useMcpServerCredentials(activeOrg ?? org, mcpServer ?? null);
   const connection = useMcpServerConnect();
   const oauth = useMcpServerOAuthConnect();
@@ -312,33 +366,73 @@ export function McpServerDetailView({
           <ValidationBanner message={status.validationMessage} />
         )}
 
-      <Header
-        server={mcpServer}
-        createdAt={
-          specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null
-        }
-        updatedAt={
-          specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null
-        }
-        lastDiscoveredAt={
-          capabilities?.lastDiscoveredAt
-            ? timestampDate(capabilities.lastDiscoveredAt)
-            : null
-        }
-        onVisibilityChange={onVisibilityChange}
-        isVisibilityPending={isVisibilityPending}
-      />
+      <div className="flex items-start justify-between gap-4">
+        <Header
+          server={mcpServer}
+          createdAt={
+            specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null
+          }
+          updatedAt={
+            specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null
+          }
+          lastDiscoveredAt={
+            capabilities?.lastDiscoveredAt
+              ? timestampDate(capabilities.lastDiscoveredAt)
+              : null
+          }
+          onVisibilityChange={onVisibilityChange}
+          isVisibilityPending={isVisibilityPending}
+          editable={editable}
+          isSaving={isUpdating}
+          saveMcpField={saveMcpField}
+        />
+        <ResourceActionBar
+          primaryAction={primaryAction}
+          actions={actions}
+          className="shrink-0"
+        />
+      </div>
+
+      {(editable || spec?.description) && (
+        <Section title="Description">
+          {editable && saveMcpField ? (
+            <div className="max-h-20 overflow-y-auto p-3">
+              <InlineEditTextarea
+                value={spec?.description || ""}
+                onSave={(v) => saveMcpField("description", v || undefined)}
+                isSaving={isUpdating}
+                placeholder="Add a description"
+                minRows={2}
+              />
+            </div>
+          ) : (
+            <div className="p-3">
+              <pre className="whitespace-pre-wrap break-words text-sm text-foreground font-sans">
+                {spec?.description}
+              </pre>
+            </div>
+          )}
+        </Section>
+      )}
 
       {hasSource && <SourceSection spec={spec} />}
 
-      {spec?.serverType.case && (
-        <ServerConfigSection serverType={spec.serverType} />
+      {(editable || spec?.serverType.case) && (
+        <ServerConfigSection
+          serverType={spec?.serverType}
+          editable={editable}
+          isSaving={isUpdating}
+          saveMcpField={saveMcpField}
+        />
       )}
 
-      {spec?.env && Object.keys(spec.env).length > 0 && (
+      {(editable || (spec?.env && Object.keys(spec.env).length > 0)) && (
         <EnvSection
-          data={spec.env}
+          data={spec?.env ?? {}}
           oauthTargetEnvVar={credentials.oauthTargetEnvVar}
+          editable={editable}
+          isSaving={isUpdating}
+          saveMcpField={saveMcpField}
         />
       )}
 
@@ -455,7 +549,9 @@ export function McpServerDetailView({
         </Tabs>
       </Section>
 
-      {spec && spec.tags.length > 0 && <TagsSection tags={spec.tags} />}
+      {(editable || (spec && spec.tags.length > 0)) && (
+        <TagsSection tags={spec?.tags ?? []} editable={editable} isSaving={isUpdating} saveMcpField={saveMcpField} />
+      )}
     </div>
   );
 }
@@ -1039,6 +1135,9 @@ function Header({
   lastDiscoveredAt,
   onVisibilityChange,
   isVisibilityPending,
+  editable,
+  isSaving,
+  saveMcpField,
 }: {
   readonly server: McpServer;
   readonly createdAt: Date | null;
@@ -1046,6 +1145,12 @@ function Header({
   readonly lastDiscoveredAt: Date | null;
   readonly onVisibilityChange?: (v: ApiResourceVisibility) => void;
   readonly isVisibilityPending?: boolean;
+  readonly editable?: boolean;
+  readonly isSaving?: boolean;
+  readonly saveMcpField?: <K extends keyof import("@stigmer/sdk").McpServerInput>(
+    field: K,
+    value: import("@stigmer/sdk").McpServerInput[K],
+  ) => Promise<boolean>;
 }) {
   const meta = server.metadata;
   const spec = server.spec;
@@ -1056,7 +1161,15 @@ function Header({
 
   return (
     <div className="flex items-start gap-3">
-      {spec?.iconUrl ? (
+      {editable && saveMcpField ? (
+        <InlineEditImage
+          value={spec?.iconUrl ?? ""}
+          onSave={(v) => saveMcpField("iconUrl", v || undefined)}
+          isSaving={isSaving}
+          fallback={<McpServerIcon className="size-6 text-muted-foreground" />}
+          size="md"
+        />
+      ) : spec?.iconUrl ? (
         <img
           src={spec.iconUrl}
           alt=""
@@ -1067,9 +1180,20 @@ function Header({
       )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <h2 className="truncate text-lg font-semibold text-foreground">
-            {displayName}
-          </h2>
+          {editable && saveMcpField ? (
+            <InlineEditText
+              value={meta?.name || ""}
+              onSave={(v) => saveMcpField("name", v)}
+              isSaving={isSaving}
+              variant="heading"
+              placeholder="Server name"
+              validate={(v) => (v.trim() ? null : "Name is required")}
+            />
+          ) : (
+            <h2 className="truncate text-lg font-semibold text-foreground">
+              {displayName}
+            </h2>
+          )}
           {onVisibilityChange && meta ? (
             <VisibilityToggle
               visibility={meta.visibility}
@@ -1113,11 +1237,6 @@ function Header({
             </>
           )}
         </div>
-        {spec?.description && (
-          <p className="mt-2 text-sm text-muted-foreground">
-            {spec.description}
-          </p>
-        )}
       </div>
     </div>
   );
@@ -1151,13 +1270,40 @@ function ValidationStateBadge({
   }
 }
 
+const TRANSPORT_OPTIONS: SelectOption[] = [
+  { value: "http", label: "HTTP", description: "Connect via HTTP/SSE endpoint" },
+  { value: "stdio", label: "Stdio", description: "Launch a local process with stdin/stdout" },
+];
+
 function ServerConfigSection({
   serverType,
+  editable,
+  isSaving,
+  saveMcpField,
 }: {
-  readonly serverType: NonNullable<
-    import("@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb").McpServerSpec["serverType"]
-  >;
+  readonly serverType?: import("@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb").McpServerSpec["serverType"];
+  readonly editable?: boolean;
+  readonly isSaving?: boolean;
+  readonly saveMcpField?: <K extends keyof import("@stigmer/sdk").McpServerInput>(
+    field: K,
+    value: import("@stigmer/sdk").McpServerInput[K],
+  ) => Promise<boolean>;
 }) {
+  const handleTransportChange = useCallback(
+    async (newType: string) => {
+      if (!saveMcpField) return false;
+      if (newType === "http") {
+        const ok = await saveMcpField("http", { url: "" });
+        if (ok) await saveMcpField("stdio", undefined);
+        return ok;
+      }
+      const ok = await saveMcpField("stdio", { command: "" });
+      if (ok) await saveMcpField("http", undefined);
+      return ok;
+    },
+    [saveMcpField],
+  );
+
   return (
     <Section title="Server Configuration">
       <div className="flex flex-col gap-2 p-3">
@@ -1165,54 +1311,125 @@ function ServerConfigSection({
           <span className="text-xs font-medium text-muted-foreground">
             Type
           </span>
-          <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-foreground">
-            {serverType.case}
-          </span>
+          {editable && saveMcpField ? (
+            <InlineEditSelect
+              value={serverType?.case ?? "http"}
+              options={TRANSPORT_OPTIONS}
+              onSave={handleTransportChange}
+              isSaving={isSaving}
+            />
+          ) : (
+            <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-foreground">
+              {serverType?.case ?? "none"}
+            </span>
+          )}
         </div>
 
-        {serverType.case === "stdio" && (
+        {serverType?.case === "stdio" && (
           <>
             <div className="flex items-baseline gap-2">
               <span className="text-xs font-medium text-muted-foreground">
                 Command
               </span>
-              <code className="font-mono text-sm text-foreground">
-                {serverType.value.command}
-                {serverType.value.args.length > 0 &&
-                  ` ${serverType.value.args.join(" ")}`}
-              </code>
+              {editable && saveMcpField ? (
+                <InlineEditText
+                  value={`${serverType.value.command}${serverType.value.args.length > 0 ? ` ${serverType.value.args.join(" ")}` : ""}`}
+                  onSave={async (v) => {
+                    const parts = v.trim().split(/\s+/);
+                    return saveMcpField("stdio", {
+                      command: parts[0] || "",
+                      args: parts.slice(1),
+                    });
+                  }}
+                  isSaving={isSaving}
+                  placeholder="e.g. npx -y @modelcontextprotocol/server"
+                />
+              ) : (
+                <code className="font-mono text-sm text-foreground">
+                  {serverType.value.command}
+                  {serverType.value.args.length > 0 &&
+                    ` ${serverType.value.args.join(" ")}`}
+                </code>
+              )}
             </div>
-            {serverType.value.workingDir && (
+            {(editable || serverType.value.workingDir) && (
               <div className="flex items-baseline gap-2">
                 <span className="text-xs font-medium text-muted-foreground">
                   Working Dir
                 </span>
-                <code className="font-mono text-xs text-foreground">
-                  {serverType.value.workingDir}
-                </code>
+                {editable && saveMcpField ? (
+                  <InlineEditText
+                    value={serverType.value.workingDir ?? ""}
+                    onSave={async (v) =>
+                      saveMcpField("stdio", {
+                        command: serverType.value.command,
+                        args: [...serverType.value.args],
+                        workingDir: v || undefined,
+                      })
+                    }
+                    isSaving={isSaving}
+                    placeholder="/path/to/working/dir"
+                  />
+                ) : (
+                  <code className="font-mono text-xs text-foreground">
+                    {serverType.value.workingDir}
+                  </code>
+                )}
               </div>
             )}
           </>
         )}
 
-        {serverType.case === "http" && (
+        {serverType?.case === "http" && (
           <>
             <div className="flex items-baseline gap-2">
               <span className="text-xs font-medium text-muted-foreground">
                 URL
               </span>
-              <code className="break-all font-mono text-sm text-foreground">
-                {serverType.value.url}
-              </code>
+              {editable && saveMcpField ? (
+                <InlineEditText
+                  value={serverType.value.url}
+                  onSave={async (v) =>
+                    saveMcpField("http", {
+                      url: v,
+                      timeoutSeconds: serverType.value.timeoutSeconds || undefined,
+                    })
+                  }
+                  isSaving={isSaving}
+                  placeholder="https://example.com/mcp"
+                />
+              ) : (
+                <code className="break-all font-mono text-sm text-foreground">
+                  {serverType.value.url}
+                </code>
+              )}
             </div>
-            {serverType.value.timeoutSeconds > 0 && (
+            {(editable || serverType.value.timeoutSeconds > 0) && (
               <div className="flex items-baseline gap-2">
                 <span className="text-xs font-medium text-muted-foreground">
                   Timeout
                 </span>
-                <span className="text-xs text-foreground">
-                  {serverType.value.timeoutSeconds}s
-                </span>
+                {editable && saveMcpField ? (
+                  <InlineEditText
+                    value={serverType.value.timeoutSeconds > 0 ? String(serverType.value.timeoutSeconds) : ""}
+                    onSave={async (v) =>
+                      saveMcpField("http", {
+                        url: serverType.value.url,
+                        timeoutSeconds: v ? Number(v) : undefined,
+                      })
+                    }
+                    isSaving={isSaving}
+                    placeholder="30"
+                    validate={(v) => {
+                      if (v && (isNaN(Number(v)) || Number(v) < 0)) return "Must be a positive number";
+                      return null;
+                    }}
+                  />
+                ) : (
+                  <span className="text-xs text-foreground">
+                    {serverType.value.timeoutSeconds}s
+                  </span>
+                )}
               </div>
             )}
           </>
@@ -1294,53 +1511,138 @@ function ResourceTemplatesList({
 function EnvSection({
   data,
   oauthTargetEnvVar,
+  editable,
+  isSaving,
+  saveMcpField,
 }: {
   readonly data: { [key: string]: EnvVarDeclaration };
   readonly oauthTargetEnvVar: string | null;
+  readonly editable?: boolean;
+  readonly isSaving?: boolean;
+  readonly saveMcpField?: <K extends keyof import("@stigmer/sdk").McpServerInput>(
+    field: K,
+    value: import("@stigmer/sdk").McpServerInput[K],
+  ) => Promise<boolean>;
 }) {
   const entries = Object.entries(data).sort(([a], [b]) =>
     a.localeCompare(b),
   );
 
+  const envRows: KeyValueRow[] = useMemo(
+    () =>
+      entries.map(([key, decl]) => ({
+        key,
+        value: "",
+        isSecret: decl.isSecret,
+        description: decl.description,
+        optional: decl.optional,
+      })),
+    [entries],
+  );
+
+  const handleEnvSave = useCallback(
+    async (rows: KeyValueRow[]) => {
+      if (!saveMcpField) return false;
+      const env: Record<string, { isSecret?: boolean; description?: string; optional?: boolean }> = {};
+      for (const row of rows) {
+        if (row.key.trim()) {
+          env[row.key.trim()] = {
+            isSecret: row.isSecret || undefined,
+            description: row.description || undefined,
+            optional: row.optional || undefined,
+          };
+        }
+      }
+      return saveMcpField("env", Object.keys(env).length > 0 ? env : undefined);
+    },
+    [saveMcpField],
+  );
+
+  const [envEditing, setEnvEditing] = useState(false);
+
   return (
-    <Section title={`Environment Variables (${entries.length})`}>
-      <div className="flex flex-col divide-y divide-border">
-        {entries.map(([name, env]) => {
-          const isOAuthManaged = name === oauthTargetEnvVar;
-          return (
-            <div key={name} className="flex items-start gap-3 px-3 py-2">
-              <code className="shrink-0 font-mono text-sm font-medium text-foreground">
-                {name}
-              </code>
-              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                {env.isSecret ? "secret" : "config"}
-              </span>
-              {isOAuthManaged && (
-                <span className="shrink-0 rounded bg-primary-subtle px-1.5 py-0.5 text-[10px] font-medium text-primary">
-                  oauth
+    <Section title="Environment Variables" count={entries.length} onEdit={editable ? () => setEnvEditing((v) => !v) : undefined}>
+      {editable ? (
+        <InlineEditKeyValue
+          value={envRows}
+          onSave={handleEnvSave}
+          isSaving={isSaving}
+          editing={envEditing}
+          onEditingChange={setEnvEditing}
+          showSecretToggle
+          showOptionalToggle
+          showDescription
+          keyLabel="Variable name"
+        />
+      ) : (
+        <div className="flex flex-col divide-y divide-border">
+          {entries.map(([name, env]) => {
+            const isOAuthManaged = name === oauthTargetEnvVar;
+            return (
+              <div key={name} className="flex items-start gap-3 px-3 py-2">
+                <code className="shrink-0 font-mono text-sm font-medium text-foreground">
+                  {name}
+                </code>
+                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  {env.isSecret ? "secret" : "config"}
                 </span>
-              )}
-              {env.optional && (
-                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground-subtle">
-                  optional
-                </span>
-              )}
-              {env.description && (
-                <span className="text-xs text-muted-foreground">
-                  {env.description}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                {isOAuthManaged && (
+                  <span className="shrink-0 rounded bg-primary-subtle px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                    oauth
+                  </span>
+                )}
+                {env.optional && (
+                  <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground-subtle">
+                    optional
+                  </span>
+                )}
+                {env.description && (
+                  <span className="text-xs text-muted-foreground">
+                    {env.description}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </Section>
   );
 }
 
-function TagsSection({ tags }: { readonly tags: readonly string[] }) {
+function TagsSection({
+  tags,
+  editable,
+  isSaving,
+  saveMcpField,
+}: {
+  readonly tags: readonly string[];
+  readonly editable?: boolean;
+  readonly isSaving?: boolean;
+  readonly saveMcpField?: <K extends keyof import("@stigmer/sdk").McpServerInput>(
+    field: K,
+    value: import("@stigmer/sdk").McpServerInput[K],
+  ) => Promise<boolean>;
+}) {
+  const tagRows: KeyValueRow[] = useMemo(
+    () => tags.map((t) => ({ key: t, value: "" })),
+    [tags],
+  );
+
+  const handleTagsSave = useCallback(
+    async (rows: KeyValueRow[]) => {
+      if (!saveMcpField) return false;
+      // Tags are stored as string[] on the spec but not directly on McpServerInput.
+      // For now, save them through the full input by modifying the spec.
+      // Tags don't have a direct field on McpServerInput, so we handle this at
+      // a higher level if needed. For now, show read-only in edit mode.
+      return false;
+    },
+    [saveMcpField],
+  );
+
   return (
-    <Section title={`Tags (${tags.length})`}>
+    <Section title="Tags" count={tags.length}>
       <div className="flex flex-wrap gap-1.5 p-3">
         {tags.map((tag) => (
           <span
@@ -1350,6 +1652,9 @@ function TagsSection({ tags }: { readonly tags: readonly string[] }) {
             {tag}
           </span>
         ))}
+        {editable && tags.length === 0 && (
+          <p className="text-xs text-muted-foreground italic">No tags</p>
+        )}
       </div>
     </Section>
   );
@@ -1484,24 +1789,6 @@ function PolicyGroup({
 // Shared layout primitives
 // ---------------------------------------------------------------------------
 
-function Section({
-  title,
-  children,
-}: {
-  readonly title: string;
-  readonly children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {title}
-      </h3>
-      <div className="overflow-hidden rounded-lg border border-border">
-        {children}
-      </div>
-    </section>
-  );
-}
 
 function Dot() {
   return (

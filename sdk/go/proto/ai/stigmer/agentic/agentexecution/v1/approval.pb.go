@@ -96,8 +96,36 @@ type PendingApproval struct {
 	// instead of the generic agent type name.
 	// Empty when from_sub_agent is false or subject is not available.
 	SubAgentSubject string `protobuf:"bytes,9,opt,name=sub_agent_subject,json=subAgentSubject,proto3" json:"sub_agent_subject,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Why the agent wanted to execute this tool.
+	//
+	// Extracted from the last assistant message before the tool call.
+	// Gives the reinvocation agent context for the original intent, enabling
+	// it to decide whether the action still makes sense.
+	//
+	// Example: "Need to install the missing dependency to fix the build"
+	// Empty when rationale extraction was not possible.
+	AgentRationale string `protobuf:"bytes,10,opt,name=agent_rationale,json=agentRationale,proto3" json:"agent_rationale,omitempty"`
+	// Git branch name at the time the tool was denied.
+	//
+	// Diagnostic metadata only — the reinvocation agent inspects the actual
+	// current workspace state rather than relying on this value. Included
+	// in the HITL continuation prompt as a reference point for the agent
+	// to detect whether workspace state has drifted.
+	//
+	// Example: "feature/add-auth"
+	// Empty when the workspace is not git-backed.
+	BranchAtDeny string `protobuf:"bytes,11,opt,name=branch_at_deny,json=branchAtDeny,proto3" json:"branch_at_deny,omitempty"`
+	// Git HEAD SHA at the time the tool was denied.
+	//
+	// Diagnostic metadata only — same purpose as branch_at_deny. Allows
+	// the reinvocation agent to compare against current HEAD to understand
+	// whether commits have landed since the tool was proposed.
+	//
+	// Example: "a1b2c3d4e5f6..."
+	// Empty when the workspace is not git-backed.
+	HeadShaAtDeny string `protobuf:"bytes,12,opt,name=head_sha_at_deny,json=headShaAtDeny,proto3" json:"head_sha_at_deny,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PendingApproval) Reset() {
@@ -193,6 +221,27 @@ func (x *PendingApproval) GetSubAgentSubject() string {
 	return ""
 }
 
+func (x *PendingApproval) GetAgentRationale() string {
+	if x != nil {
+		return x.AgentRationale
+	}
+	return ""
+}
+
+func (x *PendingApproval) GetBranchAtDeny() string {
+	if x != nil {
+		return x.BranchAtDeny
+	}
+	return ""
+}
+
+func (x *PendingApproval) GetHeadShaAtDeny() string {
+	if x != nil {
+		return x.HeadShaAtDeny
+	}
+	return ""
+}
+
 // Notification sent to a parent workflow when a child agent needs tool approval.
 //
 // Contains all pending approvals from a single child agent execution,
@@ -284,7 +333,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_approval_proto protoreflect.FileDe
 
 const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\"\xd0\x02\n" +
+	"3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\"\xc8\x03\n" +
 	"\x0fPendingApproval\x12 \n" +
 	"\ftool_call_id\x18\x01 \x01(\tR\n" +
 	"toolCallId\x12\x1b\n" +
@@ -295,7 +344,11 @@ const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\x0efrom_sub_agent\x18\x06 \x01(\bR\ffromSubAgent\x12$\n" +
 	"\x0esub_agent_name\x18\a \x01(\tR\fsubAgentName\x12&\n" +
 	"\x0fmcp_server_slug\x18\b \x01(\tR\rmcpServerSlug\x12*\n" +
-	"\x11sub_agent_subject\x18\t \x01(\tR\x0fsubAgentSubject\"\xa2\x01\n" +
+	"\x11sub_agent_subject\x18\t \x01(\tR\x0fsubAgentSubject\x12'\n" +
+	"\x0fagent_rationale\x18\n" +
+	" \x01(\tR\x0eagentRationale\x12$\n" +
+	"\x0ebranch_at_deny\x18\v \x01(\tR\fbranchAtDeny\x12'\n" +
+	"\x10head_sha_at_deny\x18\f \x01(\tR\rheadShaAtDeny\"\xa2\x01\n" +
 	"\x19ChildApprovalNotification\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12b\n" +
 	"\x11pending_approvals\x18\x02 \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovalsB\xcd\x02\n" +

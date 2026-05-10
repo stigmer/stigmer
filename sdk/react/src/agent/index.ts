@@ -47,3 +47,19 @@ export type { AgentDetailViewProps } from "./AgentDetailView";
 
 export { useDefaultAgent } from "./useDefaultAgent";
 export type { UseDefaultAgentReturn } from "./useDefaultAgent";
+
+export { useCreateAgent } from "./useCreateAgent";
+export type { UseCreateAgentReturn } from "./useCreateAgent";
+
+export { useUpdateAgent } from "./useUpdateAgent";
+export type { UseUpdateAgentReturn } from "./useUpdateAgent";
+
+export { agentToInput } from "./internal/agentToInput";
+
+export { AgentCreationWizard } from "./AgentCreationWizard";
+export type {
+  AgentCreationWizardProps,
+  AgentCreationResult,
+} from "./AgentCreationWizard";
+
+export type { AgentWizardData } from "./steps/types";
