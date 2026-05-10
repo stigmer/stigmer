@@ -13,6 +13,7 @@ import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { useSessionConversation, type UseSessionConversationReturn } from "./useSessionConversation";
 import { useAgentRefFromSession } from "./useAgentRefFromSession";
 import { usePersistedModel, type UsePersistedModelReturn } from "./usePersistedModel";
+import { specMcpUsagesToInput, specSkillRefsToInput } from "./session-spec-converters";
 
 /**
  * Well-known Daytona sandbox workspace root. Used as the SDK safety-net
@@ -194,14 +195,17 @@ export function useSessionPageFlow(
   }
 
   // -------------------------------------------------------------------------
-  // Workspace — sync entries from session on first load
+  // Session spec sync — hydrate workspace, MCP servers, and skills on first load
   // -------------------------------------------------------------------------
 
   useEffect(() => {
     if (!conv.session || initialSyncDone.current) return;
     initialSyncDone.current = true;
 
-    const protoEntries = conv.session.spec?.workspaceEntries ?? [];
+    const spec = conv.session.spec;
+
+    // Workspace entries
+    const protoEntries = spec?.workspaceEntries ?? [];
     for (const entry of protoEntries) {
       if (entry.source?.source.case === "gitRepo") {
         const { url, branch } = entry.source.source.value;
@@ -209,6 +213,18 @@ export function useSessionPageFlow(
       } else if (entry.source?.source.case === "localPath") {
         workspace.addLocalPath(entry.source.source.value.path);
       }
+    }
+
+    // MCP server usages
+    const mcpInputs = specMcpUsagesToInput(spec);
+    if (mcpInputs?.length) {
+      setMcpServerUsages(mcpInputs);
+    }
+
+    // Skill references
+    const skillInputs = specSkillRefsToInput(spec);
+    if (skillInputs?.length) {
+      setSkillRefs(skillInputs);
     }
   }, [conv.session, workspace]);
 

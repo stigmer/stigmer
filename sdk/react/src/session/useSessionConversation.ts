@@ -24,6 +24,11 @@ import { useSubmitApproval } from "../execution/useSubmitApproval";
 import { useSession } from "./useSession";
 import { useSessionExecutions } from "./useSessionExecutions";
 import { useUpdateSession } from "./useUpdateSession";
+import {
+  specWorkspaceToInput,
+  specMcpUsagesToInput,
+  specSkillRefsToInput,
+} from "./session-spec-converters";
 
 /**
  * Options for {@link UseSessionConversationReturn.sendFollowUp}.
@@ -479,67 +484,3 @@ function buildUpdateInput(
   };
 }
 
-/** Convert proto workspace entries back to SDK input format. */
-function specWorkspaceToInput(
-  spec: Session["spec"],
-): WorkspaceEntryInput[] | undefined {
-  return spec?.workspaceEntries?.map((e): WorkspaceEntryInput => {
-    if (e.source?.source.case === "gitRepo") {
-      const v = e.source.source.value;
-      return {
-        name: e.name || undefined,
-        source: {
-          gitRepo: {
-            url: v.url,
-            branch: v.branch || undefined,
-            commit: v.commit || undefined,
-            depth: v.depth || undefined,
-          },
-        },
-      };
-    }
-    if (e.source?.source.case === "localPath") {
-      return {
-        name: e.name || undefined,
-        source: {
-          localPath: { path: e.source.source.value.path || undefined },
-        },
-      };
-    }
-    return { name: e.name || undefined, source: {} };
-  });
-}
-
-/** Convert proto MCP server usages back to SDK input format. */
-function specMcpUsagesToInput(
-  spec: Session["spec"],
-): McpServerUsageInput[] | undefined {
-  return spec?.mcpServerUsages?.map((u) => ({
-    mcpServerRef: {
-      org: u.mcpServerRef?.org ?? "",
-      slug: u.mcpServerRef?.slug ?? "",
-      version: u.mcpServerRef?.version || undefined,
-      kind: u.mcpServerRef?.kind,
-    },
-    enabledTools: u.enabledTools?.length ? [...u.enabledTools] : undefined,
-    toolApprovalOverrides: u.toolApprovalOverrides?.length
-      ? u.toolApprovalOverrides.map((o) => ({
-          toolName: o.toolName || undefined,
-          requiresApproval: o.requiresApproval || undefined,
-          message: o.message || undefined,
-        }))
-      : undefined,
-  }));
-}
-
-/** Convert proto skill references back to SDK input format. */
-function specSkillRefsToInput(
-  spec: Session["spec"],
-): ResourceRef[] | undefined {
-  return spec?.skillRefs?.map((r) => ({
-    org: r.org ?? "",
-    slug: r.slug ?? "",
-    version: r.version || undefined,
-    kind: r.kind,
-  }));
-}
