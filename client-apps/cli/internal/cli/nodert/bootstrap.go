@@ -60,8 +60,21 @@ func EnsureNodeAvailable() (string, error) {
 
 // EnsureDepsInstalled runs npm install in the given directory if
 // node_modules is missing or the package-lock.json has changed since
-// the last install.
+// the last install. Uses the system node and npm from PATH.
 func EnsureDepsInstalled(ctx context.Context, appDir string) error {
+	return EnsureDepsInstalledWith(ctx, appDir, "node", "npm")
+}
+
+// EnsureDepsInstalledWith is like EnsureDepsInstalled but uses the specified
+// node and npm binaries instead of relying on system PATH. This allows
+// callers to pass managed binaries from nodert.Manager, ensuring dep
+// installation works in environments where PATH does not include Node.js
+// (e.g., macOS .app sidecar context).
+//
+// The npm binary is invoked as `node <npmBin> install` because the managed
+// npm is a JS script with a shebang that resolves `node` from PATH — which
+// fails in PATH-restricted environments.
+func EnsureDepsInstalledWith(ctx context.Context, appDir, nodeBin, npmBin string) error {
 	nodeModules := filepath.Join(appDir, "node_modules")
 	marker := filepath.Join(nodeModules, ".stigmer-install-marker")
 	lockFile := filepath.Join(appDir, "package-lock.json")
@@ -82,7 +95,7 @@ func EnsureDepsInstalled(ctx context.Context, appDir string) error {
 
 	log.Info().Str("dir", appDir).Msg("Installing Node.js dependencies")
 
-	cmd := exec.CommandContext(ctx, "npm", "install", "--prefer-offline")
+	cmd := exec.CommandContext(ctx, nodeBin, npmBin, "install", "--prefer-offline")
 	cmd.Dir = appDir
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
@@ -91,7 +104,6 @@ func EnsureDepsInstalled(ctx context.Context, appDir string) error {
 		return errors.Wrap(err, "npm install failed")
 	}
 
-	// Write a marker so we can detect when the lockfile changes.
 	_ = os.WriteFile(marker, []byte("installed"), 0644)
 
 	log.Info().Str("dir", appDir).Msg("Node.js dependencies installed")
