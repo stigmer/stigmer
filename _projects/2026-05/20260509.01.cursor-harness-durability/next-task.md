@@ -68,9 +68,23 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-09 18:15
-**Current Task**: Task 6 COMPLETED — pick Task 4 or Task 7 next
-**Status**: Tasks 1, 5, 2a, 2b, 3, and 6 complete. Full durability story landed end-to-end: client-side extraction + continuation prompts + graceful fallback + server-side atomic persistence. Ready for cloud agent path (Task 4) or workflow integration (Task 7).
-**Tasks**: 8 tasks total (T1 ✅, T2a ✅, T2b ✅, T3 ✅, T4, T5 ✅, T6 ✅, T7)
+**Current Task**: Task 7 COMPLETED — pick Task 4 next
+**Status**: Tasks 1, 5, 2a, 2b, 3, 6, and 7 complete. Full durability story landed end-to-end: client-side extraction + continuation prompts + graceful fallback + server-side atomic persistence + workflow integration. Only Task 4 (cloud agent path, feature-flagged) remains.
+**Tasks**: 8 tasks total (T1 ✅, T2a ✅, T2b ✅, T3 ✅, T4, T5 ✅, T6 ✅, T7 ✅)
+
+## Session Progress (2026-05-10, Session 7)
+
+### Completed: Task 7 — Workflow Integration
+- **Design decision** — Option B (Minimal, Honest): replace `readSessionThreadId` with `readSessionContext` in the workflow for observability and forward-compatibility. Activity interface unchanged because cursor-runner already loads session + memory via its own `getSession()` call for blueprint resolution.
+- **Workflow migration** — `executeCursorWithHitl` now calls `readSessionContext(sessionId)` at both invocation sites (initial dispatch + HITL reinvocation). Returns full `SessionContext` (threadId + sessionMemory + cursorMode). Activity still receives `(executionId, threadId, invokerIdentityAccountId)`.
+- **Version guard** — `Workflow.getVersion("session-context-read", DEFAULT_VERSION, 1)` ensures in-flight workflows that already executed `readSessionThreadId` replay safely through the legacy code path.
+- **Observability** — cursorMode, has_memory, and threadId logged at both invocation points in the workflow.
+- **Tests** — New `InvokeAgentExecutionWorkflowCursorTest.java` (5 tests): first execution with EMPTY context, subsequent execution with memory, graceful degradation on context read failure, single HITL cycle with context re-read, multiple HITL cycles.
+
+### Key Design Decisions (Task 7)
+- **DD: Option B over A/C** — The cursor-runner needs `getSession()` for blueprint resolution anyway. Passing memory through Temporal would duplicate data the runner already has. Option B adds observability and forward-compat without unnecessary complexity.
+- **DD: Workflow.getVersion for safe rollout** — In-flight workflows replaying through `readSessionThreadId` history markers would hit non-determinism errors without a version guard. The legacy path constructs a `SessionContext` from threadId-only data.
+- **DD: Dedicated Cursor test class** — Existing signal tests only exercise Graphton flow. Cursor flow has different activity stubs, different input shape (harness=CURSOR), and different session context reads. Separate test class keeps concerns clean.
 
 ## Session Progress (2026-05-09, Session 6)
 
@@ -191,9 +205,8 @@ When starting a new session:
 
 ## Next Steps
 
-**Now unblocked (parallelizable):**
-1. **Task 4: Cloud Agent Path (cursor-runner, TS)** — Depends on Task 3 ✅ + 5 ✅. Add `"cloud"` to `AgentResolution.mode`, feature-flagged cloud agent creation.
-2. **Task 7: Workflow Integration (Java)** — Depends on Task 6 ✅. Pass memory + mode to `ExecuteCursor` activity via `readSessionContext`. Wire continuation prompt selection into the workflow.
+**Remaining:**
+1. **Task 4: Cloud Agent Path (cursor-runner, TS)** — Depends on Task 3 ✅ + 5 ✅ + 7 ✅. Add `"cloud"` to `AgentResolution.mode`, feature-flagged cloud agent creation. The workflow now reads and logs `cursorMode` via `readSessionContext`; Task 4 will use this for dispatch decisions.
 
 ## Context for Resume
 - **Task 6 is fully implemented in both repos** — proto + codegen + handler + activities + cursor-runner migration. stigmer-cloud has the new handler + activities. stigmer OSS has the migrated cursor-runner.
