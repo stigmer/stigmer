@@ -256,7 +256,7 @@ export type {
   SessionComposerSubmitContext,
 } from "./composer";
 
-// MCP Server — data hook, count hook, list hook, search hook, picker, config panel, tool selector, detail view, setup orchestration, and OAuth connect
+// MCP Server — data hook, count hook, list hook, search hook, picker, config panel, tool selector, detail view, setup orchestration, OAuth connect, and update
 export {
   useMcpServer,
   useMcpServerCount,
@@ -276,6 +276,8 @@ export {
   McpServerCreationWizard,
   McpToolSelector,
   useCreateMcpServer,
+  useUpdateMcpServer,
+  mcpServerToInput,
   toServerKey,
 } from "./mcp-server";
 export type {
@@ -310,6 +312,7 @@ export type {
   UseDisconnectOAuthReturn,
   McpServerAuthMode,
   UseCreateMcpServerReturn,
+  UseUpdateMcpServerReturn,
   McpServerCreationWizardProps,
   McpServerCreationResult,
   McpServerWizardData,
@@ -328,6 +331,7 @@ export {
   useSkillArtifact,
   useSkillVersions,
   useSkillDiff,
+  useSkillDuplicateCheck,
   SkillUploader,
   SkillFileBrowser,
   SkillDiffDialog,
@@ -350,6 +354,7 @@ export type {
   UseSkillArtifactReturn,
   UseSkillVersionsReturn,
   UseSkillDiffReturn,
+  UseSkillDuplicateCheckReturn,
   SkillDiffDialogProps,
   SkillDiffDialogState,
   SkillUploaderProps,
@@ -376,7 +381,7 @@ export type {
   GitHubRepoPickerProps,
 } from "./github";
 
-// Agent — data hook, count hook, list hook, search hook, picker, detail view, env form, setup orchestration, env diffing, default agent, creation wizard
+// Agent — data hook, count hook, list hook, search hook, picker, detail view, env form, setup orchestration, env diffing, default agent, creation wizard, update
 export {
   useAgent,
   useAgentCount,
@@ -389,6 +394,8 @@ export {
   useAgentSetup,
   useDefaultAgent,
   useCreateAgent,
+  useUpdateAgent,
+  agentToInput,
   AgentCreationWizard,
 } from "./agent";
 export type {
@@ -413,6 +420,7 @@ export type {
   UseAgentSetupReturn,
   UseDefaultAgentReturn,
   UseCreateAgentReturn,
+  UseUpdateAgentReturn,
   AgentCreationWizardProps,
   AgentCreationResult,
   AgentWizardData,
@@ -980,6 +988,30 @@ export type {
   MultiFileDiffResult,
   DiffViewMode,
 } from "./version-history";
+
+// Inline Edit — click-to-edit field primitives for detail page inline editing
+export {
+  InlineEditText,
+  InlineEditTextarea,
+  InlineEditImage,
+  InlineEditSelect,
+  InlineEditKeyValue,
+  InlineEditResourceList,
+  useInlineFieldSave,
+} from "./inline-edit";
+export type {
+  InlineEditTextProps,
+  InlineEditTextareaProps,
+  InlineEditImageProps,
+  InlineEditSelectProps,
+  InlineEditKeyValueProps,
+  InlineEditResourceListProps,
+  UseInlineFieldSaveReturn,
+  InlineEditBaseProps,
+  KeyValueRow,
+  ResourceRefRow,
+  SelectOption,
+} from "./inline-edit";
 
 // Resource Workbench — headless hooks, view components, and composed shell for resource collection management
 export {

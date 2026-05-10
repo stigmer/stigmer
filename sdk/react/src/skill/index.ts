@@ -55,3 +55,6 @@ export type {
   SkillDiffDialogProps,
   SkillDiffDialogState,
 } from "./SkillDiffDialog";
+
+export { useSkillDuplicateCheck } from "./useSkillDuplicateCheck";
+export type { UseSkillDuplicateCheckReturn } from "./useSkillDuplicateCheck";

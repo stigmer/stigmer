@@ -14,7 +14,6 @@ import {
   useBreadcrumbOverride,
   type DetailAction,
 } from "@stigmer/react";
-import { getEditSessionUrl } from "@/domain/session/draft-session";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 
@@ -70,16 +69,6 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
       }
     }
   }, [confirm, deleteResource, router, resourceName]);
-
-  const primaryAction: DetailAction = useMemo(
-    () => ({
-      id: "edit",
-      label: "Edit",
-      icon: <PencilIcon className="size-3.5" />,
-      onAction: () => router.push(getEditSessionUrl("agent", org, slug)),
-    }),
-    [router, org, slug],
-  );
 
   const actions: DetailAction[] = useMemo(
     () => [
@@ -143,7 +132,7 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         }
         onVisibilityChange={updateVisibility}
         isVisibilityPending={isPending}
-        primaryAction={primaryAction}
+        editable
         actions={actions}
       />
       <ConfirmDialog
@@ -164,23 +153,3 @@ export function AgentDetailPage() {
   return <AgentDetailPageInner org={org} slug={slug} />;
 }
 
-// ---------------------------------------------------------------------------
-// Icon
-// ---------------------------------------------------------------------------
-
-function PencilIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M11.5 1.5a2.121 2.121 0 0 1 3 3L5 14l-4 1 1-4Z" />
-    </svg>
-  );
-}

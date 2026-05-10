@@ -13,13 +13,24 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: Phase 4 COMPLETE + Desktop Parity COMPLETE + Backend Action Items COMPLETE
-- **Last Session**: 2026-05-09 (Session 18) — Skill version history backend implementation
-- **Active Task**: None — All phases and backend action items complete.
+- **Status**: Phase 4 complete; Session 19 shipped inline detail editing in `@stigmer/react` + Console and a skill-artifact duplicate warning before push.
+- **Last Session**: 2026-05-10 (Session 19) — Inline field editing on Agent and MCP detail views; client-side SHA-256 duplicate check for skill ZIPs; removed Console agent “Edit → draft session” primary flow.
+- **Active Task**: Optional polish — MCP tags/auth inline editing, deeper picker wiring for inline resource lists, desktop parity for editable detail views if product asks.
 - **Phase 3 status**: T04-A through T04-F complete. T04-G (AI Sidecar) deferred pending backend spike.
 - **Phase 4 status**: T05-A through T05-E all complete.
 - **Desktop parity**: All 9 gaps identified and closed. `ResourceListView` deleted.
 - **Backend**: All 4 action items from T05-E implemented across OSS (Go) and Cloud (Java).
+- **Verify (Session 19)**: `npm run lint` + `npm run typecheck` for `@stigmer/react`; `npm run lint` for `client-apps/web` — clean.
+
+## Session Progress (2026-05-10, Session 19)
+
+- **Inline editing**: New `sdk/react/src/inline-edit/` primitives (`InlineEditText`, `InlineEditTextarea`, `InlineEditImage`, `InlineEditSelect`, `InlineEditKeyValue`, `InlineEditResourceList`, `useInlineFieldSave`) exported from the SDK barrel.
+- **Converters**: `agentToInput()` and `mcpServerToInput()` map live resources to apply-oriented inputs for PATCH-style updates.
+- **Hooks**: `useUpdateAgent` and `useUpdateMcpServer` wrap `stigmer.agent.apply` / `stigmer.mcpServer.apply` with reload callbacks.
+- **Detail views**: `AgentDetailView` and `McpServerDetailView` accept `editable` and `onResourceUpdated`; shell meta duplication avoided when editing (e.g. strip redundant description/icon from header when inline sections own them). MCP tags remain largely read-only in this pass.
+- **Console**: `AgentDetailPage` and `McpServerDetailPage` pass `editable`; agent page no longer routes primary edit through draft session URL.
+- **Skills**: `computeArtifactHash` (SHA-256 over ZIP bytes), `useSkillDuplicateCheck`, and `SkillUploader` UX — banner when remote skill reports the same artifact hash, with explicit “Push Anyway”.
+- **Uncommitted elsewhere**: Working tree may still contain unrelated CLI embedded proto churn — keep feature commits scoped to SDK + web files listed in Session 19 changelog.
 
 ## Session Progress (2026-05-09, Session 18)
 
@@ -266,6 +277,13 @@ Drop this file into your conversation to quickly resume work on this project.
 
 **Phase 4 is complete.** All sub-tasks (T05-A through T05-E) are done.
 **Backend action items are complete.** All 4 items from T05-E spec are implemented (Session 18).
+**Session 19 is complete** — inline detail editing (SDK + Console) and skill duplicate warning shipped.
+
+**Optional follow-ups (Session 19)**:
+
+1. Inline-edit MCP tags / auth sections where spec allows.
+2. Wire `renderPicker` (or equivalent) on inline resource lists so “Add” is first-class in Console without leaving the detail page.
+3. Extend `editable` to desktop agent/MCP detail pages for parity with web.
 
 1. ~~**T05-A: Detail Page Tabbed Infrastructure**~~ — Done (Session 12).
 2. ~~**T05-B: Agent Dependency Graph**~~ — Done (Session 13).

@@ -130,6 +130,7 @@ export function McpServerDetailPageInner({
         onResourceLoad={handleResourceLoad}
         onVisibilityChange={updateVisibility}
         isVisibilityPending={isPending}
+        editable
         actions={actions}
       />
       <ConfirmDialog
