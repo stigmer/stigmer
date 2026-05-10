@@ -14,8 +14,11 @@ import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
+import { Section } from "../resource-detail/Section";
 import { useDetailTabs } from "../resource-detail/useDetailTabs";
 import type { AdditionalTab, DetailAction, ResourceHeaderMeta } from "../resource-detail/types";
+import { InlineEditText } from "../inline-edit/InlineEditText";
+import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea";
 import type { TabItem } from "../tabs/Tabs";
 import type { StatusPhase } from "../resource-workbench/types";
 import { useSkillVersions } from "./useSkillVersions";
@@ -101,6 +104,17 @@ export interface SkillDetailViewProps {
    * version-specific detail view or triggering a diff comparison.
    */
   readonly onVersionSelect?: (versionHash: string) => void;
+  /**
+   * When `true`, metadata fields (description, tag) become click-to-edit.
+   * Skill content (SKILL.md / artifact) is NOT editable inline — use the upload flow.
+   * @default false
+   */
+  readonly editable?: boolean;
+  /**
+   * Called after a successful inline field save with the updated skill.
+   * Consumers can use this to refresh breadcrumbs, sync URL state, etc.
+   */
+  readonly onResourceUpdated?: (skill: Skill) => void;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -147,6 +161,8 @@ export function SkillDetailView({
   onTabChange,
   defaultTab,
   onVersionSelect,
+  editable = false,
+  onResourceUpdated,
   className,
 }: SkillDetailViewProps) {
   const { skill, isLoading, error, refetch } = useSkill(org, slug, version);
@@ -218,7 +234,7 @@ export function SkillDetailView({
     id: meta?.id || "",
     org: meta?.org,
     slug: meta?.slug,
-    description: spec?.description,
+    description: undefined,
     icon: <SkillIcon className="size-6 text-muted-foreground" />,
     createdAt: specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null,
     updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
@@ -252,7 +268,13 @@ export function SkillDetailView({
       />
     );
   } else {
-    tabContent = <SkillOverview spec={spec} status={status} />;
+    tabContent = (
+      <SkillOverview
+        spec={spec}
+        status={status}
+        editable={editable}
+      />
+    );
   }
 
   return (
@@ -282,19 +304,57 @@ export function SkillDetailView({
 function SkillOverview({
   spec,
   status,
+  editable,
 }: {
   readonly spec: NonNullable<Skill["spec"]> | undefined;
   readonly status: Skill["status"] | undefined;
+  readonly editable?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-6 pt-2">
-      {spec?.tag && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>Tag</span>
-          <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium">
-            {spec.tag}
-          </span>
-        </div>
+    <div className="flex flex-col gap-6">
+      {(editable || spec?.description) && (
+        <Section title="Description">
+          {editable ? (
+            <div className="max-h-20 overflow-y-auto p-3">
+              <InlineEditTextarea
+                value={spec?.description || ""}
+                onSave={async () => false}
+                isSaving={false}
+                placeholder="Add a description"
+                minRows={2}
+                disabled
+              />
+            </div>
+          ) : (
+            <div className="p-3">
+              <pre className="whitespace-pre-wrap break-words text-sm text-foreground font-sans">
+                {spec?.description}
+              </pre>
+            </div>
+          )}
+        </Section>
+      )}
+
+      {(editable || spec?.tag) && (
+        <Section title="Tag">
+          {editable ? (
+            <div className="p-3">
+              <InlineEditText
+                value={spec?.tag || ""}
+                onSave={async () => false}
+                isSaving={false}
+                placeholder="Add a tag (e.g. stable, latest)"
+                disabled
+              />
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-2.5">
+              <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-foreground">
+                {spec?.tag}
+              </span>
+            </div>
+          )}
+        </Section>
       )}
 
       {status?.artifactStorageKey ? (
@@ -353,7 +413,7 @@ function SkillContentSection({ content }: { readonly content: string }) {
   const [viewMode, setViewMode] = useState<ContentViewMode>("rendered");
 
   return (
-    <Section
+    <SkillSection
       title="Skill Content"
       trailing={
         <ContentViewToggle value={viewMode} onChange={setViewMode} />
@@ -373,7 +433,7 @@ function SkillContentSection({ content }: { readonly content: string }) {
           {content}
         </pre>
       )}
-    </Section>
+    </SkillSection>
   );
 }
 
@@ -521,7 +581,7 @@ function GitProvenanceDisplay({
 // Shared layout primitives
 // ---------------------------------------------------------------------------
 
-function Section({
+function SkillSection({
   title,
   trailing,
   children,

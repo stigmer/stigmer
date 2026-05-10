@@ -138,6 +138,7 @@ export default function McpServerDetailPage() {
       <McpServerDetailView
         org={org}
         slug={slug}
+        editable
         activeOrg={activeOrg}
         onResourceLoad={handleResourceLoad}
         onVisibilityChange={updateVisibility}

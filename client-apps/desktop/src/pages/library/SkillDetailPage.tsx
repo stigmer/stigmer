@@ -104,6 +104,7 @@ export default function SkillDetailPage() {
       <SkillDetailView
         org={org}
         slug={slug}
+        editable
         onResourceLoad={handleResourceLoad}
         onVisibilityChange={updateVisibility}
         isVisibilityPending={isPending}

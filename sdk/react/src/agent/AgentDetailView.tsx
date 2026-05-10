@@ -16,20 +16,20 @@ import { agentToInput } from "./internal/agentToInput";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
+import { Section } from "../resource-detail/Section";
 import { useDetailTabs } from "../resource-detail/useDetailTabs";
 import type { AdditionalTab, DetailAction, ResourceHeaderMeta } from "../resource-detail/types";
 import type { TabItem } from "../tabs/Tabs";
 import { DependencyGraph } from "../dependency-graph/DependencyGraph";
 import { useDependencyGraph } from "../dependency-graph/useDependencyGraph";
 import type { DependencyNode } from "../dependency-graph/types";
-import { InlineEditText } from "../inline-edit/InlineEditText";
 import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea";
 import { InlineEditImage } from "../inline-edit/InlineEditImage";
 import { InlineEditKeyValue } from "../inline-edit/InlineEditKeyValue";
 import { InlineEditResourceList } from "../inline-edit/InlineEditResourceList";
 import type { KeyValueRow, ResourceRefRow } from "../inline-edit/types";
 
-const INSTRUCTIONS_COLLAPSED_LINES = 8;
+const INSTRUCTIONS_COLLAPSED_HEIGHT = "12rem";
 
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
 const DEPENDENCIES_TAB: TabItem = { id: "dependencies", label: "Dependencies" };
@@ -272,7 +272,7 @@ export function AgentDetailView({
     id: meta?.id || "",
     org: meta?.org,
     slug: meta?.slug,
-    description: editable ? undefined : spec?.description,
+    description: undefined,
     iconUrl: editable ? undefined : spec?.iconUrl,
     icon: editable
       ? (
@@ -318,6 +318,7 @@ export function AgentDetailView({
       <AgentOverview
         spec={spec}
         agentOrg={agentOrg}
+        description={spec?.description}
         onMcpServerClick={onMcpServerClick}
         onSkillClick={onSkillClick}
         editable={editable}
@@ -339,24 +340,6 @@ export function AgentDetailView({
       tabsAriaLabel="Agent detail sections"
       className={className}
     >
-      {editable && (
-        <div className="flex flex-col gap-1 -mt-2 mb-2">
-          <InlineEditText
-            value={meta?.name || ""}
-            onSave={(v) => saveField("name", v)}
-            isSaving={isUpdating}
-            variant="heading"
-            placeholder="Agent name"
-            validate={(v) => (v.trim() ? null : "Name is required")}
-          />
-          <InlineEditText
-            value={spec?.description || ""}
-            onSave={(v) => saveField("description", v || undefined)}
-            isSaving={isUpdating}
-            placeholder="Add a description"
-          />
-        </div>
-      )}
       {tabContent}
     </ResourceDetailShell>
   );
@@ -369,6 +352,7 @@ export function AgentDetailView({
 function AgentOverview({
   spec,
   agentOrg,
+  description,
   onMcpServerClick,
   onSkillClick,
   editable,
@@ -377,6 +361,7 @@ function AgentOverview({
 }: {
   readonly spec: NonNullable<ReturnType<typeof useAgent>["agent"]>["spec"];
   readonly agentOrg: string;
+  readonly description?: string;
   readonly onMcpServerClick?: (ref: { org: string; slug: string }) => void;
   readonly onSkillClick?: (ref: { org: string; slug: string }) => void;
   readonly editable?: boolean;
@@ -468,18 +453,45 @@ function AgentOverview({
     [spec?.env],
   );
 
+  const showDescription = editable || !!description;
   const showInstructions = editable || !!spec?.instructions;
   const showMcpServers = editable || (spec && spec.mcpServerUsages.length > 0);
   const showSkills = editable || (spec && spec.skillRefs.length > 0);
-  const showSubAgents = spec && spec.subAgents.length > 0;
+  const showSubAgents = editable || (spec && spec.subAgents.length > 0);
   const showEnv = editable || (spec?.env && Object.keys(spec.env).length > 0);
 
+  const [mcpEditing, setMcpEditing] = useState(false);
+  const [skillsEditing, setSkillsEditing] = useState(false);
+  const [envEditing, setEnvEditing] = useState(false);
+
   return (
-    <div className="flex flex-col gap-6 pt-2">
+    <div className="flex flex-col gap-6">
+      {showDescription && (
+        <Section title="Description">
+          {editable ? (
+            <div className="max-h-20 overflow-y-auto p-3">
+              <InlineEditTextarea
+                value={spec?.description || ""}
+                onSave={(v) => saveField?.("description", v || undefined) ?? Promise.resolve(false)}
+                isSaving={isSaving}
+                placeholder="Add a description"
+                minRows={2}
+              />
+            </div>
+          ) : (
+            <div className="p-3">
+              <pre className="whitespace-pre-wrap break-words text-sm text-foreground font-sans">
+                {description}
+              </pre>
+            </div>
+          )}
+        </Section>
+      )}
+
       {showInstructions && (
         <Section title="Instructions">
           {editable ? (
-            <div className="p-3">
+            <div className="max-h-72 overflow-y-auto p-3">
               <InlineEditTextarea
                 value={spec?.instructions ?? ""}
                 onSave={handleInstructionsSave}
@@ -495,15 +507,18 @@ function AgentOverview({
       )}
 
       {showMcpServers && (
-        <Section title={`MCP Servers${!editable && spec ? ` (${spec.mcpServerUsages.length})` : ""}`}>
+        <Section title="MCP Servers" count={spec?.mcpServerUsages.length} onEdit={editable ? () => setMcpEditing((v) => !v) : undefined}>
           {editable ? (
             <InlineEditResourceList
               value={mcpRefRows}
               onSave={handleMcpServersSave}
               isSaving={isSaving}
+              editing={mcpEditing}
+              onEditingChange={setMcpEditing}
               onItemClick={onMcpServerClick ? (ref) => onMcpServerClick({ org: ref.org, slug: ref.slug }) : undefined}
               itemIcon={<McpServerIcon className="size-4" />}
               resourceLabel="MCP server"
+              defaultOrg={agentOrg}
             />
           ) : (
             <McpUsagesContent
@@ -516,15 +531,18 @@ function AgentOverview({
       )}
 
       {showSkills && (
-        <Section title={`Skills${!editable && spec ? ` (${spec.skillRefs.length})` : ""}`}>
+        <Section title="Skills" count={spec?.skillRefs.length} onEdit={editable ? () => setSkillsEditing((v) => !v) : undefined}>
           {editable ? (
             <InlineEditResourceList
               value={skillRefRows}
               onSave={handleSkillsSave}
               isSaving={isSaving}
+              editing={skillsEditing}
+              onEditingChange={setSkillsEditing}
               onItemClick={onSkillClick ? (ref) => onSkillClick({ org: ref.org, slug: ref.slug }) : undefined}
               itemIcon={<SkillIcon className="size-4" />}
               resourceLabel="skill"
+              defaultOrg={agentOrg}
             />
           ) : (
             <SkillsContent
@@ -537,16 +555,23 @@ function AgentOverview({
       )}
 
       {showSubAgents && (
-        <SubAgentsSection subAgents={spec!.subAgents} />
+        <SubAgentsSection
+          subAgents={spec?.subAgents ?? []}
+          editable={editable}
+          isSaving={isSaving}
+          onSave={(subs) => saveField?.("subAgents", subs.length > 0 ? subs : undefined) ?? Promise.resolve(false)}
+        />
       )}
 
       {showEnv && (
-        <Section title={`Environment Variables${!editable ? ` (${Object.keys(spec?.env ?? {}).length})` : ""}`}>
+        <Section title="Environment Variables" count={Object.keys(spec?.env ?? {}).length} onEdit={editable ? () => setEnvEditing((v) => !v) : undefined}>
           {editable ? (
             <InlineEditKeyValue
               value={envRows}
               onSave={handleEnvSave}
               isSaving={isSaving}
+              editing={envEditing}
+              onEditingChange={setEnvEditing}
               showSecretToggle
               showOptionalToggle
               showDescription
@@ -566,22 +591,32 @@ function AgentOverview({
 // ---------------------------------------------------------------------------
 
 function InstructionsContent({ text }: { readonly text: string }) {
-  const lines = text.split("\n");
-  const needsCollapse = lines.length > INSTRUCTIONS_COLLAPSED_LINES;
   const [expanded, setExpanded] = useState(false);
+  const contentRef = useRef<HTMLPreElement>(null);
+  const [overflows, setOverflows] = useState(false);
 
-  const displayText =
-    needsCollapse && !expanded
-      ? lines.slice(0, INSTRUCTIONS_COLLAPSED_LINES).join("\n")
-      : text;
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    setOverflows(el.scrollHeight > el.clientHeight);
+  }, [text]);
 
   return (
-    <div className="p-3">
-      <pre className="whitespace-pre-wrap break-words font-mono text-sm text-foreground">
-        {displayText}
-        {needsCollapse && !expanded && "\u2026"}
+    <div className="relative p-3">
+      <pre
+        ref={contentRef}
+        className={cn(
+          "whitespace-pre-wrap break-words font-mono text-sm text-foreground overflow-y-auto transition-[max-height] duration-200",
+          !expanded && "overflow-hidden",
+        )}
+        style={{ maxHeight: expanded ? "none" : INSTRUCTIONS_COLLAPSED_HEIGHT }}
+      >
+        {text}
       </pre>
-      {needsCollapse && (
+      {!expanded && overflows && (
+        <div className="pointer-events-none absolute inset-x-3 bottom-10 h-8 bg-gradient-to-t from-background to-transparent" />
+      )}
+      {overflows && (
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
@@ -713,12 +748,27 @@ function SkillsContent({
   );
 }
 
+interface SubAgentDraft {
+  name: string;
+  description: string;
+  instructions: string;
+}
+
 function SubAgentsSection({
   subAgents,
+  editable,
+  isSaving,
+  onSave,
 }: {
   readonly subAgents: readonly SubAgent[];
+  readonly editable?: boolean;
+  readonly isSaving?: boolean;
+  readonly onSave?: (subs: import("@stigmer/sdk").SubAgentInput[]) => Promise<boolean>;
 }) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [isEditing, setIsEditing] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addDraft, setAddDraft] = useState<SubAgentDraft>({ name: "", description: "", instructions: "" });
 
   const toggle = (index: number) => {
     setExpanded((prev) => {
@@ -729,48 +779,200 @@ function SubAgentsSection({
     });
   };
 
-  return (
-    <Section title={`Sub-Agents (${subAgents.length})`}>
-      <div className="flex flex-col">
-        {subAgents.map((sa, index) => {
-          const isOpen = expanded.has(index);
+  const handleRemove = useCallback(
+    async (index: number) => {
+      if (!onSave) return;
+      const updated = subAgents
+        .filter((_, i) => i !== index)
+        .map((sa) => ({
+          name: sa.name,
+          description: sa.description || undefined,
+          instructions: sa.instructions || undefined,
+          mcpAccess: sa.mcpAccess.length > 0
+            ? sa.mcpAccess.map((a) => ({ mcpServer: a.mcpServer, enabledTools: a.enabledTools.length > 0 ? [...a.enabledTools] : undefined }))
+            : undefined,
+          skillRefs: sa.skillRefs.length > 0
+            ? sa.skillRefs.map((r) => ({ org: r.org || "", slug: r.slug }))
+            : undefined,
+          modelOverride: sa.modelOverride || undefined,
+        }));
+      await onSave(updated);
+    },
+    [subAgents, onSave],
+  );
 
-          return (
-            <div key={sa.name || index}>
-              <button
-                type="button"
-                onClick={() => toggle(index)}
-                aria-expanded={isOpen}
-                className={cn(
-                  "flex w-full items-start gap-3 rounded-md px-3 py-2 text-left transition-colors",
-                  "hover:bg-accent-hover",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-                )}
-              >
-                <ChevronRightIcon
-                  className={cn(
-                    "mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform",
-                    isOpen && "rotate-90",
-                  )}
-                />
-                <div className="min-w-0 flex-1">
-                  <span className="text-sm font-medium text-foreground">
-                    {sa.name}
-                  </span>
-                  {sa.description && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {sa.description}
-                    </p>
+  const handleAdd = useCallback(async () => {
+    if (!onSave || !addDraft.name.trim()) return;
+    const existing = subAgents.map((sa) => ({
+      name: sa.name,
+      description: sa.description || undefined,
+      instructions: sa.instructions || undefined,
+      mcpAccess: sa.mcpAccess.length > 0
+        ? sa.mcpAccess.map((a) => ({ mcpServer: a.mcpServer, enabledTools: a.enabledTools.length > 0 ? [...a.enabledTools] : undefined }))
+        : undefined,
+      skillRefs: sa.skillRefs.length > 0
+        ? sa.skillRefs.map((r) => ({ org: r.org || "", slug: r.slug }))
+        : undefined,
+      modelOverride: sa.modelOverride || undefined,
+    }));
+    const newSub = {
+      name: addDraft.name.trim(),
+      description: addDraft.description.trim() || undefined,
+      instructions: addDraft.instructions.trim() || undefined,
+    };
+    const ok = await onSave([...existing, newSub]);
+    if (ok) {
+      setAddDraft({ name: "", description: "", instructions: "" });
+      setShowAddForm(false);
+    }
+  }, [subAgents, addDraft, onSave]);
+
+  return (
+    <Section title="Sub-Agents" count={subAgents.length} onEdit={editable ? () => setIsEditing((v) => !v) : undefined}>
+      <div className="flex flex-col">
+        {subAgents.length > 0 ? (
+          <div className="flex flex-col divide-y divide-border">
+            {subAgents.map((sa, index) => {
+              const isOpen = expanded.has(index);
+
+              return (
+                <div key={sa.name || index}>
+                  <div className="flex items-start gap-3 px-3 py-2.5">
+                    <button
+                      type="button"
+                      onClick={() => toggle(index)}
+                      aria-expanded={isOpen}
+                      className={cn(
+                        "flex flex-1 items-start gap-3 text-left",
+                        "focus-visible:outline-none",
+                      )}
+                    >
+                      <ChevronRightIcon
+                        className={cn(
+                          "mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform",
+                          isOpen && "rotate-90",
+                        )}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <span className="text-sm font-medium text-foreground">
+                          {sa.name}
+                        </span>
+                        {sa.description && (
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {sa.description}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                    {isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(index)}
+                        disabled={isSaving}
+                        aria-label={`Remove ${sa.name}`}
+                        className={cn(
+                          "mt-0.5 inline-flex size-6 items-center justify-center rounded-md text-muted-foreground",
+                          "hover:bg-destructive-subtle hover:text-destructive",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        )}
+                      >
+                        <XRemoveIcon className="size-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {isOpen && (
+                    <SubAgentDetails subAgent={sa} />
                   )}
                 </div>
-              </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="px-3 py-3 text-xs text-muted-foreground italic">
+            No sub-agents configured
+          </p>
+        )}
 
-              {isOpen && (
-                <SubAgentDetails subAgent={sa} />
+        {editable && isEditing && !showAddForm && (
+          <div className="border-t border-border px-3 py-2">
+            <button
+              type="button"
+              onClick={() => setShowAddForm(true)}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium",
+                "border border-dashed border-border text-muted-foreground",
+                "hover:border-muted-foreground hover:text-foreground hover:bg-muted-subtle",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "transition-colors",
               )}
+            >
+              <PlusAddIcon className="size-3" />
+              Add sub-agent
+            </button>
+          </div>
+        )}
+
+        {editable && showAddForm && (
+          <div className="border-t border-border p-3 space-y-2">
+            <input
+              type="text"
+              value={addDraft.name}
+              onChange={(e) => setAddDraft((d) => ({ ...d, name: e.target.value }))}
+              placeholder="Sub-agent name (required)"
+              className={cn(
+                "w-full rounded-md border border-border bg-input-bg px-2 py-1.5 text-sm text-foreground",
+                "focus:outline-none focus:ring-2 focus:ring-ring",
+              )}
+            />
+            <input
+              type="text"
+              value={addDraft.description}
+              onChange={(e) => setAddDraft((d) => ({ ...d, description: e.target.value }))}
+              placeholder="Description (optional)"
+              className={cn(
+                "w-full rounded-md border border-border bg-input-bg px-2 py-1.5 text-xs text-foreground",
+                "focus:outline-none focus:ring-2 focus:ring-ring",
+              )}
+            />
+            <textarea
+              value={addDraft.instructions}
+              onChange={(e) => setAddDraft((d) => ({ ...d, instructions: e.target.value }))}
+              placeholder="Instructions (optional)"
+              rows={2}
+              className={cn(
+                "w-full resize-y rounded-md border border-border bg-input-bg px-2 py-1.5 font-mono text-xs text-foreground",
+                "focus:outline-none focus:ring-2 focus:ring-ring",
+              )}
+            />
+            <div className="flex items-center justify-end gap-1.5">
+              <button
+                type="button"
+                onClick={() => { setShowAddForm(false); setAddDraft({ name: "", description: "", instructions: "" }); }}
+                className={cn(
+                  "rounded-md px-2.5 py-1 text-xs font-medium",
+                  "border border-border bg-background text-foreground hover:bg-accent",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                )}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAdd}
+                disabled={!addDraft.name.trim() || isSaving}
+                className={cn(
+                  "rounded-md px-2.5 py-1 text-xs font-medium",
+                  "bg-primary text-primary-foreground hover:bg-primary-hover",
+                  "disabled:opacity-50",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                )}
+              >
+                Add
+              </button>
             </div>
-          );
-        })}
+          </div>
+        )}
       </div>
     </Section>
   );
@@ -886,25 +1088,6 @@ function EnvContent({
 // ---------------------------------------------------------------------------
 // Shared layout primitives
 // ---------------------------------------------------------------------------
-
-function Section({
-  title,
-  children,
-}: {
-  readonly title: string;
-  readonly children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {title}
-      </h3>
-      <div className="overflow-hidden rounded-lg border border-border">
-        {children}
-      </div>
-    </section>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Non-happy states
@@ -1031,6 +1214,22 @@ function ChevronRightIcon({ className }: { readonly className?: string }) {
       aria-hidden="true"
     >
       <path d="m6 3 5 5-5 5" />
+    </svg>
+  );
+}
+
+function XRemoveIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m4 4 8 8M12 4l-8 8" />
+    </svg>
+  );
+}
+
+function PlusAddIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M8 3v10M3 8h10" />
     </svg>
   );
 }

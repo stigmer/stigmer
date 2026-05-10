@@ -29,3 +29,6 @@ export { ResourceDetailShell } from "./ResourceDetailShell";
 
 export { ConfirmDialog } from "./ConfirmDialog";
 export type { ConfirmDialogProps } from "./ConfirmDialog";
+
+export { Section } from "./Section";
+export type { SectionProps } from "./Section";

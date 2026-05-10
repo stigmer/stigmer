@@ -93,6 +93,7 @@ export function SkillDetailPageInner({ org, slug }: SkillDetailPageInnerProps) {
       <SkillDetailView
         org={org}
         slug={slug}
+        editable
         onResourceLoad={handleResourceLoad}
         onVisibilityChange={updateVisibility}
         isVisibilityPending={isPending}
