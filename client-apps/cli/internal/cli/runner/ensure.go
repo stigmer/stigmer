@@ -2,7 +2,6 @@ package runner
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"time"
 
@@ -111,12 +110,3 @@ func ensureResultFromState(name string, state *RunnerState, action EnsureAction)
 	return result
 }
 
-// hintForOrgConflict returns a user-actionable hint for org mismatch errors.
-func hintForOrgConflict(name string) string {
-	return fmt.Sprintf("Stop the existing runner first: stigmer down runner --name %s", name)
-}
-
-// hintForEndpointConflict returns a user-actionable hint for endpoint mismatch errors.
-func hintForEndpointConflict(name string) string {
-	return fmt.Sprintf("Stop the existing runner first: stigmer down runner --name %s", name)
-}

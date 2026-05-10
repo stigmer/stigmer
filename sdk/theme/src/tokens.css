@@ -20,6 +20,7 @@
   --stgm-destructive-foreground: oklch(0.985 0 0);
   --stgm-success: oklch(0.55 0.15 150);
   --stgm-success-foreground: oklch(0.985 0 0);
+  --stgm-success-subtle: oklch(0.95 0.03 150);
   --stgm-warning: oklch(0.75 0.18 80);
   --stgm-warning-foreground: oklch(0.145 0 0);
   --stgm-info: oklch(0.55 0.15 250);
@@ -113,6 +114,7 @@
   --stgm-destructive-foreground: oklch(0.985 0 0);
   --stgm-success: oklch(0.7 0.15 150);
   --stgm-success-foreground: oklch(0.985 0 0);
+  --stgm-success-subtle: oklch(0.24 0.04 150);
   --stgm-warning: oklch(0.78 0.16 80);
   --stgm-warning-foreground: oklch(0.145 0 0);
   --stgm-info: oklch(0.7 0.15 250);

@@ -20,7 +20,7 @@ export function FirstRunPrompt({
   return (
     <div
       className={cn(
-        "rounded-lg border border-primary/30 bg-primary-subtle px-4 py-4",
+        "rounded-lg border border-border bg-primary-subtle px-4 py-4",
       )}
     >
       <h3 className="text-sm font-semibold text-foreground">
@@ -38,6 +38,7 @@ export function FirstRunPrompt({
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
             "bg-primary text-primary-foreground hover:bg-primary-hover",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
         >
@@ -48,7 +49,7 @@ export function FirstRunPrompt({
           type="button"
           onClick={onDismiss}
           disabled={isEnabling}
-          className="rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+          className="rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           Not now
         </button>

@@ -396,7 +396,7 @@ export function OrgFleetSection({
                     className={cn(
                       "text-[0.6rem]",
                       isActive
-                        ? "text-primary-foreground/80"
+                        ? "text-primary-foreground"
                         : "text-muted-foreground",
                     )}
                   >
