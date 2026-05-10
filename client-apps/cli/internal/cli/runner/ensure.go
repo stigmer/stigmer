@@ -109,4 +109,3 @@ func ensureResultFromState(name string, state *RunnerState, action EnsureAction)
 	}
 	return result
 }
-

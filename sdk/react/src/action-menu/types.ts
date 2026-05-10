@@ -6,7 +6,7 @@ export interface ActionMenuProps {
   readonly children: ReactNode;
 }
 
-/** Props for the {@link ActionMenu.Trigger} element. */
+/** Props for the `ActionMenu.Trigger` element. */
 export interface ActionMenuTriggerProps {
   /** The trigger element (typically an icon button). */
   readonly children: ReactNode;
@@ -16,7 +16,7 @@ export interface ActionMenuTriggerProps {
   readonly "aria-label"?: string;
 }
 
-/** Props for the {@link ActionMenu.Content} panel. */
+/** Props for the `ActionMenu.Content` panel. */
 export interface ActionMenuContentProps {
   /** Menu items, groups, and separators. */
   readonly children: ReactNode;
@@ -29,7 +29,7 @@ export interface ActionMenuContentProps {
   readonly className?: string;
 }
 
-/** Props for the {@link ActionMenu.Item}. */
+/** Props for the `ActionMenu.Item`. */
 export interface ActionMenuItemProps {
   /** Item label text. */
   readonly children: ReactNode;
@@ -53,13 +53,13 @@ export interface ActionMenuItemProps {
   readonly className?: string;
 }
 
-/** Props for the {@link ActionMenu.Separator}. */
+/** Props for the `ActionMenu.Separator`. */
 export interface ActionMenuSeparatorProps {
   /** Additional CSS classes. */
   readonly className?: string;
 }
 
-/** Props for the {@link ActionMenu.Group}. */
+/** Props for the `ActionMenu.Group`. */
 export interface ActionMenuGroupProps {
   /** Group items. */
   readonly children: ReactNode;

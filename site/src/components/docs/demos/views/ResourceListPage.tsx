@@ -2,8 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
-import { ResourceListView } from "@stigmer/react";
-import type { ResourceListLayout } from "@stigmer/react";
+import { ResourceCards, ResourceList } from "@stigmer/react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { PulseHighlight } from "@scenar/react";
 import { DEMO_CONTENT_ZOOM } from "../shared/tokens";
@@ -18,7 +17,7 @@ interface ResourceListPageProps {
   /** Resource items to display in the list. */
   readonly items: readonly SearchResult[];
   /** Layout mode for the resource list. @default "list" */
-  readonly layout?: ResourceListLayout;
+  readonly layout?: "list" | "grid";
   /** When true, the create button pulses to draw attention. */
   readonly highlightCreate?: boolean;
   /** When true, a flash highlight appears on the last item in the list. */
@@ -28,7 +27,7 @@ interface ResourceListPageProps {
 /**
  * Generic resource list page for demo scenarios.
  *
- * Wraps the real `ResourceListView` from `@stigmer/react` with a page
+ * Wraps the `ResourceCards`/`ResourceList` from `@stigmer/react` with a page
  * header and create button. The list is fed by fixture data passed as
  * `items` — no live backend required.
  *
@@ -58,7 +57,44 @@ export function ResourceListPage({
       </div>
 
       <div className="relative" style={{ zoom: DEMO_CONTENT_ZOOM }}>
-        <ResourceListView items={items} isLoading={false} layout={layout} />
+        {layout === "grid" ? (
+          <ResourceCards
+            items={items as SearchResult[]}
+            renderCard={(item) => (
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <span className="truncate text-sm font-semibold text-foreground">
+                  {item.name || item.slug}
+                </span>
+                {item.description && (
+                  <p className="line-clamp-2 text-xs text-muted-foreground">
+                    {item.description}
+                  </p>
+                )}
+              </div>
+            )}
+            getItemId={(item) => item.slug}
+          />
+        ) : (
+          <ResourceList
+            items={items as SearchResult[]}
+            renderRow={(item) => (
+              <div className="flex items-center gap-2">
+                <span className="truncate text-sm font-medium text-foreground">
+                  {item.name || item.slug}
+                </span>
+                {item.description && (
+                  <>
+                    <span className="shrink-0 text-muted-foreground" aria-hidden>·</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {item.description}
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+            getItemId={(item) => item.slug}
+          />
+        )}
         {showNewItem && <NewItemHighlight />}
       </div>
     </div>

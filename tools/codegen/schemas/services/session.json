@@ -310,12 +310,12 @@
         {
           "name": "CURSOR_MODE_LOCAL",
           "number": 1,
-          "description": "Local Cursor agent via Agent.create({ local: { cwd } }).\n\n Works with any workspace source (git or local path). Stigmer owns\n the durable conversation layer — always sends continuation prompts\n because Cursor local agents do not reliably retain context across\n Agent.send() calls."
+          "description": "Local Cursor agent created with a local cwd configuration.\n\n Works with any workspace source (git or local path). Stigmer owns\n the durable conversation layer — always sends continuation prompts\n because Cursor local agents do not reliably retain context across\n Agent.send() calls."
         },
         {
           "name": "CURSOR_MODE_CLOUD",
           "number": 2,
-          "description": "Cloud Cursor agent via Agent.create({ cloud: { repos } }).\n\n Requires all workspace entries to be GitRepoSource (HTTPS URLs).\n Cursor natively manages conversation state for cloud agents, but\n Stigmer persists session memory as backup because cloud agents can\n expire. Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED."
+          "description": "Cloud Cursor agent created with a cloud repos configuration.\n\n Requires all workspace entries to be GitRepoSource (HTTPS URLs).\n Cursor natively manages conversation state for cloud agents, but\n Stigmer persists session memory as backup because cloud agents can\n expire. Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED."
         }
       ]
     },

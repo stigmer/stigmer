@@ -56,7 +56,7 @@ func updateSpecAuditTimestamp(session *sessionv1.Session) {
 	now := timestamppb.Now()
 
 	if session.Status == nil {
-		session.Status = &commonspb.ApiResourceAuditStatus{}
+		session.Status = &sessionv1.SessionStatus{}
 	}
 	if session.Status.Audit == nil {
 		session.Status.Audit = &commonspb.ApiResourceAudit{}

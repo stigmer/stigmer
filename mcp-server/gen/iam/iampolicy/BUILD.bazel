@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "iampolicy",
+    srcs = ["iam_policy_gen.go"],
+    importpath = "github.com/stigmer/stigmer/mcp-server/gen/iam/iampolicy",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//mcp-server/internal/convert",
+        "//mcp-server/proto/ai/stigmer/commons/apiresource",
+        "//mcp-server/proto/ai/stigmer/iam/iampolicy/v1:iampolicy",
+    ],
+)
