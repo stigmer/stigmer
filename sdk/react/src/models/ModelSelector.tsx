@@ -119,7 +119,7 @@ export function ModelSelector({
     }
   }, [initialHarness, isHarnessLocked]);
 
-  const { models, featured, defaultModel, getModel, byProvider } = useModelRegistry(
+  const { models, featured, defaultModel, getModel, byProvider, isLoading, error, refetch } = useModelRegistry(
     { harness: activeHarness },
   );
 
@@ -393,7 +393,30 @@ export function ModelSelector({
               aria-label="Available models"
               className="max-h-72 overflow-y-auto p-1"
             >
-              {visibleModels.length === 0 && (
+              {visibleModels.length === 0 && isLoading && (
+                <div className="flex items-center justify-center gap-2 px-2 py-3">
+                  <div className="size-3 animate-spin rounded-full border border-muted border-t-primary" />
+                  <span className="text-xs text-muted-foreground">Loading models…</span>
+                </div>
+              )}
+
+              {visibleModels.length === 0 && !isLoading && error != null && (
+                <div className="flex flex-col items-center gap-1.5 px-2 py-3">
+                  <span className="text-xs text-muted-foreground">Failed to load models</span>
+                  <button
+                    type="button"
+                    className={cn(
+                      "rounded-md border border-border bg-background px-2.5 py-1 text-xs text-foreground",
+                      "hover:bg-accent-hover transition-colors cursor-pointer",
+                    )}
+                    onClick={refetch}
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+
+              {visibleModels.length === 0 && !isLoading && error == null && (
                 <div className="px-2 py-3 text-center text-xs text-muted-foreground">
                   No models found
                 </div>

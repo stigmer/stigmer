@@ -55,6 +55,8 @@ export interface UseModelRegistryReturn {
   readonly isLoading: boolean;
   /** Non-null if the API fetch failed. Models will be empty in this case. */
   readonly error: Error | null;
+  /** Retry fetching the model registry. No-op while a fetch is in flight. */
+  readonly refetch: () => void;
 }
 
 /**
@@ -85,7 +87,7 @@ export interface UseModelRegistryReturn {
  */
 export function useModelRegistry(options?: UseModelRegistryOptions): UseModelRegistryReturn {
   const harness = options?.harness;
-  const { models: allModels, isLoading, error } = useModelRegistryContext();
+  const { models: allModels, isLoading, error, refetch } = useModelRegistryContext();
 
   return useMemo(() => {
     const isUnified = harness === undefined;
@@ -143,6 +145,7 @@ export function useModelRegistry(options?: UseModelRegistryOptions): UseModelReg
       getByKey: (key: string) => byCompoundKey.get(key),
       isLoading,
       error,
+      refetch,
     };
-  }, [harness, allModels, isLoading, error]);
+  }, [harness, allModels, isLoading, error, refetch]);
 }

@@ -8,6 +8,8 @@ export interface ModelRegistryState {
   readonly models: readonly ModelInfo[];
   readonly isLoading: boolean;
   readonly error: Error | null;
+  /** Retry fetching the model registry. No-op while a fetch is in flight. */
+  readonly refetch: () => void;
 }
 
 /**
@@ -21,6 +23,7 @@ export const ModelRegistryContext = createContext<ModelRegistryState>({
   models: [],
   isLoading: true,
   error: null,
+  refetch: () => {},
 });
 
 /**
