@@ -577,10 +577,11 @@ func startDockerRunner(ctx context.Context, reg *registeredRunner, imageOverride
 }
 
 // waitForContainerExitOrSignal blocks until the Docker container exits or a
-// SIGINT/SIGTERM is received. On signal, it stops the container gracefully.
+// SIGINT/SIGTERM/SIGHUP is received. On signal, it stops the container
+// gracefully. SIGHUP covers terminal close and SSH disconnects.
 func waitForContainerExitOrSignal(ctx context.Context, dc DockerClient, containerID, name string) error {
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
 	exitCh := make(chan error, 1)
 	go func() {
@@ -987,12 +988,17 @@ func (p *runnerStateProvider) Status() controlsock.StatusResponse {
 }
 
 // waitForExitOrSignal blocks until the child process exits, a system signal
-// (SIGINT/SIGTERM) is received, or the stopCh channel is signalled (from the
-// control socket's POST /stop endpoint). In all stop cases, the child is
-// given gracefulShutdownTimeout to exit before being killed.
+// (SIGINT/SIGTERM/SIGHUP) is received, or the stopCh channel is signalled
+// (from the control socket's POST /stop endpoint). In all stop cases, the
+// child is given gracefulShutdownTimeout to exit before being killed.
+//
+// SIGHUP is included because terminal close (and SSH disconnect) sends
+// SIGHUP to the foreground process group. Without handling it, the Go
+// parent dies immediately, orphaning the agent-runner and cursor-runner
+// child processes.
 func waitForExitOrSignal(cmd *exec.Cmd, stopCh <-chan struct{}) error {
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
 	exitCh := make(chan error, 1)
 	go func() {

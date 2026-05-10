@@ -361,6 +361,76 @@ func TestMigrateStateLayout_MigratesLogFile(t *testing.T) {
 	assert.Equal(t, "test log", string(data))
 }
 
+// --- Orphan detection tests ---
+
+func TestIsOrphaned_CurrentProcess(t *testing.T) {
+	// The test process itself is never orphaned (it has a real parent).
+	assert.False(t, isOrphaned(os.Getpid()))
+}
+
+func TestIsOrphaned_DeadPID(t *testing.T) {
+	// A PID that doesn't exist cannot be checked — returns false (safe default).
+	assert.False(t, isOrphaned(999999999))
+}
+
+func TestIsOrphaned_ZeroPID(t *testing.T) {
+	assert.False(t, isOrphaned(0))
+}
+
+func TestIsOrphaned_NegativePID(t *testing.T) {
+	assert.False(t, isOrphaned(-1))
+}
+
+func TestIsProcessAlive_CurrentProcess(t *testing.T) {
+	assert.True(t, isProcessAlive(os.Getpid()))
+}
+
+func TestIsProcessAlive_DeadPID(t *testing.T) {
+	assert.False(t, isProcessAlive(999999999))
+}
+
+func TestIsProcessAlive_ZeroPID(t *testing.T) {
+	assert.False(t, isProcessAlive(0))
+}
+
+func TestRunnerState_CursorRunnerPID_RoundTrip(t *testing.T) {
+	original := &RunnerState{
+		RunnerID:        "rnr-cursor",
+		Slug:            "my-runner",
+		Org:             "acme",
+		BackendEndpoint: "api.stigmer.ai:443",
+		PID:             12345,
+		TaskQueue:       "runner:rnr-cursor",
+		StartedAt:       time.Date(2026, 5, 10, 12, 0, 0, 0, time.UTC),
+		Runtime:         RuntimeNative,
+		CursorRunnerPID: 12346,
+	}
+
+	data, err := json.Marshal(original)
+	require.NoError(t, err)
+	assert.Contains(t, string(data), `"cursor_runner_pid":12346`)
+
+	var restored RunnerState
+	require.NoError(t, json.Unmarshal(data, &restored))
+	assert.Equal(t, 12346, restored.CursorRunnerPID)
+}
+
+func TestRunnerState_CursorRunnerPID_OmittedWhenZero(t *testing.T) {
+	state := &RunnerState{
+		RunnerID:        "rnr-no-cursor",
+		Slug:            "my-runner",
+		Org:             "acme",
+		PID:             12345,
+		TaskQueue:       "runner:rnr-no-cursor",
+		StartedAt:       time.Date(2026, 5, 10, 12, 0, 0, 0, time.UTC),
+		CursorRunnerPID: 0,
+	}
+
+	data, err := json.Marshal(state)
+	require.NoError(t, err)
+	assert.NotContains(t, string(data), "cursor_runner_pid")
+}
+
 func TestMigrateStateLayout_DoesNotOverwriteExisting(t *testing.T) {
 	dir := withTestRunnersDir(t)
 	machineID := "mach_collision12345678901234567890ab"

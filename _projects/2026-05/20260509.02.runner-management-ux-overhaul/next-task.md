@@ -68,19 +68,39 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-09 19:42
-**Current Task**: T07 — End-to-end testing
+**Current Task**: T08 — Runner process lifecycle hardening (post-completion fix)
 **Status**: COMPLETE
 
 ## Next Steps
 
-All phases (T01-T07) are complete. The runner management UX overhaul is ready for production. Remaining work is optional:
+All phases (T01-T08) are complete. The runner management UX overhaul is ready for production. Remaining work is optional:
 1. Server-side `RunnerSession` model with structured `ALREADY_CONNECTED` (deferred — separate project)
 2. LaunchAgent/systemd service integration for auto-start on login (deferred — separate project)
+3. Runner capability model: report cursor-runner health in heartbeat so UI can show per-harness availability (deferred — separate project)
+4. Pipe-based parent death detection in children for SIGKILL/OOM robustness (deferred — escalation path if orphans recur after T08)
 
 ## Quick Resume
 
 To continue this project, drag this file into chat:
 `@_projects/2026-05/20260509.02.runner-management-ux-overhaul/next-task.md`
+
+## Session Progress (2026-05-10, session 9)
+
+- Diagnosed runner "Stopped" issue: parent Go process died, orphaning agent-runner (PID 423) and cursor-runner (PID 424) as child processes reparented to PID 1
+- Cursor-runner was actually running (and at 70% CPU) but the UI showed "Stopped" because the heartbeat stream died with the parent
+- Implemented T08: Runner process lifecycle hardening — 4 files changed, 180 insertions, 9 deletions
+- **SIGHUP handling** (`start.go`): Added `syscall.SIGHUP` to both `waitForExitOrSignal` and `waitForContainerExitOrSignal` — covers terminal close and SSH disconnect, the most common orphan scenario
+- **Cursor-runner stop** (`stop.go`): New `stopCursorRunnerSidecar()` function called in both normal stop and early-exit (dead main PID) paths — ensures `stigmer down runner` kills both processes
+- **Orphan detection** (`state.go`): New `isOrphaned(pid)` (portable `ps -o ppid=` check) and `killOrphanedRunner(state)` (SIGTERM + wait + SIGKILL for both PIDs). Enhanced `isRunnerAlive()` to detect orphans when control socket is unreachable but PID is alive with PPID == 1
+- **Tests** (`state_test.go`): 9 new tests for orphan detection, process liveness, and CursorRunnerPID serialization. All 37 runner package tests pass
+- All checks pass: `go test ./client-apps/cli/internal/cli/runner/...` (runner + controlsock)
+
+### Key design decisions: session 9
+
+- **ps(1) over /proc or sysctl**: `ps -p <pid> -o ppid=` is portable across macOS and Linux without build tags or platform-specific code. The runner package has no existing OS-specific files.
+- **Orphan detection scoped to socket-equipped runners**: Only runners with a `SocketPath` (T04+) trigger orphan detection. Pre-T04 runners without sockets fall through to the existing PID-only check, maintaining backward compatibility.
+- **SIGHUP over process groups**: Adding SIGHUP to the signal set is a one-line fix that covers 95%+ of orphan cases. Process group management (`Setpgid`) was considered but doesn't auto-kill children on parent death — still requires explicit cleanup that SIGHUP already triggers.
+- **Separate `stopCursorRunnerSidecar` function**: Extracted as a reusable function rather than inline code, since it's called from two paths in `stopNativeRunner` and from `killOrphanedRunner`.
 
 ## Session Progress (2026-05-10, session 8)
 
@@ -231,6 +251,7 @@ Deep research report available at:
 | T05 | Phase 4: Desktop UI redesign (status card) | COMPLETE |
 | T06 | Phase 5: Fleet view polish | COMPLETE |
 | T07 | Phase 6: End-to-end testing | COMPLETE |
+| T08 | Phase 7: Runner process lifecycle hardening | COMPLETE |
 
 ## Quick Commands
 
