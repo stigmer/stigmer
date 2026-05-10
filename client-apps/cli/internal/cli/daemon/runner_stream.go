@@ -38,6 +38,7 @@ type CommandStream interface {
 // RunnerStreamConfig holds the parameters for a RunnerStreamClient.
 type RunnerStreamConfig struct {
 	RunnerID          string
+	MachineID         string // stable machine identity from ~/.stigmer/machine.json
 	ConnectFn         func(ctx context.Context) (CommandStream, error)
 	HeartbeatInterval time.Duration
 	InitialPhase      runnerv1.RunnerPhase // defaults to READY if unset
@@ -86,6 +87,7 @@ func NewRunnerStreamClient(cfg RunnerStreamConfig) *RunnerStreamClient {
 			Os:            runtime.GOOS,
 			Arch:          runtime.GOARCH,
 			RunnerVersion: embedded.GetBuildVersion(),
+			MachineId:     cfg.MachineID,
 		},
 	}
 }

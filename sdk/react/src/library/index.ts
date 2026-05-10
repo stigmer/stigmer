@@ -7,12 +7,6 @@ export {
 export { ScopeToggle } from "./ScopeToggle";
 export type { ScopeToggleProps } from "./ScopeToggle";
 
-export { ResourceListView } from "./ResourceListView";
-export type {
-  ResourceListViewProps,
-  ResourceListLayout,
-} from "./ResourceListView";
-
 export { ResourceCountCard } from "./ResourceCountCard";
 export type { ResourceCountCardProps } from "./ResourceCountCard";
 
@@ -39,6 +33,8 @@ export type { ParsedResource } from "./parse-resource-yaml";
 export {
   serializeAgentYaml,
   serializeMcpServerYaml,
+  serializeAgentInputYaml,
+  serializeMcpServerInputYaml,
 } from "./serialize-resource-yaml";
 
 export { useApplyResource } from "./useApplyResource";
@@ -48,6 +44,22 @@ export type {
   PushSkillParams,
 } from "./useApplyResource";
 
+export { useExportResource } from "./useExportResource";
+export type {
+  UseExportResourceOptions,
+  UseExportResourceReturn,
+} from "./useExportResource";
+
+export { useImportResource } from "./useImportResource";
+export type {
+  ImportFormat,
+  ImportPreview,
+  UseImportResourceReturn,
+} from "./useImportResource";
+
+export { ImportResourceDialog } from "./ImportResourceDialog";
+export type { ImportResourceDialogProps } from "./ImportResourceDialog";
+
 export { VisibilityToggle } from "./VisibilityToggle";
 export type { VisibilityToggleProps } from "./VisibilityToggle";
 
@@ -56,5 +68,3 @@ export type {
   VisibilityResourceKind,
   UseUpdateVisibilityReturn,
 } from "./useUpdateVisibility";
-
-export type { ResourceListScope } from "../search";

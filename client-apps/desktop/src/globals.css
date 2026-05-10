@@ -47,6 +47,7 @@
   --color-primary-hover: var(--stgm-primary-hover);
   --color-primary-subtle: var(--stgm-primary-subtle);
   --color-destructive-subtle: var(--stgm-destructive-subtle);
+  --color-success-subtle: var(--stgm-success-subtle);
   --color-muted-subtle: var(--stgm-muted-subtle);
   --color-muted-foreground-subtle: var(--stgm-muted-foreground-subtle);
   --color-backdrop: var(--stgm-backdrop);

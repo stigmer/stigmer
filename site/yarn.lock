@@ -2200,20 +2200,23 @@ __metadata:
 
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=9ba423&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=2d1f11&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:2.12.0"
-  checksum: 10c0/eefac3efc9301da3f90c74f7337cf8102833a2247a370350ab3e45fec4b5d1c1f8579f797e2081425acdecd026f5a7df5ae8704dc999ada7f19f28b4ed0d4386
+  checksum: 10c0/7cc11c82392dcd0173aa185ad9d1688b31476b73e18c8a127885e9ce418bd239d3ae9ad8a64b90657203a93a09e4efdec2ee6f1f3dc79d75e492c1e7eba3bcac
   languageName: node
   linkType: hard
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=891ff5&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=48a6bd&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@stigmer/theme": "npm:*"
+    diff: "npm:^8.0.3"
+    fflate: "npm:^0.8.2"
     react-markdown: "npm:^10.1.0"
     remark-gfm: "npm:^4.0.1"
+    sonner: "npm:^2.0.0"
     streamdown: "npm:^2.5.0"
     yaml: "npm:^2.8.2"
   peerDependencies:
@@ -2221,6 +2224,7 @@ __metadata:
     "@bufbuild/protobuf": ^2.0.0
     "@stigmer/protos": "*"
     "@stigmer/sdk": "*"
+    "@tanstack/react-table": ^8.20.0
     lucide-react: ">=0.400.0"
     react: ^19.0.0
     react-dom: ^19.0.0
@@ -2228,15 +2232,17 @@ __metadata:
   peerDependenciesMeta:
     "@base-ui/react":
       optional: true
+    "@tanstack/react-table":
+      optional: true
     react-virtuoso:
       optional: true
-  checksum: 10c0/d772e1b4451a822dd6352d09240a7df6345e7e50b361cb52dc0c371315d446dc90defb80e57b6bbe62e173b3d21be954a279fc3d537b80aaaca649aca85443d7
+  checksum: 10c0/875dc1e7ea81ceaa15035157ec647475469abd589f86781c4aa4cadfe0be7ecd97d87145067d7b407cf0810d5979446fedcff5ea7b5c3ffe6f8907aaaa736372
   languageName: node
   linkType: hard
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=c7d889&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=c9c2ba&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2247,17 +2253,17 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/10809606bc187d42809935ea8b4fae50a92ec45a11dc19397e11e446a9e3b24f8256861ac9b53ea91fce2aa4144542a83a5942ecf96f0b716e9d707a4b33190f
+  checksum: 10c0/3375c3c9306665b213b0dc8b4ed7e4fe5d77a90b9d4183711ca360749e14f0e92f7de2f128ada18b637f6e6d711849c7b6498daee4ebb3dfd7646d7d7bd6040e
   languageName: node
   linkType: hard
 
 "@stigmer/theme@file:../sdk/theme::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/theme@file:../sdk/theme#../sdk/theme::hash=cb3625&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/theme@file:../sdk/theme#../sdk/theme::hash=590b7c&locator=stigmer-site%40workspace%3A."
   peerDependencies:
     clsx: ^2.0.0
     tailwind-merge: ^3.0.0
-  checksum: 10c0/f73a0a950861fb8298b138e3daec3bef76d2ceaa973f73d27abaca01681fde642ea235c3b9f3c0c9e564e93a4d1d9173fba59c6b2cb62f741e790fb2325ddf88
+  checksum: 10c0/f9d695e92de25eef1f461d8ad46e0f63bd176f57639345da89b95f9a6b1ae822542d7561840ac0c15ec21c87adca51bdd15ab3aa09a02b7779c071e69247dad7
   languageName: node
   linkType: hard
 
@@ -4420,6 +4426,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"diff@npm:^8.0.3":
+  version: 8.0.4
+  resolution: "diff@npm:8.0.4"
+  checksum: 10c0/7ee5d03926db4039be7252ac3b0abaae1bd122a2ca971e5ca7270e444e36ff83dd906fad1a719740ca347e97ed5dc8f458a76a8391dbcd7aff363bdafb348a00
+  languageName: node
+  linkType: hard
+
 "doctrine@npm:^2.1.0":
   version: 2.1.0
   resolution: "doctrine@npm:2.1.0"
@@ -5370,6 +5383,13 @@ __metadata:
     picomatch:
       optional: true
   checksum: 10c0/e345083c4306b3aed6cb8ec551e26c36bab5c511e99ea4576a16750ddc8d3240e63826cc624f5ae17ad4dc82e68a253213b60d556c11bfad064b7607847ed07f
+  languageName: node
+  linkType: hard
+
+"fflate@npm:^0.8.2":
+  version: 0.8.2
+  resolution: "fflate@npm:0.8.2"
+  checksum: 10c0/03448d630c0a583abea594835a9fdb2aaf7d67787055a761515bf4ed862913cfd693b4c4ffd5c3f3b355a70cf1e19033e9ae5aedcca103188aaff91b8bd6e293
   languageName: node
   linkType: hard
 
@@ -9233,6 +9253,16 @@ __metadata:
     mrmime: "npm:^2.0.0"
     totalist: "npm:^3.0.0"
   checksum: 10c0/68f8ee857f6a9415e9c07a1f31c7c561df8d5f1b1ba79bee3de583fa37da8718def5309f6b1c6e2c3ef77de45d74f5e49efc7959214443aa92d42e9c99180a4e
+  languageName: node
+  linkType: hard
+
+"sonner@npm:^2.0.0":
+  version: 2.0.7
+  resolution: "sonner@npm:2.0.7"
+  peerDependencies:
+    react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+    react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+  checksum: 10c0/6966ab5e892ed6aab579a175e4a24f3b48747f0fc21cb68c3e33cb41caa7a0eebeb098c210545395e47a18d585eb8734ae7dd12d2bd18c8a3294a1ee73f997d9
   languageName: node
   linkType: hard
 

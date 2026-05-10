@@ -282,6 +282,11 @@ type RunnerConnectionInfo struct {
 	// Version of the runner software.
 	// Example: "0.4.2"
 	RunnerVersion string `protobuf:"bytes,4,opt,name=runner_version,json=runnerVersion,proto3" json:"runner_version,omitempty"`
+	// Stable machine identifier, generated once per Stigmer CLI installation
+	// and persisted at ~/.stigmer/machine.json. Used for runner deduplication
+	// across hostname changes. Format: "mach_" + 32 hex chars.
+	// Example: "mach_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
+	MachineId     string `protobuf:"bytes,5,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -344,6 +349,13 @@ func (x *RunnerConnectionInfo) GetRunnerVersion() string {
 	return ""
 }
 
+func (x *RunnerConnectionInfo) GetMachineId() string {
+	if x != nil {
+		return x.MachineId
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_runner_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_runner_v1_api_proto_rawDesc = "" +
@@ -370,12 +382,14 @@ const file_ai_stigmer_agentic_runner_v1_api_proto_rawDesc = "" +
 	"\n" +
 	"stopped_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tstoppedAt\x12-\n" +
 	"\x12current_executions\x18\x06 \x01(\x05R\x11currentExecutions\x12[\n" +
-	"\x0fconnection_info\x18\b \x01(\v22.ai.stigmer.agentic.runner.v1.RunnerConnectionInfoR\x0econnectionInfoJ\x04\b\a\x10\b\"}\n" +
+	"\x0fconnection_info\x18\b \x01(\v22.ai.stigmer.agentic.runner.v1.RunnerConnectionInfoR\x0econnectionInfoJ\x04\b\a\x10\b\"\x9c\x01\n" +
 	"\x14RunnerConnectionInfo\x12\x1a\n" +
 	"\bhostname\x18\x01 \x01(\tR\bhostname\x12\x0e\n" +
 	"\x02os\x18\x02 \x01(\tR\x02os\x12\x12\n" +
 	"\x04arch\x18\x03 \x01(\tR\x04arch\x12%\n" +
-	"\x0erunner_version\x18\x04 \x01(\tR\rrunnerVersionB\x90\x02\n" +
+	"\x0erunner_version\x18\x04 \x01(\tR\rrunnerVersion\x12\x1d\n" +
+	"\n" +
+	"machine_id\x18\x05 \x01(\tR\tmachineIdB\x90\x02\n" +
 	" com.ai.stigmer.agentic.runner.v1B\bApiProtoP\x01ZMgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/runner/v1;runnerv1\xa2\x02\x04ASAR\xaa\x02\x1cAi.Stigmer.Agentic.Runner.V1\xca\x02\x1cAi\\Stigmer\\Agentic\\Runner\\V1\xe2\x02(Ai\\Stigmer\\Agentic\\Runner\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Agentic::Runner::V1b\x06proto3"
 
 var (

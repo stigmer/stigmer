@@ -23,6 +23,7 @@ const (
 	SkillQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.skill.v1.SkillQueryController/get"
 	SkillQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getByReference"
 	SkillQueryController_GetArtifact_FullMethodName    = "/ai.stigmer.agentic.skill.v1.SkillQueryController/getArtifact"
+	SkillQueryController_ListVersions_FullMethodName   = "/ai.stigmer.agentic.skill.v1.SkillQueryController/listVersions"
 )
 
 // SkillQueryControllerClient is the client API for SkillQueryController service.
@@ -52,6 +53,16 @@ type SkillQueryControllerClient interface {
 	// sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
 	// storage key itself acts as a capability token.
 	GetArtifact(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*GetArtifactResponse, error)
+	// List version history for a skill.
+	//
+	// Returns all historical versions ordered by push time (newest first).
+	// Each entry includes the version hash, push timestamp, actor, tag,
+	// git provenance, and artifact storage key for historical artifact access.
+	//
+	// @internal
+	// Authorization is handled in the handler after resolving the skill.
+	// (Input uses org+slug, not skill ID, so proto-level auth cannot work)
+	ListVersions(ctx context.Context, in *ListSkillVersionsInput, opts ...grpc.CallOption) (*ListSkillVersionsResponse, error)
 }
 
 type skillQueryControllerClient struct {
@@ -92,6 +103,16 @@ func (c *skillQueryControllerClient) GetArtifact(ctx context.Context, in *GetArt
 	return out, nil
 }
 
+func (c *skillQueryControllerClient) ListVersions(ctx context.Context, in *ListSkillVersionsInput, opts ...grpc.CallOption) (*ListSkillVersionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSkillVersionsResponse)
+	err := c.cc.Invoke(ctx, SkillQueryController_ListVersions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SkillQueryControllerServer is the server API for SkillQueryController service.
 // All implementations should embed UnimplementedSkillQueryControllerServer
 // for forward compatibility.
@@ -119,6 +140,16 @@ type SkillQueryControllerServer interface {
 	// sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
 	// storage key itself acts as a capability token.
 	GetArtifact(context.Context, *GetArtifactRequest) (*GetArtifactResponse, error)
+	// List version history for a skill.
+	//
+	// Returns all historical versions ordered by push time (newest first).
+	// Each entry includes the version hash, push timestamp, actor, tag,
+	// git provenance, and artifact storage key for historical artifact access.
+	//
+	// @internal
+	// Authorization is handled in the handler after resolving the skill.
+	// (Input uses org+slug, not skill ID, so proto-level auth cannot work)
+	ListVersions(context.Context, *ListSkillVersionsInput) (*ListSkillVersionsResponse, error)
 }
 
 // UnimplementedSkillQueryControllerServer should be embedded to have
@@ -136,6 +167,9 @@ func (UnimplementedSkillQueryControllerServer) GetByReference(context.Context, *
 }
 func (UnimplementedSkillQueryControllerServer) GetArtifact(context.Context, *GetArtifactRequest) (*GetArtifactResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetArtifact not implemented")
+}
+func (UnimplementedSkillQueryControllerServer) ListVersions(context.Context, *ListSkillVersionsInput) (*ListSkillVersionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListVersions not implemented")
 }
 func (UnimplementedSkillQueryControllerServer) testEmbeddedByValue() {}
 
@@ -211,6 +245,24 @@ func _SkillQueryController_GetArtifact_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SkillQueryController_ListVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSkillVersionsInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SkillQueryControllerServer).ListVersions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SkillQueryController_ListVersions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SkillQueryControllerServer).ListVersions(ctx, req.(*ListSkillVersionsInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SkillQueryController_ServiceDesc is the grpc.ServiceDesc for SkillQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -229,6 +281,10 @@ var SkillQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getArtifact",
 			Handler:    _SkillQueryController_GetArtifact_Handler,
+		},
+		{
+			MethodName: "listVersions",
+			Handler:    _SkillQueryController_ListVersions_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -82,6 +82,8 @@ type SkillArtifactOptions struct {
 	OrgID string
 	// Tag for the skill version (default: "latest")
 	Tag string
+	// Optional version message describing what changed
+	Message string
 	// Client is the Stigmer SDK client
 	Client *stigmer.Client
 	// Quiet mode (suppress detailed output)
@@ -98,6 +100,7 @@ type SkillArtifactResult struct {
 	VersionHash  string
 	StorageKey   string
 	Tag          string
+	Message      string
 	ArtifactSize int64
 }
 
@@ -109,6 +112,8 @@ type SkillFromGitOptions struct {
 	OrgID string
 	// Tag for the skill version
 	Tag string
+	// Optional version message describing what changed
+	Message string
 	// Client is the Stigmer SDK client
 	Client *stigmer.Client
 	// Quiet mode (suppress detailed output)
@@ -212,6 +217,7 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 		Artifact:      zipBytes,
 		Tag:           tag,
 		GitProvenance: gitProvenance,
+		Message:       opts.Message,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to upload skill artifact")
@@ -231,6 +237,7 @@ func PushSkill(opts *SkillArtifactOptions) (*SkillArtifactResult, error) {
 		VersionHash:  response.Status.VersionHash,
 		StorageKey:   response.Status.ArtifactStorageKey,
 		Tag:          response.Spec.Tag,
+		Message:      opts.Message,
 		ArtifactSize: stats.TotalSize,
 	}, nil
 }
@@ -336,6 +343,7 @@ func PushSkillFromGit(opts *SkillFromGitOptions) (*SkillArtifactResult, error) {
 		Artifact:      zipBytes,
 		Tag:           tag,
 		GitProvenance: gitProvenance,
+		Message:       opts.Message,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to upload skill artifact")
@@ -355,6 +363,7 @@ func PushSkillFromGit(opts *SkillFromGitOptions) (*SkillArtifactResult, error) {
 		VersionHash:  response.Status.VersionHash,
 		StorageKey:   response.Status.ArtifactStorageKey,
 		Tag:          response.Spec.Tag,
+		Message:      opts.Message,
 		ArtifactSize: stats.TotalSize,
 	}, nil
 }

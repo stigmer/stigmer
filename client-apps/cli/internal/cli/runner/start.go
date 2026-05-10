@@ -24,6 +24,7 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/embedded/cursorrunner"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/runner/controlsock"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
 
@@ -50,19 +51,48 @@ type registeredRunner struct {
 	org         string
 	runnerID    string
 	taskQueue   string
+	machineID   string
 	cfg         *config.Config
 	backendInfo *BackendInfo
 	client      *stigmer.Client
 }
 
-// Start is the main orchestration for `stigmer up` / `stigmer up runner`.
-// It resolves the backend, registers the runner, and then dispatches to
-// the runtime-specific path (native Python process or Docker container).
+// Start is the human-output entry point for `stigmer up` / `stigmer up runner`.
+// It calls Ensure internally and renders the result as colored CLI messages.
 func Start(ctx context.Context, opts StartOptions) error {
+	return Ensure(ctx, opts, func(r *EnsureResult) {
+		PrintHumanResult(r)
+	})
+}
+
+// Ensure guarantees a compatible runner is available. It either adopts an
+// existing runner or starts a fresh one.
+//
+// The onReady callback is invoked as soon as the runner is live:
+//   - Adoption: called immediately, then Ensure returns nil.
+//   - Fresh start: called after SaveState + phase=READY, then Ensure
+//     blocks until the runner process exits (returning the exit error).
+//
+// This callback model lets the command handler write JSON to stdout before
+// the blocking wait, which is how the Desktop sidecar reads structured
+// output during its 8-second grace window.
+func Ensure(ctx context.Context, opts StartOptions, onReady func(*EnsureResult)) error {
 	if reaped := ReapStaleRunners(); len(reaped) > 0 {
 		for _, name := range reaped {
 			log.Debug().Str("name", name).Msg("Cleaned up stale runner state")
 		}
+	}
+
+	if migrated := MigrateStateLayout(); len(migrated) > 0 {
+		for _, entry := range migrated {
+			log.Debug().Str("migration", entry).Msg("Migrated runner state file")
+		}
+	}
+
+	machine, err := LoadOrCreateMachineID()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to load machine identity (continuing without stable ID)")
+		machine = &MachineIdentity{}
 	}
 
 	runtime := resolveRuntime(opts.Runtime)
@@ -79,8 +109,19 @@ func Start(ctx context.Context, opts StartOptions) error {
 		return errors.Wrap(err, "failed to resolve runner name")
 	}
 
-	if err := checkNameConflict(name); err != nil {
+	adopted, err := checkOrAdopt(name, machine.MachineID, opts)
+	if err != nil {
 		return err
+	}
+	if adopted != nil {
+		if adopted.MachineID == "" && machine.MachineID != "" {
+			adopted.MachineID = machine.MachineID
+			_ = SaveState(name, adopted)
+		}
+		result := ensureResultFromState(name, adopted, ActionAdoptedExisting)
+		result.MachineID = machine.MachineID
+		onReady(result)
+		return nil
 	}
 
 	if config.IsStandalone() && opts.TokenOverride == "" {
@@ -141,6 +182,7 @@ func Start(ctx context.Context, opts StartOptions) error {
 		org:         org,
 		runnerID:    runnerID,
 		taskQueue:   taskQueue,
+		machineID:   machine.MachineID,
 		cfg:         cfg,
 		backendInfo: backendInfo,
 		client:      client,
@@ -148,9 +190,9 @@ func Start(ctx context.Context, opts StartOptions) error {
 
 	switch runtime {
 	case RuntimeDocker:
-		return startDockerRunner(ctx, reg, opts.Image)
+		return startDockerRunner(ctx, reg, opts.Image, onReady)
 	default:
-		return startNativeRunner(ctx, reg)
+		return startNativeRunner(ctx, reg, onReady)
 	}
 }
 
@@ -209,12 +251,13 @@ type cursorBootstrapOutcome struct {
 // The cursor-runner bootstrap (Node.js download + npm install) runs in a
 // background goroutine concurrently with the Python bootstrap so the two
 // potentially slow operations overlap.
-func startNativeRunner(ctx context.Context, reg *registeredRunner) error {
+func startNativeRunner(ctx context.Context, reg *registeredRunner, onReady func(*EnsureResult)) error {
 	streamCtx, streamCancel := context.WithCancel(context.Background())
 	var streamWg sync.WaitGroup
 
 	rsc := daemon.NewRunnerStreamClient(daemon.RunnerStreamConfig{
 		RunnerID:     reg.runnerID,
+		MachineID:    reg.machineID,
 		InitialPhase: runnerv1.RunnerPhase_RUNNER_PHASE_STARTING,
 		ConnectFn: func(ctx context.Context) (daemon.CommandStream, error) {
 			s, err := reg.client.Runner.Connect(ctx)
@@ -292,18 +335,47 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner) error {
 		TaskQueue:       reg.taskQueue,
 		StartedAt:       time.Now(),
 		Runtime:         RuntimeNative,
+		MachineID:       reg.machineID,
 	}
 	if logFilePath != "" {
 		state.LogFile = logFilePath
+	}
+
+	// Start the local control socket so other processes (CLI invocations,
+	// Desktop sidecar) can query status and request graceful shutdown
+	// without relying on PID probing alone.
+	stopCh := make(chan struct{}, 1)
+	sockPath, sockErr := DefaultSocketPath()
+	if sockErr != nil {
+		log.Warn().Err(sockErr).Msg("Failed to resolve control socket path (continuing without socket)")
+	}
+
+	var ctrlSrv *controlsock.Server
+	if sockErr == nil {
+		sp := &runnerStateProvider{state: state, startedAt: time.Now()}
+		ctrlSrv = controlsock.NewServer(sockPath, sp, func() {
+			select {
+			case stopCh <- struct{}{}:
+			default:
+			}
+		})
+		if err := ctrlSrv.Start(); err != nil {
+			log.Warn().Err(err).Msg("Failed to start control socket (continuing without socket)")
+			ctrlSrv = nil
+		} else {
+			state.SocketPath = sockPath
+		}
 	}
 
 	if err := SaveState(reg.name, state); err != nil {
 		log.Warn().Err(err).Msg("Failed to save runner state (non-fatal)")
 	}
 
-	climsg.Success("Runner %q started (PID %d)", reg.name, proc.Process.Pid)
-
 	rsc.SetPhase(runnerv1.RunnerPhase_RUNNER_PHASE_READY)
+
+	result := ensureResultFromState(reg.name, state, ActionStartedFresh)
+	result.MachineID = reg.machineID
+	onReady(result)
 
 	// Start the cursor-runner using the bootstrap result from the parallel
 	// goroutine. If the Node.js bootstrap finished before the Python
@@ -349,9 +421,15 @@ func startNativeRunner(ctx context.Context, reg *registeredRunner) error {
 		}
 	}
 
-	exitErr := waitForExitOrSignal(proc)
+	exitErr := waitForExitOrSignal(proc, stopCh)
 
 	cursor.shutdown()
+
+	if ctrlSrv != nil {
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 2*time.Second)
+		_ = ctrlSrv.Shutdown(shutdownCtx)
+		shutdownCancel()
+	}
 
 	streamCancel()
 	streamWg.Wait()
@@ -404,7 +482,7 @@ func launchCursorRunnerProcess(result *CursorRunnerBootstrapResult, reg *registe
 
 // startDockerRunner starts the agent-runner inside a Docker container and
 // blocks until the container exits or a shutdown signal is received.
-func startDockerRunner(ctx context.Context, reg *registeredRunner, imageOverride string) error {
+func startDockerRunner(ctx context.Context, reg *registeredRunner, imageOverride string, onReady func(*EnsureResult)) error {
 	dc := NewDockerClient()
 
 	image := imageOverride
@@ -450,6 +528,7 @@ func startDockerRunner(ctx context.Context, reg *registeredRunner, imageOverride
 		StartedAt:       time.Now(),
 		Runtime:         RuntimeDocker,
 		ContainerID:     containerID,
+		MachineID:       reg.machineID,
 	}
 	if logFilePath != "" {
 		state.LogFile = logFilePath
@@ -458,13 +537,16 @@ func startDockerRunner(ctx context.Context, reg *registeredRunner, imageOverride
 		log.Warn().Err(err).Msg("Failed to save runner state (non-fatal)")
 	}
 
-	climsg.Success("Runner %q started (container %s)", reg.name, containerID[:12])
+	result := ensureResultFromState(reg.name, state, ActionStartedFresh)
+	result.MachineID = reg.machineID
+	onReady(result)
 
 	streamCtx, streamCancel := context.WithCancel(context.Background())
 	var streamWg sync.WaitGroup
 
 	rsc := daemon.NewRunnerStreamClient(daemon.RunnerStreamConfig{
-		RunnerID: reg.runnerID,
+		RunnerID:  reg.runnerID,
+		MachineID: reg.machineID,
 		ConnectFn: func(ctx context.Context) (daemon.CommandStream, error) {
 			s, err := reg.client.Runner.Connect(ctx)
 			if err != nil {
@@ -656,32 +738,74 @@ func sanitizeToSlug(hostname string) string {
 	return s
 }
 
-func checkNameConflict(name string) error {
+// checkOrAdopt examines whether a runner with the given name is already active.
+// If no runner is found by name, it falls back to scanning all state files for
+// one matching the given machineID (handles hostname changes gracefully).
+//
+// Returns:
+//   - (*RunnerState, nil) — runner is alive and compatible; caller should adopt
+//   - (nil, nil) — no conflict; caller should proceed with a fresh start
+//   - (nil, error) — real conflict (org/endpoint mismatch); caller should abort
+func checkOrAdopt(name string, machineID string, opts StartOptions) (*RunnerState, error) {
 	state, err := LoadState(name)
 	if err != nil {
-		return nil
+		// No state file for this slug — try machine_id fallback.
+		return checkOrAdoptByMachineID(machineID, opts)
 	}
 	if !isRunnerAlive(state) {
 		_ = RemoveState(name)
-		return nil
+		// Dead runner at this slug — try machine_id fallback in case
+		// there's a live runner under a different (old hostname) slug.
+		return checkOrAdoptByMachineID(machineID, opts)
 	}
 
-	detail := fmt.Sprintf("PID %d", state.PID)
-	if state.IsDocker() {
-		detail = fmt.Sprintf("container %s", state.ContainerID[:12])
+	return validateAdoptionCompat(name, state, opts)
+}
+
+// checkOrAdoptByMachineID scans all state files for a live runner that matches
+// the local machine identity. This covers the hostname-change scenario where
+// the state file exists under the old slug.
+func checkOrAdoptByMachineID(machineID string, opts StartOptions) (*RunnerState, error) {
+	if machineID == "" {
+		return nil, nil
 	}
 
-	return fmt.Errorf(
-		"runner %q is already running\n"+
-			"  %s\n"+
-			"  Backend: %s\n"+
-			"  Started: %s\n\n"+
-			"To start another runner, provide a different name:\n"+
-			"  stigmer up --name <name>\n\n"+
-			"To see all active runners:\n"+
-			"  stigmer list runners",
-		name, detail, state.BackendEndpoint, formatRelativeTime(state.StartedAt),
-	)
+	foundName, state := findStateByMachineID(machineID)
+	if state == nil {
+		return nil, nil
+	}
+
+	return validateAdoptionCompat(foundName, state, opts)
+}
+
+// validateAdoptionCompat checks org/endpoint compatibility for an adoption
+// candidate. Returns the state if compatible, or an error if conflicting.
+func validateAdoptionCompat(name string, state *RunnerState, opts StartOptions) (*RunnerState, error) {
+	if opts.OrgOverride != "" && state.Org != "" && opts.OrgOverride != state.Org {
+		return nil, fmt.Errorf(
+			"runner %q is already running for organization %q\n"+
+				"  You are trying to start for organization %q\n\n"+
+				"Stop the existing runner first:\n"+
+				"  stigmer down runner --name %s\n\n"+
+				"Or start a runner with a different name:\n"+
+				"  stigmer up --name <name>",
+			name, state.Org, opts.OrgOverride, name,
+		)
+	}
+
+	if opts.EndpointOverride != "" && state.BackendEndpoint != "" && opts.EndpointOverride != state.BackendEndpoint {
+		return nil, fmt.Errorf(
+			"runner %q is already running against %s\n"+
+				"  You are trying to connect to %s\n\n"+
+				"Stop the existing runner first:\n"+
+				"  stigmer down runner --name %s\n\n"+
+				"Or start a runner with a different name:\n"+
+				"  stigmer up --name <name>",
+			name, state.BackendEndpoint, opts.EndpointOverride, name,
+		)
+	}
+
+	return state, nil
 }
 
 func formatRelativeTime(t time.Time) string {
@@ -837,10 +961,36 @@ func startPythonProcess(pythonBin, appDir string, env []string, logFile *os.File
 	return cmd, nil
 }
 
-// waitForExitOrSignal blocks until the Python process exits or a SIGINT/SIGTERM
-// is received. On signal, it sends SIGTERM to the child and waits up to
-// gracefulShutdownTimeout before sending SIGKILL.
-func waitForExitOrSignal(cmd *exec.Cmd) error {
+// runnerStateProvider adapts a RunnerState for the controlsock.StateProvider
+// interface. It captures the start time at construction so uptime is computed
+// from the runner's actual start, not from the on-disk state timestamp.
+type runnerStateProvider struct {
+	state     *RunnerState
+	startedAt time.Time
+}
+
+func (p *runnerStateProvider) Status() controlsock.StatusResponse {
+	return controlsock.StatusResponse{
+		OK:              true,
+		RunnerID:        p.state.RunnerID,
+		Name:            p.state.Slug,
+		MachineID:       p.state.MachineID,
+		Org:             p.state.Org,
+		BackendEndpoint: p.state.BackendEndpoint,
+		TaskQueue:       p.state.TaskQueue,
+		PID:             p.state.PID,
+		StartedAt:       p.state.StartedAt,
+		Uptime:          time.Since(p.startedAt).Truncate(time.Second).String(),
+		Runtime:         p.state.Runtime,
+		Version:         embedded.GetBuildVersion(),
+	}
+}
+
+// waitForExitOrSignal blocks until the child process exits, a system signal
+// (SIGINT/SIGTERM) is received, or the stopCh channel is signalled (from the
+// control socket's POST /stop endpoint). In all stop cases, the child is
+// given gracefulShutdownTimeout to exit before being killed.
+func waitForExitOrSignal(cmd *exec.Cmd, stopCh <-chan struct{}) error {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
@@ -861,6 +1011,10 @@ func waitForExitOrSignal(cmd *exec.Cmd) error {
 
 	case sig := <-sigCh:
 		climsg.Info("Received %s, shutting down runner ...", sig)
+		return terminateChild(cmd, exitCh)
+
+	case <-stopCh:
+		climsg.Info("Stop requested via control socket, shutting down runner ...")
 		return terminateChild(cmd, exitCh)
 	}
 }

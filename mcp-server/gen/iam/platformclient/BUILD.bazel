@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "platformclient",
+    srcs = ["platform_client_gen.go"],
+    importpath = "github.com/stigmer/stigmer/mcp-server/gen/iam/platformclient",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//mcp-server/internal/convert",
+        "//mcp-server/proto/ai/stigmer/commons/apiresource",
+        "//mcp-server/proto/ai/stigmer/iam/platformclient/v1:platformclient",
+        "//mcp-server/proto/ai/stigmer/iam/v1:iam",
+        "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)

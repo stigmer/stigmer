@@ -44,4 +44,17 @@ service SkillQueryController {
   rpc getArtifact(GetArtifactRequest) returns (GetArtifactResponse) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
+
+  // List version history for a skill.
+  //
+  // Returns all historical versions ordered by push time (newest first).
+  // Each entry includes the version hash, push timestamp, actor, tag,
+  // git provenance, and artifact storage key for historical artifact access.
+  //
+  // @internal
+  // Authorization is handled in the handler after resolving the skill.
+  // (Input uses org+slug, not skill ID, so proto-level auth cannot work)
+  rpc listVersions(ListSkillVersionsInput) returns (ListSkillVersionsResponse) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
 }

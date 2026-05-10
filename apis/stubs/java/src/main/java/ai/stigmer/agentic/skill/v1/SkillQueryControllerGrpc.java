@@ -108,6 +108,37 @@ public final class SkillQueryControllerGrpc {
     return getGetArtifactMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.ListSkillVersionsInput,
+      ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse> getListVersionsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listVersions",
+      requestType = ai.stigmer.agentic.skill.v1.ListSkillVersionsInput.class,
+      responseType = ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.ListSkillVersionsInput,
+      ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse> getListVersionsMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.ListSkillVersionsInput, ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse> getListVersionsMethod;
+    if ((getListVersionsMethod = SkillQueryControllerGrpc.getListVersionsMethod) == null) {
+      synchronized (SkillQueryControllerGrpc.class) {
+        if ((getListVersionsMethod = SkillQueryControllerGrpc.getListVersionsMethod) == null) {
+          SkillQueryControllerGrpc.getListVersionsMethod = getListVersionsMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.skill.v1.ListSkillVersionsInput, ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listVersions"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.skill.v1.ListSkillVersionsInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new SkillQueryControllerMethodDescriptorSupplier("listVersions"))
+              .build();
+        }
+      }
+    }
+    return getListVersionsMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -215,6 +246,22 @@ public final class SkillQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.GetArtifactResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetArtifactMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * List version history for a skill.
+     * Returns all historical versions ordered by push time (newest first).
+     * Each entry includes the version hash, push timestamp, actor, tag,
+     * git provenance, and artifact storage key for historical artifact access.
+     * &#64;internal
+     * Authorization is handled in the handler after resolving the skill.
+     * (Input uses org+slug, not skill ID, so proto-level auth cannot work)
+     * </pre>
+     */
+    default void listVersions(ai.stigmer.agentic.skill.v1.ListSkillVersionsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListVersionsMethod(), responseObserver);
+    }
   }
 
   /**
@@ -294,6 +341,23 @@ public final class SkillQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetArtifactMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * List version history for a skill.
+     * Returns all historical versions ordered by push time (newest first).
+     * Each entry includes the version hash, push timestamp, actor, tag,
+     * git provenance, and artifact storage key for historical artifact access.
+     * &#64;internal
+     * Authorization is handled in the handler after resolving the skill.
+     * (Input uses org+slug, not skill ID, so proto-level auth cannot work)
+     * </pre>
+     */
+    public void listVersions(ai.stigmer.agentic.skill.v1.ListSkillVersionsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListVersionsMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -356,6 +420,22 @@ public final class SkillQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetArtifactMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * List version history for a skill.
+     * Returns all historical versions ordered by push time (newest first).
+     * Each entry includes the version hash, push timestamp, actor, tag,
+     * git provenance, and artifact storage key for historical artifact access.
+     * &#64;internal
+     * Authorization is handled in the handler after resolving the skill.
+     * (Input uses org+slug, not skill ID, so proto-level auth cannot work)
+     * </pre>
+     */
+    public ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse listVersions(ai.stigmer.agentic.skill.v1.ListSkillVersionsInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListVersionsMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -417,6 +497,22 @@ public final class SkillQueryControllerGrpc {
     public ai.stigmer.agentic.skill.v1.GetArtifactResponse getArtifact(ai.stigmer.agentic.skill.v1.GetArtifactRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetArtifactMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List version history for a skill.
+     * Returns all historical versions ordered by push time (newest first).
+     * Each entry includes the version hash, push timestamp, actor, tag,
+     * git provenance, and artifact storage key for historical artifact access.
+     * &#64;internal
+     * Authorization is handled in the handler after resolving the skill.
+     * (Input uses org+slug, not skill ID, so proto-level auth cannot work)
+     * </pre>
+     */
+    public ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse listVersions(ai.stigmer.agentic.skill.v1.ListSkillVersionsInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListVersionsMethod(), getCallOptions(), request);
     }
   }
 
@@ -483,11 +579,29 @@ public final class SkillQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetArtifactMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * List version history for a skill.
+     * Returns all historical versions ordered by push time (newest first).
+     * Each entry includes the version hash, push timestamp, actor, tag,
+     * git provenance, and artifact storage key for historical artifact access.
+     * &#64;internal
+     * Authorization is handled in the handler after resolving the skill.
+     * (Input uses org+slug, not skill ID, so proto-level auth cannot work)
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse> listVersions(
+        ai.stigmer.agentic.skill.v1.ListSkillVersionsInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListVersionsMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
   private static final int METHODID_GET_ARTIFACT = 2;
+  private static final int METHODID_LIST_VERSIONS = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -517,6 +631,10 @@ public final class SkillQueryControllerGrpc {
         case METHODID_GET_ARTIFACT:
           serviceImpl.getArtifact((ai.stigmer.agentic.skill.v1.GetArtifactRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.GetArtifactResponse>) responseObserver);
+          break;
+        case METHODID_LIST_VERSIONS:
+          serviceImpl.listVersions((ai.stigmer.agentic.skill.v1.ListSkillVersionsInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -557,6 +675,13 @@ public final class SkillQueryControllerGrpc {
               ai.stigmer.agentic.skill.v1.GetArtifactRequest,
               ai.stigmer.agentic.skill.v1.GetArtifactResponse>(
                 service, METHODID_GET_ARTIFACT)))
+        .addMethod(
+          getListVersionsMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.skill.v1.ListSkillVersionsInput,
+              ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse>(
+                service, METHODID_LIST_VERSIONS)))
         .build();
   }
 
@@ -608,6 +733,7 @@ public final class SkillQueryControllerGrpc {
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
               .addMethod(getGetArtifactMethod())
+              .addMethod(getListVersionsMethod())
               .build();
         }
       }

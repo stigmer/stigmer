@@ -16,6 +16,14 @@
  * Cursor Agent and prompts it to execute the approved tool.
  *
  * This is identical to the LangGraph flow from the workflow's perspective.
+ *
+ * Durable Continuation Model:
+ * When Agent.resume() fails (agent expired or evicted), resolveAgent()
+ * gracefully creates a fresh agent. The prompt selection logic detects
+ * the resolution reason and injects a continuation prompt built from
+ * persisted SessionMemory, making the conversation durable across
+ * agent evictions. Local mode always uses continuation prompts on
+ * subsequent executions because local SDK context loading is unreliable.
  */
 
 import { heartbeat } from "@temporalio/activity";
@@ -32,6 +40,9 @@ import type { SDKMessage } from "@cursor/sdk";
 import type { Config } from "../config.js";
 import { StigmerClient } from "../client/stigmer-client.js";
 import { resolveAgent } from "../adapter/session-lifecycle.js";
+import type { AgentResolution, CreateAgentOptions, CreateCloudAgentOptions } from "../adapter/session-lifecycle.js";
+import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { determineCursorMode, isCloudMode } from "../adapter/cursor-mode.js";
 import { MessageAccumulator, extractDeniedToolCalls, utcTimestamp } from "../adapter/message-translator.js";
 import { DeltaEnricher } from "../adapter/delta-enricher.js";
 import { TodoTracker } from "../adapter/todo-tracker.js";
@@ -40,10 +51,13 @@ import { resolveBlueprint } from "../adapter/blueprint-resolver.js";
 import { resolveSkills } from "../adapter/skill-resolver.js";
 import { resolveAttachments } from "../adapter/attachment-resolver.js";
 import { buildEnhancedPrompt, buildReinvocationPrompt } from "../adapter/prompt-builder.js";
+import { buildContinuationPrompt, buildHitlContinuationPrompt } from "../adapter/continuation-prompt.js";
+import { extractAgentRationale, getGitBranch, getGitHeadSha } from "../adapter/continuation-prompt.js";
 import { writeHooksToWorkspace } from "../hitl/workspace-setup.js";
 import { buildApprovalState } from "../hitl/approval-state.js";
 import { setInterceptorExecutionId } from "../proxy/fetch-interceptor.js";
 import { resolveModelId } from "../adapter/model-pricing.js";
+import { buildSessionMemory, persistSessionMemory } from "../adapter/session-memory.js";
 
 /**
  * Creates the activity functions bound to the runner config.
@@ -77,17 +91,33 @@ async function executeCursor(
     startedAt: utcTimestamp(),
   });
 
+  let sessionId: string | undefined;
+  let session: import("@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb").Session | undefined;
+  let userMessage: string | undefined;
+
   try {
     // Phase 1: Hydrate execution from DB
     await reportSetupProgress(client, executionId, "Fetching execution");
     const execution = await client.getExecution(executionId);
     const spec = execution.spec!;
-    const sessionId = spec.sessionId;
+    sessionId = spec.sessionId;
+    userMessage = spec.message;
 
     // Phase 2: Load session and resolve full agent blueprint
     await reportSetupProgress(client, executionId, "Resolving agent blueprint");
-    const session = await client.getSession(sessionId);
+    session = await client.getSession(sessionId);
     const blueprint = await resolveBlueprint(client, session, config.workspaceRootDir);
+
+    // Determine cursor mode: use persisted value on subsequent executions,
+    // compute from workspace entries on first execution.
+    const cursorMode = blueprint.sessionSpec.cursorMode !== CursorMode.UNSPECIFIED
+      ? blueprint.sessionSpec.cursorMode
+      : determineCursorMode(
+          blueprint.sessionSpec.workspaceEntries,
+          config.cloudModeEnabled,
+        );
+    const agentMode = isCloudMode(cursorMode) ? "cloud" as const : "local" as const;
+
     heartbeat();
 
     // Phase 3: Check if this is a reinvocation after approval
@@ -156,45 +186,76 @@ async function executeCursor(
     }
     heartbeat();
 
-    // Phase 7: Resolve Cursor Agent (create or resume)
+    // Phase 7: Resolve Cursor Agent (create, resume, or graceful fallback)
     await reportSetupProgress(client, executionId, "Initializing Cursor agent");
-    const { agent, isNew } = await resolveAgent(threadId, {
-      apiKey: config.cursorApiKey,
-      model: validatedModel,
-      workspaceDirs: blueprint.workspaceDirs,
-      mcpServers: mcpConfig,
-    });
+
+    const createOptions: CreateAgentOptions | CreateCloudAgentOptions = agentMode === "cloud"
+      ? {
+          apiKey: config.cursorApiKey,
+          model: validatedModel || undefined,
+          repos: blueprint.cloudRepos,
+          sessionId,
+          mcpServers: mcpConfig,
+        }
+      : {
+          apiKey: config.cursorApiKey,
+          model: validatedModel,
+          workspaceDirs: blueprint.workspaceDirs,
+          sessionId,
+          mcpServers: mcpConfig,
+        };
+
+    const resolution: AgentResolution = await resolveAgent(
+      threadId,
+      createOptions,
+      agentMode,
+    );
+
+    console.log(
+      `ExecuteCursor agent resolved: execution=${executionId}, ` +
+      `reason=${resolution.reason}, mode=${resolution.mode}, ` +
+      `agentId=${resolution.agentId}, resumed=${resolution.resumed}` +
+      (resolution.resumeFailureDetail ? `, failureDetail=${resolution.resumeFailureDetail}` : ""),
+    );
 
     // Phase 8: Write hooks for HITL
     const approvalState = buildApprovalState(approvalDecisions);
     await writeHooksToWorkspace(primaryWorkspaceDir, approvalState);
 
-    // Phase 9: Store new agentId as thread_id if this is a new agent
-    if (isNew && agent.agentId) {
+    // Phase 9: Store new agentId as thread_id and persist cursor_mode
+    if (resolution.isNew && resolution.agentId) {
       try {
-        blueprint.sessionSpec.threadId = agent.agentId;
+        blueprint.sessionSpec.threadId = resolution.agentId;
+        if (blueprint.sessionSpec.cursorMode === CursorMode.UNSPECIFIED) {
+          blueprint.sessionSpec.cursorMode = cursorMode;
+        }
         await client.updateSession(blueprint.session);
-        console.log(`Stored Cursor agentId=${agent.agentId} as thread_id on session ${sessionId}`);
+        console.log(
+          `Stored Cursor agentId=${resolution.agentId} as thread_id, ` +
+          `cursorMode=${CursorMode[cursorMode]} on session ${sessionId}`,
+        );
       } catch (err) {
-        console.warn("Failed to persist thread_id on session (non-fatal):", err);
+        console.warn("Failed to persist thread_id/cursorMode on session (non-fatal):", err);
       }
     }
 
     // Phase 10: Build the prompt
-    let prompt: string;
-    if (isReinvocation && approvalDecisions?.size) {
-      prompt = buildReinvocationPrompt(approvalDecisions);
-    } else {
-      prompt = buildEnhancedPrompt({
-        instructions: blueprint.instructions,
-        userMessage: spec.message,
-        skills: skillMetadata,
-        subAgents: blueprint.subAgents,
-        workspaceDirs: blueprint.workspaceDirs,
-        workspaceFileRefs: spec.workspaceFileRefs ?? [],
-        attachmentPaths,
-      });
-    }
+    const sessionMemory = session?.status?.sessionMemory;
+    const prompt = buildPrompt({
+      resolution,
+      approvalDecisions,
+      sessionMemory,
+      instructions: blueprint.instructions,
+      userMessage: spec.message,
+      skills: skillMetadata,
+      subAgents: blueprint.subAgents,
+      workspaceDirs: blueprint.workspaceDirs,
+      workspaceFileRefs: spec.workspaceFileRefs ?? [],
+      attachmentPaths,
+      pendingApprovals: status.pendingApprovals.length > 0
+        ? status.pendingApprovals
+        : (execution.status?.pendingApprovals ?? []),
+    });
 
     // Phase 11: Send message and stream events
     status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
@@ -205,7 +266,7 @@ async function executeCursor(
 
     let platformStopSignaled = false;
 
-    const run = await agent.send(prompt, {
+    const run = await resolution.agent.send(prompt, {
       onDelta: ({ update }) => {
         if (update.type === "turn-ended" && update.usage) {
         }
@@ -268,6 +329,7 @@ async function executeCursor(
         timestamp: utcTimestamp(),
       }));
       await persistStatus(client, executionId, status);
+      await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
       console.log(`ExecuteCursor completed (platform stop): execution=${executionId}`);
       return slimStatus(status);
     }
@@ -276,11 +338,21 @@ async function executeCursor(
     const deniedCalls = extractDeniedToolCalls(collectedEvents);
     if (deniedCalls.length > 0) {
       status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
+
+      // Capture HITL diagnostics at deny-time for intelligent reinvocation
+      const [gitBranch, gitHead] = await Promise.all([
+        getGitBranch(primaryWorkspaceDir),
+        getGitHeadSha(primaryWorkspaceDir),
+      ]);
+
       status.pendingApprovals = deniedCalls.map((dc) =>
         create(PendingApprovalSchema, {
           toolCallId: dc.callId,
           toolName: dc.name,
           argsPreview: dc.argsPreview,
+          agentRationale: extractAgentRationale(status.messages, dc.callId),
+          branchAtDeny: gitBranch,
+          headShaAtDeny: gitHead,
         }),
       );
       status.messages.push(create(AgentMessageSchema, {
@@ -319,6 +391,10 @@ async function executeCursor(
     }
 
     await persistStatus(client, executionId, status);
+
+    // Phase 14: Build and persist session memory
+    await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
+
     console.log(
       `ExecuteCursor completed: execution=${executionId}, phase=${ExecutionPhase[status.phase]}` +
         (status.error ? `, error=${status.error}` : ""),
@@ -353,7 +429,163 @@ async function executeCursor(
       console.error("Failed to persist error status (best-effort):", persistErr);
     }
 
+    await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
+
     return slimStatus(status);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Prompt selection
+// ---------------------------------------------------------------------------
+
+export interface BuildPromptInput {
+  resolution: AgentResolution;
+  approvalDecisions: Map<string, ApprovalAction> | undefined;
+  sessionMemory: import("@stigmer/protos/ai/stigmer/agentic/session/v1/memory_pb").SessionMemory | undefined;
+  instructions: string;
+  userMessage: string;
+  skills: import("../adapter/prompt-builder.js").SkillMetadata[];
+  subAgents: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent[];
+  workspaceDirs: string[];
+  workspaceFileRefs: string[];
+  attachmentPaths: string[];
+  pendingApprovals: import("@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb").PendingApproval[];
+}
+
+/**
+ * Select and build the appropriate prompt based on resolution mode,
+ * resolution reason, HITL state, and available session memory.
+ *
+ * Decision matrix:
+ *
+ * HITL reinvocations (both modes):
+ * 1. HITL + session memory -> buildHitlContinuationPrompt
+ * 2. HITL + no memory     -> buildReinvocationPrompt (legacy)
+ *
+ * Cloud mode:
+ * 3. Cloud + resumed / first execution -> raw userMessage (trust native context)
+ * 4. Cloud + resume failure + memory   -> buildContinuationPrompt (agent expired)
+ * 5. Cloud + resume failure, no memory -> raw userMessage (best effort)
+ *
+ * Local mode:
+ * 6. Local + first execution           -> buildEnhancedPrompt
+ * 7. Local + subsequent + memory       -> buildContinuationPrompt
+ * 8. Local + subsequent, no memory     -> buildEnhancedPrompt (fallback)
+ */
+export function buildPrompt(input: BuildPromptInput): string {
+  const {
+    resolution,
+    approvalDecisions,
+    sessionMemory,
+    instructions,
+    userMessage,
+    skills,
+    subAgents,
+    workspaceDirs,
+    workspaceFileRefs,
+    attachmentPaths,
+    pendingApprovals,
+  } = input;
+
+  const isHitlReinvocation = approvalDecisions !== undefined && approvalDecisions.size > 0;
+
+  // HITL takes precedence regardless of mode
+  if (isHitlReinvocation && sessionMemory) {
+    return buildHitlContinuationPrompt({
+      instructions,
+      skills,
+      subAgents,
+      workspaceDirs,
+      sessionMemory,
+      pendingApprovals,
+      approvalDecisions,
+    });
+  }
+
+  if (isHitlReinvocation) {
+    return buildReinvocationPrompt(approvalDecisions);
+  }
+
+  // Cloud mode: trust native Cursor context for live agents.
+  // Only inject continuation prompt when the agent expired (fallback).
+  if (resolution.mode === "cloud") {
+    if (resolution.reason === "created_after_resume_failure" && sessionMemory) {
+      return buildContinuationPrompt({
+        instructions,
+        skills,
+        subAgents,
+        workspaceDirs,
+        workspaceFileRefs,
+        attachmentPaths,
+        sessionMemory,
+        userMessage,
+      });
+    }
+    return userMessage;
+  }
+
+  // Local mode: always use continuation prompt on subsequent executions
+  // because local SDK context loading is unreliable.
+  if (resolution.reason !== "created_first_execution" && sessionMemory) {
+    return buildContinuationPrompt({
+      instructions,
+      skills,
+      subAgents,
+      workspaceDirs,
+      workspaceFileRefs,
+      attachmentPaths,
+      sessionMemory,
+      userMessage,
+    });
+  }
+
+  return buildEnhancedPrompt({
+    instructions,
+    userMessage,
+    skills,
+    subAgents,
+    workspaceDirs,
+    workspaceFileRefs,
+    attachmentPaths,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Build and persist session memory if the execution is in a terminal phase.
+ *
+ * Skips WAITING_FOR_APPROVAL (that is a pause, not a completion) and
+ * cases where session/spec are not yet available (very early failures).
+ * Best-effort: errors are logged and swallowed.
+ */
+async function maybePeristSessionMemory(
+  client: StigmerClient,
+  sessionId: string | undefined,
+  session: import("@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb").Session | undefined,
+  status: AgentExecutionStatus,
+  userMessage: string | undefined,
+): Promise<void> {
+  if (!sessionId) return;
+  if (status.phase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL) return;
+
+  try {
+    const previousMemory = session?.status?.sessionMemory;
+    const memory = buildSessionMemory({
+      previousMemory,
+      messages: status.messages,
+      todos: status.todos,
+      userMessage: userMessage ?? "",
+    });
+    await persistSessionMemory(client, sessionId, memory);
+  } catch (err) {
+    console.warn(
+      "Failed to build/persist session memory (non-fatal):",
+      err instanceof Error ? err.message : err,
+    );
   }
 }
 

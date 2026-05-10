@@ -32,7 +32,7 @@ These are the formal architectural decisions governing this codebase. Each is do
 
 **DD-003 — Headless-first.** Three layers, each independently importable: data hooks (API data via `@stigmer/sdk`), behavior hooks (interaction logic, state machines), styled components (hooks + `@stigmer/theme` tokens). Platform builders adopt at the level that fits their needs.
 
-**DD-004 — Zero framework deps in SDK.** `@stigmer/react` has no `next/*` imports, no `@tauri-apps/*` imports, no routing, no app-shell auth, no framework-specific assumptions. It works in any React environment. Navigation and image optimization are the consumer's responsibility — use callback props.
+**DD-004 — Zero framework deps in SDK.** `@stigmer/react` has no `next/*` imports, no `@tauri-apps/*` imports, no routing, no app-shell auth, no framework-specific assumptions. It works in any React environment. Navigation and image optimization are the consumer's responsibility — use callback props. Note: React standard directives (`"use client"`) are not framework-specific imports — they are part of the React Server Components specification and are required for RSC-aware bundler compatibility. Non-RSC environments (Vite, webpack, esbuild) treat them as a no-op string literal.
 
 **DD-005 — Theme token compliance.** All visual properties via `--stgm-*` tokens, scoped to `.stgm` container and `@layer stgm`. Use correct token families per context (sidebar-*, popover-*, standard). See `theme-token-guidelines.mdc` for the complete reference.
 

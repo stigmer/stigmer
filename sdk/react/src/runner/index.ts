@@ -1,3 +1,12 @@
+export { useRunner } from "./useRunner";
+export type {
+  UseRunnerReturn,
+  UseRunnerOptions,
+} from "./useRunner";
+
+export { RunnerDetailView } from "./RunnerDetailView";
+export type { RunnerDetailViewProps } from "./RunnerDetailView";
+
 export { useRunnerList } from "./useRunnerList";
 export type {
   UseRunnerListOptions,
@@ -39,7 +48,7 @@ export type {
 } from "./useRunnerFileBrowser";
 
 export { RunnerListPanel } from "./RunnerListPanel";
-export type { RunnerListPanelProps } from "./RunnerListPanel";
+export type { RunnerListPanelProps, RunnerSortKey } from "./RunnerListPanel";
 
 export { WorkspaceRunnerSelector } from "./WorkspaceRunnerSelector";
 export type { WorkspaceRunnerSelectorProps } from "./WorkspaceRunnerSelector";
@@ -51,3 +60,6 @@ export {
   isTransitionalPhase,
   PHASE_SORT_ORDER,
 } from "./phase";
+
+export { RunnerIcon, PhaseBadge, formatRelativeTime } from "./shared";
+export type { RunnerIconProps, PhaseBadgeProps } from "./shared";

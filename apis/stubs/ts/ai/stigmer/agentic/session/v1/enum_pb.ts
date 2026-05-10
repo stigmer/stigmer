@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/session/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9lbnVtLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSpZChBHaXRXcml0ZUJhY2tNb2RlEiMKH0dJVF9XUklURV9CQUNLX01PREVfVU5TUEVDSUZJRUQQABIgChxHSVRfV1JJVEVfQkFDS19CUkFOQ0hfQU5EX1BSEAEqSgoHSGFybmVzcxIXChNIQVJORVNTX1VOU1BFQ0lGSUVEEAASEgoOSEFSTkVTU19OQVRJVkUQARISCg5IQVJORVNTX0NVUlNPUhACYgZwcm90bzM");
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9lbnVtLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSpZChBHaXRXcml0ZUJhY2tNb2RlEiMKH0dJVF9XUklURV9CQUNLX01PREVfVU5TUEVDSUZJRUQQABIgChxHSVRfV1JJVEVfQkFDS19CUkFOQ0hfQU5EX1BSEAEqSgoHSGFybmVzcxIXChNIQVJORVNTX1VOU1BFQ0lGSUVEEAASEgoOSEFSTkVTU19OQVRJVkUQARISCg5IQVJORVNTX0NVUlNPUhACKlcKCkN1cnNvck1vZGUSGwoXQ1VSU09SX01PREVfVU5TUEVDSUZJRUQQABIVChFDVVJTT1JfTU9ERV9MT0NBTBABEhUKEUNVUlNPUl9NT0RFX0NMT1VEEAJiBnByb3RvMw");
 
 /**
  * GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.
@@ -103,4 +103,67 @@ export enum Harness {
  */
 export const HarnessSchema: GenEnum<Harness> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_session_v1_enum, 1);
+
+/**
+ * CursorMode selects the Cursor SDK agent type for sessions using
+ * HARNESS_CURSOR.
+ *
+ * Determined once at session creation based on workspace entries and never
+ * changed mid-session. Switching would lose Cursor-side conversation state
+ * because local agents (agent- prefix) and cloud agents (bc- prefix) maintain
+ * separate, incompatible conversation stores.
+ *
+ * Ignored when harness is not HARNESS_CURSOR.
+ *
+ * @internal
+ * Mode selection logic (when feature flag STIGMER_CURSOR_CLOUD_MODE_ENABLED
+ * is true):
+ *   - All workspace entries are GitRepoSource -> CURSOR_MODE_CLOUD
+ *   - Any workspace entry is LocalPathSource  -> CURSOR_MODE_LOCAL
+ *   - Feature flag disabled                   -> CURSOR_MODE_LOCAL (forced)
+ *
+ * When UNSPECIFIED on an existing session, the runner treats it as LOCAL
+ * for backward compatibility with sessions created before this field existed.
+ *
+ * @generated from enum ai.stigmer.agentic.session.v1.CursorMode
+ */
+export enum CursorMode {
+  /**
+   * Not yet determined or not applicable (non-Cursor harness).
+   * Runner defaults to LOCAL for backward compatibility.
+   *
+   * @generated from enum value: CURSOR_MODE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Local Cursor agent created with a local cwd configuration.
+   *
+   * Works with any workspace source (git or local path). Stigmer owns
+   * the durable conversation layer — always sends continuation prompts
+   * because Cursor local agents do not reliably retain context across
+   * Agent.send() calls.
+   *
+   * @generated from enum value: CURSOR_MODE_LOCAL = 1;
+   */
+  LOCAL = 1,
+
+  /**
+   * Cloud Cursor agent created with a cloud repos configuration.
+   *
+   * Requires all workspace entries to be GitRepoSource (HTTPS URLs).
+   * Cursor natively manages conversation state for cloud agents, but
+   * Stigmer persists session memory as backup because cloud agents can
+   * expire. Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED.
+   *
+   * @generated from enum value: CURSOR_MODE_CLOUD = 2;
+   */
+  CLOUD = 2,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.session.v1.CursorMode.
+ */
+export const CursorModeSchema: GenEnum<CursorMode> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_session_v1_enum, 2);
 

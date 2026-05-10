@@ -1,4 +1,13 @@
 import { stringify as stringifyYaml } from "yaml";
+import type {
+  AgentInput,
+  McpServerInput,
+  McpServerUsageInput,
+  SubAgentInput,
+  McpAccessInput,
+  ToolApprovalOverrideInput,
+  ResourceRef,
+} from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type {
   AgentSpec,
@@ -397,4 +406,351 @@ function serializeEnv(
 function hasEntries(obj: Record<string, unknown> | undefined): boolean {
   if (!obj) return false;
   return Object.keys(obj).length > 0;
+}
+
+// ===========================================================================
+// AgentInput serialization (from SDK input type, not proto)
+// ===========================================================================
+
+/**
+ * Serializes an {@link AgentInput} (SDK input type) into the canonical
+ * Stigmer YAML format.
+ *
+ * Unlike {@link serializeAgentYaml} which takes a proto `Agent`, this
+ * function works from the SDK input type — the same shape used by
+ * `stigmer.agent.apply()`. This is used by the creation wizard to
+ * preview the YAML before submission.
+ *
+ * The output is round-trip compatible with {@link parseResourceYaml}.
+ *
+ * @param input - The SDK `AgentInput` to serialize.
+ * @returns A YAML string in the canonical Stigmer resource format.
+ *
+ * @example
+ * ```ts
+ * import { serializeAgentInputYaml } from "@stigmer/react";
+ *
+ * const yaml = serializeAgentInputYaml({
+ *   name: "my-agent",
+ *   org: "acme",
+ *   instructions: "You are a helpful assistant.",
+ * });
+ * ```
+ */
+export function serializeAgentInputYaml(input: AgentInput): string {
+  const doc: Record<string, unknown> = {
+    apiVersion: "agentic.stigmer.ai/v1",
+    kind: "Agent",
+    metadata: buildInputMetadata(input),
+    spec: buildAgentInputSpec(input),
+  };
+
+  return stringifyYaml(doc, { lineWidth: 0, blockQuote: "literal" });
+}
+
+function buildInputMetadata(input: AgentInput): Record<string, unknown> {
+  const result: Record<string, unknown> = {
+    name: input.name,
+  };
+
+  if (input.org) {
+    result.org = input.org;
+  }
+
+  if (input.slug && input.slug !== input.name) {
+    result.slug = input.slug;
+  }
+
+  if (input.labels && Object.keys(input.labels).length > 0) {
+    result.labels = { ...input.labels };
+  }
+
+  return result;
+}
+
+function buildAgentInputSpec(input: AgentInput): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  if (input.description) {
+    result.description = input.description;
+  }
+
+  if (input.iconUrl) {
+    result.icon_url = input.iconUrl;
+  }
+
+  if (input.instructions) {
+    result.instructions = input.instructions;
+  }
+
+  if (input.mcpServerUsages && input.mcpServerUsages.length > 0) {
+    result.mcp_server_usages = input.mcpServerUsages.map(serializeInputMcpUsage);
+  }
+
+  if (input.skillRefs && input.skillRefs.length > 0) {
+    result.skill_refs = input.skillRefs.map(serializeInputRef);
+  }
+
+  if (input.subAgents && input.subAgents.length > 0) {
+    result.sub_agents = input.subAgents.map(serializeInputSubAgent);
+  }
+
+  if (input.env && Object.keys(input.env).length > 0) {
+    result.env = serializeInputEnv(input.env);
+  }
+
+  return result;
+}
+
+function serializeInputMcpUsage(
+  usage: McpServerUsageInput,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {
+    mcp_server_ref: serializeInputRef(usage.mcpServerRef),
+  };
+
+  if (usage.enabledTools && usage.enabledTools.length > 0) {
+    result.enabled_tools = [...usage.enabledTools];
+  }
+
+  if (usage.toolApprovalOverrides && usage.toolApprovalOverrides.length > 0) {
+    result.tool_approval_overrides =
+      usage.toolApprovalOverrides.map(serializeInputApprovalOverride);
+  }
+
+  return result;
+}
+
+function serializeInputApprovalOverride(
+  override: ToolApprovalOverrideInput,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  if (override.toolName) {
+    result.tool_name = override.toolName;
+  }
+  if (override.requiresApproval != null) {
+    result.requires_approval = override.requiresApproval;
+  }
+  if (override.message) {
+    result.message = override.message;
+  }
+
+  return result;
+}
+
+function serializeInputSubAgent(sub: SubAgentInput): Record<string, unknown> {
+  const result: Record<string, unknown> = {
+    name: sub.name,
+  };
+
+  if (sub.description) {
+    result.description = sub.description;
+  }
+  if (sub.instructions) {
+    result.instructions = sub.instructions;
+  }
+  if (sub.modelOverride) {
+    result.model_override = sub.modelOverride;
+  }
+  if (sub.mcpAccess && sub.mcpAccess.length > 0) {
+    result.mcp_access = sub.mcpAccess.map(serializeInputMcpAccess);
+  }
+  if (sub.skillRefs && sub.skillRefs.length > 0) {
+    result.skill_refs = sub.skillRefs.map(serializeInputRef);
+  }
+
+  return result;
+}
+
+function serializeInputMcpAccess(
+  access: McpAccessInput,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {
+    mcp_server: access.mcpServer,
+  };
+
+  if (access.enabledTools && access.enabledTools.length > 0) {
+    result.enabled_tools = [...access.enabledTools];
+  }
+
+  return result;
+}
+
+function serializeInputRef(ref: ResourceRef): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  if (ref.org) {
+    result.org = ref.org;
+  }
+  result.slug = ref.slug;
+
+  if (ref.version) {
+    result.version = ref.version;
+  }
+
+  return result;
+}
+
+function serializeInputEnv(
+  env: NonNullable<AgentInput["env"]>,
+): Record<string, Record<string, unknown>> {
+  const result: Record<string, Record<string, unknown>> = {};
+
+  for (const [key, val] of Object.entries(env)) {
+    const entry: Record<string, unknown> = {};
+
+    if (val.isSecret) {
+      entry.is_secret = val.isSecret;
+    }
+    if (val.description) {
+      entry.description = val.description;
+    }
+    if (val.optional) {
+      entry.optional = val.optional;
+    }
+
+    result[key] = entry;
+  }
+
+  return result;
+}
+
+// ===========================================================================
+// McpServerInput serialization (from SDK input type, not proto)
+// ===========================================================================
+
+/**
+ * Serializes a {@link McpServerInput} (SDK input type) into the canonical
+ * Stigmer YAML format.
+ *
+ * Unlike {@link serializeMcpServerYaml} which takes a proto `McpServer`,
+ * this function works from the SDK input type — the same shape used by
+ * `stigmer.mcpServer.apply()`. This is used by the creation wizard to
+ * preview the YAML before submission.
+ *
+ * The output is round-trip compatible with {@link parseResourceYaml}.
+ *
+ * @param input - The SDK `McpServerInput` to serialize.
+ * @returns A YAML string in the canonical Stigmer resource format.
+ *
+ * @example
+ * ```ts
+ * import { serializeMcpServerInputYaml } from "@stigmer/react";
+ *
+ * const yaml = serializeMcpServerInputYaml({
+ *   name: "github",
+ *   org: "acme",
+ *   http: { url: "https://mcp.github.com/sse" },
+ * });
+ * ```
+ */
+export function serializeMcpServerInputYaml(input: McpServerInput): string {
+  const doc: Record<string, unknown> = {
+    apiVersion: "agentic.stigmer.ai/v1",
+    kind: "McpServer",
+    metadata: buildMcpServerInputMetadata(input),
+    spec: buildMcpServerInputSpec(input),
+  };
+
+  return stringifyYaml(doc, { lineWidth: 0, blockQuote: "literal" });
+}
+
+function buildMcpServerInputMetadata(
+  input: McpServerInput,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {
+    name: input.name,
+  };
+
+  if (input.org) {
+    result.org = input.org;
+  }
+
+  if (input.slug && input.slug !== input.name) {
+    result.slug = input.slug;
+  }
+
+  if (input.labels && Object.keys(input.labels).length > 0) {
+    result.labels = { ...input.labels };
+  }
+
+  return result;
+}
+
+function buildMcpServerInputSpec(
+  input: McpServerInput,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  if (input.description) {
+    result.description = input.description;
+  }
+
+  if (input.iconUrl) {
+    result.icon_url = input.iconUrl;
+  }
+
+  if (input.stdio) {
+    const stdio: Record<string, unknown> = {
+      command: input.stdio.command,
+    };
+    if (input.stdio.args && input.stdio.args.length > 0) {
+      stdio.args = [...input.stdio.args];
+    }
+    if (input.stdio.workingDir) {
+      stdio.working_dir = input.stdio.workingDir;
+    }
+    result.stdio = stdio;
+  }
+
+  if (input.http) {
+    const http: Record<string, unknown> = {
+      url: input.http.url,
+    };
+    if (input.http.headers && Object.keys(input.http.headers).length > 0) {
+      http.headers = { ...input.http.headers };
+    }
+    if (input.http.queryParams && Object.keys(input.http.queryParams).length > 0) {
+      http.query_params = { ...input.http.queryParams };
+    }
+    if (input.http.timeoutSeconds && input.http.timeoutSeconds > 0) {
+      http.timeout_seconds = input.http.timeoutSeconds;
+    }
+    result.http = http;
+  }
+
+  if (input.env && Object.keys(input.env).length > 0) {
+    result.env = serializeInputEnv(input.env);
+  }
+
+  if (input.auth) {
+    result.auth = serializeInputMcpServerAuth(input.auth);
+  }
+
+  return result;
+}
+
+function serializeInputMcpServerAuth(
+  auth: NonNullable<McpServerInput["auth"]>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  if (auth.oauthAppRef) {
+    result.oauth_app_ref = serializeInputRef(auth.oauthAppRef);
+  }
+  if (auth.targetEnvVar) {
+    result.target_env_var = auth.targetEnvVar;
+  }
+  if (auth.tokenLifetimeHint) {
+    result.token_lifetime_hint = auth.tokenLifetimeHint;
+  }
+  if (auth.scopeHints && auth.scopeHints.length > 0) {
+    result.scope_hints = [...auth.scopeHints];
+  }
+  if (auth.discoveryUrl) {
+    result.discovery_url = auth.discoveryUrl;
+  }
+
+  return result;
 }

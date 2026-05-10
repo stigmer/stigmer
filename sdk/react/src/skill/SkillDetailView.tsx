@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -9,9 +9,24 @@ import type { GitProvenance } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/
 import { SkillState } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/status_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useSkill } from "./useSkill";
+import { SkillFileBrowser } from "./SkillFileBrowser";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components";
+import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
+import { Section } from "../resource-detail/Section";
+import { useDetailTabs } from "../resource-detail/useDetailTabs";
+import type { AdditionalTab, DetailAction, ResourceHeaderMeta } from "../resource-detail/types";
+import { InlineEditText } from "../inline-edit/InlineEditText";
+import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea";
+import type { TabItem } from "../tabs/Tabs";
+import type { StatusPhase } from "../resource-workbench/types";
+import { useSkillVersions } from "./useSkillVersions";
+import { VersionTimeline } from "../version-history/VersionTimeline";
+import { SkillDiffDialog, type SkillDiffDialogState } from "./SkillDiffDialog";
+
+const CONTENT_TAB: TabItem = { id: "content", label: "Content" };
+const VERSIONS_TAB: TabItem = { id: "versions", label: "Versions" };
 
 /** Props for {@link SkillDetailView}. */
 export interface SkillDetailViewProps {
@@ -39,21 +54,82 @@ export interface SkillDetailViewProps {
   readonly onVisibilityChange?: (v: ApiResourceVisibility) => void;
   /** `true` while a visibility update RPC is in flight. */
   readonly isVisibilityPending?: boolean;
+  /**
+   * Primary action rendered as a visible button in the header area.
+   */
+  readonly primaryAction?: DetailAction;
+  /**
+   * Secondary actions rendered in the kebab overflow menu.
+   */
+  readonly actions?: readonly DetailAction[];
+  /**
+   * Additional tabs to render alongside the built-in "Content" tab.
+   * When provided (with at least one entry), a tab bar appears.
+   * When omitted or empty, no tab bar is shown (single-tab suppression).
+   *
+   * Each entry provides both the tab metadata and the content to render.
+   * The SDK manages the tab switching logic internally.
+   *
+   * @example
+   * ```tsx
+   * <SkillDetailView
+   *   org="acme"
+   *   slug="code-style-guide"
+   *   additionalTabs={[
+   *     { id: "versions", label: "Versions", content: <VersionTimeline /> },
+   *   ]}
+   * />
+   * ```
+   */
+  readonly additionalTabs?: readonly AdditionalTab[];
+  /**
+   * Controlled active tab ID. When provided together with `onTabChange`,
+   * the component operates in controlled mode — the consumer owns tab state.
+   * When omitted, the component manages its own internal tab state.
+   */
+  readonly activeTab?: string;
+  /**
+   * Controlled tab change handler. When provided together with `activeTab`,
+   * the component operates in controlled mode.
+   */
+  readonly onTabChange?: (tabId: string) => void;
+  /**
+   * Default active tab ID when in uncontrolled mode.
+   * @default "content"
+   */
+  readonly defaultTab?: string;
+  /**
+   * Called when the user selects a version in the Versions tab timeline.
+   * Provides the version hash for use cases like navigation to a
+   * version-specific detail view or triggering a diff comparison.
+   */
+  readonly onVersionSelect?: (versionHash: string) => void;
+  /**
+   * When `true`, metadata fields (description, tag) become click-to-edit.
+   * Skill content (SKILL.md / artifact) is NOT editable inline — use the upload flow.
+   * @default false
+   */
+  readonly editable?: boolean;
+  /**
+   * Called after a successful inline field save with the updated skill.
+   * Consumers can use this to refresh breadcrumbs, sync URL state, etc.
+   */
+  readonly onResourceUpdated?: (skill: Skill) => void;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
 
 /**
- * Read-only detail view for a Skill knowledge package.
+ * Operational detail hub for a Skill knowledge package.
  *
  * Fetches the skill via {@link useSkill} internally and renders its
- * full content in structured sections: header, SKILL.md content
- * (rendered as formatted markdown), and version/provenance info.
- * Sections with no data are omitted entirely.
+ * content inside a {@link ResourceDetailShell}: a standardized header
+ * with action bar, the SKILL.md content with a source/rendered toggle,
+ * and version/provenance information.
  *
  * The SKILL.md content is the primary value of this view — it IS the
- * skill. The markdown is rendered using the same styled component
- * overrides used across all SDK markdown surfaces.
+ * skill. Users can toggle between rendered markdown and raw source
+ * (like GitHub's Preview/Code toggle).
  *
  * Handles loading, error, and not-found states automatically.
  * Zero Console dependencies — safe for platform builder embedding.
@@ -78,9 +154,61 @@ export function SkillDetailView({
   onResourceLoad,
   onVisibilityChange,
   isVisibilityPending,
+  primaryAction,
+  actions,
+  additionalTabs,
+  activeTab,
+  onTabChange,
+  defaultTab,
+  onVersionSelect,
+  editable = false,
+  onResourceUpdated,
   className,
 }: SkillDetailViewProps) {
   const { skill, isLoading, error, refetch } = useSkill(org, slug, version);
+  const { versions, isEmpty: noVersions, getArtifactKey } = useSkillVersions(org, slug);
+  const [diffState, setDiffState] = useState<SkillDiffDialogState | null>(null);
+
+  const builtInTabs = useMemo<readonly TabItem[]>(
+    () => (noVersions ? [CONTENT_TAB] : [CONTENT_TAB, VERSIONS_TAB]),
+    [noVersions],
+  );
+
+  const {
+    effectiveTabs,
+    effectiveActiveTab,
+    effectiveOnTabChange,
+    activeAdditionalTab,
+  } = useDetailTabs({
+    builtInTabs,
+    additionalTabs,
+    activeTab,
+    onTabChange,
+    defaultTab,
+  });
+
+  const handleVersionSelect = useCallback(
+    (id: string) => onVersionSelect?.(id),
+    [onVersionSelect],
+  );
+
+  const handleCompare = useCallback(
+    (fromId: string, toId: string) => {
+      const fromKey = getArtifactKey(fromId);
+      const toKey = getArtifactKey(toId);
+      if (!fromKey || !toKey) return;
+
+      setDiffState({
+        fromArtifactKey: fromKey,
+        toArtifactKey: toKey,
+        fromLabel: fromId.slice(0, 12),
+        toLabel: toId.slice(0, 12),
+      });
+    },
+    [getArtifactKey],
+  );
+
+  const closeDiff = useCallback(() => setDiffState(null), []);
 
   const onResourceLoadRef = useRef(onResourceLoad);
   onResourceLoadRef.current = onResourceLoad;
@@ -96,27 +224,144 @@ export function SkillDetailView({
     return <ErrorMessage error={error} retry={refetch} className={className} />;
   if (!skill) return <NotFoundState className={className} />;
 
+  const meta = skill.metadata;
   const spec = skill.spec;
   const status = skill.status;
   const specAudit = status?.audit?.specAudit;
 
-  return (
-    <div className={cn("flex flex-col gap-6", className)}>
-      <Header
-        skill={skill}
-        createdAt={
-          specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null
-        }
-        updatedAt={
-          specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null
-        }
-        onVisibilityChange={onVisibilityChange}
-        isVisibilityPending={isVisibilityPending}
-      />
+  const headerMeta: ResourceHeaderMeta = {
+    name: meta?.name || meta?.slug || "Untitled",
+    id: meta?.id || "",
+    org: meta?.org,
+    slug: meta?.slug,
+    description: undefined,
+    icon: <SkillIcon className="size-6 text-muted-foreground" />,
+    createdAt: specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null,
+    updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
+    status: status ? skillStateToPhase(status.state) : undefined,
+    statusLabel: status ? skillStateLabel(status.state) : undefined,
+  };
 
-      {spec?.skillMd && (
-        <SkillContentSection content={spec.skillMd} />
+  const isPublic = meta?.visibility === ApiResourceVisibility.visibility_public;
+  const visibilityControl =
+    onVisibilityChange && meta ? (
+      <VisibilityToggle
+        visibility={meta.visibility}
+        onVisibilityChange={onVisibilityChange}
+        isPending={isVisibilityPending}
+      />
+    ) : isPublic ? (
+      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+        Public
+      </span>
+    ) : undefined;
+
+  let tabContent: React.ReactNode;
+  if (activeAdditionalTab) {
+    tabContent = activeAdditionalTab.content;
+  } else if (effectiveActiveTab === "versions" && versions.length > 0) {
+    tabContent = (
+      <VersionTimeline
+        entries={versions}
+        onEntrySelect={handleVersionSelect}
+        onCompare={handleCompare}
+      />
+    );
+  } else {
+    tabContent = (
+      <SkillOverview
+        spec={spec}
+        status={status}
+        editable={editable}
+      />
+    );
+  }
+
+  return (
+    <>
+      <ResourceDetailShell
+        header={headerMeta}
+        visibilityControl={visibilityControl}
+        primaryAction={primaryAction}
+        actions={actions}
+        tabs={effectiveTabs}
+        activeTab={effectiveTabs ? effectiveActiveTab : undefined}
+        onTabChange={effectiveTabs ? effectiveOnTabChange : undefined}
+        tabsAriaLabel="Skill detail sections"
+        className={className}
+      >
+        {tabContent}
+      </ResourceDetailShell>
+      <SkillDiffDialog state={diffState} onClose={closeDiff} />
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Overview content — the skill's built-in "Content" tab
+// ---------------------------------------------------------------------------
+
+function SkillOverview({
+  spec,
+  status,
+  editable,
+}: {
+  readonly spec: NonNullable<Skill["spec"]> | undefined;
+  readonly status: Skill["status"] | undefined;
+  readonly editable?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-6">
+      {(editable || spec?.description) && (
+        <Section title="Description">
+          {editable ? (
+            <div className="max-h-20 overflow-y-auto p-3">
+              <InlineEditTextarea
+                value={spec?.description || ""}
+                onSave={async () => false}
+                isSaving={false}
+                placeholder="Add a description"
+                minRows={2}
+                disabled
+              />
+            </div>
+          ) : (
+            <div className="p-3">
+              <pre className="whitespace-pre-wrap break-words text-sm text-foreground font-sans">
+                {spec?.description}
+              </pre>
+            </div>
+          )}
+        </Section>
       )}
+
+      {(editable || spec?.tag) && (
+        <Section title="Tag">
+          {editable ? (
+            <div className="p-3">
+              <InlineEditText
+                value={spec?.tag || ""}
+                onSave={async () => false}
+                isSaving={false}
+                placeholder="Add a tag (e.g. stable, latest)"
+                disabled
+              />
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-2.5">
+              <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-foreground">
+                {spec?.tag}
+              </span>
+            </div>
+          )}
+        </Section>
+      )}
+
+      {status?.artifactStorageKey ? (
+        <SkillFileBrowser artifactStorageKey={status.artifactStorageKey} />
+      ) : spec?.skillMd ? (
+        <SkillContentSection content={spec.skillMd} />
+      ) : null}
 
       {status && (status.versionHash || status.gitProvenance) && (
         <VersionSection
@@ -129,130 +374,119 @@ export function SkillDetailView({
 }
 
 // ---------------------------------------------------------------------------
-// Internal section components
+// Skill state → StatusPhase mapping
 // ---------------------------------------------------------------------------
 
-function Header({
-  skill,
-  createdAt,
-  updatedAt,
-  onVisibilityChange,
-  isVisibilityPending,
-}: {
-  readonly skill: Skill;
-  readonly createdAt: Date | null;
-  readonly updatedAt: Date | null;
-  readonly onVisibilityChange?: (v: ApiResourceVisibility) => void;
-  readonly isVisibilityPending?: boolean;
-}) {
-  const meta = skill.metadata;
-  const spec = skill.spec;
-  const status = skill.status;
-  const displayName = meta?.name || meta?.slug || "Untitled";
-  const isPublic =
-    meta?.visibility === ApiResourceVisibility.visibility_public;
+function skillStateToPhase(state: SkillState): StatusPhase | undefined {
+  switch (state) {
+    case SkillState.READY:
+      return "ready";
+    case SkillState.FAILED:
+      return "failed";
+    case SkillState.UPLOADING:
+      return "pending";
+    default:
+      return undefined;
+  }
+}
+
+function skillStateLabel(state: SkillState): string | undefined {
+  switch (state) {
+    case SkillState.READY:
+      return "Ready";
+    case SkillState.FAILED:
+      return "Failed";
+    case SkillState.UPLOADING:
+      return "Uploading";
+    default:
+      return undefined;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Content section with source/rendered toggle
+// ---------------------------------------------------------------------------
+
+type ContentViewMode = "rendered" | "source";
+
+function SkillContentSection({ content }: { readonly content: string }) {
+  const [viewMode, setViewMode] = useState<ContentViewMode>("rendered");
 
   return (
-    <div className="flex items-start gap-3">
-      <SkillIcon className="mt-1 size-6 shrink-0 text-muted-foreground" />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <h2 className="truncate text-lg font-semibold text-foreground">
-            {displayName}
-          </h2>
-          {onVisibilityChange && meta ? (
-            <VisibilityToggle
-              visibility={meta.visibility}
-              onVisibilityChange={onVisibilityChange}
-              isPending={isVisibilityPending}
-            />
-          ) : (
-            isPublic && (
-              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                Public
-              </span>
-            )
-          )}
+    <SkillSection
+      title="Skill Content"
+      trailing={
+        <ContentViewToggle value={viewMode} onChange={setViewMode} />
+      }
+    >
+      {viewMode === "rendered" ? (
+        <div className="p-4">
+          <Markdown
+            remarkPlugins={REMARK_PLUGINS}
+            components={MARKDOWN_COMPONENTS}
+          >
+            {stripFrontmatter(content)}
+          </Markdown>
         </div>
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
-          {meta?.org && <span>{meta.org}</span>}
-          {spec?.tag && (
-            <>
-              <Dot />
-              <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium">
-                {spec.tag}
-              </span>
-            </>
-          )}
-          {status && <SkillStateBadge state={status.state} />}
-          {createdAt && (
-            <>
-              <Dot />
-              <span>Created {formatDate(createdAt)}</span>
-            </>
-          )}
-          {updatedAt && (
-            <>
-              <Dot />
-              <span>Updated {formatDate(updatedAt)}</span>
-            </>
-          )}
-        </div>
-        {spec?.description && (
-          <p className="mt-2 text-sm text-muted-foreground">
-            {spec.description}
-          </p>
+      ) : (
+        <pre className="overflow-x-auto p-4 font-mono text-sm leading-relaxed text-foreground">
+          {content}
+        </pre>
+      )}
+    </SkillSection>
+  );
+}
+
+function ContentViewToggle({
+  value,
+  onChange,
+}: {
+  readonly value: ContentViewMode;
+  readonly onChange: (mode: ContentViewMode) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Content view mode"
+      className="inline-flex rounded-md border border-input text-[11px]"
+    >
+      <button
+        type="button"
+        role="radio"
+        aria-checked={value === "rendered"}
+        onClick={() => onChange("rendered")}
+        className={cn(
+          "rounded-l-md px-2 py-0.5 font-medium transition-colors",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          value === "rendered"
+            ? "bg-muted text-foreground"
+            : "text-muted-foreground hover:text-foreground",
         )}
-      </div>
+      >
+        Preview
+      </button>
+      <button
+        type="button"
+        role="radio"
+        aria-checked={value === "source"}
+        onClick={() => onChange("source")}
+        className={cn(
+          "rounded-r-md border-l border-input px-2 py-0.5 font-medium transition-colors",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          value === "source"
+            ? "bg-muted text-foreground"
+            : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        Source
+      </button>
     </div>
   );
 }
 
-function SkillStateBadge({ state }: { readonly state: SkillState }) {
-  switch (state) {
-    case SkillState.READY:
-      return (
-        <>
-          <Dot />
-          <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-            <CheckIcon className="size-3" />
-            Ready
-          </span>
-        </>
-      );
-    case SkillState.FAILED:
-      return (
-        <>
-          <Dot />
-          <span className="text-destructive">Failed</span>
-        </>
-      );
-    case SkillState.UPLOADING:
-      return (
-        <>
-          <Dot />
-          <span className="text-amber-600 dark:text-amber-400">Uploading</span>
-        </>
-      );
-    default:
-      return null;
-  }
-}
-
-function SkillContentSection({ content }: { readonly content: string }) {
-  return (
-    <Section title="Skill Content">
-      <div className="p-4">
-        <Markdown
-          remarkPlugins={REMARK_PLUGINS}
-          components={MARKDOWN_COMPONENTS}
-        >
-          {stripFrontmatter(content)}
-        </Markdown>
-      </div>
-    </Section>
-  );
-}
+// ---------------------------------------------------------------------------
+// Version section
+// ---------------------------------------------------------------------------
 
 function VersionSection({
   versionHash,
@@ -347,30 +581,27 @@ function GitProvenanceDisplay({
 // Shared layout primitives
 // ---------------------------------------------------------------------------
 
-function Section({
+function SkillSection({
   title,
+  trailing,
   children,
 }: {
   readonly title: string;
+  readonly trailing?: React.ReactNode;
   readonly children: React.ReactNode;
 }) {
   return (
     <section>
-      <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {title}
-      </h3>
+      <div className="mb-2 flex items-center justify-between">
+        <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          {title}
+        </h3>
+        {trailing}
+      </div>
       <div className="overflow-hidden rounded-lg border border-border">
         {children}
       </div>
     </section>
-  );
-}
-
-function Dot() {
-  return (
-    <span className="shrink-0" aria-hidden="true">
-      {"\u00B7"}
-    </span>
   );
 }
 
@@ -435,14 +666,6 @@ function NotFoundState({ className }: { readonly className?: string }) {
 // Utilities
 // ---------------------------------------------------------------------------
 
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
 function normalizeGitUrl(url: string): string | null {
   if (!url) return null;
   const cleaned = url.replace(/\.git$/, "");
@@ -482,23 +705,6 @@ function SkillIcon({ className }: { readonly className?: string }) {
       aria-hidden="true"
     >
       <path d="M9 1.5 4 9h4l-1 5.5L12 7H8l1-5.5Z" />
-    </svg>
-  );
-}
-
-function CheckIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="m3 8.5 3.5 3.5 6.5-8" />
     </svg>
   );
 }

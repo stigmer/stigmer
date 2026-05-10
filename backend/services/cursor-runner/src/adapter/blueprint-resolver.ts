@@ -17,7 +17,9 @@ import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentSpec, McpServerUsage, SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type { CloudRepo } from "./session-lifecycle.js";
 
 /**
  * Path segments that identify runner-internal directories. Any workspace dir
@@ -38,6 +40,7 @@ export interface ResolvedBlueprint {
   mergedMcpServerUsages: McpServerUsage[];
   mergedSkillRefs: ApiResourceReference[];
   workspaceDirs: string[];
+  cloudRepos: CloudRepo[];
 }
 
 /**
@@ -69,6 +72,7 @@ export async function resolveBlueprint(
   );
 
   const workspaceDirs = resolveWorkspaceDirs(sessionSpec, fallbackWorkspaceDir);
+  const cloudRepos = resolveCloudRepos(sessionSpec.workspaceEntries);
 
   return {
     agent,
@@ -80,8 +84,42 @@ export async function resolveBlueprint(
     mergedMcpServerUsages,
     mergedSkillRefs,
     workspaceDirs,
+    cloudRepos,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Cloud repo extraction
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract Cursor SDK-compatible repo descriptors from workspace entries.
+ *
+ * Maps Stigmer's GitRepoSource (url + branch) to the Cursor SDK's
+ * CloudAgentOptions.repos shape ({ url, startingRef? }). Only GitRepoSource
+ * entries produce output — LocalPathSource entries are silently skipped.
+ *
+ * Always computed (cheap iteration) but only consumed when mode is cloud.
+ */
+export function resolveCloudRepos(workspaceEntries: WorkspaceEntry[]): CloudRepo[] {
+  const repos: CloudRepo[] = [];
+
+  for (const entry of workspaceEntries) {
+    if (entry.source?.source.case === "gitRepo") {
+      const git = entry.source.source.value;
+      repos.push({
+        url: git.url,
+        startingRef: git.branch || undefined,
+      });
+    }
+  }
+
+  return repos;
+}
+
+// ---------------------------------------------------------------------------
+// MCP and skill merging
+// ---------------------------------------------------------------------------
 
 /**
  * Merge MCP server usages from agent (base) and session (overlay).
@@ -133,6 +171,10 @@ export function mergeSkillRefs(
 
   return [...bySlug.values()];
 }
+
+// ---------------------------------------------------------------------------
+// Local workspace resolution
+// ---------------------------------------------------------------------------
 
 /**
  * Resolve workspace directories from session workspace entries.

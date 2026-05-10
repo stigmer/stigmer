@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { RouterProvider } from "react-router-dom";
 import { Stigmer } from "@stigmer/sdk";
-import { StigmerProvider, OrgProvider } from "@stigmer/react";
+import { StigmerProvider, OrgProvider, FetchCacheProvider } from "@stigmer/react";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { Toaster } from "sonner";
 import { router } from "./routes";
@@ -83,10 +83,12 @@ function AppContent({
 
   return (
     <AppUpdaterProvider>
-      <OrgProvider>
-        <RouterProvider router={router} />
-        <Toaster position="bottom-right" richColors />
-      </OrgProvider>
+      <FetchCacheProvider>
+        <OrgProvider>
+          <RouterProvider router={router} />
+          <Toaster position="bottom-right" richColors />
+        </OrgProvider>
+      </FetchCacheProvider>
     </AppUpdaterProvider>
   );
 }

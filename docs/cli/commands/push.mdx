@@ -36,17 +36,18 @@ stigmer push skill --dry-run
 
 ## Options
 
-| Flag             | Type          | Default  | Description                                                |
-| ---------------- | ------------- | -------- | ---------------------------------------------------------- |
-| `--dry-run`      | `bool`        |          | validate without pushing                                   |
-| `--git-ref`      | `string`      |          | git reference (tag, branch, or commit SHA) for remote push |
-| `--git-url`      | `string`      |          | push from a remote git repository URL                      |
-| `--ignore`       | `stringArray` |          | additional patterns to ignore (can be repeated)            |
-| `--include`      | `stringArray` |          | patterns to force-include (can be repeated)                |
-| `--no-gitignore` | `bool`        |          | don't respect .gitignore patterns                          |
-| `--subdir`       | `string`      |          | subdirectory within git repository containing the artifact |
-| `--tag`          | `string`      | `latest` | version tag for the artifact                               |
-| `--verbose`      | `bool`        |          | show detailed output including ignore decisions            |
+| Flag              | Type          | Default  | Description                                                |
+| ----------------- | ------------- | -------- | ---------------------------------------------------------- |
+| `--dry-run`       | `bool`        |          | validate without pushing                                   |
+| `--git-ref`       | `string`      |          | git reference (tag, branch, or commit SHA) for remote push |
+| `--git-url`       | `string`      |          | push from a remote git repository URL                      |
+| `--ignore`        | `stringArray` |          | additional patterns to ignore (can be repeated)            |
+| `--include`       | `stringArray` |          | patterns to force-include (can be repeated)                |
+| `--message`, `-m` | `string`      |          | version message describing what changed                    |
+| `--no-gitignore`  | `bool`        |          | don't respect .gitignore patterns                          |
+| `--subdir`        | `string`      |          | subdirectory within git repository containing the artifact |
+| `--tag`           | `string`      | `latest` | version tag for the artifact                               |
+| `--verbose`       | `bool`        |          | show detailed output including ignore decisions            |
 
 ### Source modes
 

@@ -98,9 +98,6 @@ class Runner:
         )
         from stigmer_runner.worker.activities.ensure_thread import ensure_thread
         from stigmer_runner.worker.activities.execute_graphton import execute_graphton
-        from stigmer_runner.worker.activities.generate_session_subject import (
-            generate_session_subject,
-        )
         
         mode = "LOCAL" if self.config.is_local_mode() else "CLOUD"
         self.logger.info(f"🔧 Execution Mode: {mode}")
@@ -138,7 +135,6 @@ class Runner:
             activities=[
                 execute_graphton,
                 ensure_thread,
-                generate_session_subject,
                 discover_mcp_server,
                 classify_tool_approvals,
             ],
@@ -152,8 +148,7 @@ class Runner:
         )
         self.logger.info(
             "✅ [POLYGLOT] Activities: ExecuteGraphton, EnsureThread, "
-            "GenerateSessionSubject, DiscoverMcpServerCapabilities, "
-            "ClassifyToolApprovals"
+            "DiscoverMcpServerCapabilities, ClassifyToolApprovals"
         )
         self.logger.info(
             f"✅ [POLYGLOT] Max concurrency: {self.config.max_concurrency}"

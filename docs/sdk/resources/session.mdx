@@ -68,6 +68,7 @@ Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`apply`](#apply) | Create or update a session. |
 | [`create`](#create) | Create a session. |
 | [`update`](#update) | Update an existing session (e.g., subject, thread_id). |
+| [`updateSessionMemory`](#updatesessionmemory) | Persist session memory after execution. |
 | [`updateSubject`](#updatesubject) | Set the session subject. |
 | [`delete`](#delete) | Delete a session. |
 
@@ -222,6 +223,7 @@ const session = await stigmer.session.apply({
   runnerId: "...",
   skillRefs: [],
   harness: "...",
+  cursorMode: "...",
 });
 ```
 </Tab>
@@ -242,6 +244,7 @@ session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
   RunnerId:         "...",
   SkillRefs:        []stigmer.ResourceRef{},
   Harness:          "...",
+  CursorMode:       "...",
 })
 ```
 </Tab>
@@ -262,6 +265,7 @@ session = client.sessions.apply(SessionInput(
     runner_id="...",
     skill_refs=[],
     harness="...",
+    cursor_mode="...",
 ))
 ```
 </Tab>
@@ -282,6 +286,7 @@ Session session = client.sessions().apply(SessionInput.builder()
     .runnerId("...")
     .skillRefs(List.of())
     .harness("...")
+    .cursorMode("...")
     .build());
 ```
 </Tab>
@@ -313,6 +318,7 @@ const session = await stigmer.session.create({
   runnerId: "...",
   skillRefs: [],
   harness: "...",
+  cursorMode: "...",
 });
 ```
 </Tab>
@@ -333,6 +339,7 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
   RunnerId:         "...",
   SkillRefs:        []stigmer.ResourceRef{},
   Harness:          "...",
+  CursorMode:       "...",
 })
 ```
 </Tab>
@@ -353,6 +360,7 @@ session = client.sessions.create(SessionInput(
     runner_id="...",
     skill_refs=[],
     harness="...",
+    cursor_mode="...",
 ))
 ```
 </Tab>
@@ -373,6 +381,7 @@ Session session = client.sessions().create(SessionInput.builder()
     .runnerId("...")
     .skillRefs(List.of())
     .harness("...")
+    .cursorMode("...")
     .build());
 ```
 </Tab>
@@ -404,6 +413,7 @@ const session = await stigmer.session.update({
   runnerId: "...",
   skillRefs: [],
   harness: "...",
+  cursorMode: "...",
 });
 ```
 </Tab>
@@ -424,6 +434,7 @@ session, err := client.Session.Update(ctx, &stigmer.SessionInput{
   RunnerId:         "...",
   SkillRefs:        []stigmer.ResourceRef{},
   Harness:          "...",
+  CursorMode:       "...",
 })
 ```
 </Tab>
@@ -444,6 +455,7 @@ session = client.sessions.update(SessionInput(
     runner_id="...",
     skill_refs=[],
     harness="...",
+    cursor_mode="...",
 ))
 ```
 </Tab>
@@ -464,12 +476,58 @@ Session session = client.sessions().update(SessionInput.builder()
     .runnerId("...")
     .skillRefs(List.of())
     .harness("...")
+    .cursorMode("...")
     .build());
 ```
 </Tab>
 </SDKTabs>
 
 **Parameters**: [`SessionInput`](#sessioninput)
+
+**Returns**: [`Session`](#session)
+
+### updateSessionMemory
+
+Persist session memory after execution.
+
+Atomically updates only status.session_memory, leaving all other session fields untouched. Called by the cursor-runner after each completed execution turn.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const session = await stigmer.session.updateSessionMemory({
+  id: "...",
+  sessionMemory: {},
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+session, err := client.Session.UpdateSessionMemory(ctx, &stigmer.UpdateSessionMemoryRequest{
+  Id:            "...",
+  SessionMemory: &stigmer.SessionMemoryInput{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+session = client.sessions.update_session_memory(UpdateSessionMemoryRequest(
+    id="...",
+    session_memory=None,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Session session = client.sessions().updateSessionMemory(UpdateSessionMemoryRequest.builder()
+    .id("...")
+    .sessionMemory(null)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`UpdateSessionMemoryRequest`](#updatesessionmemoryrequest)
 
 **Returns**: [`Session`](#session)
 
@@ -575,6 +633,7 @@ Input for creating or updating a Session.
     runnerId: { type: "string", description: "Runner that executes work for this session." },
     skillRefs: { type: "ResourceRef[]", description: "Skills to inject into this session's context.", typeDescriptionLink: "#resourceref" },
     harness: { type: "Harness", description: "Execution harness for this session.", typeDescriptionLink: "#harness" },
+    cursorMode: { type: "CursorMode", description: "Cursor SDK agent mode for this session.", typeDescriptionLink: "#cursormode" },
   }}
 />
 
@@ -672,6 +731,17 @@ UpdateSessionSubjectRequest sets the conversation title for a session.
   }}
 />
 
+### UpdateSessionMemoryRequest
+
+UpdateSessionMemoryRequest persists durable session memory after each completed execution turn.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Session ID to update.", required: true },
+    sessionMemory: { type: "SessionMemoryInput", description: "The session memory to persist." },
+  }}
+/>
+
 ### ListSessionsRequest
 
 ListSessionsRequest specifies parameters for listing sessions.
@@ -717,7 +787,60 @@ Session represents a multi-turn conversation thread with an agent.
     kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcemetadata" },
     spec: { type: "SessionInput", description: "Resource specification. See [`SessionInput`](#sessioninput).", typeDescriptionLink: "#sessioninput" },
-    status: { type: "SessionStatus", description: "System-managed state. See `SessionStatus`." },
+    status: { type: "SessionStatus", description: "System-managed state. See [`SessionStatus`](#sessionstatus).", typeDescriptionLink: "#sessionstatus" },
+  }}
+/>
+
+### SessionStatus
+
+SessionStatus contains system-managed runtime state for a session.
+
+<TypeTable
+  type={{
+    sessionMemory: { type: "SessionMemory", description: "Durable session memory for continuation across agent evictions.", typeDescriptionLink: "#sessionmemory" },
+    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
+  }}
+/>
+
+### ConversationTurn
+
+ConversationTurn captures a single message in the conversation for replay.
+
+<TypeTable
+  type={{
+    role: { type: "string", description: "The role of the message author." },
+    content: { type: "string", description: "The message content, potentially truncated." },
+    timestamp: { type: "string", description: "ISO 8601 timestamp when the message was sent." },
+  }}
+/>
+
+### SessionMemory
+
+SessionMemory captures durable conversation state that survives agent eviction, process restarts, and Cursor SDK "agent not found" failures.
+
+<TypeTable
+  type={{
+    durableSummary: { type: "string", description: "High-level narrative of what has been accomplished so far." },
+    workspaceDigest: { type: "string", description: "Digest of the workspace state at the time of last persistence." },
+    changedFiles: { type: "string[]", description: "Files created or modified during the session." },
+    openTasks: { type: "string[]", description: "Outstanding tasks or questions the agent identified but has not completed." },
+    toolObservations: { type: "ToolObservation[]", description: "Summaries of significant tool executions during the session.", typeDescriptionLink: "#toolobservation" },
+    recentTurns: { type: "ConversationTurn[]", description: "Recent conversation turns for verbatim replay in the continuation prompt.", typeDescriptionLink: "#conversationturn" },
+    decisions: { type: "string[]", description: "Explicit decisions the agent made during the session." },
+    failedAttempts: { type: "string[]", description: "Approaches that were tried and failed during the session." },
+  }}
+/>
+
+### ToolObservation
+
+ToolObservation captures the outcome of a significant tool execution.
+
+<TypeTable
+  type={{
+    command: { type: "string", description: "The command or tool invocation that was executed." },
+    cwd: { type: "string", description: "Working directory where the command was executed." },
+    exitCode: { type: "number", description: "Process exit code (0 = success)." },
+    summary: { type: "string", description: "Short summary of the tool output." },
   }}
 />
 
@@ -729,6 +852,15 @@ Harness identifies the execution engine that processes agent activities for a se
 |-------|-------------|
 | `HARNESS_NATIVE` | Stigmer's native execution engine. |
 | `HARNESS_CURSOR` | Cursor SDK execution engine. |
+
+### CursorMode
+
+CursorMode selects the Cursor SDK agent type for sessions using HARNESS_CURSOR.
+
+| Value | Description |
+|-------|-------------|
+| `CURSOR_MODE_LOCAL` | Local Cursor agent created with a local cwd configuration. |
+| `CURSOR_MODE_CLOUD` | Cloud Cursor agent created with a cloud repos configuration. |
 
 ### GitWriteBackMode
 

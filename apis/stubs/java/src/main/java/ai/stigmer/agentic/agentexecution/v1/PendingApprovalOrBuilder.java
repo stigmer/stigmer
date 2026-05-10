@@ -244,4 +244,108 @@ public interface PendingApprovalOrBuilder extends
    */
   com.google.protobuf.ByteString
       getSubAgentSubjectBytes();
+
+  /**
+   * <pre>
+   * Why the agent wanted to execute this tool.
+   *
+   * Extracted from the last assistant message before the tool call.
+   * Gives the reinvocation agent context for the original intent, enabling
+   * it to decide whether the action still makes sense.
+   *
+   * Example: "Need to install the missing dependency to fix the build"
+   * Empty when rationale extraction was not possible.
+   * </pre>
+   *
+   * <code>string agent_rationale = 10 [json_name = "agentRationale"];</code>
+   * @return The agentRationale.
+   */
+  java.lang.String getAgentRationale();
+  /**
+   * <pre>
+   * Why the agent wanted to execute this tool.
+   *
+   * Extracted from the last assistant message before the tool call.
+   * Gives the reinvocation agent context for the original intent, enabling
+   * it to decide whether the action still makes sense.
+   *
+   * Example: "Need to install the missing dependency to fix the build"
+   * Empty when rationale extraction was not possible.
+   * </pre>
+   *
+   * <code>string agent_rationale = 10 [json_name = "agentRationale"];</code>
+   * @return The bytes for agentRationale.
+   */
+  com.google.protobuf.ByteString
+      getAgentRationaleBytes();
+
+  /**
+   * <pre>
+   * Git branch name at the time the tool was denied.
+   *
+   * Diagnostic metadata only — the reinvocation agent inspects the actual
+   * current workspace state rather than relying on this value. Included
+   * in the HITL continuation prompt as a reference point for the agent
+   * to detect whether workspace state has drifted.
+   *
+   * Example: "feature/add-auth"
+   * Empty when the workspace is not git-backed.
+   * </pre>
+   *
+   * <code>string branch_at_deny = 11 [json_name = "branchAtDeny"];</code>
+   * @return The branchAtDeny.
+   */
+  java.lang.String getBranchAtDeny();
+  /**
+   * <pre>
+   * Git branch name at the time the tool was denied.
+   *
+   * Diagnostic metadata only — the reinvocation agent inspects the actual
+   * current workspace state rather than relying on this value. Included
+   * in the HITL continuation prompt as a reference point for the agent
+   * to detect whether workspace state has drifted.
+   *
+   * Example: "feature/add-auth"
+   * Empty when the workspace is not git-backed.
+   * </pre>
+   *
+   * <code>string branch_at_deny = 11 [json_name = "branchAtDeny"];</code>
+   * @return The bytes for branchAtDeny.
+   */
+  com.google.protobuf.ByteString
+      getBranchAtDenyBytes();
+
+  /**
+   * <pre>
+   * Git HEAD SHA at the time the tool was denied.
+   *
+   * Diagnostic metadata only — same purpose as branch_at_deny. Allows
+   * the reinvocation agent to compare against current HEAD to understand
+   * whether commits have landed since the tool was proposed.
+   *
+   * Example: "a1b2c3d4e5f6..."
+   * Empty when the workspace is not git-backed.
+   * </pre>
+   *
+   * <code>string head_sha_at_deny = 12 [json_name = "headShaAtDeny"];</code>
+   * @return The headShaAtDeny.
+   */
+  java.lang.String getHeadShaAtDeny();
+  /**
+   * <pre>
+   * Git HEAD SHA at the time the tool was denied.
+   *
+   * Diagnostic metadata only — same purpose as branch_at_deny. Allows
+   * the reinvocation agent to compare against current HEAD to understand
+   * whether commits have landed since the tool was proposed.
+   *
+   * Example: "a1b2c3d4e5f6..."
+   * Empty when the workspace is not git-backed.
+   * </pre>
+   *
+   * <code>string head_sha_at_deny = 12 [json_name = "headShaAtDeny"];</code>
+   * @return The bytes for headShaAtDeny.
+   */
+  com.google.protobuf.ByteString
+      getHeadShaAtDenyBytes();
 }

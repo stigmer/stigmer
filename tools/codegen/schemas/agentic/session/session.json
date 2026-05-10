@@ -128,6 +128,21 @@
       },
       "description": "Execution harness for this session.\n\n Determines which Temporal activity type is dispatched when an\n AgentExecution is created in this session:\n - NATIVE (default): ExecuteGraphton activity -\u003e Stigmer native worker\n - CURSOR: ExecuteCursor activity -\u003e TypeScript/Cursor SDK worker\n\n The harness affects which tools the agent has, how conversation state\n is managed, available models, and billing tier. Once set and an execution\n has run, the harness is immutable — changing it would break conversation\n continuity since each harness owns its own state.\n\n When unspecified, defaults to HARNESS_NATIVE.",
       "required": false
+    },
+    {
+      "name": "CursorMode",
+      "jsonName": "cursorMode",
+      "protoField": "cursor_mode",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.session.v1.CursorMode",
+        "enumValues": [
+          "CURSOR_MODE_LOCAL",
+          "CURSOR_MODE_CLOUD"
+        ]
+      },
+      "description": "Cursor SDK agent mode for this session.\n\n Determines whether the Cursor agent runs locally (Agent.create with\n local.cwd) or in the cloud (Agent.create with cloud.repos). Set once\n at session creation based on workspace entries and never changed —\n switching mid-session would lose Cursor-side conversation state.\n\n Only meaningful when harness == HARNESS_CURSOR. Ignored for other\n harness types.\n\n @internal\n Set by the cursor-runner on the first execution when cursor_mode is\n UNSPECIFIED. The workflow reads it back on subsequent executions to\n route to the correct Agent.create / Agent.resume path.\n\n When UNSPECIFIED on an existing CURSOR session, the runner defaults\n to LOCAL for backward compatibility.",
+      "required": false
     }
   ]
 }

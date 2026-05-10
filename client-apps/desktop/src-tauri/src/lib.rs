@@ -1,5 +1,6 @@
 mod auth;
 mod menu;
+mod preferences;
 mod sidecar;
 mod tray;
 
@@ -47,6 +48,10 @@ pub fn run() {
             sidecar::check_runner_log_exists,
             sidecar::tail_runner_log_file,
             sidecar::watch_runner_log_file,
+            sidecar::query_runner_socket,
+            sidecar::stop_runner_via_socket,
+            preferences::get_runner_preference,
+            preferences::set_runner_preference,
         ])
         .on_menu_event(|app, event| menu::handle_menu_event(app, &event))
         .setup(|app| {

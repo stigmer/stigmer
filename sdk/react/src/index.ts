@@ -256,7 +256,7 @@ export type {
   SessionComposerSubmitContext,
 } from "./composer";
 
-// MCP Server — data hook, count hook, list hook, search hook, picker, config panel, tool selector, detail view, setup orchestration, and OAuth connect
+// MCP Server — data hook, count hook, list hook, search hook, picker, config panel, tool selector, detail view, setup orchestration, OAuth connect, and update
 export {
   useMcpServer,
   useMcpServerCount,
@@ -273,7 +273,11 @@ export {
   McpServerConfigPanel,
   McpServerDetailView,
   McpServerConnectDialog,
+  McpServerCreationWizard,
   McpToolSelector,
+  useCreateMcpServer,
+  useUpdateMcpServer,
+  mcpServerToInput,
   toServerKey,
 } from "./mcp-server";
 export type {
@@ -307,9 +311,14 @@ export type {
   UseOAuthGrantStatusReturn,
   UseDisconnectOAuthReturn,
   McpServerAuthMode,
+  UseCreateMcpServerReturn,
+  UseUpdateMcpServerReturn,
+  McpServerCreationWizardProps,
+  McpServerCreationResult,
+  McpServerWizardData,
 } from "./mcp-server";
 
-// Skill — data hook, count hook, list hook, search hook, picker, and detail view component
+// Skill — data hooks, upload, file browser, and mutation
 export {
   useSkill,
   useSkillCount,
@@ -317,6 +326,15 @@ export {
   useSkillSearch,
   SkillPicker,
   SkillDetailView,
+  usePushSkill,
+  useSkillUpload,
+  useSkillArtifact,
+  useSkillVersions,
+  useSkillDiff,
+  useSkillDuplicateCheck,
+  SkillUploader,
+  SkillFileBrowser,
+  SkillDiffDialog,
 } from "./skill";
 export type {
   UseSkillReturn,
@@ -328,6 +346,19 @@ export type {
   UseSkillSearchReturn,
   SkillPickerProps,
   SkillDetailViewProps,
+  PushSkillInput,
+  UsePushSkillReturn,
+  SkillUploadPreview,
+  SkillFileEntry,
+  UseSkillUploadReturn,
+  UseSkillArtifactReturn,
+  UseSkillVersionsReturn,
+  UseSkillDiffReturn,
+  UseSkillDuplicateCheckReturn,
+  SkillDiffDialogProps,
+  SkillDiffDialogState,
+  SkillUploaderProps,
+  SkillFileBrowserProps,
 } from "./skill";
 
 // GitHub — OAuth connection, repo picker, and hooks
@@ -350,7 +381,7 @@ export type {
   GitHubRepoPickerProps,
 } from "./github";
 
-// Agent — data hook, count hook, list hook, search hook, picker, detail view, env form, setup orchestration, env diffing, and default agent
+// Agent — data hook, count hook, list hook, search hook, picker, detail view, env form, setup orchestration, env diffing, default agent, creation wizard, update
 export {
   useAgent,
   useAgentCount,
@@ -362,6 +393,10 @@ export {
   diffEnv,
   useAgentSetup,
   useDefaultAgent,
+  useCreateAgent,
+  useUpdateAgent,
+  agentToInput,
+  AgentCreationWizard,
 } from "./agent";
 export type {
   UseAgentReturn,
@@ -384,6 +419,11 @@ export type {
   SubmitEnvVarsOptions,
   UseAgentSetupReturn,
   UseDefaultAgentReturn,
+  UseCreateAgentReturn,
+  UseUpdateAgentReturn,
+  AgentCreationWizardProps,
+  AgentCreationResult,
+  AgentWizardData,
 } from "./agent";
 
 // Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, env var form, system env vars, and styled components
@@ -691,7 +731,6 @@ export {
   useBreadcrumbLabel,
   useBreadcrumbOverride,
   ScopeToggle,
-  ResourceListView,
   ResourceCountCard,
   detectStigmerResource,
   useDetectStigmerResource,
@@ -701,16 +740,18 @@ export {
   parseResourceYaml,
   serializeAgentYaml,
   serializeMcpServerYaml,
+  serializeAgentInputYaml,
+  serializeMcpServerInputYaml,
   useApplyResource,
+  useExportResource,
+  useImportResource,
+  ImportResourceDialog,
   VisibilityToggle,
   useUpdateVisibility,
 } from "./library";
 export type {
   ScopeToggleProps,
-  ResourceListViewProps,
-  ResourceListLayout,
   ResourceCountCardProps,
-  ResourceListScope,
   StigmerResourceKind,
   StigmerResourceDetection,
   SkillPackageDetection,
@@ -719,10 +760,41 @@ export type {
   UseApplyResourceReturn,
   ApplyResourceResult,
   PushSkillParams,
+  UseExportResourceOptions,
+  UseExportResourceReturn,
+  ImportFormat,
+  ImportPreview,
+  UseImportResourceReturn,
+  ImportResourceDialogProps,
   VisibilityToggleProps,
   VisibilityResourceKind,
   UseUpdateVisibilityReturn,
 } from "./library";
+
+// Action menu — compound component for resource item actions
+export { ActionMenu } from "./action-menu";
+export type {
+  ActionMenuProps,
+  ActionMenuTriggerProps,
+  ActionMenuContentProps,
+  ActionMenuItemProps,
+  ActionMenuSeparatorProps,
+  ActionMenuGroupProps,
+} from "./action-menu";
+
+// Feedback — toast notification system wrapping Sonner
+export { StigmerToaster, toast } from "./feedback";
+export type { StigmerToasterProps } from "./feedback";
+
+// Empty state — reusable empty/zero/permission/error state primitives
+export { EmptyState, useEmptyState } from "./empty-state";
+export type {
+  EmptyStateVariant,
+  EmptyStateAction,
+  EmptyStateProps,
+  UseEmptyStateOptions,
+  UseEmptyStateReturn,
+} from "./empty-state";
 
 // Search — shared search/list/count infrastructure re-exported for public API surface
 export type {
@@ -772,8 +844,10 @@ export type {
   UseCreateAgentInstanceReturn,
 } from "./agent-instance";
 
-// Runner — data hooks, action hooks, styled picker, admin list panel, and phase utilities
+// Runner — data hooks, action hooks, styled picker, admin list panel, detail view, and phase utilities
 export {
+  useRunner,
+  RunnerDetailView,
   useRunnerList,
   useLaunchLocalRunner,
   useRunnerCredential,
@@ -783,6 +857,9 @@ export {
   RunnerPicker,
   RunnerFileBrowser,
   RunnerListPanel,
+  RunnerIcon,
+  PhaseBadge,
+  formatRelativeTime,
   phaseLabel,
   phaseDotColor,
   isActivePhase,
@@ -790,6 +867,9 @@ export {
   PHASE_SORT_ORDER,
 } from "./runner";
 export type {
+  UseRunnerReturn,
+  UseRunnerOptions,
+  RunnerDetailViewProps,
   UseRunnerListOptions,
   UseRunnerListReturn,
   UseLaunchLocalRunnerOptions,
@@ -805,4 +885,186 @@ export type {
   RunnerPickerProps,
   RunnerFileBrowserProps,
   RunnerListPanelProps,
+  RunnerSortKey,
+  RunnerIconProps,
+  PhaseBadgeProps,
 } from "./runner";
+
+// Tabs — accessible tabbed panel primitive
+export { Tabs } from "./tabs";
+export type { TabsProps, TabItem } from "./tabs";
+
+// Resource Detail — headless hooks, action bar, and composed shell for resource detail pages
+export {
+  useCopyResource,
+  useConfirmAction,
+  useDeleteResource,
+  ResourceActionBar,
+  ResourceDetailShell,
+  Section,
+  ConfirmDialog,
+} from "./resource-detail";
+export type {
+  AdditionalTab,
+  DetailAction,
+  ResourceHeaderMeta,
+  ConfirmOptions,
+  ConfirmState,
+  ResourceDetailShellProps,
+  SectionProps,
+  UseCopyResourceReturn,
+  UseConfirmActionReturn,
+  DeletableResourceKind,
+  UseDeleteResourceReturn,
+  ResourceActionBarProps,
+  ConfirmDialogProps,
+} from "./resource-detail";
+
+// Resource Creation — shared wizard infrastructure for multi-step creation flows
+export {
+  useWizardState,
+  useTemplateFilter,
+  WizardShell,
+  WizardNav,
+  StepIndicator,
+  TemplateCard,
+  TemplateGallery,
+  CreationPicker,
+  TEMPLATE_CATEGORY_LABELS,
+  AGENT_TEMPLATES,
+  MCP_SERVER_TEMPLATES,
+} from "./resource-creation";
+export type {
+  EnvVarEntry,
+  KeyValueEntry,
+  WizardStepDef,
+  WizardState,
+  WizardShellProps,
+  UseWizardStateOptions,
+  UseWizardStateReturn,
+  UseTemplateFilterOptions,
+  UseTemplateFilterReturn,
+  WizardNavProps,
+  StepIndicatorProps,
+  ResourceTemplate,
+  TemplateCategory,
+  TemplateCardProps,
+  TemplateGalleryProps,
+  CreationPickerProps,
+  CreationPath,
+} from "./resource-creation";
+
+// Dependency Graph — visual tree of agent dependencies (MCP servers, skills, sub-agents)
+export { DependencyGraph, useDependencyGraph } from "./dependency-graph";
+export type {
+  NodeKind,
+  DependencyNode,
+  DependencyTree,
+  DependencyGraphProps,
+  UseDependencyGraphOptions,
+  UseDependencyGraphReturn,
+} from "./dependency-graph";
+
+// Version History — generic timeline, diff infrastructure for versioned resources
+export {
+  VersionTimeline,
+  VersionTimelineEntry,
+  DiffViewer,
+  DiffFileList,
+  DiffSummary,
+  MultiFileDiffView,
+  computeDiff,
+  computeMultiFileDiff,
+} from "./version-history";
+export type {
+  VersionEntry,
+  VersionTimelineProps,
+  VersionTimelineEntryProps,
+  DiffViewerProps,
+  DiffFileListProps,
+  DiffSummaryProps,
+  MultiFileDiffViewProps,
+  DiffLine,
+  DiffHunk,
+  FileDiffEntry,
+  MultiFileDiffResult,
+  DiffViewMode,
+} from "./version-history";
+
+// Inline Edit — click-to-edit field primitives for detail page inline editing
+export {
+  InlineEditText,
+  InlineEditTextarea,
+  InlineEditImage,
+  InlineEditSelect,
+  InlineEditKeyValue,
+  InlineEditResourceList,
+  useInlineFieldSave,
+} from "./inline-edit";
+export type {
+  InlineEditTextProps,
+  InlineEditTextareaProps,
+  InlineEditImageProps,
+  InlineEditSelectProps,
+  InlineEditKeyValueProps,
+  InlineEditResourceListProps,
+  UseInlineFieldSaveReturn,
+  InlineEditBaseProps,
+  KeyValueRow,
+  ResourceRefRow,
+  SelectOption,
+} from "./inline-edit";
+
+// Resource Workbench — headless hooks, view components, and composed shell for resource collection management
+export {
+  useViewPreference,
+  useResourceCollection,
+  useResourceFilters,
+  useResourceSelection,
+  StatusBadge,
+  ColumnHeader,
+  SelectionCheckbox,
+  ResourceTable,
+  ResourceCards,
+  ResourceList,
+  BulkActionBar,
+  FilterBar,
+  ViewSwitcher,
+  ResourceInspector,
+  ResourceWorkbench,
+  ResourceAvatar,
+} from "./resource-workbench";
+export type {
+  ViewMode,
+  StatusPhase,
+  WorkbenchColumnDef,
+  FilterOperator,
+  FilterValue,
+  FilterDef,
+  FilterOption,
+  SortDirection,
+  SortValue,
+  SortDef,
+  ResourceAction,
+  BulkAction,
+  WorkbenchState,
+  UseViewPreferenceReturn,
+  UseResourceCollectionOptions,
+  UseResourceCollectionReturn,
+  UseResourceFiltersOptions,
+  UseResourceFiltersReturn,
+  FilterSortState,
+  UseResourceSelectionReturn,
+  StatusBadgeProps,
+  ColumnHeaderProps,
+  SelectionCheckboxProps,
+  ResourceTableProps,
+  ResourceCardsProps,
+  ResourceListProps,
+  BulkActionBarProps,
+  FilterBarProps,
+  ViewSwitcherProps,
+  ResourceInspectorProps,
+  ResourceWorkbenchProps,
+  ResourceAvatarProps,
+} from "./resource-workbench";

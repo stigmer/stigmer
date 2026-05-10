@@ -4,6 +4,8 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.skill.v1.GetArtifactRequest;
 import ai.stigmer.agentic.skill.v1.GetArtifactResponse;
+import ai.stigmer.agentic.skill.v1.ListSkillVersionsInput;
+import ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse;
 import ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest;
 import ai.stigmer.agentic.skill.v1.PushSkillRequest;
 import ai.stigmer.agentic.skill.v1.Skill;
@@ -70,6 +72,12 @@ public final class SkillClient {
     public GetArtifactResponse getArtifact(GetArtifactRequest input) {
         try {
             return query.getArtifact(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ListSkillVersionsResponse listVersions(ListSkillVersionsInput input) {
+        try {
+            return query.listVersions(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

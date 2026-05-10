@@ -78,15 +78,16 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "stoppedAt\022-\n\022current_executions\030\006 \001(\005R\021c" +
       "urrentExecutions\022[\n\017connection_info\030\010 \001(" +
       "\01322.ai.stigmer.agentic.runner.v1.RunnerC" +
-      "onnectionInfoR\016connectionInfoJ\004\010\007\020\010\"}\n\024R" +
-      "unnerConnectionInfo\022\032\n\010hostname\030\001 \001(\tR\010h" +
-      "ostname\022\016\n\002os\030\002 \001(\tR\002os\022\022\n\004arch\030\003 \001(\tR\004a" +
-      "rch\022%\n\016runner_version\030\004 \001(\tR\rrunnerVersi" +
-      "onB\237\001B\010ApiProtoP\001\242\002\004ASAR\252\002\034Ai.Stigmer.Ag" +
-      "entic.Runner.V1\312\002\034Ai\\Stigmer\\Agentic\\Run" +
-      "ner\\V1\342\002(Ai\\Stigmer\\Agentic\\Runner\\V1\\GP" +
-      "BMetadata\352\002 Ai::Stigmer::Agentic::Runner" +
-      "::V1b\006proto3"
+      "onnectionInfoR\016connectionInfoJ\004\010\007\020\010\"\234\001\n\024" +
+      "RunnerConnectionInfo\022\032\n\010hostname\030\001 \001(\tR\010" +
+      "hostname\022\016\n\002os\030\002 \001(\tR\002os\022\022\n\004arch\030\003 \001(\tR\004" +
+      "arch\022%\n\016runner_version\030\004 \001(\tR\rrunnerVers" +
+      "ion\022\035\n\nmachine_id\030\005 \001(\tR\tmachineIdB\237\001B\010A" +
+      "piProtoP\001\242\002\004ASAR\252\002\034Ai.Stigmer.Agentic.Ru" +
+      "nner.V1\312\002\034Ai\\Stigmer\\Agentic\\Runner\\V1\342\002" +
+      "(Ai\\Stigmer\\Agentic\\Runner\\V1\\GPBMetadat" +
+      "a\352\002 Ai::Stigmer::Agentic::Runner::V1b\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -115,7 +116,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_runner_v1_RunnerConnectionInfo_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_runner_v1_RunnerConnectionInfo_descriptor,
-        new java.lang.String[] { "Hostname", "Os", "Arch", "RunnerVersion", });
+        new java.lang.String[] { "Hostname", "Os", "Arch", "RunnerVersion", "MachineId", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.runner.v1.EnumProto.getDescriptor();
     ai.stigmer.agentic.runner.v1.SpecProto.getDescriptor();
