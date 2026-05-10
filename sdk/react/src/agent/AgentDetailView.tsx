@@ -11,6 +11,8 @@ import type { ApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/ap
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useAgent } from "./useAgent";
+import { useUpdateAgent } from "./useUpdateAgent";
+import { agentToInput } from "./internal/agentToInput";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell";
@@ -20,6 +22,12 @@ import type { TabItem } from "../tabs/Tabs";
 import { DependencyGraph } from "../dependency-graph/DependencyGraph";
 import { useDependencyGraph } from "../dependency-graph/useDependencyGraph";
 import type { DependencyNode } from "../dependency-graph/types";
+import { InlineEditText } from "../inline-edit/InlineEditText";
+import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea";
+import { InlineEditImage } from "../inline-edit/InlineEditImage";
+import { InlineEditKeyValue } from "../inline-edit/InlineEditKeyValue";
+import { InlineEditResourceList } from "../inline-edit/InlineEditResourceList";
+import type { KeyValueRow, ResourceRefRow } from "../inline-edit/types";
 
 const INSTRUCTIONS_COLLAPSED_LINES = 8;
 
@@ -108,6 +116,17 @@ export interface AgentDetailViewProps {
    * @default "overview"
    */
   readonly defaultTab?: string;
+  /**
+   * When `true`, fields on the detail view become click-to-edit.
+   * Each field saves independently via `stigmer.agent.update()`.
+   * @default false
+   */
+  readonly editable?: boolean;
+  /**
+   * Called after a successful inline field save with the updated agent.
+   * Consumers can use this to refresh breadcrumbs, sync URL state, etc.
+   */
+  readonly onResourceUpdated?: (agent: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb").Agent) => void;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -166,9 +185,32 @@ export function AgentDetailView({
   activeTab,
   onTabChange,
   defaultTab,
+  editable = false,
+  onResourceUpdated,
   className,
 }: AgentDetailViewProps) {
   const { agent, isLoading, error, refetch } = useAgent(org, slug);
+  const { update, isUpdating } = useUpdateAgent();
+
+  const saveField = useCallback(
+    async <K extends keyof import("@stigmer/sdk").AgentInput>(
+      field: K,
+      value: import("@stigmer/sdk").AgentInput[K],
+    ): Promise<boolean> => {
+      if (!agent) return false;
+      const input = agentToInput(agent);
+      (input as unknown as Record<string, unknown>)[field] = value;
+      try {
+        const updated = await update(input);
+        onResourceUpdated?.(updated);
+        refetch();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [agent, update, onResourceUpdated, refetch],
+  );
 
   const { tree, isEmpty: noDeps } = useDependencyGraph({
     agentName: agent?.metadata?.name || agent?.metadata?.slug || slug,
@@ -230,9 +272,19 @@ export function AgentDetailView({
     id: meta?.id || "",
     org: meta?.org,
     slug: meta?.slug,
-    description: spec?.description,
-    iconUrl: spec?.iconUrl,
-    icon: spec?.iconUrl ? undefined : <AgentIcon className="size-6 text-muted-foreground" />,
+    description: editable ? undefined : spec?.description,
+    iconUrl: editable ? undefined : spec?.iconUrl,
+    icon: editable
+      ? (
+        <InlineEditImage
+          value={spec?.iconUrl ?? ""}
+          onSave={(v) => saveField("iconUrl", v || undefined)}
+          isSaving={isUpdating}
+          fallback={<AgentIcon className="size-6 text-muted-foreground" />}
+          disabled={!editable}
+        />
+      )
+      : spec?.iconUrl ? undefined : <AgentIcon className="size-6 text-muted-foreground" />,
     createdAt: specAudit?.createdAt ? timestampDate(specAudit.createdAt) : null,
     updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
   };
@@ -268,6 +320,9 @@ export function AgentDetailView({
         agentOrg={agentOrg}
         onMcpServerClick={onMcpServerClick}
         onSkillClick={onSkillClick}
+        editable={editable}
+        isSaving={isUpdating}
+        saveField={saveField}
       />
     );
   }
@@ -284,6 +339,24 @@ export function AgentDetailView({
       tabsAriaLabel="Agent detail sections"
       className={className}
     >
+      {editable && (
+        <div className="flex flex-col gap-1 -mt-2 mb-2">
+          <InlineEditText
+            value={meta?.name || ""}
+            onSave={(v) => saveField("name", v)}
+            isSaving={isUpdating}
+            variant="heading"
+            placeholder="Agent name"
+            validate={(v) => (v.trim() ? null : "Name is required")}
+          />
+          <InlineEditText
+            value={spec?.description || ""}
+            onSave={(v) => saveField("description", v || undefined)}
+            isSaving={isUpdating}
+            placeholder="Add a description"
+          />
+        </div>
+      )}
       {tabContent}
     </ResourceDetailShell>
   );
@@ -298,40 +371,191 @@ function AgentOverview({
   agentOrg,
   onMcpServerClick,
   onSkillClick,
+  editable,
+  isSaving,
+  saveField,
 }: {
   readonly spec: NonNullable<ReturnType<typeof useAgent>["agent"]>["spec"];
   readonly agentOrg: string;
   readonly onMcpServerClick?: (ref: { org: string; slug: string }) => void;
   readonly onSkillClick?: (ref: { org: string; slug: string }) => void;
+  readonly editable?: boolean;
+  readonly isSaving?: boolean;
+  readonly saveField?: <K extends keyof import("@stigmer/sdk").AgentInput>(
+    field: K,
+    value: import("@stigmer/sdk").AgentInput[K],
+  ) => Promise<boolean>;
 }) {
+  const handleInstructionsSave = useCallback(
+    async (v: string) => saveField?.("instructions", v || undefined) ?? false,
+    [saveField],
+  );
+
+  const handleMcpServersSave = useCallback(
+    async (refs: ResourceRefRow[]) =>
+      saveField?.(
+        "mcpServerUsages",
+        refs.map((r) => ({
+          mcpServerRef: { org: r.org, slug: r.slug },
+        })),
+      ) ?? false,
+    [saveField],
+  );
+
+  const handleSkillsSave = useCallback(
+    async (refs: ResourceRefRow[]) =>
+      saveField?.(
+        "skillRefs",
+        refs.map((r) => ({ org: r.org, slug: r.slug })),
+      ) ?? false,
+    [saveField],
+  );
+
+  const handleEnvSave = useCallback(
+    async (rows: KeyValueRow[]) => {
+      const env: Record<string, { isSecret?: boolean; description?: string; optional?: boolean }> = {};
+      for (const row of rows) {
+        if (row.key.trim()) {
+          env[row.key.trim()] = {
+            isSecret: row.isSecret || undefined,
+            description: row.description || undefined,
+            optional: row.optional || undefined,
+          };
+        }
+      }
+      return saveField?.("env", Object.keys(env).length > 0 ? env : undefined) ?? false;
+    },
+    [saveField],
+  );
+
+  const mcpRefRows: ResourceRefRow[] = useMemo(
+    () =>
+      (spec?.mcpServerUsages ?? []).map((u) => ({
+        org: u.mcpServerRef?.org || agentOrg,
+        slug: u.mcpServerRef?.slug ?? "",
+        label:
+          u.mcpServerRef?.org && u.mcpServerRef.org !== agentOrg
+            ? `${u.mcpServerRef.org}/${u.mcpServerRef.slug}`
+            : u.mcpServerRef?.slug ?? "",
+      })),
+    [spec?.mcpServerUsages, agentOrg],
+  );
+
+  const skillRefRows: ResourceRefRow[] = useMemo(
+    () =>
+      (spec?.skillRefs ?? []).map((ref) => ({
+        org: ref.org || agentOrg,
+        slug: ref.slug,
+        label:
+          ref.org && ref.org !== agentOrg
+            ? `${ref.org}/${ref.slug}`
+            : ref.slug,
+      })),
+    [spec?.skillRefs, agentOrg],
+  );
+
+  const envRows: KeyValueRow[] = useMemo(
+    () =>
+      Object.entries(spec?.env ?? {})
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, decl]) => ({
+          key,
+          value: "",
+          isSecret: decl.isSecret,
+          description: decl.description,
+          optional: decl.optional,
+        })),
+    [spec?.env],
+  );
+
+  const showInstructions = editable || !!spec?.instructions;
+  const showMcpServers = editable || (spec && spec.mcpServerUsages.length > 0);
+  const showSkills = editable || (spec && spec.skillRefs.length > 0);
+  const showSubAgents = spec && spec.subAgents.length > 0;
+  const showEnv = editable || (spec?.env && Object.keys(spec.env).length > 0);
+
   return (
     <div className="flex flex-col gap-6 pt-2">
-      {spec?.instructions && (
-        <InstructionsSection text={spec.instructions} />
+      {showInstructions && (
+        <Section title="Instructions">
+          {editable ? (
+            <div className="p-3">
+              <InlineEditTextarea
+                value={spec?.instructions ?? ""}
+                onSave={handleInstructionsSave}
+                isSaving={isSaving}
+                placeholder="Add instructions for the agent"
+                minRows={4}
+              />
+            </div>
+          ) : (
+            <InstructionsContent text={spec?.instructions ?? ""} />
+          )}
+        </Section>
       )}
 
-      {spec && spec.mcpServerUsages.length > 0 && (
-        <McpUsagesSection
-          usages={spec.mcpServerUsages}
-          defaultOrg={agentOrg}
-          onMcpServerClick={onMcpServerClick}
-        />
+      {showMcpServers && (
+        <Section title={`MCP Servers${!editable && spec ? ` (${spec.mcpServerUsages.length})` : ""}`}>
+          {editable ? (
+            <InlineEditResourceList
+              value={mcpRefRows}
+              onSave={handleMcpServersSave}
+              isSaving={isSaving}
+              onItemClick={onMcpServerClick ? (ref) => onMcpServerClick({ org: ref.org, slug: ref.slug }) : undefined}
+              itemIcon={<McpServerIcon className="size-4" />}
+              resourceLabel="MCP server"
+            />
+          ) : (
+            <McpUsagesContent
+              usages={spec?.mcpServerUsages ?? []}
+              defaultOrg={agentOrg}
+              onMcpServerClick={onMcpServerClick}
+            />
+          )}
+        </Section>
       )}
 
-      {spec && spec.skillRefs.length > 0 && (
-        <SkillsSection
-          refs={spec.skillRefs}
-          defaultOrg={agentOrg}
-          onSkillClick={onSkillClick}
-        />
+      {showSkills && (
+        <Section title={`Skills${!editable && spec ? ` (${spec.skillRefs.length})` : ""}`}>
+          {editable ? (
+            <InlineEditResourceList
+              value={skillRefRows}
+              onSave={handleSkillsSave}
+              isSaving={isSaving}
+              onItemClick={onSkillClick ? (ref) => onSkillClick({ org: ref.org, slug: ref.slug }) : undefined}
+              itemIcon={<SkillIcon className="size-4" />}
+              resourceLabel="skill"
+            />
+          ) : (
+            <SkillsContent
+              refs={spec?.skillRefs ?? []}
+              defaultOrg={agentOrg}
+              onSkillClick={onSkillClick}
+            />
+          )}
+        </Section>
       )}
 
-      {spec && spec.subAgents.length > 0 && (
-        <SubAgentsSection subAgents={spec.subAgents} />
+      {showSubAgents && (
+        <SubAgentsSection subAgents={spec!.subAgents} />
       )}
 
-      {spec?.env && Object.keys(spec.env).length > 0 && (
-        <EnvSection data={spec.env} />
+      {showEnv && (
+        <Section title={`Environment Variables${!editable ? ` (${Object.keys(spec?.env ?? {}).length})` : ""}`}>
+          {editable ? (
+            <InlineEditKeyValue
+              value={envRows}
+              onSave={handleEnvSave}
+              isSaving={isSaving}
+              showSecretToggle
+              showOptionalToggle
+              showDescription
+              keyLabel="Variable name"
+            />
+          ) : (
+            <EnvContent data={spec?.env ?? {}} />
+          )}
+        </Section>
       )}
     </div>
   );
@@ -341,7 +565,7 @@ function AgentOverview({
 // Internal section components
 // ---------------------------------------------------------------------------
 
-function InstructionsSection({ text }: { readonly text: string }) {
+function InstructionsContent({ text }: { readonly text: string }) {
   const lines = text.split("\n");
   const needsCollapse = lines.length > INSTRUCTIONS_COLLAPSED_LINES;
   const [expanded, setExpanded] = useState(false);
@@ -352,27 +576,25 @@ function InstructionsSection({ text }: { readonly text: string }) {
       : text;
 
   return (
-    <Section title="Instructions">
-      <div className="p-3">
-        <pre className="whitespace-pre-wrap break-words font-mono text-sm text-foreground">
-          {displayText}
-          {needsCollapse && !expanded && "\u2026"}
-        </pre>
-        {needsCollapse && (
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="mt-2 text-xs font-medium text-primary transition-colors hover:text-primary-muted"
-          >
-            {expanded ? "Show less" : "Show more"}
-          </button>
-        )}
-      </div>
-    </Section>
+    <div className="p-3">
+      <pre className="whitespace-pre-wrap break-words font-mono text-sm text-foreground">
+        {displayText}
+        {needsCollapse && !expanded && "\u2026"}
+      </pre>
+      {needsCollapse && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-2 text-xs font-medium text-primary transition-colors hover:text-primary-muted"
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      )}
+    </div>
   );
 }
 
-function McpUsagesSection({
+function McpUsagesContent({
   usages,
   defaultOrg,
   onMcpServerClick,
@@ -382,68 +604,66 @@ function McpUsagesSection({
   readonly onMcpServerClick?: (ref: { org: string; slug: string }) => void;
 }) {
   return (
-    <Section title={`MCP Servers (${usages.length})`}>
-      <div className="flex flex-col">
-        {usages.map((usage, index) => {
-          const ref = usage.mcpServerRef;
-          if (!ref) return null;
+    <div className="flex flex-col">
+      {usages.map((usage, index) => {
+        const ref = usage.mcpServerRef;
+        if (!ref) return null;
 
-          const refOrg = ref.org || defaultOrg;
-          const label =
-            ref.org && ref.org !== defaultOrg
-              ? `${ref.org}/${ref.slug}`
-              : ref.slug;
-          const toolCount = usage.enabledTools.length;
-          const approvalCount = usage.toolApprovalOverrides.length;
+        const refOrg = ref.org || defaultOrg;
+        const label =
+          ref.org && ref.org !== defaultOrg
+            ? `${ref.org}/${ref.slug}`
+            : ref.slug;
+        const toolCount = usage.enabledTools.length;
+        const approvalCount = usage.toolApprovalOverrides.length;
 
-          const summary = [
-            toolCount > 0
-              ? `${toolCount} ${toolCount === 1 ? "tool" : "tools"}`
-              : "all tools",
-            approvalCount > 0
-              ? `${approvalCount} approval ${approvalCount === 1 ? "override" : "overrides"}`
-              : "",
-          ]
-            .filter(Boolean)
-            .join(" \u00B7 ");
+        const summary = [
+          toolCount > 0
+            ? `${toolCount} ${toolCount === 1 ? "tool" : "tools"}`
+            : "all tools",
+          approvalCount > 0
+            ? `${approvalCount} approval ${approvalCount === 1 ? "override" : "overrides"}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" \u00B7 ");
 
-          const row = (
-            <div className="flex items-center gap-3">
-              <McpServerIcon className="size-4 shrink-0 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">
-                {label}
-              </span>
-              <span className="text-xs text-muted-foreground">{summary}</span>
-            </div>
-          );
+        const row = (
+          <div className="flex items-center gap-3">
+            <McpServerIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">
+              {label}
+            </span>
+            <span className="text-xs text-muted-foreground">{summary}</span>
+          </div>
+        );
 
-          return onMcpServerClick ? (
-            <button
-              key={ref.slug || index}
-              type="button"
-              onClick={() =>
-                onMcpServerClick({ org: refOrg, slug: ref.slug })
-              }
-              className={cn(
-                "w-full rounded-md px-3 py-2 text-left transition-colors",
-                "hover:bg-accent-hover",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-              )}
-            >
-              {row}
-            </button>
-          ) : (
-            <div key={ref.slug || index} className="px-3 py-2">
-              {row}
-            </div>
-          );
-        })}
-      </div>
-    </Section>
+        return onMcpServerClick ? (
+          <button
+            key={ref.slug || index}
+            type="button"
+            onClick={() =>
+              onMcpServerClick({ org: refOrg, slug: ref.slug })
+            }
+            className={cn(
+              "w-full rounded-md px-3 py-2 text-left transition-colors",
+              "hover:bg-accent-hover",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+            )}
+          >
+            {row}
+          </button>
+        ) : (
+          <div key={ref.slug || index} className="px-3 py-2">
+            {row}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
-function SkillsSection({
+function SkillsContent({
   refs,
   defaultOrg,
   onSkillClick,
@@ -453,45 +673,43 @@ function SkillsSection({
   readonly onSkillClick?: (ref: { org: string; slug: string }) => void;
 }) {
   return (
-    <Section title={`Skills (${refs.length})`}>
-      <div className="flex flex-col">
-        {refs.map((ref, index) => {
-          const refOrg = ref.org || defaultOrg;
-          const label =
-            ref.org && ref.org !== defaultOrg
-              ? `${ref.org}/${ref.slug}`
-              : ref.slug;
+    <div className="flex flex-col">
+      {refs.map((ref, index) => {
+        const refOrg = ref.org || defaultOrg;
+        const label =
+          ref.org && ref.org !== defaultOrg
+            ? `${ref.org}/${ref.slug}`
+            : ref.slug;
 
-          const row = (
-            <div className="flex items-center gap-3">
-              <SkillIcon className="size-4 shrink-0 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">
-                {label}
-              </span>
-            </div>
-          );
+        const row = (
+          <div className="flex items-center gap-3">
+            <SkillIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">
+              {label}
+            </span>
+          </div>
+        );
 
-          return onSkillClick ? (
-            <button
-              key={ref.slug || index}
-              type="button"
-              onClick={() => onSkillClick({ org: refOrg, slug: ref.slug })}
-              className={cn(
-                "w-full rounded-md px-3 py-2 text-left transition-colors",
-                "hover:bg-accent-hover",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-              )}
-            >
-              {row}
-            </button>
-          ) : (
-            <div key={ref.slug || index} className="px-3 py-2">
-              {row}
-            </div>
-          );
-        })}
-      </div>
-    </Section>
+        return onSkillClick ? (
+          <button
+            key={ref.slug || index}
+            type="button"
+            onClick={() => onSkillClick({ org: refOrg, slug: ref.slug })}
+            className={cn(
+              "w-full rounded-md px-3 py-2 text-left transition-colors",
+              "hover:bg-accent-hover",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+            )}
+          >
+            {row}
+          </button>
+        ) : (
+          <div key={ref.slug || index} className="px-3 py-2">
+            {row}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -635,7 +853,7 @@ function SubAgentDetails({
   );
 }
 
-function EnvSection({
+function EnvContent({
   data,
 }: {
   readonly data: { [key: string]: EnvVarDeclaration };
@@ -645,25 +863,23 @@ function EnvSection({
   );
 
   return (
-    <Section title={`Environment Variables (${entries.length})`}>
-      <div className="flex flex-col divide-y divide-border">
-        {entries.map(([name, env]) => (
-          <div key={name} className="flex items-start gap-3 px-3 py-2">
-            <code className="shrink-0 font-mono text-sm font-medium text-foreground">
-              {name}
-            </code>
-            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-              {env.isSecret ? "secret" : "config"}
+    <div className="flex flex-col divide-y divide-border">
+      {entries.map(([name, env]) => (
+        <div key={name} className="flex items-start gap-3 px-3 py-2">
+          <code className="shrink-0 font-mono text-sm font-medium text-foreground">
+            {name}
+          </code>
+          <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            {env.isSecret ? "secret" : "config"}
+          </span>
+          {env.description && (
+            <span className="text-xs text-muted-foreground">
+              {env.description}
             </span>
-            {env.description && (
-              <span className="text-xs text-muted-foreground">
-                {env.description}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-    </Section>
+          )}
+        </div>
+      ))}
+    </div>
   );
 }
 

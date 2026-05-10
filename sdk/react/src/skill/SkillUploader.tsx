@@ -1,12 +1,13 @@
 "use client";
 
-import { type DragEvent, useCallback, useRef, useState } from "react";
+import { type DragEvent, useCallback, useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import { cn } from "@stigmer/theme";
 import type { Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components";
 import { useSkillUpload } from "./useSkillUpload";
 import { usePushSkill } from "./usePushSkill";
+import { useSkillDuplicateCheck } from "./useSkillDuplicateCheck";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -62,6 +63,22 @@ export function SkillUploader({
 }: SkillUploaderProps) {
   const upload = useSkillUpload();
   const { push, isPushing, error: pushError, clearError } = usePushSkill();
+  const dupCheck = useSkillDuplicateCheck();
+
+  const handleFileProcessed = useCallback(
+    async (file: File) => {
+      dupCheck.reset();
+      await upload.processFile(file);
+    },
+    [upload, dupCheck],
+  );
+
+  useEffect(() => {
+    if (upload.preview && upload.artifact) {
+      const slug = normalizeToSlug(upload.preview.name);
+      dupCheck.check({ org, slug, artifactBytes: upload.artifact });
+    }
+  }, [upload.preview, upload.artifact, org]);
 
   const handlePush = useCallback(async () => {
     if (!upload.artifact) return;
@@ -75,6 +92,11 @@ export function SkillUploader({
     }
   }, [upload.artifact, clearError, push, org, tag, onComplete]);
 
+  const handleReset = useCallback(() => {
+    upload.reset();
+    dupCheck.reset();
+  }, [upload, dupCheck]);
+
   return (
     <div className={cn("flex flex-col gap-0 rounded-lg border border-border bg-card", className)}>
       {upload.preview ? (
@@ -83,12 +105,14 @@ export function SkillUploader({
           isPushing={isPushing}
           pushError={pushError}
           onPush={handlePush}
-          onReset={upload.reset}
+          onReset={handleReset}
           onCancel={onCancel}
+          isDuplicate={dupCheck.isDuplicate}
+          isCheckingDuplicate={dupCheck.isChecking}
         />
       ) : (
         <DropZonePhase
-          onFile={upload.processFile}
+          onFile={handleFileProcessed}
           isProcessing={upload.isProcessing}
           validationError={upload.validationError}
           onCancel={onCancel}
@@ -241,6 +265,8 @@ function PreviewPhase({
   onPush,
   onReset,
   onCancel,
+  isDuplicate,
+  isCheckingDuplicate,
 }: {
   readonly preview: NonNullable<ReturnType<typeof useSkillUpload>["preview"]>;
   readonly isPushing: boolean;
@@ -248,6 +274,8 @@ function PreviewPhase({
   readonly onPush: () => void;
   readonly onReset: () => void;
   readonly onCancel?: () => void;
+  readonly isDuplicate?: boolean;
+  readonly isCheckingDuplicate?: boolean;
 }) {
   const strippedContent = stripFrontmatter(preview.skillMdContent);
 
@@ -316,6 +344,28 @@ function PreviewPhase({
         </div>
       )}
 
+      {/* Duplicate warning */}
+      {isDuplicate && (
+        <div className="flex items-start gap-2.5 border-b border-amber-500/20 bg-amber-500/5 px-4 py-3" role="alert">
+          <WarningIcon className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+              No changes detected
+            </p>
+            <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-400">
+              This skill&apos;s content is identical to the current version. Pushing will create a new version record with the same content.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isCheckingDuplicate && (
+        <div className="flex items-center gap-2 border-b border-border px-4 py-2">
+          <Spinner />
+          <span className="text-xs text-muted-foreground">Checking for changes...</span>
+        </div>
+      )}
+
       {/* Error */}
       {pushError && (
         <div className="px-4 py-2">
@@ -367,7 +417,7 @@ function PreviewPhase({
               "transition-colors",
             )}
           >
-            {isPushing ? "Pushing..." : "Push Skill"}
+            {isPushing ? "Pushing..." : isDuplicate ? "Push Anyway" : "Push Skill"}
           </button>
         </div>
       </div>
@@ -379,6 +429,10 @@ function PreviewPhase({
 // Utilities
 // ---------------------------------------------------------------------------
 
+function normalizeToSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+}
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -388,6 +442,24 @@ function formatBytes(bytes: number): string {
 // ---------------------------------------------------------------------------
 // Icons
 // ---------------------------------------------------------------------------
+
+function WarningIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8 1.5 1 14h14L8 1.5Z" />
+      <path d="M8 6v3.5" />
+      <circle cx="8" cy="11.5" r="0.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function Spinner() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="animate-spin" aria-hidden="true">
+      <path d="M8 2a6 6 0 1 0 6 6" />
+    </svg>
+  );
+}
 
 function UploadIcon({ className }: { readonly className?: string }) {
   return (
