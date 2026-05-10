@@ -14,6 +14,11 @@ lowest-priority layer in the approval policy chain.  Manual overrides
 (``pinned_tool_approvals``, ``tool_approval_overrides``) take precedence,
 so false-positive classifications are easy to correct without touching
 the classifier.
+
+For MCP servers with large tool counts (>40), tools are classified in
+batches to stay within LLM output token limits.  Each batch gets its own
+structured-output call; results are merged.  If any batch fails, those
+tools fall back to ``requires_approval: true`` (safe default).
 """
 
 from __future__ import annotations
@@ -35,6 +40,10 @@ from stigmer_runner.worker.config import Config
 logger = logging.getLogger(__name__)
 
 ACTIVITY_NAME = "ClassifyToolApprovals"
+
+BATCH_SIZE = 40
+MAX_TOKENS_PER_TOOL = 60
+MIN_MAX_TOKENS = 4096
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Pydantic Models (structured output schema)
@@ -128,6 +137,11 @@ async def classify_tools(
     the connect workflow (via the Temporal activity wrapper) or directly
     from Graphton backfill.
 
+    For large tool sets (>BATCH_SIZE), tools are split into batches and
+    each batch is classified independently.  If any batch fails, those
+    tools fall back to ``requires_approval: true`` so the connect
+    workflow can still complete.
+
     Args:
         tools: List of tool dicts with ``name``, ``description``, and
             optional ``input_schema``.
@@ -154,34 +168,39 @@ async def classify_tools(
         mcp_server_id=mcp_server_id,
     )
 
-    model = parse_model_string(
-        economy_model,
-        max_tokens=4096,
-        temperature=0.0,
-        **llm_kwargs,
-    )
-
-    structured_model = model.with_structured_output(ClassifyToolApprovalsOutput)
-
-    tools_payload = _build_tools_payload(tools)
-
-    user_prompt = (
-        f"MCP Server: {server_name}\n"
-        f"Description: {server_description or 'No description provided'}\n\n"
-        f"Tools to classify ({len(tools)}):\n\n"
-        f"{tools_payload}"
-    )
+    batches = [
+        tools[i : i + BATCH_SIZE] for i in range(0, len(tools), BATCH_SIZE)
+    ]
 
     logger.info(
-        "Classifying %d tools for MCP server '%s' using model '%s'",
-        len(tools), server_name, economy_model,
+        "Classifying %d tools for MCP server '%s' using model '%s' "
+        "(%d batch(es) of up to %d)",
+        len(tools), server_name, economy_model, len(batches), BATCH_SIZE,
     )
 
-    raw_result = await structured_model.ainvoke([
-        SystemMessage(content=_SYSTEM_PROMPT),
-        HumanMessage(content=user_prompt),
-    ])
-    result = cast(ClassifyToolApprovalsOutput, raw_result)
+    all_approvals: list[ToolApprovalClassification] = []
+
+    for batch_idx, batch in enumerate(batches):
+        try:
+            batch_result = await _classify_batch(
+                batch=batch,
+                server_name=server_name,
+                server_description=server_description,
+                economy_model=economy_model,
+                llm_kwargs=llm_kwargs,
+                batch_idx=batch_idx,
+                total_batches=len(batches),
+            )
+            all_approvals.extend(batch_result.approvals)
+        except Exception:
+            logger.exception(
+                "Batch %d/%d failed for '%s' (%d tools) — falling back "
+                "to requires_approval=true for this batch",
+                batch_idx + 1, len(batches), server_name, len(batch),
+            )
+            all_approvals.extend(_fallback_approvals(batch))
+
+    result = ClassifyToolApprovalsOutput(approvals=all_approvals)
 
     approval_count = sum(1 for a in result.approvals if a.requires_approval)
     logger.info(
@@ -190,6 +209,74 @@ async def classify_tools(
     )
 
     return result
+
+
+async def _classify_batch(
+    *,
+    batch: list[dict[str, Any]],
+    server_name: str,
+    server_description: str,
+    economy_model: str,
+    llm_kwargs: dict[str, Any],
+    batch_idx: int,
+    total_batches: int,
+) -> ClassifyToolApprovalsOutput:
+    """Classify a single batch of tools via structured-output LLM call."""
+    max_tokens = max(MIN_MAX_TOKENS, len(batch) * MAX_TOKENS_PER_TOOL)
+
+    model = parse_model_string(
+        economy_model,
+        max_tokens=max_tokens,
+        temperature=0.0,
+        **llm_kwargs,
+    )
+
+    structured_model = model.with_structured_output(ClassifyToolApprovalsOutput)
+
+    tools_payload = _build_tools_payload(batch)
+
+    user_prompt = (
+        f"MCP Server: {server_name}\n"
+        f"Description: {server_description or 'No description provided'}\n\n"
+        f"Tools to classify ({len(batch)}):\n\n"
+        f"{tools_payload}"
+    )
+
+    logger.info(
+        "Classifying batch %d/%d (%d tools, max_tokens=%d) for '%s'",
+        batch_idx + 1, total_batches, len(batch), max_tokens, server_name,
+    )
+
+    raw_result = await structured_model.ainvoke([
+        SystemMessage(content=_SYSTEM_PROMPT),
+        HumanMessage(content=user_prompt),
+    ])
+    result = cast(ClassifyToolApprovalsOutput, raw_result)
+
+    logger.info(
+        "Batch %d/%d complete for '%s': %d classification(s) returned",
+        batch_idx + 1, total_batches, server_name, len(result.approvals),
+    )
+
+    return result
+
+
+def _fallback_approvals(
+    tools: list[dict[str, Any]],
+) -> list[ToolApprovalClassification]:
+    """Generate safe-default approvals when LLM classification fails.
+
+    Marks every tool as requiring approval so the connect workflow can
+    complete.  Users can override individual tools via pinned approvals.
+    """
+    return [
+        ToolApprovalClassification(
+            tool_name=tool.get("name", ""),
+            requires_approval=True,
+            message=f"Execute {tool.get('name', 'unknown tool')}",
+        )
+        for tool in tools
+    ]
 
 
 def _build_tools_payload(tools: list[dict[str, Any]]) -> str:
