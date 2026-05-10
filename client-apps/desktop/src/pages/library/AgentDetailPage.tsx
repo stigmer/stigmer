@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Pencil } from "lucide-react";
 import {
   AgentDetailView,
   useAgent,
@@ -67,19 +66,6 @@ export default function AgentDetailPage() {
       }
     }
   }, [confirm, deleteResource, navigate, resourceName]);
-
-  const primaryAction: DetailAction = useMemo(
-    () => ({
-      id: "edit",
-      label: "Edit",
-      icon: <Pencil className="size-3.5" />,
-      onAction: () =>
-        navigate(
-          `/?draft=agent&editOrg=${encodeURIComponent(org ?? "")}&editSlug=${encodeURIComponent(slug ?? "")}`,
-        ),
-    }),
-    [navigate, org, slug],
-  );
 
   const actions: DetailAction[] = useMemo(
     () => [
@@ -150,6 +136,7 @@ export default function AgentDetailPage() {
       <AgentDetailView
         org={org}
         slug={slug}
+        editable
         onResourceLoad={handleResourceLoad}
         onMcpServerClick={(ref) =>
           navigate(`/library/mcp-servers/${ref.org}/${ref.slug}`)
@@ -159,7 +146,6 @@ export default function AgentDetailPage() {
         }
         onVisibilityChange={updateVisibility}
         isVisibilityPending={isPending}
-        primaryAction={primaryAction}
         actions={actions}
       />
       <ConfirmDialog

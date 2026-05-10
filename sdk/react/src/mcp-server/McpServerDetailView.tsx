@@ -30,8 +30,10 @@ import type { EnvVarFormVariable } from "../environment/EnvVarForm";
 import { VisibilityToggle } from "../library/VisibilityToggle";
 import { Tabs, type TabItem } from "../tabs/Tabs";
 import { ResourceActionBar } from "../resource-detail/ResourceActionBar";
+import { Section } from "../resource-detail/Section";
 import type { DetailAction } from "../resource-detail/types";
 import { InlineEditText } from "../inline-edit/InlineEditText";
+import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea";
 import { InlineEditImage } from "../inline-edit/InlineEditImage";
 import { InlineEditSelect } from "../inline-edit/InlineEditSelect";
 import { InlineEditKeyValue } from "../inline-edit/InlineEditKeyValue";
@@ -390,6 +392,28 @@ export function McpServerDetailView({
           className="shrink-0"
         />
       </div>
+
+      {(editable || spec?.description) && (
+        <Section title="Description">
+          {editable && saveMcpField ? (
+            <div className="max-h-20 overflow-y-auto p-3">
+              <InlineEditTextarea
+                value={spec?.description || ""}
+                onSave={(v) => saveMcpField("description", v || undefined)}
+                isSaving={isUpdating}
+                placeholder="Add a description"
+                minRows={2}
+              />
+            </div>
+          ) : (
+            <div className="p-3">
+              <pre className="whitespace-pre-wrap break-words text-sm text-foreground font-sans">
+                {spec?.description}
+              </pre>
+            </div>
+          )}
+        </Section>
+      )}
 
       {hasSource && <SourceSection spec={spec} />}
 
@@ -1213,22 +1237,6 @@ function Header({
             </>
           )}
         </div>
-        {editable && saveMcpField ? (
-          <div className="mt-2">
-            <InlineEditText
-              value={spec?.description || ""}
-              onSave={(v) => saveMcpField("description", v || undefined)}
-              isSaving={isSaving}
-              placeholder="Add a description"
-            />
-          </div>
-        ) : (
-          spec?.description && (
-            <p className="mt-2 text-sm text-muted-foreground">
-              {spec.description}
-            </p>
-          )
-        )}
       </div>
     </div>
   );
@@ -1550,13 +1558,17 @@ function EnvSection({
     [saveMcpField],
   );
 
+  const [envEditing, setEnvEditing] = useState(false);
+
   return (
-    <Section title={`Environment Variables${!editable ? ` (${entries.length})` : ""}`}>
+    <Section title="Environment Variables" count={entries.length} onEdit={editable ? () => setEnvEditing((v) => !v) : undefined}>
       {editable ? (
         <InlineEditKeyValue
           value={envRows}
           onSave={handleEnvSave}
           isSaving={isSaving}
+          editing={envEditing}
+          onEditingChange={setEnvEditing}
           showSecretToggle
           showOptionalToggle
           showDescription
@@ -1630,7 +1642,7 @@ function TagsSection({
   );
 
   return (
-    <Section title={`Tags${!editable ? ` (${tags.length})` : ""}`}>
+    <Section title="Tags" count={tags.length}>
       <div className="flex flex-wrap gap-1.5 p-3">
         {tags.map((tag) => (
           <span
@@ -1777,24 +1789,6 @@ function PolicyGroup({
 // Shared layout primitives
 // ---------------------------------------------------------------------------
 
-function Section({
-  title,
-  children,
-}: {
-  readonly title: string;
-  readonly children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {title}
-      </h3>
-      <div className="overflow-hidden rounded-lg border border-border">
-        {children}
-      </div>
-    </section>
-  );
-}
 
 function Dot() {
   return (

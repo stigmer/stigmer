@@ -99,6 +99,7 @@ function Header({
   const {
     name,
     org,
+    slug,
     description,
     iconUrl,
     icon,
@@ -107,6 +108,8 @@ function Header({
     status,
     statusLabel,
   } = header;
+
+  const showSlug = slug && slug !== name;
 
   return (
     <div className="flex min-w-0 items-start gap-3">
@@ -124,6 +127,11 @@ function Header({
           <h2 className="truncate text-lg font-semibold text-foreground">
             {name}
           </h2>
+          {showSlug && (
+            <code className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+              {slug}
+            </code>
+          )}
           {status && (
             <StatusBadge
               phase={status}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { InlineEditBaseProps, KeyValueRow } from "./types";
 
@@ -18,6 +18,10 @@ export interface InlineEditKeyValueProps extends InlineEditBaseProps {
   readonly showOptionalToggle?: boolean;
   /** Show the description field per row. @default false */
   readonly showDescription?: boolean;
+  /** Controlled editing state. */
+  readonly editing?: boolean;
+  /** Called when editing state changes (controlled mode). */
+  readonly onEditingChange?: (editing: boolean) => void;
 }
 
 /**
@@ -34,29 +38,44 @@ export function InlineEditKeyValue({
   showSecretToggle = false,
   showOptionalToggle = false,
   showDescription = false,
+  editing: controlledEditing,
+  onEditingChange,
   disabled,
   isSaving,
   error,
   className,
 }: InlineEditKeyValueProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [internalEditing, setInternalEditing] = useState(false);
+  const isEditing = controlledEditing ?? internalEditing;
+  const setIsEditing = useCallback(
+    (v: boolean) => {
+      setInternalEditing(v);
+      onEditingChange?.(v);
+    },
+    [onEditingChange],
+  );
+
+  useEffect(() => {
+    if (controlledEditing !== undefined) setInternalEditing(controlledEditing);
+  }, [controlledEditing]);
+
   const [draft, setDraft] = useState<KeyValueRow[]>([...value]);
 
   const handleEdit = useCallback(() => {
     setDraft([...value]);
     setIsEditing(true);
-  }, [value]);
+  }, [value, setIsEditing]);
 
   const handleCancel = useCallback(() => {
     setIsEditing(false);
     setDraft([...value]);
-  }, [value]);
+  }, [value, setIsEditing]);
 
   const handleSave = useCallback(async () => {
     const filtered = draft.filter((r) => r.key.trim());
     const ok = await onSave(filtered);
     if (ok) setIsEditing(false);
-  }, [draft, onSave]);
+  }, [draft, onSave, setIsEditing]);
 
   const updateRow = useCallback((index: number, patch: Partial<KeyValueRow>) => {
     setDraft((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)));
@@ -72,11 +91,11 @@ export function InlineEditKeyValue({
 
   if (disabled || !isEditing) {
     return (
-      <div className={cn("group/inline-edit", className)}>
+      <div className={cn("flex flex-col", className)}>
         {value.length > 0 ? (
           <div className="flex flex-col divide-y divide-border">
             {value.map((row) => (
-              <div key={row.key} className="flex items-start gap-3 px-3 py-2">
+              <div key={row.key} className="flex items-start gap-3 px-3 py-2.5">
                 <code className="shrink-0 font-mono text-sm font-medium text-foreground">
                   {row.key}
                 </code>
@@ -97,31 +116,16 @@ export function InlineEditKeyValue({
             ))}
           </div>
         ) : (
-          <p className="px-3 py-2 text-xs text-muted-foreground italic">No entries</p>
-        )}
-        {!disabled && (
-          <button
-            type="button"
-            onClick={handleEdit}
-            className={cn(
-              "mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground",
-              "hover:bg-accent-hover hover:text-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "transition-colors opacity-0 group-hover/inline-edit:opacity-100",
-            )}
-          >
-            <PencilIcon className="size-3" />
-            Edit
-          </button>
+          <p className="px-3 py-3 text-xs text-muted-foreground italic">No entries</p>
         )}
       </div>
     );
   }
 
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
+    <div className={cn("flex flex-col gap-3", className)}>
       {draft.map((row, i) => (
-        <div key={i} className="flex items-start gap-2 rounded-md border border-border bg-muted-faint p-2">
+        <div key={i} className="flex items-start gap-2 rounded-md border border-border bg-muted-faint p-2.5">
           <div className="flex flex-1 flex-col gap-1.5">
             <input
               type="text"

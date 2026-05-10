@@ -901,6 +901,7 @@ export {
   useDeleteResource,
   ResourceActionBar,
   ResourceDetailShell,
+  Section,
   ConfirmDialog,
 } from "./resource-detail";
 export type {
@@ -910,6 +911,7 @@ export type {
   ConfirmOptions,
   ConfirmState,
   ResourceDetailShellProps,
+  SectionProps,
   UseCopyResourceReturn,
   UseConfirmActionReturn,
   DeletableResourceKind,

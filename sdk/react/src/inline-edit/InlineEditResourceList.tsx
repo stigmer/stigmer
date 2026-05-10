@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { InlineEditBaseProps, ResourceRefRow } from "./types";
 
@@ -22,6 +22,12 @@ export interface InlineEditResourceListProps extends InlineEditBaseProps {
   readonly itemIcon?: React.ReactNode;
   /** Label for the resource type (e.g. "MCP Server", "Skill"). */
   readonly resourceLabel?: string;
+  /** Controlled editing state. When provided, component is in controlled mode. */
+  readonly editing?: boolean;
+  /** Called when editing state changes (controlled mode). */
+  readonly onEditingChange?: (editing: boolean) => void;
+  /** Default org to pre-fill in the generic add form. */
+  readonly defaultOrg?: string;
 }
 
 /**
@@ -37,34 +43,56 @@ export function InlineEditResourceList({
   onItemClick,
   itemIcon,
   resourceLabel = "resource",
+  editing: controlledEditing,
+  onEditingChange,
+  defaultOrg = "",
   disabled,
   isSaving,
   error,
   className,
 }: InlineEditResourceListProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [internalEditing, setInternalEditing] = useState(false);
+  const isEditing = controlledEditing ?? internalEditing;
+  const setIsEditing = useCallback(
+    (v: boolean) => {
+      setInternalEditing(v);
+      onEditingChange?.(v);
+    },
+    [onEditingChange],
+  );
+
+  useEffect(() => {
+    if (controlledEditing !== undefined) setInternalEditing(controlledEditing);
+  }, [controlledEditing]);
+
   const [draft, setDraft] = useState<ResourceRefRow[]>([...value]);
   const [showPicker, setShowPicker] = useState(false);
+  const [showGenericAdd, setShowGenericAdd] = useState(false);
+  const [addSlug, setAddSlug] = useState("");
+  const [addOrg, setAddOrg] = useState(defaultOrg);
 
   const handleEdit = useCallback(() => {
     setDraft([...value]);
     setIsEditing(true);
     setShowPicker(false);
-  }, [value]);
+    setShowGenericAdd(false);
+  }, [value, setIsEditing]);
 
   const handleCancel = useCallback(() => {
     setIsEditing(false);
     setDraft([...value]);
     setShowPicker(false);
-  }, [value]);
+    setShowGenericAdd(false);
+  }, [value, setIsEditing]);
 
   const handleSave = useCallback(async () => {
     const ok = await onSave(draft);
     if (ok) {
       setIsEditing(false);
       setShowPicker(false);
+      setShowGenericAdd(false);
     }
-  }, [draft, onSave]);
+  }, [draft, onSave, setIsEditing]);
 
   const removeItem = useCallback((index: number) => {
     setDraft((prev) => prev.filter((_, i) => i !== index));
@@ -81,9 +109,9 @@ export function InlineEditResourceList({
 
   if (disabled || !isEditing) {
     return (
-      <div className={cn("group/inline-edit", className)}>
+      <div className={cn("flex flex-col", className)}>
         {value.length > 0 ? (
-          <div className="flex flex-col">
+          <div className="flex flex-col divide-y divide-border">
             {value.map((ref, index) => {
               const label = ref.label ?? ref.slug;
               const row = (
@@ -99,7 +127,7 @@ export function InlineEditResourceList({
                   type="button"
                   onClick={() => onItemClick(ref)}
                   className={cn(
-                    "w-full rounded-md px-3 py-2 text-left transition-colors",
+                    "w-full px-3 py-2.5 text-left transition-colors",
                     "hover:bg-accent-hover",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                   )}
@@ -107,31 +135,16 @@ export function InlineEditResourceList({
                   {row}
                 </button>
               ) : (
-                <div key={`${ref.org}/${ref.slug}` || index} className="px-3 py-2">
+                <div key={`${ref.org}/${ref.slug}` || index} className="px-3 py-2.5">
                   {row}
                 </div>
               );
             })}
           </div>
         ) : (
-          <p className="px-3 py-2 text-xs text-muted-foreground italic">
+          <p className="px-3 py-3 text-xs text-muted-foreground italic">
             No {resourceLabel}s configured
           </p>
-        )}
-        {!disabled && (
-          <button
-            type="button"
-            onClick={handleEdit}
-            className={cn(
-              "mt-1 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground",
-              "hover:bg-accent-hover hover:text-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "transition-colors opacity-0 group-hover/inline-edit:opacity-100",
-            )}
-          >
-            <PencilIcon className="size-3" />
-            Edit
-          </button>
         )}
       </div>
     );
@@ -168,18 +181,69 @@ export function InlineEditResourceList({
         <div className="rounded-md border border-border bg-muted-faint p-2">
           {renderPicker(addItem)}
         </div>
+      ) : showGenericAdd ? (
+        <div className="flex items-center gap-2 rounded-md border border-border bg-muted-faint p-2">
+          <input
+            type="text"
+            value={addOrg}
+            onChange={(e) => setAddOrg(e.target.value)}
+            placeholder="org"
+            className={cn(
+              "w-24 rounded-md border border-border bg-input-bg px-2 py-1 text-xs text-foreground",
+              "focus:outline-none focus:ring-2 focus:ring-ring",
+            )}
+          />
+          <span className="text-xs text-muted-foreground">/</span>
+          <input
+            type="text"
+            value={addSlug}
+            onChange={(e) => setAddSlug(e.target.value)}
+            placeholder="slug"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && addSlug.trim()) {
+                addItem({ org: addOrg.trim() || defaultOrg, slug: addSlug.trim(), label: addSlug.trim() });
+                setAddSlug("");
+                setShowGenericAdd(false);
+              } else if (e.key === "Escape") {
+                setShowGenericAdd(false);
+                setAddSlug("");
+              }
+            }}
+            className={cn(
+              "flex-1 rounded-md border border-border bg-input-bg px-2 py-1 text-xs text-foreground",
+              "focus:outline-none focus:ring-2 focus:ring-ring",
+            )}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              if (addSlug.trim()) {
+                addItem({ org: addOrg.trim() || defaultOrg, slug: addSlug.trim(), label: addSlug.trim() });
+                setAddSlug("");
+                setShowGenericAdd(false);
+              }
+            }}
+            disabled={!addSlug.trim()}
+            className={cn(
+              "inline-flex size-6 items-center justify-center rounded-md",
+              "bg-primary text-primary-foreground hover:bg-primary-hover",
+              "disabled:opacity-50",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            )}
+          >
+            <PlusIcon className="size-3" />
+          </button>
+        </div>
       ) : (
         <button
           type="button"
-          onClick={() => setShowPicker(true)}
-          disabled={!renderPicker}
+          onClick={() => renderPicker ? setShowPicker(true) : setShowGenericAdd(true)}
           className={cn(
             "inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium",
             "border border-dashed border-border text-muted-foreground",
             "hover:border-muted-foreground hover:text-foreground hover:bg-muted-subtle",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             "transition-colors",
-            !renderPicker && "hidden",
           )}
         >
           <PlusIcon className="size-3" />
