@@ -37,6 +37,7 @@ func StopRunner(name string) error {
 func stopNativeRunner(name string, state *RunnerState) error {
 	if !isProcessAlive(state.PID) {
 		climsg.Warning("Runner %q (PID %d) is not running, cleaning up state", name, state.PID)
+		stopCursorRunnerSidecar(state)
 		return RemoveState(name)
 	}
 
@@ -73,12 +74,40 @@ func stopNativeRunner(name string, state *RunnerState) error {
 		}
 	}
 
+	stopCursorRunnerSidecar(state)
+
 	if err := RemoveState(name); err != nil {
 		return errors.Wrapf(err, "failed to clean up state for runner %q", name)
 	}
 
 	climsg.Success("Runner %q stopped", name)
 	return nil
+}
+
+// stopCursorRunnerSidecar terminates the cursor-runner TypeScript process
+// recorded in state. The cursor-runner runs as a sibling process to the
+// agent-runner; the Go parent normally cleans it up on exit, but explicit
+// stops (stigmer down runner) and orphan cleanup paths must handle it too.
+func stopCursorRunnerSidecar(state *RunnerState) {
+	if state.CursorRunnerPID <= 0 {
+		return
+	}
+	if !isProcessAlive(state.CursorRunnerPID) {
+		return
+	}
+
+	log.Info().Int("pid", state.CursorRunnerPID).Msg("Stopping cursor-runner sidecar")
+
+	proc, err := os.FindProcess(state.CursorRunnerPID)
+	if err != nil {
+		return
+	}
+
+	_ = proc.Signal(syscall.SIGTERM)
+	if !waitForExit(state.CursorRunnerPID, stopTimeout) {
+		log.Warn().Int("pid", state.CursorRunnerPID).Msg("Cursor-runner did not exit in time, sending SIGKILL")
+		_ = proc.Kill()
+	}
 }
 
 func stopDockerRunner(name string, state *RunnerState) error {

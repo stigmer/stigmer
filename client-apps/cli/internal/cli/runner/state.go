@@ -3,7 +3,9 @@ package runner
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -366,6 +368,11 @@ func MigrateStateLayout() []string {
 // preferred over PID probing because it proves the process is actually a
 // Stigmer runner (not PID reuse) and is responsive. The PID probe remains
 // as a fallback for pre-T04 runners without a socket path.
+//
+// When the socket is unreachable and the PID is alive, an additional
+// orphan check determines whether the process's parent has died (PPID == 1).
+// Orphaned runners are non-functional (no heartbeat stream, no control
+// socket) and are killed so the next Ensure can start a fresh runner.
 func isRunnerAlive(state *RunnerState) bool {
 	if state.IsDocker() {
 		return IsContainerAlive(NewDockerClient(), state.ContainerID)
@@ -375,10 +382,14 @@ func isRunnerAlive(state *RunnerState) bool {
 		if controlsock.IsHealthy(state.SocketPath) {
 			return true
 		}
-		// Socket failed — fall back to PID probe. The runner may be
-		// starting up (socket not yet bound) or from a pre-T04 state
-		// file where SocketPath was set but the server crashed.
 		if isProcessAlive(state.PID) {
+			if isOrphaned(state.PID) {
+				log.Info().
+					Int("pid", state.PID).
+					Msg("Runner process is orphaned (parent died) — treating as dead and killing")
+				killOrphanedRunner(state)
+				return false
+			}
 			log.Debug().
 				Int("pid", state.PID).
 				Str("socket", state.SocketPath).
@@ -400,4 +411,59 @@ func isProcessAlive(pid int) bool {
 		return false
 	}
 	return proc.Signal(syscall.Signal(0)) == nil
+}
+
+// isOrphaned reports whether a process has been reparented to PID 1
+// (init/launchd), indicating its original parent died. Uses ps(1) for
+// portability across macOS and Linux.
+func isOrphaned(pid int) bool {
+	if pid <= 0 {
+		return false
+	}
+	out, err := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "ppid=").Output()
+	if err != nil {
+		return false
+	}
+	ppid, err := strconv.Atoi(strings.TrimSpace(string(out)))
+	if err != nil {
+		return false
+	}
+	return ppid == 1
+}
+
+// killOrphanedRunner sends SIGTERM (then SIGKILL after a brief wait) to
+// the agent-runner PID and, if recorded, the cursor-runner sidecar PID.
+// Called when isRunnerAlive detects an orphaned runner that will never
+// recover on its own (no parent to manage its lifecycle).
+func killOrphanedRunner(state *RunnerState) {
+	killProcess(state.PID, "agent-runner")
+	if state.CursorRunnerPID > 0 {
+		killProcess(state.CursorRunnerPID, "cursor-runner")
+	}
+}
+
+const orphanKillGrace = 3 * time.Second
+
+func killProcess(pid int, label string) {
+	if !isProcessAlive(pid) {
+		return
+	}
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return
+	}
+	log.Info().Int("pid", pid).Str("component", label).Msg("Sending SIGTERM to orphaned process")
+	_ = proc.Signal(syscall.SIGTERM)
+
+	deadline := time.Now().Add(orphanKillGrace)
+	for time.Now().Before(deadline) {
+		if !isProcessAlive(pid) {
+			log.Info().Int("pid", pid).Str("component", label).Msg("Orphaned process exited after SIGTERM")
+			return
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+
+	log.Warn().Int("pid", pid).Str("component", label).Msg("Orphaned process did not exit in time, sending SIGKILL")
+	_ = proc.Kill()
 }
