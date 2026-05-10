@@ -137,7 +137,7 @@ export enum CursorMode {
   UNSPECIFIED = 0,
 
   /**
-   * Local Cursor agent via Agent.create({ local: { cwd } }).
+   * Local Cursor agent created with a local cwd configuration.
    *
    * Works with any workspace source (git or local path). Stigmer owns
    * the durable conversation layer — always sends continuation prompts
@@ -149,7 +149,7 @@ export enum CursorMode {
   LOCAL = 1,
 
   /**
-   * Cloud Cursor agent via Agent.create({ cloud: { repos } }).
+   * Cloud Cursor agent created with a cloud repos configuration.
    *
    * Requires all workspace entries to be GitRepoSource (HTTPS URLs).
    * Cursor natively manages conversation state for cloud agents, but
