@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_shell::process::CommandChild;
 use tauri_plugin_shell::ShellExt;
+#[cfg(unix)]
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::Mutex;
 
@@ -147,6 +148,7 @@ struct SocketStopResponse {
 }
 
 /// Default socket path used by the CLI runner (T04).
+#[cfg(unix)]
 fn default_socket_path() -> PathBuf {
     let home = dirs::home_dir().unwrap_or_default();
     home.join(".stigmer").join("run").join("runner.sock")
@@ -154,6 +156,7 @@ fn default_socket_path() -> PathBuf {
 
 /// Discovers the socket path by checking: (1) the well-known default,
 /// (2) `socket_path` entries in on-disk runner state files.
+#[cfg(unix)]
 fn discover_socket_path() -> Option<PathBuf> {
     let default = default_socket_path();
     if default.exists() {
@@ -183,6 +186,7 @@ fn discover_socket_path() -> Option<PathBuf> {
     None
 }
 
+#[cfg(unix)]
 const SOCKET_TIMEOUT_MS: u64 = 2000;
 
 /// Sends a raw HTTP/1.1 request over a Unix socket and returns the
@@ -191,6 +195,7 @@ const SOCKET_TIMEOUT_MS: u64 = 2000;
 /// Uses a single stream without half-closing the write side. The server
 /// processes the request (delimited by Content-Length: 0 or Connection: close)
 /// and closes the connection after responding, which unblocks our read.
+#[cfg(unix)]
 async fn unix_http_request(socket_path: &std::path::Path, request: &[u8]) -> Result<String, String> {
     let mut stream = tokio::time::timeout(
         tokio::time::Duration::from_millis(SOCKET_TIMEOUT_MS),
@@ -994,34 +999,42 @@ pub async fn watch_runner_log_file(
 /// Falls back to on-disk state files when the socket is unavailable.
 #[tauri::command]
 pub async fn query_runner_socket() -> Result<LocalRunnerStatus, String> {
-    let socket_path = match discover_socket_path() {
-        Some(p) => p,
-        None => return Ok(status_from_disk()),
-    };
+    #[cfg(unix)]
+    {
+        let socket_path = match discover_socket_path() {
+            Some(p) => p,
+            None => return Ok(status_from_disk()),
+        };
 
-    let request = b"GET /status HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n";
+        let request = b"GET /status HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n";
 
-    match unix_http_request(&socket_path, request).await {
-        Ok(body) => {
-            match serde_json::from_str::<SocketStatusResponse>(&body) {
-                Ok(resp) if resp.ok => Ok(LocalRunnerStatus {
-                    source: "socket".into(),
-                    running: true,
-                    name: resp.name,
-                    runner_id: resp.runner_id,
-                    machine_id: resp.machine_id,
-                    org: resp.org,
-                    backend_endpoint: resp.backend_endpoint,
-                    pid: resp.pid,
-                    started_at: resp.started_at,
-                    uptime: resp.uptime,
-                    runtime: resp.runtime,
-                    version: resp.version,
-                }),
-                Ok(_) | Err(_) => Ok(status_from_disk()),
+        match unix_http_request(&socket_path, request).await {
+            Ok(body) => {
+                match serde_json::from_str::<SocketStatusResponse>(&body) {
+                    Ok(resp) if resp.ok => Ok(LocalRunnerStatus {
+                        source: "socket".into(),
+                        running: true,
+                        name: resp.name,
+                        runner_id: resp.runner_id,
+                        machine_id: resp.machine_id,
+                        org: resp.org,
+                        backend_endpoint: resp.backend_endpoint,
+                        pid: resp.pid,
+                        started_at: resp.started_at,
+                        uptime: resp.uptime,
+                        runtime: resp.runtime,
+                        version: resp.version,
+                    }),
+                    Ok(_) | Err(_) => Ok(status_from_disk()),
+                }
             }
+            Err(_) => Ok(status_from_disk()),
         }
-        Err(_) => Ok(status_from_disk()),
+    }
+
+    #[cfg(not(unix))]
+    {
+        Ok(status_from_disk())
     }
 }
 
@@ -1030,21 +1043,29 @@ pub async fn query_runner_socket() -> Result<LocalRunnerStatus, String> {
 /// is unavailable.
 #[tauri::command]
 pub async fn stop_runner_via_socket() -> Result<(), String> {
-    let socket_path = match discover_socket_path() {
-        Some(p) => p,
-        None => return Err("no runner socket found".into()),
-    };
+    #[cfg(unix)]
+    {
+        let socket_path = match discover_socket_path() {
+            Some(p) => p,
+            None => return Err("no runner socket found".into()),
+        };
 
-    let request = b"POST /stop HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+        let request = b"POST /stop HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
 
-    let body = unix_http_request(&socket_path, request).await?;
+        let body = unix_http_request(&socket_path, request).await?;
 
-    match serde_json::from_str::<SocketStopResponse>(&body) {
-        Ok(resp) if resp.ok => Ok(()),
-        Ok(resp) => Err(format!(
-            "stop not accepted: {}",
-            resp.message.unwrap_or_default()
-        )),
-        Err(e) => Err(format!("failed to parse stop response: {e}")),
+        match serde_json::from_str::<SocketStopResponse>(&body) {
+            Ok(resp) if resp.ok => Ok(()),
+            Ok(resp) => Err(format!(
+                "stop not accepted: {}",
+                resp.message.unwrap_or_default()
+            )),
+            Err(e) => Err(format!("failed to parse stop response: {e}")),
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        Err("control socket is not supported on this platform".into())
     }
 }
