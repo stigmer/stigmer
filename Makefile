@@ -19,7 +19,7 @@ CURSOR_RUNNER_DIR := backend/services/cursor-runner
 
 .PHONY: help
 help: ## Show available targets
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_-]+:.*?## / {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_-]+:.*?## / {printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 # ─── Setup ────────────────────────────────────
 
@@ -216,7 +216,10 @@ tidy: ## Run go mod tidy on all Go modules
 
 # ─── Lint & Check ────────────────────────────
 
-.PHONY: fix lint verify-web verify-desktop lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos check check-all
+.PHONY: fix lint lint-web typecheck-web verify-web run-web build-web clean-web clean-build-web \
+       lint-desktop typecheck-desktop verify-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
+       build-cli install-cli release-cli-local \
+       lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos check check-all
 fix: ## Auto-fix linting and formatting issues
 	@gofmt -s -w .
 	@cd backend/libs/python/graphton && poetry run ruff check --fix .
@@ -242,24 +245,40 @@ lint: ## Run all linters and type checks
 	$(MAKE) -C site lint
 	$(MAKE) -C site typecheck
 
-verify-web: ## Lint and typecheck SDK react + web console (~30s)
-	npm run lint -w @stigmer/react
-	npm run typecheck -w @stigmer/react
-	npm run typecheck -w @stigmer/sdk
-	npm run lint -w client-apps/web
-
 libs-build:
 	npm run build:libs
 	npm test
 
-web-build:
+# ─── Client Apps: Web (Next.js) ──────────────
+
+run-web: ## Start web console dev server (Vite/Next)
+	npm run dev -w client-apps/web
+
+build-web: libs-build ## Build web console for production
 	npm run build -w client-apps/web
 
-desktop-dev: ## Start Stigmer Desktop in dev mode (Tauri + Vite hot-reload)
+clean-web: ## Remove web build artifacts
+	rm -rf client-apps/web/out client-apps/web/.next
+
+clean-build-web: clean-web build-web ## Clean + build web console
+
+lint-web: ## Lint web console and React SDK
+	npm run lint -w @stigmer/react
+	npm run lint -w client-apps/web
+
+typecheck-web: ## Typecheck web console, SDK, and React SDK
+	npm run typecheck -w @stigmer/sdk
+	npm run typecheck -w @stigmer/react
+
+verify-web: lint-web typecheck-web ## Lint + typecheck web (~30s)
+
+# ─── Client Apps: Desktop (Tauri v2 + Vite + React) ──
+
+launch-desktop: ## Start desktop app in dev mode (Tauri + Vite hot-reload)
 	client-apps/desktop/scripts/setup-sidecar-dev.sh
 	npm run tauri dev -w desktop
 
-desktop-build: ## Build Stigmer Desktop native binary (requires TAURI_SIGNING_PRIVATE_KEY)
+build-desktop: ## Build desktop native binary (requires TAURI_SIGNING_PRIVATE_KEY)
 	@if [ -z "$$TAURI_SIGNING_PRIVATE_KEY" ] && [ -z "$$TAURI_SIGNING_PRIVATE_KEY_PATH" ]; then \
 		echo "warning: TAURI_SIGNING_PRIVATE_KEY not set — updater artifacts will not be signed"; \
 		echo "  Set TAURI_SIGNING_PRIVATE_KEY or TAURI_SIGNING_PRIVATE_KEY_PATH to sign builds"; \
@@ -268,10 +287,59 @@ desktop-build: ## Build Stigmer Desktop native binary (requires TAURI_SIGNING_PR
 	fi
 	npm run tauri build -w desktop
 
-verify-desktop: ## Lint and typecheck desktop app (TS + Rust)
+clean-build-desktop: ## Clean + build desktop app
+	rm -rf client-apps/desktop/dist client-apps/desktop/src-tauri/target
+	$(MAKE) build-desktop
+
+lint-desktop: ## Lint desktop app (TypeScript)
 	npm run lint -w desktop
+
+typecheck-desktop: ## Typecheck desktop app (TypeScript)
 	npm run typecheck -w desktop
+
+verify-desktop: lint-desktop typecheck-desktop ## Lint + typecheck desktop (TS + Rust)
 	cd client-apps/desktop/src-tauri && cargo check --quiet
+
+release-desktop-local: ## Debug build + install to /Applications
+	cd client-apps/desktop && \
+		cp src-tauri/tauri.conf.json src-tauri/tauri.conf.json.bak && \
+		python3 -c "import json; f=open('src-tauri/tauri.conf.json','r+'); c=json.load(f); c.get('bundle',{}).pop('createUpdaterArtifacts',None); f.seek(0); json.dump(c,f,indent=2); f.truncate()" && \
+		npm run tauri -- build --debug --bundles app; \
+		EXIT_CODE=$$?; \
+		mv src-tauri/tauri.conf.json.bak src-tauri/tauri.conf.json; \
+		if [ $$EXIT_CODE -ne 0 ]; then exit $$EXIT_CODE; fi
+	@echo ""
+	@echo "Installing to /Applications..."
+	@rm -rf "/Applications/Stigmer.app"
+	@cp -R "client-apps/desktop/src-tauri/target/debug/bundle/macos/Stigmer.app" /Applications/
+	@echo "Installed: /Applications/Stigmer.app"
+	@echo ""
+	@echo "Bundle size:"
+	@du -sh "client-apps/desktop/src-tauri/target/debug/bundle/macos/Stigmer.app" | awk '{print "  .app bundle: " $$1}'
+	@du -sh "client-apps/desktop/src-tauri/target/debug/stigmer" | awk '{print "  binary:      " $$1}'
+
+# ─── Client Apps: CLI (Go) ───────────────────
+
+build-cli: ## Build CLI binary
+	@mkdir -p bin
+	cd client-apps/cli && go build -o ../../bin/stigmer .
+	@echo "built: bin/stigmer"
+
+install-cli: ## Build CLI with dev flags + install to ~/bin
+	@mkdir -p bin $(HOME)/bin
+	@cd client-apps/cli && go build -ldflags '$(DEV_LDFLAGS)' -o ../../bin/stigmer .
+	@cp bin/stigmer $(HOME)/bin/
+	@chmod +x $(HOME)/bin/stigmer
+	@echo "installed: $(HOME)/bin/stigmer"
+	@stigmer --version 2>/dev/null || echo "cli: development build"
+
+release-cli-local: install-cli ## Alias for install-cli
+
+# ─── Client Apps: Backward-Compat Aliases ────
+
+web-build: build-web
+desktop-dev: launch-desktop
+desktop-build: build-desktop
 
 validate-demos: ## Run static demo scenario validation (token compliance, manifest alignment)
 	$(MAKE) -C site validate-demos
@@ -283,7 +351,7 @@ tsdoc-check: ## Validate TSDoc quality for all TypeScript SDKs
 test-demos: docs-build ## Run Playwright demo e2e tests — slow (~20 min), run explicitly or in CI
 	$(MAKE) -C site test-demos
 
-check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links libs-build web-build verify-desktop docs-build build test validate-demos ## Run full CI gate locally
+check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links libs-build build-web verify-desktop docs-build build test validate-demos ## Run full CI gate locally
 
 check-all: check test-demos ## Full CI gate including Playwright demo e2e (slow)
 
