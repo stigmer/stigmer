@@ -1285,6 +1285,20 @@ function ServerConfigSection({
     value: import("@stigmer/sdk").McpServerInput[K],
   ) => Promise<boolean>;
 }) {
+  const [headersEditing, setHeadersEditing] = useState(false);
+  const [queryParamsEditing, setQueryParamsEditing] = useState(false);
+
+  const currentHttpConfig = useMemo(() => {
+    if (serverType?.case !== "http") return null;
+    const v = serverType.value;
+    return {
+      url: v.url,
+      headers: v.headers && Object.keys(v.headers).length > 0 ? { ...v.headers } : undefined,
+      queryParams: v.queryParams && Object.keys(v.queryParams).length > 0 ? { ...v.queryParams } : undefined,
+      timeoutSeconds: v.timeoutSeconds || undefined,
+    };
+  }, [serverType]);
+
   const handleTransportChange = useCallback(
     async (newType: string) => {
       if (!saveMcpField) return false;
@@ -1298,6 +1312,46 @@ function ServerConfigSection({
       return ok;
     },
     [saveMcpField],
+  );
+
+  const headerRows: KeyValueRow[] = useMemo(() => {
+    if (!currentHttpConfig?.headers) return [];
+    return Object.entries(currentHttpConfig.headers).map(([key, value]) => ({ key, value }));
+  }, [currentHttpConfig?.headers]);
+
+  const queryParamRows: KeyValueRow[] = useMemo(() => {
+    if (!currentHttpConfig?.queryParams) return [];
+    return Object.entries(currentHttpConfig.queryParams).map(([key, value]) => ({ key, value }));
+  }, [currentHttpConfig?.queryParams]);
+
+  const handleHeadersSave = useCallback(
+    async (rows: KeyValueRow[]) => {
+      if (!saveMcpField || !currentHttpConfig) return false;
+      const headers: Record<string, string> = {};
+      for (const row of rows) {
+        if (row.key.trim()) headers[row.key.trim()] = row.value;
+      }
+      return saveMcpField("http", {
+        ...currentHttpConfig,
+        headers: Object.keys(headers).length > 0 ? headers : undefined,
+      });
+    },
+    [saveMcpField, currentHttpConfig],
+  );
+
+  const handleQueryParamsSave = useCallback(
+    async (rows: KeyValueRow[]) => {
+      if (!saveMcpField || !currentHttpConfig) return false;
+      const queryParams: Record<string, string> = {};
+      for (const row of rows) {
+        if (row.key.trim()) queryParams[row.key.trim()] = row.value;
+      }
+      return saveMcpField("http", {
+        ...currentHttpConfig,
+        queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
+      });
+    },
+    [saveMcpField, currentHttpConfig],
   );
 
   return (
@@ -1386,10 +1440,7 @@ function ServerConfigSection({
                 <InlineEditText
                   value={serverType.value.url}
                   onSave={async (v) =>
-                    saveMcpField("http", {
-                      url: v,
-                      timeoutSeconds: serverType.value.timeoutSeconds || undefined,
-                    })
+                    saveMcpField("http", { ...currentHttpConfig!, url: v })
                   }
                   isSaving={isSaving}
                   placeholder="https://example.com/mcp"
@@ -1410,7 +1461,7 @@ function ServerConfigSection({
                     value={serverType.value.timeoutSeconds > 0 ? String(serverType.value.timeoutSeconds) : ""}
                     onSave={async (v) =>
                       saveMcpField("http", {
-                        url: serverType.value.url,
+                        ...currentHttpConfig!,
                         timeoutSeconds: v ? Number(v) : undefined,
                       })
                     }
@@ -1431,8 +1482,142 @@ function ServerConfigSection({
           </>
         )}
       </div>
+
+      {serverType?.case === "http" && (editable || headerRows.length > 0) && (
+        <HttpKeyValueSubsection
+          title="Headers"
+          count={headerRows.length}
+          rows={headerRows}
+          editable={editable}
+          isSaving={isSaving}
+          editing={headersEditing}
+          onEditingChange={setHeadersEditing}
+          onSave={handleHeadersSave}
+          keyLabel="Header name"
+        />
+      )}
+
+      {serverType?.case === "http" && (editable || queryParamRows.length > 0) && (
+        <HttpKeyValueSubsection
+          title="Query Parameters"
+          count={queryParamRows.length}
+          rows={queryParamRows}
+          editable={editable}
+          isSaving={isSaving}
+          editing={queryParamsEditing}
+          onEditingChange={setQueryParamsEditing}
+          onSave={handleQueryParamsSave}
+          keyLabel="Parameter name"
+        />
+      )}
     </Section>
   );
+}
+
+/** Renders a key-value subsection (headers or query params) within ServerConfigSection. */
+function HttpKeyValueSubsection({
+  title,
+  count,
+  rows,
+  editable,
+  isSaving,
+  editing,
+  onEditingChange,
+  onSave,
+  keyLabel,
+}: {
+  readonly title: string;
+  readonly count: number;
+  readonly rows: readonly KeyValueRow[];
+  readonly editable?: boolean;
+  readonly isSaving?: boolean;
+  readonly editing: boolean;
+  readonly onEditingChange: (v: boolean) => void;
+  readonly onSave: (rows: KeyValueRow[]) => Promise<boolean>;
+  readonly keyLabel: string;
+}) {
+  return (
+    <div className="border-t border-border">
+      <div className="flex items-center justify-between px-3 py-2">
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium text-muted-foreground">{title}</span>
+          {count > 0 && (
+            <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-muted px-1 py-px text-[10px] font-medium leading-none text-muted-foreground">
+              {count}
+            </span>
+          )}
+        </div>
+        {editable && (
+          <button
+            type="button"
+            onClick={() => onEditingChange(!editing)}
+            className="text-[11px] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:text-foreground hover:decoration-foreground"
+          >
+            {editing ? "Done" : "Edit"}
+          </button>
+        )}
+      </div>
+      {editable && editing ? (
+        <InlineEditKeyValue
+          value={[...rows]}
+          onSave={onSave}
+          isSaving={isSaving}
+          editing={editing}
+          onEditingChange={onEditingChange}
+          keyLabel={keyLabel}
+          showValue
+          valueLabel="Value"
+        />
+      ) : (
+        <div className="flex flex-col divide-y divide-border">
+          {rows.map((row) => (
+            <div key={row.key} className="flex items-start gap-2 px-3 py-1.5">
+              <code className="shrink-0 font-mono text-xs font-medium text-foreground">
+                {row.key}
+              </code>
+              <span className="min-w-0 break-all font-mono text-xs text-muted-foreground">
+                {renderHeaderValue(row.value)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const ENV_VAR_PLACEHOLDER = /\$\{([^}]+)\}/g;
+
+/** Renders a header value, highlighting ${VAR} placeholders with a variable badge. */
+function renderHeaderValue(value: string): React.ReactNode {
+  if (!ENV_VAR_PLACEHOLDER.test(value)) return value;
+
+  ENV_VAR_PLACEHOLDER.lastIndex = 0;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = ENV_VAR_PLACEHOLDER.exec(value)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(value.slice(lastIndex, match.index));
+    }
+    parts.push(
+      <span
+        key={match.index}
+        className="inline-flex items-center gap-0.5 rounded bg-primary-subtle px-1 py-px text-[10px] font-medium text-primary"
+        title={`Resolved from environment variable: ${match[1]}`}
+      >
+        {match[0]}
+      </span>,
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < value.length) {
+    parts.push(value.slice(lastIndex));
+  }
+
+  return <>{parts}</>;
 }
 
 function SourceSection({
@@ -1665,6 +1850,19 @@ function ToolsTabContent({
 }: {
   readonly tools: readonly DiscoveredTool[];
 }) {
+  const [search, setSearch] = useState("");
+  const [expandedTool, setExpandedTool] = useState<string | null>(null);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return tools;
+    const q = search.toLowerCase();
+    return tools.filter(
+      (t) =>
+        t.name.toLowerCase().includes(q) ||
+        t.description?.toLowerCase().includes(q),
+    );
+  }, [tools, search]);
+
   if (tools.length === 0) {
     return (
       <div className="px-3 py-8 text-center">
@@ -1676,20 +1874,97 @@ function ToolsTabContent({
     );
   }
 
+  const isFiltered = search.trim().length > 0;
+
   return (
-    <div className="flex flex-col divide-y divide-border">
-      {tools.map((tool) => (
-        <div key={tool.name} className="px-3 py-2.5">
-          <code className="font-mono text-sm font-medium text-foreground">
-            {tool.name}
-          </code>
-          {tool.description && (
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {tool.description}
-            </p>
+    <div className="flex flex-col">
+      <div className="flex items-center gap-2 px-3 pb-2">
+        <div className="relative flex-1">
+          <SearchIcon className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search tools…"
+            aria-label="Search tools"
+            className="w-full rounded-md border border-border bg-background py-1.5 pl-7 pr-7 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          {isFiltered && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <CloseIcon className="size-3" />
+            </button>
           )}
         </div>
-      ))}
+        <span className="shrink-0 text-[10px] text-muted-foreground">
+          {isFiltered ? `${filtered.length} of ${tools.length}` : tools.length}
+        </span>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="px-3 py-6 text-center">
+          <p className="text-xs text-muted-foreground">
+            No tools matching &ldquo;{search}&rdquo;
+          </p>
+        </div>
+      ) : (
+        <div className="max-h-96 overflow-y-auto">
+          <div className="flex flex-col divide-y divide-border">
+            {filtered.map((tool) => {
+              const isExpanded = expandedTool === tool.name;
+              const hasSchema =
+                tool.inputSchema != null &&
+                Object.keys(tool.inputSchema).length > 0;
+
+              return (
+                <div key={tool.name}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedTool(isExpanded ? null : tool.name)
+                    }
+                    className="flex w-full items-start gap-2 px-3 py-2.5 text-left transition-colors hover:bg-muted-faint"
+                    aria-expanded={isExpanded}
+                  >
+                    <ChevronIcon
+                      className={cn(
+                        "mt-0.5 size-3 shrink-0 text-muted-foreground transition-transform",
+                        isExpanded && "rotate-90",
+                      )}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <code className="font-mono text-sm font-medium text-foreground">
+                        {tool.name}
+                      </code>
+                      {tool.description && (
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {tool.description}
+                        </p>
+                      )}
+                    </div>
+                    {hasSchema && (
+                      <span className="mt-0.5 shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        schema
+                      </span>
+                    )}
+                  </button>
+                  {isExpanded && hasSchema && (
+                    <div className="border-t border-border bg-muted-faint px-3 py-2">
+                      <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded border border-border bg-background p-2 font-mono text-[11px] text-foreground">
+                        {JSON.stringify(tool.inputSchema, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1703,9 +1978,33 @@ function PoliciesTabContent({
   readonly classifiedPolicies: readonly ToolApprovalPolicy[];
   readonly hasDiscoveredTools: boolean;
 }) {
-  const hasPinnedPolicies = pinnedPolicies.length > 0;
-  const hasClassifiedPolicies = classifiedPolicies.length > 0;
-  const hasAnyPolicies = hasPinnedPolicies || hasClassifiedPolicies;
+  const [search, setSearch] = useState("");
+
+  const totalCount = pinnedPolicies.length + classifiedPolicies.length;
+  const hasAnyPolicies = totalCount > 0;
+
+  const filteredPinned = useMemo(() => {
+    if (!search.trim()) return pinnedPolicies;
+    const q = search.toLowerCase();
+    return pinnedPolicies.filter(
+      (p) =>
+        p.toolName.toLowerCase().includes(q) ||
+        p.message?.toLowerCase().includes(q),
+    );
+  }, [pinnedPolicies, search]);
+
+  const filteredClassified = useMemo(() => {
+    if (!search.trim()) return classifiedPolicies;
+    const q = search.toLowerCase();
+    return classifiedPolicies.filter(
+      (p) =>
+        p.toolName.toLowerCase().includes(q) ||
+        p.message?.toLowerCase().includes(q),
+    );
+  }, [classifiedPolicies, search]);
+
+  const filteredTotal = filteredPinned.length + filteredClassified.length;
+  const isFiltered = search.trim().length > 0;
 
   if (!hasAnyPolicies) {
     return (
@@ -1722,19 +2021,56 @@ function PoliciesTabContent({
 
   return (
     <div className="flex flex-col">
-      {hasPinnedPolicies && (
-        <PolicyGroup
-          icon={<PinIcon className="size-3.5" />}
-          label="Pinned"
-          policies={pinnedPolicies}
-        />
-      )}
-      {hasClassifiedPolicies && (
-        <PolicyGroup
-          icon={<SparklesIcon className="size-3.5" />}
-          label="Auto-classified"
-          policies={classifiedPolicies}
-        />
+      <div className="flex items-center gap-2 px-3 pb-2">
+        <div className="relative flex-1">
+          <SearchIcon className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search policies…"
+            aria-label="Search policies"
+            className="w-full rounded-md border border-border bg-background py-1.5 pl-7 pr-7 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          {isFiltered && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <CloseIcon className="size-3" />
+            </button>
+          )}
+        </div>
+        <span className="shrink-0 text-[10px] text-muted-foreground">
+          {isFiltered ? `${filteredTotal} of ${totalCount}` : totalCount}
+        </span>
+      </div>
+
+      {filteredTotal === 0 ? (
+        <div className="px-3 py-6 text-center">
+          <p className="text-xs text-muted-foreground">
+            No policies matching &ldquo;{search}&rdquo;
+          </p>
+        </div>
+      ) : (
+        <div className="max-h-96 overflow-y-auto">
+          {filteredPinned.length > 0 && (
+            <PolicyGroup
+              icon={<PinIcon className="size-3.5" />}
+              label="Pinned"
+              policies={filteredPinned}
+            />
+          )}
+          {filteredClassified.length > 0 && (
+            <PolicyGroup
+              icon={<SparklesIcon className="size-3.5" />}
+              label="Auto-classified"
+              policies={filteredClassified}
+            />
+          )}
+        </div>
       )}
     </div>
   );
@@ -1767,7 +2103,10 @@ function PolicyGroup({
               <code className="font-mono text-sm font-medium text-foreground">
                 {policy.toolName}
               </code>
-              <ShieldIcon className="size-3 text-amber-500 dark:text-amber-400" />
+              <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                <ShieldIcon className="size-2.5" />
+                requires approval
+              </span>
             </div>
             {policy.message && (
               <p className="mt-0.5 text-xs text-muted-foreground">
@@ -2047,6 +2386,58 @@ function ExternalLinkIcon({ className }: { readonly className?: string }) {
       <path d="M12 8.667v4A1.333 1.333 0 0 1 10.667 14H3.333A1.333 1.333 0 0 1 2 12.667V5.333A1.333 1.333 0 0 1 3.333 4h4" />
       <path d="M10 2h4v4" />
       <path d="M6.667 9.333 14 2" />
+    </svg>
+  );
+}
+
+function SearchIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="7" cy="7" r="4.5" />
+      <path d="m10.5 10.5 3 3" />
+    </svg>
+  );
+}
+
+function CloseIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m4 4 8 8M12 4l-8 8" />
+    </svg>
+  );
+}
+
+function ChevronIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m6 4 4 4-4 4" />
     </svg>
   );
 }
