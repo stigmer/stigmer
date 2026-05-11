@@ -89,6 +89,8 @@ export {
   parseDraftType,
   parseDraftParams,
   groupSessionsByTime,
+  groupSearchResultsByTime,
+  useSessionSearch,
   PENDING_SUBJECT,
   resolvedSubject,
 } from "./session";
@@ -101,6 +103,8 @@ export type {
   UseSessionReturn,
   UseSessionListOptions,
   UseSessionListReturn,
+  UseSessionSearchOptions,
+  UseSessionSearchReturn,
   UseSessionExecutionsReturn,
   SendFollowUpOptions,
   UseSessionConversationReturn,
@@ -121,6 +125,7 @@ export type {
   DraftResourceType,
   DraftParams,
   SessionGroup,
+  SearchResultGroup,
 } from "./session";
 
 // Execution — behavior hooks, styled components, and utilities (AgentExecution aggregate)

@@ -56,6 +56,11 @@ export interface UseSessionPageFlowReturn {
   readonly resolution: AgentResolution | null;
   /** Update the agent resolution. */
   readonly setResolution: (r: AgentResolution | null) => void;
+  /**
+   * `true` when the session's agent is the org's default agent.
+   * Used to render the agent chip as non-removable in the composer.
+   */
+  readonly isDefaultAgent: boolean;
 
   /** Active MCP server configurations for follow-ups. */
   readonly mcpServerUsages: McpServerUsageInput[];
@@ -178,20 +183,19 @@ export function useSessionPageFlow(
 
   const [agentRef, setAgentRef] = useState<ResourceRef | null>(null);
   const [resolution, setResolution] = useState<AgentResolution | null>(null);
+  const [isDefaultAgent, setIsDefaultAgent] = useState(false);
   const [agentInitDone, setAgentInitDone] = useState(false);
 
   if (!agentInitDone && derivedAgentRef && sessionInstanceId && !isDefaultAgentLoading) {
     setAgentInitDone(true);
+    setAgentRef(derivedAgentRef);
+    setResolution({ mode: "saved", instanceId: sessionInstanceId });
 
     const isDefault =
       defaultAgent &&
       derivedAgentRef.org === defaultAgent.metadata?.org &&
       derivedAgentRef.slug === defaultAgent.metadata?.slug;
-
-    if (!isDefault) {
-      setAgentRef(derivedAgentRef);
-      setResolution({ mode: "saved", instanceId: sessionInstanceId });
-    }
+    setIsDefaultAgent(!!isDefault);
   }
 
   // -------------------------------------------------------------------------
@@ -306,6 +310,7 @@ export function useSessionPageFlow(
     setAgentRef,
     resolution,
     setResolution,
+    isDefaultAgent,
     mcpServerUsages,
     setMcpServerUsages,
     skillRefs,

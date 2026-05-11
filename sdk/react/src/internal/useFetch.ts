@@ -94,8 +94,8 @@ export function useFetch<T>(
   const hasDataRef = useRef(
     cacheKey && cache ? cache.has(cacheKey) : false,
   );
-  const isFetchingRef = useRef(false);
-  const [isFetching, setIsFetching] = useState(false);
+  const isFetchingRef = useRef(fetchFn !== null);
+  const [isFetching, setIsFetching] = useState(fetchFn !== null);
 
   // Stable ref for cache — avoids adding cache to effect deps while
   // still letting the effect body access the current instance.
