@@ -76,8 +76,14 @@ export type {
   DraftParams,
 } from "./draft";
 
-export { groupSessionsByTime } from "./group-sessions";
-export type { SessionGroup } from "./group-sessions";
+export { groupSessionsByTime, groupSearchResultsByTime } from "./group-sessions";
+export type { SessionGroup, SearchResultGroup } from "./group-sessions";
+
+export { useSessionSearch } from "./useSessionSearch";
+export type {
+  UseSessionSearchOptions,
+  UseSessionSearchReturn,
+} from "./useSessionSearch";
 
 // Session utilities (re-exported from @stigmer/sdk)
 export { PENDING_SUBJECT, resolvedSubject } from "@stigmer/sdk";

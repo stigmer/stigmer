@@ -1,4 +1,5 @@
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 
 /** A time-based group of sessions produced by {@link groupSessionsByTime}. */
@@ -9,9 +10,22 @@ export interface SessionGroup {
   readonly sessions: readonly Session[];
 }
 
+/** A time-based group of search results produced by {@link groupSearchResultsByTime}. */
+export interface SearchResultGroup {
+  /** Display label for this group (e.g. "Today", "Yesterday"). */
+  readonly label: string;
+  /** Search results belonging to this group, in their original input order. */
+  readonly entries: readonly SearchResult[];
+}
+
 interface Bucket {
   label: string;
   sessions: Session[];
+}
+
+interface SearchResultBucket {
+  label: string;
+  entries: SearchResult[];
 }
 
 /**
@@ -89,6 +103,57 @@ export function groupSessionsByTime(
   }
 
   return buckets.filter((b) => b.sessions.length > 0);
+}
+
+/**
+ * Groups SearchResult entries by their `createdAt` timestamp into time-based
+ * buckets, identical to {@link groupSessionsByTime} but for lightweight
+ * search results.
+ *
+ * @param entries - SearchResult entries (from SearchService session search).
+ * @param now - Reference time for grouping; defaults to current time.
+ */
+export function groupSearchResultsByTime(
+  entries: readonly SearchResult[],
+  now?: Date,
+): readonly SearchResultGroup[] {
+  const ref = now ?? new Date();
+  const todayStart = startOfDay(ref);
+  const yesterdayStart = addDays(todayStart, -1);
+  const sevenDaysAgo = addDays(todayStart, -6);
+  const thirtyDaysAgo = addDays(todayStart, -29);
+
+  const buckets: SearchResultBucket[] = [
+    { label: "Today", entries: [] },
+    { label: "Yesterday", entries: [] },
+    { label: "Previous 7 Days", entries: [] },
+    { label: "Previous 30 Days", entries: [] },
+    { label: "Older", entries: [] },
+  ];
+
+  for (const entry of entries) {
+    const ts = entry.createdAt;
+    const date = ts ? timestampDate(ts) : null;
+
+    if (!date) {
+      buckets[buckets.length - 1].entries.push(entry);
+      continue;
+    }
+
+    if (date >= todayStart) {
+      buckets[0].entries.push(entry);
+    } else if (date >= yesterdayStart) {
+      buckets[1].entries.push(entry);
+    } else if (date >= sevenDaysAgo) {
+      buckets[2].entries.push(entry);
+    } else if (date >= thirtyDaysAgo) {
+      buckets[3].entries.push(entry);
+    } else {
+      buckets[4].entries.push(entry);
+    }
+  }
+
+  return buckets.filter((b) => b.entries.length > 0);
 }
 
 function startOfDay(date: Date): Date {
