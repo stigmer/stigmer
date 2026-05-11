@@ -73,6 +73,7 @@ def mock_mcp_server():
     server.spec.stdio.args = ["-y", "@modelcontextprotocol/server-github"]
     server.spec.stdio.working_dir = ""
     server.spec.default_enabled_tools = ["search_code", "create_pr"]
+    server.spec.env = {"GITHUB_TOKEN": MagicMock()}
     return server
 
 
@@ -89,6 +90,7 @@ def mock_mcp_server_http():
     server.spec.http.query_params = {}
     server.spec.http.timeout_seconds = 30
     server.spec.default_enabled_tools = []
+    server.spec.env = {"SECRET": MagicMock()}
     # Discovered tools (populated by backfill/connect)
     tool_a = MagicMock()
     tool_a.name = "tool_alpha"
@@ -430,21 +432,27 @@ class TestTransformMcpConfigHttp:
 
         assert config["headers"]["Authorization"] == "Bearer resolved_token"
 
-    def test_http_unresolved_placeholder_warning(self, mock_http_spec, caplog):
-        """Test that unresolved placeholders log a warning."""
-        import logging
-        caplog.set_level(logging.WARNING)
+    def test_http_missing_header_placeholder_raises(self, mock_http_spec):
+        """Missing header placeholder raises PlaceholderResolutionError (strict mode)."""
+        with pytest.raises(PlaceholderResolutionError) as exc_info:
+            transform_mcp_config(
+                server_slug="api",
+                spec=mock_http_spec,
+                env_vars={},  # No vars — placeholders can't resolve
+            )
 
-        config, tools = transform_mcp_config(
-            server_slug="api",
-            spec=mock_http_spec,
-            env_vars={},  # No vars - placeholders won't resolve
-        )
+        assert "API_TOKEN" in str(exc_info.value) or "AWS_REGION" in str(exc_info.value)
 
-        # Should still contain placeholder
-        assert "${API_TOKEN}" in config["headers"]["Authorization"]
-        # Should have logged warning
-        assert any("Unresolved placeholder" in record.message for record in caplog.records)
+    def test_http_partial_header_vars_raises(self, mock_http_spec):
+        """Providing some but not all header vars still raises for the missing ones."""
+        with pytest.raises(PlaceholderResolutionError) as exc_info:
+            transform_mcp_config(
+                server_slug="api",
+                spec=mock_http_spec,
+                env_vars={"API_TOKEN": "tok"},  # AWS_REGION missing from query params
+            )
+
+        assert "AWS_REGION" in str(exc_info.value)
 
     def test_http_no_query_params(self):
         """Test HTTP config without query params."""

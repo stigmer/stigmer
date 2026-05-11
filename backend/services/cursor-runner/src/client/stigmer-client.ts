@@ -13,6 +13,7 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
@@ -20,6 +21,8 @@ import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
+import { ExecutionContextExecutionIdInputSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/io_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionMemory } from "@stigmer/protos/ai/stigmer/agentic/session/v1/memory_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -47,6 +50,7 @@ export class StigmerClient {
   readonly transport: Transport;
   private readonly executionQuery: Client<typeof AgentExecutionQueryController>;
   private readonly executionCommand: Client<typeof AgentExecutionCommandController>;
+  private readonly executionContextQuery: Client<typeof ExecutionContextQueryController>;
   private readonly sessionQuery: Client<typeof SessionQueryController>;
   private readonly sessionCommand: Client<typeof SessionCommandController>;
   private readonly agentQuery: Client<typeof AgentQueryController>;
@@ -70,6 +74,7 @@ export class StigmerClient {
 
     this.executionQuery = createClient(AgentExecutionQueryController, this.transport);
     this.executionCommand = createClient(AgentExecutionCommandController, this.transport);
+    this.executionContextQuery = createClient(ExecutionContextQueryController, this.transport);
     this.sessionQuery = createClient(SessionQueryController, this.transport);
     this.sessionCommand = createClient(SessionCommandController, this.transport);
     this.agentQuery = createClient(AgentQueryController, this.transport);
@@ -93,7 +98,13 @@ export class StigmerClient {
     return this.executionCommand.updateStatus(input);
   }
 
-  async getSession(sessionId: string): Promise<Session> {
+  async getExecutionContextByExecutionId(executionId: string): Promise<ExecutionContext> {
+    return this.executionContextQuery.getByExecutionId(
+      create(ExecutionContextExecutionIdInputSchema, { executionId }),
+    );
+  }
+
+    async getSession(sessionId: string): Promise<Session> {
     return this.sessionQuery.get({ value: sessionId });
   }
 

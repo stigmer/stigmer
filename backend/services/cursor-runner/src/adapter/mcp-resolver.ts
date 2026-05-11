@@ -13,6 +13,12 @@
 import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
+import {
+  resolveHeaders,
+  resolvePlaceholders,
+  filterEnvToDeclaredKeys,
+  PlaceholderResolutionError,
+} from "./placeholder-resolver.js";
 
 /**
  * Cursor SDK MCP server config shape (matches @cursor/sdk McpServerConfig).
@@ -58,6 +64,7 @@ export interface ResolvedMcpServer {
 export async function resolveMcpServers(
   client: StigmerClient,
   usages: McpServerUsage[],
+  envVars: Record<string, string> = {},
 ): Promise<Record<string, CursorMcpServerConfig>> {
   const resolved: ResolvedMcpServer[] = [];
 
@@ -67,12 +74,23 @@ export async function resolveMcpServers(
 
     try {
       const mcpServer = await client.getMcpServerByReference(ref);
-      const server = mcpServerToResolved(mcpServer, ref.slug);
+      const serverEnv = filterEnvToDeclaredKeys(
+        mcpServer.spec?.env,
+        envVars,
+        ref.slug,
+      );
+      const server = mcpServerToResolved(mcpServer, ref.slug, serverEnv);
       if (server) resolved.push(server);
     } catch (err) {
-      console.warn(
-        `Failed to resolve MCP server ${ref.org}/${ref.slug}: ${err instanceof Error ? err.message : err}`,
-      );
+      if (err instanceof PlaceholderResolutionError) {
+        console.error(
+          `MCP server ${ref.org}/${ref.slug}: ${err.message}`,
+        );
+      } else {
+        console.warn(
+          `Failed to resolve MCP server ${ref.org}/${ref.slug}: ${err instanceof Error ? err.message : err}`,
+        );
+      }
     }
   }
 
@@ -85,6 +103,7 @@ export async function resolveMcpServers(
 function mcpServerToResolved(
   server: McpServer,
   slug: string,
+  envVars: Record<string, string>,
 ): ResolvedMcpServer | null {
   const spec = server.spec;
   if (!spec) return null;
@@ -93,23 +112,32 @@ function mcpServerToResolved(
     case "stdio": {
       const stdio = spec.serverType.value;
       if (!stdio.command) return null;
+      const resolvedArgs = stdio.args.length > 0
+        ? stdio.args.map((arg, i) =>
+            resolvePlaceholders(arg, envVars, `stdio arg[${i}]`),
+          )
+        : undefined;
       return {
         slug,
         connectionType: "stdio",
         command: stdio.command,
-        args: stdio.args.length > 0 ? stdio.args : undefined,
+        args: resolvedArgs,
+        env: Object.keys(envVars).length > 0 ? { ...envVars } : undefined,
         cwd: stdio.workingDir || undefined,
       };
     }
     case "http": {
       const http = spec.serverType.value;
       if (!http.url) return null;
-      const headers = Object.keys(http.headers).length > 0 ? http.headers : undefined;
+      const rawHeaders = Object.keys(http.headers).length > 0 ? http.headers : undefined;
+      const resolved = rawHeaders
+        ? resolveHeaders(Object.fromEntries(Object.entries(rawHeaders)), envVars)
+        : undefined;
       return {
         slug,
         connectionType: "http",
         url: http.url,
-        headers,
+        headers: resolved,
       };
     }
     default:
@@ -161,3 +189,5 @@ export function extractMcpServerSlugs(usages: McpServerUsage[]): string[] {
     .map((u) => u.mcpServerRef?.slug)
     .filter((s): s is string => !!s);
 }
+
+export { PlaceholderResolutionError } from "./placeholder-resolver.js";
