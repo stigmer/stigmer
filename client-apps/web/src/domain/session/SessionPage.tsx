@@ -84,6 +84,7 @@ export function SessionPageInner({ id }: { id: string }) {
               agentRef={flow.agentRef}
               onAgentRefChange={flow.setAgentRef}
               onAgentResolutionChange={flow.setResolution}
+              isDefaultAgent={flow.isDefaultAgent}
               mcpServerUsages={flow.mcpServerUsages}
               onMcpServerUsagesChange={flow.setMcpServerUsages}
               skillRefs={flow.skillRefs}

@@ -276,7 +276,17 @@ verify-web: lint-web typecheck-web ## Lint + typecheck web (~30s)
 
 launch-desktop: ## Start desktop app in dev mode (Tauri + Vite hot-reload)
 	client-apps/desktop/scripts/setup-sidecar-dev.sh
+	@if command -v caddy >/dev/null 2>&1 && grep -q 'localhost:9090' client-apps/desktop/.env.development 2>/dev/null; then \
+		echo "Starting local dev proxy (:9090 → gRPC-Web :8080 + REST :8081)..."; \
+		-pkill -f "grpcwebproxy.*9091" 2>/dev/null || true; \
+		caddy stop 2>/dev/null || true; \
+		grpcwebproxy --backend_addr=localhost:8080 --run_tls_server=false --allow_all_origins --server_http_debug_port=9091 --server_http_max_read_timeout=120s --server_http_max_write_timeout=120s & \
+		sleep 1; \
+		caddy start --config client-apps/desktop/scripts/Caddyfile.dev; \
+	fi
 	npm run tauri dev -w desktop
+	@-caddy stop 2>/dev/null || true
+	@-pkill -f "grpcwebproxy.*9091" 2>/dev/null || true
 
 build-desktop: ## Build desktop native binary (requires TAURI_SIGNING_PRIVATE_KEY)
 	@if [ -z "$$TAURI_SIGNING_PRIVATE_KEY" ] && [ -z "$$TAURI_SIGNING_PRIVATE_KEY_PATH" ]; then \
