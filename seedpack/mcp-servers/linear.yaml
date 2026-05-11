@@ -1,0 +1,27 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: Linear
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "communication"
+spec:
+  description: "Linear MCP server for issue tracking, project management, team collaboration, and sprint planning."
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/linear.svg"
+  repository_url: ""
+  github_stars: 0
+  tags:
+    - linear
+    - project-management
+    - issue-tracking
+  http:
+    url: "https://mcp.linear.app/mcp"
+    headers:
+      Authorization: "Bearer ${LINEAR_ACCESS_TOKEN}"
+  env:
+    LINEAR_ACCESS_TOKEN:
+      is_secret: true
+      description: "Linear API key or OAuth access token (generate at linear.app/settings/api)"
+  auth:
+    target_env_var: "LINEAR_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"

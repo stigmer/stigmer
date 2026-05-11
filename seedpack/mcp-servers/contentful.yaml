@@ -1,0 +1,28 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: Contentful
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "developer-tools"
+spec:
+  description: "Contentful MCP server for content entry management, asset operations, content model configuration, and space administration."
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/contentful.svg"
+  repository_url: "https://github.com/contentful/contentful-mcp-server"
+  github_stars: 0
+  tags:
+    - contentful
+    - cms
+    - headless-cms
+    - content-management
+  http:
+    url: "https://mcp.contentful.com/mcp"
+    headers:
+      Authorization: "Bearer ${CONTENTFUL_ACCESS_TOKEN}"
+  env:
+    CONTENTFUL_ACCESS_TOKEN:
+      is_secret: true
+      description: "Contentful API key or OAuth access token (generate at app.contentful.com)"
+  auth:
+    target_env_var: "CONTENTFUL_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"

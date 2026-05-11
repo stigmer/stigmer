@@ -1,0 +1,29 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: Redis
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "databases"
+spec:
+  description: "Redis MCP server for key-value operations, data structure manipulation, search, and server management."
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/redis.svg"
+  repository_url: "https://github.com/redis/mcp-redis"
+  github_stars: 477
+  tags:
+    - redis
+    - database
+    - cache
+    - key-value
+  stdio:
+    command: "uvx"
+    args:
+      - "--from"
+      - "redis-mcp-server@latest"
+      - "redis-mcp-server"
+      - "--url"
+      - "${REDIS_URL}"
+  env:
+    REDIS_URL:
+      is_secret: true
+      description: "Redis connection URL (e.g., redis://localhost:6379/0 or rediss://user:pass@host:port)"

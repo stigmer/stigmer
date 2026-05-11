@@ -1,0 +1,28 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: Intercom
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "crm-support"
+spec:
+  description: "Intercom MCP server for customer messaging, support ticket management, help center content, and user engagement."
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/intercom.svg"
+  repository_url: "https://github.com/intercom/intercom-mcp-server"
+  github_stars: 5
+  tags:
+    - intercom
+    - customer-support
+    - messaging
+    - helpdesk
+  http:
+    url: "https://mcp.intercom.com/sse"
+    headers:
+      Authorization: "Bearer ${INTERCOM_ACCESS_TOKEN}"
+  env:
+    INTERCOM_ACCESS_TOKEN:
+      is_secret: true
+      description: "Intercom API key or OAuth access token (generate at developers.intercom.com)"
+  auth:
+    target_env_var: "INTERCOM_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"
