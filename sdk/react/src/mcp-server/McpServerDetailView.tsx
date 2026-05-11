@@ -439,8 +439,6 @@ export function McpServerDetailView({
           onConnect={handleConnectClick}
           onClearConnectionError={combinedClearError}
           hasDiscoveredTools={hasDiscoveredTools}
-          toolCount={tools.length}
-          policyCount={totalPolicyCount}
           credentialsLoading={credentials.isLoading}
           oauthPhase={oauth.phase}
           authMode={credentials.authMode}
@@ -631,8 +629,6 @@ function ConnectBar({
   onConnect,
   onClearConnectionError,
   hasDiscoveredTools,
-  toolCount,
-  policyCount,
   credentialsLoading,
   oauthPhase,
   authMode,
@@ -666,8 +662,6 @@ function ConnectBar({
   readonly onConnect: () => void;
   readonly onClearConnectionError: () => void;
   readonly hasDiscoveredTools: boolean;
-  readonly toolCount: number;
-  readonly policyCount: number;
   readonly credentialsLoading: boolean;
   readonly oauthPhase: OAuthConnectPhase;
   readonly authMode: "manual" | "oauth";
@@ -739,7 +733,7 @@ function ConnectBar({
     }
     if (isOrgOAuthApp && showOAuthPrimary) return "Using your OAuth app";
     if (manualOverride) return "Entering token manually";
-    if (hasDiscoveredTools) return formatConnectionSummary(toolCount, policyCount);
+    if (hasDiscoveredTools) return "Connected";
     return "Not connected yet";
   })();
 
@@ -1080,13 +1074,6 @@ function oauthPhaseLabel(phase: OAuthConnectPhase): string {
     default:
       return "Connecting...";
   }
-}
-
-function formatConnectionSummary(toolCount: number, policyCount: number): string {
-  const toolLabel = `${toolCount} tool${toolCount !== 1 ? "s" : ""}`;
-  if (policyCount === 0) return toolLabel;
-  const policyLabel = `${policyCount} ${policyCount !== 1 ? "policies" : "policy"}`;
-  return `${toolLabel}, ${policyLabel}`;
 }
 
 function formatTokenExpiry(expiresAtSeconds: bigint): string | null {
