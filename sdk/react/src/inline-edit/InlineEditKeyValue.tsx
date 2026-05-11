@@ -12,6 +12,10 @@ export interface InlineEditKeyValueProps extends InlineEditBaseProps {
   readonly onSave: (rows: KeyValueRow[]) => Promise<boolean>;
   /** Label for the "key" column. @default "Key" */
   readonly keyLabel?: string;
+  /** Show the value alongside the key in read mode and provide a value input in edit mode. @default false */
+  readonly showValue?: boolean;
+  /** Label for the "value" column (only relevant when showValue is true). @default "Value" */
+  readonly valueLabel?: string;
   /** Show the "secret" toggle per row. @default false */
   readonly showSecretToggle?: boolean;
   /** Show the "optional" toggle per row. @default false */
@@ -35,6 +39,8 @@ export function InlineEditKeyValue({
   value,
   onSave,
   keyLabel = "Key",
+  showValue = false,
+  valueLabel = "Value",
   showSecretToggle = false,
   showOptionalToggle = false,
   showDescription = false,
@@ -99,6 +105,11 @@ export function InlineEditKeyValue({
                 <code className="shrink-0 font-mono text-sm font-medium text-foreground">
                   {row.key}
                 </code>
+                {showValue && (
+                  <span className="min-w-0 break-all font-mono text-xs text-muted-foreground">
+                    {row.value}
+                  </span>
+                )}
                 {showSecretToggle && (
                   <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                     {row.isSecret ? "secret" : "config"}
@@ -137,6 +148,18 @@ export function InlineEditKeyValue({
                 "focus:outline-none focus:ring-2 focus:ring-ring",
               )}
             />
+            {showValue && (
+              <input
+                type="text"
+                value={row.value}
+                onChange={(e) => updateRow(i, { value: e.target.value })}
+                placeholder={valueLabel}
+                className={cn(
+                  "rounded-md border border-border bg-input-bg px-2 py-1 font-mono text-sm text-foreground",
+                  "focus:outline-none focus:ring-2 focus:ring-ring",
+                )}
+              />
+            )}
             {showDescription && (
               <input
                 type="text"
