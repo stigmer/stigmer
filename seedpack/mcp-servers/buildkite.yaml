@@ -1,0 +1,28 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: Buildkite
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "developer-tools"
+spec:
+  description: "Buildkite MCP server for pipeline management, build operations, agent monitoring, and CI/CD workflow control."
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/buildkite.svg"
+  repository_url: "https://github.com/buildkite/buildkite-mcp-server"
+  github_stars: 49
+  tags:
+    - buildkite
+    - ci-cd
+    - pipelines
+    - build-automation
+  http:
+    url: "https://mcp.buildkite.com/mcp"
+    headers:
+      Authorization: "Bearer ${BUILDKITE_ACCESS_TOKEN}"
+  env:
+    BUILDKITE_ACCESS_TOKEN:
+      is_secret: true
+      description: "Buildkite API key or OAuth access token (generate at buildkite.com/user/api-access-tokens)"
+  auth:
+    target_env_var: "BUILDKITE_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"

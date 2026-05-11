@@ -1,0 +1,28 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: Stripe
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "payments"
+spec:
+  description: "Stripe MCP server for payment processing, customer management, subscription operations, and financial data access."
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/stripe.svg"
+  repository_url: "https://github.com/stripe/ai"
+  github_stars: 1449
+  tags:
+    - stripe
+    - payments
+    - e-commerce
+    - billing
+  http:
+    url: "https://mcp.stripe.com/"
+    headers:
+      Authorization: "Bearer ${STRIPE_ACCESS_TOKEN}"
+  env:
+    STRIPE_ACCESS_TOKEN:
+      is_secret: true
+      description: "Stripe OAuth access token (obtained via Connect or at dashboard.stripe.com/apikeys)"
+  auth:
+    target_env_var: "STRIPE_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"

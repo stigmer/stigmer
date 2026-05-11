@@ -1,0 +1,36 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: Figma
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "design"
+spec:
+  description: "Figma MCP server for accessing design files, inspecting components, extracting design tokens, and navigating project structures."
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/figma.svg"
+  repository_url: "https://github.com/figma/mcp-server-guide"
+  github_stars: 1060
+  tags:
+    - figma
+    - design
+    - ui
+    - design-tokens
+  http:
+    url: "https://mcp.figma.com/mcp"
+    headers:
+      Authorization: "Bearer ${FIGMA_ACCESS_TOKEN}"
+  env:
+    FIGMA_ACCESS_TOKEN:
+      is_secret: true
+      description: "Figma personal access token or OAuth token (generate at figma.com/developers)"
+  auth:
+    oauth_app_ref:
+      org: stigmer
+      kind: oauth_app
+      slug: figma-oauth
+    target_env_var: "FIGMA_ACCESS_TOKEN"
+    token_lifetime_hint: "never"
+    scope_hints:
+      - "file_content:read"
+      - "file_metadata:read"
+      - "file_comments:read"

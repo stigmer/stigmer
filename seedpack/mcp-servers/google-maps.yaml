@@ -1,0 +1,25 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: Google Maps
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "productivity"
+spec:
+  description: "Google Maps MCP server for place search, route computation, weather lookups, and geospatial queries powered by Google Maps Platform."
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/googlemaps.svg"
+  repository_url: ""
+  github_stars: 0
+  tags:
+    - google-maps
+    - geospatial
+    - places
+    - routing
+  http:
+    url: "https://mapstools.googleapis.com/mcp"
+    headers:
+      Authorization: "Bearer ${GOOGLE_MAPS_API_KEY}"
+  env:
+    GOOGLE_MAPS_API_KEY:
+      is_secret: true
+      description: "Google Maps Platform API key (enable Maps Grounding Lite API in Google Cloud Console)"

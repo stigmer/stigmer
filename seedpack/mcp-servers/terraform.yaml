@@ -1,0 +1,27 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: Terraform
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "cloud-infrastructure"
+spec:
+  description: "Terraform MCP server for infrastructure-as-code assistance with HCL configuration, provider documentation, and module discovery."
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/terraform.svg"
+  repository_url: "https://github.com/hashicorp/terraform-mcp-server"
+  github_stars: 1314
+  tags:
+    - terraform
+    - infrastructure-as-code
+    - cloud
+    - hashicorp
+  stdio:
+    command: "go"
+    args:
+      - "run"
+      - "github.com/hashicorp/terraform-mcp-server/cmd/terraform-mcp-server@latest"
+      - "stdio"
+  env:
+    TFE_TOKEN:
+      is_secret: true
+      description: "HCP Terraform / Terraform Enterprise API token (optional, for private registry and workspace features)"

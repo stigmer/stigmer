@@ -1,0 +1,28 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: Notion
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "productivity"
+spec:
+  description: "Notion MCP server for searching pages, reading content, managing databases, and organizing workspace information."
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/notion.svg"
+  repository_url: "https://github.com/makenotion/notion-mcp-server"
+  github_stars: 4199
+  tags:
+    - notion
+    - productivity
+    - knowledge-management
+    - wiki
+  http:
+    url: "https://mcp.notion.com/mcp"
+    headers:
+      Authorization: "Bearer ${NOTION_ACCESS_TOKEN}"
+  env:
+    NOTION_ACCESS_TOKEN:
+      is_secret: true
+      description: "Notion API key or OAuth access token (generate at notion.so/my-integrations)"
+  auth:
+    target_env_var: "NOTION_ACCESS_TOKEN"
+    token_lifetime_hint: "1h"

@@ -1,0 +1,25 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: Brevo
+  visibility: visibility_public
+  labels:
+    stigmer.ai/category: "communication"
+spec:
+  description: "Brevo MCP server for email campaigns, transactional email, contact management, and marketing automation across 27 modules."
+  icon_url: "https://raw.githubusercontent.com/stigmer/stigmer/main/seedpack/icons/mcp-servers/brevo.svg"
+  repository_url: ""
+  github_stars: 0
+  tags:
+    - brevo
+    - email
+    - marketing
+    - crm
+  http:
+    url: "https://mcp.brevo.com/v1/brevo/mcp"
+    headers:
+      Authorization: "Bearer ${BREVO_MCP_TOKEN}"
+  env:
+    BREVO_MCP_TOKEN:
+      is_secret: true
+      description: "Brevo MCP token — go to app.brevo.com > Account > SMTP & API > API Keys, click 'Generate a new API key', and enable the 'Create MCP server API key' toggle. Do NOT use an SMTP key (xsmtpsib-) or a regular API key."
