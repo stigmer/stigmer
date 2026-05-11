@@ -1,0 +1,18 @@
+# Local dev reverse proxy for the desktop app.
+#
+# Caddy on :9090 is the single entry point for the desktop frontend.
+# It routes:
+#   /v1/proxy/*  → Java embedded Tomcat on :8081 (REST endpoints)
+#   everything   → grpcwebproxy on :9091 (translates gRPC-Web to native gRPC on :8080)
+#
+# Requires: grpcwebproxy running on :9091 and Java stigmer-service on :8080/:8081.
+
+:9090 {
+	handle /v1/proxy/* {
+		reverse_proxy localhost:8081
+	}
+
+	handle {
+		reverse_proxy localhost:9091
+	}
+}
