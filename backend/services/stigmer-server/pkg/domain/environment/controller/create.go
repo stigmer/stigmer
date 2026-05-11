@@ -6,6 +6,7 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	domainSteps "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller/steps"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 )
 
@@ -14,9 +15,11 @@ import (
 // Pipeline (Stigmer OSS - simplified from Cloud):
 // 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
 // 2. ResolveSlug - Generate slug from metadata.name
-// 3. CheckDuplicate - Verify no duplicate exists
-// 4. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
-// 5. Persist - Save environment to repository
+// 3. CheckDuplicate - Verify no duplicate exists (slug-level)
+// 4. EnforcePersonalEnvUniqueness - At most one personal env per org
+// 5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
+// 6. Persist - Save environment to repository
+// 7. IndexSearch - Update search index
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)
@@ -43,8 +46,9 @@ func (c *EnvironmentController) buildCreatePipeline() *pipeline.Pipeline[*enviro
 		AddStep(steps.NewValidateProtoStep[*environmentv1.Environment]()).                                         // 1. Validate field constraints
 		AddStep(steps.NewResolveSlugStep[*environmentv1.Environment]()).                                           // 2. Resolve slug
 		AddStep(steps.NewCheckDuplicateStep[*environmentv1.Environment](c.store)).                                 // 3. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*environmentv1.Environment]()).                                         // 4. Build new state
-		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).                                        // 5. Persist environment
-		AddStep(steps.NewIndexSearchStep[*environmentv1.Environment](c.store, &extractor.EnvironmentExtractor{})). // 6. Update search index
+		AddStep(domainSteps.NewEnforcePersonalUniquenessStep(c.store)).                                            // 4. At most one personal env per org
+		AddStep(steps.NewBuildNewStateStep[*environmentv1.Environment]()).                                         // 5. Build new state
+		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).                                        // 6. Persist environment
+		AddStep(steps.NewIndexSearchStep[*environmentv1.Environment](c.store, &extractor.EnvironmentExtractor{})). // 7. Update search index
 		Build()
 }
