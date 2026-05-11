@@ -5,7 +5,12 @@ export interface ChipItem {
   key: string;
   label: string;
   type: "agent" | "workspace" | "mcp" | "skill" | "secret" | "runner";
-  onRemove: () => void;
+  /**
+   * Remove handler. When omitted, the chip renders without an X button
+   * and with a subtly muted style to signal it is non-removable
+   * (e.g., the session's default agent).
+   */
+  onRemove?: () => void;
   /** Drives visual variant: amber for `needsSetup`, muted+spinner for `loading`/`submitting`. */
   status?: "loading" | "needsSetup" | "submitting" | "ready";
   /** Secondary text before the remove button (e.g., tool count "4/12"). */
@@ -34,7 +39,7 @@ export function ContextChip({
 }: {
   label: string;
   type: ChipItem["type"];
-  onRemove: () => void;
+  onRemove?: () => void;
   disabled?: boolean;
   status?: ChipItem["status"];
   detail?: string;
@@ -42,6 +47,7 @@ export function ContextChip({
 }) {
   const isTransient = status === "loading" || status === "submitting";
   const isWarning = status === "needsSetup";
+  const isReadonly = onRemove == null;
 
   const labelContent = (
     <>
@@ -74,6 +80,7 @@ export function ContextChip({
           ? "border border-warning/30 bg-warning/10"
           : "bg-muted-subtle",
         isTransient && "opacity-70",
+        isReadonly && "opacity-80",
       )}
     >
       {onClick ? (
@@ -91,15 +98,17 @@ export function ContextChip({
           {labelContent}
         </span>
       )}
-      <button
-        type="button"
-        onClick={onRemove}
-        disabled={disabled}
-        className="ml-0.5 shrink-0 text-muted-foreground hover:text-destructive disabled:pointer-events-none"
-        aria-label={`Remove ${label}`}
-      >
-        <XIcon />
-      </button>
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          disabled={disabled}
+          className="ml-0.5 shrink-0 text-muted-foreground hover:text-destructive disabled:pointer-events-none"
+          aria-label={`Remove ${label}`}
+        >
+          <XIcon />
+        </button>
+      )}
     </span>
   );
 }

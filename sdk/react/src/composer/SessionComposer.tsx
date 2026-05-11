@@ -204,6 +204,18 @@ export interface SessionComposerProps {
   readonly initialAgentRef?: ResourceRef;
 
   /**
+   * When `true`, the agent chip renders without an X (remove) button.
+   *
+   * Used on the session page to indicate the session's default agent,
+   * where removing it would just re-select the same agent (a
+   * confusing no-op). The user can still switch agents via the
+   * Configure menu.
+   *
+   * @default false
+   */
+  readonly isDefaultAgent?: boolean;
+
+  /**
    * Currently selected MCP server usages.
    * When `onMcpServerUsagesChange` is provided, a MCP server trigger
    * appears in the toolbar.
@@ -392,6 +404,7 @@ export const SessionComposer = memo(function SessionComposer({
   onAgentRefChange,
   onAgentResolutionChange,
   initialAgentRef,
+  isDefaultAgent = false,
   mcpServerUsages,
   onMcpServerUsagesChange,
   skillRefs,
@@ -869,13 +882,48 @@ export const SessionComposer = memo(function SessionComposer({
   }, [initialAttachments, enableAttachments, attachments]);
 
   // ---------------------------------------------------------------------------
+  // Initial MCP: seed useMcpServerSetup from mcpServerUsages prop on mount
+  // ---------------------------------------------------------------------------
+
+  const initialMcpSeeded = useRef(false);
+  const mcpSetupAddServerRef = useRef(mcpSetup.addServer);
+  mcpSetupAddServerRef.current = mcpSetup.addServer;
+  const mcpSetupSetEnabledToolsRef = useRef(mcpSetup.setEnabledTools);
+  mcpSetupSetEnabledToolsRef.current = mcpSetup.setEnabledTools;
+
+  useEffect(() => {
+    if (!showMcp || initialMcpSeeded.current || !mcpServerUsages?.length) return;
+    initialMcpSeeded.current = true;
+
+    for (const usage of mcpServerUsages) {
+      const ref = usage.mcpServerRef;
+      if (!ref) continue;
+      const savedTools = usage.enabledTools;
+
+      mcpSetupAddServerRef.current(ref).then(() => {
+        if (savedTools?.length) {
+          mcpSetupSetEnabledToolsRef.current(ref, savedTools);
+        }
+      }).catch(() => {
+        // Non-fatal: server may have been deleted or become inaccessible.
+        // The user can re-add it via the MCP picker.
+      });
+    }
+  }, [showMcp, mcpServerUsages]);
+
+  // ---------------------------------------------------------------------------
   // MCP server setup: sync usageInputs to consumer
   // ---------------------------------------------------------------------------
 
+  const hasLoadingMcpEntries = useMemo(
+    () => Object.values(mcpSetup.entries).some(e => e.status === "loading"),
+    [mcpSetup.entries],
+  );
+
   useEffect(() => {
-    if (!showMcp) return;
+    if (!showMcp || hasLoadingMcpEntries) return;
     onMcpServerUsagesChange?.(mcpSetup.usageInputs);
-  }, [showMcp, mcpSetup.usageInputs, onMcpServerUsagesChange]);
+  }, [showMcp, mcpSetup.usageInputs, onMcpServerUsagesChange, hasLoadingMcpEntries]);
 
   // ---------------------------------------------------------------------------
   // Submission blocking: MCP servers must be fully configured before send
@@ -908,7 +956,7 @@ export const SessionComposer = memo(function SessionComposer({
         key: `agent:${refStr}`,
         label: displayNames.get(refStr) ?? agentRef.slug,
         type: "agent",
-        onRemove: handleAgentChipRemove,
+        onRemove: isDefaultAgent ? undefined : handleAgentChipRemove,
       });
     } else if (
       agentSetup.state.status === "needsEnvVars" ||
@@ -1012,6 +1060,7 @@ export const SessionComposer = memo(function SessionComposer({
     return items;
   }, [
     agentRef,
+    isDefaultAgent,
     agentSetup.state,
     handleAgentChipRemove,
     handlePendingAgentChipRemove,
