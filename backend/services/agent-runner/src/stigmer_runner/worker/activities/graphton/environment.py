@@ -65,10 +65,11 @@ async def resolve_environment(
 
     logger.info(
         "Resolved environment from ExecutionContext: "
-        "context_id=%s, env_count=%d, secret_count=%d",
+        "context_id=%s, env_count=%d, secret_count=%d, keys=%s",
         exec_ctx.metadata.id,
         len(merged_env_vars),
         len(secret_keys),
+        sorted(merged_env_vars.keys()),
     )
 
     return EnvironmentResult(

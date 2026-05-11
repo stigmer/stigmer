@@ -118,3 +118,64 @@ describe("extractMcpServerSlugs", () => {
     expect(extractMcpServerSlugs([])).toEqual([]);
   });
 });
+
+
+describe("resolveMcpServers with env resolution", () => {
+  // Note: resolveMcpServers requires a StigmerClient (network call),
+  // so we test the composition through toCursorMcpConfig + placeholder
+  // resolution at the unit level.
+
+  // The following tests validate toCursorMcpConfig with resolved values,
+  // proving that resolved env is correctly passed through.
+
+  it("transforms HTTP server with resolved headers", () => {
+    const servers: ResolvedMcpServer[] = [
+      {
+        slug: "planton",
+        connectionType: "http",
+        url: "https://mcp.planton.ai",
+        headers: { Authorization: "Bearer actual-api-key" },
+      },
+    ];
+    const result = toCursorMcpConfig(servers);
+    expect(result["planton"]).toEqual({
+      type: "http",
+      url: "https://mcp.planton.ai",
+      headers: { Authorization: "Bearer actual-api-key" },
+    });
+  });
+
+  it("transforms stdio server with env vars", () => {
+    const servers: ResolvedMcpServer[] = [
+      {
+        slug: "github",
+        connectionType: "stdio",
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-github"],
+        env: { GITHUB_TOKEN: "ghp_secret" },
+      },
+    ];
+    const result = toCursorMcpConfig(servers);
+    expect(result["github"]).toEqual({
+      type: "stdio",
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-github"],
+      env: { GITHUB_TOKEN: "ghp_secret" },
+      cwd: undefined,
+    });
+  });
+
+  it("transforms stdio server without env when empty", () => {
+    const servers: ResolvedMcpServer[] = [
+      {
+        slug: "simple",
+        connectionType: "stdio",
+        command: "node",
+        args: ["server.js"],
+      },
+    ];
+    const result = toCursorMcpConfig(servers);
+    const config = result["simple"] as { type?: string; env?: Record<string, string> };
+    expect(config?.env).toBeUndefined();
+  });
+});

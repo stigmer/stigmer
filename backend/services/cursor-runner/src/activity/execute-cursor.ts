@@ -47,6 +47,7 @@ import { MessageAccumulator, extractDeniedToolCalls, utcTimestamp } from "../ada
 import { DeltaEnricher } from "../adapter/delta-enricher.js";
 import { TodoTracker } from "../adapter/todo-tracker.js";
 import { resolveMcpServers } from "../adapter/mcp-resolver.js";
+import { resolveExecutionEnv } from "../adapter/env-resolver.js";
 import { resolveBlueprint } from "../adapter/blueprint-resolver.js";
 import { resolveSkills } from "../adapter/skill-resolver.js";
 import { resolveAttachments } from "../adapter/attachment-resolver.js";
@@ -114,6 +115,11 @@ async function executeCursor(
     session = await client.getSession(sessionId);
     const blueprint = await resolveBlueprint(client, session, config.workspaceRootDir);
 
+    // Phase 2b: Resolve execution environment (MCP server credentials)
+    await reportSetupProgress(client, executionId, "Resolving environment");
+    const { envVars } = await resolveExecutionEnv(client, executionId);
+    heartbeat();
+
     // Determine cursor mode: use persisted value on subsequent executions,
     // compute from workspace entries on first execution.
     const cursorMode = blueprint.sessionSpec.cursorMode !== CursorMode.UNSPECIFIED
@@ -161,7 +167,7 @@ async function executeCursor(
 
     // Phase 4: Resolve MCP servers (merged from agent + session)
     await reportSetupProgress(client, executionId, "Resolving MCP servers");
-    const mcpConfig = await resolveMcpServers(client, blueprint.mergedMcpServerUsages);
+    const mcpConfig = await resolveMcpServers(client, blueprint.mergedMcpServerUsages, envVars);
     heartbeat();
 
     // Phase 5: Resolve skills (merged from agent + session)
