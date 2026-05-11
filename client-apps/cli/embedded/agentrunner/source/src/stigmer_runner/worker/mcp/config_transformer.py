@@ -8,10 +8,11 @@ MultiServerMCPClient format. This module handles:
 - Tool filtering from McpServerUsage.enabled_tools
 
 Placeholder resolution:
-    Stdio args use **strict** mode — a missing variable raises
-    PlaceholderResolutionError to prevent confusing subprocess failures.
-    HTTP headers/query params use **lenient** mode for backward
-    compatibility (unresolved placeholders are preserved with a warning).
+    Both stdio args and HTTP headers/query params use **strict** mode — a
+    missing variable raises PlaceholderResolutionError. For stdio this
+    prevents confusing subprocess failures; for HTTP headers it prevents
+    sending literal ``${VAR}`` strings as credentials, which would cause
+    cryptic "authentication failed" errors from the remote MCP server.
 
 LangGraph expects server configurations in specific formats:
 
@@ -55,11 +56,10 @@ from stigmer_runner.worker.mcp.placeholder_resolver import (
 logger = logging.getLogger(__name__)
 
 # Module-level resolver instances.
-# HTTP headers/query params use lenient mode for backward compatibility —
-# unresolved placeholders are preserved with a warning.
-# Stdio args use strict mode because an unresolved placeholder in a CLI
-# argument would cause a confusing server startup failure.
-_resolver = PlaceholderResolver(strict=False)
+# Both stdio args AND HTTP headers/query params use strict mode — an
+# unresolved placeholder in a header silently produces an "authentication
+# failed" error from the remote server, which is harder to debug than a
+# clear PlaceholderResolutionError.
 _strict_resolver = PlaceholderResolver(strict=True)
 
 # Platform infrastructure env vars that the agent-runner auto-injects into MCP
@@ -142,6 +142,15 @@ def _filter_env_to_declared_keys(
         with spec.env keys. Empty dict when no env is declared (the
         server needs no environment variables).
     """
+    logger.info(
+        "MCP server '%s': env_vars has %d key(s) %s, "
+        "spec.env declares %d key(s) %s",
+        server_slug,
+        len(env_vars), sorted(env_vars.keys()),
+        len(spec.env) if spec.env else 0,
+        sorted(spec.env) if spec.env else [],
+    )
+
     if not spec.env:
         if env_vars:
             logger.debug(
@@ -337,21 +346,36 @@ def _transform_http_config(
     env_vars: dict[str, str],
 ) -> dict[str, Any]:
     """Transform HttpServerConfig to LangGraph HTTP format.
-    
+
+    Uses strict placeholder resolution: a missing variable raises
+    ``PlaceholderResolutionError`` instead of silently sending a literal
+    ``${VAR_NAME}`` to the remote server (which would produce a cryptic
+    "authentication failed" error from the MCP endpoint).
+
     Args:
         http: HttpServerConfig proto message.
         env_vars: Environment variables for placeholder resolution.
-        
+
     Returns:
         Dictionary with HTTP transport configuration.
+
+    Raises:
+        PlaceholderResolutionError: If a header or query-param placeholder
+            references a variable not present in *env_vars*.
     """
-    # Resolve placeholders in headers and query params using the resolver
-    resolved_headers, resolved_params = _resolver.resolve_http_config(
+    resolved_headers, resolved_params = _strict_resolver.resolve_http_config(
         headers=dict(http.headers) if http.headers else None,
         query_params=dict(http.query_params) if http.query_params else None,
         env_vars=env_vars,
     )
-    
+
+    if resolved_headers:
+        logger.info(
+            "HTTP config: resolved %d header(s): %s",
+            len(resolved_headers),
+            list(resolved_headers.keys()),
+        )
+
     # Build URL with resolved query params
     url = http.url
     if resolved_params:
