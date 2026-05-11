@@ -10,17 +10,11 @@ import {
 import { cn } from "@stigmer/theme";
 import {
   OrgSwitcher,
-  useSessionList,
-  groupSessionsByTime,
+  useSessionSearch,
+  groupSearchResultsByTime,
   resolvedSubject,
 } from "@stigmer/react";
-import type { SessionGroup } from "@stigmer/react";
-import {
-  Tooltip,
-  TooltipProvider,
-  TooltipTrigger,
-  TooltipContent,
-} from "../ui/tooltip";
+import type { SearchResultGroup } from "@stigmer/react";
 import { ScrollArea } from "../ui/scroll-area";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
@@ -38,7 +32,7 @@ export function Sidebar() {
   const isSessionZone =
     location.pathname === "/" || location.pathname.startsWith("/sessions/");
 
-  const { sessions, isLoading, error, refetch } = useSessionList();
+  const { sessions, isLoading, error, refetch, hasMore, loadMore } = useSessionSearch();
 
   useEffect(() => {
     refetch();
@@ -53,7 +47,7 @@ export function Sidebar() {
   }, [activeSessionId, refetch]);
 
   const groups = useMemo(
-    () => groupSessionsByTime(sessions),
+    () => groupSearchResultsByTime(sessions),
     [sessions],
   );
 
@@ -154,6 +148,8 @@ export function Sidebar() {
             groups={groups}
             activeSessionId={activeSessionId}
             onNavigate={(id) => navigate(`/sessions/${id}`)}
+            hasMore={hasMore}
+            onLoadMore={loadMore}
           />
         )}
       </ScrollArea>
@@ -174,13 +170,16 @@ function SessionGroupList({
   groups,
   activeSessionId,
   onNavigate,
+  hasMore,
+  onLoadMore,
 }: {
-  groups: readonly SessionGroup[];
+  groups: readonly SearchResultGroup[];
   activeSessionId: string | null;
   onNavigate: (id: string) => void;
+  hasMore: boolean;
+  onLoadMore: () => void;
 }) {
   return (
-    <TooltipProvider>
       <div className="space-y-4">
         {groups.map((group) => (
           <div key={group.label}>
@@ -188,43 +187,42 @@ function SessionGroupList({
               {group.label}
             </p>
             <ul className="space-y-0.5" role="list">
-              {group.sessions.map((session) => {
-                const id = session.metadata?.id;
+              {group.entries.map((entry) => {
+                const id = entry.id;
                 if (!id) return null;
                 const subject =
-                  resolvedSubject(session.spec?.subject) ?? "Untitled session";
+                  resolvedSubject(entry.description) ?? "Untitled session";
                 const isActive = id === activeSessionId;
                 return (
                   <li key={id}>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <button
-                            onClick={() => onNavigate(id)}
-                            aria-current={isActive ? "page" : undefined}
-                            className={cn(
-                              "w-full line-clamp-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors",
-                              isActive
-                                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                            )}
-                          />
-                        }
-                      >
-                        {subject}
-                      </TooltipTrigger>
-                      <TooltipContent side="right" sideOffset={12}>
-                        {subject}
-                      </TooltipContent>
-                    </Tooltip>
+                    <button
+                      onClick={() => onNavigate(id)}
+                      aria-current={isActive ? "page" : undefined}
+                      className={cn(
+                        "w-full line-clamp-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors",
+                        isActive
+                          ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      )}
+                    >
+                      {subject}
+                    </button>
                   </li>
                 );
               })}
             </ul>
           </div>
         ))}
+        {hasMore && (
+          <button
+            type="button"
+            onClick={onLoadMore}
+            className="w-full rounded-md px-2 py-1.5 text-center text-xs text-sidebar-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          >
+            Load more sessions
+          </button>
+        )}
       </div>
-    </TooltipProvider>
   );
 }
 
