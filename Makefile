@@ -8,6 +8,7 @@ GO_MODULES := \
 	client-apps/cli \
 	mcp-server \
 	sdk/go \
+	seedpack \
 	tools
 
 AGENT_RUNNER_DIR := backend/services/agent-runner
@@ -81,13 +82,24 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check
-build: ## Build Stigmer CLI, server, and workflow-runner binaries
+.PHONY: build build-mcp-server build-java-sdk build-cursor-runner protos codegen gen-narration gen-sdk-docs gen-proto-sdk-docs gen-react-sdk-docs gen-ink-sdk-docs gen-sdk-docs-check gen-proto-sdk-docs-check gen-react-sdk-docs-check gen-ink-sdk-docs-check
+build: libs-build build-web verify-desktop docs-build build-mcp-server build-java-sdk build-cursor-runner ## Build all project artifacts
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
 	cd backend/services/workflow-runner && go build -o ../../../bin/stigmer-workflow-runner .
-	@echo "built: bin/stigmer, bin/stigmer-server, bin/stigmer-workflow-runner"
+	@echo ""
+	@echo "built: bin/stigmer, bin/stigmer-server, bin/stigmer-workflow-runner, mcp-server/bin/mcp-server-stigmer"
+
+build-mcp-server: ## Build MCP server binary
+	$(MAKE) -C mcp-server build
+
+build-java-sdk: ## Compile Java SDK
+	$(MAKE) -C sdk/java build
+
+build-cursor-runner: ## Compile Cursor runner (TypeScript)
+	@echo "build    $(CURSOR_RUNNER_DIR)"
+	@cd $(CURSOR_RUNNER_DIR) && npm run build
 
 protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C apis build
@@ -362,7 +374,7 @@ tsdoc-check: ## Validate TSDoc quality for all TypeScript SDKs
 test-demos: docs-build ## Run Playwright demo e2e tests — slow (~20 min), run explicitly or in CI
 	$(MAKE) -C site test-demos
 
-check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links libs-build build-web verify-desktop docs-build build test validate-demos ## Run full CI gate locally
+check: tidy fix lint lint-docs format-docs-check tsdoc-check gen-sdk-docs gen-sdk-docs-check check-links build test validate-demos ## Run full CI gate locally
 
 check-all: check test-demos ## Full CI gate including Playwright demo e2e (slow)
 
