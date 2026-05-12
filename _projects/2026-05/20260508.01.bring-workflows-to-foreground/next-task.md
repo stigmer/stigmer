@@ -16,11 +16,38 @@ Drop this file into your conversation to quickly resume work on this project.
 
 **Components**: Proto APIs (workflow/workflowexecution/workflowinstance/tasks), workflow-runner, stigmer-service, Web UI, CLI, agent-runner, model registry, artifact store
 
+## Current Status
+
+**Created**: 2026-05-08
+**Last Session**: 2026-05-12 — T02 Structured Agent Output Model (COMPLETE)
+**Current Task**: T02 — COMPLETE
+**Phase**: Phase 0 — Harden the Workflow Core
+**Next Task**: T03 or next task from master plan
+
+## Session Progress (2026-05-12)
+- Implemented T02: Structured Agent Output Model (proto contract + codegen + validation warning)
+- Added `AgentCallOutputContract` message, `OnInvalidOutputPolicy` enum, `output` field on `AgentCallTaskConfig`
+- Added semantic validation warning for switch_case routing on unschema'd agent_call output
+- Passed `buf lint`, `buf breaking`, `go vet`
+- Ran `make codegen` (stigmer) and `make protos` (stigmer-cloud) — all stubs regenerated
+- Committed all changes
+
+## Next Steps
+1. Review T01 master plan to determine the next task (T03 or other priority)
+2. T03 candidates: new task types (`llm_call`, `extract`, `validate`) for native provider-level structured output
+3. Runtime implementation of the T02 output contract (Go workflow-runner extraction + JSON Schema validation) is a separate follow-up task
+
+## Context for Resume
+- T02 proto contract is finalized and all stubs are regenerated across both repos
+- The structured output model is backward compatible — existing workflows are unaffected
+- Validation warning is live in the Go runner but runtime enforcement (actual schema validation at execution time) is NOT yet implemented
+- stigmer-cloud repo also has regenerated stubs (committed separately if needed)
+
 ## Essential Files to Review
 
-### 1. Latest Checkpoint (if exists)
+### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-12-t02-structured-agent-output.md
 ```
 
 ### 2. Current Task
@@ -32,7 +59,10 @@ Drop this file into your conversation to quickly resume work on this project.
 - **README**: `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260508.01.bring-workflows-to-foreground/README.md`
 - **Research Report**: `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/research.workflow-domain-foreground-strategy/04.report.gpt.md`
 
-### 4. Existing Workflow Protos (the domain being enhanced)
+### 4. Key Proto (just changed)
+- **agent_call.proto**: `apis/ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto` — now has `AgentCallOutputContract`, `OnInvalidOutputPolicy`, and `output` field
+
+### 5. Existing Workflow Protos (the domain being enhanced)
 - **Workflow spec**: `apis/ai/stigmer/agentic/workflow/v1/spec.proto`
 - **Workflow enum**: `apis/ai/stigmer/agentic/workflow/v1/enum.proto`
 - **Workflow tasks**: `apis/ai/stigmer/agentic/workflow/v1/tasks/`
@@ -67,19 +97,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint (if any) from `checkpoints/`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-05-12-t02-structured-agent-output.md`
 2. [ ] Check current task status in `tasks/`
 3. [ ] Review any design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with the next task or complete the current one
-
-## Current Status
-
-**Created**: 2026-05-08
-**Current Task**: T01 (Master Plan) — PENDING REVIEW
-**Phase**: Phase 0 — Harden the Workflow Core
-**Next After Approval**: T02 — Structured Agent Output Model
+6. [ ] Continue with the next task (T03 or next from master plan)
 
 ## Project Phases
 
@@ -92,7 +115,7 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Continue with T01" - Resume the current task
+- "Continue with T03" - Start the next task
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

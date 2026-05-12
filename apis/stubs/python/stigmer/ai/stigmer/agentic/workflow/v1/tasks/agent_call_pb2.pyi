@@ -1,7 +1,9 @@
 from ai.stigmer.agentic.agentexecution.v1 import spec_pb2 as _spec_pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Mapping as _Mapping
@@ -9,8 +11,19 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class OnInvalidOutputPolicy(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    ON_INVALID_POLICY_UNSPECIFIED: _ClassVar[OnInvalidOutputPolicy]
+    ON_INVALID_FAIL: _ClassVar[OnInvalidOutputPolicy]
+    ON_INVALID_RETRY: _ClassVar[OnInvalidOutputPolicy]
+    ON_INVALID_FALLBACK: _ClassVar[OnInvalidOutputPolicy]
+ON_INVALID_POLICY_UNSPECIFIED: OnInvalidOutputPolicy
+ON_INVALID_FAIL: OnInvalidOutputPolicy
+ON_INVALID_RETRY: OnInvalidOutputPolicy
+ON_INVALID_FALLBACK: OnInvalidOutputPolicy
+
 class AgentCallTaskConfig(_message.Message):
-    __slots__ = ("agent", "org", "message", "env", "config")
+    __slots__ = ("agent", "org", "message", "env", "config", "output")
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -23,12 +36,26 @@ class AgentCallTaskConfig(_message.Message):
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     ENV_FIELD_NUMBER: _ClassVar[int]
     CONFIG_FIELD_NUMBER: _ClassVar[int]
+    OUTPUT_FIELD_NUMBER: _ClassVar[int]
     agent: str
     org: str
     message: str
     env: _containers.ScalarMap[str, str]
     config: AgentExecutionConfig
-    def __init__(self, agent: _Optional[str] = ..., org: _Optional[str] = ..., message: _Optional[str] = ..., env: _Optional[_Mapping[str, str]] = ..., config: _Optional[_Union[AgentExecutionConfig, _Mapping]] = ...) -> None: ...
+    output: AgentCallOutputContract
+    def __init__(self, agent: _Optional[str] = ..., org: _Optional[str] = ..., message: _Optional[str] = ..., env: _Optional[_Mapping[str, str]] = ..., config: _Optional[_Union[AgentExecutionConfig, _Mapping]] = ..., output: _Optional[_Union[AgentCallOutputContract, _Mapping]] = ...) -> None: ...
+
+class AgentCallOutputContract(_message.Message):
+    __slots__ = ("schema", "on_invalid", "max_retries", "fallback_task")
+    SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    ON_INVALID_FIELD_NUMBER: _ClassVar[int]
+    MAX_RETRIES_FIELD_NUMBER: _ClassVar[int]
+    FALLBACK_TASK_FIELD_NUMBER: _ClassVar[int]
+    schema: _struct_pb2.Struct
+    on_invalid: OnInvalidOutputPolicy
+    max_retries: int
+    fallback_task: str
+    def __init__(self, schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., on_invalid: _Optional[_Union[OnInvalidOutputPolicy, str]] = ..., max_retries: _Optional[int] = ..., fallback_task: _Optional[str] = ...) -> None: ...
 
 class AgentExecutionConfig(_message.Message):
     __slots__ = ("model", "timeout", "temperature", "context_management")

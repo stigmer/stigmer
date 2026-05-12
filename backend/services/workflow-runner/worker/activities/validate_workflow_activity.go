@@ -24,6 +24,7 @@ import (
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	serverlessv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/serverless"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/converter"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/validation"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/tasks"
 	"go.temporal.io/sdk/activity"
@@ -353,6 +354,15 @@ func (a *ValidateWorkflowActivities) ValidateWorkflow(ctx context.Context, spec 
 	}
 
 	logger.Info("Workflow validation completed successfully")
+
+	// Step 3: Semantic analysis — check for fragile routing patterns.
+	// This detects switch_case tasks that route on agent_call output without
+	// a structured output schema, which is the #1 architectural gap identified
+	// in the workflow domain research.
+	if semanticWarnings := validation.CheckStructuredOutputWarnings(spec); len(semanticWarnings) > 0 {
+		warnings = append(warnings, semanticWarnings...)
+		logger.Info("Semantic analysis produced warnings", "count", len(semanticWarnings))
+	}
 
 	// Return VALID state
 	return &serverlessv1.ServerlessWorkflowValidation{

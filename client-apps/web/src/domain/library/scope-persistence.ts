@@ -1,0 +1,22 @@
+export type LibraryScope = "org" | "all";
+
+const SCOPE_KEYS = {
+  agents: "stigmer:library:agents:scope",
+  skills: "stigmer:library:skills:scope",
+  "mcp-servers": "stigmer:library:mcp-servers:scope",
+} as const;
+
+export type LibraryResourceKey = keyof typeof SCOPE_KEYS;
+
+export function readPersistedScope(key: LibraryResourceKey): LibraryScope {
+  if (typeof window === "undefined") return "org";
+  const stored = localStorage.getItem(SCOPE_KEYS[key]);
+  return stored === "all" ? "all" : "org";
+}
+
+export function writePersistedScope(
+  key: LibraryResourceKey,
+  scope: LibraryScope,
+): void {
+  localStorage.setItem(SCOPE_KEYS[key], scope);
+}

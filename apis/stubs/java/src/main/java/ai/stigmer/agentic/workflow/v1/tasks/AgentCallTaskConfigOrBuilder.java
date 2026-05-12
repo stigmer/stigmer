@@ -191,4 +191,61 @@ java.lang.String defaultValue);
    * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig config = 5 [json_name = "config"];</code>
    */
   ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfigOrBuilder getConfigOrBuilder();
+
+  /**
+   * <pre>
+   * Structured output contract for this agent call.
+   *
+   * When set, the workflow runner extracts structured JSON from the agent's
+   * final response and validates it against the declared schema. The validated
+   * JSON is placed in the task output under the "structured" key, enabling
+   * reliable downstream routing via switch_case expressions.
+   *
+   * When not set, the task output contains the agent's raw text response
+   * (backward compatible with existing workflows).
+   *
+   * &#64;since T02 (Structured Agent Output Model)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+   * @return Whether the output field is set.
+   */
+  boolean hasOutput();
+  /**
+   * <pre>
+   * Structured output contract for this agent call.
+   *
+   * When set, the workflow runner extracts structured JSON from the agent's
+   * final response and validates it against the declared schema. The validated
+   * JSON is placed in the task output under the "structured" key, enabling
+   * reliable downstream routing via switch_case expressions.
+   *
+   * When not set, the task output contains the agent's raw text response
+   * (backward compatible with existing workflows).
+   *
+   * &#64;since T02 (Structured Agent Output Model)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+   * @return The output.
+   */
+  ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract getOutput();
+  /**
+   * <pre>
+   * Structured output contract for this agent call.
+   *
+   * When set, the workflow runner extracts structured JSON from the agent's
+   * final response and validates it against the declared schema. The validated
+   * JSON is placed in the task output under the "structured" key, enabling
+   * reliable downstream routing via switch_case expressions.
+   *
+   * When not set, the task output contains the agent's raw text response
+   * (backward compatible with existing workflows).
+   *
+   * &#64;since T02 (Structured Agent Output Model)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+   */
+  ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractOrBuilder getOutputOrBuilder();
 }
