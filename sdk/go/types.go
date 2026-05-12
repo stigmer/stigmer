@@ -76,6 +76,7 @@ type WorkflowInstanceInput = gen.WorkflowInstanceInput
 type AgentExecutionSubscribeStream = gen.AgentExecutionSubscribeStream
 type RunnerConnectStream = gen.RunnerConnectStream
 type WorkflowExecutionSubscribeStream = gen.WorkflowExecutionSubscribeStream
+type WorkflowExecutionSubscribeEventsStream = gen.WorkflowExecutionSubscribeEventsStream
 
 // Shared SDK types.
 type DeleteResourceInput = gen.DeleteResourceInput

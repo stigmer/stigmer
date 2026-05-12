@@ -38,47 +38,61 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "\n3ai/stigmer/agentic/workflowexecution/v" +
       "1/query.proto\022\'ai.stigmer.agentic.workfl" +
       "owexecution.v1\0321ai/stigmer/agentic/workf" +
-      "lowexecution/v1/api.proto\0320ai/stigmer/ag" +
-      "entic/workflowexecution/v1/io.proto\0328ai/" +
-      "stigmer/commons/apiresource/rpc_service_" +
-      "options.proto\032+ai/stigmer/commons/rpc/me" +
-      "thod_options.proto2\204\006\n WorkflowExecution" +
-      "QueryController\022\270\001\n\003get\022<.ai.stigmer.age" +
-      "ntic.workflowexecution.v1.WorkflowExecut" +
-      "ionId\032:.ai.stigmer.agentic.workflowexecu" +
-      "tion.v1.WorkflowExecution\"7\302\270\0303\010\001\0204\"\005val" +
-      "ue*&unauthorized to get workflow executi" +
-      "on\022\224\001\n\004list\022F.ai.stigmer.agentic.workflo" +
-      "wexecution.v1.ListWorkflowExecutionsRequ" +
-      "est\032>.ai.stigmer.agentic.workflowexecuti" +
-      "on.v1.WorkflowExecutionList\"\004\320\270\030\001\022\250\001\n\016li" +
-      "stByWorkflow\022P.ai.stigmer.agentic.workfl" +
-      "owexecution.v1.ListWorkflowExecutionsByW" +
-      "orkflowRequest\032>.ai.stigmer.agentic.work" +
-      "flowexecution.v1.WorkflowExecutionList\"\004" +
-      "\320\270\030\001\022\334\001\n\tsubscribe\022J.ai.stigmer.agentic." +
-      "workflowexecution.v1.SubscribeWorkflowEx" +
-      "ecutionRequest\032:.ai.stigmer.agentic.work" +
-      "flowexecution.v1.WorkflowExecution\"E\302\270\030A" +
-      "\010\001\0204\"\014execution_id*-unauthorized to get " +
-      "workflow execution stream0\001\032\004\240\377+4B\315\001B\nQu" +
-      "eryProtoP\001\242\002\004ASAW\252\002\'Ai.Stigmer.Agentic.W" +
-      "orkflowexecution.V1\312\002\'Ai\\Stigmer\\Agentic" +
-      "\\Workflowexecution\\V1\342\0023Ai\\Stigmer\\Agent" +
-      "ic\\Workflowexecution\\V1\\GPBMetadata\352\002+Ai" +
-      "::Stigmer::Agentic::Workflowexecution::V" +
-      "1b\006proto3"
+      "lowexecution/v1/api.proto\0323ai/stigmer/ag" +
+      "entic/workflowexecution/v1/event.proto\0320" +
+      "ai/stigmer/agentic/workflowexecution/v1/" +
+      "io.proto\0328ai/stigmer/commons/apiresource" +
+      "/rpc_service_options.proto\032+ai/stigmer/c" +
+      "ommons/rpc/method_options.proto2\301\t\n Work" +
+      "flowExecutionQueryController\022\270\001\n\003get\022<.a" +
+      "i.stigmer.agentic.workflowexecution.v1.W" +
+      "orkflowExecutionId\032:.ai.stigmer.agentic." +
+      "workflowexecution.v1.WorkflowExecution\"7" +
+      "\302\270\0303\010\001\0204\"\005value*&unauthorized to get wor" +
+      "kflow execution\022\224\001\n\004list\022F.ai.stigmer.ag" +
+      "entic.workflowexecution.v1.ListWorkflowE" +
+      "xecutionsRequest\032>.ai.stigmer.agentic.wo" +
+      "rkflowexecution.v1.WorkflowExecutionList" +
+      "\"\004\320\270\030\001\022\250\001\n\016listByWorkflow\022P.ai.stigmer.a" +
+      "gentic.workflowexecution.v1.ListWorkflow" +
+      "ExecutionsByWorkflowRequest\032>.ai.stigmer" +
+      ".agentic.workflowexecution.v1.WorkflowEx" +
+      "ecutionList\"\004\320\270\030\001\022\334\001\n\tsubscribe\022J.ai.sti" +
+      "gmer.agentic.workflowexecution.v1.Subscr" +
+      "ibeWorkflowExecutionRequest\032:.ai.stigmer" +
+      ".agentic.workflowexecution.v1.WorkflowEx" +
+      "ecution\"E\302\270\030A\010\001\0204\"\014execution_id*-unautho" +
+      "rized to get workflow execution stream0\001" +
+      "\022\322\001\n\013getEventLog\022;.ai.stigmer.agentic.wo" +
+      "rkflowexecution.v1.GetEventLogRequest\032<." +
+      "ai.stigmer.agentic.workflowexecution.v1." +
+      "GetEventLogResponse\"H\302\270\030D\010\001\0204\"\014execution" +
+      "_id*0unauthorized to get workflow execut" +
+      "ion event log\022\345\001\n\017subscribeEvents\022?.ai.s" +
+      "tigmer.agentic.workflowexecution.v1.Subs" +
+      "cribeEventsRequest\032?.ai.stigmer.agentic." +
+      "workflowexecution.v1.WorkflowExecutionEv" +
+      "ent\"N\302\270\030J\010\001\0204\"\014execution_id*6unauthorize" +
+      "d to subscribe to workflow execution eve" +
+      "nts0\001\032\004\240\377+4B\315\001B\nQueryProtoP\001\242\002\004ASAW\252\002\'Ai" +
+      ".Stigmer.Agentic.Workflowexecution.V1\312\002\'" +
+      "Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\342" +
+      "\0023Ai\\Stigmer\\Agentic\\Workflowexecution\\V" +
+      "1\\GPBMetadata\352\002+Ai::Stigmer::Agentic::Wo" +
+      "rkflowexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.workflowexecution.v1.ApiProto.getDescriptor(),
+          ai.stigmer.agentic.workflowexecution.v1.EventProto.getDescriptor(),
           ai.stigmer.agentic.workflowexecution.v1.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
           ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.workflowexecution.v1.ApiProto.getDescriptor();
+    ai.stigmer.agentic.workflowexecution.v1.EventProto.getDescriptor();
     ai.stigmer.agentic.workflowexecution.v1.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();

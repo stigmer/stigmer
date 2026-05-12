@@ -672,7 +672,15 @@ func generateTSStreamingMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceD
 	outputType := m.OutputType
 	if outputType != cfg.protoResType && !m.ClientStreaming {
 		importBase := deriveTSImportBase(schema.Package)
-		imports.addType(importBase+"/api_pb", outputType)
+		suffix := "api_pb"
+		for _, mt := range schema.MethodTypes {
+			if mt.Name == outputType && mt.ProtoFile != "" {
+				suffix = tsProtoFileToSuffix(mt.ProtoFile)
+				break
+			}
+		}
+		imports.addType(importBase+"/"+suffix, outputType)
+		imports.addValue(importBase+"/"+suffix, outputType+"Schema")
 	}
 
 	if m.ClientStreaming {

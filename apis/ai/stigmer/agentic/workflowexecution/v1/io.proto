@@ -5,6 +5,7 @@ package ai.stigmer.agentic.workflowexecution.v1;
 import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/api.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/enum.proto";
+import "ai/stigmer/agentic/workflowexecution/v1/event.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
@@ -120,6 +121,24 @@ message WorkflowExecutionUpdateStatusInput {
   // @internal
   // Only the fields present in this status object will be updated.
   WorkflowExecutionStatus status = 2 [(buf.validate.field).required = true];
+
+  // Execution events to append to the event log alongside this status update.
+  //
+  // @internal
+  // Append-only: events are added to the persistent event log, never replaced.
+  // This contrasts with status.tasks which uses full-replace protocol.
+  //
+  // The workflow-runner appends events atomically with each status update,
+  // ensuring the event log stays consistent with the status snapshot.
+  // Events must have monotonically increasing sequence_numbers — the handler
+  // rejects batches where any event's sequence_number is <= the current
+  // highest persisted sequence for this execution.
+  //
+  // Empty list means no new events (backward compatible — existing runners
+  // that do not yet emit events continue to work without changes).
+  //
+  // @since T06 (Execution Event Stream Model)
+  repeated WorkflowExecutionEvent events = 10;
 }
 
 // Input for the submitApproval RPC.
@@ -171,79 +190,6 @@ message SubscribeWorkflowExecutionRequest {
   // @internal
   // Format: "wfx_{unique-suffix}"
   string execution_id = 1 [(buf.validate.field).required = true];
-}
-
-// WorkflowExecutionUpdate represents a real-time execution update event.
-//
-// @internal
-// Reserved for future WebSocket/SSE streaming implementations.
-// Currently not used by subscribe() RPC (which sends full WorkflowExecution).
-message WorkflowExecutionUpdate {
-  // Type of update that occurred.
-  //
-  // @internal
-  // Determines which fields in this message are populated.
-  WorkflowUpdateType update_type = 1 [(buf.validate.field).enum.defined_only = true];
-
-  // Updated execution state (full or partial).
-  //
-  // @internal
-  // May contain only changed fields. Clients should merge with cached state.
-  WorkflowExecution execution = 2;
-
-  // Updated task, populated only for task-related update types.
-  //
-  // @internal
-  // Provides direct access to the changed task without searching execution.status.tasks[].
-  WorkflowTask task = 3;
-}
-
-// WorkflowUpdateType defines the type of workflow execution update event.
-//
-// @internal
-// Used by WorkflowExecutionUpdate to indicate what changed in the execution.
-enum WorkflowUpdateType {
-  // Unspecified update type (invalid).
-  //
-  // @internal
-  // Exists only for proto3 zero-value semantics.
-  workflow_update_type_unspecified = 0;
-
-  // Workflow execution phase changed.
-  //
-  // @internal
-  // Triggered when status.phase transitions to a new value.
-  wf_update_status_changed = 1;
-
-  // A workflow task started executing.
-  //
-  // @internal
-  // Triggered when task status changes from PENDING to IN_PROGRESS.
-  wf_update_task_started = 2;
-
-  // A workflow task completed successfully.
-  //
-  // @internal
-  // Triggered when task status changes from IN_PROGRESS to COMPLETED.
-  wf_update_task_completed = 3;
-
-  // A workflow task failed.
-  //
-  // @internal
-  // Triggered when task status changes from IN_PROGRESS to FAILED.
-  wf_update_task_failed = 4;
-
-  // Workflow execution completed successfully.
-  //
-  // @internal
-  // Terminal event - no more updates will follow.
-  wf_update_execution_completed = 5;
-
-  // Workflow execution was cancelled.
-  //
-  // @internal
-  // Terminal event - no more updates will follow.
-  wf_update_execution_cancelled = 6;
 }
 
 // CancelWorkflowExecutionInput requests graceful cancellation of a workflow execution.
@@ -383,4 +329,129 @@ message SendSignalInput {
   //
   // @since Gap B2 (Event Dedupe)
   string idempotency_key = 4;
+}
+
+// GetEventLogRequest fetches the paginated event log for a workflow execution.
+//
+// @internal
+// Returns events ordered by sequence_number ascending. Supports cursor-based
+// pagination via after_sequence and optional filtering by event type or task.
+//
+// Use Cases:
+//
+// 1. Execution Viewer Timeline (T09):
+//    - UI loads execution state via get(), then fetches event log for timeline
+//    - Initial load: after_sequence = 0, page_size = 100
+//    - Subsequent pages: after_sequence = latest_sequence from previous response
+//
+// 2. Task Drill-Down:
+//    - User clicks a task in the viewer to see its full history
+//    - Filter by task_name to get only events for that task
+//
+// 3. Cost Analysis:
+//    - Filter by budget_checkpoint events to chart cost over time
+//
+// @since T06 (Execution Event Stream Model)
+message GetEventLogRequest {
+  // Execution ID to fetch events for.
+  //
+  // @internal
+  // Format: "wfx_{unique-suffix}"
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Return events with sequence_number strictly greater than this value.
+  //
+  // @internal
+  // Cursor-based pagination: set to 0 for the first page, then to
+  // latest_sequence from the previous response for subsequent pages.
+  // Also used by subscribeEvents for replay + live tail positioning.
+  uint64 after_sequence = 2;
+
+  // Optional filter: return only events of these types.
+  //
+  // @internal
+  // When empty, all event types are returned. When populated, only events
+  // whose event_type matches one of the specified values are included.
+  // Useful for filtering to only task lifecycle events, or only budget events.
+  repeated WorkflowEventType event_types = 3;
+
+  // Optional filter: return only events for this task.
+  //
+  // @internal
+  // When empty, events for all tasks (and execution-level events) are returned.
+  // When populated, only events where task_name matches are included.
+  // Execution-level events (empty task_name) are excluded when this filter is set.
+  string task_name = 4;
+
+  // Maximum number of events to return per page.
+  //
+  // @internal
+  // Default: 100. Maximum: 500 (backend enforces this limit).
+  // Events are always returned in sequence_number ascending order.
+  int32 page_size = 5;
+}
+
+// GetEventLogResponse contains a page of execution events.
+//
+// @internal
+// @since T06 (Execution Event Stream Model)
+message GetEventLogResponse {
+  // Events in this page, ordered by sequence_number ascending.
+  repeated WorkflowExecutionEvent events = 1;
+
+  // Whether more events exist after the last event in this response.
+  // When false, the client has reached the end of the current event log.
+  // For in-progress executions, more events may appear later.
+  bool has_more = 2;
+
+  // Highest sequence_number returned in this response.
+  // Use as after_sequence in the next request for cursor-based pagination.
+  // 0 when events is empty.
+  uint64 latest_sequence = 3;
+}
+
+// SubscribeEventsRequest opens a real-time event stream for a workflow execution.
+//
+// @internal
+// Unlike subscribe() which streams full WorkflowExecution snapshots, this
+// streams individual WorkflowExecutionEvent messages as they occur.
+// Lightweight and incremental — suitable for the execution viewer timeline.
+//
+// Replay + Live Tail:
+// When after_sequence is set, the server first replays persisted events
+// with sequence_number > after_sequence, then switches to live streaming.
+// This enables seamless reconnection without missing events.
+//
+// Stream Lifecycle:
+// 1. Client sends SubscribeEventsRequest with execution_id
+// 2. Server validates authorization
+// 3. If after_sequence > 0: Server replays missed events
+// 4. Server streams new events in real-time as they occur
+// 5. Server closes stream when execution reaches a terminal phase
+// 6. Client can close stream early (e.g., user navigates away)
+//
+// @since T06 (Execution Event Stream Model)
+message SubscribeEventsRequest {
+  // Execution ID to subscribe to.
+  //
+  // @internal
+  // Format: "wfx_{unique-suffix}"
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Resume from this sequence number (replay + live tail).
+  //
+  // @internal
+  // 0 = start from the beginning (replay all events then live tail).
+  // N = replay events with sequence_number > N, then live tail.
+  //
+  // Use the latest_sequence from a previous getEventLog response or
+  // the last received event's sequence_number for reconnection.
+  uint64 after_sequence = 2;
+
+  // Optional filter: stream only events of these types.
+  //
+  // @internal
+  // When empty, all event types are streamed.
+  // Applied to both replayed and live events.
+  repeated WorkflowEventType event_types = 3;
 }

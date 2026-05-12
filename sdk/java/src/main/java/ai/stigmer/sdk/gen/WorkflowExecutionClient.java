@@ -3,6 +3,8 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput;
+import ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest;
+import ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse;
 import ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest;
 import ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest;
 import ai.stigmer.agentic.workflowexecution.v1.PauseWorkflowExecutionInput;
@@ -10,10 +12,12 @@ import ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput;
 import ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput;
 import ai.stigmer.agentic.workflowexecution.v1.SendSignalInput;
 import ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput;
+import ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest;
 import ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest;
 import ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput;
 import ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution;
 import ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandControllerGrpc;
+import ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent;
 import ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionId;
 import ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList;
 import ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryControllerGrpc;
@@ -119,6 +123,19 @@ public final class WorkflowExecutionClient {
     public StigmerStream<WorkflowExecution> subscribe(SubscribeWorkflowExecutionRequest input) {
         try {
             java.util.Iterator<WorkflowExecution> iter = query.subscribe(input);
+            return new StigmerStream<>(iter);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public GetEventLogResponse getEventLog(GetEventLogRequest input) {
+        try {
+            return query.getEventLog(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public StigmerStream<WorkflowExecutionEvent> subscribeEvents(SubscribeEventsRequest input) {
+        try {
+            java.util.Iterator<WorkflowExecutionEvent> iter = query.subscribeEvents(input);
             return new StigmerStream<>(iter);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }

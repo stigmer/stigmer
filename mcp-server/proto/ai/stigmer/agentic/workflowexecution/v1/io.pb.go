@@ -24,99 +24,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// WorkflowUpdateType defines the type of workflow execution update event.
-//
-// @internal
-// Used by WorkflowExecutionUpdate to indicate what changed in the execution.
-type WorkflowUpdateType int32
-
-const (
-	// Unspecified update type (invalid).
-	//
-	// @internal
-	// Exists only for proto3 zero-value semantics.
-	WorkflowUpdateType_workflow_update_type_unspecified WorkflowUpdateType = 0
-	// Workflow execution phase changed.
-	//
-	// @internal
-	// Triggered when status.phase transitions to a new value.
-	WorkflowUpdateType_wf_update_status_changed WorkflowUpdateType = 1
-	// A workflow task started executing.
-	//
-	// @internal
-	// Triggered when task status changes from PENDING to IN_PROGRESS.
-	WorkflowUpdateType_wf_update_task_started WorkflowUpdateType = 2
-	// A workflow task completed successfully.
-	//
-	// @internal
-	// Triggered when task status changes from IN_PROGRESS to COMPLETED.
-	WorkflowUpdateType_wf_update_task_completed WorkflowUpdateType = 3
-	// A workflow task failed.
-	//
-	// @internal
-	// Triggered when task status changes from IN_PROGRESS to FAILED.
-	WorkflowUpdateType_wf_update_task_failed WorkflowUpdateType = 4
-	// Workflow execution completed successfully.
-	//
-	// @internal
-	// Terminal event - no more updates will follow.
-	WorkflowUpdateType_wf_update_execution_completed WorkflowUpdateType = 5
-	// Workflow execution was cancelled.
-	//
-	// @internal
-	// Terminal event - no more updates will follow.
-	WorkflowUpdateType_wf_update_execution_cancelled WorkflowUpdateType = 6
-)
-
-// Enum value maps for WorkflowUpdateType.
-var (
-	WorkflowUpdateType_name = map[int32]string{
-		0: "workflow_update_type_unspecified",
-		1: "wf_update_status_changed",
-		2: "wf_update_task_started",
-		3: "wf_update_task_completed",
-		4: "wf_update_task_failed",
-		5: "wf_update_execution_completed",
-		6: "wf_update_execution_cancelled",
-	}
-	WorkflowUpdateType_value = map[string]int32{
-		"workflow_update_type_unspecified": 0,
-		"wf_update_status_changed":         1,
-		"wf_update_task_started":           2,
-		"wf_update_task_completed":         3,
-		"wf_update_task_failed":            4,
-		"wf_update_execution_completed":    5,
-		"wf_update_execution_cancelled":    6,
-	}
-)
-
-func (x WorkflowUpdateType) Enum() *WorkflowUpdateType {
-	p := new(WorkflowUpdateType)
-	*p = x
-	return p
-}
-
-func (x WorkflowUpdateType) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (WorkflowUpdateType) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_enumTypes[0].Descriptor()
-}
-
-func (WorkflowUpdateType) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_enumTypes[0]
-}
-
-func (x WorkflowUpdateType) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use WorkflowUpdateType.Descriptor instead.
-func (WorkflowUpdateType) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{0}
-}
-
 // WorkflowExecutionId wraps a workflow execution identifier.
 //
 // @internal
@@ -464,7 +371,24 @@ type WorkflowExecutionUpdateStatusInput struct {
 	//
 	// @internal
 	// Only the fields present in this status object will be updated.
-	Status        *WorkflowExecutionStatus `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	Status *WorkflowExecutionStatus `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	// Execution events to append to the event log alongside this status update.
+	//
+	// @internal
+	// Append-only: events are added to the persistent event log, never replaced.
+	// This contrasts with status.tasks which uses full-replace protocol.
+	//
+	// The workflow-runner appends events atomically with each status update,
+	// ensuring the event log stays consistent with the status snapshot.
+	// Events must have monotonically increasing sequence_numbers — the handler
+	// rejects batches where any event's sequence_number is <= the current
+	// highest persisted sequence for this execution.
+	//
+	// Empty list means no new events (backward compatible — existing runners
+	// that do not yet emit events continue to work without changes).
+	//
+	// @since T06 (Execution Event Stream Model)
+	Events        []*WorkflowExecutionEvent `protobuf:"bytes,10,rep,name=events,proto3" json:"events,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -509,6 +433,13 @@ func (x *WorkflowExecutionUpdateStatusInput) GetExecutionId() string {
 func (x *WorkflowExecutionUpdateStatusInput) GetStatus() *WorkflowExecutionStatus {
 	if x != nil {
 		return x.Status
+	}
+	return nil
+}
+
+func (x *WorkflowExecutionUpdateStatusInput) GetEvents() []*WorkflowExecutionEvent {
+	if x != nil {
+		return x.Events
 	}
 	return nil
 }
@@ -659,83 +590,6 @@ func (x *SubscribeWorkflowExecutionRequest) GetExecutionId() string {
 	return ""
 }
 
-// WorkflowExecutionUpdate represents a real-time execution update event.
-//
-// @internal
-// Reserved for future WebSocket/SSE streaming implementations.
-// Currently not used by subscribe() RPC (which sends full WorkflowExecution).
-type WorkflowExecutionUpdate struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Type of update that occurred.
-	//
-	// @internal
-	// Determines which fields in this message are populated.
-	UpdateType WorkflowUpdateType `protobuf:"varint,1,opt,name=update_type,json=updateType,proto3,enum=ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType" json:"update_type,omitempty"`
-	// Updated execution state (full or partial).
-	//
-	// @internal
-	// May contain only changed fields. Clients should merge with cached state.
-	Execution *WorkflowExecution `protobuf:"bytes,2,opt,name=execution,proto3" json:"execution,omitempty"`
-	// Updated task, populated only for task-related update types.
-	//
-	// @internal
-	// Provides direct access to the changed task without searching execution.status.tasks[].
-	Task          *WorkflowTask `protobuf:"bytes,3,opt,name=task,proto3" json:"task,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *WorkflowExecutionUpdate) Reset() {
-	*x = WorkflowExecutionUpdate{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *WorkflowExecutionUpdate) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*WorkflowExecutionUpdate) ProtoMessage() {}
-
-func (x *WorkflowExecutionUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use WorkflowExecutionUpdate.ProtoReflect.Descriptor instead.
-func (*WorkflowExecutionUpdate) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *WorkflowExecutionUpdate) GetUpdateType() WorkflowUpdateType {
-	if x != nil {
-		return x.UpdateType
-	}
-	return WorkflowUpdateType_workflow_update_type_unspecified
-}
-
-func (x *WorkflowExecutionUpdate) GetExecution() *WorkflowExecution {
-	if x != nil {
-		return x.Execution
-	}
-	return nil
-}
-
-func (x *WorkflowExecutionUpdate) GetTask() *WorkflowTask {
-	if x != nil {
-		return x.Task
-	}
-	return nil
-}
-
 // CancelWorkflowExecutionInput requests graceful cancellation of a workflow execution.
 //
 // @internal
@@ -762,7 +616,7 @@ type CancelWorkflowExecutionInput struct {
 
 func (x *CancelWorkflowExecutionInput) Reset() {
 	*x = CancelWorkflowExecutionInput{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -774,7 +628,7 @@ func (x *CancelWorkflowExecutionInput) String() string {
 func (*CancelWorkflowExecutionInput) ProtoMessage() {}
 
 func (x *CancelWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -787,7 +641,7 @@ func (x *CancelWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelWorkflowExecutionInput.ProtoReflect.Descriptor instead.
 func (*CancelWorkflowExecutionInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{9}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CancelWorkflowExecutionInput) GetId() string {
@@ -830,7 +684,7 @@ type TerminateWorkflowExecutionInput struct {
 
 func (x *TerminateWorkflowExecutionInput) Reset() {
 	*x = TerminateWorkflowExecutionInput{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -842,7 +696,7 @@ func (x *TerminateWorkflowExecutionInput) String() string {
 func (*TerminateWorkflowExecutionInput) ProtoMessage() {}
 
 func (x *TerminateWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -855,7 +709,7 @@ func (x *TerminateWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TerminateWorkflowExecutionInput.ProtoReflect.Descriptor instead.
 func (*TerminateWorkflowExecutionInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{10}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *TerminateWorkflowExecutionInput) GetId() string {
@@ -900,7 +754,7 @@ type RecoverWorkflowExecutionInput struct {
 
 func (x *RecoverWorkflowExecutionInput) Reset() {
 	*x = RecoverWorkflowExecutionInput{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[11]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -912,7 +766,7 @@ func (x *RecoverWorkflowExecutionInput) String() string {
 func (*RecoverWorkflowExecutionInput) ProtoMessage() {}
 
 func (x *RecoverWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[11]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -925,7 +779,7 @@ func (x *RecoverWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecoverWorkflowExecutionInput.ProtoReflect.Descriptor instead.
 func (*RecoverWorkflowExecutionInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{11}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *RecoverWorkflowExecutionInput) GetId() string {
@@ -964,7 +818,7 @@ type PauseWorkflowExecutionInput struct {
 
 func (x *PauseWorkflowExecutionInput) Reset() {
 	*x = PauseWorkflowExecutionInput{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[12]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -976,7 +830,7 @@ func (x *PauseWorkflowExecutionInput) String() string {
 func (*PauseWorkflowExecutionInput) ProtoMessage() {}
 
 func (x *PauseWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[12]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -989,7 +843,7 @@ func (x *PauseWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PauseWorkflowExecutionInput.ProtoReflect.Descriptor instead.
 func (*PauseWorkflowExecutionInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{12}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *PauseWorkflowExecutionInput) GetId() string {
@@ -1026,7 +880,7 @@ type ResumeWorkflowExecutionInput struct {
 
 func (x *ResumeWorkflowExecutionInput) Reset() {
 	*x = ResumeWorkflowExecutionInput{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[13]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1038,7 +892,7 @@ func (x *ResumeWorkflowExecutionInput) String() string {
 func (*ResumeWorkflowExecutionInput) ProtoMessage() {}
 
 func (x *ResumeWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[13]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1051,7 +905,7 @@ func (x *ResumeWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResumeWorkflowExecutionInput.ProtoReflect.Descriptor instead.
 func (*ResumeWorkflowExecutionInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{13}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ResumeWorkflowExecutionInput) GetId() string {
@@ -1101,7 +955,7 @@ type SendSignalInput struct {
 
 func (x *SendSignalInput) Reset() {
 	*x = SendSignalInput{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[14]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1113,7 +967,7 @@ func (x *SendSignalInput) String() string {
 func (*SendSignalInput) ProtoMessage() {}
 
 func (x *SendSignalInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[14]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1126,7 +980,7 @@ func (x *SendSignalInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendSignalInput.ProtoReflect.Descriptor instead.
 func (*SendSignalInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{14}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SendSignalInput) GetExecutionId() string {
@@ -1157,11 +1011,304 @@ func (x *SendSignalInput) GetIdempotencyKey() string {
 	return ""
 }
 
+// GetEventLogRequest fetches the paginated event log for a workflow execution.
+//
+// @internal
+// Returns events ordered by sequence_number ascending. Supports cursor-based
+// pagination via after_sequence and optional filtering by event type or task.
+//
+// Use Cases:
+//
+// 1. Execution Viewer Timeline (T09):
+//   - UI loads execution state via get(), then fetches event log for timeline
+//   - Initial load: after_sequence = 0, page_size = 100
+//   - Subsequent pages: after_sequence = latest_sequence from previous response
+//
+// 2. Task Drill-Down:
+//   - User clicks a task in the viewer to see its full history
+//   - Filter by task_name to get only events for that task
+//
+// 3. Cost Analysis:
+//   - Filter by budget_checkpoint events to chart cost over time
+//
+// @since T06 (Execution Event Stream Model)
+type GetEventLogRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Execution ID to fetch events for.
+	//
+	// @internal
+	// Format: "wfx_{unique-suffix}"
+	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	// Return events with sequence_number strictly greater than this value.
+	//
+	// @internal
+	// Cursor-based pagination: set to 0 for the first page, then to
+	// latest_sequence from the previous response for subsequent pages.
+	// Also used by subscribeEvents for replay + live tail positioning.
+	AfterSequence uint64 `protobuf:"varint,2,opt,name=after_sequence,json=afterSequence,proto3" json:"after_sequence,omitempty"`
+	// Optional filter: return only events of these types.
+	//
+	// @internal
+	// When empty, all event types are returned. When populated, only events
+	// whose event_type matches one of the specified values are included.
+	// Useful for filtering to only task lifecycle events, or only budget events.
+	EventTypes []WorkflowEventType `protobuf:"varint,3,rep,packed,name=event_types,json=eventTypes,proto3,enum=ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType" json:"event_types,omitempty"`
+	// Optional filter: return only events for this task.
+	//
+	// @internal
+	// When empty, events for all tasks (and execution-level events) are returned.
+	// When populated, only events where task_name matches are included.
+	// Execution-level events (empty task_name) are excluded when this filter is set.
+	TaskName string `protobuf:"bytes,4,opt,name=task_name,json=taskName,proto3" json:"task_name,omitempty"`
+	// Maximum number of events to return per page.
+	//
+	// @internal
+	// Default: 100. Maximum: 500 (backend enforces this limit).
+	// Events are always returned in sequence_number ascending order.
+	PageSize      int32 `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetEventLogRequest) Reset() {
+	*x = GetEventLogRequest{}
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetEventLogRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetEventLogRequest) ProtoMessage() {}
+
+func (x *GetEventLogRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetEventLogRequest.ProtoReflect.Descriptor instead.
+func (*GetEventLogRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *GetEventLogRequest) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *GetEventLogRequest) GetAfterSequence() uint64 {
+	if x != nil {
+		return x.AfterSequence
+	}
+	return 0
+}
+
+func (x *GetEventLogRequest) GetEventTypes() []WorkflowEventType {
+	if x != nil {
+		return x.EventTypes
+	}
+	return nil
+}
+
+func (x *GetEventLogRequest) GetTaskName() string {
+	if x != nil {
+		return x.TaskName
+	}
+	return ""
+}
+
+func (x *GetEventLogRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+// GetEventLogResponse contains a page of execution events.
+//
+// @internal
+// @since T06 (Execution Event Stream Model)
+type GetEventLogResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Events in this page, ordered by sequence_number ascending.
+	Events []*WorkflowExecutionEvent `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
+	// Whether more events exist after the last event in this response.
+	// When false, the client has reached the end of the current event log.
+	// For in-progress executions, more events may appear later.
+	HasMore bool `protobuf:"varint,2,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
+	// Highest sequence_number returned in this response.
+	// Use as after_sequence in the next request for cursor-based pagination.
+	// 0 when events is empty.
+	LatestSequence uint64 `protobuf:"varint,3,opt,name=latest_sequence,json=latestSequence,proto3" json:"latest_sequence,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetEventLogResponse) Reset() {
+	*x = GetEventLogResponse{}
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetEventLogResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetEventLogResponse) ProtoMessage() {}
+
+func (x *GetEventLogResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetEventLogResponse.ProtoReflect.Descriptor instead.
+func (*GetEventLogResponse) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *GetEventLogResponse) GetEvents() []*WorkflowExecutionEvent {
+	if x != nil {
+		return x.Events
+	}
+	return nil
+}
+
+func (x *GetEventLogResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
+}
+
+func (x *GetEventLogResponse) GetLatestSequence() uint64 {
+	if x != nil {
+		return x.LatestSequence
+	}
+	return 0
+}
+
+// SubscribeEventsRequest opens a real-time event stream for a workflow execution.
+//
+// @internal
+// Unlike subscribe() which streams full WorkflowExecution snapshots, this
+// streams individual WorkflowExecutionEvent messages as they occur.
+// Lightweight and incremental — suitable for the execution viewer timeline.
+//
+// Replay + Live Tail:
+// When after_sequence is set, the server first replays persisted events
+// with sequence_number > after_sequence, then switches to live streaming.
+// This enables seamless reconnection without missing events.
+//
+// Stream Lifecycle:
+// 1. Client sends SubscribeEventsRequest with execution_id
+// 2. Server validates authorization
+// 3. If after_sequence > 0: Server replays missed events
+// 4. Server streams new events in real-time as they occur
+// 5. Server closes stream when execution reaches a terminal phase
+// 6. Client can close stream early (e.g., user navigates away)
+//
+// @since T06 (Execution Event Stream Model)
+type SubscribeEventsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Execution ID to subscribe to.
+	//
+	// @internal
+	// Format: "wfx_{unique-suffix}"
+	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	// Resume from this sequence number (replay + live tail).
+	//
+	// @internal
+	// 0 = start from the beginning (replay all events then live tail).
+	// N = replay events with sequence_number > N, then live tail.
+	//
+	// Use the latest_sequence from a previous getEventLog response or
+	// the last received event's sequence_number for reconnection.
+	AfterSequence uint64 `protobuf:"varint,2,opt,name=after_sequence,json=afterSequence,proto3" json:"after_sequence,omitempty"`
+	// Optional filter: stream only events of these types.
+	//
+	// @internal
+	// When empty, all event types are streamed.
+	// Applied to both replayed and live events.
+	EventTypes    []WorkflowEventType `protobuf:"varint,3,rep,packed,name=event_types,json=eventTypes,proto3,enum=ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType" json:"event_types,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubscribeEventsRequest) Reset() {
+	*x = SubscribeEventsRequest{}
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubscribeEventsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubscribeEventsRequest) ProtoMessage() {}
+
+func (x *SubscribeEventsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubscribeEventsRequest.ProtoReflect.Descriptor instead.
+func (*SubscribeEventsRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *SubscribeEventsRequest) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *SubscribeEventsRequest) GetAfterSequence() uint64 {
+	if x != nil {
+		return x.AfterSequence
+	}
+	return 0
+}
+
+func (x *SubscribeEventsRequest) GetEventTypes() []WorkflowEventType {
+	if x != nil {
+		return x.EventTypes
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_workflowexecution_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"0ai/stigmer/agentic/workflowexecution/v1/io.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a2ai/stigmer/agentic/workflowexecution/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"3\n" +
+	"0ai/stigmer/agentic/workflowexecution/v1/io.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a2ai/stigmer/agentic/workflowexecution/v1/enum.proto\x1a3ai/stigmer/agentic/workflowexecution/v1/event.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"3\n" +
 	"\x13WorkflowExecutionId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"*\n" +
 	"\n" +
@@ -1182,10 +1329,12 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"workflowId\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tR\tpageToken\"\xb2\x01\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"\x8b\x02\n" +
 	"\"WorkflowExecutionUpdateStatusInput\x12*\n" +
 	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12`\n" +
-	"\x06status\x18\x02 \x01(\v2@.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatusB\x06\xbaH\x03\xc8\x01\x01R\x06status\"\xe8\x01\n" +
+	"\x06status\x18\x02 \x01(\v2@.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatusB\x06\xbaH\x03\xc8\x01\x01R\x06status\x12W\n" +
+	"\x06events\x18\n" +
+	" \x03(\v2?.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEventR\x06events\"\xe8\x01\n" +
 	"\x1bSubmitWorkflowApprovalInput\x12*\n" +
 	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12)\n" +
 	"\ftool_call_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
@@ -1194,12 +1343,7 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\x06action\x12\x18\n" +
 	"\acomment\x18\x04 \x01(\tR\acomment\"N\n" +
 	"!SubscribeWorkflowExecutionRequest\x12)\n" +
-	"\fexecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexecutionId\"\xa6\x02\n" +
-	"\x17WorkflowExecutionUpdate\x12f\n" +
-	"\vupdate_type\x18\x01 \x01(\x0e2;.ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateTypeB\b\xbaH\x05\x82\x01\x02\x10\x01R\n" +
-	"updateType\x12X\n" +
-	"\texecution\x18\x02 \x01(\v2:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionR\texecution\x12I\n" +
-	"\x04task\x18\x03 \x01(\v25.ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskR\x04task\"O\n" +
+	"\fexecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexecutionId\"O\n" +
 	"\x1cCancelWorkflowExecutionInput\x12\x17\n" +
 	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\"R\n" +
@@ -1219,15 +1363,23 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"\vsignal_name\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"signalName\x121\n" +
 	"\apayload\x18\x03 \x01(\v2\x17.google.protobuf.StructR\apayload\x12'\n" +
-	"\x0fidempotency_key\x18\x04 \x01(\tR\x0eidempotencyKey*\xf3\x01\n" +
-	"\x12WorkflowUpdateType\x12$\n" +
-	" workflow_update_type_unspecified\x10\x00\x12\x1c\n" +
-	"\x18wf_update_status_changed\x10\x01\x12\x1a\n" +
-	"\x16wf_update_task_started\x10\x02\x12\x1c\n" +
-	"\x18wf_update_task_completed\x10\x03\x12\x19\n" +
-	"\x15wf_update_task_failed\x10\x04\x12!\n" +
-	"\x1dwf_update_execution_completed\x10\x05\x12!\n" +
-	"\x1dwf_update_execution_cancelled\x10\x06B\xe0\x02\n" +
+	"\x0fidempotency_key\x18\x04 \x01(\tR\x0eidempotencyKey\"\xfe\x01\n" +
+	"\x12GetEventLogRequest\x12*\n" +
+	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12%\n" +
+	"\x0eafter_sequence\x18\x02 \x01(\x04R\rafterSequence\x12[\n" +
+	"\vevent_types\x18\x03 \x03(\x0e2:.ai.stigmer.agentic.workflowexecution.v1.WorkflowEventTypeR\n" +
+	"eventTypes\x12\x1b\n" +
+	"\ttask_name\x18\x04 \x01(\tR\btaskName\x12\x1b\n" +
+	"\tpage_size\x18\x05 \x01(\x05R\bpageSize\"\xb2\x01\n" +
+	"\x13GetEventLogResponse\x12W\n" +
+	"\x06events\x18\x01 \x03(\v2?.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEventR\x06events\x12\x19\n" +
+	"\bhas_more\x18\x02 \x01(\bR\ahasMore\x12'\n" +
+	"\x0flatest_sequence\x18\x03 \x01(\x04R\x0elatestSequence\"\xc8\x01\n" +
+	"\x16SubscribeEventsRequest\x12*\n" +
+	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12%\n" +
+	"\x0eafter_sequence\x18\x02 \x01(\x04R\rafterSequence\x12[\n" +
+	"\vevent_types\x18\x03 \x03(\x0e2:.ai.stigmer.agentic.workflowexecution.v1.WorkflowEventTypeR\n" +
+	"eventTypesB\xe0\x02\n" +
 	"+com.ai.stigmer.agentic.workflowexecution.v1B\aIoProtoP\x01Zggithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
 
 var (
@@ -1242,46 +1394,48 @@ func file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP() []byte 
 	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_goTypes = []any{
-	(WorkflowUpdateType)(0),                         // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType
-	(*WorkflowExecutionId)(nil),                     // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionId
-	(*WorkflowId)(nil),                              // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowId
-	(*WorkflowExecutionList)(nil),                   // 3: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList
-	(*ListWorkflowExecutionsRequest)(nil),           // 4: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest
-	(*ListWorkflowExecutionsByWorkflowRequest)(nil), // 5: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest
-	(*WorkflowExecutionUpdateStatusInput)(nil),      // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput
-	(*SubmitWorkflowApprovalInput)(nil),             // 7: ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput
-	(*SubscribeWorkflowExecutionRequest)(nil),       // 8: ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest
-	(*WorkflowExecutionUpdate)(nil),                 // 9: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate
-	(*CancelWorkflowExecutionInput)(nil),            // 10: ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput
-	(*TerminateWorkflowExecutionInput)(nil),         // 11: ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput
-	(*RecoverWorkflowExecutionInput)(nil),           // 12: ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput
-	(*PauseWorkflowExecutionInput)(nil),             // 13: ai.stigmer.agentic.workflowexecution.v1.PauseWorkflowExecutionInput
-	(*ResumeWorkflowExecutionInput)(nil),            // 14: ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput
-	(*SendSignalInput)(nil),                         // 15: ai.stigmer.agentic.workflowexecution.v1.SendSignalInput
-	(*WorkflowExecution)(nil),                       // 16: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	(ExecutionPhase)(0),                             // 17: ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
-	(*WorkflowExecutionStatus)(nil),                 // 18: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
-	(v1.ApprovalAction)(0),                          // 19: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(*WorkflowTask)(nil),                            // 20: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
-	(*structpb.Struct)(nil),                         // 21: google.protobuf.Struct
+	(*WorkflowExecutionId)(nil),                     // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionId
+	(*WorkflowId)(nil),                              // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowId
+	(*WorkflowExecutionList)(nil),                   // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList
+	(*ListWorkflowExecutionsRequest)(nil),           // 3: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest
+	(*ListWorkflowExecutionsByWorkflowRequest)(nil), // 4: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest
+	(*WorkflowExecutionUpdateStatusInput)(nil),      // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput
+	(*SubmitWorkflowApprovalInput)(nil),             // 6: ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput
+	(*SubscribeWorkflowExecutionRequest)(nil),       // 7: ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest
+	(*CancelWorkflowExecutionInput)(nil),            // 8: ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput
+	(*TerminateWorkflowExecutionInput)(nil),         // 9: ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput
+	(*RecoverWorkflowExecutionInput)(nil),           // 10: ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput
+	(*PauseWorkflowExecutionInput)(nil),             // 11: ai.stigmer.agentic.workflowexecution.v1.PauseWorkflowExecutionInput
+	(*ResumeWorkflowExecutionInput)(nil),            // 12: ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput
+	(*SendSignalInput)(nil),                         // 13: ai.stigmer.agentic.workflowexecution.v1.SendSignalInput
+	(*GetEventLogRequest)(nil),                      // 14: ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest
+	(*GetEventLogResponse)(nil),                     // 15: ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse
+	(*SubscribeEventsRequest)(nil),                  // 16: ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest
+	(*WorkflowExecution)(nil),                       // 17: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	(ExecutionPhase)(0),                             // 18: ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
+	(*WorkflowExecutionStatus)(nil),                 // 19: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
+	(*WorkflowExecutionEvent)(nil),                  // 20: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent
+	(v1.ApprovalAction)(0),                          // 21: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(*structpb.Struct)(nil),                         // 22: google.protobuf.Struct
+	(WorkflowEventType)(0),                          // 23: ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType
 }
 var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_depIdxs = []int32{
-	16, // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList.entries:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	17, // 1: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest.phase:type_name -> ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
-	18, // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
-	19, // 3: ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	0,  // 4: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.update_type:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType
-	16, // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.execution:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	20, // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.task:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
-	21, // 7: ai.stigmer.agentic.workflowexecution.v1.SendSignalInput.payload:type_name -> google.protobuf.Struct
-	8,  // [8:8] is the sub-list for method output_type
-	8,  // [8:8] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	17, // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList.entries:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	18, // 1: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest.phase:type_name -> ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
+	19, // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
+	20, // 3: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput.events:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent
+	21, // 4: ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	22, // 5: ai.stigmer.agentic.workflowexecution.v1.SendSignalInput.payload:type_name -> google.protobuf.Struct
+	23, // 6: ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest.event_types:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType
+	20, // 7: ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse.events:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent
+	23, // 8: ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest.event_types:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType
+	9,  // [9:9] is the sub-list for method output_type
+	9,  // [9:9] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflowexecution_v1_io_proto_init() }
@@ -1291,19 +1445,19 @@ func file_ai_stigmer_agentic_workflowexecution_v1_io_proto_init() {
 	}
 	file_ai_stigmer_agentic_workflowexecution_v1_api_proto_init()
 	file_ai_stigmer_agentic_workflowexecution_v1_enum_proto_init()
+	file_ai_stigmer_agentic_workflowexecution_v1_event_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   15,
+			NumEnums:      0,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_agentic_workflowexecution_v1_io_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_agentic_workflowexecution_v1_io_proto_depIdxs,
-		EnumInfos:         file_ai_stigmer_agentic_workflowexecution_v1_io_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_agentic_workflowexecution_v1_io_proto = out.File

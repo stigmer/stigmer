@@ -19,40 +19,43 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-12 — T05 COMPLETE (all batches)
-**Current Task**: T05 COMPLETE — ready for T06 (Event Stream)
+**Last Session**: 2026-05-12 — T06 COMPLETE
+**Current Task**: T06 COMPLETE — ready for T07 (Artifact Store)
 **Phase**: Phase 0 — Harden the Workflow Core
-**Next Task**: T06 (Event Stream)
+**Next Task**: T07 (Artifact Store)
 
-## Session Progress (2026-05-12, T05)
+## Session Progress (2026-05-12, T06)
 
-### T05: Workflow-Level Budget Primitives — COMPLETE
+### T06: Execution Event Stream Model — COMPLETE
 
-Added workflow-level and per-task budget declarations to the proto domain, validation warnings, and registry updates.
+Defined the full proto contract for workflow execution events: append-only event log with typed payloads, paginated query RPC, server-streaming subscription, and atomic event production via existing `updateStatus`.
 
-#### Proto Changes
-- **WorkflowBudget message**: `max_cost_micros` (int64 micro-USD), `max_total_tokens`, `max_duration_seconds`, `on_exceeded` (BudgetExceededPolicy)
-- **BudgetExceededPolicy enum**: `terminate`, `human_review`, `warn`
-- **Per-task budget on LlmCallTaskConfig**: `max_cost_micros`, `max_total_tokens` (fields 11, 12)
-- **Per-task budget on AgentExecutionConfig**: `max_cost_micros` (field 5)
+#### New Proto: `event.proto`
+- **`WorkflowExecutionEvent`**: envelope with `event_id`, `event_type`, `sequence_number`, `occurred_at`, `task_name`, `oneof payload`
+- **`WorkflowEventType`**: 17 event types across 6 categories (execution, task, agent, approval, budget, signals)
+- **20 typed payload messages**: domain-specific fields per event type (costs in micro-USD, durations in ms, child execution refs)
 
-#### Validation + Registry
-- **CheckBudgetWarnings()**: Warns on missing budget with cost-incurring tasks, per-task caps exceeding workflow budget, combined costs exceeding budget
-- **Sidecar YAML updates**: Budget field groups added to `llm_call.yaml` and `agent_call.yaml`
-- **Registry regenerated**: `task-kind-registry.json` updated with new fields
+#### Query RPCs
+- **`getEventLog`**: paginated event fetch with cursor-based pagination, type filtering, task name filtering
+- **`subscribeEvents`**: server-streaming with replay + live tail semantics
 
-#### Codegen Bug Fix (T04 loose end)
-- Fixed duplicate `"role": "query"` causing broken TS/Python/Go SDK generation
-- Added `ProtoFile` field to `ServiceDefinition` for correct import resolution
-- All SDK generators now handle multiple services with the same role
+#### Production Contract
+- **`events` field on `WorkflowExecutionUpdateStatusInput`**: atomic event production piggybacked on existing RPC
+- **Removed dead code**: `WorkflowExecutionUpdate` message and `WorkflowUpdateType` enum deleted (never wired)
+
+#### Codegen Fix
+- Fixed TS SDK codegen: streaming output types from non-api proto files now correctly resolve their `_pb` import suffix
 
 #### Key Design Decisions
-- **D1**: No `budget_guard` task kind — use `validate` with budget context variables
-- **D2**: Proto + validation + registry only — runtime enforcement deferred to T13
-- **D3**: Amounts in micro-USD (int64) — matches billing domain convention
-- **D4**: Per-task budget on cost-incurring tasks only (agent_call, llm_call)
+- **CQRS-like separation**: Events complement snapshots, not replace them
+- **Option A (piggyback)**: Events sent with `updateStatus`, no new infrastructure
+- **CloudEvents semantics as native proto**: Internal events use proto-native fields; full CloudEvents reserved for `emit_event`
+- **No deprecation, just delete**: Pre-beta project, no backward compatibility needed
 
 ## Previous Sessions
+
+### T05 (COMPLETE — 2026-05-12)
+Workflow Budget Primitives — WorkflowBudget, BudgetExceededPolicy, per-task budgets, CheckBudgetWarnings(), codegen multi-role fix
 
 ### T04 (COMPLETE — 2026-05-12)
 Task Schema Registry — 19 task kind descriptors, registry generator, HTTP endpoints, cross-task reference validation, SDK hook
@@ -68,47 +71,41 @@ Task Schema Registry — 19 task kind descriptors, registry generator, HTTP endp
 - Structured Agent Output Model
 
 ## Next Steps
-1. T06: Event Stream — define workflow event contracts for runtime observability
-2. After T06: T07 (Artifact Store) to complete Phase 0
-3. After Phase 0: Phase 1 — Foreground MVP (UI pages, execution viewer, YAML editor)
+1. T07: Artifact Store — design artifact storage contract for workflow data and outputs (final Phase 0 task)
+2. After T07: Phase 1 — Foreground MVP (UI pages, execution viewer, YAML editor)
+3. T09 (Execution Viewer) will consume the event stream defined in T06
 
 ## Context for Resume
-- T05 is fully complete — all proto, validation, registry, and codegen changes implemented
+- T06 is fully complete — event proto, query RPCs, production contract, and all codegen done
+- T06 fixed a TS codegen bug: streaming output types from non-api proto files now correctly resolve imports
 - All codegen pipelines run cleanly (both `make codegen` in stigmer and `make protos` in stigmer-cloud)
-- `task-kind-registry.json` placed in stigmer-cloud classpath
-- `CheckBudgetWarnings()` is a standalone function — NOT wired into `ValidateWorkflow()` yet (intentional: it returns warnings, not errors, and the wiring depends on how the caller wants to surface them)
-- `buf lint`, `buf breaking`, `go vet`, `go test`, `tsc --noEmit` all pass
-- Generated TypeScript SDK includes `WorkflowBudgetInput` type with `buildWorkflowBudgetProto` builder
+- `buf lint`, `buf breaking`, Go/TS/React/Java/Python stubs all compile cleanly
+- `WorkflowExecutionUpdate` and `WorkflowUpdateType` removed (dead code, per user directive: no deprecation in pre-beta)
+- `CheckBudgetWarnings()` (from T05) is still standalone — NOT wired into `ValidateWorkflow()` yet
 
 ## Essential Files to Review
 
-### 1. T05 Plan
+### 1. Latest Checkpoint
 ```
-/Users/suresh/.cursor/plans/t05_budget_primitives_2cc79920.plan.md
-```
-
-### 2. Latest Checkpoint
-```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-12-t05-budget-primitives.md
+_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-12-t06-execution-event-stream.md
 ```
 
-### 3. Task Directory
+### 2. Task Directory
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260508.01.bring-workflows-to-foreground/tasks/
+_projects/2026-05/20260508.01.bring-workflows-to-foreground/tasks/
 ```
 
-### 4. T05 Key Files Modified
-- **Proto**: `apis/ai/stigmer/agentic/workflow/v1/spec.proto` (WorkflowBudget)
-- **Proto**: `apis/ai/stigmer/agentic/workflow/v1/enum.proto` (BudgetExceededPolicy)
-- **Proto**: `apis/ai/stigmer/agentic/workflow/v1/tasks/llm_call.proto` (per-task budget)
-- **Proto**: `apis/ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto` (per-task budget)
-- **Validation**: `backend/services/workflow-runner/pkg/validation/validate.go` (CheckBudgetWarnings)
-- **Sidecars**: `apis/.../tasks/meta/llm_call.yaml`, `agent_call.yaml` (budget groups)
-- **Codegen fix**: `tools/codegen/proto2schema/main.go`, `generator/sdk_client*.go`
+### 3. T06 Key Files Modified
+- **Proto (new)**: `apis/ai/stigmer/agentic/workflowexecution/v1/event.proto` (event model)
+- **Proto (modified)**: `apis/ai/stigmer/agentic/workflowexecution/v1/query.proto` (+2 RPCs)
+- **Proto (modified)**: `apis/ai/stigmer/agentic/workflowexecution/v1/io.proto` (+3 messages, +1 field, removed dead code)
+- **Codegen fix**: `tools/codegen/generator/sdk_client_ts.go` (streaming output type import resolution)
+- **Schema**: `tools/codegen/schemas/services/workflowexecution.json` (regenerated)
 
-### 5. Existing Workflow Protos (the domain being enhanced)
+### 4. Existing Workflow Protos (the domain being enhanced)
 - **Workflow spec**: `apis/ai/stigmer/agentic/workflow/v1/spec.proto`
 - **Workflow enum**: `apis/ai/stigmer/agentic/workflow/v1/enum.proto`
+- **Workflow execution**: `apis/ai/stigmer/agentic/workflowexecution/v1/`
 - **Workflow tasks**: `apis/ai/stigmer/agentic/workflow/v1/tasks/`
 
 ## Knowledge Folders to Check
@@ -156,7 +153,7 @@ When starting a new session:
 
 After loading context:
 - "Show project status" - Get overview of progress
-- "Plan T06" - Design Event Stream
+- "Plan T07" - Design Artifact Store
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
 
