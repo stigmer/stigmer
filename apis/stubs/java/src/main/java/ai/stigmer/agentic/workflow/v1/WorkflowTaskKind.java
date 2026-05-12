@@ -38,6 +38,8 @@ package ai.stigmer.agentic.workflow.v1;
  * transform: {"engine": "jq", "expression": "...", "input": "${...}"}
  * human_input: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...], "timeout": 86400}
  * validate: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+ * emit_event: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+ * notification: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "...", "template": "...", "metadata": {...}}
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflow.v1.WorkflowTaskKind}
@@ -255,6 +257,33 @@ public enum WorkflowTaskKind
    * <code>validate = 17;</code>
    */
   validate(17),
+  /**
+   * <pre>
+   * Emit a CloudEvents-formatted event for external consumers or other workflows.
+   *
+   * &#64;internal
+   * Completes the listen/emit duality: listen waits for Temporal signals,
+   * emit_event publishes business events using the CloudEvents envelope.
+   * The runtime bridges the two when events target other workflows.
+   * Config: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+   * </pre>
+   *
+   * <code>emit_event = 18;</code>
+   */
+  emit_event(18),
+  /**
+   * <pre>
+   * Send a notification to humans through a channel (Slack, email, Discord, etc.).
+   *
+   * &#64;internal
+   * Fire-and-forget convenience abstraction for operational notifications.
+   * For notifications requiring acknowledgment, use human_input instead.
+   * Config: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "..."}
+   * </pre>
+   *
+   * <code>notification = 19;</code>
+   */
+  notification(19),
   UNRECOGNIZED(-1),
   ;
 
@@ -477,6 +506,33 @@ public enum WorkflowTaskKind
    * <code>validate = 17;</code>
    */
   public static final int validate_VALUE = 17;
+  /**
+   * <pre>
+   * Emit a CloudEvents-formatted event for external consumers or other workflows.
+   *
+   * &#64;internal
+   * Completes the listen/emit duality: listen waits for Temporal signals,
+   * emit_event publishes business events using the CloudEvents envelope.
+   * The runtime bridges the two when events target other workflows.
+   * Config: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+   * </pre>
+   *
+   * <code>emit_event = 18;</code>
+   */
+  public static final int emit_event_VALUE = 18;
+  /**
+   * <pre>
+   * Send a notification to humans through a channel (Slack, email, Discord, etc.).
+   *
+   * &#64;internal
+   * Fire-and-forget convenience abstraction for operational notifications.
+   * For notifications requiring acknowledgment, use human_input instead.
+   * Config: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "..."}
+   * </pre>
+   *
+   * <code>notification = 19;</code>
+   */
+  public static final int notification_VALUE = 19;
 
 
   public final int getNumber() {
@@ -521,6 +577,8 @@ public enum WorkflowTaskKind
       case 15: return transform;
       case 16: return human_input;
       case 17: return validate;
+      case 18: return emit_event;
+      case 19: return notification;
       default: return null;
     }
   }

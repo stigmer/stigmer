@@ -33,6 +33,8 @@ package ai.stigmer.agentic.workflow.v1;
 // transform: {"engine": "jq", "expression": "...", "input": "${...}"}
 // human_input: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...], "timeout": 86400}
 // validate: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+// emit_event: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+// notification: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "...", "template": "...", "metadata": {...}}
 enum WorkflowTaskKind {
   // Default value, not a valid task kind.
   workflow_task_kind_unspecified = 0;
@@ -153,4 +155,21 @@ enum WorkflowTaskKind {
   // policies for flexible error handling.
   // Config: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
   validate = 17;
+
+  // Emit a CloudEvents-formatted event for external consumers or other workflows.
+  //
+  // @internal
+  // Completes the listen/emit duality: listen waits for Temporal signals,
+  // emit_event publishes business events using the CloudEvents envelope.
+  // The runtime bridges the two when events target other workflows.
+  // Config: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+  emit_event = 18;
+
+  // Send a notification to humans through a channel (Slack, email, Discord, etc.).
+  //
+  // @internal
+  // Fire-and-forget convenience abstraction for operational notifications.
+  // For notifications requiring acknowledgment, use human_input instead.
+  // Config: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "..."}
+  notification = 19;
 }

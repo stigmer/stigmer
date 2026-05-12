@@ -36,7 +36,7 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n)ai/stigmer/agentic/workflow/v1/enum.pr" +
-      "oto\022\036ai.stigmer.agentic.workflow.v1*\262\002\n\020" +
+      "oto\022\036ai.stigmer.agentic.workflow.v1*\324\002\n\020" +
       "WorkflowTaskKind\022\"\n\036workflow_task_kind_u" +
       "nspecified\020\000\022\014\n\010set_vars\020\001\022\r\n\thttp_call\020" +
       "\002\022\r\n\tgrpc_call\020\003\022\021\n\ractivity_call\020\004\022\017\n\013s" +
@@ -44,12 +44,12 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "try_catch\020\010\022\n\n\006listen\020\t\022\010\n\004wait\020\n\022\017\n\013rai" +
       "se_error\020\013\022\020\n\014run_workflow\020\014\022\016\n\nagent_ca" +
       "ll\020\r\022\014\n\010llm_call\020\016\022\r\n\ttransform\020\017\022\017\n\013hum" +
-      "an_input\020\020\022\014\n\010validate\020\021B\250\001B\tEnumProtoP\001" +
-      "\242\002\004ASAW\252\002\036Ai.Stigmer.Agentic.Workflow.V1" +
-      "\312\002\036Ai\\Stigmer\\Agentic\\Workflow\\V1\342\002*Ai\\S" +
-      "tigmer\\Agentic\\Workflow\\V1\\GPBMetadata\352\002" +
-      "\"Ai::Stigmer::Agentic::Workflow::V1b\006pro" +
-      "to3"
+      "an_input\020\020\022\014\n\010validate\020\021\022\016\n\nemit_event\020\022" +
+      "\022\020\n\014notification\020\023B\250\001B\tEnumProtoP\001\242\002\004ASA" +
+      "W\252\002\036Ai.Stigmer.Agentic.Workflow.V1\312\002\036Ai\\" +
+      "Stigmer\\Agentic\\Workflow\\V1\342\002*Ai\\Stigmer" +
+      "\\Agentic\\Workflow\\V1\\GPBMetadata\352\002\"Ai::S" +
+      "tigmer::Agentic::Workflow::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
