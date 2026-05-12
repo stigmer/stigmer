@@ -9,6 +9,8 @@ import (
 	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -18,6 +20,7 @@ type WorkflowClient struct {
 	command               workflowv1.WorkflowCommandControllerClient
 	query                 workflowv1.WorkflowQueryControllerClient
 	taskKindRegistryQuery workflowv1.TaskKindRegistryQueryControllerClient
+	search                searchv1.SearchServiceClient
 }
 
 func NewWorkflowClient(conn grpc.ClientConnInterface) *WorkflowClient {
@@ -25,6 +28,7 @@ func NewWorkflowClient(conn grpc.ClientConnInterface) *WorkflowClient {
 		command:               workflowv1.NewWorkflowCommandControllerClient(conn),
 		query:                 workflowv1.NewWorkflowQueryControllerClient(conn),
 		taskKindRegistryQuery: workflowv1.NewTaskKindRegistryQueryControllerClient(conn),
+		search:                searchv1.NewSearchServiceClient(conn),
 	}
 }
 
@@ -62,6 +66,28 @@ func (w *WorkflowClient) GetByReference(ctx context.Context, ref ResourceRef) (*
 func (w *WorkflowClient) GetTaskKindRegistry(ctx context.Context, input *workflowv1.GetTaskKindRegistryRequest) (*workflowv1.GetTaskKindRegistryResponse, error) {
 	resp, err := w.taskKindRegistryQuery.GetTaskKindRegistry(ctx, input)
 	return resp, wrapErr(err)
+}
+
+func (w *WorkflowClient) List(ctx context.Context, params *ListParams) (*ListResult, error) {
+	req := &searchv1.SearchRequest{
+		Kinds:          []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_workflow},
+		Query:          params.Query,
+		Org:            params.Org,
+		ExcludePublic:  params.ExcludePublic,
+		CrossOrgPublic: params.CrossOrgPublic,
+	}
+	if params.Page != nil {
+		req.Page = &rpc.PageInfo{Num: params.Page.Num, Size: params.Page.Size}
+	}
+	resp, err := w.search.Search(ctx, req)
+	if err != nil {
+		return nil, wrapErr(err)
+	}
+	return &ListResult{
+		Entries:    resp.GetEntries(),
+		TotalCount: resp.GetTotalCount(),
+		TotalPages: resp.GetTotalPages(),
+	}, nil
 }
 
 // WorkflowInput holds the fields for creating/updating a Workflow.

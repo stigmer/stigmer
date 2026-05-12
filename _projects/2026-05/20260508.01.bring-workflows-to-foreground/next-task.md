@@ -19,40 +19,52 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-12 — T07 COMPLETE (Phase 0 COMPLETE)
-**Current Task**: T07 COMPLETE — Phase 0 finished, ready for Phase 1
-**Phase**: Phase 0 — Harden the Workflow Core — COMPLETE
-**Next Task**: Phase 1 begins — T08 (Workflow Pages) or T09 (Execution Viewer)
+**Last Session**: 2026-05-12 — T08 COMPLETE (Phase 1 started)
+**Current Task**: T08 COMPLETE — Workflow List and Detail Pages
+**Phase**: Phase 1 — Foreground MVP — IN PROGRESS
+**Next Task**: T09 (Execution Viewer) or T13 (Backend Implementation)
 
-## Session Progress (2026-05-12, T07)
+## Session Progress (2026-05-12, T08)
 
-### T07: Artifact Store Integration — COMPLETE
+### T08: Workflow List and Detail Pages — COMPLETE
 
-Designed and implemented the full Artifact Store proto contract — a shared, first-class resource model for persisting large execution outputs outside of Temporal history, with content-addressable blob storage, retrieval RPCs, automatic size-based promotion, and retention policies.
+Built the full Workflow UI layer following SDK-first architecture (DD-001): codegen fix, React SDK data hooks, styled components, web console pages, sidebar navigation, and barrel exports.
 
-#### New Proto Package: `apis/ai/stigmer/agentic/artifact/v1/`
-- **`api.proto`**: `Artifact` resource (api_version + kind + metadata + spec + status), `ArtifactStatus` (content_hash, size_bytes, storage_state, expires_at)
-- **`spec.proto`**: `ArtifactSpec` (content_type, display_name, source, retention), `ArtifactSource`, `RetentionPolicy`
-- **`enum.proto`**: `ArtifactStorageState` (pending → stored → deleted)
-- **`io.proto`**: `ArtifactId`, `ArtifactList`, `CreateArtifactInput` (50MB max), `ListArtifactsByExecutionRequest`, `ArtifactDownloadUrl`
-- **`query.proto`**: `ArtifactQueryController` — `get`, `listByExecution`, `getDownloadUrl`
-- **`command.proto`**: `ArtifactCommandController` — `create`, `delete`
+#### Layer 1: Codegen Fix — WorkflowClient.list()
+- Discovered `WorkflowClient` had no `list()` method — `searchListResources` map in `proto2schema` didn't include workflow
+- Added `"workflow": true` to `tools/codegen/proto2schema/main.go` and re-ran `make codegen`
+- `WorkflowClient.list()` now generated across Go, TS, Python, Java SDKs
 
-#### ApiResourceKind Registration
-- Added `artifact = 55` (prefix: "art", tier: open_source, org-scoped authorization)
+#### Layer 2: React SDK Data Hooks (5 new files in `sdk/react/src/workflow/`)
+- `useWorkflow` (single by org/slug), `useWorkflowList` (paginated with scope/search), `useWorkflowCount`, `useWorkflowInstances`, `useWorkflowExecutionList`
 
-#### Execution Model Extensions
-- Added `artifact_created = 53` event type + `ArtifactCreatedPayload` to `event.proto`
-- Added `repeated string artifact_ids = 11` to `WorkflowTask` in `api.proto`
+#### Layer 3: React SDK Styled Components (3 new files)
+- `WorkflowExecutionPhaseBadge` — execution phase status badges
+- `WorkflowTaskList` — compact task display with kind icons
+- `WorkflowDetailView` — composed detail view with 4 tabs (Overview, Tasks, Instances, Executions)
 
-#### Key Design Decisions
-- **Shared bounded context**: Artifacts are first-class resources, not sub-resources
-- **No `artifact_store` task kind**: Persistence is infrastructure, not computation
-- **Content-addressable storage**: SHA-256 hash-based blob storage for dedup and safe GC
-- **OSS: filesystem, Cloud: S3**: Metadata in DB, blobs on object storage
-- **Auto-promotion at 256KB**: Transparent to workflow authors
+#### Layer 4: Web Console Pages (9 new files)
+- Routes: `/workflows`, `/workflows/[org]/[slug]`, `/workflows/executions`
+- Domain: `WorkflowListPage`, `WorkflowDetailPage`, `WorkflowExecutionListPage`, `WorkflowLayout`, `workflow-navigation.tsx`, `WorkflowBreadcrumb`
+
+#### Layer 5: Sidebar + Navigation
+- Top-level "Workflows" sidebar entry between Library and Runners
+- Scope persistence for workflow list
+
+#### Layer 6: Exports + Type Safety
+- All new hooks/components exported from `@stigmer/react`
+- `useDeleteResource` extended with `"workflow"` kind
+- Fixed `ValidationState` enum and `optional` field access bugs
+
+#### Decisions
+- Workflows are top-level sidebar item (not nested under Library)
+- WorkflowInstance embedded as tab on Workflow detail page (not standalone route)
+- Export actions (YAML/JSON) deferred — no `serializeWorkflowYaml` exists yet
 
 ## Previous Sessions
+
+### T07 (COMPLETE — 2026-05-12)
+Artifact Store Proto Contract — content-addressable blob storage, ArtifactQueryController/CommandController, ArtifactStorageState, retention policies
 
 ### T06 (COMPLETE — 2026-05-12)
 Execution Event Stream Model — append-only event log with 17 typed event types, paginated query, server-streaming subscription
@@ -70,24 +82,23 @@ New Task Types — llm_call, transform, human_input, validate, emit_event, notif
 Structured Agent Output Model
 
 ## Next Steps
-1. Phase 1 begins — Foreground MVP (T08-T14)
-2. T08: Workflow Pages — list/detail pages in web console
-3. T09: Execution Viewer — timeline, event log, artifact panel (consumes T06 events + T07 artifacts)
-4. T13: Backend Implementation — artifact repository, blob store, auto-promotion logic, GC
+1. **T09: Execution Viewer** — timeline, event log, artifact panel (consumes T06 events + T07 artifacts)
+2. **T13: Backend Implementation** — may need to interleave if search indexing gaps block workflow listing
+3. Remaining Phase 1: T10 (YAML Editor), T11 (Run Workflow from UI), T12 (CLI Commands), T14 (Dashboard Widgets)
 
 ## Context for Resume
-- Phase 0 (Harden the Workflow Core) is now COMPLETE — all tasks T02-T07 done
-- T07 is proto-only (contract definition); backend implementation is deferred to T13
-- Artifact SDK clients generated across Go, TS, Python, Java
-- All codegen pipelines run cleanly (both `make codegen` in stigmer and `make protos` in stigmer-cloud)
-- `buf lint`, `buf breaking`, Go vet, TS typecheck all pass cleanly
-- `CheckBudgetWarnings()` (from T05) is still standalone — NOT wired into `ValidateWorkflow()` yet
+- Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
+- Phase 1 (Foreground MVP) STARTED — T08 complete
+- All verification passes: `tsc --noEmit` for sdk/react, sdk/typescript, client-apps/web; `go vet` for codegen tools and sdk/go
+- `useExportResource` only supports Agent and McpServer — workflow YAML export is deferred
+- Search indexing for workflows in backend is unverified — `list()` may return empty until T13
+- `CheckBudgetWarnings()` (from T05) still standalone — NOT wired into `ValidateWorkflow()` yet
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-12-t07-artifact-store.md
+_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-12-t08-workflow-pages.md
 ```
 
 ### 2. Task Directory
@@ -95,11 +106,13 @@ _projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-
 _projects/2026-05/20260508.01.bring-workflows-to-foreground/tasks/
 ```
 
-### 3. T07 Key Files Created/Modified
-- **Proto (new)**: `apis/ai/stigmer/agentic/artifact/v1/` (6 proto files)
-- **Proto (modified)**: `apis/ai/stigmer/agentic/workflowexecution/v1/event.proto` (artifact_created event)
-- **Proto (modified)**: `apis/ai/stigmer/agentic/workflowexecution/v1/api.proto` (artifact_ids on WorkflowTask)
-- **Proto (modified)**: `apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto` (artifact kind)
+### 3. T08 Key Files Created/Modified
+- **SDK hooks (new)**: `sdk/react/src/workflow/useWorkflow.ts`, `useWorkflowList.ts`, `useWorkflowCount.ts`, `useWorkflowInstances.ts`, `useWorkflowExecutionList.ts`
+- **SDK components (new)**: `sdk/react/src/workflow/WorkflowDetailView.tsx`, `WorkflowExecutionPhaseBadge.tsx`, `WorkflowTaskList.tsx`
+- **Console routes (new)**: `client-apps/web/src/app/workflows/` (4 files)
+- **Console domain (new)**: `client-apps/web/src/domain/workflow/` (6 files)
+- **Modified**: `Sidebar.tsx`, `scope-persistence.ts`, `useDeleteResource.ts`, `sdk/react/src/index.ts`
+- **Codegen**: `tools/codegen/proto2schema/main.go`, `tools/codegen/schemas/services/workflow.json`
 
 ### 4. Existing Workflow Protos (the domain being enhanced)
 - **Workflow spec**: `apis/ai/stigmer/agentic/workflow/v1/spec.proto`
@@ -143,7 +156,7 @@ When starting a new session:
 ## Project Phases
 
 - **Phase 0**: Harden Workflow Core (T02-T07) — COMPLETE
-- **Phase 1**: Foreground MVP (T08-T14) — UI pages, execution viewer, YAML editor, run from UI, CLI, dashboard
+- **Phase 1**: Foreground MVP (T08-T14) — IN PROGRESS (T08 done)
 - **Phase 2**: Visual Builder (T15) — canvas editor, drag-and-drop, YAML round-trip
 - **Phase 3**: AI-Assisted Creation (T16) — NL-to-workflow, chat-to-workflow, repair assistant
 - **Phase 4**: Advanced Agentic Orchestration (T17) — plan_and_execute, handoff, eval, batch, cache, code_execution, memory
@@ -152,7 +165,8 @@ When starting a new session:
 
 After loading context:
 - "Show project status" - Get overview of progress
-- "Plan T08" or "Plan T09" - Design next Phase 1 task
+- "Plan T09" - Design execution viewer
+- "Plan T13" - Design backend implementation
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
 

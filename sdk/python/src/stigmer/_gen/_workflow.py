@@ -17,9 +17,12 @@ from ai.stigmer.agentic.workflow.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
+from ai.stigmer.search.v1 import query_pb2_grpc as search_query_pb2_grpc
+from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
+from ai.stigmer.commons.rpc import pagination_pb2
 
 from ._errors import wrap_error
-from ._types import ResourceRef
+from ._types import ListParams, ListResult, ResourceRef
 from ._agent import EnvVarDeclarationInput
 
 
@@ -30,6 +33,7 @@ class WorkflowClient:
         self._command = command_pb2_grpc.WorkflowCommandControllerStub(channel)
         self._query = query_pb2_grpc.WorkflowQueryControllerStub(channel)
         self._taskKindRegistryQuery = task_kind_registry_query_pb2_grpc.TaskKindRegistryQueryControllerStub(channel)
+        self._search = search_query_pb2_grpc.SearchServiceStub(channel)
 
     def apply(self, input: WorkflowInput) -> api_pb2.Workflow:
         try:
@@ -72,6 +76,29 @@ class WorkflowClient:
     def get_task_kind_registry(self, input: task_kind_descriptor_pb2.GetTaskKindRegistryRequest) -> task_kind_descriptor_pb2.GetTaskKindRegistryResponse:
         try:
             return self._taskKindRegistryQuery.getTaskKindRegistry(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list(self, params: ListParams) -> ListResult:
+        try:
+            req = search_io_pb2.SearchRequest(
+                kinds=[api_resource_kind_pb2.ApiResourceKind.workflow],
+                query=params.query,
+                org=params.org,
+                exclude_public=params.exclude_public,
+                cross_org_public=params.cross_org_public,
+            )
+            if params.page is not None:
+                req.page.CopyFrom(pagination_pb2.PageInfo(
+                    num=params.page.num,
+                    size=params.page.size,
+                ))
+            resp = self._search.search(req)
+            return ListResult(
+                entries=list(resp.entries),
+                total_count=resp.total_count,
+                total_pages=resp.total_pages,
+            )
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

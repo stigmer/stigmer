@@ -1074,10 +1074,18 @@ export type {
   ResourceAvatarProps,
 } from "./resource-workbench";
 
-// Workflow — task kind registry
+// Workflow — data hooks, styled components, task kind registry
 export {
   TaskKindRegistryContext,
   useTaskKindRegistry,
+  useWorkflow,
+  useWorkflowList,
+  useWorkflowCount,
+  useWorkflowInstances,
+  useWorkflowExecutionList,
+  WorkflowExecutionPhaseBadge,
+  WorkflowTaskList,
+  WorkflowDetailView,
 } from "./workflow";
 export type {
   TaskKindDescriptor,
@@ -1087,4 +1095,15 @@ export type {
   TaskFieldGroup,
   TaskKindRegistryState,
   UseTaskKindRegistryReturn,
+  UseWorkflowReturn,
+  UseWorkflowListOptions,
+  UseWorkflowListReturn,
+  UseWorkflowCountOptions,
+  UseWorkflowCountReturn,
+  UseWorkflowInstancesReturn,
+  UseWorkflowExecutionListOptions,
+  UseWorkflowExecutionListReturn,
+  WorkflowExecutionPhaseBadgeProps,
+  WorkflowTaskListProps,
+  WorkflowDetailViewProps,
 } from "./workflow";
