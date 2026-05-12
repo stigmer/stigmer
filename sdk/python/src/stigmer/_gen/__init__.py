@@ -6,6 +6,7 @@ from ._agent import AgentClient, AgentInput, McpServerUsageInput, ToolApprovalOv
 from ._agentexecution import AgentExecutionClient, AgentExecutionInput, ExecutionConfigInput, ContextManagementConfigInput, AttachmentInput
 from ._agentinstance import AgentInstanceClient, AgentInstanceInput
 from ._apikey import ApiKeyClient, ApiKeyInput
+from ._artifact import ArtifactClient, ArtifactInput, ArtifactSourceInput, RetentionPolicyInput
 from ._environment import EnvironmentClient, EnvironmentInput
 from ._executioncontext import ExecutionContextClient, ExecutionContextInput
 from ._iampolicy import IamPolicyClient, IamPolicyInput, ApiResourceRefInput
@@ -60,6 +61,10 @@ __all__ = [
     "AgentInstanceInput",
     "ApiKeyClient",
     "ApiKeyInput",
+    "ArtifactClient",
+    "ArtifactInput",
+    "ArtifactSourceInput",
+    "RetentionPolicyInput",
     "EnvironmentClient",
     "EnvironmentInput",
     "ExecutionContextClient",

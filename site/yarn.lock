@@ -2200,16 +2200,16 @@ __metadata:
 
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=2977c5&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=16a1bc&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:2.12.0"
-  checksum: 10c0/ef91aebd1b57c6208afce5fdcbb22f8dc5b5b275750106addee4f3ffed36be4d7592f77d5693470674c6054de8eda94132fd06b171683bdca13e2ef3cca67af8
+  checksum: 10c0/3e59420981b4fac6c788353ba8d7287f5fadcdc7a4ad00273889f52d8f7e7a49f73ea8a6a8e62c19adca64d0b754ceb6fa825c8d3a2bdb7f21a62f0c94373595
   languageName: node
   linkType: hard
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=6ac75d&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=2fe65e&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@stigmer/theme": "npm:*"
     diff: "npm:^8.0.3"
@@ -2236,13 +2236,13 @@ __metadata:
       optional: true
     react-virtuoso:
       optional: true
-  checksum: 10c0/4e34336c7734fe7fe378955ebb889c055391fd2db1ef6251c2f54cb11ee1dc712b0c5be5d88d82bb2ff0fa9174bd197cf2c35178fb8b4390970f788461f0eea4
+  checksum: 10c0/41be1e1227460dd11e17ea878c289fde3c21ef236979e83d81ee470e7b118948a299f89bb68c718647c1cbcd56493743862686b32c0e30b0f5b110f6dfb0c3e3
   languageName: node
   linkType: hard
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=988cb1&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=a6cab8&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2253,7 +2253,7 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/8048c315dc698596630a065a92bd96dc049280d8b06d7751700ddff9f4430b5efdec2c18c8cda65ca7fbb0952b8f7969daa71bb45959d3a9f42482328e8e5fc3
+  checksum: 10c0/41cdd62a3b305c20989a0fb852af9bdee03991e7297ae094ba4aa60c9508e232de1bf00402f778b1a5049c0b6facd5ab6e0753846b5b525712f18937d195de9d
   languageName: node
   linkType: hard
 

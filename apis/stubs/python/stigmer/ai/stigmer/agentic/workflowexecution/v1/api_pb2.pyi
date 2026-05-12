@@ -58,7 +58,7 @@ class WorkflowPendingApproval(_message.Message):
     def __init__(self, approval: _Optional[_Union[_approval_pb2.PendingApproval, _Mapping]] = ..., child_agent_execution_id: _Optional[str] = ...) -> None: ...
 
 class WorkflowTask(_message.Message):
-    __slots__ = ("task_id", "task_name", "task_type", "input", "output", "status", "started_at", "completed_at", "error", "metadata")
+    __slots__ = ("task_id", "task_name", "task_type", "input", "output", "status", "started_at", "completed_at", "error", "metadata", "artifact_ids")
     TASK_ID_FIELD_NUMBER: _ClassVar[int]
     TASK_NAME_FIELD_NUMBER: _ClassVar[int]
     TASK_TYPE_FIELD_NUMBER: _ClassVar[int]
@@ -69,6 +69,7 @@ class WorkflowTask(_message.Message):
     COMPLETED_AT_FIELD_NUMBER: _ClassVar[int]
     ERROR_FIELD_NUMBER: _ClassVar[int]
     METADATA_FIELD_NUMBER: _ClassVar[int]
+    ARTIFACT_IDS_FIELD_NUMBER: _ClassVar[int]
     task_id: str
     task_name: str
     task_type: _enum_pb2.WorkflowTaskType
@@ -79,4 +80,5 @@ class WorkflowTask(_message.Message):
     completed_at: str
     error: str
     metadata: _struct_pb2.Struct
-    def __init__(self, task_id: _Optional[str] = ..., task_name: _Optional[str] = ..., task_type: _Optional[_Union[_enum_pb2.WorkflowTaskType, str]] = ..., input: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., status: _Optional[_Union[_enum_pb2.WorkflowTaskStatus, str]] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., error: _Optional[str] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
+    artifact_ids: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, task_id: _Optional[str] = ..., task_name: _Optional[str] = ..., task_type: _Optional[_Union[_enum_pb2.WorkflowTaskType, str]] = ..., input: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., status: _Optional[_Union[_enum_pb2.WorkflowTaskStatus, str]] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., error: _Optional[str] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., artifact_ids: _Optional[_Iterable[str]] = ...) -> None: ...

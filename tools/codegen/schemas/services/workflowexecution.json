@@ -678,7 +678,8 @@
                 "approval_resolved",
                 "budget_checkpoint",
                 "signal_received",
-                "event_emitted"
+                "event_emitted",
+                "artifact_created"
               ]
             }
           },
@@ -807,7 +808,8 @@
                 "approval_resolved",
                 "budget_checkpoint",
                 "signal_received",
-                "event_emitted"
+                "event_emitted",
+                "artifact_created"
               ]
             }
           },
@@ -862,7 +864,8 @@
               "approval_resolved",
               "budget_checkpoint",
               "signal_received",
-              "event_emitted"
+              "event_emitted",
+              "artifact_created"
             ]
           },
           "description": "Type of event that occurred.\n\n @internal\n Determines which oneof payload field is populated.\n Consumers should switch on event_type to extract the correct payload.",
@@ -1140,6 +1143,18 @@
           "description": "",
           "required": false,
           "oneofGroup": "payload"
+        },
+        {
+          "name": "ArtifactCreated",
+          "jsonName": "artifactCreated",
+          "protoField": "artifact_created",
+          "type": {
+            "kind": "message",
+            "messageType": "ArtifactCreatedPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
         }
       ]
     }
@@ -1313,6 +1328,11 @@
           "name": "event_emitted",
           "number": 52,
           "description": "The workflow published a CloudEvent via an emit_event task.\n Payload: EventEmittedPayload."
+        },
+        {
+          "name": "artifact_created",
+          "number": 53,
+          "description": "A task output was persisted as an artifact (auto-promoted or explicit).\n Payload: ArtifactCreatedPayload."
         }
       ]
     },
@@ -2101,6 +2121,19 @@
             "kind": "struct"
           },
           "description": "Task-specific metadata as arbitrary JSON.\n\n @internal\n Contains task-specific information that doesn't fit in other fields.\n Used for:\n - Retry count (how many times this task was retried)\n - Agent execution ID (for WORKFLOW_TASK_AGENT_INVOCATION)\n - API response headers (for WORKFLOW_TASK_API_CALL)\n - Approval history (who approved, when, comments)\n - Performance metrics (execution time, memory usage)",
+          "required": false
+        },
+        {
+          "name": "ArtifactIds",
+          "jsonName": "artifactIds",
+          "protoField": "artifact_ids",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Artifact IDs produced by this task.\n\n @internal\n Populated when the task's output (or portions of it) is auto-promoted\n to the artifact store because it exceeds the size threshold (256KB),\n or when the workflow author explicitly declares artifact persistence.\n\n Each entry is an Artifact ID (format: \"art_{unique-suffix}\") that can\n be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.\n\n When artifact_ids is non-empty, the task's output field contains\n artifact references ({\"_artifact_ref\": \"art_xxx\", ...}) instead of\n the original inline data. Consumers (execution viewer, SDK hooks)\n detect these references and resolve them via the Artifact APIs.\n\n @since T07 (Artifact Store)",
           "required": false
         }
       ]

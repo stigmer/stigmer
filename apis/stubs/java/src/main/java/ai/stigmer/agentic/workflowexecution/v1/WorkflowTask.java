@@ -53,6 +53,8 @@ private static final long serialVersionUID = 0L;
     startedAt_ = "";
     completedAt_ = "";
     error_ = "";
+    artifactIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -643,6 +645,119 @@ private static final long serialVersionUID = 0L;
     return metadata_ == null ? com.google.protobuf.Struct.getDefaultInstance() : metadata_;
   }
 
+  public static final int ARTIFACT_IDS_FIELD_NUMBER = 11;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList artifactIds_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Artifact IDs produced by this task.
+   *
+   * &#64;internal
+   * Populated when the task's output (or portions of it) is auto-promoted
+   * to the artifact store because it exceeds the size threshold (256KB),
+   * or when the workflow author explicitly declares artifact persistence.
+   *
+   * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+   * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+   *
+   * When artifact_ids is non-empty, the task's output field contains
+   * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+   * the original inline data. Consumers (execution viewer, SDK hooks)
+   * detect these references and resolve them via the Artifact APIs.
+   *
+   * &#64;since T07 (Artifact Store)
+   * </pre>
+   *
+   * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+   * @return A list containing the artifactIds.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getArtifactIdsList() {
+    return artifactIds_;
+  }
+  /**
+   * <pre>
+   * Artifact IDs produced by this task.
+   *
+   * &#64;internal
+   * Populated when the task's output (or portions of it) is auto-promoted
+   * to the artifact store because it exceeds the size threshold (256KB),
+   * or when the workflow author explicitly declares artifact persistence.
+   *
+   * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+   * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+   *
+   * When artifact_ids is non-empty, the task's output field contains
+   * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+   * the original inline data. Consumers (execution viewer, SDK hooks)
+   * detect these references and resolve them via the Artifact APIs.
+   *
+   * &#64;since T07 (Artifact Store)
+   * </pre>
+   *
+   * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+   * @return The count of artifactIds.
+   */
+  public int getArtifactIdsCount() {
+    return artifactIds_.size();
+  }
+  /**
+   * <pre>
+   * Artifact IDs produced by this task.
+   *
+   * &#64;internal
+   * Populated when the task's output (or portions of it) is auto-promoted
+   * to the artifact store because it exceeds the size threshold (256KB),
+   * or when the workflow author explicitly declares artifact persistence.
+   *
+   * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+   * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+   *
+   * When artifact_ids is non-empty, the task's output field contains
+   * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+   * the original inline data. Consumers (execution viewer, SDK hooks)
+   * detect these references and resolve them via the Artifact APIs.
+   *
+   * &#64;since T07 (Artifact Store)
+   * </pre>
+   *
+   * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+   * @param index The index of the element to return.
+   * @return The artifactIds at the given index.
+   */
+  public java.lang.String getArtifactIds(int index) {
+    return artifactIds_.get(index);
+  }
+  /**
+   * <pre>
+   * Artifact IDs produced by this task.
+   *
+   * &#64;internal
+   * Populated when the task's output (or portions of it) is auto-promoted
+   * to the artifact store because it exceeds the size threshold (256KB),
+   * or when the workflow author explicitly declares artifact persistence.
+   *
+   * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+   * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+   *
+   * When artifact_ids is non-empty, the task's output field contains
+   * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+   * the original inline data. Consumers (execution viewer, SDK hooks)
+   * detect these references and resolve them via the Artifact APIs.
+   *
+   * &#64;since T07 (Artifact Store)
+   * </pre>
+   *
+   * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the artifactIds at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getArtifactIdsBytes(int index) {
+    return artifactIds_.getByteString(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -686,6 +801,9 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(10, getMetadata());
+    }
+    for (int i = 0; i < artifactIds_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 11, artifactIds_.getRaw(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -731,6 +849,14 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(10, getMetadata());
     }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < artifactIds_.size(); i++) {
+        dataSize += computeStringSizeNoTag(artifactIds_.getRaw(i));
+      }
+      size += dataSize;
+      size += 1 * getArtifactIdsList().size();
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -773,6 +899,8 @@ private static final long serialVersionUID = 0L;
       if (!getMetadata()
           .equals(other.getMetadata())) return false;
     }
+    if (!getArtifactIdsList()
+        .equals(other.getArtifactIdsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -809,6 +937,10 @@ private static final long serialVersionUID = 0L;
     if (hasMetadata()) {
       hash = (37 * hash) + METADATA_FIELD_NUMBER;
       hash = (53 * hash) + getMetadata().hashCode();
+    }
+    if (getArtifactIdsCount() > 0) {
+      hash = (37 * hash) + ARTIFACT_IDS_FIELD_NUMBER;
+      hash = (53 * hash) + getArtifactIdsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -989,6 +1121,8 @@ private static final long serialVersionUID = 0L;
         metadataBuilder_.dispose();
         metadataBuilder_ = null;
       }
+      artifactIds_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       return this;
     }
 
@@ -1062,6 +1196,10 @@ private static final long serialVersionUID = 0L;
             : metadataBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        artifactIds_.makeImmutable();
+        result.artifactIds_ = artifactIds_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1116,6 +1254,16 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasMetadata()) {
         mergeMetadata(other.getMetadata());
+      }
+      if (!other.artifactIds_.isEmpty()) {
+        if (artifactIds_.isEmpty()) {
+          artifactIds_ = other.artifactIds_;
+          bitField0_ |= 0x00000400;
+        } else {
+          ensureArtifactIdsIsMutable();
+          artifactIds_.addAll(other.artifactIds_);
+        }
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1199,6 +1347,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000200;
               break;
             } // case 82
+            case 90: {
+              ensureArtifactIdsIsMutable();
+              artifactIds_.add(input.readStringRequireUtf8());
+              break;
+            } // case 90
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2742,6 +2895,288 @@ private static final long serialVersionUID = 0L;
         metadata_ = null;
       }
       return metadataBuilder_;
+    }
+
+    private com.google.protobuf.LazyStringArrayList artifactIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureArtifactIdsIsMutable() {
+      if (!artifactIds_.isModifiable()) {
+        artifactIds_ = new com.google.protobuf.LazyStringArrayList(artifactIds_);
+      }
+      bitField0_ |= 0x00000400;
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @return A list containing the artifactIds.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getArtifactIdsList() {
+      artifactIds_.makeImmutable();
+      return artifactIds_;
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @return The count of artifactIds.
+     */
+    public int getArtifactIdsCount() {
+      return artifactIds_.size();
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @param index The index of the element to return.
+     * @return The artifactIds at the given index.
+     */
+    public java.lang.String getArtifactIds(int index) {
+      return artifactIds_.get(index);
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the artifactIds at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getArtifactIdsBytes(int index) {
+      return artifactIds_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @param index The index to set the value at.
+     * @param value The artifactIds to set.
+     * @return This builder for chaining.
+     */
+    public Builder setArtifactIds(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureArtifactIdsIsMutable();
+      artifactIds_.set(index, value);
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @param value The artifactIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addArtifactIds(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureArtifactIdsIsMutable();
+      artifactIds_.add(value);
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @param values The artifactIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllArtifactIds(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureArtifactIdsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, artifactIds_);
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearArtifactIds() {
+      artifactIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000400);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Artifact IDs produced by this task.
+     *
+     * &#64;internal
+     * Populated when the task's output (or portions of it) is auto-promoted
+     * to the artifact store because it exceeds the size threshold (256KB),
+     * or when the workflow author explicitly declares artifact persistence.
+     *
+     * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+     * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+     *
+     * When artifact_ids is non-empty, the task's output field contains
+     * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+     * the original inline data. Consumers (execution viewer, SDK hooks)
+     * detect these references and resolve them via the Artifact APIs.
+     *
+     * &#64;since T07 (Artifact Store)
+     * </pre>
+     *
+     * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+     * @param value The bytes of the artifactIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addArtifactIdsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureArtifactIdsIsMutable();
+      artifactIds_.add(value);
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflowexecution.v1.WorkflowTask)

@@ -193,6 +193,14 @@ public enum ApiResourceKind
   environment(53),
   /**
    * <pre>
+   * Persisted blob produced during workflow or agent execution.
+   * </pre>
+   *
+   * <code>artifact = 55 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  artifact(55),
+  /**
+   * <pre>
    * User-owned runtime context for managing execution state.
    * </pre>
    *
@@ -397,6 +405,14 @@ public enum ApiResourceKind
   public static final int environment_VALUE = 53;
   /**
    * <pre>
+   * Persisted blob produced during workflow or agent execution.
+   * </pre>
+   *
+   * <code>artifact = 55 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int artifact_VALUE = 55;
+  /**
+   * <pre>
    * User-owned runtime context for managing execution state.
    * </pre>
    *
@@ -459,6 +475,7 @@ public enum ApiResourceKind
       case 51: return workflow_instance;
       case 52: return workflow_execution;
       case 53: return environment;
+      case 55: return artifact;
       case 54: return execution_context;
       case 60: return project;
       default: return null;

@@ -34,6 +34,7 @@ class WorkflowEventType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     budget_checkpoint: _ClassVar[WorkflowEventType]
     signal_received: _ClassVar[WorkflowEventType]
     event_emitted: _ClassVar[WorkflowEventType]
+    artifact_created: _ClassVar[WorkflowEventType]
 workflow_event_type_unspecified: WorkflowEventType
 execution_started: WorkflowEventType
 execution_completed: WorkflowEventType
@@ -55,9 +56,10 @@ approval_resolved: WorkflowEventType
 budget_checkpoint: WorkflowEventType
 signal_received: WorkflowEventType
 event_emitted: WorkflowEventType
+artifact_created: WorkflowEventType
 
 class WorkflowExecutionEvent(_message.Message):
-    __slots__ = ("event_id", "event_type", "sequence_number", "occurred_at", "task_name", "execution_started", "execution_completed", "execution_failed", "execution_paused", "execution_resumed", "execution_cancelled", "execution_terminated", "task_started", "task_completed", "task_failed", "task_skipped", "task_retrying", "agent_call_started", "agent_call_progress", "agent_call_completed", "approval_requested", "approval_resolved", "budget_checkpoint", "signal_received", "event_emitted")
+    __slots__ = ("event_id", "event_type", "sequence_number", "occurred_at", "task_name", "execution_started", "execution_completed", "execution_failed", "execution_paused", "execution_resumed", "execution_cancelled", "execution_terminated", "task_started", "task_completed", "task_failed", "task_skipped", "task_retrying", "agent_call_started", "agent_call_progress", "agent_call_completed", "approval_requested", "approval_resolved", "budget_checkpoint", "signal_received", "event_emitted", "artifact_created")
     EVENT_ID_FIELD_NUMBER: _ClassVar[int]
     EVENT_TYPE_FIELD_NUMBER: _ClassVar[int]
     SEQUENCE_NUMBER_FIELD_NUMBER: _ClassVar[int]
@@ -83,6 +85,7 @@ class WorkflowExecutionEvent(_message.Message):
     BUDGET_CHECKPOINT_FIELD_NUMBER: _ClassVar[int]
     SIGNAL_RECEIVED_FIELD_NUMBER: _ClassVar[int]
     EVENT_EMITTED_FIELD_NUMBER: _ClassVar[int]
+    ARTIFACT_CREATED_FIELD_NUMBER: _ClassVar[int]
     event_id: str
     event_type: WorkflowEventType
     sequence_number: int
@@ -108,7 +111,8 @@ class WorkflowExecutionEvent(_message.Message):
     budget_checkpoint: BudgetCheckpointPayload
     signal_received: SignalReceivedPayload
     event_emitted: EventEmittedPayload
-    def __init__(self, event_id: _Optional[str] = ..., event_type: _Optional[_Union[WorkflowEventType, str]] = ..., sequence_number: _Optional[int] = ..., occurred_at: _Optional[str] = ..., task_name: _Optional[str] = ..., execution_started: _Optional[_Union[ExecutionStartedPayload, _Mapping]] = ..., execution_completed: _Optional[_Union[ExecutionCompletedPayload, _Mapping]] = ..., execution_failed: _Optional[_Union[ExecutionFailedPayload, _Mapping]] = ..., execution_paused: _Optional[_Union[ExecutionPausedPayload, _Mapping]] = ..., execution_resumed: _Optional[_Union[ExecutionResumedPayload, _Mapping]] = ..., execution_cancelled: _Optional[_Union[ExecutionCancelledPayload, _Mapping]] = ..., execution_terminated: _Optional[_Union[ExecutionTerminatedPayload, _Mapping]] = ..., task_started: _Optional[_Union[TaskStartedPayload, _Mapping]] = ..., task_completed: _Optional[_Union[TaskCompletedPayload, _Mapping]] = ..., task_failed: _Optional[_Union[TaskFailedPayload, _Mapping]] = ..., task_skipped: _Optional[_Union[TaskSkippedPayload, _Mapping]] = ..., task_retrying: _Optional[_Union[TaskRetryingPayload, _Mapping]] = ..., agent_call_started: _Optional[_Union[AgentCallStartedPayload, _Mapping]] = ..., agent_call_progress: _Optional[_Union[AgentCallProgressPayload, _Mapping]] = ..., agent_call_completed: _Optional[_Union[AgentCallCompletedPayload, _Mapping]] = ..., approval_requested: _Optional[_Union[ApprovalRequestedPayload, _Mapping]] = ..., approval_resolved: _Optional[_Union[ApprovalResolvedPayload, _Mapping]] = ..., budget_checkpoint: _Optional[_Union[BudgetCheckpointPayload, _Mapping]] = ..., signal_received: _Optional[_Union[SignalReceivedPayload, _Mapping]] = ..., event_emitted: _Optional[_Union[EventEmittedPayload, _Mapping]] = ...) -> None: ...
+    artifact_created: ArtifactCreatedPayload
+    def __init__(self, event_id: _Optional[str] = ..., event_type: _Optional[_Union[WorkflowEventType, str]] = ..., sequence_number: _Optional[int] = ..., occurred_at: _Optional[str] = ..., task_name: _Optional[str] = ..., execution_started: _Optional[_Union[ExecutionStartedPayload, _Mapping]] = ..., execution_completed: _Optional[_Union[ExecutionCompletedPayload, _Mapping]] = ..., execution_failed: _Optional[_Union[ExecutionFailedPayload, _Mapping]] = ..., execution_paused: _Optional[_Union[ExecutionPausedPayload, _Mapping]] = ..., execution_resumed: _Optional[_Union[ExecutionResumedPayload, _Mapping]] = ..., execution_cancelled: _Optional[_Union[ExecutionCancelledPayload, _Mapping]] = ..., execution_terminated: _Optional[_Union[ExecutionTerminatedPayload, _Mapping]] = ..., task_started: _Optional[_Union[TaskStartedPayload, _Mapping]] = ..., task_completed: _Optional[_Union[TaskCompletedPayload, _Mapping]] = ..., task_failed: _Optional[_Union[TaskFailedPayload, _Mapping]] = ..., task_skipped: _Optional[_Union[TaskSkippedPayload, _Mapping]] = ..., task_retrying: _Optional[_Union[TaskRetryingPayload, _Mapping]] = ..., agent_call_started: _Optional[_Union[AgentCallStartedPayload, _Mapping]] = ..., agent_call_progress: _Optional[_Union[AgentCallProgressPayload, _Mapping]] = ..., agent_call_completed: _Optional[_Union[AgentCallCompletedPayload, _Mapping]] = ..., approval_requested: _Optional[_Union[ApprovalRequestedPayload, _Mapping]] = ..., approval_resolved: _Optional[_Union[ApprovalResolvedPayload, _Mapping]] = ..., budget_checkpoint: _Optional[_Union[BudgetCheckpointPayload, _Mapping]] = ..., signal_received: _Optional[_Union[SignalReceivedPayload, _Mapping]] = ..., event_emitted: _Optional[_Union[EventEmittedPayload, _Mapping]] = ..., artifact_created: _Optional[_Union[ArtifactCreatedPayload, _Mapping]] = ...) -> None: ...
 
 class ExecutionStartedPayload(_message.Message):
     __slots__ = ("total_tasks", "workflow_id", "workflow_instance_id")
@@ -331,3 +335,15 @@ class EventEmittedPayload(_message.Message):
     event_source: str
     event_subject: str
     def __init__(self, event_type: _Optional[str] = ..., event_source: _Optional[str] = ..., event_subject: _Optional[str] = ...) -> None: ...
+
+class ArtifactCreatedPayload(_message.Message):
+    __slots__ = ("artifact_id", "display_name", "content_type", "size_bytes")
+    ARTIFACT_ID_FIELD_NUMBER: _ClassVar[int]
+    DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_TYPE_FIELD_NUMBER: _ClassVar[int]
+    SIZE_BYTES_FIELD_NUMBER: _ClassVar[int]
+    artifact_id: str
+    display_name: str
+    content_type: str
+    size_bytes: int
+    def __init__(self, artifact_id: _Optional[str] = ..., display_name: _Optional[str] = ..., content_type: _Optional[str] = ..., size_bytes: _Optional[int] = ...) -> None: ...

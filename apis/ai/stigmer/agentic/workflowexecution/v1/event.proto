@@ -120,6 +120,8 @@ message WorkflowExecutionEvent {
 
     SignalReceivedPayload signal_received = 60;
     EventEmittedPayload event_emitted = 61;
+
+    ArtifactCreatedPayload artifact_created = 70;
   }
 }
 
@@ -235,6 +237,12 @@ enum WorkflowEventType {
   // The workflow published a CloudEvent via an emit_event task.
   // Payload: EventEmittedPayload.
   event_emitted = 52;
+
+  // ── Artifacts ──────────────────────────────────────────────────────────
+
+  // A task output was persisted as an artifact (auto-promoted or explicit).
+  // Payload: ArtifactCreatedPayload.
+  artifact_created = 53;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -676,4 +684,35 @@ message EventEmittedPayload {
 
   // CloudEvents subject identifier.
   string event_subject = 3;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Artifact Payloads
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Payload for artifact_created events.
+//
+// @internal
+// Emitted when a task output is persisted as an artifact, either because
+// it exceeded the auto-promotion size threshold (256KB) or because the
+// workflow author explicitly declared artifact persistence (Phase 1).
+//
+// The artifact_id can be used with the Artifact.get() and
+// Artifact.getDownloadUrl() RPCs to retrieve or download the content.
+//
+// @since T07 (Artifact Store)
+message ArtifactCreatedPayload {
+  // ID of the created artifact (format: "art_{unique-suffix}").
+  // Use this to fetch metadata via Artifact.get() or download
+  // content via Artifact.getDownloadUrl().
+  string artifact_id = 1;
+
+  // Human-readable name of the artifact.
+  string display_name = 2;
+
+  // MIME content type of the artifact payload.
+  string content_type = 3;
+
+  // Size of the artifact content in bytes.
+  int64 size_bytes = 4;
 }

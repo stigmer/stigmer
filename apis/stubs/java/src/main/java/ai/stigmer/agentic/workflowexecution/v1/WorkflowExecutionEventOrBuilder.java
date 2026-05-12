@@ -456,5 +456,20 @@ public interface WorkflowExecutionEventOrBuilder extends
    */
   ai.stigmer.agentic.workflowexecution.v1.EventEmittedPayloadOrBuilder getEventEmittedOrBuilder();
 
+  /**
+   * <code>.ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload artifact_created = 70 [json_name = "artifactCreated"];</code>
+   * @return Whether the artifactCreated field is set.
+   */
+  boolean hasArtifactCreated();
+  /**
+   * <code>.ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload artifact_created = 70 [json_name = "artifactCreated"];</code>
+   * @return The artifactCreated.
+   */
+  ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload getArtifactCreated();
+  /**
+   * <code>.ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload artifact_created = 70 [json_name = "artifactCreated"];</code>
+   */
+  ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayloadOrBuilder getArtifactCreatedOrBuilder();
+
   ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.PayloadCase getPayloadCase();
 }

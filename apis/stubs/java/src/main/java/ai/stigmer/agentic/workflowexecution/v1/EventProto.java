@@ -131,6 +131,11 @@ public final class EventProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_workflowexecution_v1_EventEmittedPayload_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_ArtifactCreatedPayload_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflowexecution_v1_ArtifactCreatedPayload_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -146,7 +151,7 @@ public final class EventProto extends com.google.protobuf.GeneratedFile {
       "execution/v1/enum.proto\032)ai/stigmer/agen" +
       "tic/workflow/v1/enum.proto\032\033buf/validate" +
       "/validate.proto\032\034google/protobuf/struct." +
-      "proto\"\267\023\n\026WorkflowExecutionEvent\022\"\n\010even" +
+      "proto\"\245\024\n\026WorkflowExecutionEvent\022\"\n\010even" +
       "t_id\030\001 \001(\tB\007\272H\004r\002\020\001R\007eventId\022c\n\nevent_ty" +
       "pe\030\002 \001(\0162:.ai.stigmer.agentic.workflowex" +
       "ecution.v1.WorkflowEventTypeB\010\272H\005\202\001\002\020\001R\t" +
@@ -208,114 +213,121 @@ public final class EventProto extends com.google.protobuf.GeneratedFile {
       "yloadH\000R\016signalReceived\022c\n\revent_emitted" +
       "\030= \001(\0132<.ai.stigmer.agentic.workflowexec" +
       "ution.v1.EventEmittedPayloadH\000R\014eventEmi" +
-      "ttedB\t\n\007payload\"\215\001\n\027ExecutionStartedPayl" +
-      "oad\022\037\n\013total_tasks\030\001 \001(\005R\ntotalTasks\022\037\n\013" +
-      "workflow_id\030\002 \001(\tR\nworkflowId\0220\n\024workflo" +
-      "w_instance_id\030\003 \001(\tR\022workflowInstanceId\"" +
-      "\313\001\n\031ExecutionCompletedPayload\022>\n\016output_" +
-      "summary\030\001 \001(\0132\027.google.protobuf.StructR\r" +
-      "outputSummary\022\037\n\013duration_ms\030\002 \001(\003R\ndura" +
-      "tionMs\022*\n\021total_cost_micros\030\003 \001(\003R\017total" +
-      "CostMicros\022!\n\014total_tokens\030\004 \001(\003R\013totalT" +
-      "okens\"y\n\026ExecutionFailedPayload\022\024\n\005error" +
-      "\030\001 \001(\tR\005error\022(\n\020failed_task_name\030\002 \001(\tR" +
-      "\016failedTaskName\022\037\n\013duration_ms\030\003 \001(\003R\ndu" +
-      "rationMs\"M\n\026ExecutionPausedPayload\022\026\n\006re" +
-      "ason\030\001 \001(\tR\006reason\022\033\n\tpaused_by\030\002 \001(\tR\010p" +
-      "ausedBy\"8\n\027ExecutionResumedPayload\022\035\n\nre" +
-      "sumed_by\030\001 \001(\tR\tresumedBy\"V\n\031ExecutionCa" +
-      "ncelledPayload\022\026\n\006reason\030\001 \001(\tR\006reason\022!" +
-      "\n\014cancelled_by\030\002 \001(\tR\013cancelledBy\"Y\n\032Exe" +
-      "cutionTerminatedPayload\022\026\n\006reason\030\001 \001(\tR" +
-      "\006reason\022#\n\rterminated_by\030\002 \001(\tR\014terminat" +
-      "edBy\"\310\001\n\022TaskStartedPayload\022M\n\ttask_kind" +
+      "tted\022l\n\020artifact_created\030F \001(\0132?.ai.stig" +
+      "mer.agentic.workflowexecution.v1.Artifac" +
+      "tCreatedPayloadH\000R\017artifactCreatedB\t\n\007pa" +
+      "yload\"\215\001\n\027ExecutionStartedPayload\022\037\n\013tot" +
+      "al_tasks\030\001 \001(\005R\ntotalTasks\022\037\n\013workflow_i" +
+      "d\030\002 \001(\tR\nworkflowId\0220\n\024workflow_instance" +
+      "_id\030\003 \001(\tR\022workflowInstanceId\"\313\001\n\031Execut" +
+      "ionCompletedPayload\022>\n\016output_summary\030\001 " +
+      "\001(\0132\027.google.protobuf.StructR\routputSumm" +
+      "ary\022\037\n\013duration_ms\030\002 \001(\003R\ndurationMs\022*\n\021" +
+      "total_cost_micros\030\003 \001(\003R\017totalCostMicros" +
+      "\022!\n\014total_tokens\030\004 \001(\003R\013totalTokens\"y\n\026E" +
+      "xecutionFailedPayload\022\024\n\005error\030\001 \001(\tR\005er" +
+      "ror\022(\n\020failed_task_name\030\002 \001(\tR\016failedTas" +
+      "kName\022\037\n\013duration_ms\030\003 \001(\003R\ndurationMs\"M" +
+      "\n\026ExecutionPausedPayload\022\026\n\006reason\030\001 \001(\t" +
+      "R\006reason\022\033\n\tpaused_by\030\002 \001(\tR\010pausedBy\"8\n" +
+      "\027ExecutionResumedPayload\022\035\n\nresumed_by\030\001" +
+      " \001(\tR\tresumedBy\"V\n\031ExecutionCancelledPay" +
+      "load\022\026\n\006reason\030\001 \001(\tR\006reason\022!\n\014cancelle" +
+      "d_by\030\002 \001(\tR\013cancelledBy\"Y\n\032ExecutionTerm" +
+      "inatedPayload\022\026\n\006reason\030\001 \001(\tR\006reason\022#\n" +
+      "\rterminated_by\030\002 \001(\tR\014terminatedBy\"\310\001\n\022T" +
+      "askStartedPayload\022M\n\ttask_kind\030\001 \001(\01620.a" +
+      "i.stigmer.agentic.workflow.v1.WorkflowTa" +
+      "skKindR\010taskKind\022<\n\rinput_summary\030\002 \001(\0132" +
+      "\027.google.protobuf.StructR\014inputSummary\022%" +
+      "\n\016attempt_number\030\003 \001(\005R\rattemptNumber\"\210\002" +
+      "\n\024TaskCompletedPayload\022M\n\ttask_kind\030\001 \001(" +
+      "\01620.ai.stigmer.agentic.workflow.v1.Workf" +
+      "lowTaskKindR\010taskKind\022\037\n\013duration_ms\030\002 \001" +
+      "(\003R\ndurationMs\022>\n\016output_summary\030\003 \001(\0132\027" +
+      ".google.protobuf.StructR\routputSummary\022\037" +
+      "\n\013cost_micros\030\004 \001(\003R\ncostMicros\022\037\n\013token" +
+      "s_used\030\005 \001(\003R\ntokensUsed\"\202\002\n\021TaskFailedP" +
+      "ayload\022M\n\ttask_kind\030\001 \001(\01620.ai.stigmer.a" +
+      "gentic.workflow.v1.WorkflowTaskKindR\010tas" +
+      "kKind\022\024\n\005error\030\002 \001(\tR\005error\022%\n\016attempt_n" +
+      "umber\030\003 \001(\005R\rattemptNumber\022!\n\014max_attemp" +
+      "ts\030\004 \001(\005R\013maxAttempts\022\035\n\nwill_retry\030\005 \001(" +
+      "\010R\twillRetry\022\037\n\013duration_ms\030\006 \001(\003R\ndurat" +
+      "ionMs\"{\n\022TaskSkippedPayload\022M\n\ttask_kind" +
       "\030\001 \001(\01620.ai.stigmer.agentic.workflow.v1." +
-      "WorkflowTaskKindR\010taskKind\022<\n\rinput_summ" +
-      "ary\030\002 \001(\0132\027.google.protobuf.StructR\014inpu" +
-      "tSummary\022%\n\016attempt_number\030\003 \001(\005R\rattemp" +
-      "tNumber\"\210\002\n\024TaskCompletedPayload\022M\n\ttask" +
-      "_kind\030\001 \001(\01620.ai.stigmer.agentic.workflo" +
-      "w.v1.WorkflowTaskKindR\010taskKind\022\037\n\013durat" +
-      "ion_ms\030\002 \001(\003R\ndurationMs\022>\n\016output_summa" +
-      "ry\030\003 \001(\0132\027.google.protobuf.StructR\routpu" +
-      "tSummary\022\037\n\013cost_micros\030\004 \001(\003R\ncostMicro" +
-      "s\022\037\n\013tokens_used\030\005 \001(\003R\ntokensUsed\"\202\002\n\021T" +
-      "askFailedPayload\022M\n\ttask_kind\030\001 \001(\01620.ai" +
-      ".stigmer.agentic.workflow.v1.WorkflowTas" +
-      "kKindR\010taskKind\022\024\n\005error\030\002 \001(\tR\005error\022%\n" +
-      "\016attempt_number\030\003 \001(\005R\rattemptNumber\022!\n\014" +
-      "max_attempts\030\004 \001(\005R\013maxAttempts\022\035\n\nwill_" +
-      "retry\030\005 \001(\010R\twillRetry\022\037\n\013duration_ms\030\006 " +
-      "\001(\003R\ndurationMs\"{\n\022TaskSkippedPayload\022M\n" +
-      "\ttask_kind\030\001 \001(\01620.ai.stigmer.agentic.wo" +
-      "rkflow.v1.WorkflowTaskKindR\010taskKind\022\026\n\006" +
-      "reason\030\002 \001(\tR\006reason\"z\n\023TaskRetryingPayl" +
-      "oad\022%\n\016failed_attempt\030\001 \001(\005R\rfailedAttem" +
-      "pt\022!\n\014next_attempt\030\002 \001(\005R\013nextAttempt\022\031\n" +
-      "\010delay_ms\030\003 \001(\003R\007delayMs\"\217\001\n\027AgentCallSt" +
-      "artedPayload\022,\n\022child_execution_id\030\001 \001(\t" +
-      "R\020childExecutionId\022\035\n\nagent_slug\030\002 \001(\tR\t" +
-      "agentSlug\022\'\n\017message_summary\030\003 \001(\tR\016mess" +
-      "ageSummary\"\305\002\n\030AgentCallProgressPayload\022" +
-      ",\n\022child_execution_id\030\001 \001(\tR\020childExecut" +
-      "ionId\022U\n\013agent_phase\030\002 \001(\01624.ai.stigmer." +
-      "agentic.agentexecution.v1.ExecutionPhase" +
-      "R\nagentPhase\022*\n\021current_tool_name\030\003 \001(\tR" +
-      "\017currentToolName\022\'\n\017tokens_consumed\030\004 \001(" +
-      "\003R\016tokensConsumed\022%\n\016messages_count\030\005 \001(" +
-      "\005R\rmessagesCount\022(\n\020tool_calls_count\030\006 \001" +
-      "(\005R\016toolCallsCount\"\241\002\n\031AgentCallComplete" +
-      "dPayload\022,\n\022child_execution_id\030\001 \001(\tR\020ch" +
-      "ildExecutionId\022U\n\013agent_phase\030\002 \001(\01624.ai" +
-      ".stigmer.agentic.agentexecution.v1.Execu" +
-      "tionPhaseR\nagentPhase\022\037\n\013duration_ms\030\003 \001" +
-      "(\003R\ndurationMs\022\'\n\017tokens_consumed\030\004 \001(\003R" +
-      "\016tokensConsumed\022\037\n\013cost_micros\030\005 \001(\003R\nco" +
-      "stMicros\022\024\n\005error\030\006 \001(\tR\005error\"\311\001\n\030Appro" +
-      "valRequestedPayload\022\026\n\006prompt\030\001 \001(\tR\006pro" +
-      "mpt\022\034\n\tapprovers\030\002 \003(\tR\tapprovers\022\'\n\017tim" +
-      "eout_seconds\030\003 \001(\005R\016timeoutSeconds\022 \n\014to" +
-      "ol_call_id\030\004 \001(\tR\ntoolCallId\022,\n\022child_ex" +
-      "ecution_id\030\005 \001(\tR\020childExecutionId\"\314\001\n\027A" +
-      "pprovalResolvedPayload\022L\n\006action\030\001 \001(\01624" +
-      ".ai.stigmer.agentic.agentexecution.v1.Ap" +
-      "provalActionR\006action\022\037\n\013resolved_by\030\002 \001(" +
-      "\tR\nresolvedBy\022\030\n\007comment\030\003 \001(\tR\007comment\022" +
-      "(\n\020wait_duration_ms\030\004 \001(\003R\016waitDurationM" +
-      "s\"\346\002\n\027BudgetCheckpointPayload\0220\n\024cost_co" +
-      "nsumed_micros\030\001 \001(\003R\022costConsumedMicros\022" +
-      "2\n\025cost_remaining_micros\030\002 \001(\003R\023costRema" +
-      "iningMicros\022\'\n\017tokens_consumed\030\003 \001(\003R\016to" +
-      "kensConsumed\022)\n\020tokens_remaining\030\004 \001(\003R\017" +
-      "tokensRemaining\022-\n\022threshold_breached\030\005 " +
-      "\001(\010R\021thresholdBreached\022b\n\022on_exceeded_po" +
-      "licy\030\006 \001(\01624.ai.stigmer.agentic.workflow" +
-      ".v1.BudgetExceededPolicyR\020onExceededPoli" +
-      "cy\"z\n\025SignalReceivedPayload\022\037\n\013signal_na" +
-      "me\030\001 \001(\tR\nsignalName\022@\n\017payload_summary\030" +
-      "\002 \001(\0132\027.google.protobuf.StructR\016payloadS" +
-      "ummary\"|\n\023EventEmittedPayload\022\035\n\nevent_t" +
-      "ype\030\001 \001(\tR\teventType\022!\n\014event_source\030\002 \001" +
-      "(\tR\013eventSource\022#\n\revent_subject\030\003 \001(\tR\014" +
-      "eventSubject*\363\003\n\021WorkflowEventType\022#\n\037wo" +
-      "rkflow_event_type_unspecified\020\000\022\025\n\021execu" +
-      "tion_started\020\001\022\027\n\023execution_completed\020\002\022" +
-      "\024\n\020execution_failed\020\003\022\024\n\020execution_pause" +
-      "d\020\004\022\025\n\021execution_resumed\020\005\022\027\n\023execution_" +
-      "cancelled\020\006\022\030\n\024execution_terminated\020\007\022\020\n" +
-      "\014task_started\020\013\022\022\n\016task_completed\020\014\022\017\n\013t" +
-      "ask_failed\020\r\022\020\n\014task_skipped\020\016\022\021\n\rtask_r" +
-      "etrying\020\017\022\026\n\022agent_call_started\020\025\022\027\n\023age" +
-      "nt_call_progress\020\026\022\030\n\024agent_call_complet" +
-      "ed\020\027\022\026\n\022approval_requested\020\037\022\025\n\021approval" +
-      "_resolved\020 \022\025\n\021budget_checkpoint\020)\022\023\n\017si" +
-      "gnal_received\0203\022\021\n\revent_emitted\0204B\315\001B\nE" +
-      "ventProtoP\001\242\002\004ASAW\252\002\'Ai.Stigmer.Agentic." +
-      "Workflowexecution.V1\312\002\'Ai\\Stigmer\\Agenti" +
-      "c\\Workflowexecution\\V1\342\0023Ai\\Stigmer\\Agen" +
-      "tic\\Workflowexecution\\V1\\GPBMetadata\352\002+A" +
-      "i::Stigmer::Agentic::Workflowexecution::" +
-      "V1b\006proto3"
+      "WorkflowTaskKindR\010taskKind\022\026\n\006reason\030\002 \001" +
+      "(\tR\006reason\"z\n\023TaskRetryingPayload\022%\n\016fai" +
+      "led_attempt\030\001 \001(\005R\rfailedAttempt\022!\n\014next" +
+      "_attempt\030\002 \001(\005R\013nextAttempt\022\031\n\010delay_ms\030" +
+      "\003 \001(\003R\007delayMs\"\217\001\n\027AgentCallStartedPaylo" +
+      "ad\022,\n\022child_execution_id\030\001 \001(\tR\020childExe" +
+      "cutionId\022\035\n\nagent_slug\030\002 \001(\tR\tagentSlug\022" +
+      "\'\n\017message_summary\030\003 \001(\tR\016messageSummary" +
+      "\"\305\002\n\030AgentCallProgressPayload\022,\n\022child_e" +
+      "xecution_id\030\001 \001(\tR\020childExecutionId\022U\n\013a" +
+      "gent_phase\030\002 \001(\01624.ai.stigmer.agentic.ag" +
+      "entexecution.v1.ExecutionPhaseR\nagentPha" +
+      "se\022*\n\021current_tool_name\030\003 \001(\tR\017currentTo" +
+      "olName\022\'\n\017tokens_consumed\030\004 \001(\003R\016tokensC" +
+      "onsumed\022%\n\016messages_count\030\005 \001(\005R\rmessage" +
+      "sCount\022(\n\020tool_calls_count\030\006 \001(\005R\016toolCa" +
+      "llsCount\"\241\002\n\031AgentCallCompletedPayload\022," +
+      "\n\022child_execution_id\030\001 \001(\tR\020childExecuti" +
+      "onId\022U\n\013agent_phase\030\002 \001(\01624.ai.stigmer.a" +
+      "gentic.agentexecution.v1.ExecutionPhaseR" +
+      "\nagentPhase\022\037\n\013duration_ms\030\003 \001(\003R\ndurati" +
+      "onMs\022\'\n\017tokens_consumed\030\004 \001(\003R\016tokensCon" +
+      "sumed\022\037\n\013cost_micros\030\005 \001(\003R\ncostMicros\022\024" +
+      "\n\005error\030\006 \001(\tR\005error\"\311\001\n\030ApprovalRequest" +
+      "edPayload\022\026\n\006prompt\030\001 \001(\tR\006prompt\022\034\n\tapp" +
+      "rovers\030\002 \003(\tR\tapprovers\022\'\n\017timeout_secon" +
+      "ds\030\003 \001(\005R\016timeoutSeconds\022 \n\014tool_call_id" +
+      "\030\004 \001(\tR\ntoolCallId\022,\n\022child_execution_id" +
+      "\030\005 \001(\tR\020childExecutionId\"\314\001\n\027ApprovalRes" +
+      "olvedPayload\022L\n\006action\030\001 \001(\01624.ai.stigme" +
+      "r.agentic.agentexecution.v1.ApprovalActi" +
+      "onR\006action\022\037\n\013resolved_by\030\002 \001(\tR\nresolve" +
+      "dBy\022\030\n\007comment\030\003 \001(\tR\007comment\022(\n\020wait_du" +
+      "ration_ms\030\004 \001(\003R\016waitDurationMs\"\346\002\n\027Budg" +
+      "etCheckpointPayload\0220\n\024cost_consumed_mic" +
+      "ros\030\001 \001(\003R\022costConsumedMicros\0222\n\025cost_re" +
+      "maining_micros\030\002 \001(\003R\023costRemainingMicro" +
+      "s\022\'\n\017tokens_consumed\030\003 \001(\003R\016tokensConsum" +
+      "ed\022)\n\020tokens_remaining\030\004 \001(\003R\017tokensRema" +
+      "ining\022-\n\022threshold_breached\030\005 \001(\010R\021thres" +
+      "holdBreached\022b\n\022on_exceeded_policy\030\006 \001(\016" +
+      "24.ai.stigmer.agentic.workflow.v1.Budget" +
+      "ExceededPolicyR\020onExceededPolicy\"z\n\025Sign" +
+      "alReceivedPayload\022\037\n\013signal_name\030\001 \001(\tR\n" +
+      "signalName\022@\n\017payload_summary\030\002 \001(\0132\027.go" +
+      "ogle.protobuf.StructR\016payloadSummary\"|\n\023" +
+      "EventEmittedPayload\022\035\n\nevent_type\030\001 \001(\tR" +
+      "\teventType\022!\n\014event_source\030\002 \001(\tR\013eventS" +
+      "ource\022#\n\revent_subject\030\003 \001(\tR\014eventSubje" +
+      "ct\"\236\001\n\026ArtifactCreatedPayload\022\037\n\013artifac" +
+      "t_id\030\001 \001(\tR\nartifactId\022!\n\014display_name\030\002" +
+      " \001(\tR\013displayName\022!\n\014content_type\030\003 \001(\tR" +
+      "\013contentType\022\035\n\nsize_bytes\030\004 \001(\003R\tsizeBy" +
+      "tes*\211\004\n\021WorkflowEventType\022#\n\037workflow_ev" +
+      "ent_type_unspecified\020\000\022\025\n\021execution_star" +
+      "ted\020\001\022\027\n\023execution_completed\020\002\022\024\n\020execut" +
+      "ion_failed\020\003\022\024\n\020execution_paused\020\004\022\025\n\021ex" +
+      "ecution_resumed\020\005\022\027\n\023execution_cancelled" +
+      "\020\006\022\030\n\024execution_terminated\020\007\022\020\n\014task_sta" +
+      "rted\020\013\022\022\n\016task_completed\020\014\022\017\n\013task_faile" +
+      "d\020\r\022\020\n\014task_skipped\020\016\022\021\n\rtask_retrying\020\017" +
+      "\022\026\n\022agent_call_started\020\025\022\027\n\023agent_call_p" +
+      "rogress\020\026\022\030\n\024agent_call_completed\020\027\022\026\n\022a" +
+      "pproval_requested\020\037\022\025\n\021approval_resolved" +
+      "\020 \022\025\n\021budget_checkpoint\020)\022\023\n\017signal_rece" +
+      "ived\0203\022\021\n\revent_emitted\0204\022\024\n\020artifact_cr" +
+      "eated\0205B\315\001B\nEventProtoP\001\242\002\004ASAW\252\002\'Ai.Sti" +
+      "gmer.Agentic.Workflowexecution.V1\312\002\'Ai\\S" +
+      "tigmer\\Agentic\\Workflowexecution\\V1\342\0023Ai" +
+      "\\Stigmer\\Agentic\\Workflowexecution\\V1\\GP" +
+      "BMetadata\352\002+Ai::Stigmer::Agentic::Workfl" +
+      "owexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -330,7 +342,7 @@ public final class EventProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionEvent_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowExecutionEvent_descriptor,
-        new java.lang.String[] { "EventId", "EventType", "SequenceNumber", "OccurredAt", "TaskName", "ExecutionStarted", "ExecutionCompleted", "ExecutionFailed", "ExecutionPaused", "ExecutionResumed", "ExecutionCancelled", "ExecutionTerminated", "TaskStarted", "TaskCompleted", "TaskFailed", "TaskSkipped", "TaskRetrying", "AgentCallStarted", "AgentCallProgress", "AgentCallCompleted", "ApprovalRequested", "ApprovalResolved", "BudgetCheckpoint", "SignalReceived", "EventEmitted", "Payload", });
+        new java.lang.String[] { "EventId", "EventType", "SequenceNumber", "OccurredAt", "TaskName", "ExecutionStarted", "ExecutionCompleted", "ExecutionFailed", "ExecutionPaused", "ExecutionResumed", "ExecutionCancelled", "ExecutionTerminated", "TaskStarted", "TaskCompleted", "TaskFailed", "TaskSkipped", "TaskRetrying", "AgentCallStarted", "AgentCallProgress", "AgentCallCompleted", "ApprovalRequested", "ApprovalResolved", "BudgetCheckpoint", "SignalReceived", "EventEmitted", "ArtifactCreated", "Payload", });
     internal_static_ai_stigmer_agentic_workflowexecution_v1_ExecutionStartedPayload_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_workflowexecution_v1_ExecutionStartedPayload_fieldAccessorTable = new
@@ -451,6 +463,12 @@ public final class EventProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowexecution_v1_EventEmittedPayload_descriptor,
         new java.lang.String[] { "EventType", "EventSource", "EventSubject", });
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_ArtifactCreatedPayload_descriptor =
+      getDescriptor().getMessageType(21);
+    internal_static_ai_stigmer_agentic_workflowexecution_v1_ArtifactCreatedPayload_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflowexecution_v1_ArtifactCreatedPayload_descriptor,
+        new java.lang.String[] { "ArtifactId", "DisplayName", "ContentType", "SizeBytes", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor();
     ai.stigmer.agentic.workflow.v1.EnumProto.getDescriptor();

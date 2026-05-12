@@ -502,6 +502,26 @@ enum ApiResourceKind {
     }
   }];
 
+  // Persisted blob produced during workflow or agent execution.
+  artifact = 55 [(kind_meta) = {
+    group: agentic
+    version: v1
+    name: "Artifact"
+    display_name: "Artifact"
+    id_prefix: "art"
+    is_versioned: false
+    not_search_indexed: false
+    tier: open_source
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      grantable_roles: [
+        owner,
+        viewer
+      ]
+    }
+  }];
+
   // User-owned runtime context for managing execution state.
   execution_context = 54 [(kind_meta) = {
     group: agentic

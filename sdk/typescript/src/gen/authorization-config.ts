@@ -28,5 +28,6 @@ export const GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> =
   [ApiResourceKind.workflow_instance, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.workflow_execution, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.environment, [IamRole.owner, IamRole.viewer]],
+  [ApiResourceKind.artifact, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.project, [IamRole.owner, IamRole.viewer]],
 ]);

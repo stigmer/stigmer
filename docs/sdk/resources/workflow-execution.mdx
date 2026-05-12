@@ -1166,6 +1166,7 @@ WorkflowExecutionEvent represents a single timestamped event in the execution ti
     budgetCheckpoint: { type: "BudgetCheckpointPayloadInput", description: "" },
     signalReceived: { type: "SignalReceivedPayloadInput", description: "" },
     eventEmitted: { type: "EventEmittedPayloadInput", description: "" },
+    artifactCreated: { type: "ArtifactCreatedPayloadInput", description: "" },
   }}
 />
 
@@ -1249,6 +1250,7 @@ WorkflowTask represents a single task within a workflow execution.
     completedAt: { type: "string", description: "ISO 8601 timestamp when the task reached a terminal state." },
     error: { type: "string", description: "Error message, populated only when status is WORKFLOW_TASK_FAILED." },
     metadata: { type: "object", description: "Task-specific metadata as arbitrary JSON." },
+    artifactIds: { type: "string[]", description: "Artifact IDs produced by this task." },
   }}
 />
 
@@ -1302,6 +1304,7 @@ WorkflowEventType categorizes execution events for filtering and dispatch.
 | `budget_checkpoint` | Periodic snapshot of budget consumption vs. remaining capacity. |
 | `signal_received` | An external signal was received by a listen task. |
 | `event_emitted` | The workflow published a CloudEvent via an emit_event task. |
+| `artifact_created` | A task output was persisted as an artifact (auto-promoted or explicit). |
 
 ### WorkflowTaskType
 
