@@ -6,6 +6,7 @@
     {
       "name": "ExecutionContextCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/agentic/executioncontext/v1/command.proto",
       "methods": [
         {
           "name": "Apply",
@@ -36,6 +37,7 @@
     {
       "name": "ExecutionContextQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/agentic/executioncontext/v1/query.proto",
       "methods": [
         {
           "name": "Get",

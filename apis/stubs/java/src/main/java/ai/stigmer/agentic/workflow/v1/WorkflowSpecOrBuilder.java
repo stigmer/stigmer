@@ -164,4 +164,49 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    */
   ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrThrow(
       java.lang.String key);
+
+  /**
+   * <pre>
+   * Budget limits for this workflow execution.
+   * When set, the runtime (T13) enforces cost, token, and duration limits
+   * across all tasks. The existing org-level billing reservation system
+   * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+   * for overall credit exhaustion; workflow budgets prevent individual
+   * workflows from consuming more than intended.
+   * Optional — when not set, no workflow-level budget is enforced.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.WorkflowBudget budget = 5 [json_name = "budget"];</code>
+   * @return Whether the budget field is set.
+   */
+  boolean hasBudget();
+  /**
+   * <pre>
+   * Budget limits for this workflow execution.
+   * When set, the runtime (T13) enforces cost, token, and duration limits
+   * across all tasks. The existing org-level billing reservation system
+   * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+   * for overall credit exhaustion; workflow budgets prevent individual
+   * workflows from consuming more than intended.
+   * Optional — when not set, no workflow-level budget is enforced.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.WorkflowBudget budget = 5 [json_name = "budget"];</code>
+   * @return The budget.
+   */
+  ai.stigmer.agentic.workflow.v1.WorkflowBudget getBudget();
+  /**
+   * <pre>
+   * Budget limits for this workflow execution.
+   * When set, the runtime (T13) enforces cost, token, and duration limits
+   * across all tasks. The existing org-level billing reservation system
+   * (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+   * for overall credit exhaustion; workflow budgets prevent individual
+   * workflows from consuming more than intended.
+   * Optional — when not set, no workflow-level budget is enforced.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.WorkflowBudget budget = 5 [json_name = "budget"];</code>
+   */
+  ai.stigmer.agentic.workflow.v1.WorkflowBudgetOrBuilder getBudgetOrBuilder();
 }

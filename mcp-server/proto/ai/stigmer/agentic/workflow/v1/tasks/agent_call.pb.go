@@ -368,8 +368,17 @@ type AgentExecutionConfig struct {
 	//	    custom_trigger_threshold: 150000
 	//	    custom_target_tokens: 120000
 	ContextManagement *v1.ContextManagementConfig `protobuf:"bytes,4,opt,name=context_management,json=contextManagement,proto3" json:"context_management,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros).
+	// When set, the runtime terminates this agent call if its accumulated cost
+	// exceeds this limit. This uses the workflow domain's micro-USD convention
+	// and provides per-task cost control at the workflow level.
+	// The runtime checks both: per-task limit first, then workflow remaining budget.
+	// Optional — when 0, no per-task cost limit is enforced.
+	//
+	// @since T05 (Workflow-Level Budget Primitives)
+	MaxCostMicros int64 `protobuf:"varint,5,opt,name=max_cost_micros,json=maxCostMicros,proto3" json:"max_cost_micros,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AgentExecutionConfig) Reset() {
@@ -430,6 +439,13 @@ func (x *AgentExecutionConfig) GetContextManagement() *v1.ContextManagementConfi
 	return nil
 }
 
+func (x *AgentExecutionConfig) GetMaxCostMicros() int64 {
+	if x != nil {
+		return x.MaxCostMicros
+	}
+	return 0
+}
+
 var File_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc = "" +
@@ -452,7 +468,7 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc = "" +
 	"on_invalid\x18\x02 \x01(\x0e2;.ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicyR\tonInvalid\x12*\n" +
 	"\vmax_retries\x18\x03 \x01(\x05B\t\xbaH\x06\x1a\x04\x18\x05(\x01R\n" +
 	"maxRetries\x12#\n" +
-	"\rfallback_task\x18\x04 \x01(\tR\ffallbackTask\"\xf3\x01\n" +
+	"\rfallback_task\x18\x04 \x01(\tR\ffallbackTask\"\x9b\x02\n" +
 	"\x14AgentExecutionConfig\x12\x14\n" +
 	"\x05model\x18\x01 \x01(\tR\x05model\x12$\n" +
 	"\atimeout\x18\x02 \x01(\x05B\n" +
@@ -460,7 +476,8 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc = "" +
 	"\vtemperature\x18\x03 \x01(\x02B\x0f\xbaH\f\n" +
 	"\n" +
 	"\x1d\x00\x00\x80?-\x00\x00\x00\x00R\vtemperature\x12l\n" +
-	"\x12context_management\x18\x04 \x01(\v2=.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfigR\x11contextManagementB\xc4\x02\n" +
+	"\x12context_management\x18\x04 \x01(\v2=.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfigR\x11contextManagement\x12&\n" +
+	"\x0fmax_cost_micros\x18\x05 \x01(\x03R\rmaxCostMicrosB\xc4\x02\n" +
 	"(com.ai.stigmer.agentic.workflow.v1.tasksB\x0eAgentCallProtoP\x01ZPgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 
 var (

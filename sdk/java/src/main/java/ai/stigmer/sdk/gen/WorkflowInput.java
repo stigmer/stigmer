@@ -3,9 +3,11 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.environment.v1.EnvVarDeclaration;
+import ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy;
 import ai.stigmer.agentic.workflow.v1.Export;
 import ai.stigmer.agentic.workflow.v1.FlowControl;
 import ai.stigmer.agentic.workflow.v1.Workflow;
+import ai.stigmer.agentic.workflow.v1.WorkflowBudget;
 import ai.stigmer.agentic.workflow.v1.WorkflowDocument;
 import ai.stigmer.agentic.workflow.v1.WorkflowSpec;
 import ai.stigmer.agentic.workflow.v1.WorkflowTask;
@@ -23,6 +25,7 @@ public final class WorkflowInput {
     private final WorkflowDocumentInput document;
     private final java.util.List<WorkflowTaskInput> tasks;
     private final java.util.Map<String, EnvVarDeclarationInput> env;
+    private final WorkflowBudgetInput budget;
 
     private WorkflowInput(Builder builder) {
         this.name = builder.name;
@@ -33,6 +36,7 @@ public final class WorkflowInput {
         this.document = builder.document;
         this.tasks = builder.tasks;
         this.env = builder.env;
+        this.budget = builder.budget;
     }
 
     Workflow toProto() {
@@ -52,6 +56,9 @@ public final class WorkflowInput {
             for (java.util.Map.Entry<String, EnvVarDeclarationInput> entry : this.env.entrySet()) {
                 spec.putEnv(entry.getKey(), entry.getValue().toProto());
             }
+        }
+        if (this.budget != null) {
+            spec.setBudget(this.budget.toProto());
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -81,6 +88,7 @@ public final class WorkflowInput {
         private WorkflowDocumentInput document;
         private java.util.List<WorkflowTaskInput> tasks;
         private java.util.Map<String, EnvVarDeclarationInput> env;
+        private WorkflowBudgetInput budget;
 
         private Builder() {}
 
@@ -92,6 +100,7 @@ public final class WorkflowInput {
         public Builder document(WorkflowDocumentInput document) { this.document = document; return this; }
         public Builder tasks(java.util.List<WorkflowTaskInput> tasks) { this.tasks = tasks; return this; }
         public Builder env(java.util.Map<String, EnvVarDeclarationInput> env) { this.env = env; return this; }
+        public Builder budget(WorkflowBudgetInput budget) { this.budget = budget; return this; }
 
         public WorkflowInput build() { return new WorkflowInput(this); }
     }
@@ -304,6 +313,50 @@ public final class WorkflowInput {
             public Builder optional(boolean optional) { this.optional = optional; return this; }
 
             public EnvVarDeclarationInput build() { return new EnvVarDeclarationInput(this); }
+        }
+    }
+
+    /** SDK input type for WorkflowBudget. */
+    public static final class WorkflowBudgetInput {
+        private final long maxCostMicros;
+        private final long maxTotalTokens;
+        private final int maxDurationSeconds;
+        private final BudgetExceededPolicy onExceeded;
+
+        private WorkflowBudgetInput(Builder builder) {
+            this.maxCostMicros = builder.maxCostMicros;
+            this.maxTotalTokens = builder.maxTotalTokens;
+            this.maxDurationSeconds = builder.maxDurationSeconds;
+            this.onExceeded = builder.onExceeded;
+        }
+
+        WorkflowBudget toProto() {
+            WorkflowBudget.Builder builder = WorkflowBudget.newBuilder();
+            builder.setMaxCostMicros(this.maxCostMicros);
+            builder.setMaxTotalTokens(this.maxTotalTokens);
+            builder.setMaxDurationSeconds(this.maxDurationSeconds);
+            if (this.onExceeded != null) {
+                builder.setOnExceeded(this.onExceeded);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private long maxCostMicros;
+            private long maxTotalTokens;
+            private int maxDurationSeconds;
+            private BudgetExceededPolicy onExceeded;
+
+            private Builder() {}
+
+            public Builder maxCostMicros(long maxCostMicros) { this.maxCostMicros = maxCostMicros; return this; }
+            public Builder maxTotalTokens(long maxTotalTokens) { this.maxTotalTokens = maxTotalTokens; return this; }
+            public Builder maxDurationSeconds(int maxDurationSeconds) { this.maxDurationSeconds = maxDurationSeconds; return this; }
+            public Builder onExceeded(BudgetExceededPolicy onExceeded) { this.onExceeded = onExceeded; return this; }
+
+            public WorkflowBudgetInput build() { return new WorkflowBudgetInput(this); }
         }
     }
 }

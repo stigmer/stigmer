@@ -15,7 +15,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/tasks/llm_call.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_tasks_llm_call: GenFile = /*@__PURE__*/
-  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvbGxtX2NhbGwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcyKVAwoRTGxtQ2FsbFRhc2tDb25maWcSGwoFbW9kZWwYASABKAlCDLpICcgBAXIEEAEYfxIbCg1zeXN0ZW1fcHJvbXB0GAIgASgJQgTYhSwBEh4KBnByb21wdBgDIAEoCUIOukgHyAEBcgIQAdiFLAESMAoPcmVzcG9uc2Vfc2NoZW1hGAQgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIkCgt0ZW1wZXJhdHVyZRgFIAEoAkIPukgMCgodAAAAQC0AAAAAEhsKCm1heF90b2tlbnMYBiABKAVCB7pIBBoCKAESGwoHdGltZW91dBgHIAEoBUIKukgHGgUY2AQoARJPCgpvbl9pbnZhbGlkGAggASgOMjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLk9uSW52YWxpZE91dHB1dFBvbGljeRIeCgttYXhfcmV0cmllcxgJIAEoBUIJukgGGgQYBSgBEhUKDWZhbGxiYWNrX3Rhc2sYCiABKAk6DOqLLAhsbG1fY2FsbGIGcHJvdG8z", [file_ai_stigmer_agentic_workflow_v1_tasks_common, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvbGxtX2NhbGwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcyLIAwoRTGxtQ2FsbFRhc2tDb25maWcSGwoFbW9kZWwYASABKAlCDLpICcgBAXIEEAEYfxIbCg1zeXN0ZW1fcHJvbXB0GAIgASgJQgTYhSwBEh4KBnByb21wdBgDIAEoCUIOukgHyAEBcgIQAdiFLAESMAoPcmVzcG9uc2Vfc2NoZW1hGAQgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIkCgt0ZW1wZXJhdHVyZRgFIAEoAkIPukgMCgodAAAAQC0AAAAAEhsKCm1heF90b2tlbnMYBiABKAVCB7pIBBoCKAESGwoHdGltZW91dBgHIAEoBUIKukgHGgUY2AQoARJPCgpvbl9pbnZhbGlkGAggASgOMjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLk9uSW52YWxpZE91dHB1dFBvbGljeRIeCgttYXhfcmV0cmllcxgJIAEoBUIJukgGGgQYBSgBEhUKDWZhbGxiYWNrX3Rhc2sYCiABKAkSFwoPbWF4X2Nvc3RfbWljcm9zGAsgASgDEhgKEG1heF90b3RhbF90b2tlbnMYDCABKAM6DOqLLAhsbG1fY2FsbGIGcHJvdG8z", [file_ai_stigmer_agentic_workflow_v1_tasks_common, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * LlmCallTaskConfig defines the configuration for llm_call tasks that make
@@ -175,6 +175,32 @@ export type LlmCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.Ll
    * @generated from field: string fallback_task = 10;
    */
   fallbackTask: string;
+
+  /**
+   * Per-task cost cap in micro-USD (1 USD = 1,000,000 micros).
+   * When set, the runtime terminates this specific LLM call if its cost
+   * exceeds this limit, independent of the workflow-level budget.
+   * The runtime checks both: per-task limit first, then workflow remaining budget.
+   * Optional — when 0, no per-task cost limit is enforced.
+   *
+   * @since T05 (Workflow-Level Budget Primitives)
+   *
+   * @generated from field: int64 max_cost_micros = 11;
+   */
+  maxCostMicros: bigint;
+
+  /**
+   * Per-task token cap (input + output tokens combined).
+   * When set, the runtime terminates this specific LLM call if total tokens
+   * exceed this limit. Complements max_tokens (field 6), which limits only
+   * the output token count as a generation parameter.
+   * Optional — when 0, no per-task total token limit is enforced.
+   *
+   * @since T05 (Workflow-Level Budget Primitives)
+   *
+   * @generated from field: int64 max_total_tokens = 12;
+   */
+  maxTotalTokens: bigint;
 };
 
 /**

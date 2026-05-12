@@ -48,6 +48,8 @@ type WorkflowInput struct {
 	Tasks []WorkflowTaskInput `json:"tasks,omitempty" jsonschema:"Ordered list of tasks that make up this workflow. Tasks execute sequentially unless fork/parallel is used."`
 	// Environment variable declarations for this workflow. Keys are variable names; values describe their metadata and optionality.
 	Env map[string]*EnvVarDeclarationInput `json:"env,omitempty" jsonschema:"Environment variable declarations for this workflow. Keys are variable names; values describe their metadata and optionality."`
+	// Budget limits for this workflow execution. When set, the runtime (T13) enforces cost, token, and duration limits across all tasks. The existing org-level billing reservation system (AuthorizeExecution / ExecutionBillingSignal) remains the safety net for overall credit exhaustion; workflow budgets prevent individual workflows from consuming more than intended. Optional — when not set, no workflow-level budget is enforced.
+	Budget *WorkflowBudgetInput `json:"budget,omitempty" jsonschema:"Budget limits for this workflow execution. When set, the runtime (T13) enforces cost, token, and duration limits across all tasks. The existing org-level billing reservation system (AuthorizeExecution / ExecutionBillingSignal) remains the safety net for overall credit exhaustion; workflow budgets prevent individual workflows from consuming more than intended. Optional — when not set, no workflow-level budget is enforced."`
 }
 
 // WorkflowDocument contains workflow-level metadata for versioning and identification. @internal Maps to the `document:` block in Zigflow DSL YAML.
@@ -84,6 +86,8 @@ type AgentExecutionConfigInput struct {
 	Temperature float32 `json:"temperature,omitempty" jsonschema:"Temperature for LLM sampling (0.0 to 1.0). Lower = more deterministic, Higher = more creative Default: 0.7 Optional."`
 	// Context management configuration for this agent invocation. Controls automatic summarization behavior for long-running conversations. When specified, overrides model defaults from the Model Registry. @internal @since Phase 3 (Context Summarization Architecture) Use cases: - Disable summarization for short-lived agents - Custom thresholds for agents with specific context requirements - Fine-tune summarization behavior per workflow task Example YAML: config: model: "claude-sonnet-4.5" context_management: custom_trigger_threshold: 150000 custom_target_tokens: 120000
 	ContextManagement *ContextManagementConfigInput `json:"context_management,omitempty" jsonschema:"Context management configuration for this agent invocation. Controls automatic summarization behavior for long-running conversations. When specified, overrides model defaults from the Model Registry. @internal @since Phase 3 (Context Summarization Architecture) Use cases: - Disable summarization for short-lived agents - Custom thresholds for agents with specific context requirements - Fine-tune summarization behavior per workflow task Example YAML: config: model: 'claude-sonnet-4.5' context_management: custom_trigger_threshold: 150000 custom_target_tokens: 120000"`
+	// Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this agent call if its accumulated cost exceeds this limit. This uses the workflow domain's micro-USD convention and provides per-task cost control at the workflow level. The runtime checks both: per-task limit first, then workflow remaining budget. Optional — when 0, no per-task cost limit is enforced. @since T05 (Workflow-Level Budget Primitives)
+	MaxCostMicros int64 `json:"max_cost_micros,omitempty" jsonschema:"Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this agent call if its accumulated cost exceeds this limit. This uses the workflow domain's micro-USD convention and provides per-task cost control at the workflow level. The runtime checks both: per-task limit first, then workflow remaining budget. Optional — when 0, no per-task cost limit is enforced. @since T05 (Workflow-Level Budget Primitives)"`
 }
 
 // AgentCallOutputContract defines the structured output contract for an agent_call task. When configured, the workflow runner extracts structured JSON from the agent's final response and validates it against the provided JSON Schema. The validated JSON becomes the task's primary output under the "structured" key, accessible via export expressions (e.g., export.as: "${ .structured }"). This enables reliable downstream routing: switch_case can evaluate expressions against typed fields (e.g., "${ $context.triage.severity == 'critical' }") rather than parsing unstructured prose. The dual-channel output model populates WorkflowTask.output as: { "structured": { <validated JSON matching the schema> }, "final_text": "<the agent's human-readable response>", "agent_execution_id": "<execution ID for drill-down>", "usage_summary": { "total_tokens": 4523, "estimated_cost_usd": 0.045, "tool_call_count": 3, "artifact_count": 1 } } YAML Example: output: schema: type: object required: [severity, category, customer_impact] properties: severity: type: string enum: [low, medium, high, critical] category: type: string customer_impact: type: boolean rationale: type: string on_invalid: ON_INVALID_RETRY max_retries: 2 fallback_task: human_review @since T02 (Structured Agent Output Model)
@@ -268,6 +272,10 @@ type LlmCallTaskConfigInput struct {
 	MaxRetries int32 `json:"max_retries,omitempty" jsonschema:"Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the LLM with the validation errors and expected schema, giving it an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5."`
 	// Target task to branch to when schema validation cannot be resolved. Used in two scenarios: 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry) Must reference a valid task name in the same workflow. When empty and retries are exhausted, the task fails.
 	FallbackTask string `json:"fallback_task,omitempty" jsonschema:"Target task to branch to when schema validation cannot be resolved. Used in two scenarios: 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry) Must reference a valid task name in the same workflow. When empty and retries are exhausted, the task fails."`
+	// Per-task cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this specific LLM call if its cost exceeds this limit, independent of the workflow-level budget. The runtime checks both: per-task limit first, then workflow remaining budget. Optional — when 0, no per-task cost limit is enforced. @since T05 (Workflow-Level Budget Primitives)
+	MaxCostMicros int64 `json:"max_cost_micros,omitempty" jsonschema:"Per-task cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this specific LLM call if its cost exceeds this limit, independent of the workflow-level budget. The runtime checks both: per-task limit first, then workflow remaining budget. Optional — when 0, no per-task cost limit is enforced. @since T05 (Workflow-Level Budget Primitives)"`
+	// Per-task token cap (input + output tokens combined). When set, the runtime terminates this specific LLM call if total tokens exceed this limit. Complements max_tokens (field 6), which limits only the output token count as a generation parameter. Optional — when 0, no per-task total token limit is enforced. @since T05 (Workflow-Level Budget Primitives)
+	MaxTotalTokens int64 `json:"max_total_tokens,omitempty" jsonschema:"Per-task token cap (input + output tokens combined). When set, the runtime terminates this specific LLM call if total tokens exceed this limit. Complements max_tokens (field 6), which limits only the output token count as a generation parameter. Optional — when 0, no per-task total token limit is enforced. @since T05 (Workflow-Level Budget Primitives)"`
 }
 
 // NotificationTaskConfig defines the configuration for notification tasks that send messages to humans through channels like Slack, email, Discord, Microsoft Teams, or webhooks. @internal notification is a convenience abstraction for "send a message to humans" — simpler and more intuitive than emit_event for common operational notification patterns. While emit_event publishes system-level CloudEvents for machine consumption, notification is purpose-built for human-readable messages with channel routing and recipient targeting. Key distinction from related task types: emit_event = system-to-system (CloudEvents, consumed by workflows/services) notification = system-to-human (Slack, email, Discord — read by people) human_input = system-to-human-to-system (waits for a response; notification is fire-and-forget) Notifications are fire-and-forget by default. The task output confirms delivery was attempted but does not wait for acknowledgment: { "channel": "slack", "recipients": ["#incident-response"], "delivered": true, "delivered_at": "<ISO 8601 timestamp>" } For notifications that require acknowledgment or a response, use human_input instead — it pauses the workflow until a human responds. The channel field is a string (not an enum) to allow extensibility: new notification channels can be added without proto changes. The runtime (T13) resolves channel identifiers to actual notification providers configured in the workflow instance's environment. YAML Example (Slack notification): - alert_slack: notification: channel: "slack" recipients: - "#incident-response" - "@oncall-lead" subject: "P${ $context.triage.severity } Incident: ${ $context.ticket.title }" body: | *Severity*: ${ $context.triage.severity } *Category*: ${ $context.triage.category } *Customer Impact*: ${ $context.triage.customer_impact } *Summary*: ${ $context.agent_analysis.structured.summary } metadata: thread_ts: "${ $context.slack_thread_id }" export: as: "${ . }" YAML Example (email with template): - send_confirmation: notification: channel: "email" recipients: - "${ $context.customer.email }" subject: "Order ${ $context.order.number } Confirmed" body: "Your order has been confirmed. You will receive tracking information shortly." template: "order-confirmation" metadata: priority: "high" reply_to: "support@acme.com" export: as: "${ . }"
@@ -468,6 +476,18 @@ type EnvVarDeclarationInput struct {
 	Optional bool `json:"optional,omitempty" jsonschema:"Whether this variable is optional. @internal When false (default): the execution pipeline rejects a run if this variable is missing from the user's environment. When true: a missing value is acceptable (the MCP server or agent degrades gracefully without it)."`
 }
 
+// WorkflowBudget declares cost, token, and duration limits for a workflow execution. All cost fields use micro-USD (int64): 1 USD = 1,000,000 micros. This matches the billing domain convention (CostStamp.provider_cost_micros, CreditLedgerEntry.amount_micros, ExecutionReservation.reserved_micros). The runtime checks accumulated costs between task boundaries. Per-task limits (on LlmCallTaskConfig and AgentExecutionConfig) are checked first; then the remaining workflow budget is verified before the next task starts. Example YAML: budget: max_cost_micros: 5000000 # $5.00 per run max_total_tokens: 500000 max_duration_seconds: 3600 # 1 hour on_exceeded: budget_exceeded_terminate
+type WorkflowBudgetInput struct {
+	// Maximum total cost for this workflow execution in micro-USD. 1 USD = 1,000,000 micros. Example: 2000000 = $2.00. When exceeded, the on_exceeded policy is applied. Optional — when 0, no cost limit is enforced.
+	MaxCostMicros int64 `json:"max_cost_micros,omitempty" jsonschema:"Maximum total cost for this workflow execution in micro-USD. 1 USD = 1,000,000 micros. Example: 2000000 = $2.00. When exceeded, the on_exceeded policy is applied. Optional — when 0, no cost limit is enforced."`
+	// Maximum total tokens (input + output) across all LLM/agent tasks. Optional — when 0, no token limit is enforced.
+	MaxTotalTokens int64 `json:"max_total_tokens,omitempty" jsonschema:"Maximum total tokens (input + output) across all LLM/agent tasks. Optional — when 0, no token limit is enforced."`
+	// Maximum wall-clock duration for the entire workflow execution in seconds. Optional — when 0, no duration limit is enforced (Temporal's own workflow execution timeout still applies).
+	MaxDurationSeconds int32 `json:"max_duration_seconds,omitempty" jsonschema:"Maximum wall-clock duration for the entire workflow execution in seconds. Optional — when 0, no duration limit is enforced (Temporal's own workflow execution timeout still applies)."`
+	// Policy when any budget limit is exceeded.
+	OnExceeded string `json:"on_exceeded,omitempty" jsonschema:"Policy when any budget limit is exceeded. Allowed values: budget_exceeded_terminate, budget_exceeded_human_review, budget_exceeded_warn."`
+}
+
 func protoToStruct(msg proto.Message) (*structpb.Struct, error) {
 	data, err := protojson.Marshal(msg)
 	if err != nil {
@@ -535,6 +555,13 @@ func (input *WorkflowInput) specToProto() (*workflowv1.WorkflowSpec, error) {
 			spec.Env[k] = pv
 		}
 	}
+	if input.Budget != nil {
+		v, err := input.Budget.toProto()
+		if err != nil {
+			return nil, err
+		}
+		spec.Budget = v
+	}
 	return spec, nil
 }
 
@@ -571,6 +598,7 @@ func (input *AgentExecutionConfigInput) toProto() (*tasks.AgentExecutionConfig, 
 		}
 		result.ContextManagement = v
 	}
+	result.MaxCostMicros = input.MaxCostMicros
 	return result, nil
 }
 
@@ -833,6 +861,8 @@ func (input *LlmCallTaskConfigInput) toProto() (*tasks.LlmCallTaskConfig, error)
 	result.OnInvalid = tasks.OnInvalidOutputPolicy(tasks.OnInvalidOutputPolicy_value[input.OnInvalid])
 	result.MaxRetries = input.MaxRetries
 	result.FallbackTask = input.FallbackTask
+	result.MaxCostMicros = input.MaxCostMicros
+	result.MaxTotalTokens = input.MaxTotalTokens
 	return result, nil
 }
 
@@ -1300,5 +1330,15 @@ func (input *EnvVarDeclarationInput) toProto() (*environmentv1.EnvVarDeclaration
 	result.IsSecret = input.IsSecret
 	result.Description = input.Description
 	result.Optional = input.Optional
+	return result, nil
+}
+
+func (input *WorkflowBudgetInput) toProto() (*workflowv1.WorkflowBudget, error) {
+	result := &workflowv1.WorkflowBudget{}
+
+	result.MaxCostMicros = input.MaxCostMicros
+	result.MaxTotalTokens = input.MaxTotalTokens
+	result.MaxDurationSeconds = input.MaxDurationSeconds
+	result.OnExceeded = workflowv1.BudgetExceededPolicy(workflowv1.BudgetExceededPolicy_value[input.OnExceeded])
 	return result, nil
 }

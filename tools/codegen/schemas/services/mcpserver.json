@@ -6,6 +6,7 @@
     {
       "name": "McpServerCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/agentic/mcpserver/v1/command.proto",
       "methods": [
         {
           "name": "Apply",
@@ -100,6 +101,7 @@
     {
       "name": "McpServerQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/agentic/mcpserver/v1/query.proto",
       "methods": [
         {
           "name": "Get",

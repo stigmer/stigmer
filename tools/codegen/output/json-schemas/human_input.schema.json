@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "approvers": {
+      "description": "Approver identifiers — who is allowed to respond to this task. Supports user IDs, team slugs, and role names. Format examples: - \"user:jane@acme.com\" — specific user - \"team:engineering-leads\" — any member of the team - \"role:content-admin\" — any user with the role When empty, any authenticated user can respond. Resolution of these identifiers is a runtime concern (T13).",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "form_schema": {
+      "description": "JSON Schema defining the input form rendered to the reviewer. When set, the approval UI renders a typed form based on this schema. The reviewer's form response is validated against the schema before the task completes, and the validated data appears in the task output under the \"form_data\" key. When not set, the reviewer sees only the outcome buttons (approve/deny or custom outcomes) without a data entry form. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema and LlmCallTaskConfig.response_schema.",
+      "type": "object"
+    },
+    "notification_channels": {
+      "description": "Channel identifiers for sending approval request notifications. When the task starts, the runtime sends notifications through these channels to alert potential approvers. Format examples: - \"slack:#approvals\" — Slack channel - \"email:ops@acme.com\" — email address - \"teams:#incident-response\" — Microsoft Teams channel The format and routing of notifications is a runtime concern (T13). The proto carries the identifiers; the runtime resolves them to actual notification providers configured in the workflow instance's environment.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "on_timeout": {
+      "description": "Policy applied when the timeout expires without a response. Only meaningful when timeout \u003e 0; ignored when timeout is 0. Default: HUMAN_INPUT_TIMEOUT_FAIL (task fails with timeout error).",
+      "enum": [
+        "HUMAN_INPUT_TIMEOUT_FAIL",
+        "HUMAN_INPUT_TIMEOUT_APPROVE",
+        "HUMAN_INPUT_TIMEOUT_DENY",
+        "HUMAN_INPUT_TIMEOUT_ESCALATE"
+      ],
+      "type": "string"
+    },
+    "outcomes": {
+      "description": "Named outcomes that the reviewer can select. Each outcome represents a decision the reviewer can make, with optional routing to a different downstream task. This enables rich branching beyond binary approve/deny. When empty, the task defaults to binary behavior: - \"approve\": task completes, workflow continues to next task - \"deny\": task fails (enters try_catch or EXECUTION_FAILED) When custom outcomes are defined, the first outcome is used as the default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used as the default for HUMAN_INPUT_TIMEOUT_DENY.",
+      "items": {
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "prompt": {
+      "description": "Message shown to the reviewer explaining what needs approval or input. Supports ${ } expression interpolation for injecting workflow context. Example: \"Approve escalation for ticket ${ $context.ticket.id }?\"",
+      "minLength": 1,
+      "type": "string"
+    },
+    "timeout": {
+      "description": "Timeout in seconds before the on_timeout policy applies. Default: 0 (no timeout — the task waits indefinitely). Max: 2592000 (30 days). A timeout of 0 means the workflow will wait until a human responds. For production workflows, setting a timeout with an appropriate on_timeout policy is strongly recommended.",
+      "maximum": 2592000,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "prompt"
+  ],
+  "title": "HumanInputTaskConfig",
+  "type": "object"
+}

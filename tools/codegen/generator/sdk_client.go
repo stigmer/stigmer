@@ -57,9 +57,10 @@ type ServiceSchemaFile struct {
 }
 
 type ServiceDefinition struct {
-	Name    string         `json:"name"`
-	Role    string         `json:"role"`
-	Methods []MethodSchema `json:"methods"`
+	Name      string         `json:"name"`
+	Role      string         `json:"role"`
+	ProtoFile string         `json:"protoFile,omitempty"`
+	Methods   []MethodSchema `json:"methods"`
 }
 
 type MethodSchema struct {

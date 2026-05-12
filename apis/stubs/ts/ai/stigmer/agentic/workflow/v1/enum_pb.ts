@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/workflow/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvZW51bS5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxKtQCChBXb3JrZmxvd1Rhc2tLaW5kEiIKHndvcmtmbG93X3Rhc2tfa2luZF91bnNwZWNpZmllZBAAEgwKCHNldF92YXJzEAESDQoJaHR0cF9jYWxsEAISDQoJZ3JwY19jYWxsEAMSEQoNYWN0aXZpdHlfY2FsbBAEEg8KC3N3aXRjaF9jYXNlEAUSDAoIZm9yX2VhY2gQBhIICgRmb3JrEAcSDQoJdHJ5X2NhdGNoEAgSCgoGbGlzdGVuEAkSCAoEd2FpdBAKEg8KC3JhaXNlX2Vycm9yEAsSEAoMcnVuX3dvcmtmbG93EAwSDgoKYWdlbnRfY2FsbBANEgwKCGxsbV9jYWxsEA4SDQoJdHJhbnNmb3JtEA8SDwoLaHVtYW5faW5wdXQQEBIMCgh2YWxpZGF0ZRAREg4KCmVtaXRfZXZlbnQQEhIQCgxub3RpZmljYXRpb24QE2IGcHJvdG8z");
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvZW51bS5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxKtQCChBXb3JrZmxvd1Rhc2tLaW5kEiIKHndvcmtmbG93X3Rhc2tfa2luZF91bnNwZWNpZmllZBAAEgwKCHNldF92YXJzEAESDQoJaHR0cF9jYWxsEAISDQoJZ3JwY19jYWxsEAMSEQoNYWN0aXZpdHlfY2FsbBAEEg8KC3N3aXRjaF9jYXNlEAUSDAoIZm9yX2VhY2gQBhIICgRmb3JrEAcSDQoJdHJ5X2NhdGNoEAgSCgoGbGlzdGVuEAkSCAoEd2FpdBAKEg8KC3JhaXNlX2Vycm9yEAsSEAoMcnVuX3dvcmtmbG93EAwSDgoKYWdlbnRfY2FsbBANEgwKCGxsbV9jYWxsEA4SDQoJdHJhbnNmb3JtEA8SDwoLaHVtYW5faW5wdXQQEBIMCgh2YWxpZGF0ZRAREg4KCmVtaXRfZXZlbnQQEhIQCgxub3RpZmljYXRpb24QEyqZAQoUQnVkZ2V0RXhjZWVkZWRQb2xpY3kSJgoiYnVkZ2V0X2V4Y2VlZGVkX3BvbGljeV91bnNwZWNpZmllZBAAEh0KGWJ1ZGdldF9leGNlZWRlZF90ZXJtaW5hdGUQARIgChxidWRnZXRfZXhjZWVkZWRfaHVtYW5fcmV2aWV3EAISGAoUYnVkZ2V0X2V4Y2VlZGVkX3dhcm4QA2IGcHJvdG8z");
 
 /**
  * WorkflowTaskKind defines the supported task types in a workflow.
@@ -272,4 +272,59 @@ export enum WorkflowTaskKind {
  */
 export const WorkflowTaskKindSchema: GenEnum<WorkflowTaskKind> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_workflow_v1_enum, 0);
+
+/**
+ * BudgetExceededPolicy defines the runtime behavior when a workflow or per-task
+ * budget limit is exceeded.
+ *
+ * The runtime (T13) evaluates this policy at task boundaries: after each task
+ * completes, accumulated costs and tokens are compared against the declared
+ * budget. If a limit is breached, the policy determines what happens next.
+ *
+ * @since T05 (Workflow-Level Budget Primitives)
+ *
+ * @generated from enum ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
+ */
+export enum BudgetExceededPolicy {
+  /**
+   * Default: no specific policy set. The runtime treats this as
+   * budget_exceeded_terminate (fail-safe behavior).
+   *
+   * @generated from enum value: budget_exceeded_policy_unspecified = 0;
+   */
+  budget_exceeded_policy_unspecified = 0,
+
+  /**
+   * Terminate the workflow immediately with EXECUTION_FAILED status.
+   * The execution record includes the budget breach details for diagnostics.
+   *
+   * @generated from enum value: budget_exceeded_terminate = 1;
+   */
+  budget_exceeded_terminate = 1,
+
+  /**
+   * Pause the workflow and request human review via a system-generated
+   * approval gate. The reviewer can approve continued execution (with
+   * an increased budget) or confirm termination.
+   * Depends on the human_input runtime (T13). If human_input runtime
+   * is not available, falls back to terminate with a descriptive error.
+   *
+   * @generated from enum value: budget_exceeded_human_review = 2;
+   */
+  budget_exceeded_human_review = 2,
+
+  /**
+   * Log a warning but allow the workflow to continue executing.
+   * Useful for monitoring/alerting without interrupting production workflows.
+   *
+   * @generated from enum value: budget_exceeded_warn = 3;
+   */
+  budget_exceeded_warn = 3,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy.
+ */
+export const BudgetExceededPolicySchema: GenEnum<BudgetExceededPolicy> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_workflow_v1_enum, 1);
 

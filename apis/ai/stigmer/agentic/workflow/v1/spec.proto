@@ -30,6 +30,51 @@ message WorkflowSpec {
   // Environment variable declarations for this workflow.
   // Keys are variable names; values describe their metadata and optionality.
   map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 4;
+
+  // Budget limits for this workflow execution.
+  // When set, the runtime (T13) enforces cost, token, and duration limits
+  // across all tasks. The existing org-level billing reservation system
+  // (AuthorizeExecution / ExecutionBillingSignal) remains the safety net
+  // for overall credit exhaustion; workflow budgets prevent individual
+  // workflows from consuming more than intended.
+  // Optional — when not set, no workflow-level budget is enforced.
+  WorkflowBudget budget = 5;
+}
+
+// WorkflowBudget declares cost, token, and duration limits for a workflow execution.
+//
+// All cost fields use micro-USD (int64): 1 USD = 1,000,000 micros.
+// This matches the billing domain convention (CostStamp.provider_cost_micros,
+// CreditLedgerEntry.amount_micros, ExecutionReservation.reserved_micros).
+//
+// The runtime checks accumulated costs between task boundaries. Per-task
+// limits (on LlmCallTaskConfig and AgentExecutionConfig) are checked first;
+// then the remaining workflow budget is verified before the next task starts.
+//
+// Example YAML:
+//   budget:
+//     max_cost_micros: 5000000    # $5.00 per run
+//     max_total_tokens: 500000
+//     max_duration_seconds: 3600   # 1 hour
+//     on_exceeded: budget_exceeded_terminate
+message WorkflowBudget {
+  // Maximum total cost for this workflow execution in micro-USD.
+  // 1 USD = 1,000,000 micros. Example: 2000000 = $2.00.
+  // When exceeded, the on_exceeded policy is applied.
+  // Optional — when 0, no cost limit is enforced.
+  int64 max_cost_micros = 1;
+
+  // Maximum total tokens (input + output) across all LLM/agent tasks.
+  // Optional — when 0, no token limit is enforced.
+  int64 max_total_tokens = 2;
+
+  // Maximum wall-clock duration for the entire workflow execution in seconds.
+  // Optional — when 0, no duration limit is enforced (Temporal's own
+  // workflow execution timeout still applies).
+  int32 max_duration_seconds = 3;
+
+  // Policy when any budget limit is exceeded.
+  BudgetExceededPolicy on_exceeded = 4;
 }
 
 // WorkflowDocument contains workflow-level metadata for versioning and identification.

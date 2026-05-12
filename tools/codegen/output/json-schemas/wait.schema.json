@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "duration": {
+      "description": "Relative duration to wait from now. Use this when you want to wait for a specific amount of time regardless of when the workflow reaches this task. Example: { days: 7 } = wait 1 week from now",
+      "type": "object"
+    },
+    "until": {
+      "description": "Absolute timestamp to wait until. Use this when you want to wait until a specific point in time. If the timestamp is in the past, the task completes immediately. Example: \"2026-03-01T09:00:00Z\" = wait until March 1st, 2026 at 9am UTC",
+      "format": "date-time",
+      "type": "string"
+    }
+  },
+  "title": "WaitTaskConfig",
+  "type": "object"
+}

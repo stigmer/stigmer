@@ -68,6 +68,7 @@ Workflow workflow = client.workflows().get("wfl_01j5q3k7m8r2s4tnz2hfp0q0c3");
 |--------|-------------|
 | [`get`](#get) | Get a single workflow by ID. |
 | [`getByReference`](#getbyreference) | Get a workflow by its organization-scoped reference (org/slug). |
+| [`getTaskKindRegistry`](#gettaskkindregistry) | Retrieve the complete task kind registry. |
 | [`apply`](#apply) | Create or update a workflow. |
 | [`create`](#create) | Create a workflow. |
 | [`update`](#update) | Update an existing workflow. |
@@ -159,6 +160,41 @@ Workflow workflow = client.workflows().getByReference(ApiResourceReference.build
 
 **Returns**: [`Workflow`](#workflow)
 
+### getTaskKindRegistry
+
+Retrieve the complete task kind registry.
+
+Returns descriptors for all 19 workflow task kinds with full metadata: field schemas, JSON Schemas, categories, icons, examples, and output shapes.
+
+Caching: responses are immutable within a platform version. Clients should cache aggressively (recommended: 1 hour TTL with stale-while-revalidate).
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const getTaskKindRegistryResponse = await stigmer.workflow.getTaskKindRegistry(input);
+```
+</Tab>
+<Tab value="Go">
+```go
+getTaskKindRegistryResponse, err := client.Workflow.GetTaskKindRegistry(ctx, input)
+```
+</Tab>
+<Tab value="Python">
+```python
+get_task_kind_registry_response = client.workflows.get_task_kind_registry(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+GetTaskKindRegistryResponse getTaskKindRegistryResponse = client.workflows().getTaskKindRegistry(input);
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetTaskKindRegistryRequest`](#gettaskkindregistryrequest)
+
+**Returns**: [`GetTaskKindRegistryResponse`](#gettaskkindregistryresponse)
+
 ### apply
 
 Create or update a workflow.
@@ -175,6 +211,7 @@ const workflow = await stigmer.workflow.apply({
   document: {},
   tasks: [],
   env: {},
+  budget: {},
 });
 ```
 </Tab>
@@ -189,6 +226,7 @@ workflow, err := client.Workflow.Apply(ctx, &stigmer.WorkflowInput{
   Document:    &stigmer.WorkflowDocumentInput{},
   Tasks:       []stigmer.WorkflowTaskInput{},
   Env:         map[string]string{},
+  Budget:      &stigmer.WorkflowBudgetInput{},
 })
 ```
 </Tab>
@@ -203,6 +241,7 @@ workflow = client.workflows.apply(WorkflowInput(
     document=None,
     tasks=[],
     env={},
+    budget=None,
 ))
 ```
 </Tab>
@@ -217,6 +256,7 @@ Workflow workflow = client.workflows().apply(WorkflowInput.builder()
     .document(null)
     .tasks(List.of())
     .env(Map.of())
+    .budget(null)
     .build());
 ```
 </Tab>
@@ -242,6 +282,7 @@ const workflow = await stigmer.workflow.create({
   document: {},
   tasks: [],
   env: {},
+  budget: {},
 });
 ```
 </Tab>
@@ -256,6 +297,7 @@ workflow, err := client.Workflow.Create(ctx, &stigmer.WorkflowInput{
   Document:    &stigmer.WorkflowDocumentInput{},
   Tasks:       []stigmer.WorkflowTaskInput{},
   Env:         map[string]string{},
+  Budget:      &stigmer.WorkflowBudgetInput{},
 })
 ```
 </Tab>
@@ -270,6 +312,7 @@ workflow = client.workflows.create(WorkflowInput(
     document=None,
     tasks=[],
     env={},
+    budget=None,
 ))
 ```
 </Tab>
@@ -284,6 +327,7 @@ Workflow workflow = client.workflows().create(WorkflowInput.builder()
     .document(null)
     .tasks(List.of())
     .env(Map.of())
+    .budget(null)
     .build());
 ```
 </Tab>
@@ -309,6 +353,7 @@ const workflow = await stigmer.workflow.update({
   document: {},
   tasks: [],
   env: {},
+  budget: {},
 });
 ```
 </Tab>
@@ -323,6 +368,7 @@ workflow, err := client.Workflow.Update(ctx, &stigmer.WorkflowInput{
   Document:    &stigmer.WorkflowDocumentInput{},
   Tasks:       []stigmer.WorkflowTaskInput{},
   Env:         map[string]string{},
+  Budget:      &stigmer.WorkflowBudgetInput{},
 })
 ```
 </Tab>
@@ -337,6 +383,7 @@ workflow = client.workflows.update(WorkflowInput(
     document=None,
     tasks=[],
     env={},
+    budget=None,
 ))
 ```
 </Tab>
@@ -351,6 +398,7 @@ Workflow workflow = client.workflows().update(WorkflowInput.builder()
     .document(null)
     .tasks(List.of())
     .env(Map.of())
+    .budget(null)
     .build());
 ```
 </Tab>
@@ -411,6 +459,7 @@ Input for creating or updating a Workflow.
     document: { type: "WorkflowDocumentInput", description: "Workflow document metadata including DSL version, namespace, name, and version.", typeDescriptionLink: "#workflowdocumentinput", required: true },
     tasks: { type: "WorkflowTaskInput[]", description: "Ordered list of tasks that make up this workflow.", typeDescriptionLink: "#workflowtaskinput" },
     env: { type: "Record<string, EnvVarDeclarationInput>", description: "Environment variable declarations for this workflow.", typeDescriptionLink: "#envvardeclarationinput" },
+    budget: { type: "WorkflowBudgetInput", description: "Budget limits for this workflow execution.", typeDescriptionLink: "#workflowbudgetinput" },
   }}
 />
 
@@ -474,6 +523,19 @@ EnvVarDeclaration declares an environment variable required (or optionally accep
   }}
 />
 
+### WorkflowBudgetInput
+
+WorkflowBudget declares cost, token, and duration limits for a workflow execution.
+
+<TypeTable
+  type={{
+    maxCostMicros: { type: "number", description: "Maximum total cost for this workflow execution in micro-USD." },
+    maxTotalTokens: { type: "number", description: "Maximum total tokens (input + output) across all LLM/agent tasks." },
+    maxDurationSeconds: { type: "number", description: "Maximum wall-clock duration for the entire workflow execution in seconds." },
+    onExceeded: { type: "BudgetExceededPolicy", description: "Policy when any budget limit is exceeded.", typeDescriptionLink: "#budgetexceededpolicy" },
+  }}
+/>
+
 ### ResourceRef
 
 Generic reference to any API resource by org and slug.
@@ -484,6 +546,20 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### GetTaskKindRegistryRequest
+
+GetTaskKindRegistryRequest is the request message for retrieving the complete task kind registry.
+
+### GetTaskKindRegistryResponse
+
+GetTaskKindRegistryResponse returns the full set of task kind descriptors.
+
+<TypeTable
+  type={{
+    descriptors: { type: "TaskKindDescriptorInput[]", description: "All registered task kind descriptors, one per WorkflowTaskKind value." },
   }}
 />
 
@@ -564,4 +640,43 @@ WorkflowTaskKind defines the supported task types in a workflow.
 | `validate` | Schema and business-rule validation checkpoint. |
 | `emit_event` | Emit a CloudEvents-formatted event for external consumers or other workflows. |
 | `notification` | Send a notification to humans through a channel (Slack, email, Discord, etc.). |
+
+### BudgetExceededPolicy
+
+BudgetExceededPolicy defines the runtime behavior when a workflow or per-task budget limit is exceeded.
+
+| Value | Description |
+|-------|-------------|
+| `budget_exceeded_terminate` | Terminate the workflow immediately with EXECUTION_FAILED status. |
+| `budget_exceeded_human_review` | Pause the workflow and request human review via a system-generated approval gate. |
+| `budget_exceeded_warn` | Log a warning but allow the workflow to continue executing. |
+
+### TaskKindCategory
+
+TaskKindCategory classifies task kinds by their functional role in a workflow.
+
+| Value | Description |
+|-------|-------------|
+| `TASK_KIND_CATEGORY_CONTROL_FLOW` | Control flow tasks that direct execution order. |
+| `TASK_KIND_CATEGORY_INVOCATION` | Tasks that invoke external services or sub-workflows. |
+| `TASK_KIND_CATEGORY_AI` | AI-native tasks that invoke language models or agents. |
+| `TASK_KIND_CATEGORY_DATA` | Tasks that manipulate, validate, or transform data. |
+| `TASK_KIND_CATEGORY_GOVERNANCE` | Tasks that require human interaction to proceed. |
+| `TASK_KIND_CATEGORY_EVENT` | Tasks that emit, listen for, or route events and notifications. |
+
+### TaskFieldType
+
+TaskFieldType represents the data type of a task configuration field as understood by UI form renderers and schema validators.
+
+| Value | Description |
+|-------|-------------|
+| `TASK_FIELD_TYPE_STRING` | Plain string value. |
+| `TASK_FIELD_TYPE_INT32` | 32-bit integer. |
+| `TASK_FIELD_TYPE_FLOAT` | 32-bit floating point. |
+| `TASK_FIELD_TYPE_BOOL` | Boolean true/false. |
+| `TASK_FIELD_TYPE_ENUM` | Enumeration — valid values listed in TaskFieldDescriptor.enum_values. |
+| `TASK_FIELD_TYPE_STRUCT` | Structured JSON object (google.protobuf.Struct in proto). |
+| `TASK_FIELD_TYPE_REPEATED` | Repeated (array) of a scalar or message type. |
+| `TASK_FIELD_TYPE_MAP` | Map from string keys to string values. |
+| `TASK_FIELD_TYPE_MESSAGE` | Nested message type — field contains a sub-object with its own fields. |
 

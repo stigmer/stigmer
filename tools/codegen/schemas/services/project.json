@@ -6,6 +6,7 @@
     {
       "name": "ProjectCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/tenancy/project/v1/command.proto",
       "methods": [
         {
           "name": "Apply",
@@ -44,6 +45,7 @@
     {
       "name": "ProjectQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/tenancy/project/v1/query.proto",
       "methods": [
         {
           "name": "Get",

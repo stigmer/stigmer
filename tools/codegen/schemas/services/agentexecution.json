@@ -6,6 +6,7 @@
     {
       "name": "AgentExecutionCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/agentic/agentexecution/v1/command.proto",
       "methods": [
         {
           "name": "Create",
@@ -100,6 +101,7 @@
     {
       "name": "AgentExecutionQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/agentic/agentexecution/v1/query.proto",
       "methods": [
         {
           "name": "Get",

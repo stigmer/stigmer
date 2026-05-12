@@ -136,4 +136,21 @@ public interface AgentExecutionConfigOrBuilder extends
    * <code>.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig context_management = 4 [json_name = "contextManagement"];</code>
    */
   ai.stigmer.agentic.agentexecution.v1.ContextManagementConfigOrBuilder getContextManagementOrBuilder();
+
+  /**
+   * <pre>
+   * Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros).
+   * When set, the runtime terminates this agent call if its accumulated cost
+   * exceeds this limit. This uses the workflow domain's micro-USD convention
+   * and provides per-task cost control at the workflow level.
+   * The runtime checks both: per-task limit first, then workflow remaining budget.
+   * Optional — when 0, no per-task cost limit is enforced.
+   *
+   * &#64;since T05 (Workflow-Level Budget Primitives)
+   * </pre>
+   *
+   * <code>int64 max_cost_micros = 5 [json_name = "maxCostMicros"];</code>
+   * @return The maxCostMicros.
+   */
+  long getMaxCostMicros();
 }

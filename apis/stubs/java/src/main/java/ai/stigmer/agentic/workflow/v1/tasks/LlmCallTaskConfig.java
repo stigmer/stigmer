@@ -487,6 +487,48 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int MAX_COST_MICROS_FIELD_NUMBER = 11;
+  private long maxCostMicros_ = 0L;
+  /**
+   * <pre>
+   * Per-task cost cap in micro-USD (1 USD = 1,000,000 micros).
+   * When set, the runtime terminates this specific LLM call if its cost
+   * exceeds this limit, independent of the workflow-level budget.
+   * The runtime checks both: per-task limit first, then workflow remaining budget.
+   * Optional — when 0, no per-task cost limit is enforced.
+   *
+   * &#64;since T05 (Workflow-Level Budget Primitives)
+   * </pre>
+   *
+   * <code>int64 max_cost_micros = 11 [json_name = "maxCostMicros"];</code>
+   * @return The maxCostMicros.
+   */
+  @java.lang.Override
+  public long getMaxCostMicros() {
+    return maxCostMicros_;
+  }
+
+  public static final int MAX_TOTAL_TOKENS_FIELD_NUMBER = 12;
+  private long maxTotalTokens_ = 0L;
+  /**
+   * <pre>
+   * Per-task token cap (input + output tokens combined).
+   * When set, the runtime terminates this specific LLM call if total tokens
+   * exceed this limit. Complements max_tokens (field 6), which limits only
+   * the output token count as a generation parameter.
+   * Optional — when 0, no per-task total token limit is enforced.
+   *
+   * &#64;since T05 (Workflow-Level Budget Primitives)
+   * </pre>
+   *
+   * <code>int64 max_total_tokens = 12 [json_name = "maxTotalTokens"];</code>
+   * @return The maxTotalTokens.
+   */
+  @java.lang.Override
+  public long getMaxTotalTokens() {
+    return maxTotalTokens_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -530,6 +572,12 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(fallbackTask_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 10, fallbackTask_);
+    }
+    if (maxCostMicros_ != 0L) {
+      output.writeInt64(11, maxCostMicros_);
+    }
+    if (maxTotalTokens_ != 0L) {
+      output.writeInt64(12, maxTotalTokens_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -576,6 +624,14 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(fallbackTask_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(10, fallbackTask_);
     }
+    if (maxCostMicros_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(11, maxCostMicros_);
+    }
+    if (maxTotalTokens_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(12, maxTotalTokens_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -614,6 +670,10 @@ private static final long serialVersionUID = 0L;
         != other.getMaxRetries()) return false;
     if (!getFallbackTask()
         .equals(other.getFallbackTask())) return false;
+    if (getMaxCostMicros()
+        != other.getMaxCostMicros()) return false;
+    if (getMaxTotalTokens()
+        != other.getMaxTotalTokens()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -648,6 +708,12 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getMaxRetries();
     hash = (37 * hash) + FALLBACK_TASK_FIELD_NUMBER;
     hash = (53 * hash) + getFallbackTask().hashCode();
+    hash = (37 * hash) + MAX_COST_MICROS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getMaxCostMicros());
+    hash = (37 * hash) + MAX_TOTAL_TOKENS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getMaxTotalTokens());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -848,6 +914,8 @@ private static final long serialVersionUID = 0L;
       onInvalid_ = 0;
       maxRetries_ = 0;
       fallbackTask_ = "";
+      maxCostMicros_ = 0L;
+      maxTotalTokens_ = 0L;
       return this;
     }
 
@@ -915,6 +983,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000200) != 0)) {
         result.fallbackTask_ = fallbackTask_;
       }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.maxCostMicros_ = maxCostMicros_;
+      }
+      if (((from_bitField0_ & 0x00000800) != 0)) {
+        result.maxTotalTokens_ = maxTotalTokens_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -967,6 +1041,12 @@ private static final long serialVersionUID = 0L;
         fallbackTask_ = other.fallbackTask_;
         bitField0_ |= 0x00000200;
         onChanged();
+      }
+      if (other.getMaxCostMicros() != 0L) {
+        setMaxCostMicros(other.getMaxCostMicros());
+      }
+      if (other.getMaxTotalTokens() != 0L) {
+        setMaxTotalTokens(other.getMaxTotalTokens());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1046,6 +1126,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000200;
               break;
             } // case 82
+            case 88: {
+              maxCostMicros_ = input.readInt64();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 88
+            case 96: {
+              maxTotalTokens_ = input.readInt64();
+              bitField0_ |= 0x00000800;
+              break;
+            } // case 96
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2032,6 +2122,130 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       fallbackTask_ = value;
       bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+
+    private long maxCostMicros_ ;
+    /**
+     * <pre>
+     * Per-task cost cap in micro-USD (1 USD = 1,000,000 micros).
+     * When set, the runtime terminates this specific LLM call if its cost
+     * exceeds this limit, independent of the workflow-level budget.
+     * The runtime checks both: per-task limit first, then workflow remaining budget.
+     * Optional — when 0, no per-task cost limit is enforced.
+     *
+     * &#64;since T05 (Workflow-Level Budget Primitives)
+     * </pre>
+     *
+     * <code>int64 max_cost_micros = 11 [json_name = "maxCostMicros"];</code>
+     * @return The maxCostMicros.
+     */
+    @java.lang.Override
+    public long getMaxCostMicros() {
+      return maxCostMicros_;
+    }
+    /**
+     * <pre>
+     * Per-task cost cap in micro-USD (1 USD = 1,000,000 micros).
+     * When set, the runtime terminates this specific LLM call if its cost
+     * exceeds this limit, independent of the workflow-level budget.
+     * The runtime checks both: per-task limit first, then workflow remaining budget.
+     * Optional — when 0, no per-task cost limit is enforced.
+     *
+     * &#64;since T05 (Workflow-Level Budget Primitives)
+     * </pre>
+     *
+     * <code>int64 max_cost_micros = 11 [json_name = "maxCostMicros"];</code>
+     * @param value The maxCostMicros to set.
+     * @return This builder for chaining.
+     */
+    public Builder setMaxCostMicros(long value) {
+
+      maxCostMicros_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Per-task cost cap in micro-USD (1 USD = 1,000,000 micros).
+     * When set, the runtime terminates this specific LLM call if its cost
+     * exceeds this limit, independent of the workflow-level budget.
+     * The runtime checks both: per-task limit first, then workflow remaining budget.
+     * Optional — when 0, no per-task cost limit is enforced.
+     *
+     * &#64;since T05 (Workflow-Level Budget Primitives)
+     * </pre>
+     *
+     * <code>int64 max_cost_micros = 11 [json_name = "maxCostMicros"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearMaxCostMicros() {
+      bitField0_ = (bitField0_ & ~0x00000400);
+      maxCostMicros_ = 0L;
+      onChanged();
+      return this;
+    }
+
+    private long maxTotalTokens_ ;
+    /**
+     * <pre>
+     * Per-task token cap (input + output tokens combined).
+     * When set, the runtime terminates this specific LLM call if total tokens
+     * exceed this limit. Complements max_tokens (field 6), which limits only
+     * the output token count as a generation parameter.
+     * Optional — when 0, no per-task total token limit is enforced.
+     *
+     * &#64;since T05 (Workflow-Level Budget Primitives)
+     * </pre>
+     *
+     * <code>int64 max_total_tokens = 12 [json_name = "maxTotalTokens"];</code>
+     * @return The maxTotalTokens.
+     */
+    @java.lang.Override
+    public long getMaxTotalTokens() {
+      return maxTotalTokens_;
+    }
+    /**
+     * <pre>
+     * Per-task token cap (input + output tokens combined).
+     * When set, the runtime terminates this specific LLM call if total tokens
+     * exceed this limit. Complements max_tokens (field 6), which limits only
+     * the output token count as a generation parameter.
+     * Optional — when 0, no per-task total token limit is enforced.
+     *
+     * &#64;since T05 (Workflow-Level Budget Primitives)
+     * </pre>
+     *
+     * <code>int64 max_total_tokens = 12 [json_name = "maxTotalTokens"];</code>
+     * @param value The maxTotalTokens to set.
+     * @return This builder for chaining.
+     */
+    public Builder setMaxTotalTokens(long value) {
+
+      maxTotalTokens_ = value;
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Per-task token cap (input + output tokens combined).
+     * When set, the runtime terminates this specific LLM call if total tokens
+     * exceed this limit. Complements max_tokens (field 6), which limits only
+     * the output token count as a generation parameter.
+     * Optional — when 0, no per-task total token limit is enforced.
+     *
+     * &#64;since T05 (Workflow-Level Budget Primitives)
+     * </pre>
+     *
+     * <code>int64 max_total_tokens = 12 [json_name = "maxTotalTokens"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearMaxTotalTokens() {
+      bitField0_ = (bitField0_ & ~0x00000800);
+      maxTotalTokens_ = 0L;
       onChanged();
       return this;
     }

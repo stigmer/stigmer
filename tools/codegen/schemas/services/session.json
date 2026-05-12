@@ -6,6 +6,7 @@
     {
       "name": "SessionCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/agentic/session/v1/command.proto",
       "methods": [
         {
           "name": "Apply",
@@ -60,6 +61,7 @@
     {
       "name": "SessionQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/agentic/session/v1/query.proto",
       "methods": [
         {
           "name": "Get",

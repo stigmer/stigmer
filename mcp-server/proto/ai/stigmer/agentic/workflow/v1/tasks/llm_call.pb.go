@@ -129,9 +129,25 @@ type LlmCallTaskConfig struct {
 	//
 	// Must reference a valid task name in the same workflow.
 	// When empty and retries are exhausted, the task fails.
-	FallbackTask  string `protobuf:"bytes,10,opt,name=fallback_task,json=fallbackTask,proto3" json:"fallback_task,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	FallbackTask string `protobuf:"bytes,10,opt,name=fallback_task,json=fallbackTask,proto3" json:"fallback_task,omitempty"`
+	// Per-task cost cap in micro-USD (1 USD = 1,000,000 micros).
+	// When set, the runtime terminates this specific LLM call if its cost
+	// exceeds this limit, independent of the workflow-level budget.
+	// The runtime checks both: per-task limit first, then workflow remaining budget.
+	// Optional — when 0, no per-task cost limit is enforced.
+	//
+	// @since T05 (Workflow-Level Budget Primitives)
+	MaxCostMicros int64 `protobuf:"varint,11,opt,name=max_cost_micros,json=maxCostMicros,proto3" json:"max_cost_micros,omitempty"`
+	// Per-task token cap (input + output tokens combined).
+	// When set, the runtime terminates this specific LLM call if total tokens
+	// exceed this limit. Complements max_tokens (field 6), which limits only
+	// the output token count as a generation parameter.
+	// Optional — when 0, no per-task total token limit is enforced.
+	//
+	// @since T05 (Workflow-Level Budget Primitives)
+	MaxTotalTokens int64 `protobuf:"varint,12,opt,name=max_total_tokens,json=maxTotalTokens,proto3" json:"max_total_tokens,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *LlmCallTaskConfig) Reset() {
@@ -234,11 +250,25 @@ func (x *LlmCallTaskConfig) GetFallbackTask() string {
 	return ""
 }
 
+func (x *LlmCallTaskConfig) GetMaxCostMicros() int64 {
+	if x != nil {
+		return x.MaxCostMicros
+	}
+	return 0
+}
+
+func (x *LlmCallTaskConfig) GetMaxTotalTokens() int64 {
+	if x != nil {
+		return x.MaxTotalTokens
+	}
+	return 0
+}
+
 var File_ai_stigmer_agentic_workflow_v1_tasks_llm_call_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_llm_call_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/workflow/v1/tasks/llm_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a1ai/stigmer/agentic/workflow/v1/tasks/common.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x88\x04\n" +
+	"3ai/stigmer/agentic/workflow/v1/tasks/llm_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a1ai/stigmer/agentic/workflow/v1/tasks/common.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xda\x04\n" +
 	"\x11LlmCallTaskConfig\x12\"\n" +
 	"\x05model\x18\x01 \x01(\tB\f\xbaH\t\xc8\x01\x01r\x04\x10\x01\x18\x7fR\x05model\x12)\n" +
 	"\rsystem_prompt\x18\x02 \x01(\tB\x04\u0605,\x01R\fsystemPrompt\x12&\n" +
@@ -256,7 +286,9 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_llm_call_proto_rawDesc = "" +
 	"\vmax_retries\x18\t \x01(\x05B\t\xbaH\x06\x1a\x04\x18\x05(\x01R\n" +
 	"maxRetries\x12#\n" +
 	"\rfallback_task\x18\n" +
-	" \x01(\tR\ffallbackTask:\f\xea\x8b,\bllm_callB\xc2\x02\n" +
+	" \x01(\tR\ffallbackTask\x12&\n" +
+	"\x0fmax_cost_micros\x18\v \x01(\x03R\rmaxCostMicros\x12(\n" +
+	"\x10max_total_tokens\x18\f \x01(\x03R\x0emaxTotalTokens:\f\xea\x8b,\bllm_callB\xc2\x02\n" +
 	"(com.ai.stigmer.agentic.workflow.v1.tasksB\fLlmCallProtoP\x01ZPgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 
 var (

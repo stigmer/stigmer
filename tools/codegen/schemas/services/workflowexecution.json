@@ -6,6 +6,7 @@
     {
       "name": "WorkflowExecutionCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/agentic/workflowexecution/v1/command.proto",
       "methods": [
         {
           "name": "Create",
@@ -100,6 +101,7 @@
     {
       "name": "WorkflowExecutionQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/agentic/workflowexecution/v1/query.proto",
       "methods": [
         {
           "name": "Get",

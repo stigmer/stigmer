@@ -39,6 +39,10 @@ field_groups:
   - id: runtime
     display_name: "Runtime Settings"
     fields: [env, config]
+  - id: budget
+    display_name: "Budget Limits"
+    description: "Cost controls for this agent call. Set max_cost_micros on the config field."
+    fields: [config]
   - id: output
     display_name: "Structured Output"
     fields: [output]

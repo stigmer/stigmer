@@ -6,6 +6,7 @@
     {
       "name": "WorkflowInstanceCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/agentic/workflowinstance/v1/command.proto",
       "methods": [
         {
           "name": "Apply",
@@ -44,6 +45,7 @@
     {
       "name": "WorkflowInstanceQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/agentic/workflowinstance/v1/query.proto",
       "methods": [
         {
           "name": "Get",

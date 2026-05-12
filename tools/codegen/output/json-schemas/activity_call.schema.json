@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "activity": {
+      "description": "Activity name to execute. Must match a registered Temporal activity.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "input": {
+      "description": "Activity input (optional). Can be any JSON structure. Supports expressions in string values.",
+      "type": "object"
+    }
+  },
+  "required": [
+    "activity"
+  ],
+  "title": "CallActivityTaskConfig",
+  "type": "object"
+}

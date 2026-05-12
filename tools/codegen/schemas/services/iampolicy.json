@@ -6,6 +6,7 @@
     {
       "name": "IamPolicyCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/iam/iampolicy/v1/command.proto",
       "methods": [
         {
           "name": "Create",
@@ -52,6 +53,7 @@
     {
       "name": "IamPolicyQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/iam/iampolicy/v1/query.proto",
       "methods": [
         {
           "name": "Get",

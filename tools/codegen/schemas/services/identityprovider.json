@@ -6,6 +6,7 @@
     {
       "name": "IdentityProviderCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/iam/identityprovider/v1/command.proto",
       "methods": [
         {
           "name": "Apply",
@@ -44,6 +45,7 @@
     {
       "name": "IdentityProviderQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/iam/identityprovider/v1/query.proto",
       "methods": [
         {
           "name": "Get",

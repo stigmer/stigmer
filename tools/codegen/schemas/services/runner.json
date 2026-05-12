@@ -6,6 +6,7 @@
     {
       "name": "RunnerCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/agentic/runner/v1/command.proto",
       "methods": [
         {
           "name": "Apply",
@@ -86,6 +87,7 @@
     {
       "name": "RunnerQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/agentic/runner/v1/query.proto",
       "methods": [
         {
           "name": "Get",
