@@ -53,6 +53,9 @@ case WorkflowTaskKind_HTTP_CALL:
 | `CALL_ACTIVITY` | `call_activity.proto` | `CallActivityTaskConfig` | Temporal activities |
 | `RAISE` | `raise.proto` | `RaiseTaskConfig` | Raise errors |
 | `RUN` | `run.proto` | `RunTaskConfig` | Sub-workflows |
+| `AGENT_CALL` | `agent_call.proto` | `AgentCallTaskConfig` | AI agent invocation |
+| `LLM_CALL` | `llm_call.proto` | `LlmCallTaskConfig` | Direct LLM calls |
+| `TRANSFORM` | `transform.proto` | `TransformTaskConfig` | Data transformation |
 
 ## Generated Stubs
 
@@ -212,5 +215,5 @@ This regenerates all stubs for Go, Java, Python, TypeScript, and Dart.
 
 ---
 
-**Status**: ✅ All 12 task configs defined and stubs generated  
-**Last Updated**: 2026-01-15
+**Status**: ✅ All 15 task configs defined and stubs generated  
+**Last Updated**: 2026-05-12

@@ -200,6 +200,30 @@ type ListenTaskConfigInput struct {
 	To *ListenToInput `json:"to" jsonschema:"Signal listening configuration."`
 }
 
+// LlmCallTaskConfig defines the configuration for llm_call tasks that make direct LLM API calls without the overhead of a full agent invocation. @internal Use llm_call when the task is focused and deterministic: classification, extraction, scoring, summarization, moderation, or routing. An agent_call carries setup overhead (system prompt, tool resolution, MCP server setup, session management) that is unnecessary when all you need is a single prompt-response cycle with optional structured output. When response_schema is set, the runner requests structured output from the provider and validates the response against the schema. The on_invalid / max_retries / fallback_task fields control what happens when validation fails, using the same OnInvalidOutputPolicy enum as agent_call's output contract. YAML Example (classification with structured output): - classify_severity: call: llm with: model: "gpt-4o-mini" system_prompt: "You are a support ticket classifier." prompt: "Classify this ticket: ${ $context.ticket.description }" response_schema: type: object required: [severity, category] properties: severity: type: string enum: [low, medium, high, critical] category: type: string on_invalid: ON_INVALID_RETRY max_retries: 2 export: as: "${ . }" YAML Example (simple summarization, no schema): - summarize: call: llm with: model: "claude-sonnet-4-5" prompt: "Summarize in 2 sentences: ${ $context.document.text }" temperature: 0.3 max_tokens: 200 export: as: "${ . }"
+type LlmCallTaskConfigInput struct {
+	// Model reference resolved via the Stigmer model registry. Examples: "gpt-4o", "gpt-4o-mini", "claude-sonnet-4-5", "claude-haiku-3-5" Required field.
+	Model string `json:"model" jsonschema:"Model reference resolved via the Stigmer model registry. Examples: 'gpt-4o', 'gpt-4o-mini', 'claude-sonnet-4-5', 'claude-haiku-3-5' Required field."`
+	// System prompt that sets the LLM's role and constraints. Supports ${ } expression interpolation for dynamic system prompts. Optional — omit for tasks where the user prompt is self-contained.
+	SystemPrompt string `json:"system_prompt,omitempty" jsonschema:"System prompt that sets the LLM's role and constraints. Supports ${ } expression interpolation for dynamic system prompts. Optional — omit for tasks where the user prompt is self-contained."`
+	// User prompt / instruction sent to the LLM. Supports ${ } expression interpolation for injecting workflow context. Example: "Classify this ticket: ${ $context.ticket.description }" Required field.
+	Prompt string `json:"prompt" jsonschema:"User prompt / instruction sent to the LLM. Supports ${ } expression interpolation for injecting workflow context. Example: 'Classify this ticket: ${ $context.ticket.description }' Required field."`
+	// JSON Schema for structured output. When set, the runner requests structured output from the provider (e.g., OpenAI's response_format, Anthropic's tool_use extraction) and validates the response against this schema. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema for consistency across the workflow domain. When not set, the task output is the LLM's raw text response.
+	ResponseSchema map[string]any `json:"response_schema,omitempty" jsonschema:"JSON Schema for structured output. When set, the runner requests structured output from the provider (e.g., OpenAI's response_format, Anthropic's tool_use extraction) and validates the response against this schema. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema for consistency across the workflow domain. When not set, the task output is the LLM's raw text response."`
+	// Sampling temperature (0.0 to 2.0). Lower = more deterministic, higher = more creative. Range is 0.0-2.0 to accommodate all major providers (OpenAI supports up to 2.0; others clamp to their supported range at runtime). Optional — uses the provider's default when not set.
+	Temperature float32 `json:"temperature,omitempty" jsonschema:"Sampling temperature (0.0 to 2.0). Lower = more deterministic, higher = more creative. Range is 0.0-2.0 to accommodate all major providers (OpenAI supports up to 2.0; others clamp to their supported range at runtime). Optional — uses the provider's default when not set."`
+	// Maximum tokens in the LLM response. Optional — uses the provider's default when not set.
+	MaxTokens int32 `json:"max_tokens,omitempty" jsonschema:"Maximum tokens in the LLM response. Optional — uses the provider's default when not set."`
+	// Timeout for the LLM call in seconds. Default: 60. Max: 600 (10 minutes). Optional.
+	Timeout int32 `json:"timeout,omitempty" jsonschema:"Timeout for the LLM call in seconds. Default: 60. Max: 600 (10 minutes). Optional."`
+	// Policy when the LLM response fails schema validation. Only meaningful when response_schema is set; ignored otherwise. Default: ON_INVALID_FAIL (task fails immediately).
+	OnInvalid string `json:"on_invalid,omitempty" jsonschema:"Policy when the LLM response fails schema validation. Only meaningful when response_schema is set; ignored otherwise. Default: ON_INVALID_FAIL (task fails immediately). Allowed values: ON_INVALID_FAIL, ON_INVALID_RETRY, ON_INVALID_FALLBACK."`
+	// Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the LLM with the validation errors and expected schema, giving it an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5.
+	MaxRetries int32 `json:"max_retries,omitempty" jsonschema:"Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the LLM with the validation errors and expected schema, giving it an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5."`
+	// Target task to branch to when schema validation cannot be resolved. Used in two scenarios: 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry) Must reference a valid task name in the same workflow. When empty and retries are exhausted, the task fails.
+	FallbackTask string `json:"fallback_task,omitempty" jsonschema:"Target task to branch to when schema validation cannot be resolved. Used in two scenarios: 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry) Must reference a valid task name in the same workflow. When empty and retries are exhausted, the task fails."`
+}
+
 // RaiseTaskConfig defines the configuration for raise_error tasks that raise errors. @internal YAML Example: - taskName: raise: error: ValidationError message: ${ .errorMessage } Reference: zigflow-dsl-pattern-catalog.md - Task Type 11
 type RaiseTaskConfigInput struct {
 	// Error type/name.
@@ -236,6 +260,16 @@ type SwitchCaseInput struct {
 type SwitchTaskConfigInput struct {
 	// List of switch cases (at least one required). Cases are evaluated in order. First matching case executes. If no "when" is specified, the case acts as default.
 	Cases []SwitchCaseInput `json:"cases,omitempty" jsonschema:"List of switch cases (at least one required). Cases are evaluated in order. First matching case executes. If no 'when' is specified, the case acts as default."`
+}
+
+// TransformTaskConfig defines the configuration for transform tasks that perform deterministic data transformation without LLM calls. @internal Use transform when you need to reshape data between tasks: projecting fields, joining objects, converting formats, or building API payloads. Unlike set_vars (which mutates workflow state variables as a side effect), transform produces an explicit output that flows through export like any other task — visible and inspectable in the execution viewer. The distinction from set_vars: set_vars = imperative assignment ("set X to Y"), mutates workflow context transform = functional transformation ("reshape this data"), produces output YAML Example (JQ — reshape data for an API call): - build_api_payload: transform: engine: jq expression: '{name: .customer.full_name, severity: .triage.severity, summary: .agent_analysis.structured.summary}' input: "${ $context }" export: as: "${ . }" YAML Example (template — render a notification message): - render_notification: transform: engine: template expression: "Ticket {{ .ticket_id }} classified as {{ .severity }} — {{ .summary }}" input: "${ $context.build_api_payload }" export: as: "${ . }"
+type TransformTaskConfigInput struct {
+	// Transformation engine to use. Required — must be explicitly set (not UNSPECIFIED).
+	Engine string `json:"engine" jsonschema:"Transformation engine to use. Required — must be explicitly set (not UNSPECIFIED). Allowed values: TRANSFORM_ENGINE_JQ, TRANSFORM_ENGINE_JSONATA, TRANSFORM_ENGINE_TEMPLATE."`
+	// Transformation expression in the chosen engine's syntax. For JQ: a JQ filter expression (e.g., '{name: .full_name}') For JSONata: a JSONata expression (e.g., '{"name": full_name}') For TEMPLATE: a Go text/template string with {{ }} placeholders Required field.
+	Expression string `json:"expression" jsonschema:"Transformation expression in the chosen engine's syntax. For JQ: a JQ filter expression (e.g., '{name: .full_name}') For JSONata: a JSONata expression (e.g., '{'name': full_name}') For TEMPLATE: a Go text/template string with {{ }} placeholders Required field."`
+	// Expression selecting the input data for the transformation. Supports ${ } expression interpolation. When omitted, the entire workflow context is used as input. Example: "${ $context.triage }" to transform just the triage output.
+	Input string `json:"input,omitempty" jsonschema:"Expression selecting the input data for the transformation. Supports ${ } expression interpolation. When omitted, the entire workflow context is used as input. Example: '${ $context.triage }' to transform just the triage output."`
 }
 
 // CatchBlock defines error handling logic.
@@ -293,7 +327,7 @@ type WorkflowTaskInput struct {
 	// Task name/identifier (must be unique within workflow).
 	Name string `json:"name" jsonschema:"Task name/identifier (must be unique within workflow)."`
 	// Task type. Set the matching config field (e.g. kind='http_call' -> populate http_call).
-	Kind string `json:"kind" jsonschema:"Task type. Set the matching config field (e.g. kind='http_call' -> populate http_call). Allowed values: set_vars, http_call, grpc_call, activity_call, switch_case, for_each, fork, try_catch, listen, wait, raise_error, run_workflow, agent_call."`
+	Kind string `json:"kind" jsonschema:"Task type. Set the matching config field (e.g. kind='http_call' -> populate http_call). Allowed values: set_vars, http_call, grpc_call, activity_call, switch_case, for_each, fork, try_catch, listen, wait, raise_error, run_workflow, agent_call, llm_call, transform."`
 	// Required when kind='agent_call'. AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents. @internal The agent is referenced by org/slug format (e.g., "stigmer/code-reviewer"). Resolution order: 1. If org is specified: look in that org's agents 2. If org is empty: use the workflow's org 3. Before external lookup, check manifest (current deployment) The workflow's execution context (environment variables, secrets) is passed to the agent invocation, allowing agents to access workflow state. YAML Example (without structured output): - analyze: call: agent with: agent: "code-reviewer" message: "Review this code: ${ $context.fetchCode.body }" env: GITHUB_TOKEN: "${ .secrets.GH_TOKEN }" config: model: "claude-3-5-sonnet" timeout: 300 YAML Example (with structured output): - triage_ticket: call: agent with: agent: "support-triage" message: "${ .ticket.description }" output: schema: type: object required: [severity, category, customer_impact] properties: severity: type: string enum: [low, medium, high, critical] category: type: string customer_impact: type: boolean rationale: type: string on_invalid: ON_INVALID_RETRY max_retries: 2 fallback_task: human_review export: as: "${ .structured }" Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
 	AgentCall *AgentCallTaskConfigInput `json:"agent_call,omitempty" jsonschema:"Required when kind='agent_call'. AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents. @internal The agent is referenced by org/slug format (e.g., 'stigmer/code-reviewer'). Resolution order: 1. If org is specified: look in that org's agents 2. If org is empty: use the workflow's org 3. Before external lookup, check manifest (current deployment) The workflow's execution context (environment variables, secrets) is passed to the agent invocation, allowing agents to access workflow state. YAML Example (without structured output): - analyze: call: agent with: agent: 'code-reviewer' message: 'Review this code: ${ $context.fetchCode.body }' env: GITHUB_TOKEN: '${ .secrets.GH_TOKEN }' config: model: 'claude-3-5-sonnet' timeout: 300 YAML Example (with structured output): - triage_ticket: call: agent with: agent: 'support-triage' message: '${ .ticket.description }' output: schema: type: object required: [severity, category, customer_impact] properties: severity: type: string enum: [low, medium, high, critical] category: type: string customer_impact: type: boolean rationale: type: string on_invalid: ON_INVALID_RETRY max_retries: 2 fallback_task: human_review export: as: '${ .structured }' Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md"`
 	// Required when kind='activity_call'. CallActivityTaskConfig defines the configuration for activity_call tasks that execute activities. @internal Executes Temporal activities. YAML Example: - taskName: call: activity with: activity: "ProcessDataActivity" input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 10
@@ -308,6 +342,8 @@ type WorkflowTaskInput struct {
 	HttpCall *HttpCallTaskConfigInput `json:"http_call,omitempty" jsonschema:"Required when kind='http_call'. HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests. @internal YAML Example: - taskName: call: http with: method: POST endpoint: uri: https://api.example.com/data headers: Authorization: 'Bearer ${TOKEN}' body: field1: value Reference: zigflow-dsl-pattern-catalog.md - Task Type 2"`
 	// Required when kind='listen'. ListenTaskConfig defines the configuration for listen tasks that wait for external signals. @internal Implemented via Temporal signals. YAML Example: - taskName: listen: to: one: with: id: approval_signal type: signal Reference: zigflow-dsl-pattern-catalog.md - Task Type 7
 	Listen *ListenTaskConfigInput `json:"listen,omitempty" jsonschema:"Required when kind='listen'. ListenTaskConfig defines the configuration for listen tasks that wait for external signals. @internal Implemented via Temporal signals. YAML Example: - taskName: listen: to: one: with: id: approval_signal type: signal Reference: zigflow-dsl-pattern-catalog.md - Task Type 7"`
+	// Required when kind='llm_call'. LlmCallTaskConfig defines the configuration for llm_call tasks that make direct LLM API calls without the overhead of a full agent invocation. @internal Use llm_call when the task is focused and deterministic: classification, extraction, scoring, summarization, moderation, or routing. An agent_call carries setup overhead (system prompt, tool resolution, MCP server setup, session management) that is unnecessary when all you need is a single prompt-response cycle with optional structured output. When response_schema is set, the runner requests structured output from the provider and validates the response against the schema. The on_invalid / max_retries / fallback_task fields control what happens when validation fails, using the same OnInvalidOutputPolicy enum as agent_call's output contract. YAML Example (classification with structured output): - classify_severity: call: llm with: model: "gpt-4o-mini" system_prompt: "You are a support ticket classifier." prompt: "Classify this ticket: ${ $context.ticket.description }" response_schema: type: object required: [severity, category] properties: severity: type: string enum: [low, medium, high, critical] category: type: string on_invalid: ON_INVALID_RETRY max_retries: 2 export: as: "${ . }" YAML Example (simple summarization, no schema): - summarize: call: llm with: model: "claude-sonnet-4-5" prompt: "Summarize in 2 sentences: ${ $context.document.text }" temperature: 0.3 max_tokens: 200 export: as: "${ . }"
+	LlmCall *LlmCallTaskConfigInput `json:"llm_call,omitempty" jsonschema:"Required when kind='llm_call'. LlmCallTaskConfig defines the configuration for llm_call tasks that make direct LLM API calls without the overhead of a full agent invocation. @internal Use llm_call when the task is focused and deterministic: classification, extraction, scoring, summarization, moderation, or routing. An agent_call carries setup overhead (system prompt, tool resolution, MCP server setup, session management) that is unnecessary when all you need is a single prompt-response cycle with optional structured output. When response_schema is set, the runner requests structured output from the provider and validates the response against the schema. The on_invalid / max_retries / fallback_task fields control what happens when validation fails, using the same OnInvalidOutputPolicy enum as agent_call's output contract. YAML Example (classification with structured output): - classify_severity: call: llm with: model: 'gpt-4o-mini' system_prompt: 'You are a support ticket classifier.' prompt: 'Classify this ticket: ${ $context.ticket.description }' response_schema: type: object required: [severity, category] properties: severity: type: string enum: [low, medium, high, critical] category: type: string on_invalid: ON_INVALID_RETRY max_retries: 2 export: as: '${ . }' YAML Example (simple summarization, no schema): - summarize: call: llm with: model: 'claude-sonnet-4-5' prompt: 'Summarize in 2 sentences: ${ $context.document.text }' temperature: 0.3 max_tokens: 200 export: as: '${ . }'"`
 	// Required when kind='raise_error'. RaiseTaskConfig defines the configuration for raise_error tasks that raise errors. @internal YAML Example: - taskName: raise: error: ValidationError message: ${ .errorMessage } Reference: zigflow-dsl-pattern-catalog.md - Task Type 11
 	RaiseError *RaiseTaskConfigInput `json:"raise_error,omitempty" jsonschema:"Required when kind='raise_error'. RaiseTaskConfig defines the configuration for raise_error tasks that raise errors. @internal YAML Example: - taskName: raise: error: ValidationError message: ${ .errorMessage } Reference: zigflow-dsl-pattern-catalog.md - Task Type 11"`
 	// Required when kind='run_workflow'. RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows. @internal Implemented via Temporal child workflows. YAML Example: - taskName: run: workflow: "sub-workflow-name" input: data: ${ .data } Reference: zigflow-dsl-pattern-catalog.md - Task Type 12
@@ -316,6 +352,8 @@ type WorkflowTaskInput struct {
 	SetVars *SetTaskConfigInput `json:"set_vars,omitempty" jsonschema:"Required when kind='set_vars'. SetTaskConfig defines the configuration for set_vars tasks that assign variables in workflow state. @internal YAML Example: - taskName: set: variable1: value variable2: ${ expression } computed: ${ .a + .b } Reference: zigflow-dsl-pattern-catalog.md - Task Type 1"`
 	// Required when kind='switch_case'. SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally. @internal YAML Example: - taskName: switch: - case1: when: ${ $context.value > 5 } then: highValueTask - defaultCase: then: unknownTask Reference: zigflow-dsl-pattern-catalog.md - Task Type 3
 	SwitchCase *SwitchTaskConfigInput `json:"switch_case,omitempty" jsonschema:"Required when kind='switch_case'. SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally. @internal YAML Example: - taskName: switch: - case1: when: ${ $context.value > 5 } then: highValueTask - defaultCase: then: unknownTask Reference: zigflow-dsl-pattern-catalog.md - Task Type 3"`
+	// Required when kind='transform'. TransformTaskConfig defines the configuration for transform tasks that perform deterministic data transformation without LLM calls. @internal Use transform when you need to reshape data between tasks: projecting fields, joining objects, converting formats, or building API payloads. Unlike set_vars (which mutates workflow state variables as a side effect), transform produces an explicit output that flows through export like any other task — visible and inspectable in the execution viewer. The distinction from set_vars: set_vars = imperative assignment ("set X to Y"), mutates workflow context transform = functional transformation ("reshape this data"), produces output YAML Example (JQ — reshape data for an API call): - build_api_payload: transform: engine: jq expression: '{name: .customer.full_name, severity: .triage.severity, summary: .agent_analysis.structured.summary}' input: "${ $context }" export: as: "${ . }" YAML Example (template — render a notification message): - render_notification: transform: engine: template expression: "Ticket {{ .ticket_id }} classified as {{ .severity }} — {{ .summary }}" input: "${ $context.build_api_payload }" export: as: "${ . }"
+	Transform *TransformTaskConfigInput `json:"transform,omitempty" jsonschema:"Required when kind='transform'. TransformTaskConfig defines the configuration for transform tasks that perform deterministic data transformation without LLM calls. @internal Use transform when you need to reshape data between tasks: projecting fields, joining objects, converting formats, or building API payloads. Unlike set_vars (which mutates workflow state variables as a side effect), transform produces an explicit output that flows through export like any other task — visible and inspectable in the execution viewer. The distinction from set_vars: set_vars = imperative assignment ('set X to Y'), mutates workflow context transform = functional transformation ('reshape this data'), produces output YAML Example (JQ — reshape data for an API call): - build_api_payload: transform: engine: jq expression: '{name: .customer.full_name, severity: .triage.severity, summary: .agent_analysis.structured.summary}' input: '${ $context }' export: as: '${ . }' YAML Example (template — render a notification message): - render_notification: transform: engine: template expression: 'Ticket {{ .ticket_id }} classified as {{ .severity }} — {{ .summary }}' input: '${ $context.build_api_payload }' export: as: '${ . }'"`
 	// Required when kind='try_catch'. TryTaskConfig defines the configuration for try_catch tasks that handle errors. @internal YAML Example: - taskName: try: - attemptTask: call: http with: method: POST endpoint: uri: https://api.example.com/flaky catch: as: error do: - errorHandler: call: http with: body: error: ${ .error } Reference: zigflow-dsl-pattern-catalog.md - Task Type 6
 	TryCatch *TryTaskConfigInput `json:"try_catch,omitempty" jsonschema:"Required when kind='try_catch'. TryTaskConfig defines the configuration for try_catch tasks that handle errors. @internal YAML Example: - taskName: try: - attemptTask: call: http with: method: POST endpoint: uri: https://api.example.com/flaky catch: as: error do: - errorHandler: call: http with: body: error: ${ .error } Reference: zigflow-dsl-pattern-catalog.md - Task Type 6"`
 	// Required when kind='wait'. WaitTaskConfig defines the configuration for wait tasks that pause workflow execution. Supports both relative durations and absolute timestamps. @internal Implemented via Temporal timers. YAML Examples: Relative duration: - waitForApproval: wait: duration: days: 7 Absolute timestamp: - waitUntilMarketOpen: wait: until: "2026-03-02T09:30:00Z" Reference: zigflow-dsl-pattern-catalog.md - Task Type 8
@@ -619,6 +657,28 @@ func (input *ListenTaskConfigInput) toProto() (*tasks.ListenTaskConfig, error) {
 	return result, nil
 }
 
+func (input *LlmCallTaskConfigInput) toProto() (*tasks.LlmCallTaskConfig, error) {
+	result := &tasks.LlmCallTaskConfig{}
+
+	result.Model = input.Model
+	result.SystemPrompt = input.SystemPrompt
+	result.Prompt = input.Prompt
+	if len(input.ResponseSchema) > 0 {
+		v, err := structpb.NewStruct(input.ResponseSchema)
+		if err != nil {
+			return nil, fmt.Errorf("marshal response_schema: %w", err)
+		}
+		result.ResponseSchema = v
+	}
+	result.Temperature = input.Temperature
+	result.MaxTokens = input.MaxTokens
+	result.Timeout = input.Timeout
+	result.OnInvalid = tasks.OnInvalidOutputPolicy(tasks.OnInvalidOutputPolicy_value[input.OnInvalid])
+	result.MaxRetries = input.MaxRetries
+	result.FallbackTask = input.FallbackTask
+	return result, nil
+}
+
 func (input *RaiseTaskConfigInput) toProto() (*tasks.RaiseTaskConfig, error) {
 	result := &tasks.RaiseTaskConfig{}
 
@@ -667,6 +727,15 @@ func (input *SwitchTaskConfigInput) toProto() (*tasks.SwitchTaskConfig, error) {
 		}
 		result.Cases = append(result.Cases, v)
 	}
+	return result, nil
+}
+
+func (input *TransformTaskConfigInput) toProto() (*tasks.TransformTaskConfig, error) {
+	result := &tasks.TransformTaskConfig{}
+
+	result.Engine = tasks.TransformEngine(tasks.TransformEngine_value[input.Engine])
+	result.Expression = input.Expression
+	result.Input = input.Input
 	return result, nil
 }
 
@@ -860,6 +929,19 @@ func (input *WorkflowTaskInput) toProto() (*workflowv1.WorkflowTask, error) {
 			return nil, fmt.Errorf("marshal listen config: %w", err)
 		}
 		result.TaskConfig = v
+	case "llm_call":
+		if input.LlmCall == nil {
+			return nil, fmt.Errorf("llm_call config required when kind=%q", input.Kind)
+		}
+		p, err := input.LlmCall.toProto()
+		if err != nil {
+			return nil, fmt.Errorf("convert llm_call config: %w", err)
+		}
+		v, err := protoToStruct(p)
+		if err != nil {
+			return nil, fmt.Errorf("marshal llm_call config: %w", err)
+		}
+		result.TaskConfig = v
 	case "raise_error":
 		if input.RaiseError == nil {
 			return nil, fmt.Errorf("raise_error config required when kind=%q", input.Kind)
@@ -910,6 +992,19 @@ func (input *WorkflowTaskInput) toProto() (*workflowv1.WorkflowTask, error) {
 		v, err := protoToStruct(p)
 		if err != nil {
 			return nil, fmt.Errorf("marshal switch_case config: %w", err)
+		}
+		result.TaskConfig = v
+	case "transform":
+		if input.Transform == nil {
+			return nil, fmt.Errorf("transform config required when kind=%q", input.Kind)
+		}
+		p, err := input.Transform.toProto()
+		if err != nil {
+			return nil, fmt.Errorf("convert transform config: %w", err)
+		}
+		v, err := protoToStruct(p)
+		if err != nil {
+			return nil, fmt.Errorf("marshal transform config: %w", err)
 		}
 		result.TaskConfig = v
 	case "try_catch":

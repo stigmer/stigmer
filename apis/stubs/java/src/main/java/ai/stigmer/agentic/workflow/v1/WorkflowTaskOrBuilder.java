@@ -68,6 +68,8 @@ public interface WorkflowTaskOrBuilder extends
    * - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
    * - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
    * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+   * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+   * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
    *
    * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
    * </pre>
@@ -95,6 +97,8 @@ public interface WorkflowTaskOrBuilder extends
    * - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
    * - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
    * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+   * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+   * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
    *
    * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
    * </pre>
@@ -122,6 +126,8 @@ public interface WorkflowTaskOrBuilder extends
    * - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
    * - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
    * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+   * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+   * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
    *
    * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
    * </pre>

@@ -29,6 +29,8 @@ package ai.stigmer.agentic.workflow.v1;
 // raise_error: {"error": "ErrorType", "message": "${...}"}
 // run_workflow: {"workflow": "workflow-name", "input": {...}}
 // agent_call: {"agent": "agent-slug", "message": "...", "env": {...}}
+// llm_call: {"model": "...", "prompt": "...", "response_schema": {...}, "on_invalid": "..."}
+// transform: {"engine": "jq", "expression": "...", "input": "${...}"}
 enum WorkflowTaskKind {
   // Default value, not a valid task kind.
   workflow_task_kind_unspecified = 0;
@@ -115,4 +117,20 @@ enum WorkflowTaskKind {
   // Allows workflows to delegate complex operations to specialized agents.
   // Config: {"agent": "agent-slug", "message": "...", "env": {...}, "config": {...}}
   agent_call = 13;
+
+  // Direct LLM call for classification, extraction, scoring, or routing.
+  //
+  // @internal
+  // Lightweight alternative to agent_call for focused LLM tasks without
+  // agent overhead (no system prompt resolution, tool setup, or MCP wiring).
+  // Config: {"model": "...", "prompt": "...", "response_schema": {...}}
+  llm_call = 14;
+
+  // Deterministic data transformation using JQ, JSONata, or template engines.
+  //
+  // @internal
+  // Reshapes data between tasks without LLM calls. Produces explicit output
+  // via export, unlike set_vars which mutates workflow state as a side effect.
+  // Config: {"engine": "jq", "expression": "...", "input": "${...}"}
+  transform = 15;
 }

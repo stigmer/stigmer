@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/workflow/v1/enum.proto\x12\x1e\x61i.stigmer.agentic.workflow.v1*\xf6\x01\n\x10WorkflowTaskKind\x12\"\n\x1eworkflow_task_kind_unspecified\x10\x00\x12\x0c\n\x08set_vars\x10\x01\x12\r\n\thttp_call\x10\x02\x12\r\n\tgrpc_call\x10\x03\x12\x11\n\ractivity_call\x10\x04\x12\x0f\n\x0bswitch_case\x10\x05\x12\x0c\n\x08\x66or_each\x10\x06\x12\x08\n\x04\x66ork\x10\x07\x12\r\n\ttry_catch\x10\x08\x12\n\n\x06listen\x10\t\x12\x08\n\x04wait\x10\n\x12\x0f\n\x0braise_error\x10\x0b\x12\x10\n\x0crun_workflow\x10\x0c\x12\x0e\n\nagent_call\x10\rB\xcc\x01\n\"com.ai.stigmer.agentic.workflow.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\x1e\x41i.Stigmer.Agentic.Workflow.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/workflow/v1/enum.proto\x12\x1e\x61i.stigmer.agentic.workflow.v1*\x93\x02\n\x10WorkflowTaskKind\x12\"\n\x1eworkflow_task_kind_unspecified\x10\x00\x12\x0c\n\x08set_vars\x10\x01\x12\r\n\thttp_call\x10\x02\x12\r\n\tgrpc_call\x10\x03\x12\x11\n\ractivity_call\x10\x04\x12\x0f\n\x0bswitch_case\x10\x05\x12\x0c\n\x08\x66or_each\x10\x06\x12\x08\n\x04\x66ork\x10\x07\x12\r\n\ttry_catch\x10\x08\x12\n\n\x06listen\x10\t\x12\x08\n\x04wait\x10\n\x12\x0f\n\x0braise_error\x10\x0b\x12\x10\n\x0crun_workflow\x10\x0c\x12\x0e\n\nagent_call\x10\r\x12\x0c\n\x08llm_call\x10\x0e\x12\r\n\ttransform\x10\x0f\x42\xcc\x01\n\"com.ai.stigmer.agentic.workflow.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\x1e\x41i.Stigmer.Agentic.Workflow.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,5 +33,5 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\"com.ai.stigmer.agentic.workflow.v1B\tEnumProtoP\001\242\002\004ASAW\252\002\036Ai.Stigmer.Agentic.Workflow.V1\312\002\036Ai\\Stigmer\\Agentic\\Workflow\\V1\342\002*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\352\002\"Ai::Stigmer::Agentic::Workflow::V1'
   _globals['_WORKFLOWTASKKIND']._serialized_start=78
-  _globals['_WORKFLOWTASKKIND']._serialized_end=324
+  _globals['_WORKFLOWTASKKIND']._serialized_end=353
 # @@protoc_insertion_point(module_scope)

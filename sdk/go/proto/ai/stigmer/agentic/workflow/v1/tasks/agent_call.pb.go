@@ -25,88 +25,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// OnInvalidOutputPolicy defines what happens when an agent's output
-// fails schema validation against the declared output contract.
-//
-// @internal
-// Used exclusively by AgentCallOutputContract.on_invalid.
-//
-// Failure handling follows a deliberate hierarchy:
-// - FAIL: strictest — bad output is unacceptable, fail the task immediately
-// - RETRY: re-prompt with validation errors, up to max_retries attempts
-// - FALLBACK: branch to a named task (e.g., human_review) without retrying
-//
-// When ON_INVALID_RETRY is used and all retries are exhausted:
-// - If fallback_task is set: branch to that task
-// - If fallback_task is empty: task fails
-//
-// @since T02 (Structured Agent Output Model)
-type OnInvalidOutputPolicy int32
-
-const (
-	// Unspecified: defaults to ON_INVALID_FAIL behavior.
-	OnInvalidOutputPolicy_ON_INVALID_POLICY_UNSPECIFIED OnInvalidOutputPolicy = 0
-	// Task fails immediately with a schema validation error.
-	// The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
-	OnInvalidOutputPolicy_ON_INVALID_FAIL OnInvalidOutputPolicy = 1
-	// Re-prompt the agent with the validation error message, up to max_retries
-	// attempts. The retry message includes the schema and specific validation
-	// errors so the agent can self-correct.
-	//
-	// After exhausting retries:
-	//   - If fallback_task is set: branch to that task
-	//   - Otherwise: task fails with a schema validation error
-	OnInvalidOutputPolicy_ON_INVALID_RETRY OnInvalidOutputPolicy = 2
-	// Branch immediately to fallback_task without retrying.
-	// Requires fallback_task to be set on AgentCallOutputContract.
-	// Use when human review or an alternative extraction path is preferred
-	// over automated retry.
-	OnInvalidOutputPolicy_ON_INVALID_FALLBACK OnInvalidOutputPolicy = 3
-)
-
-// Enum value maps for OnInvalidOutputPolicy.
-var (
-	OnInvalidOutputPolicy_name = map[int32]string{
-		0: "ON_INVALID_POLICY_UNSPECIFIED",
-		1: "ON_INVALID_FAIL",
-		2: "ON_INVALID_RETRY",
-		3: "ON_INVALID_FALLBACK",
-	}
-	OnInvalidOutputPolicy_value = map[string]int32{
-		"ON_INVALID_POLICY_UNSPECIFIED": 0,
-		"ON_INVALID_FAIL":               1,
-		"ON_INVALID_RETRY":              2,
-		"ON_INVALID_FALLBACK":           3,
-	}
-)
-
-func (x OnInvalidOutputPolicy) Enum() *OnInvalidOutputPolicy {
-	p := new(OnInvalidOutputPolicy)
-	*p = x
-	return p
-}
-
-func (x OnInvalidOutputPolicy) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (OnInvalidOutputPolicy) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_enumTypes[0].Descriptor()
-}
-
-func (OnInvalidOutputPolicy) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_enumTypes[0]
-}
-
-func (x OnInvalidOutputPolicy) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use OnInvalidOutputPolicy.Descriptor instead.
-func (OnInvalidOutputPolicy) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDescGZIP(), []int{0}
-}
-
 // AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.
 //
 // @internal
@@ -516,7 +434,7 @@ var File_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto protoreflect.File
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc = "" +
 	"\n" +
-	"5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xbe\x03\n" +
+	"5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a1ai/stigmer/agentic/workflow/v1/tasks/common.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xbe\x03\n" +
 	"\x13AgentCallTaskConfig\x12\"\n" +
 	"\x05agent\x18\x01 \x01(\tB\f\xbaH\t\xc8\x01\x01r\x04\x10\x01\x18\x7fR\x05agent\x12\x10\n" +
 	"\x03org\x18\x02 \x01(\tR\x03org\x12(\n" +
@@ -542,12 +460,7 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc = "" +
 	"\vtemperature\x18\x03 \x01(\x02B\x0f\xbaH\f\n" +
 	"\n" +
 	"\x1d\x00\x00\x80?-\x00\x00\x00\x00R\vtemperature\x12l\n" +
-	"\x12context_management\x18\x04 \x01(\v2=.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfigR\x11contextManagement*~\n" +
-	"\x15OnInvalidOutputPolicy\x12!\n" +
-	"\x1dON_INVALID_POLICY_UNSPECIFIED\x10\x00\x12\x13\n" +
-	"\x0fON_INVALID_FAIL\x10\x01\x12\x14\n" +
-	"\x10ON_INVALID_RETRY\x10\x02\x12\x17\n" +
-	"\x13ON_INVALID_FALLBACK\x10\x03B\xc0\x02\n" +
+	"\x12context_management\x18\x04 \x01(\v2=.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfigR\x11contextManagementB\xc0\x02\n" +
 	"(com.ai.stigmer.agentic.workflow.v1.tasksB\x0eAgentCallProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 
 var (
@@ -562,23 +475,22 @@ func file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDescGZIP() []
 	return file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_goTypes = []any{
-	(OnInvalidOutputPolicy)(0),         // 0: ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy
-	(*AgentCallTaskConfig)(nil),        // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
-	(*AgentCallOutputContract)(nil),    // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract
-	(*AgentExecutionConfig)(nil),       // 3: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
-	nil,                                // 4: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
-	(*structpb.Struct)(nil),            // 5: google.protobuf.Struct
+	(*AgentCallTaskConfig)(nil),        // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+	(*AgentCallOutputContract)(nil),    // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract
+	(*AgentExecutionConfig)(nil),       // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
+	nil,                                // 3: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
+	(*structpb.Struct)(nil),            // 4: google.protobuf.Struct
+	(OnInvalidOutputPolicy)(0),         // 5: ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy
 	(*v1.ContextManagementConfig)(nil), // 6: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
 }
 var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.env:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
-	3, // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.config:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
-	2, // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.output:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract
-	5, // 3: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.schema:type_name -> google.protobuf.Struct
-	0, // 4: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.on_invalid:type_name -> ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy
+	3, // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.env:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
+	2, // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.config:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
+	1, // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.output:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract
+	4, // 3: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.schema:type_name -> google.protobuf.Struct
+	5, // 4: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.on_invalid:type_name -> ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy
 	6, // 5: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
 	6, // [6:6] is the sub-list for method output_type
 	6, // [6:6] is the sub-list for method input_type
@@ -592,19 +504,19 @@ func file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_init() {
 	if File_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto != nil {
 		return
 	}
+	file_ai_stigmer_agentic_workflow_v1_tasks_common_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc), len(file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      0,
 			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_depIdxs,
-		EnumInfos:         file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto = out.File

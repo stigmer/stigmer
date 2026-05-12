@@ -1,26 +1,15 @@
 from ai.stigmer.agentic.agentexecution.v1 import spec_pb2 as _spec_pb2
+from ai.stigmer.agentic.workflow.v1.tasks import common_pb2 as _common_pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf.internal import containers as _containers
-from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
-
-class OnInvalidOutputPolicy(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-    __slots__ = ()
-    ON_INVALID_POLICY_UNSPECIFIED: _ClassVar[OnInvalidOutputPolicy]
-    ON_INVALID_FAIL: _ClassVar[OnInvalidOutputPolicy]
-    ON_INVALID_RETRY: _ClassVar[OnInvalidOutputPolicy]
-    ON_INVALID_FALLBACK: _ClassVar[OnInvalidOutputPolicy]
-ON_INVALID_POLICY_UNSPECIFIED: OnInvalidOutputPolicy
-ON_INVALID_FAIL: OnInvalidOutputPolicy
-ON_INVALID_RETRY: OnInvalidOutputPolicy
-ON_INVALID_FALLBACK: OnInvalidOutputPolicy
 
 class AgentCallTaskConfig(_message.Message):
     __slots__ = ("agent", "org", "message", "env", "config", "output")
@@ -52,10 +41,10 @@ class AgentCallOutputContract(_message.Message):
     MAX_RETRIES_FIELD_NUMBER: _ClassVar[int]
     FALLBACK_TASK_FIELD_NUMBER: _ClassVar[int]
     schema: _struct_pb2.Struct
-    on_invalid: OnInvalidOutputPolicy
+    on_invalid: _common_pb2.OnInvalidOutputPolicy
     max_retries: int
     fallback_task: str
-    def __init__(self, schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., on_invalid: _Optional[_Union[OnInvalidOutputPolicy, str]] = ..., max_retries: _Optional[int] = ..., fallback_task: _Optional[str] = ...) -> None: ...
+    def __init__(self, schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., on_invalid: _Optional[_Union[_common_pb2.OnInvalidOutputPolicy, str]] = ..., max_retries: _Optional[int] = ..., fallback_task: _Optional[str] = ...) -> None: ...
 
 class AgentExecutionConfig(_message.Message):
     __slots__ = ("model", "timeout", "temperature", "context_management")

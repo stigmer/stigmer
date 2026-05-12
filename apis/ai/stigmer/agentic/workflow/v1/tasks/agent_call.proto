@@ -3,6 +3,7 @@ syntax = "proto3";
 package ai.stigmer.agentic.workflow.v1.tasks;
 
 import "ai/stigmer/agentic/agentexecution/v1/spec.proto";
+import "ai/stigmer/agentic/workflow/v1/tasks/common.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
@@ -110,46 +111,6 @@ message AgentCallTaskConfig {
   //
   // @since T02 (Structured Agent Output Model)
   AgentCallOutputContract output = 6;
-}
-
-// OnInvalidOutputPolicy defines what happens when an agent's output
-// fails schema validation against the declared output contract.
-//
-// @internal
-// Used exclusively by AgentCallOutputContract.on_invalid.
-//
-// Failure handling follows a deliberate hierarchy:
-// - FAIL: strictest — bad output is unacceptable, fail the task immediately
-// - RETRY: re-prompt with validation errors, up to max_retries attempts
-// - FALLBACK: branch to a named task (e.g., human_review) without retrying
-//
-// When ON_INVALID_RETRY is used and all retries are exhausted:
-// - If fallback_task is set: branch to that task
-// - If fallback_task is empty: task fails
-//
-// @since T02 (Structured Agent Output Model)
-enum OnInvalidOutputPolicy {
-  // Unspecified: defaults to ON_INVALID_FAIL behavior.
-  ON_INVALID_POLICY_UNSPECIFIED = 0;
-
-  // Task fails immediately with a schema validation error.
-  // The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
-  ON_INVALID_FAIL = 1;
-
-  // Re-prompt the agent with the validation error message, up to max_retries
-  // attempts. The retry message includes the schema and specific validation
-  // errors so the agent can self-correct.
-  //
-  // After exhausting retries:
-  //   - If fallback_task is set: branch to that task
-  //   - Otherwise: task fails with a schema validation error
-  ON_INVALID_RETRY = 2;
-
-  // Branch immediately to fallback_task without retrying.
-  // Requires fallback_task to be set on AgentCallOutputContract.
-  // Use when human review or an alternative extraction path is preferred
-  // over automated retry.
-  ON_INVALID_FALLBACK = 3;
 }
 
 // AgentCallOutputContract defines the structured output contract for an agent_call task.
