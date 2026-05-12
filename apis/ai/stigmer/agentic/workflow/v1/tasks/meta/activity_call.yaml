@@ -1,0 +1,29 @@
+kind: activity_call
+display_name: "Activity Call"
+description: "Execute a Temporal activity by name with typed input."
+category: invocation
+icon: "cog"
+is_ai_native: false
+requires_external_service: false
+documentation_url: "/docs/workflow/tasks/activity-call"
+
+output_schema:
+  type: object
+  description: "Activity return value as JSON."
+
+field_groups:
+  - id: core
+    display_name: "Activity Configuration"
+    fields: [activity, input]
+
+yaml_examples:
+  - |
+    - process_payment:
+        call: activity
+        with:
+          activity: "ProcessPayment"
+          input:
+            amount: "${ $context.order.total }"
+            currency: "USD"
+        export:
+          as: "${ . }"

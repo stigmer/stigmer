@@ -75,6 +75,7 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 	searchhandler "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/handler"
 	searchstore "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/store"
+	taskkindregistry "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/registry"
 )
 
 // Run starts the Stigmer server (extracted from main for BusyBox pattern)
@@ -542,8 +543,16 @@ func Run() error {
 		grpcweb.WithWebsocketOriginFunc(func(r *http.Request) bool { return true }),
 	)
 
-	// Unified HTTP handler that routes between gRPC-Web, native gRPC, and 404.
+	// Task kind registry HTTP handler (static JSON, cacheable).
+	registryHandler := taskkindregistry.NewHandler()
+
+	// Unified HTTP handler that routes between REST proxy endpoints,
+	// gRPC-Web, native gRPC, and 404.
 	httpHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v1/proxy/task-kind-registry" {
+			registryHandler.ServeHTTP(w, r)
+			return
+		}
 		if grpcWebWrapper.IsGrpcWebRequest(r) || grpcWebWrapper.IsAcceptableGrpcCorsRequest(r) || grpcWebWrapper.IsGrpcWebSocketRequest(r) {
 			grpcWebWrapper.ServeHTTP(w, r)
 			return

@@ -1,0 +1,40 @@
+kind: http_call
+display_name: "HTTP Call"
+description: "Make an HTTP request to an external API endpoint."
+category: invocation
+icon: "globe"
+is_ai_native: false
+requires_external_service: true
+documentation_url: "/docs/workflow/tasks/http-call"
+
+output_schema:
+  type: object
+  description: "HTTP response including status code, headers, and body."
+  properties:
+    status_code:
+      type: integer
+    headers:
+      type: object
+    body:
+      type: object
+
+field_groups:
+  - id: request
+    display_name: "Request"
+    fields: [method, endpoint, headers, body]
+  - id: auth
+    display_name: "Authentication"
+    fields: [auth]
+
+yaml_examples:
+  - |
+    - fetch_data:
+        call: http
+        with:
+          method: "GET"
+          endpoint:
+            uri: "https://api.example.com/tickets/${ $context.ticket_id }"
+          headers:
+            Authorization: "Bearer ${ .secrets.API_TOKEN }"
+        export:
+          as: "${ . }"

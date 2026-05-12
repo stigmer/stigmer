@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "validation",
     srcs = [
+        "crossref.go",
         "errors.go",
         "marshal.go",
         "unmarshal.go",
@@ -24,6 +25,7 @@ go_library(
 go_test(
     name = "validation_test",
     srcs = [
+        "crossref_test.go",
         "marshal_test.go",
         "unmarshal_test.go",
         "validate_test.go",

@@ -1,0 +1,226 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1;
+
+import "ai/stigmer/agentic/workflow/v1/enum.proto";
+
+// TaskKindCategory classifies task kinds by their functional role in a workflow.
+//
+// Used by the UI to render task palettes with grouped categories, and by
+// documentation generators to organize task reference pages.
+//
+// @since T04 (Task Schema Registry)
+enum TaskKindCategory {
+  TASK_KIND_CATEGORY_UNSPECIFIED = 0;
+
+  // Control flow tasks that direct execution order.
+  // Members: switch_case, for_each, fork, try_catch, wait
+  TASK_KIND_CATEGORY_CONTROL_FLOW = 1;
+
+  // Tasks that invoke external services or sub-workflows.
+  // Members: http_call, grpc_call, activity_call, run_workflow
+  TASK_KIND_CATEGORY_INVOCATION = 2;
+
+  // AI-native tasks that invoke language models or agents.
+  // Members: agent_call, llm_call
+  TASK_KIND_CATEGORY_AI = 3;
+
+  // Tasks that manipulate, validate, or transform data.
+  // Members: set_vars, transform, validate
+  TASK_KIND_CATEGORY_DATA = 4;
+
+  // Tasks that require human interaction to proceed.
+  // Members: human_input
+  TASK_KIND_CATEGORY_GOVERNANCE = 5;
+
+  // Tasks that emit, listen for, or route events and notifications.
+  // Members: listen, emit_event, notification, raise_error
+  TASK_KIND_CATEGORY_EVENT = 6;
+}
+
+// TaskFieldType represents the data type of a task configuration field
+// as understood by UI form renderers and schema validators.
+//
+// @since T04 (Task Schema Registry)
+enum TaskFieldType {
+  TASK_FIELD_TYPE_UNSPECIFIED = 0;
+
+  // Plain string value.
+  TASK_FIELD_TYPE_STRING = 1;
+
+  // 32-bit integer.
+  TASK_FIELD_TYPE_INT32 = 2;
+
+  // 32-bit floating point.
+  TASK_FIELD_TYPE_FLOAT = 3;
+
+  // Boolean true/false.
+  TASK_FIELD_TYPE_BOOL = 4;
+
+  // Enumeration — valid values listed in TaskFieldDescriptor.enum_values.
+  TASK_FIELD_TYPE_ENUM = 5;
+
+  // Structured JSON object (google.protobuf.Struct in proto).
+  // Used for JSON Schema fields, form schemas, event data payloads.
+  TASK_FIELD_TYPE_STRUCT = 6;
+
+  // Repeated (array) of a scalar or message type.
+  TASK_FIELD_TYPE_REPEATED = 7;
+
+  // Map from string keys to string values.
+  TASK_FIELD_TYPE_MAP = 8;
+
+  // Nested message type — field contains a sub-object with its own fields.
+  TASK_FIELD_TYPE_MESSAGE = 9;
+}
+
+// TaskFieldGroup defines a logical grouping of fields for UI form rendering.
+//
+// Fields within the same group are rendered together in a collapsible section.
+// Groups are ordered by their position in the TaskKindDescriptor.field_groups list.
+//
+// @since T04 (Task Schema Registry)
+message TaskFieldGroup {
+  // Group identifier matching TaskFieldDescriptor.group_id.
+  string id = 1;
+
+  // Human-readable label for the group section header.
+  string display_name = 2;
+
+  // Optional description shown below the group header.
+  string description = 3;
+}
+
+// TaskFieldDescriptor describes a single field in a task configuration message.
+//
+// Provides enough metadata for UI form renderers to generate appropriate
+// input controls, validation messages, and documentation without needing
+// access to the raw proto descriptor.
+//
+// @since T04 (Task Schema Registry)
+message TaskFieldDescriptor {
+  // Proto field name (snake_case, matching the proto definition).
+  string name = 1;
+
+  // Human-readable label for form rendering.
+  // When empty, the UI derives it from the name (e.g., "system_prompt" -> "System Prompt").
+  string display_name = 2;
+
+  // Field description from proto comments. Shown as help text in forms.
+  string description = 3;
+
+  // Data type for rendering the appropriate form control.
+  TaskFieldType type = 4;
+
+  // Whether the field is required (from buf.validate annotations).
+  bool required = 5;
+
+  // Whether the field accepts ${ } expression interpolation.
+  // Derived from the is_expression proto annotation.
+  bool is_expression = 6;
+
+  // Default value as a JSON-encoded string.
+  // Empty string means no default (field is unset by default).
+  string default_value = 7;
+
+  // Valid enum values when type is TASK_FIELD_TYPE_ENUM.
+  repeated string enum_values = 8;
+
+  // JSON Schema fragment for this field's validation.
+  // Enables client-side pre-validation without the full registry.
+  string json_schema_fragment = 9;
+
+  // Group this field belongs to for form section rendering.
+  // References TaskFieldGroup.id in the parent descriptor.
+  string group_id = 10;
+
+  // Proto field number (for stable identification across renames).
+  int32 field_number = 11;
+
+  // For TASK_FIELD_TYPE_REPEATED: the element type.
+  // For TASK_FIELD_TYPE_MESSAGE: the nested message proto type name.
+  string element_type = 12;
+
+  // Validation constraints as human-readable descriptions.
+  // Examples: "min: 1, max: 5", "pattern: ^1\\.0\\.0$", "min_items: 1"
+  repeated string validation_hints = 13;
+}
+
+// TaskKindDescriptor provides complete metadata for a single workflow task kind.
+//
+// This is the primary output of the Task Schema Registry — one descriptor
+// per WorkflowTaskKind enum value. Consumers use these descriptors to:
+// - Render task palettes in the visual builder (category, icon, display_name)
+// - Generate configuration forms (fields, field_groups)
+// - Power YAML editor autocomplete (config_json_schema)
+// - Validate task configs client-side (config_json_schema)
+// - Display task output shapes in the execution viewer (output_json_schema)
+// - Generate documentation (description, yaml_examples, documentation_url)
+//
+// @since T04 (Task Schema Registry)
+message TaskKindDescriptor {
+  // The task kind this descriptor describes.
+  WorkflowTaskKind kind = 1;
+
+  // Human-readable display name for UI rendering.
+  // Examples: "LLM Call", "Human Input", "HTTP Call", "Switch Case"
+  string display_name = 2;
+
+  // One-line description of what this task kind does.
+  string description = 3;
+
+  // Functional category for palette grouping and filtering.
+  TaskKindCategory category = 4;
+
+  // Lucide icon name for UI rendering.
+  // Examples: "brain", "user-check", "globe", "git-branch"
+  string icon = 5;
+
+  // Fully-qualified proto message type for the task config.
+  // Example: "ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig"
+  string config_proto_type = 6;
+
+  // Ordered field descriptors for form rendering.
+  // Fields are ordered by their intended display sequence (not proto field number).
+  repeated TaskFieldDescriptor fields = 7;
+
+  // Logical field groups for form section rendering.
+  repeated TaskFieldGroup field_groups = 8;
+
+  // JSON Schema (draft 2020-12) for the task_config Struct payload.
+  // Serialized as a JSON string. Used by Monaco editor for validation
+  // and autocomplete, and by form libraries (RJSF) for form generation.
+  string config_json_schema = 9;
+
+  // JSON Schema describing the task's output shape.
+  // Serialized as a JSON string. Used by the execution viewer to
+  // render typed output inspection panels.
+  string output_json_schema = 10;
+
+  // YAML code examples demonstrating common usage patterns.
+  // Each entry is a complete, self-contained YAML snippet.
+  repeated string yaml_examples = 11;
+
+  // Documentation URL path (relative to docs root).
+  // Example: "/docs/workflow/tasks/llm-call"
+  string documentation_url = 12;
+
+  // Whether this task kind invokes AI models (agent_call, llm_call).
+  // UI uses this to show cost indicators and model selection hints.
+  bool is_ai_native = 13;
+
+  // Whether this task kind requires external service connectivity.
+  // UI uses this to show connectivity warnings during offline editing.
+  bool requires_external_service = 14;
+}
+
+// GetTaskKindRegistryRequest is the request message for retrieving the
+// complete task kind registry.
+message GetTaskKindRegistryRequest {}
+
+// GetTaskKindRegistryResponse returns the full set of task kind descriptors.
+message GetTaskKindRegistryResponse {
+  // All registered task kind descriptors, one per WorkflowTaskKind value.
+  // Excludes workflow_task_kind_unspecified.
+  repeated TaskKindDescriptor descriptors = 1;
+}

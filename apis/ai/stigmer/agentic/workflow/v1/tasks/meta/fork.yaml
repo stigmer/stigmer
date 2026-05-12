@@ -1,0 +1,40 @@
+kind: fork
+display_name: "Fork"
+description: "Execute multiple branches in parallel, optionally racing."
+category: control_flow
+icon: "git-fork"
+is_ai_native: false
+requires_external_service: false
+documentation_url: "/docs/workflow/tasks/fork"
+
+output_schema:
+  type: object
+  description: "Combined results from all branches (or winner if compete=true)."
+
+field_groups:
+  - id: core
+    display_name: "Parallel Branches"
+    fields: [branches, compete]
+
+yaml_examples:
+  - |
+    - parallel_enrichment:
+        fork:
+          branches:
+            - name: fetch_profile
+              do:
+                - get_profile:
+                    call: http
+                    with:
+                      method: "GET"
+                      endpoint:
+                        uri: "https://api.example.com/users/${ $context.user_id }"
+            - name: fetch_history
+              do:
+                - get_history:
+                    call: http
+                    with:
+                      method: "GET"
+                      endpoint:
+                        uri: "https://api.example.com/history/${ $context.user_id }"
+          compete: false

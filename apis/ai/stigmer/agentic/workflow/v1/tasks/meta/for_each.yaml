@@ -1,0 +1,30 @@
+kind: for_each
+display_name: "For Each"
+description: "Iterate over a collection, executing tasks for each item."
+category: control_flow
+icon: "repeat"
+is_ai_native: false
+requires_external_service: false
+documentation_url: "/docs/workflow/tasks/for-each"
+
+output_schema:
+  type: array
+  description: "Collected results from each iteration."
+
+field_groups:
+  - id: core
+    display_name: "Iteration"
+    fields: [each, in, do]
+
+yaml_examples:
+  - |
+    - process_items:
+        for:
+          each: item
+          in: "${ $context.items }"
+          do:
+            - classify_item:
+                call: llm
+                with:
+                  model: "gpt-4o-mini"
+                  prompt: "Classify: ${ $item.description }"

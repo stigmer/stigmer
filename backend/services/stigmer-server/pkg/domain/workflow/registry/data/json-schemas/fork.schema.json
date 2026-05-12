@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "branches": {
+      "description": "Branches to execute in parallel (at least 2 required).",
+      "items": {
+        "type": "object"
+      },
+      "minItems": 2,
+      "type": "array"
+    },
+    "compete": {
+      "description": "If true, first branch to complete wins (race mode). If false, all branches must complete (default).",
+      "type": "boolean"
+    }
+  },
+  "title": "ForkTaskConfig",
+  "type": "object"
+}
