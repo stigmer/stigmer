@@ -19,46 +19,70 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-12 — T03 Batch 1 Complete
-**Current Task**: T03 — Batch 1 COMPLETE, Batch 2 next
+**Last Session**: 2026-05-12 — T03 COMPLETE (all 3 batches)
+**Current Task**: T03 COMPLETE — choosing next task
 **Phase**: Phase 0 — Harden the Workflow Core
-**Next Task**: T03 Batch 2 (human_input + validate)
+**Next Task**: T04 (Task Schema Registry) or T05 (Budget Primitives) — decision pending
 
 ## Session Progress (2026-05-12)
-- T03 Batch 1 complete: `llm_call` (enum 14) + `transform` (enum 15)
-- Extracted `OnInvalidOutputPolicy` to shared `common.proto`
-- All stubs regenerated across both repos (stigmer + stigmer-cloud)
-- Commit: `417ee6042 feat(apis/workflow): add llm_call and transform task types (T03 Batch 1)`
-- Changelog: `_changelog/2026-05/2026-05-12-140456-llm-call-transform-task-types.md`
 
-### Prior Progress (same day)
+### T03 Batch 3 (latest)
+- `emit_event` (enum 18) + `notification` (enum 19) complete
+- `EmitEventSpec` sub-message with CloudEvents envelope (type, source, data, subject)
+- `NotificationTaskConfig` with 6 fields (channel, recipients, subject, body, template, metadata)
+- First `map<string, string>` field in task configs (notification.metadata)
+- No new policy enums — structurally simplest batch
+- Commit: `9b877d51b feat(apis/workflow): add emit_event and notification task types (T03 Batch 3)`
+
+### T03 Batch 2
+- `human_input` (enum 16) + `validate` (enum 17)
+- `HumanInputTimeoutPolicy` enum local to `human_input.proto`
+- `ValidationFailPolicy` enum local to `validate.proto`
+- Commit: `0163c9866 feat(apis/workflow): add human_input and validate task types (T03 Batch 2)`
+
+### T03 Batch 1
+- `llm_call` (enum 14) + `transform` (enum 15)
+- Extracted `OnInvalidOutputPolicy` to shared `common.proto`
+- Commit: `417ee6042 feat(apis/workflow): add llm_call and transform task types (T03 Batch 1)`
+
+### Earlier
 - T02 complete: Structured Agent Output Model
 - T03 plan written with 3 batches of 6 new task types
 - Design decisions: keep `transform`, defer `extract`, enhance `for_each` instead of `batch`
 
+## T03 Summary (COMPLETE)
+
+| Batch | Task Types | Enum Values | Commit |
+|-------|-----------|-------------|--------|
+| 1 | llm_call + transform | 14, 15 | `417ee6042` |
+| 2 | human_input + validate | 16, 17 | `0163c9866` |
+| 3 | emit_event + notification | 18, 19 | `9b877d51b` |
+
+Total: 6 new task types added, 19 task kinds total (up from 13).
+
 ## Next Steps
-1. Pick up T03 Batch 2: `human_input` (enum 16) + `validate` (enum 17) — proto + codegen + validation wiring
-2. Then T03 Batch 3: `emit_event` (enum 18) + `notification` (enum 19)
-3. After all T03 batches: T04 (Task Schema Registry) or T05 (Budget Primitives)
+1. Choose between T04 (Task Schema Registry) or T05 (Budget Primitives)
+2. T04 would formalize task config schemas into a registry for UI form generation, validation, and documentation
+3. T05 would add workflow-level budget primitives (token limits, cost guards, execution caps)
+4. After Phase 0 remaining tasks: T06 (Event Stream) and T07 (Artifact Store)
 
 ## Context for Resume
-- T03 Batch 1 is committed and all stubs regenerated
-- `OnInvalidOutputPolicy` now lives in `common.proto` (shared by agent_call and llm_call)
-- T03 plan at `tasks/T03_0_plan.md` has full specs for Batch 2 and Batch 3
-- `human_input` is the most complex proto in T03 (multi-party, timeout-aware, form-driven)
-- `validate` is simpler (schema + rules validation with fail/branch/warn policies)
-- Batch 2 will need a new `HumanInputTimeoutPolicy` enum and `ValidationFailPolicy` enum
-- Consider whether those go in `common.proto` or stay local (timeout policy is specific to human_input; validation fail policy follows the same pattern as OnInvalidOutputPolicy)
+- T03 is fully complete — all 6 new task types committed across 3 batches
+- 19 task kinds now in `WorkflowTaskKind` enum (enum.proto)
+- All stubs regenerated in stigmer repo (Go, Java, Python, TS, Dart, MCP, SDK)
 - stigmer-cloud stubs are regenerated but not committed yet (commit separately if needed)
+- Shared enums: `OnInvalidOutputPolicy` in `common.proto` (used by agent_call and llm_call)
+- Local enums: `HumanInputTimeoutPolicy` (human_input.proto), `ValidationFailPolicy` (validate.proto), `TransformEngine` (transform.proto)
+- No enums needed for emit_event or notification
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-12-t03-batch1-llm-call-transform.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-12-t03-batch3-emit-event-notification.md
 ```
 
-### 2. T03 Plan (read this for Batch 2 specs)
+### 2. T03 Plan (complete — all batches delivered)
 ```
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260508.01.bring-workflows-to-foreground/tasks/T03_0_plan.md
 ```
@@ -68,11 +92,15 @@ Drop this file into your conversation to quickly resume work on this project.
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260508.01.bring-workflows-to-foreground/tasks/
 ```
 
-### 4. Key Protos (just changed in Batch 1)
+### 4. All Task Type Protos (T03 complete set)
 - **common.proto**: `apis/ai/stigmer/agentic/workflow/v1/tasks/common.proto` — shared OnInvalidOutputPolicy enum
 - **llm_call.proto**: `apis/ai/stigmer/agentic/workflow/v1/tasks/llm_call.proto` — LlmCallTaskConfig
 - **transform.proto**: `apis/ai/stigmer/agentic/workflow/v1/tasks/transform.proto` — TransformTaskConfig + TransformEngine
-- **agent_call.proto**: `apis/ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto` — now imports from common.proto
+- **human_input.proto**: `apis/ai/stigmer/agentic/workflow/v1/tasks/human_input.proto` — HumanInputTimeoutPolicy + HumanInputOutcome + HumanInputTaskConfig
+- **validate.proto**: `apis/ai/stigmer/agentic/workflow/v1/tasks/validate.proto` — ValidationFailPolicy + ValidationRule + ValidateTaskConfig
+- **emit_event.proto**: `apis/ai/stigmer/agentic/workflow/v1/tasks/emit_event.proto` — EmitEventSpec + EmitEventTaskConfig
+- **notification.proto**: `apis/ai/stigmer/agentic/workflow/v1/tasks/notification.proto` — NotificationTaskConfig
+- **agent_call.proto**: `apis/ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto` — imports from common.proto
 
 ### 5. Existing Workflow Protos (the domain being enhanced)
 - **Workflow spec**: `apis/ai/stigmer/agentic/workflow/v1/spec.proto`
@@ -109,13 +137,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the T03 plan from `tasks/T03_0_plan.md` (Batch 2 section)
-2. [ ] Read the latest checkpoint from `checkpoints/`
-3. [ ] Review Batch 1 protos as patterns for Batch 2
-4. [ ] Review any design decisions in `design-decisions/`
-5. [ ] Check coding guidelines in `coding-guidelines/`
-6. [ ] Review lessons in `wrong-assumptions/` and `dont-dos/`
-7. [ ] Execute Batch 2
+1. [ ] Read the latest checkpoint from `checkpoints/`
+2. [ ] Review the task plan for the next task (T04 or T05)
+3. [ ] Review any design decisions in `design-decisions/`
+4. [ ] Check coding guidelines in `coding-guidelines/`
+5. [ ] Review lessons in `wrong-assumptions/` and `dont-dos/`
+6. [ ] Execute the next task
 
 ## Project Phases
 
@@ -128,9 +155,9 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Start T03 Batch 2" - Implement human_input + validate protos
-- "Start T03 Batch 3" - Implement emit_event + notification protos
 - "Show project status" - Get overview of progress
+- "Plan T04" - Design Task Schema Registry
+- "Plan T05" - Design Budget Primitives
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
 
