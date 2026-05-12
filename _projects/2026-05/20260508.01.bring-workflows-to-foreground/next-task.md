@@ -19,46 +19,46 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-12 — OSS library/visibility + T03 plan (see changelog)
-**Current Task**: T03 — Plan APPROVED, ready for execution (Batch 1 next)
+**Last Session**: 2026-05-12 — T03 Batch 1 Complete
+**Current Task**: T03 — Batch 1 COMPLETE, Batch 2 next
 **Phase**: Phase 0 — Harden the Workflow Core
-**Next Task**: T03 Batch 1 (llm_call + transform)
+**Next Task**: T03 Batch 2 (human_input + validate)
 
 ## Session Progress (2026-05-12)
-- T02 complete (prior session): Structured Agent Output Model
-- T03 plan written with 3 batches of 6 new task types
-- Design decisions documented: keep `transform`, defer `extract`, enhance `for_each` instead of `batch`
-- T03 plan at: `tasks/T03_0_plan.md`
+- T03 Batch 1 complete: `llm_call` (enum 14) + `transform` (enum 15)
+- Extracted `OnInvalidOutputPolicy` to shared `common.proto`
+- All stubs regenerated across both repos (stigmer + stigmer-cloud)
+- Commit: `417ee6042 feat(apis/workflow): add llm_call and transform task types (T03 Batch 1)`
+- Changelog: `_changelog/2026-05/2026-05-12-140456-llm-call-transform-task-types.md`
 
-### OSS (same branch — committed 2026-05-12)
-- **Changelog**: `_changelog/2026-05/2026-05-12-132429-library-visibility-scope-and-workflow-t03-plan.md`
-- **Checkpoint**: `checkpoints/2026-05-12-session-oss-library-and-t03.md`
-- Unified library resource detail headers: `McpServerDetailView` → `ResourceDetailShell` (`headerBanner`, `headerMetaExtra`, `nameElement`, `qualifiedSlug`).
-- `VisibilityToggle`: lock/globe icons + clearer private-selected styling.
-- Library scope: `ScopeToggle` checkbox pattern; desktop list scope persistence (`scope-persistence.ts`); pickers + `SessionComposer` scope wiring.
+### Prior Progress (same day)
+- T02 complete: Structured Agent Output Model
+- T03 plan written with 3 batches of 6 new task types
+- Design decisions: keep `transform`, defer `extract`, enhance `for_each` instead of `batch`
 
 ## Next Steps
-1. Pick up T03 Batch 1: `llm_call` (enum 14) + `transform` (enum 15) — proto + codegen + validation wiring
-2. Then T03 Batch 2: `human_input` (enum 16) + `validate` (enum 17)
-3. Then T03 Batch 3: `emit_event` (enum 18) + `notification` (enum 19)
-4. After all T03 batches: T04 (Task Schema Registry) or T05 (Budget Primitives)
+1. Pick up T03 Batch 2: `human_input` (enum 16) + `validate` (enum 17) — proto + codegen + validation wiring
+2. Then T03 Batch 3: `emit_event` (enum 18) + `notification` (enum 19)
+3. After all T03 batches: T04 (Task Schema Registry) or T05 (Budget Primitives)
 
 ## Context for Resume
-- T02 proto contract is finalized and all stubs are regenerated across both repos
-- T03 plan defines 6 new task types in 3 batches (2 types per batch)
-- Design decisions: keep `transform` (distinct from `set_vars`), defer `extract` (covered by `llm_call` + `transform`), enhance `for_each` instead of adding `batch`
-- Each batch is independently deliverable and reviewable
-- Validation warning is live in the Go runner but runtime enforcement (actual schema validation at execution time) is NOT yet implemented
-- stigmer-cloud repo also has regenerated stubs (committed separately if needed)
+- T03 Batch 1 is committed and all stubs regenerated
+- `OnInvalidOutputPolicy` now lives in `common.proto` (shared by agent_call and llm_call)
+- T03 plan at `tasks/T03_0_plan.md` has full specs for Batch 2 and Batch 3
+- `human_input` is the most complex proto in T03 (multi-party, timeout-aware, form-driven)
+- `validate` is simpler (schema + rules validation with fail/branch/warn policies)
+- Batch 2 will need a new `HumanInputTimeoutPolicy` enum and `ValidationFailPolicy` enum
+- Consider whether those go in `common.proto` or stay local (timeout policy is specific to human_input; validation fail policy follows the same pattern as OnInvalidOutputPolicy)
+- stigmer-cloud stubs are regenerated but not committed yet (commit separately if needed)
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-12-t02-structured-agent-output.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-12-t03-batch1-llm-call-transform.md
 ```
 
-### 2. T03 Plan (NEW — read this first)
+### 2. T03 Plan (read this for Batch 2 specs)
 ```
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260508.01.bring-workflows-to-foreground/tasks/T03_0_plan.md
 ```
@@ -68,12 +68,11 @@ Drop this file into your conversation to quickly resume work on this project.
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260508.01.bring-workflows-to-foreground/tasks/
 ```
 
-### 3. Project Documentation
-- **README**: `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260508.01.bring-workflows-to-foreground/README.md`
-- **Research Report**: `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/research.workflow-domain-foreground-strategy/04.report.gpt.md`
-
-### 4. Key Proto (just changed)
-- **agent_call.proto**: `apis/ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto` — now has `AgentCallOutputContract`, `OnInvalidOutputPolicy`, and `output` field
+### 4. Key Protos (just changed in Batch 1)
+- **common.proto**: `apis/ai/stigmer/agentic/workflow/v1/tasks/common.proto` — shared OnInvalidOutputPolicy enum
+- **llm_call.proto**: `apis/ai/stigmer/agentic/workflow/v1/tasks/llm_call.proto` — LlmCallTaskConfig
+- **transform.proto**: `apis/ai/stigmer/agentic/workflow/v1/tasks/transform.proto` — TransformTaskConfig + TransformEngine
+- **agent_call.proto**: `apis/ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto` — now imports from common.proto
 
 ### 5. Existing Workflow Protos (the domain being enhanced)
 - **Workflow spec**: `apis/ai/stigmer/agentic/workflow/v1/spec.proto`
@@ -110,13 +109,13 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the T03 plan from `tasks/T03_0_plan.md`
-2. [ ] Check which batch to pick up next (Batch 1 → 2 → 3)
-3. [ ] Read the latest checkpoint from `checkpoints/`
+1. [ ] Read the T03 plan from `tasks/T03_0_plan.md` (Batch 2 section)
+2. [ ] Read the latest checkpoint from `checkpoints/`
+3. [ ] Review Batch 1 protos as patterns for Batch 2
 4. [ ] Review any design decisions in `design-decisions/`
 5. [ ] Check coding guidelines in `coding-guidelines/`
 6. [ ] Review lessons in `wrong-assumptions/` and `dont-dos/`
-7. [ ] Execute the next batch
+7. [ ] Execute Batch 2
 
 ## Project Phases
 
@@ -129,7 +128,6 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Start T03 Batch 1" - Implement llm_call + transform protos
 - "Start T03 Batch 2" - Implement human_input + validate protos
 - "Start T03 Batch 3" - Implement emit_event + notification protos
 - "Show project status" - Get overview of progress
