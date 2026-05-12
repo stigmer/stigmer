@@ -135,6 +135,23 @@
           "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
           "serverStreaming": true,
           "description": "Subscribe to real-time updates for a specific workflow execution (server streaming).\n\n Opens a bidirectional stream that pushes WorkflowExecution updates as they occur.\n Client receives updates when:\n - Execution phase changes (PENDING → IN_PROGRESS → COMPLETED)\n - Tasks start or complete\n - Progress events are appended\n - Output or error fields are set\n\n @internal\n Authorization:\n Standard authorization checks that user has \"get\" permission on the WorkflowExecution.\n This is the same permission check as get() RPC.\n\n Stream Lifecycle:\n 1. Client sends SubscribeWorkflowExecutionRequest with execution_id\n 2. Server validates authorization\n 3. Server sends initial WorkflowExecution (current state)\n 4. Server streams updates as execution progresses\n 5. Server closes stream when execution reaches terminal state (COMPLETED/FAILED/CANCELLED)\n 6. Client can close stream early (e.g., user navigates away from page)\n\n Update Frequency:\n - Updates are sent immediately when execution state changes\n - No polling necessary (server pushes updates)\n - Typical update latency: \u003c 100ms\n\n Use Cases:\n\n 1. Real-Time Progress Monitoring:\n - User triggers an execution from UI\n - UI subscribes to execution updates\n - UI displays live progress: tasks completing, progress bar updating\n - UI shows final output when execution completes\n\n 2. Long-Running Workflow Monitoring:\n - Workflow takes hours to complete (e.g., data processing)\n - UI subscribes and shows live progress\n - User can leave page, come back, and reconnect to same execution\n\n 3. Debugging with Live Updates:\n - Developer triggers test execution\n - Developer subscribes to watch execution progress\n - Developer sees exactly which task is running and when failures occur\n\n 4. Multi-User Collaboration:\n - Multiple users watching same execution\n - All users receive same updates simultaneously\n - All users see consistent view of execution state\n\n Stream Message Format:\n Each message is a complete WorkflowExecution resource with updated status.\n\n Error Cases:\n\n - NOT_FOUND:\n   - No WorkflowExecution exists with the given ID\n\n - PERMISSION_DENIED:\n   - User doesn't have \"get\" permission on this WorkflowExecution\n\n - DEADLINE_EXCEEDED:\n   - Client timeout (client should reconnect)\n\n - UNAVAILABLE:\n   - Server unavailable (client should retry with backoff)\n\n Example Request:\n {\n   \"execution_id\": \"wfx_abc123xyz456\"\n }\n\n Example Stream (sequence of messages):\n\n Message 1 (initial state):\n {\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 1,  // EXECUTION_PENDING\n     \"total_tasks\": 3,\n     \"completed_tasks\": 0\n   }\n }\n\n Message 2 (execution started):\n {\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 2,  // EXECUTION_IN_PROGRESS\n     \"started_at\": \"2025-01-11T14:30:22Z\"\n   }\n }\n\n Message 3 (task 1 completed):\n {\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 2,  // EXECUTION_IN_PROGRESS\n     \"completed_tasks\": 1,\n     \"tasks\": [\n       { \"task_id\": \"task-1\", \"status\": 3, \"output\": { ... } }\n     ]\n   }\n }\n\n Message 4 (execution completed):\n {\n   \"metadata\": { \"id\": \"wfx_abc123xyz456\" },\n   \"status\": {\n     \"phase\": 3,  // EXECUTION_COMPLETED\n     \"completed_tasks\": 3,\n     \"output\": { ... },\n     \"completed_at\": \"2025-01-11T14:35:47Z\"\n   }\n }\n [Stream closes]"
+        },
+        {
+          "name": "GetEventLog",
+          "inputType": "GetEventLogRequest",
+          "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest",
+          "outputType": "GetEventLogResponse",
+          "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse",
+          "description": "Fetch the paginated event log for a workflow execution.\n\n Returns execution events ordered by sequence_number ascending, with\n cursor-based pagination and optional filtering by event type or task name.\n\n @internal\n Authorization:\n Standard authorization checks that user has \"get\" permission on the\n WorkflowExecution. Same permission as get() and subscribe().\n\n The event log complements the status snapshot: the snapshot tells you\n current state, the event log tells you what happened and when.\n\n Use Cases:\n\n 1. Execution Viewer Timeline:\n    - Load full event history for a completed execution\n    - Render timeline with task transitions, retries, approvals, cost\n\n 2. Task Drill-Down:\n    - Filter by task_name to see all events for a specific task\n    - Inspect retry history, duration, cost per attempt\n\n 3. Cost Audit:\n    - Filter by budget_checkpoint events to chart cost over time\n    - Correlate cost spikes with specific agent_call tasks\n\n 4. Approval Audit Trail:\n    - Filter by approval_requested and approval_resolved\n    - See who approved what, when, and with what comment\n\n Error Cases:\n\n - NOT_FOUND: No WorkflowExecution exists with the given ID\n - PERMISSION_DENIED: User doesn't have \"get\" permission\n - INVALID_ARGUMENT: page_size exceeds maximum (500)\n\n @since T06 (Execution Event Stream Model)"
+        },
+        {
+          "name": "SubscribeEvents",
+          "inputType": "SubscribeEventsRequest",
+          "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest",
+          "outputType": "WorkflowExecutionEvent",
+          "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent",
+          "serverStreaming": true,
+          "description": "Subscribe to real-time execution events (incremental event stream).\n\n Opens a server-side streaming RPC that pushes individual\n WorkflowExecutionEvent messages as they occur during execution.\n Unlike subscribe() which streams full WorkflowExecution snapshots,\n this streams lightweight incremental events for the timeline view.\n\n @internal\n Authorization:\n Standard authorization checks that user has \"get\" permission on the\n WorkflowExecution. Same permission as get() and subscribe().\n\n Stream Lifecycle:\n 1. Client sends SubscribeEventsRequest with execution_id\n 2. Server validates authorization\n 3. If after_sequence \u003e 0: Server replays missed events from persistence\n 4. Server streams new events in real-time as the runner emits them\n 5. Server closes stream when execution reaches a terminal phase\n    (COMPLETED, FAILED, CANCELLED, TERMINATED)\n 6. Client can close stream early\n\n Reconnection:\n On disconnect, the client reconnects with after_sequence set to the\n sequence_number of the last received event. The server replays any\n events missed during the disconnect, then resumes live streaming.\n No events are lost.\n\n Complementary Streams:\n - subscribe(): Full snapshots for current-state views (progress bars, dashboards)\n - subscribeEvents(): Incremental events for timeline views (execution viewer)\n Both streams can be used simultaneously for different UI concerns.\n\n Use Cases:\n\n 1. Live Execution Timeline:\n    - User watches a running execution in the execution viewer\n    - Events stream in real-time, building the timeline as tasks progress\n    - Each event adds a row: \"task X started\", \"task X completed (2.3s, $0.05)\"\n\n 2. Cost Monitoring:\n    - Dashboard subscribes with event_types filter for budget_checkpoint\n    - Budget gauge updates in real-time as costs accumulate\n\n 3. Approval Notifications:\n    - Subscribe with event_types filter for approval_requested\n    - Surface approval gates immediately when they activate\n\n Error Cases:\n\n - NOT_FOUND: No WorkflowExecution exists with the given ID\n - PERMISSION_DENIED: User doesn't have \"get\" permission\n - DEADLINE_EXCEEDED: Client timeout (reconnect with after_sequence)\n - UNAVAILABLE: Server unavailable (retry with backoff)\n\n @since T06 (Execution Event Stream Model)"
         }
       ]
     }
@@ -172,6 +189,20 @@
           "validation": {
             "required": true
           }
+        },
+        {
+          "name": "Events",
+          "jsonName": "events",
+          "protoField": "events",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "WorkflowExecutionEvent"
+            }
+          },
+          "description": "Execution events to append to the event log alongside this status update.\n\n @internal\n Append-only: events are added to the persistent event log, never replaced.\n This contrasts with status.tasks which uses full-replace protocol.\n\n The workflow-runner appends events atomically with each status update,\n ensuring the event log stays consistent with the status snapshot.\n Events must have monotonically increasing sequence_numbers — the handler\n rejects batches where any event's sequence_number is \u003c= the current\n highest persisted sequence for this execution.\n\n Empty list means no new events (backward compatible — existing runners\n that do not yet emit events continue to work without changes).\n\n @since T06 (Execution Event Stream Model)",
+          "required": false
         }
       ]
     },
@@ -588,6 +619,529 @@
           }
         }
       ]
+    },
+    {
+      "name": "GetEventLogRequest",
+      "description": "GetEventLogRequest fetches the paginated event log for a workflow execution.\n\n @internal\n Returns events ordered by sequence_number ascending. Supports cursor-based\n pagination via after_sequence and optional filtering by event type or task.\n\n Use Cases:\n\n 1. Execution Viewer Timeline (T09):\n    - UI loads execution state via get(), then fetches event log for timeline\n    - Initial load: after_sequence = 0, page_size = 100\n    - Subsequent pages: after_sequence = latest_sequence from previous response\n\n 2. Task Drill-Down:\n    - User clicks a task in the viewer to see its full history\n    - Filter by task_name to get only events for that task\n\n 3. Cost Analysis:\n    - Filter by budget_checkpoint events to chart cost over time\n\n @since T06 (Execution Event Stream Model)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Execution ID to fetch events for.\n\n @internal\n Format: \"wfx_{unique-suffix}\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "AfterSequence",
+          "jsonName": "afterSequence",
+          "protoField": "after_sequence",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Return events with sequence_number strictly greater than this value.\n\n @internal\n Cursor-based pagination: set to 0 for the first page, then to\n latest_sequence from the previous response for subsequent pages.\n Also used by subscribeEvents for replay + live tail positioning.",
+          "required": false
+        },
+        {
+          "name": "EventTypes",
+          "jsonName": "eventTypes",
+          "protoField": "event_types",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string",
+              "enumType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType",
+              "enumValues": [
+                "execution_started",
+                "execution_completed",
+                "execution_failed",
+                "execution_paused",
+                "execution_resumed",
+                "execution_cancelled",
+                "execution_terminated",
+                "task_started",
+                "task_completed",
+                "task_failed",
+                "task_skipped",
+                "task_retrying",
+                "agent_call_started",
+                "agent_call_progress",
+                "agent_call_completed",
+                "approval_requested",
+                "approval_resolved",
+                "budget_checkpoint",
+                "signal_received",
+                "event_emitted"
+              ]
+            }
+          },
+          "description": "Optional filter: return only events of these types.\n\n @internal\n When empty, all event types are returned. When populated, only events\n whose event_type matches one of the specified values are included.\n Useful for filtering to only task lifecycle events, or only budget events.",
+          "required": false
+        },
+        {
+          "name": "TaskName",
+          "jsonName": "taskName",
+          "protoField": "task_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional filter: return only events for this task.\n\n @internal\n When empty, events for all tasks (and execution-level events) are returned.\n When populated, only events where task_name matches are included.\n Execution-level events (empty task_name) are excluded when this filter is set.",
+          "required": false
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of events to return per page.\n\n @internal\n Default: 100. Maximum: 500 (backend enforces this limit).\n Events are always returned in sequence_number ascending order.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetEventLogResponse",
+      "description": "GetEventLogResponse contains a page of execution events.\n\n @internal\n @since T06 (Execution Event Stream Model)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Events",
+          "jsonName": "events",
+          "protoField": "events",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "WorkflowExecutionEvent"
+            }
+          },
+          "description": "Events in this page, ordered by sequence_number ascending.",
+          "required": false
+        },
+        {
+          "name": "HasMore",
+          "jsonName": "hasMore",
+          "protoField": "has_more",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether more events exist after the last event in this response.\n When false, the client has reached the end of the current event log.\n For in-progress executions, more events may appear later.",
+          "required": false
+        },
+        {
+          "name": "LatestSequence",
+          "jsonName": "latestSequence",
+          "protoField": "latest_sequence",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Highest sequence_number returned in this response.\n Use as after_sequence in the next request for cursor-based pagination.\n 0 when events is empty.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SubscribeEventsRequest",
+      "description": "SubscribeEventsRequest opens a real-time event stream for a workflow execution.\n\n @internal\n Unlike subscribe() which streams full WorkflowExecution snapshots, this\n streams individual WorkflowExecutionEvent messages as they occur.\n Lightweight and incremental — suitable for the execution viewer timeline.\n\n Replay + Live Tail:\n When after_sequence is set, the server first replays persisted events\n with sequence_number \u003e after_sequence, then switches to live streaming.\n This enables seamless reconnection without missing events.\n\n Stream Lifecycle:\n 1. Client sends SubscribeEventsRequest with execution_id\n 2. Server validates authorization\n 3. If after_sequence \u003e 0: Server replays missed events\n 4. Server streams new events in real-time as they occur\n 5. Server closes stream when execution reaches a terminal phase\n 6. Client can close stream early (e.g., user navigates away)\n\n @since T06 (Execution Event Stream Model)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Execution ID to subscribe to.\n\n @internal\n Format: \"wfx_{unique-suffix}\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "AfterSequence",
+          "jsonName": "afterSequence",
+          "protoField": "after_sequence",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resume from this sequence number (replay + live tail).\n\n @internal\n 0 = start from the beginning (replay all events then live tail).\n N = replay events with sequence_number \u003e N, then live tail.\n\n Use the latest_sequence from a previous getEventLog response or\n the last received event's sequence_number for reconnection.",
+          "required": false
+        },
+        {
+          "name": "EventTypes",
+          "jsonName": "eventTypes",
+          "protoField": "event_types",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string",
+              "enumType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType",
+              "enumValues": [
+                "execution_started",
+                "execution_completed",
+                "execution_failed",
+                "execution_paused",
+                "execution_resumed",
+                "execution_cancelled",
+                "execution_terminated",
+                "task_started",
+                "task_completed",
+                "task_failed",
+                "task_skipped",
+                "task_retrying",
+                "agent_call_started",
+                "agent_call_progress",
+                "agent_call_completed",
+                "approval_requested",
+                "approval_resolved",
+                "budget_checkpoint",
+                "signal_received",
+                "event_emitted"
+              ]
+            }
+          },
+          "description": "Optional filter: stream only events of these types.\n\n @internal\n When empty, all event types are streamed.\n Applied to both replayed and live events.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "WorkflowExecutionEvent",
+      "description": "WorkflowExecutionEvent represents a single timestamped event in the execution\n timeline of a workflow run.\n\n @internal\n Events form an append-only log that captures the full history of an execution:\n what happened, when, and in what order. This complements the existing\n WorkflowExecutionStatus snapshot model (which answers \"what is the current state?\")\n by adding the temporal dimension (\"what happened?\").\n\n The event log enables:\n - Execution viewer timeline (T09) — ordered sequence of task transitions\n - Retry visibility — task_started + task_failed + task_retrying + task_started\n   tells the full story that a point-in-time snapshot cannot\n - Cost attribution — per-task cost/token breakdown over time\n - Audit trail — who approved what, when, with what decision\n - Agent subtrace context — lightweight progress summaries with child execution\n   references for drill-down (full agent stream fetched separately)\n\n Ordering:\n Events are ordered by sequence_number (monotonic per execution, assigned by\n the workflow-runner). Wall-clock occurred_at is informational; sequence_number\n is the authoritative ordering key.\n\n Production:\n The workflow-runner appends events alongside status updates via the\n updateStatus RPC. Events are persisted atomically with the status update.\n\n Consumption:\n - getEventLog RPC: paginated fetch for completed or in-progress executions\n - subscribeEvents RPC: real-time server-stream of incremental events\n\n @since T06 (Execution Event Stream Model)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/event.proto",
+      "fields": [
+        {
+          "name": "EventId",
+          "jsonName": "eventId",
+          "protoField": "event_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique event identifier.\n\n @internal\n Format: UUID v4, generated by the workflow-runner at event creation time.\n Used for deduplication on retries: (execution_id, event_id) is unique.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "EventType",
+          "jsonName": "eventType",
+          "protoField": "event_type",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType",
+            "enumValues": [
+              "execution_started",
+              "execution_completed",
+              "execution_failed",
+              "execution_paused",
+              "execution_resumed",
+              "execution_cancelled",
+              "execution_terminated",
+              "task_started",
+              "task_completed",
+              "task_failed",
+              "task_skipped",
+              "task_retrying",
+              "agent_call_started",
+              "agent_call_progress",
+              "agent_call_completed",
+              "approval_requested",
+              "approval_resolved",
+              "budget_checkpoint",
+              "signal_received",
+              "event_emitted"
+            ]
+          },
+          "description": "Type of event that occurred.\n\n @internal\n Determines which oneof payload field is populated.\n Consumers should switch on event_type to extract the correct payload.",
+          "required": false
+        },
+        {
+          "name": "SequenceNumber",
+          "jsonName": "sequenceNumber",
+          "protoField": "sequence_number",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Monotonically increasing sequence number within this execution.\n\n @internal\n Assigned by the workflow-runner, starting at 1 for the first event.\n Provides total ordering within a single execution without relying on\n clock synchronization. Used as the cursor for paginated event queries\n (getEventLog) and live-tail positioning (subscribeEvents).\n\n If the runner crashes and restarts, it queries getEventLog to recover\n the last sequence number before emitting new events.",
+          "required": false
+        },
+        {
+          "name": "OccurredAt",
+          "jsonName": "occurredAt",
+          "protoField": "occurred_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the event occurred.\n\n @internal\n Wall-clock time from the workflow-runner. Informational — do not use\n for ordering (use sequence_number instead). Useful for:\n - Displaying human-readable timestamps in the execution viewer\n - Calculating task durations (task_completed.occurred_at - task_started.occurred_at)\n - Correlating with external system logs\n\n Format: \"YYYY-MM-DDTHH:MM:SS.sssZ\" (UTC, millisecond precision)",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "TaskName",
+          "jsonName": "taskName",
+          "protoField": "task_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Name of the task this event relates to, if applicable.\n\n @internal\n Empty for execution-level events (execution_started, execution_completed, etc.).\n Populated for task-level events (task_started, task_completed, agent_call_progress, etc.).\n Matches WorkflowTask.task_name in the status snapshot.\n\n Enables filtering events by task: \"show me everything that happened for task X.\"",
+          "required": false
+        },
+        {
+          "name": "ExecutionStarted",
+          "jsonName": "executionStarted",
+          "protoField": "execution_started",
+          "type": {
+            "kind": "message",
+            "messageType": "ExecutionStartedPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "ExecutionCompleted",
+          "jsonName": "executionCompleted",
+          "protoField": "execution_completed",
+          "type": {
+            "kind": "message",
+            "messageType": "ExecutionCompletedPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "ExecutionFailed",
+          "jsonName": "executionFailed",
+          "protoField": "execution_failed",
+          "type": {
+            "kind": "message",
+            "messageType": "ExecutionFailedPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "ExecutionPaused",
+          "jsonName": "executionPaused",
+          "protoField": "execution_paused",
+          "type": {
+            "kind": "message",
+            "messageType": "ExecutionPausedPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "ExecutionResumed",
+          "jsonName": "executionResumed",
+          "protoField": "execution_resumed",
+          "type": {
+            "kind": "message",
+            "messageType": "ExecutionResumedPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "ExecutionCancelled",
+          "jsonName": "executionCancelled",
+          "protoField": "execution_cancelled",
+          "type": {
+            "kind": "message",
+            "messageType": "ExecutionCancelledPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "ExecutionTerminated",
+          "jsonName": "executionTerminated",
+          "protoField": "execution_terminated",
+          "type": {
+            "kind": "message",
+            "messageType": "ExecutionTerminatedPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "TaskStarted",
+          "jsonName": "taskStarted",
+          "protoField": "task_started",
+          "type": {
+            "kind": "message",
+            "messageType": "TaskStartedPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "TaskCompleted",
+          "jsonName": "taskCompleted",
+          "protoField": "task_completed",
+          "type": {
+            "kind": "message",
+            "messageType": "TaskCompletedPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "TaskFailed",
+          "jsonName": "taskFailed",
+          "protoField": "task_failed",
+          "type": {
+            "kind": "message",
+            "messageType": "TaskFailedPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "TaskSkipped",
+          "jsonName": "taskSkipped",
+          "protoField": "task_skipped",
+          "type": {
+            "kind": "message",
+            "messageType": "TaskSkippedPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "TaskRetrying",
+          "jsonName": "taskRetrying",
+          "protoField": "task_retrying",
+          "type": {
+            "kind": "message",
+            "messageType": "TaskRetryingPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "AgentCallStarted",
+          "jsonName": "agentCallStarted",
+          "protoField": "agent_call_started",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentCallStartedPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "AgentCallProgress",
+          "jsonName": "agentCallProgress",
+          "protoField": "agent_call_progress",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentCallProgressPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "AgentCallCompleted",
+          "jsonName": "agentCallCompleted",
+          "protoField": "agent_call_completed",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentCallCompletedPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "ApprovalRequested",
+          "jsonName": "approvalRequested",
+          "protoField": "approval_requested",
+          "type": {
+            "kind": "message",
+            "messageType": "ApprovalRequestedPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "ApprovalResolved",
+          "jsonName": "approvalResolved",
+          "protoField": "approval_resolved",
+          "type": {
+            "kind": "message",
+            "messageType": "ApprovalResolvedPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "BudgetCheckpoint",
+          "jsonName": "budgetCheckpoint",
+          "protoField": "budget_checkpoint",
+          "type": {
+            "kind": "message",
+            "messageType": "BudgetCheckpointPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "SignalReceived",
+          "jsonName": "signalReceived",
+          "protoField": "signal_received",
+          "type": {
+            "kind": "message",
+            "messageType": "SignalReceivedPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        },
+        {
+          "name": "EventEmitted",
+          "jsonName": "eventEmitted",
+          "protoField": "event_emitted",
+          "type": {
+            "kind": "message",
+            "messageType": "EventEmittedPayload"
+          },
+          "description": "",
+          "required": false,
+          "oneofGroup": "payload"
+        }
+      ]
     }
   ],
   "enumTypes": [
@@ -652,6 +1206,113 @@
           "name": "EXECUTION_PAUSED",
           "number": 7,
           "description": "Execution was paused by user and can be resumed.\n\n @internal\n NOT a terminal state - execution can be resumed via the resume RPC.\n\n When this phase is reached:\n - Running activities are gracefully cancelled\n - Checkpoints are saved (LangGraph thread_id preserved)\n - No completed_at timestamp (execution is not finished)\n\n Resume behavior:\n - Workflow re-invokes activity with same thread_id\n - Activity loads from LangGraph checkpoint\n - Execution continues from where it was paused"
+        }
+      ]
+    },
+    {
+      "name": "WorkflowEventType",
+      "description": "WorkflowEventType categorizes execution events for filtering and dispatch.\n\n @internal\n Values are grouped by concern with numeric gaps for future additions:\n - 1–9: Execution lifecycle\n - 11–19: Task lifecycle\n - 21–29: Agent call\n - 31–39: Human input / approval\n - 41–49: Budget\n - 51–59: Signals and emitted events\n\n @since T06 (Execution Event Stream Model)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType",
+      "values": [
+        {
+          "name": "execution_started",
+          "number": 1,
+          "description": "Workflow execution began processing.\n Emitted when phase transitions from PENDING to IN_PROGRESS.\n Payload: ExecutionStartedPayload."
+        },
+        {
+          "name": "execution_completed",
+          "number": 2,
+          "description": "Workflow execution completed successfully.\n Terminal event — no more events will follow for this execution.\n Payload: ExecutionCompletedPayload."
+        },
+        {
+          "name": "execution_failed",
+          "number": 3,
+          "description": "Workflow execution failed.\n Terminal event — no more events will follow for this execution.\n Payload: ExecutionFailedPayload."
+        },
+        {
+          "name": "execution_paused",
+          "number": 4,
+          "description": "Workflow execution was paused by user or system.\n Non-terminal — execution can be resumed.\n Payload: ExecutionPausedPayload."
+        },
+        {
+          "name": "execution_resumed",
+          "number": 5,
+          "description": "Workflow execution was resumed after a pause.\n Payload: ExecutionResumedPayload."
+        },
+        {
+          "name": "execution_cancelled",
+          "number": 6,
+          "description": "Workflow execution was cancelled by user.\n Terminal event.\n Payload: ExecutionCancelledPayload."
+        },
+        {
+          "name": "execution_terminated",
+          "number": 7,
+          "description": "Workflow execution was force-terminated.\n Terminal event.\n Payload: ExecutionTerminatedPayload."
+        },
+        {
+          "name": "task_started",
+          "number": 11,
+          "description": "A workflow task began execution.\n Payload: TaskStartedPayload."
+        },
+        {
+          "name": "task_completed",
+          "number": 12,
+          "description": "A workflow task completed successfully.\n Payload: TaskCompletedPayload."
+        },
+        {
+          "name": "task_failed",
+          "number": 13,
+          "description": "A workflow task failed.\n Payload: TaskFailedPayload."
+        },
+        {
+          "name": "task_skipped",
+          "number": 14,
+          "description": "A workflow task was skipped due to conditional logic.\n Payload: TaskSkippedPayload."
+        },
+        {
+          "name": "task_retrying",
+          "number": 15,
+          "description": "A workflow task is being retried after a failure.\n Payload: TaskRetryingPayload."
+        },
+        {
+          "name": "agent_call_started",
+          "number": 21,
+          "description": "A child AgentExecution was created for an agent_call task.\n Payload: AgentCallStartedPayload."
+        },
+        {
+          "name": "agent_call_progress",
+          "number": 22,
+          "description": "Periodic progress summary for a running agent_call task.\n Payload: AgentCallProgressPayload."
+        },
+        {
+          "name": "agent_call_completed",
+          "number": 23,
+          "description": "The child AgentExecution for an agent_call task finished.\n Payload: AgentCallCompletedPayload."
+        },
+        {
+          "name": "approval_requested",
+          "number": 31,
+          "description": "An approval gate was activated (human_input task or agent tool approval).\n Payload: ApprovalRequestedPayload."
+        },
+        {
+          "name": "approval_resolved",
+          "number": 32,
+          "description": "An approval decision was made.\n Payload: ApprovalResolvedPayload."
+        },
+        {
+          "name": "budget_checkpoint",
+          "number": 41,
+          "description": "Periodic snapshot of budget consumption vs. remaining capacity.\n Payload: BudgetCheckpointPayload."
+        },
+        {
+          "name": "signal_received",
+          "number": 51,
+          "description": "An external signal was received by a listen task.\n Payload: SignalReceivedPayload."
+        },
+        {
+          "name": "event_emitted",
+          "number": 52,
+          "description": "The workflow published a CloudEvent via an emit_event task.\n Payload: EventEmittedPayload."
         }
       ]
     },
@@ -748,6 +1409,177 @@
           "name": "visibility_public",
           "number": 2,
           "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        }
+      ]
+    },
+    {
+      "name": "WorkflowTaskKind",
+      "description": "WorkflowTaskKind defines the supported task types in a workflow.\n\n @internal\n These map directly to Zigflow DSL task types.\n\n Naming conventions:\n - Zero value: Prefixed for clarity (workflow_task_kind_unspecified)\n - Invocations: Consistent _call suffix (http_call, grpc_call, agent_call, activity_call)\n - Control flow keywords: Semantic suffixes to avoid reserved words (switch_case, for_each, try_catch)\n - Self-descriptive verbs: No suffix needed (fork, listen, wait)\n - Verb + object: For clarity when verb alone is ambiguous (set_vars, run_workflow, raise_error)\n\n Task config schemas (for each kind):\n\n set_vars: {\"variables\": {\"key\": \"value\", ...}}\n http_call: {\"method\": \"POST\", \"endpoint\": {\"uri\": \"...\"}, \"headers\": {...}, \"body\": {...}}\n grpc_call: {\"service\": \"...\", \"method\": \"...\", \"request\": {...}}\n activity_call: {\"activity\": \"ActivityName\", \"input\": {...}}\n switch_case: {\"cases\": [{\"name\": \"...\", \"when\": \"${expr}\", \"then\": \"taskName\"}, ...]}\n for_each: {\"each\": \"item\", \"in\": \"${$data.items}\", \"do\": [{task}, ...]}\n fork: {\"branches\": [{\"name\": \"...\", \"do\": [{task}, ...]}, ...], \"compete\": false}\n try_catch: {\"try\": [{task}, ...], \"catch\": {\"as\": \"error\", \"do\": [{task}, ...]}}\n listen: {\"to\": {\"mode\": \"one\", \"signals\": [{\"id\": \"...\", \"type\": \"signal\"}]}}\n wait: {\"seconds\": 5}\n raise_error: {\"error\": \"ErrorType\", \"message\": \"${...}\"}\n run_workflow: {\"workflow\": \"workflow-name\", \"input\": {...}}\n agent_call: {\"agent\": \"agent-slug\", \"message\": \"...\", \"env\": {...}}\n llm_call: {\"model\": \"...\", \"prompt\": \"...\", \"response_schema\": {...}, \"on_invalid\": \"...\"}\n transform: {\"engine\": \"jq\", \"expression\": \"...\", \"input\": \"${...}\"}\n human_input: {\"prompt\": \"...\", \"form_schema\": {...}, \"outcomes\": [...], \"approvers\": [...], \"timeout\": 86400}\n validate: {\"input\": \"${...}\", \"schema\": {...}, \"rules\": [...], \"on_fail\": \"...\"}\n emit_event: {\"event\": {\"type\": \"...\", \"source\": \"...\", \"subject\": \"...\", \"data\": {...}}}\n notification: {\"channel\": \"slack\", \"recipients\": [\"...\"], \"subject\": \"...\", \"body\": \"...\", \"template\": \"...\", \"metadata\": {...}}",
+      "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowTaskKind",
+      "values": [
+        {
+          "name": "set_vars",
+          "number": 1,
+          "description": "Set variables in workflow state.\n\n @internal\n Config: {\"variables\": {\"key\": \"value\", ...}}"
+        },
+        {
+          "name": "http_call",
+          "number": 2,
+          "description": "Make an HTTP request (GET, POST, PUT, DELETE, PATCH).\n\n @internal\n Config: {\"method\": \"POST\", \"endpoint\": {\"uri\": \"...\"}, \"headers\": {...}, \"body\": {...}}"
+        },
+        {
+          "name": "grpc_call",
+          "number": 3,
+          "description": "Make a gRPC request to an external service.\n\n @internal\n Config: {\"service\": \"...\", \"method\": \"...\", \"request\": {...}}"
+        },
+        {
+          "name": "activity_call",
+          "number": 4,
+          "description": "Execute an activity.\n\n @internal\n Config: {\"activity\": \"ActivityName\", \"input\": {...}}\n Executes a Temporal activity."
+        },
+        {
+          "name": "switch_case",
+          "number": 5,
+          "description": "Branch conditionally based on expressions.\n\n @internal\n Config: {\"cases\": [{\"name\": \"...\", \"when\": \"${expr}\", \"then\": \"taskName\"}, ...]}"
+        },
+        {
+          "name": "for_each",
+          "number": 6,
+          "description": "Iterate over a collection, executing tasks for each item.\n\n @internal\n Config: {\"each\": \"item\", \"in\": \"${$data.items}\", \"do\": [{task}, ...]}"
+        },
+        {
+          "name": "fork",
+          "number": 7,
+          "description": "Execute multiple branches in parallel.\n\n @internal\n Config: {\"branches\": [{\"name\": \"...\", \"do\": [{task}, ...]}, ...], \"compete\": false}"
+        },
+        {
+          "name": "try_catch",
+          "number": 8,
+          "description": "Handle errors with try/catch logic.\n\n @internal\n Config: {\"try\": [{task}, ...], \"catch\": {\"as\": \"error\", \"do\": [{task}, ...]}}"
+        },
+        {
+          "name": "listen",
+          "number": 9,
+          "description": "Wait for external signals or events.\n\n @internal\n Config: {\"to\": {\"mode\": \"one\", \"signals\": [{\"id\": \"...\", \"type\": \"signal\"}]}}\n Implemented via Temporal signals."
+        },
+        {
+          "name": "wait",
+          "number": 10,
+          "description": "Pause execution for a duration or until a timestamp.\n\n @internal\n Config: {\"seconds\": 5}\n Implemented via Temporal timers."
+        },
+        {
+          "name": "raise_error",
+          "number": 11,
+          "description": "Raise an error to terminate or trigger error handling.\n\n @internal\n Config: {\"error\": \"ErrorType\", \"message\": \"${...}\"}"
+        },
+        {
+          "name": "run_workflow",
+          "number": 12,
+          "description": "Execute a sub-workflow.\n\n @internal\n Config: {\"workflow\": \"workflow-name\", \"input\": {...}}\n Implemented via Temporal child workflows."
+        },
+        {
+          "name": "agent_call",
+          "number": 13,
+          "description": "Invoke an AI agent as a workflow task.\n\n @internal\n Allows workflows to delegate complex operations to specialized agents.\n Config: {\"agent\": \"agent-slug\", \"message\": \"...\", \"env\": {...}, \"config\": {...}}"
+        },
+        {
+          "name": "llm_call",
+          "number": 14,
+          "description": "Direct LLM call for classification, extraction, scoring, or routing.\n\n @internal\n Lightweight alternative to agent_call for focused LLM tasks without\n agent overhead (no system prompt resolution, tool setup, or MCP wiring).\n Config: {\"model\": \"...\", \"prompt\": \"...\", \"response_schema\": {...}}"
+        },
+        {
+          "name": "transform",
+          "number": 15,
+          "description": "Deterministic data transformation using JQ, JSONata, or template engines.\n\n @internal\n Reshapes data between tasks without LLM calls. Produces explicit output\n via export, unlike set_vars which mutates workflow state as a side effect.\n Config: {\"engine\": \"jq\", \"expression\": \"...\", \"input\": \"${...}\"}"
+        },
+        {
+          "name": "human_input",
+          "number": 16,
+          "description": "Workflow-level approval gate for human input, review, or sign-off.\n\n @internal\n Pauses workflow execution to collect typed input or approval from a\n human reviewer. Supports custom outcomes, form schemas, approver\n lists, timeouts, and notification channels.\n Config: {\"prompt\": \"...\", \"form_schema\": {...}, \"outcomes\": [...], \"approvers\": [...]}"
+        },
+        {
+          "name": "validate",
+          "number": 17,
+          "description": "Schema and business-rule validation checkpoint.\n\n @internal\n Validates workflow data against JSON Schema and/or business rules\n before downstream tasks consume it. Supports fail, branch, and warn\n policies for flexible error handling.\n Config: {\"input\": \"${...}\", \"schema\": {...}, \"rules\": [...], \"on_fail\": \"...\"}"
+        },
+        {
+          "name": "emit_event",
+          "number": 18,
+          "description": "Emit a CloudEvents-formatted event for external consumers or other workflows.\n\n @internal\n Completes the listen/emit duality: listen waits for Temporal signals,\n emit_event publishes business events using the CloudEvents envelope.\n The runtime bridges the two when events target other workflows.\n Config: {\"event\": {\"type\": \"...\", \"source\": \"...\", \"subject\": \"...\", \"data\": {...}}}"
+        },
+        {
+          "name": "notification",
+          "number": 19,
+          "description": "Send a notification to humans through a channel (Slack, email, Discord, etc.).\n\n @internal\n Fire-and-forget convenience abstraction for operational notifications.\n For notifications requiring acknowledgment, use human_input instead.\n Config: {\"channel\": \"slack\", \"recipients\": [\"...\"], \"subject\": \"...\", \"body\": \"...\"}"
+        }
+      ]
+    },
+    {
+      "name": "ExecutionPhase",
+      "description": "ExecutionPhase defines the lifecycle phase of an agent execution.\n\n Phase Transitions:\n\n Normal flow:\n EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_COMPLETED\n\n Failure flow:\n EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_FAILED\n\n Termination flow (platform-initiated stop):\n EXECUTION_IN_PROGRESS → EXECUTION_TERMINATED\n\n Approval flow (HITL):\n EXECUTION_IN_PROGRESS → EXECUTION_WAITING_FOR_APPROVAL → EXECUTION_IN_PROGRESS\n\n Pause/Resume flow:\n EXECUTION_IN_PROGRESS → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n\n Terminal States:\n - EXECUTION_COMPLETED: Agent finished successfully\n - EXECUTION_FAILED: Agent encountered an unexpected error\n - EXECUTION_TERMINATED: Platform stopped the agent (stall, budget, or force-kill)\n - EXECUTION_CANCELLED: User gracefully stopped the agent\n\n Non-Terminal States:\n - EXECUTION_WAITING_FOR_APPROVAL: Awaiting user approval for tool\n - EXECUTION_PAUSED: Temporarily paused, can be resumed",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ExecutionPhase",
+      "values": [
+        {
+          "name": "EXECUTION_PENDING",
+          "number": 1,
+          "description": "Execution is queued and waiting for a worker to start processing."
+        },
+        {
+          "name": "EXECUTION_IN_PROGRESS",
+          "number": 2,
+          "description": "Execution is actively running — the agent is processing and producing output."
+        },
+        {
+          "name": "EXECUTION_COMPLETED",
+          "number": 3,
+          "description": "Execution finished successfully and the agent produced a final response."
+        },
+        {
+          "name": "EXECUTION_FAILED",
+          "number": 4,
+          "description": "Execution encountered an unexpected error and could not finish."
+        },
+        {
+          "name": "EXECUTION_CANCELLED",
+          "number": 5,
+          "description": "Execution was gracefully stopped by the user before it finished."
+        },
+        {
+          "name": "EXECUTION_TERMINATED",
+          "number": 8,
+          "description": "Execution was stopped by the platform.\n\n Unlike CANCELLED (user-initiated graceful stop) and FAILED (unexpected\n error), TERMINATED means the platform intentionally stopped this\n execution — either via automated safety mechanisms or user-initiated\n force-kill.\n\n Terminal state — execution will not change phases again.\n\n When this phase is reached:\n - completed_at timestamp is set\n - error field contains the termination reason\n\n Trigger paths:\n - Internal (activity-level): stall timeout (agent unresponsive),\n   tool-call budget exhausted (GraphRecursionError). LangGraph\n   checkpoint is valid; the user can continue via follow-up message.\n - External (Terminate RPC): user or system force-kills the Temporal\n   workflow. LangGraph checkpoint may be incomplete.\n\n Use Cases:\n - Agent stalled — no events for the configured timeout\n - Agent exhausted its tool-call budget (recursion limit)\n - Force-stop stuck agents that don't respond to cancellation\n - Kill agents consuming excessive resources\n\n Terminated vs Cancelled vs Failed:\n - Terminated: Platform stopped it (automated or force-kill)\n - Cancelled: User gracefully stopped it (checkpoint saved)\n - Failed: Something broke unexpectedly (exception, crash)\n\n @since Agent Execution Lifecycle"
+        },
+        {
+          "name": "EXECUTION_WAITING_FOR_APPROVAL",
+          "number": 6,
+          "description": "Blocked on tool approval (HITL Phase 1).\n\n The agent has encountered a tool that requires user approval before execution.\n When in this phase:\n - status.pending_approval contains details about the tool awaiting approval\n - User must call SubmitApproval RPC to continue\n\n This is NOT a terminal state - execution resumes after approval decision:\n - APPROVE: Tool executes, phase returns to EXECUTION_IN_PROGRESS\n - SKIP: Tool returns skip message, phase returns to EXECUTION_IN_PROGRESS\n - REJECT: Execution fails, phase transitions to EXECUTION_FAILED\n\n UI should show distinct treatment for this phase (e.g., approval dialog)."
+        },
+        {
+          "name": "EXECUTION_PAUSED",
+          "number": 7,
+          "description": "Execution was paused by user and can be resumed.\n\n The execution was temporarily stopped at a checkpoint and can continue\n from where it left off. Unlike CANCELLED, the execution is not terminal.\n\n Pause flow:\n EXECUTION_IN_PROGRESS → EXECUTION_PAUSED\n\n Resume flow:\n EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n\n NOT a terminal state - execution can be resumed.\n\n When this phase is reached:\n - Running activities are gracefully cancelled\n - LangGraph checkpoints are saved (thread_id preserved)\n - No completed_at timestamp (execution is not finished)\n\n Resume behavior:\n - Activity is re-invoked with same thread_id\n - LangGraph loads from checkpoint automatically\n - Execution continues from where it was paused\n\n @since Gap A3 (Pause/Resume Propagation)"
+        }
+      ]
+    },
+    {
+      "name": "BudgetExceededPolicy",
+      "description": "BudgetExceededPolicy defines the runtime behavior when a workflow or per-task\n budget limit is exceeded.\n\n The runtime (T13) evaluates this policy at task boundaries: after each task\n completes, accumulated costs and tokens are compared against the declared\n budget. If a limit is breached, the policy determines what happens next.\n\n @since T05 (Workflow-Level Budget Primitives)",
+      "protoType": "ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy",
+      "values": [
+        {
+          "name": "budget_exceeded_terminate",
+          "number": 1,
+          "description": "Terminate the workflow immediately with EXECUTION_FAILED status.\n The execution record includes the budget breach details for diagnostics."
+        },
+        {
+          "name": "budget_exceeded_human_review",
+          "number": 2,
+          "description": "Pause the workflow and request human review via a system-generated\n approval gate. The reviewer can approve continued execution (with\n an increased budget) or confirm termination.\n Depends on the human_input runtime (T13). If human_input runtime\n is not available, falls back to terminate with a descriptive error."
+        },
+        {
+          "name": "budget_exceeded_warn",
+          "number": 3,
+          "description": "Log a warning but allow the workflow to continue executing.\n Useful for monitoring/alerting without interrupting production workflows."
         }
       ]
     }

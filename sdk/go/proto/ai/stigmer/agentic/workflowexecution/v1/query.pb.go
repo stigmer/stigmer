@@ -26,12 +26,14 @@ var File_ai_stigmer_agentic_workflowexecution_v1_query_proto protoreflect.FileDe
 
 const file_ai_stigmer_agentic_workflowexecution_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/workflowexecution/v1/query.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a0ai/stigmer/agentic/workflowexecution/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x84\x06\n" +
+	"3ai/stigmer/agentic/workflowexecution/v1/query.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a3ai/stigmer/agentic/workflowexecution/v1/event.proto\x1a0ai/stigmer/agentic/workflowexecution/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xc1\t\n" +
 	" WorkflowExecutionQueryController\x12\xb8\x01\n" +
 	"\x03get\x12<.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionId\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"7¸\x183\b\x01\x104\"\x05value*&unauthorized to get workflow execution\x12\x94\x01\n" +
 	"\x04list\x12F.ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest\x1a>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList\"\x04и\x18\x01\x12\xa8\x01\n" +
 	"\x0elistByWorkflow\x12P.ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest\x1a>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList\"\x04и\x18\x01\x12\xdc\x01\n" +
-	"\tsubscribe\x12J.ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"E¸\x18A\b\x01\x104\"\fexecution_id*-unauthorized to get workflow execution stream0\x01\x1a\x04\xa0\xff+4B\xdf\x02\n" +
+	"\tsubscribe\x12J.ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"E¸\x18A\b\x01\x104\"\fexecution_id*-unauthorized to get workflow execution stream0\x01\x12\xd2\x01\n" +
+	"\vgetEventLog\x12;.ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest\x1a<.ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse\"H¸\x18D\b\x01\x104\"\fexecution_id*0unauthorized to get workflow execution event log\x12\xe5\x01\n" +
+	"\x0fsubscribeEvents\x12?.ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest\x1a?.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent\"N¸\x18J\b\x01\x104\"\fexecution_id*6unauthorized to subscribe to workflow execution events0\x01\x1a\x04\xa0\xff+4B\xdf\x02\n" +
 	"+com.ai.stigmer.agentic.workflowexecution.v1B\n" +
 	"QueryProtoP\x01Zcgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
 
@@ -40,20 +42,28 @@ var file_ai_stigmer_agentic_workflowexecution_v1_query_proto_goTypes = []any{
 	(*ListWorkflowExecutionsRequest)(nil),           // 1: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest
 	(*ListWorkflowExecutionsByWorkflowRequest)(nil), // 2: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest
 	(*SubscribeWorkflowExecutionRequest)(nil),       // 3: ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest
-	(*WorkflowExecution)(nil),                       // 4: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	(*WorkflowExecutionList)(nil),                   // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList
+	(*GetEventLogRequest)(nil),                      // 4: ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest
+	(*SubscribeEventsRequest)(nil),                  // 5: ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest
+	(*WorkflowExecution)(nil),                       // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	(*WorkflowExecutionList)(nil),                   // 7: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList
+	(*GetEventLogResponse)(nil),                     // 8: ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse
+	(*WorkflowExecutionEvent)(nil),                  // 9: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent
 }
 var file_ai_stigmer_agentic_workflowexecution_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.get:input_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionId
 	1, // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.list:input_type -> ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest
 	2, // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.listByWorkflow:input_type -> ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest
 	3, // 3: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.subscribe:input_type -> ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest
-	4, // 4: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.get:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	5, // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.list:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList
-	5, // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.listByWorkflow:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList
-	4, // 7: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.subscribe:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
+	4, // 4: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.getEventLog:input_type -> ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest
+	5, // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.subscribeEvents:input_type -> ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest
+	6, // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.get:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	7, // 7: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.list:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList
+	7, // 8: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.listByWorkflow:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList
+	6, // 9: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.subscribe:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	8, // 10: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.getEventLog:output_type -> ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse
+	9, // 11: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.subscribeEvents:output_type -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent
+	6, // [6:12] is the sub-list for method output_type
+	0, // [0:6] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -65,6 +75,7 @@ func file_ai_stigmer_agentic_workflowexecution_v1_query_proto_init() {
 		return
 	}
 	file_ai_stigmer_agentic_workflowexecution_v1_api_proto_init()
+	file_ai_stigmer_agentic_workflowexecution_v1_event_proto_init()
 	file_ai_stigmer_agentic_workflowexecution_v1_io_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{

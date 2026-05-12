@@ -11,6 +11,7 @@ from ai.stigmer.agentic.workflowexecution.v1 import api_pb2
 from ai.stigmer.agentic.workflowexecution.v1 import command_pb2_grpc
 from ai.stigmer.agentic.workflowexecution.v1 import query_pb2_grpc
 from ai.stigmer.agentic.workflowexecution.v1 import io_pb2
+from ai.stigmer.agentic.workflowexecution.v1 import event_pb2
 from ai.stigmer.agentic.workflowexecution.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
@@ -114,6 +115,19 @@ class WorkflowExecutionClient:
     def subscribe(self, input: io_pb2.SubscribeWorkflowExecutionRequest) -> Iterator[api_pb2.WorkflowExecution]:
         try:
             for msg in self._query.subscribe(input):
+                yield msg
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_event_log(self, input: io_pb2.GetEventLogRequest) -> io_pb2.GetEventLogResponse:
+        try:
+            return self._query.getEventLog(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def subscribe_events(self, input: io_pb2.SubscribeEventsRequest) -> Iterator[event_pb2.WorkflowExecutionEvent]:
+        try:
+            for msg in self._query.subscribeEvents(input):
                 yield msg
         except grpc.RpcError as e:
             raise wrap_error(e) from e

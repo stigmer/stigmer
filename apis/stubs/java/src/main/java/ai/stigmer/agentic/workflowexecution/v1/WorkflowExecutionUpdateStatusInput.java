@@ -37,6 +37,7 @@ private static final long serialVersionUID = 0L;
   }
   private WorkflowExecutionUpdateStatusInput() {
     executionId_ = "";
+    events_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -158,6 +159,142 @@ private static final long serialVersionUID = 0L;
     return status_ == null ? ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus.getDefaultInstance() : status_;
   }
 
+  public static final int EVENTS_FIELD_NUMBER = 10;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent> events_;
+  /**
+   * <pre>
+   * Execution events to append to the event log alongside this status update.
+   *
+   * &#64;internal
+   * Append-only: events are added to the persistent event log, never replaced.
+   * This contrasts with status.tasks which uses full-replace protocol.
+   *
+   * The workflow-runner appends events atomically with each status update,
+   * ensuring the event log stays consistent with the status snapshot.
+   * Events must have monotonically increasing sequence_numbers — the handler
+   * rejects batches where any event's sequence_number is &lt;= the current
+   * highest persisted sequence for this execution.
+   *
+   * Empty list means no new events (backward compatible — existing runners
+   * that do not yet emit events continue to work without changes).
+   *
+   * &#64;since T06 (Execution Event Stream Model)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent> getEventsList() {
+    return events_;
+  }
+  /**
+   * <pre>
+   * Execution events to append to the event log alongside this status update.
+   *
+   * &#64;internal
+   * Append-only: events are added to the persistent event log, never replaced.
+   * This contrasts with status.tasks which uses full-replace protocol.
+   *
+   * The workflow-runner appends events atomically with each status update,
+   * ensuring the event log stays consistent with the status snapshot.
+   * Events must have monotonically increasing sequence_numbers — the handler
+   * rejects batches where any event's sequence_number is &lt;= the current
+   * highest persisted sequence for this execution.
+   *
+   * Empty list means no new events (backward compatible — existing runners
+   * that do not yet emit events continue to work without changes).
+   *
+   * &#64;since T06 (Execution Event Stream Model)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEventOrBuilder> 
+      getEventsOrBuilderList() {
+    return events_;
+  }
+  /**
+   * <pre>
+   * Execution events to append to the event log alongside this status update.
+   *
+   * &#64;internal
+   * Append-only: events are added to the persistent event log, never replaced.
+   * This contrasts with status.tasks which uses full-replace protocol.
+   *
+   * The workflow-runner appends events atomically with each status update,
+   * ensuring the event log stays consistent with the status snapshot.
+   * Events must have monotonically increasing sequence_numbers — the handler
+   * rejects batches where any event's sequence_number is &lt;= the current
+   * highest persisted sequence for this execution.
+   *
+   * Empty list means no new events (backward compatible — existing runners
+   * that do not yet emit events continue to work without changes).
+   *
+   * &#64;since T06 (Execution Event Stream Model)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+   */
+  @java.lang.Override
+  public int getEventsCount() {
+    return events_.size();
+  }
+  /**
+   * <pre>
+   * Execution events to append to the event log alongside this status update.
+   *
+   * &#64;internal
+   * Append-only: events are added to the persistent event log, never replaced.
+   * This contrasts with status.tasks which uses full-replace protocol.
+   *
+   * The workflow-runner appends events atomically with each status update,
+   * ensuring the event log stays consistent with the status snapshot.
+   * Events must have monotonically increasing sequence_numbers — the handler
+   * rejects batches where any event's sequence_number is &lt;= the current
+   * highest persisted sequence for this execution.
+   *
+   * Empty list means no new events (backward compatible — existing runners
+   * that do not yet emit events continue to work without changes).
+   *
+   * &#64;since T06 (Execution Event Stream Model)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent getEvents(int index) {
+    return events_.get(index);
+  }
+  /**
+   * <pre>
+   * Execution events to append to the event log alongside this status update.
+   *
+   * &#64;internal
+   * Append-only: events are added to the persistent event log, never replaced.
+   * This contrasts with status.tasks which uses full-replace protocol.
+   *
+   * The workflow-runner appends events atomically with each status update,
+   * ensuring the event log stays consistent with the status snapshot.
+   * Events must have monotonically increasing sequence_numbers — the handler
+   * rejects batches where any event's sequence_number is &lt;= the current
+   * highest persisted sequence for this execution.
+   *
+   * Empty list means no new events (backward compatible — existing runners
+   * that do not yet emit events continue to work without changes).
+   *
+   * &#64;since T06 (Execution Event Stream Model)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEventOrBuilder getEventsOrBuilder(
+      int index) {
+    return events_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -178,6 +315,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(2, getStatus());
     }
+    for (int i = 0; i < events_.size(); i++) {
+      output.writeMessage(10, events_.get(i));
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -194,6 +334,15 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(2, getStatus());
     }
+
+        {
+          final int count = events_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(events_.get(i));
+          }
+          size += 1 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -216,6 +365,8 @@ private static final long serialVersionUID = 0L;
       if (!getStatus()
           .equals(other.getStatus())) return false;
     }
+    if (!getEventsList()
+        .equals(other.getEventsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -232,6 +383,10 @@ private static final long serialVersionUID = 0L;
     if (hasStatus()) {
       hash = (37 * hash) + STATUS_FIELD_NUMBER;
       hash = (53 * hash) + getStatus().hashCode();
+    }
+    if (getEventsCount() > 0) {
+      hash = (37 * hash) + EVENTS_FIELD_NUMBER;
+      hash = (53 * hash) + getEventsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -372,6 +527,7 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetStatusFieldBuilder();
+        internalGetEventsFieldBuilder();
       }
     }
     @java.lang.Override
@@ -384,6 +540,13 @@ private static final long serialVersionUID = 0L;
         statusBuilder_.dispose();
         statusBuilder_ = null;
       }
+      if (eventsBuilder_ == null) {
+        events_ = java.util.Collections.emptyList();
+      } else {
+        events_ = null;
+        eventsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000004);
       return this;
     }
 
@@ -410,9 +573,22 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput buildPartial() {
       ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput result = new ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput(this);
+      buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
+    }
+
+    private void buildPartialRepeatedFields(ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput result) {
+      if (eventsBuilder_ == null) {
+        if (((bitField0_ & 0x00000004) != 0)) {
+          events_ = java.util.Collections.unmodifiableList(events_);
+          bitField0_ = (bitField0_ & ~0x00000004);
+        }
+        result.events_ = events_;
+      } else {
+        result.events_ = eventsBuilder_.build();
+      }
     }
 
     private void buildPartial0(ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput result) {
@@ -449,6 +625,32 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasStatus()) {
         mergeStatus(other.getStatus());
+      }
+      if (eventsBuilder_ == null) {
+        if (!other.events_.isEmpty()) {
+          if (events_.isEmpty()) {
+            events_ = other.events_;
+            bitField0_ = (bitField0_ & ~0x00000004);
+          } else {
+            ensureEventsIsMutable();
+            events_.addAll(other.events_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.events_.isEmpty()) {
+          if (eventsBuilder_.isEmpty()) {
+            eventsBuilder_.dispose();
+            eventsBuilder_ = null;
+            events_ = other.events_;
+            bitField0_ = (bitField0_ & ~0x00000004);
+            eventsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetEventsFieldBuilder() : null;
+          } else {
+            eventsBuilder_.addAllMessages(other.events_);
+          }
+        }
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -488,6 +690,19 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
+            case 82: {
+              ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent m =
+                  input.readMessage(
+                      ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.parser(),
+                      extensionRegistry);
+              if (eventsBuilder_ == null) {
+                ensureEventsIsMutable();
+                events_.add(m);
+              } else {
+                eventsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 82
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -794,6 +1009,588 @@ private static final long serialVersionUID = 0L;
         status_ = null;
       }
       return statusBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent> events_ =
+      java.util.Collections.emptyList();
+    private void ensureEventsIsMutable() {
+      if (!((bitField0_ & 0x00000004) != 0)) {
+        events_ = new java.util.ArrayList<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent>(events_);
+        bitField0_ |= 0x00000004;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.Builder, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEventOrBuilder> eventsBuilder_;
+
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent> getEventsList() {
+      if (eventsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(events_);
+      } else {
+        return eventsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public int getEventsCount() {
+      if (eventsBuilder_ == null) {
+        return events_.size();
+      } else {
+        return eventsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent getEvents(int index) {
+      if (eventsBuilder_ == null) {
+        return events_.get(index);
+      } else {
+        return eventsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public Builder setEvents(
+        int index, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent value) {
+      if (eventsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureEventsIsMutable();
+        events_.set(index, value);
+        onChanged();
+      } else {
+        eventsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public Builder setEvents(
+        int index, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.Builder builderForValue) {
+      if (eventsBuilder_ == null) {
+        ensureEventsIsMutable();
+        events_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        eventsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public Builder addEvents(ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent value) {
+      if (eventsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureEventsIsMutable();
+        events_.add(value);
+        onChanged();
+      } else {
+        eventsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public Builder addEvents(
+        int index, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent value) {
+      if (eventsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureEventsIsMutable();
+        events_.add(index, value);
+        onChanged();
+      } else {
+        eventsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public Builder addEvents(
+        ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.Builder builderForValue) {
+      if (eventsBuilder_ == null) {
+        ensureEventsIsMutable();
+        events_.add(builderForValue.build());
+        onChanged();
+      } else {
+        eventsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public Builder addEvents(
+        int index, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.Builder builderForValue) {
+      if (eventsBuilder_ == null) {
+        ensureEventsIsMutable();
+        events_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        eventsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public Builder addAllEvents(
+        java.lang.Iterable<? extends ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent> values) {
+      if (eventsBuilder_ == null) {
+        ensureEventsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, events_);
+        onChanged();
+      } else {
+        eventsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public Builder clearEvents() {
+      if (eventsBuilder_ == null) {
+        events_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000004);
+        onChanged();
+      } else {
+        eventsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public Builder removeEvents(int index) {
+      if (eventsBuilder_ == null) {
+        ensureEventsIsMutable();
+        events_.remove(index);
+        onChanged();
+      } else {
+        eventsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.Builder getEventsBuilder(
+        int index) {
+      return internalGetEventsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEventOrBuilder getEventsOrBuilder(
+        int index) {
+      if (eventsBuilder_ == null) {
+        return events_.get(index);  } else {
+        return eventsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEventOrBuilder> 
+         getEventsOrBuilderList() {
+      if (eventsBuilder_ != null) {
+        return eventsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(events_);
+      }
+    }
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.Builder addEventsBuilder() {
+      return internalGetEventsFieldBuilder().addBuilder(
+          ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.Builder addEventsBuilder(
+        int index) {
+      return internalGetEventsFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Execution events to append to the event log alongside this status update.
+     *
+     * &#64;internal
+     * Append-only: events are added to the persistent event log, never replaced.
+     * This contrasts with status.tasks which uses full-replace protocol.
+     *
+     * The workflow-runner appends events atomically with each status update,
+     * ensuring the event log stays consistent with the status snapshot.
+     * Events must have monotonically increasing sequence_numbers — the handler
+     * rejects batches where any event's sequence_number is &lt;= the current
+     * highest persisted sequence for this execution.
+     *
+     * Empty list means no new events (backward compatible — existing runners
+     * that do not yet emit events continue to work without changes).
+     *
+     * &#64;since T06 (Execution Event Stream Model)
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10 [json_name = "events"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.Builder> 
+         getEventsBuilderList() {
+      return internalGetEventsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.Builder, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEventOrBuilder> 
+        internalGetEventsFieldBuilder() {
+      if (eventsBuilder_ == null) {
+        eventsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.Builder, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEventOrBuilder>(
+                events_,
+                ((bitField0_ & 0x00000004) != 0),
+                getParentForChildren(),
+                isClean());
+        events_ = null;
+      }
+      return eventsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput)

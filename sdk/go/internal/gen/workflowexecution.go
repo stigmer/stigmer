@@ -119,6 +119,35 @@ func (w *WorkflowExecutionClient) Subscribe(ctx context.Context, input *workflow
 	return &WorkflowExecutionSubscribeStream{stream: stream}, nil
 }
 
+func (w *WorkflowExecutionClient) GetEventLog(ctx context.Context, input *workflowexecutionv1.GetEventLogRequest) (*workflowexecutionv1.GetEventLogResponse, error) {
+	resp, err := w.query.GetEventLog(ctx, input)
+	return resp, wrapErr(err)
+}
+
+// WorkflowExecutionSubscribeEventsStream wraps the server stream for SubscribeEvents.
+type WorkflowExecutionSubscribeEventsStream struct {
+	stream workflowexecutionv1.WorkflowExecutionQueryController_SubscribeEventsClient
+}
+
+func (s *WorkflowExecutionSubscribeEventsStream) Recv() (*workflowexecutionv1.WorkflowExecutionEvent, error) {
+	msg, err := s.stream.Recv()
+	if err != nil {
+		if err == io.EOF {
+			return nil, io.EOF
+		}
+		return nil, wrapErr(err)
+	}
+	return msg, nil
+}
+
+func (w *WorkflowExecutionClient) SubscribeEvents(ctx context.Context, input *workflowexecutionv1.SubscribeEventsRequest) (*WorkflowExecutionSubscribeEventsStream, error) {
+	stream, err := w.query.SubscribeEvents(ctx, input)
+	if err != nil {
+		return nil, wrapErr(err)
+	}
+	return &WorkflowExecutionSubscribeEventsStream{stream: stream}, nil
+}
+
 // WorkflowExecutionInput holds the fields for creating/updating a WorkflowExecution.
 type WorkflowExecutionInput struct {
 	Name               string

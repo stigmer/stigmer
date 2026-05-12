@@ -7,6 +7,7 @@ go_library(
         "command.pb.go",
         "command_grpc.pb.go",
         "enum.pb.go",
+        "event.pb.go",
         "io.pb.go",
         "query.pb.go",
         "query_grpc.pb.go",
@@ -17,6 +18,7 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
         "//apis/stubs/go/ai/stigmer/agentic/executioncontext/v1:executioncontext",
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/rpc",
         "@build_buf_gen_go_bufbuild_protovalidate_protocolbuffers_go//buf/validate",
