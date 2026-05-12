@@ -48,6 +48,8 @@ const (
 // raise_error: {"error": "ErrorType", "message": "${...}"}
 // run_workflow: {"workflow": "workflow-name", "input": {...}}
 // agent_call: {"agent": "agent-slug", "message": "...", "env": {...}}
+// llm_call: {"model": "...", "prompt": "...", "response_schema": {...}, "on_invalid": "..."}
+// transform: {"engine": "jq", "expression": "...", "input": "${...}"}
 type WorkflowTaskKind int32
 
 const (
@@ -123,6 +125,20 @@ const (
 	// Allows workflows to delegate complex operations to specialized agents.
 	// Config: {"agent": "agent-slug", "message": "...", "env": {...}, "config": {...}}
 	WorkflowTaskKind_agent_call WorkflowTaskKind = 13
+	// Direct LLM call for classification, extraction, scoring, or routing.
+	//
+	// @internal
+	// Lightweight alternative to agent_call for focused LLM tasks without
+	// agent overhead (no system prompt resolution, tool setup, or MCP wiring).
+	// Config: {"model": "...", "prompt": "...", "response_schema": {...}}
+	WorkflowTaskKind_llm_call WorkflowTaskKind = 14
+	// Deterministic data transformation using JQ, JSONata, or template engines.
+	//
+	// @internal
+	// Reshapes data between tasks without LLM calls. Produces explicit output
+	// via export, unlike set_vars which mutates workflow state as a side effect.
+	// Config: {"engine": "jq", "expression": "...", "input": "${...}"}
+	WorkflowTaskKind_transform WorkflowTaskKind = 15
 )
 
 // Enum value maps for WorkflowTaskKind.
@@ -142,6 +158,8 @@ var (
 		11: "raise_error",
 		12: "run_workflow",
 		13: "agent_call",
+		14: "llm_call",
+		15: "transform",
 	}
 	WorkflowTaskKind_value = map[string]int32{
 		"workflow_task_kind_unspecified": 0,
@@ -158,6 +176,8 @@ var (
 		"raise_error":                    11,
 		"run_workflow":                   12,
 		"agent_call":                     13,
+		"llm_call":                       14,
+		"transform":                      15,
 	}
 )
 
@@ -192,7 +212,7 @@ var File_ai_stigmer_agentic_workflow_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/workflow/v1/enum.proto\x12\x1eai.stigmer.agentic.workflow.v1*\xf6\x01\n" +
+	")ai/stigmer/agentic/workflow/v1/enum.proto\x12\x1eai.stigmer.agentic.workflow.v1*\x93\x02\n" +
 	"\x10WorkflowTaskKind\x12\"\n" +
 	"\x1eworkflow_task_kind_unspecified\x10\x00\x12\f\n" +
 	"\bset_vars\x10\x01\x12\r\n" +
@@ -210,7 +230,9 @@ const file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc = "" +
 	"\vraise_error\x10\v\x12\x10\n" +
 	"\frun_workflow\x10\f\x12\x0e\n" +
 	"\n" +
-	"agent_call\x10\rB\x9f\x02\n" +
+	"agent_call\x10\r\x12\f\n" +
+	"\bllm_call\x10\x0e\x12\r\n" +
+	"\ttransform\x10\x0fB\x9f\x02\n" +
 	"\"com.ai.stigmer.agentic.workflow.v1B\tEnumProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var (

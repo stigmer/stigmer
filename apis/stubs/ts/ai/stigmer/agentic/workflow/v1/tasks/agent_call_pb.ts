@@ -2,10 +2,12 @@
 // @generated from file ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto (package ai.stigmer.agentic.workflow.v1.tasks, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
-import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ContextManagementConfig } from "../../../agentexecution/v1/spec_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_spec } from "../../../agentexecution/v1/spec_pb.js";
+import type { OnInvalidOutputPolicy } from "./common_pb.js";
+import { file_ai_stigmer_agentic_workflow_v1_tasks_common } from "./common_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../../commons/apiresource/field_options_pb.js";
 import { file_buf_validate_validate } from "../../../../../../buf/validate/validate_pb.js";
 import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
@@ -15,7 +17,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call: GenFile = /*@__PURE__*/
-  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvYWdlbnRfY2FsbC5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzIogDChNBZ2VudENhbGxUYXNrQ29uZmlnEhsKBWFnZW50GAEgASgJQgy6SAnIAQFyBBABGH8SCwoDb3JnGAIgASgJEh8KB21lc3NhZ2UYAyABKAlCDrpIB8gBAXICEAHYhSwBEk8KA2VudhgEIAMoCzJCLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5BZ2VudENhbGxUYXNrQ29uZmlnLkVudkVudHJ5EkoKBmNvbmZpZxgFIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5BZ2VudEV4ZWN1dGlvbkNvbmZpZxJNCgZvdXRwdXQYBiABKAsyPS5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuQWdlbnRDYWxsT3V0cHV0Q29udHJhY3QaKgoIRW52RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AToO6ossCmFnZW50X2NhbGwi0gEKF0FnZW50Q2FsbE91dHB1dENvbnRyYWN0Ei8KBnNjaGVtYRgBIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3RCBrpIA8gBARJPCgpvbl9pbnZhbGlkGAIgASgOMjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLk9uSW52YWxpZE91dHB1dFBvbGljeRIeCgttYXhfcmV0cmllcxgDIAEoBUIJukgGGgQYBSgBEhUKDWZhbGxiYWNrX3Rhc2sYBCABKAkiwwEKFEFnZW50RXhlY3V0aW9uQ29uZmlnEg0KBW1vZGVsGAEgASgJEhsKB3RpbWVvdXQYAiABKAVCCrpIBxoFGJAcKAESJAoLdGVtcGVyYXR1cmUYAyABKAJCD7pIDAoKHQAAgD8tAAAAABJZChJjb250ZXh0X21hbmFnZW1lbnQYBCABKAsyPS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ29udGV4dE1hbmFnZW1lbnRDb25maWcqfgoVT25JbnZhbGlkT3V0cHV0UG9saWN5EiEKHU9OX0lOVkFMSURfUE9MSUNZX1VOU1BFQ0lGSUVEEAASEwoPT05fSU5WQUxJRF9GQUlMEAESFAoQT05fSU5WQUxJRF9SRVRSWRACEhcKE09OX0lOVkFMSURfRkFMTEJBQ0sQA2IGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvYWdlbnRfY2FsbC5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzIogDChNBZ2VudENhbGxUYXNrQ29uZmlnEhsKBWFnZW50GAEgASgJQgy6SAnIAQFyBBABGH8SCwoDb3JnGAIgASgJEh8KB21lc3NhZ2UYAyABKAlCDrpIB8gBAXICEAHYhSwBEk8KA2VudhgEIAMoCzJCLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5BZ2VudENhbGxUYXNrQ29uZmlnLkVudkVudHJ5EkoKBmNvbmZpZxgFIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5BZ2VudEV4ZWN1dGlvbkNvbmZpZxJNCgZvdXRwdXQYBiABKAsyPS5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuQWdlbnRDYWxsT3V0cHV0Q29udHJhY3QaKgoIRW52RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AToO6ossCmFnZW50X2NhbGwi0gEKF0FnZW50Q2FsbE91dHB1dENvbnRyYWN0Ei8KBnNjaGVtYRgBIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3RCBrpIA8gBARJPCgpvbl9pbnZhbGlkGAIgASgOMjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLk9uSW52YWxpZE91dHB1dFBvbGljeRIeCgttYXhfcmV0cmllcxgDIAEoBUIJukgGGgQYBSgBEhUKDWZhbGxiYWNrX3Rhc2sYBCABKAkiwwEKFEFnZW50RXhlY3V0aW9uQ29uZmlnEg0KBW1vZGVsGAEgASgJEhsKB3RpbWVvdXQYAiABKAVCCrpIBxoFGJAcKAESJAoLdGVtcGVyYXR1cmUYAyABKAJCD7pIDAoKHQAAgD8tAAAAABJZChJjb250ZXh0X21hbmFnZW1lbnQYBCABKAsyPS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ29udGV4dE1hbmFnZW1lbnRDb25maWdiBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_spec, file_ai_stigmer_agentic_workflow_v1_tasks_common, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.
@@ -321,70 +323,4 @@ export type AgentExecutionConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks
  */
 export const AgentExecutionConfigSchema: GenMessage<AgentExecutionConfig> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflow_v1_tasks_agent_call, 2);
-
-/**
- * OnInvalidOutputPolicy defines what happens when an agent's output
- * fails schema validation against the declared output contract.
- *
- * @internal
- * Used exclusively by AgentCallOutputContract.on_invalid.
- *
- * Failure handling follows a deliberate hierarchy:
- * - FAIL: strictest — bad output is unacceptable, fail the task immediately
- * - RETRY: re-prompt with validation errors, up to max_retries attempts
- * - FALLBACK: branch to a named task (e.g., human_review) without retrying
- *
- * When ON_INVALID_RETRY is used and all retries are exhausted:
- * - If fallback_task is set: branch to that task
- * - If fallback_task is empty: task fails
- *
- * @since T02 (Structured Agent Output Model)
- *
- * @generated from enum ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy
- */
-export enum OnInvalidOutputPolicy {
-  /**
-   * Unspecified: defaults to ON_INVALID_FAIL behavior.
-   *
-   * @generated from enum value: ON_INVALID_POLICY_UNSPECIFIED = 0;
-   */
-  ON_INVALID_POLICY_UNSPECIFIED = 0,
-
-  /**
-   * Task fails immediately with a schema validation error.
-   * The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
-   *
-   * @generated from enum value: ON_INVALID_FAIL = 1;
-   */
-  ON_INVALID_FAIL = 1,
-
-  /**
-   * Re-prompt the agent with the validation error message, up to max_retries
-   * attempts. The retry message includes the schema and specific validation
-   * errors so the agent can self-correct.
-   *
-   * After exhausting retries:
-   *   - If fallback_task is set: branch to that task
-   *   - Otherwise: task fails with a schema validation error
-   *
-   * @generated from enum value: ON_INVALID_RETRY = 2;
-   */
-  ON_INVALID_RETRY = 2,
-
-  /**
-   * Branch immediately to fallback_task without retrying.
-   * Requires fallback_task to be set on AgentCallOutputContract.
-   * Use when human review or an alternative extraction path is preferred
-   * over automated retry.
-   *
-   * @generated from enum value: ON_INVALID_FALLBACK = 3;
-   */
-  ON_INVALID_FALLBACK = 3,
-}
-
-/**
- * Describes the enum ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy.
- */
-export const OnInvalidOutputPolicySchema: GenEnum<OnInvalidOutputPolicy> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_workflow_v1_tasks_agent_call, 0);
 

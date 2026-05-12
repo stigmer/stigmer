@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/workflow/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvZW51bS5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxKvYBChBXb3JrZmxvd1Rhc2tLaW5kEiIKHndvcmtmbG93X3Rhc2tfa2luZF91bnNwZWNpZmllZBAAEgwKCHNldF92YXJzEAESDQoJaHR0cF9jYWxsEAISDQoJZ3JwY19jYWxsEAMSEQoNYWN0aXZpdHlfY2FsbBAEEg8KC3N3aXRjaF9jYXNlEAUSDAoIZm9yX2VhY2gQBhIICgRmb3JrEAcSDQoJdHJ5X2NhdGNoEAgSCgoGbGlzdGVuEAkSCAoEd2FpdBAKEg8KC3JhaXNlX2Vycm9yEAsSEAoMcnVuX3dvcmtmbG93EAwSDgoKYWdlbnRfY2FsbBANYgZwcm90bzM");
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvZW51bS5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxKpMCChBXb3JrZmxvd1Rhc2tLaW5kEiIKHndvcmtmbG93X3Rhc2tfa2luZF91bnNwZWNpZmllZBAAEgwKCHNldF92YXJzEAESDQoJaHR0cF9jYWxsEAISDQoJZ3JwY19jYWxsEAMSEQoNYWN0aXZpdHlfY2FsbBAEEg8KC3N3aXRjaF9jYXNlEAUSDAoIZm9yX2VhY2gQBhIICgRmb3JrEAcSDQoJdHJ5X2NhdGNoEAgSCgoGbGlzdGVuEAkSCAoEd2FpdBAKEg8KC3JhaXNlX2Vycm9yEAsSEAoMcnVuX3dvcmtmbG93EAwSDgoKYWdlbnRfY2FsbBANEgwKCGxsbV9jYWxsEA4SDQoJdHJhbnNmb3JtEA9iBnByb3RvMw");
 
 /**
  * WorkflowTaskKind defines the supported task types in a workflow.
@@ -39,6 +39,8 @@ export const file_ai_stigmer_agentic_workflow_v1_enum: GenFile = /*@__PURE__*/
  * raise_error: {"error": "ErrorType", "message": "${...}"}
  * run_workflow: {"workflow": "workflow-name", "input": {...}}
  * agent_call: {"agent": "agent-slug", "message": "...", "env": {...}}
+ * llm_call: {"model": "...", "prompt": "...", "response_schema": {...}, "on_invalid": "..."}
+ * transform: {"engine": "jq", "expression": "...", "input": "${...}"}
  *
  * @generated from enum ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
  */
@@ -184,6 +186,30 @@ export enum WorkflowTaskKind {
    * @generated from enum value: agent_call = 13;
    */
   agent_call = 13,
+
+  /**
+   * Direct LLM call for classification, extraction, scoring, or routing.
+   *
+   * @internal
+   * Lightweight alternative to agent_call for focused LLM tasks without
+   * agent overhead (no system prompt resolution, tool setup, or MCP wiring).
+   * Config: {"model": "...", "prompt": "...", "response_schema": {...}}
+   *
+   * @generated from enum value: llm_call = 14;
+   */
+  llm_call = 14,
+
+  /**
+   * Deterministic data transformation using JQ, JSONata, or template engines.
+   *
+   * @internal
+   * Reshapes data between tasks without LLM calls. Produces explicit output
+   * via export, unlike set_vars which mutates workflow state as a side effect.
+   * Config: {"engine": "jq", "expression": "...", "input": "${...}"}
+   *
+   * @generated from enum value: transform = 15;
+   */
+  transform = 15,
 }
 
 /**

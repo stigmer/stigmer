@@ -236,6 +236,8 @@ type WorkflowTask struct {
 	// - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig
 	// - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig
 	// - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+	// - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
+	// - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
 	//
 	// See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.
 	TaskConfig *structpb.Struct `protobuf:"bytes,3,opt,name=task_config,json=taskConfig,proto3" json:"task_config,omitempty"`

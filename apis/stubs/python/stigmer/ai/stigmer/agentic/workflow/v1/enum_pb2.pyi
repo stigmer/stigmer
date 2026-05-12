@@ -20,6 +20,8 @@ class WorkflowTaskKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     raise_error: _ClassVar[WorkflowTaskKind]
     run_workflow: _ClassVar[WorkflowTaskKind]
     agent_call: _ClassVar[WorkflowTaskKind]
+    llm_call: _ClassVar[WorkflowTaskKind]
+    transform: _ClassVar[WorkflowTaskKind]
 workflow_task_kind_unspecified: WorkflowTaskKind
 set_vars: WorkflowTaskKind
 http_call: WorkflowTaskKind
@@ -34,3 +36,5 @@ wait: WorkflowTaskKind
 raise_error: WorkflowTaskKind
 run_workflow: WorkflowTaskKind
 agent_call: WorkflowTaskKind
+llm_call: WorkflowTaskKind
+transform: WorkflowTaskKind

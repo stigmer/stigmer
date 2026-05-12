@@ -322,7 +322,7 @@
     },
     {
       "name": "WorkflowTaskKind",
-      "description": "WorkflowTaskKind defines the supported task types in a workflow.\n\n @internal\n These map directly to Zigflow DSL task types.\n\n Naming conventions:\n - Zero value: Prefixed for clarity (workflow_task_kind_unspecified)\n - Invocations: Consistent _call suffix (http_call, grpc_call, agent_call, activity_call)\n - Control flow keywords: Semantic suffixes to avoid reserved words (switch_case, for_each, try_catch)\n - Self-descriptive verbs: No suffix needed (fork, listen, wait)\n - Verb + object: For clarity when verb alone is ambiguous (set_vars, run_workflow, raise_error)\n\n Task config schemas (for each kind):\n\n set_vars: {\"variables\": {\"key\": \"value\", ...}}\n http_call: {\"method\": \"POST\", \"endpoint\": {\"uri\": \"...\"}, \"headers\": {...}, \"body\": {...}}\n grpc_call: {\"service\": \"...\", \"method\": \"...\", \"request\": {...}}\n activity_call: {\"activity\": \"ActivityName\", \"input\": {...}}\n switch_case: {\"cases\": [{\"name\": \"...\", \"when\": \"${expr}\", \"then\": \"taskName\"}, ...]}\n for_each: {\"each\": \"item\", \"in\": \"${$data.items}\", \"do\": [{task}, ...]}\n fork: {\"branches\": [{\"name\": \"...\", \"do\": [{task}, ...]}, ...], \"compete\": false}\n try_catch: {\"try\": [{task}, ...], \"catch\": {\"as\": \"error\", \"do\": [{task}, ...]}}\n listen: {\"to\": {\"mode\": \"one\", \"signals\": [{\"id\": \"...\", \"type\": \"signal\"}]}}\n wait: {\"seconds\": 5}\n raise_error: {\"error\": \"ErrorType\", \"message\": \"${...}\"}\n run_workflow: {\"workflow\": \"workflow-name\", \"input\": {...}}\n agent_call: {\"agent\": \"agent-slug\", \"message\": \"...\", \"env\": {...}}",
+      "description": "WorkflowTaskKind defines the supported task types in a workflow.\n\n @internal\n These map directly to Zigflow DSL task types.\n\n Naming conventions:\n - Zero value: Prefixed for clarity (workflow_task_kind_unspecified)\n - Invocations: Consistent _call suffix (http_call, grpc_call, agent_call, activity_call)\n - Control flow keywords: Semantic suffixes to avoid reserved words (switch_case, for_each, try_catch)\n - Self-descriptive verbs: No suffix needed (fork, listen, wait)\n - Verb + object: For clarity when verb alone is ambiguous (set_vars, run_workflow, raise_error)\n\n Task config schemas (for each kind):\n\n set_vars: {\"variables\": {\"key\": \"value\", ...}}\n http_call: {\"method\": \"POST\", \"endpoint\": {\"uri\": \"...\"}, \"headers\": {...}, \"body\": {...}}\n grpc_call: {\"service\": \"...\", \"method\": \"...\", \"request\": {...}}\n activity_call: {\"activity\": \"ActivityName\", \"input\": {...}}\n switch_case: {\"cases\": [{\"name\": \"...\", \"when\": \"${expr}\", \"then\": \"taskName\"}, ...]}\n for_each: {\"each\": \"item\", \"in\": \"${$data.items}\", \"do\": [{task}, ...]}\n fork: {\"branches\": [{\"name\": \"...\", \"do\": [{task}, ...]}, ...], \"compete\": false}\n try_catch: {\"try\": [{task}, ...], \"catch\": {\"as\": \"error\", \"do\": [{task}, ...]}}\n listen: {\"to\": {\"mode\": \"one\", \"signals\": [{\"id\": \"...\", \"type\": \"signal\"}]}}\n wait: {\"seconds\": 5}\n raise_error: {\"error\": \"ErrorType\", \"message\": \"${...}\"}\n run_workflow: {\"workflow\": \"workflow-name\", \"input\": {...}}\n agent_call: {\"agent\": \"agent-slug\", \"message\": \"...\", \"env\": {...}}\n llm_call: {\"model\": \"...\", \"prompt\": \"...\", \"response_schema\": {...}, \"on_invalid\": \"...\"}\n transform: {\"engine\": \"jq\", \"expression\": \"...\", \"input\": \"${...}\"}",
       "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowTaskKind",
       "values": [
         {
@@ -389,6 +389,16 @@
           "name": "agent_call",
           "number": 13,
           "description": "Invoke an AI agent as a workflow task.\n\n @internal\n Allows workflows to delegate complex operations to specialized agents.\n Config: {\"agent\": \"agent-slug\", \"message\": \"...\", \"env\": {...}, \"config\": {...}}"
+        },
+        {
+          "name": "llm_call",
+          "number": 14,
+          "description": "Direct LLM call for classification, extraction, scoring, or routing.\n\n @internal\n Lightweight alternative to agent_call for focused LLM tasks without\n agent overhead (no system prompt resolution, tool setup, or MCP wiring).\n Config: {\"model\": \"...\", \"prompt\": \"...\", \"response_schema\": {...}}"
+        },
+        {
+          "name": "transform",
+          "number": 15,
+          "description": "Deterministic data transformation using JQ, JSONata, or template engines.\n\n @internal\n Reshapes data between tasks without LLM calls. Produces explicit output\n via export, unlike set_vars which mutates workflow state as a side effect.\n Config: {\"engine\": \"jq\", \"expression\": \"...\", \"input\": \"${...}\"}"
         }
       ]
     }

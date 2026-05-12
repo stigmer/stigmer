@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useCallback, useRef } from "react";
 import { cn } from "@stigmer/theme";
 import type { ResourceListScope } from "../search";
 
@@ -14,16 +14,42 @@ export interface ScopeToggleProps {
   readonly disabled?: boolean;
   /** Additional CSS classes applied to the root element. */
   readonly className?: string;
+  /**
+   * When true, renders icon-only buttons without text labels.
+   * Useful inside space-constrained contexts like picker popovers.
+   * Each button retains an accessible `aria-label`.
+   */
+  readonly compact?: boolean;
 }
 
+const OPTIONS: readonly {
+  readonly value: ResourceListScope;
+  readonly label: string;
+  readonly ariaLabel: string;
+  readonly icon: (props: { className?: string }) => React.JSX.Element;
+}[] = [
+  {
+    value: "org",
+    label: "Org",
+    ariaLabel: "Organization only",
+    icon: OrgIcon,
+  },
+  {
+    value: "all",
+    label: "All",
+    ariaLabel: "All including public",
+    icon: GlobeIcon,
+  },
+];
+
 /**
- * Checkbox toggle for including public/community resources alongside
- * the current organization's resources.
+ * Segmented control for switching resource list scope between
+ * organization-only and all (including public community resources).
  *
- * Unchecked (default) = "org" scope — only the active org's resources.
- * Checked = "all" scope — org resources plus public community resources.
+ * Renders as a WAI-ARIA Radio Group with roving tabindex and
+ * arrow-key navigation. Follows the same visual pattern as
+ * {@link VisibilityToggle}.
  *
- * Designed for use in Library list toolbars alongside a search input.
  * The component is controlled — the consumer owns the `value` state
  * and handles persistence (e.g., localStorage).
  *
@@ -44,31 +70,121 @@ export function ScopeToggle({
   onChange,
   disabled = false,
   className,
+  compact = false,
 }: ScopeToggleProps) {
-  const id = useId();
-  const checked = value === "all";
+  const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const handleSelect = useCallback(
+    (next: ResourceListScope) => {
+      if (next !== value) onChange(next);
+    },
+    [value, onChange],
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+      let nextIndex: number | null = null;
+
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        nextIndex = (index + 1) % OPTIONS.length;
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        nextIndex = (index - 1 + OPTIONS.length) % OPTIONS.length;
+      }
+
+      if (nextIndex !== null) {
+        optionRefs.current[nextIndex]?.focus();
+        handleSelect(OPTIONS[nextIndex].value);
+      }
+    },
+    [handleSelect],
+  );
 
   return (
-    <label
-      htmlFor={id}
+    <div
+      role="radiogroup"
+      aria-label="Resource scope"
+      aria-disabled={disabled || undefined}
       className={cn(
-        "inline-flex cursor-pointer select-none items-center gap-1.5 text-xs text-muted-foreground",
+        "inline-flex rounded-md bg-muted p-0.5",
         disabled && "pointer-events-none opacity-50",
         className,
       )}
     >
-      <input
-        id={id}
-        type="checkbox"
-        checked={checked}
-        disabled={disabled}
-        onChange={() => onChange(checked ? "org" : "all")}
-        className={cn(
-          "h-3.5 w-3.5 cursor-pointer rounded border-input accent-primary",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-        )}
-      />
-      Include public
-    </label>
+      {OPTIONS.map((option, index) => {
+        const isSelected = value === option.value;
+        const Icon = option.icon;
+
+        return (
+          <button
+            key={option.value}
+            ref={(el) => {
+              optionRefs.current[index] = el;
+            }}
+            type="button"
+            role="radio"
+            aria-checked={isSelected}
+            aria-label={option.ariaLabel}
+            title={compact ? option.ariaLabel : undefined}
+            tabIndex={isSelected ? 0 : -1}
+            disabled={disabled}
+            onClick={() => handleSelect(option.value)}
+            onKeyDown={(e) => handleKeyDown(e, index)}
+            className={cn(
+              "inline-flex cursor-pointer items-center gap-1 rounded-sm px-2 py-1 text-xs font-medium transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              isSelected
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Icon className="size-3" />
+            {!compact && option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Icons — inline SVGs following the SDK pattern (no icon library dependency)
+// ---------------------------------------------------------------------------
+
+function OrgIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="4" y="2" width="8" height="12" rx="1" />
+      <path d="M6.5 5h3M6.5 8h3M6.5 11h3" />
+    </svg>
+  );
+}
+
+function GlobeIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="8" cy="8" r="6" />
+      <path d="M2 8h12" />
+      <path d="M8 2c1.66 1.46 2.6 3.63 2.6 6s-.94 4.54-2.6 6c-1.66-1.46-2.6-3.63-2.6-6s.94-4.54 2.6-6Z" />
+    </svg>
   );
 }

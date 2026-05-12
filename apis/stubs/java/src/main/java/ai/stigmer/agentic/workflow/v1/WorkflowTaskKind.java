@@ -34,6 +34,8 @@ package ai.stigmer.agentic.workflow.v1;
  * raise_error: {"error": "ErrorType", "message": "${...}"}
  * run_workflow: {"workflow": "workflow-name", "input": {...}}
  * agent_call: {"agent": "agent-slug", "message": "...", "env": {...}}
+ * llm_call: {"model": "...", "prompt": "...", "response_schema": {...}, "on_invalid": "..."}
+ * transform: {"engine": "jq", "expression": "...", "input": "${...}"}
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflow.v1.WorkflowTaskKind}
@@ -197,6 +199,32 @@ public enum WorkflowTaskKind
    * <code>agent_call = 13;</code>
    */
   agent_call(13),
+  /**
+   * <pre>
+   * Direct LLM call for classification, extraction, scoring, or routing.
+   *
+   * &#64;internal
+   * Lightweight alternative to agent_call for focused LLM tasks without
+   * agent overhead (no system prompt resolution, tool setup, or MCP wiring).
+   * Config: {"model": "...", "prompt": "...", "response_schema": {...}}
+   * </pre>
+   *
+   * <code>llm_call = 14;</code>
+   */
+  llm_call(14),
+  /**
+   * <pre>
+   * Deterministic data transformation using JQ, JSONata, or template engines.
+   *
+   * &#64;internal
+   * Reshapes data between tasks without LLM calls. Produces explicit output
+   * via export, unlike set_vars which mutates workflow state as a side effect.
+   * Config: {"engine": "jq", "expression": "...", "input": "${...}"}
+   * </pre>
+   *
+   * <code>transform = 15;</code>
+   */
+  transform(15),
   UNRECOGNIZED(-1),
   ;
 
@@ -365,6 +393,32 @@ public enum WorkflowTaskKind
    * <code>agent_call = 13;</code>
    */
   public static final int agent_call_VALUE = 13;
+  /**
+   * <pre>
+   * Direct LLM call for classification, extraction, scoring, or routing.
+   *
+   * &#64;internal
+   * Lightweight alternative to agent_call for focused LLM tasks without
+   * agent overhead (no system prompt resolution, tool setup, or MCP wiring).
+   * Config: {"model": "...", "prompt": "...", "response_schema": {...}}
+   * </pre>
+   *
+   * <code>llm_call = 14;</code>
+   */
+  public static final int llm_call_VALUE = 14;
+  /**
+   * <pre>
+   * Deterministic data transformation using JQ, JSONata, or template engines.
+   *
+   * &#64;internal
+   * Reshapes data between tasks without LLM calls. Produces explicit output
+   * via export, unlike set_vars which mutates workflow state as a side effect.
+   * Config: {"engine": "jq", "expression": "...", "input": "${...}"}
+   * </pre>
+   *
+   * <code>transform = 15;</code>
+   */
+  public static final int transform_VALUE = 15;
 
 
   public final int getNumber() {
@@ -405,6 +459,8 @@ public enum WorkflowTaskKind
       case 11: return raise_error;
       case 12: return run_workflow;
       case 13: return agent_call;
+      case 14: return llm_call;
+      case 15: return transform;
       default: return null;
     }
   }
