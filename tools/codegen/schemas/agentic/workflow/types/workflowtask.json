@@ -39,7 +39,9 @@
           "run_workflow",
           "agent_call",
           "llm_call",
-          "transform"
+          "transform",
+          "human_input",
+          "validate"
         ]
       },
       "description": "Task type (determines how to interpret task_config).",
@@ -55,7 +57,7 @@
       "type": {
         "kind": "struct"
       },
-      "description": "Task-specific configuration whose structure depends on the `kind` field.\n\n @internal\n Backend unmarshals this Struct to the appropriate proto message:\n - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig\n - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig\n - grpc_call: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig\n - switch_case: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig\n - for_each: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig\n - fork: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig\n - try_catch: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig\n - listen: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig\n - wait: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig\n - activity_call: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig\n - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig\n - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig\n - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig\n - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig\n - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig\n\n See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.",
+      "description": "Task-specific configuration whose structure depends on the `kind` field.\n\n @internal\n Backend unmarshals this Struct to the appropriate proto message:\n - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig\n - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig\n - grpc_call: ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig\n - switch_case: ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig\n - for_each: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig\n - fork: ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig\n - try_catch: ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig\n - listen: ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig\n - wait: ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig\n - activity_call: ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig\n - raise_error: ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig\n - run_workflow: ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig\n - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig\n - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig\n - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig\n - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig\n - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig\n\n See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.",
       "required": true,
       "discriminatedBy": "kind",
       "validation": {
