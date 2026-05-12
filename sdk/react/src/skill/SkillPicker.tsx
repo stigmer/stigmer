@@ -15,6 +15,8 @@ import { cn } from "@stigmer/theme";
 import { useSkillSearch } from "./useSkillSearch";
 import { useScrollShadows } from "../internal/useScrollShadows";
 import { ScrollFade } from "../internal/ScrollFade";
+import { ScopeToggle } from "../library/ScopeToggle";
+import type { ResourceListScope } from "../search";
 
 /** Props for {@link SkillPicker}. */
 export interface SkillPickerProps {
@@ -83,7 +85,8 @@ export function SkillPicker({
   disabled,
   className,
 }: SkillPickerProps) {
-  const { results, isLoading, error, query, setQuery } = useSkillSearch(org, { scope });
+  const [activeScope, setActiveScope] = useState<ResourceListScope>(scope ?? "org");
+  const { results, isLoading, error, query, setQuery } = useSkillSearch(org, { scope: activeScope });
 
   const [focusIndex, setFocusIndex] = useState(-1);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -216,6 +219,8 @@ export function SkillPicker({
         className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
         autoFocus
       />
+
+      <ScopeToggle value={activeScope} onChange={setActiveScope} disabled={disabled} />
 
       {error && <p className="text-xs text-destructive">{error.message}</p>}
 

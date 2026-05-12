@@ -19,27 +19,35 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-12 — T02 Structured Agent Output Model (COMPLETE)
-**Current Task**: T02 — COMPLETE
+**Last Session**: 2026-05-12 — OSS library/visibility + T03 plan (see changelog)
+**Current Task**: T03 — Plan APPROVED, ready for execution (Batch 1 next)
 **Phase**: Phase 0 — Harden the Workflow Core
-**Next Task**: T03 or next task from master plan
+**Next Task**: T03 Batch 1 (llm_call + transform)
 
 ## Session Progress (2026-05-12)
-- Implemented T02: Structured Agent Output Model (proto contract + codegen + validation warning)
-- Added `AgentCallOutputContract` message, `OnInvalidOutputPolicy` enum, `output` field on `AgentCallTaskConfig`
-- Added semantic validation warning for switch_case routing on unschema'd agent_call output
-- Passed `buf lint`, `buf breaking`, `go vet`
-- Ran `make codegen` (stigmer) and `make protos` (stigmer-cloud) — all stubs regenerated
-- Committed all changes
+- T02 complete (prior session): Structured Agent Output Model
+- T03 plan written with 3 batches of 6 new task types
+- Design decisions documented: keep `transform`, defer `extract`, enhance `for_each` instead of `batch`
+- T03 plan at: `tasks/T03_0_plan.md`
+
+### OSS (same branch — committed 2026-05-12)
+- **Changelog**: `_changelog/2026-05/2026-05-12-132429-library-visibility-scope-and-workflow-t03-plan.md`
+- **Checkpoint**: `checkpoints/2026-05-12-session-oss-library-and-t03.md`
+- Unified library resource detail headers: `McpServerDetailView` → `ResourceDetailShell` (`headerBanner`, `headerMetaExtra`, `nameElement`, `qualifiedSlug`).
+- `VisibilityToggle`: lock/globe icons + clearer private-selected styling.
+- Library scope: `ScopeToggle` checkbox pattern; desktop list scope persistence (`scope-persistence.ts`); pickers + `SessionComposer` scope wiring.
 
 ## Next Steps
-1. Review T01 master plan to determine the next task (T03 or other priority)
-2. T03 candidates: new task types (`llm_call`, `extract`, `validate`) for native provider-level structured output
-3. Runtime implementation of the T02 output contract (Go workflow-runner extraction + JSON Schema validation) is a separate follow-up task
+1. Pick up T03 Batch 1: `llm_call` (enum 14) + `transform` (enum 15) — proto + codegen + validation wiring
+2. Then T03 Batch 2: `human_input` (enum 16) + `validate` (enum 17)
+3. Then T03 Batch 3: `emit_event` (enum 18) + `notification` (enum 19)
+4. After all T03 batches: T04 (Task Schema Registry) or T05 (Budget Primitives)
 
 ## Context for Resume
 - T02 proto contract is finalized and all stubs are regenerated across both repos
-- The structured output model is backward compatible — existing workflows are unaffected
+- T03 plan defines 6 new task types in 3 batches (2 types per batch)
+- Design decisions: keep `transform` (distinct from `set_vars`), defer `extract` (covered by `llm_call` + `transform`), enhance `for_each` instead of adding `batch`
+- Each batch is independently deliverable and reviewable
 - Validation warning is live in the Go runner but runtime enforcement (actual schema validation at execution time) is NOT yet implemented
 - stigmer-cloud repo also has regenerated stubs (committed separately if needed)
 
@@ -50,7 +58,12 @@ Drop this file into your conversation to quickly resume work on this project.
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-12-t02-structured-agent-output.md
 ```
 
-### 2. Current Task
+### 2. T03 Plan (NEW — read this first)
+```
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260508.01.bring-workflows-to-foreground/tasks/T03_0_plan.md
+```
+
+### 3. Task Directory
 ```
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-05/20260508.01.bring-workflows-to-foreground/tasks/
 ```
@@ -97,12 +110,13 @@ Drop this file into your conversation to quickly resume work on this project.
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-05-12-t02-structured-agent-output.md`
-2. [ ] Check current task status in `tasks/`
-3. [ ] Review any design decisions in `design-decisions/`
-4. [ ] Check coding guidelines in `coding-guidelines/`
-5. [ ] Review lessons in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with the next task (T03 or next from master plan)
+1. [ ] Read the T03 plan from `tasks/T03_0_plan.md`
+2. [ ] Check which batch to pick up next (Batch 1 → 2 → 3)
+3. [ ] Read the latest checkpoint from `checkpoints/`
+4. [ ] Review any design decisions in `design-decisions/`
+5. [ ] Check coding guidelines in `coding-guidelines/`
+6. [ ] Review lessons in `wrong-assumptions/` and `dont-dos/`
+7. [ ] Execute the next batch
 
 ## Project Phases
 
@@ -115,7 +129,9 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Continue with T03" - Start the next task
+- "Start T03 Batch 1" - Implement llm_call + transform protos
+- "Start T03 Batch 2" - Implement human_input + validate protos
+- "Start T03 Batch 3" - Implement emit_event + notification protos
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

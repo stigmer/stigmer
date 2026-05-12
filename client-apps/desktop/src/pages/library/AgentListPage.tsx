@@ -10,6 +10,10 @@ import {
   Trash2,
 } from "lucide-react";
 import {
+  readPersistedScope,
+  writePersistedScope,
+} from "./scope-persistence";
+import {
   ResourceWorkbench,
   ActionMenu,
   ImportResourceDialog,
@@ -22,13 +26,7 @@ import {
 } from "@stigmer/react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
-const SCOPE_STORAGE_KEY = "stigmer:library:agents:scope";
 const VIEW_MODE_STORAGE_KEY = "stigmer:workbench:agents:viewMode";
-
-function readPersistedScope(): "org" | "all" {
-  const stored = localStorage.getItem(SCOPE_STORAGE_KEY);
-  return stored === "all" ? "all" : "org";
-}
 
 const AGENT_COLUMNS: WorkbenchColumnDef<SearchResult>[] = [
   {
@@ -69,13 +67,13 @@ export default function AgentListPage() {
   const { confirmState, confirm, handleConfirm, handleCancel } =
     useConfirmAction();
 
-  const [scope, setScope] = useState<"org" | "all">(readPersistedScope);
+  const [scope, setScope] = useState<"org" | "all">(() => readPersistedScope("agents"));
   const [importOpen, setImportOpen] = useState(false);
   const [listVersion, setListVersion] = useState(0);
 
   const handleScopeChange = useCallback((newScope: "org" | "all") => {
     setScope(newScope);
-    localStorage.setItem(SCOPE_STORAGE_KEY, newScope);
+    writePersistedScope("agents", newScope);
   }, []);
 
   const listFn = useMemo(

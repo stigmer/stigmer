@@ -1197,7 +1197,6 @@ export const SessionComposer = memo(function SessionComposer({
             <div className="relative">
               <AgentPicker
                 org={org!}
-                scope="all"
                 value={agentRef ?? null}
                 onChange={handleAgentSelect}
                 onDisplayNameResolved={handleDisplayNameResolved}
@@ -1218,7 +1217,6 @@ export const SessionComposer = memo(function SessionComposer({
           return (
             <McpServerPicker
               org={org!}
-              scope="all"
               setup={{
                 entries: mcpSetup.entries,
                 onServerAdded: (ref) => mcpSetup.addServer(ref),
@@ -1241,7 +1239,6 @@ export const SessionComposer = memo(function SessionComposer({
           return (
             <SkillPicker
               org={org!}
-              scope="all"
               value={skillRefs ?? []}
               onChange={onSkillRefsChange!}
               onDisplayNameResolved={handleDisplayNameResolved}

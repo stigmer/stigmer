@@ -8,6 +8,7 @@ import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import { getDraftSessionUrl } from "@/domain/session/draft-session";
 import type { DraftResourceType } from "@/domain/session/draft-session";
+import { readPersistedScope } from "@/domain/library/scope-persistence";
 import {
   useAgentCount,
   useSkillCount,
@@ -64,9 +65,13 @@ const ADD_MENU_ITEMS: readonly {
 ];
 
 function useResourceCounts(org: string | null) {
-  const agents = useAgentCount(org);
-  const skills = useSkillCount(org);
-  const mcpServers = useMcpServerCount(org);
+  const agentScope = readPersistedScope("agents");
+  const skillScope = readPersistedScope("skills");
+  const mcpScope = readPersistedScope("mcp-servers");
+
+  const agents = useAgentCount(org, { scope: agentScope });
+  const skills = useSkillCount(org, { scope: skillScope });
+  const mcpServers = useMcpServerCount(org, { scope: mcpScope });
 
   return { agents, skills, "mcp-servers": mcpServers } as const;
 }
