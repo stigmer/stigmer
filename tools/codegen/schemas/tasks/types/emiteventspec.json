@@ -1,0 +1,55 @@
+{
+  "name": "EmitEventSpec",
+  "description": "EmitEventSpec defines the CloudEvents envelope for an event to be emitted.\n\n @internal\n Follows CloudEvents semantics (type, source, subject, data) because:\n 1. CloudEvents is a graduated CNCF project with broad ecosystem support\n 2. The CNCF Serverless Workflow spec already uses CloudEvents\n 3. It provides a standard envelope that external consumers can parse\n\n Runtime-generated fields not authored here:\n - id: unique event identifier (UUID, generated at emit time)\n - specversion: always \"1.0\"\n - time: ISO 8601 timestamp of emission\n - datacontenttype: always \"application/json\" (since data is a Struct)\n\n The runtime (T13) decides how events are delivered: Temporal signals to\n other workflows, message queues, webhooks, or event buses. The proto\n carries the event specification; delivery is a runtime concern.\n\n @since T03 (P0 New Task Types)",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.EmitEventSpec",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/emit_event.proto",
+  "fields": [
+    {
+      "name": "Type",
+      "jsonName": "type",
+      "protoField": "type",
+      "type": {
+        "kind": "string"
+      },
+      "description": "CloudEvents type identifier.\n A reverse-DNS string that categorizes the event for routing and filtering.\n Examples: \"stigmer.workflow.ticket.classified\", \"acme.order.completed\"",
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1,
+        "maxLength": 255
+      }
+    },
+    {
+      "name": "Source",
+      "jsonName": "source",
+      "protoField": "source",
+      "type": {
+        "kind": "string"
+      },
+      "description": "CloudEvents source identifier.\n URI or URI-reference that identifies the context in which the event\n happened. Supports ${ } expression interpolation.\n When empty, the runtime defaults to the workflow execution URI\n (e.g., \"/workflows/{workflow_id}/executions/{execution_id}\").",
+      "required": false,
+      "isExpression": true
+    },
+    {
+      "name": "Data",
+      "jsonName": "data",
+      "protoField": "data",
+      "type": {
+        "kind": "struct"
+      },
+      "description": "Event payload data.\n Arbitrary JSON object carried as the CloudEvents data attribute.\n Values within the Struct can contain ${ } expressions that the\n runtime evaluates before emission.\n\n Unlike other Struct fields in the workflow domain (response_schema,\n form_schema, schema) which carry JSON Schema definitions, this field\n carries the actual event payload — not a schema.",
+      "required": false
+    },
+    {
+      "name": "Subject",
+      "jsonName": "subject",
+      "protoField": "subject",
+      "type": {
+        "kind": "string"
+      },
+      "description": "CloudEvents subject identifier.\n Describes the subject of the event in the context of the event producer.\n Supports ${ } expression interpolation.\n Examples: \"${ $context.ticket.id }\", \"${ $context.order.number }\"",
+      "required": false,
+      "isExpression": true
+    }
+  ]
+}

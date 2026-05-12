@@ -47,6 +47,8 @@ import (
 // - transform → TransformTaskConfig
 // - human_input → HumanInputTaskConfig
 // - validate → ValidateTaskConfig
+// - emit_event → EmitEventTaskConfig
+// - notification → NotificationTaskConfig
 func UnmarshalTaskConfig(
 	kind workflowv1.WorkflowTaskKind,
 	config *structpb.Struct,
@@ -115,6 +117,12 @@ func UnmarshalTaskConfig(
 
 	case workflowv1.WorkflowTaskKind_validate:
 		protoMsg = &tasksv1.ValidateTaskConfig{}
+
+	case workflowv1.WorkflowTaskKind_emit_event:
+		protoMsg = &tasksv1.EmitEventTaskConfig{}
+
+	case workflowv1.WorkflowTaskKind_notification:
+		protoMsg = &tasksv1.NotificationTaskConfig{}
 
 	default:
 		return nil, fmt.Errorf("unsupported task kind: %v", kind)

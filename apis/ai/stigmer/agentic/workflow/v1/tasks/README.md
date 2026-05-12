@@ -58,6 +58,8 @@ case WorkflowTaskKind_HTTP_CALL:
 | `TRANSFORM` | `transform.proto` | `TransformTaskConfig` | Data transformation |
 | `HUMAN_INPUT` | `human_input.proto` | `HumanInputTaskConfig` | Workflow-level approval gate |
 | `VALIDATE` | `validate.proto` | `ValidateTaskConfig` | Schema and rules validation |
+| `EMIT_EVENT` | `emit_event.proto` | `EmitEventTaskConfig` | CloudEvents event emission |
+| `NOTIFICATION` | `notification.proto` | `NotificationTaskConfig` | Channel-based notifications |
 
 ## Generated Stubs
 
@@ -217,5 +219,5 @@ This regenerates all stubs for Go, Java, Python, TypeScript, and Dart.
 
 ---
 
-**Status**: ✅ All 17 task configs defined and stubs generated  
+**Status**: ✅ All 19 task configs defined and stubs generated  
 **Last Updated**: 2026-05-12

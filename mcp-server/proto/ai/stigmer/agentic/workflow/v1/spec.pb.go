@@ -240,6 +240,8 @@ type WorkflowTask struct {
 	// - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
 	// - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
 	// - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
+	// - emit_event: ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig
+	// - notification: ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig
 	//
 	// See: apis/ai/stigmer/agentic/workflow/v1/tasks/*.proto for detailed schemas.
 	TaskConfig *structpb.Struct `protobuf:"bytes,3,opt,name=task_config,json=taskConfig,proto3" json:"task_config,omitempty"`

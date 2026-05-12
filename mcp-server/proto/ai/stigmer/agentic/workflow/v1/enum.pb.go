@@ -52,6 +52,8 @@ const (
 // transform: {"engine": "jq", "expression": "...", "input": "${...}"}
 // human_input: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...], "timeout": 86400}
 // validate: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+// emit_event: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+// notification: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "...", "template": "...", "metadata": {...}}
 type WorkflowTaskKind int32
 
 const (
@@ -157,6 +159,21 @@ const (
 	// policies for flexible error handling.
 	// Config: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
 	WorkflowTaskKind_validate WorkflowTaskKind = 17
+	// Emit a CloudEvents-formatted event for external consumers or other workflows.
+	//
+	// @internal
+	// Completes the listen/emit duality: listen waits for Temporal signals,
+	// emit_event publishes business events using the CloudEvents envelope.
+	// The runtime bridges the two when events target other workflows.
+	// Config: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+	WorkflowTaskKind_emit_event WorkflowTaskKind = 18
+	// Send a notification to humans through a channel (Slack, email, Discord, etc.).
+	//
+	// @internal
+	// Fire-and-forget convenience abstraction for operational notifications.
+	// For notifications requiring acknowledgment, use human_input instead.
+	// Config: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "..."}
+	WorkflowTaskKind_notification WorkflowTaskKind = 19
 )
 
 // Enum value maps for WorkflowTaskKind.
@@ -180,6 +197,8 @@ var (
 		15: "transform",
 		16: "human_input",
 		17: "validate",
+		18: "emit_event",
+		19: "notification",
 	}
 	WorkflowTaskKind_value = map[string]int32{
 		"workflow_task_kind_unspecified": 0,
@@ -200,6 +219,8 @@ var (
 		"transform":                      15,
 		"human_input":                    16,
 		"validate":                       17,
+		"emit_event":                     18,
+		"notification":                   19,
 	}
 )
 
@@ -234,7 +255,7 @@ var File_ai_stigmer_agentic_workflow_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/workflow/v1/enum.proto\x12\x1eai.stigmer.agentic.workflow.v1*\xb2\x02\n" +
+	")ai/stigmer/agentic/workflow/v1/enum.proto\x12\x1eai.stigmer.agentic.workflow.v1*\xd4\x02\n" +
 	"\x10WorkflowTaskKind\x12\"\n" +
 	"\x1eworkflow_task_kind_unspecified\x10\x00\x12\f\n" +
 	"\bset_vars\x10\x01\x12\r\n" +
@@ -256,7 +277,10 @@ const file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc = "" +
 	"\bllm_call\x10\x0e\x12\r\n" +
 	"\ttransform\x10\x0f\x12\x0f\n" +
 	"\vhuman_input\x10\x10\x12\f\n" +
-	"\bvalidate\x10\x11B\xa3\x02\n" +
+	"\bvalidate\x10\x11\x12\x0e\n" +
+	"\n" +
+	"emit_event\x10\x12\x12\x10\n" +
+	"\fnotification\x10\x13B\xa3\x02\n" +
 	"\"com.ai.stigmer.agentic.workflow.v1B\tEnumProtoP\x01ZUgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var (

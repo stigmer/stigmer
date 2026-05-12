@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/workflow/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvZW51bS5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxKrICChBXb3JrZmxvd1Rhc2tLaW5kEiIKHndvcmtmbG93X3Rhc2tfa2luZF91bnNwZWNpZmllZBAAEgwKCHNldF92YXJzEAESDQoJaHR0cF9jYWxsEAISDQoJZ3JwY19jYWxsEAMSEQoNYWN0aXZpdHlfY2FsbBAEEg8KC3N3aXRjaF9jYXNlEAUSDAoIZm9yX2VhY2gQBhIICgRmb3JrEAcSDQoJdHJ5X2NhdGNoEAgSCgoGbGlzdGVuEAkSCAoEd2FpdBAKEg8KC3JhaXNlX2Vycm9yEAsSEAoMcnVuX3dvcmtmbG93EAwSDgoKYWdlbnRfY2FsbBANEgwKCGxsbV9jYWxsEA4SDQoJdHJhbnNmb3JtEA8SDwoLaHVtYW5faW5wdXQQEBIMCgh2YWxpZGF0ZRARYgZwcm90bzM");
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvZW51bS5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxKtQCChBXb3JrZmxvd1Rhc2tLaW5kEiIKHndvcmtmbG93X3Rhc2tfa2luZF91bnNwZWNpZmllZBAAEgwKCHNldF92YXJzEAESDQoJaHR0cF9jYWxsEAISDQoJZ3JwY19jYWxsEAMSEQoNYWN0aXZpdHlfY2FsbBAEEg8KC3N3aXRjaF9jYXNlEAUSDAoIZm9yX2VhY2gQBhIICgRmb3JrEAcSDQoJdHJ5X2NhdGNoEAgSCgoGbGlzdGVuEAkSCAoEd2FpdBAKEg8KC3JhaXNlX2Vycm9yEAsSEAoMcnVuX3dvcmtmbG93EAwSDgoKYWdlbnRfY2FsbBANEgwKCGxsbV9jYWxsEA4SDQoJdHJhbnNmb3JtEA8SDwoLaHVtYW5faW5wdXQQEBIMCgh2YWxpZGF0ZRAREg4KCmVtaXRfZXZlbnQQEhIQCgxub3RpZmljYXRpb24QE2IGcHJvdG8z");
 
 /**
  * WorkflowTaskKind defines the supported task types in a workflow.
@@ -43,6 +43,8 @@ export const file_ai_stigmer_agentic_workflow_v1_enum: GenFile = /*@__PURE__*/
  * transform: {"engine": "jq", "expression": "...", "input": "${...}"}
  * human_input: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...], "timeout": 86400}
  * validate: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+ * emit_event: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+ * notification: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "...", "template": "...", "metadata": {...}}
  *
  * @generated from enum ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
  */
@@ -238,6 +240,31 @@ export enum WorkflowTaskKind {
    * @generated from enum value: validate = 17;
    */
   validate = 17,
+
+  /**
+   * Emit a CloudEvents-formatted event for external consumers or other workflows.
+   *
+   * @internal
+   * Completes the listen/emit duality: listen waits for Temporal signals,
+   * emit_event publishes business events using the CloudEvents envelope.
+   * The runtime bridges the two when events target other workflows.
+   * Config: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
+   *
+   * @generated from enum value: emit_event = 18;
+   */
+  emit_event = 18,
+
+  /**
+   * Send a notification to humans through a channel (Slack, email, Discord, etc.).
+   *
+   * @internal
+   * Fire-and-forget convenience abstraction for operational notifications.
+   * For notifications requiring acknowledgment, use human_input instead.
+   * Config: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "..."}
+   *
+   * @generated from enum value: notification = 19;
+   */
+  notification = 19,
 }
 
 /**

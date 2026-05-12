@@ -562,4 +562,6 @@ WorkflowTaskKind defines the supported task types in a workflow.
 | `transform` | Deterministic data transformation using JQ, JSONata, or template engines. |
 | `human_input` | Workflow-level approval gate for human input, review, or sign-off. |
 | `validate` | Schema and business-rule validation checkpoint. |
+| `emit_event` | Emit a CloudEvents-formatted event for external consumers or other workflows. |
+| `notification` | Send a notification to humans through a channel (Slack, email, Discord, etc.). |
 
