@@ -19,18 +19,43 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * The workflow's execution context (environment variables, secrets) is
  * passed to the agent invocation, allowing agents to access workflow state.
  *
- * YAML Example:
+ * YAML Example (without structured output):
  * - analyze:
  * call: agent
  * with:
- * agent: "code-reviewer"           # Uses workflow's org
- * # OR agent: "stigmer/code-reviewer"  # Explicit org reference
+ * agent: "code-reviewer"
  * message: "Review this code: ${ $context.fetchCode.body }"
  * env:
  * GITHUB_TOKEN: "${ .secrets.GH_TOKEN }"
  * config:
  * model: "claude-3-5-sonnet"
  * timeout: 300
+ *
+ * YAML Example (with structured output):
+ * - triage_ticket:
+ * call: agent
+ * with:
+ * agent: "support-triage"
+ * message: "${ .ticket.description }"
+ * output:
+ * schema:
+ * type: object
+ * required: [severity, category, customer_impact]
+ * properties:
+ * severity:
+ * type: string
+ * enum: [low, medium, high, critical]
+ * category:
+ * type: string
+ * customer_impact:
+ * type: boolean
+ * rationale:
+ * type: string
+ * on_invalid: ON_INVALID_RETRY
+ * max_retries: 2
+ * fallback_task: human_review
+ * export:
+ * as: "${ .structured }"
  *
  * Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
  * </pre>
@@ -404,6 +429,74 @@ java.lang.String defaultValue) {
     return config_ == null ? ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig.getDefaultInstance() : config_;
   }
 
+  public static final int OUTPUT_FIELD_NUMBER = 6;
+  private ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output_;
+  /**
+   * <pre>
+   * Structured output contract for this agent call.
+   *
+   * When set, the workflow runner extracts structured JSON from the agent's
+   * final response and validates it against the declared schema. The validated
+   * JSON is placed in the task output under the "structured" key, enabling
+   * reliable downstream routing via switch_case expressions.
+   *
+   * When not set, the task output contains the agent's raw text response
+   * (backward compatible with existing workflows).
+   *
+   * &#64;since T02 (Structured Agent Output Model)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+   * @return Whether the output field is set.
+   */
+  @java.lang.Override
+  public boolean hasOutput() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * Structured output contract for this agent call.
+   *
+   * When set, the workflow runner extracts structured JSON from the agent's
+   * final response and validates it against the declared schema. The validated
+   * JSON is placed in the task output under the "structured" key, enabling
+   * reliable downstream routing via switch_case expressions.
+   *
+   * When not set, the task output contains the agent's raw text response
+   * (backward compatible with existing workflows).
+   *
+   * &#64;since T02 (Structured Agent Output Model)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+   * @return The output.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract getOutput() {
+    return output_ == null ? ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.getDefaultInstance() : output_;
+  }
+  /**
+   * <pre>
+   * Structured output contract for this agent call.
+   *
+   * When set, the workflow runner extracts structured JSON from the agent's
+   * final response and validates it against the declared schema. The validated
+   * JSON is placed in the task output under the "structured" key, enabling
+   * reliable downstream routing via switch_case expressions.
+   *
+   * When not set, the task output contains the agent's raw text response
+   * (backward compatible with existing workflows).
+   *
+   * &#64;since T02 (Structured Agent Output Model)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractOrBuilder getOutputOrBuilder() {
+    return output_ == null ? ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.getDefaultInstance() : output_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -435,6 +528,9 @@ java.lang.String defaultValue) {
         4);
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(5, getConfig());
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(6, getOutput());
     }
     getUnknownFields().writeTo(output);
   }
@@ -468,6 +564,10 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, getConfig());
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(6, getOutput());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -496,6 +596,11 @@ java.lang.String defaultValue) {
       if (!getConfig()
           .equals(other.getConfig())) return false;
     }
+    if (hasOutput() != other.hasOutput()) return false;
+    if (hasOutput()) {
+      if (!getOutput()
+          .equals(other.getOutput())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -520,6 +625,10 @@ java.lang.String defaultValue) {
     if (hasConfig()) {
       hash = (37 * hash) + CONFIG_FIELD_NUMBER;
       hash = (53 * hash) + getConfig().hashCode();
+    }
+    if (hasOutput()) {
+      hash = (37 * hash) + OUTPUT_FIELD_NUMBER;
+      hash = (53 * hash) + getOutput().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -632,18 +741,43 @@ java.lang.String defaultValue) {
    * The workflow's execution context (environment variables, secrets) is
    * passed to the agent invocation, allowing agents to access workflow state.
    *
-   * YAML Example:
+   * YAML Example (without structured output):
    * - analyze:
    * call: agent
    * with:
-   * agent: "code-reviewer"           # Uses workflow's org
-   * # OR agent: "stigmer/code-reviewer"  # Explicit org reference
+   * agent: "code-reviewer"
    * message: "Review this code: ${ $context.fetchCode.body }"
    * env:
    * GITHUB_TOKEN: "${ .secrets.GH_TOKEN }"
    * config:
    * model: "claude-3-5-sonnet"
    * timeout: 300
+   *
+   * YAML Example (with structured output):
+   * - triage_ticket:
+   * call: agent
+   * with:
+   * agent: "support-triage"
+   * message: "${ .ticket.description }"
+   * output:
+   * schema:
+   * type: object
+   * required: [severity, category, customer_impact]
+   * properties:
+   * severity:
+   * type: string
+   * enum: [low, medium, high, critical]
+   * category:
+   * type: string
+   * customer_impact:
+   * type: boolean
+   * rationale:
+   * type: string
+   * on_invalid: ON_INVALID_RETRY
+   * max_retries: 2
+   * fallback_task: human_review
+   * export:
+   * as: "${ .structured }"
    *
    * Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
    * </pre>
@@ -703,6 +837,7 @@ java.lang.String defaultValue) {
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetConfigFieldBuilder();
+        internalGetOutputFieldBuilder();
       }
     }
     @java.lang.Override
@@ -717,6 +852,11 @@ java.lang.String defaultValue) {
       if (configBuilder_ != null) {
         configBuilder_.dispose();
         configBuilder_ = null;
+      }
+      output_ = null;
+      if (outputBuilder_ != null) {
+        outputBuilder_.dispose();
+        outputBuilder_ = null;
       }
       return this;
     }
@@ -771,6 +911,12 @@ java.lang.String defaultValue) {
             : configBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.output_ = outputBuilder_ == null
+            ? output_
+            : outputBuilder_.build();
+        to_bitField0_ |= 0x00000002;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -806,6 +952,9 @@ java.lang.String defaultValue) {
       bitField0_ |= 0x00000008;
       if (other.hasConfig()) {
         mergeConfig(other.getConfig());
+      }
+      if (other.hasOutput()) {
+        mergeOutput(other.getOutput());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -864,6 +1013,13 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000010;
               break;
             } // case 42
+            case 50: {
+              input.readMessage(
+                  internalGetOutputFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 50
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1549,6 +1705,253 @@ java.lang.String defaultValue) {
         config_ = null;
       }
       return configBuilder_;
+    }
+
+    private ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract, ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.Builder, ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractOrBuilder> outputBuilder_;
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     * @return Whether the output field is set.
+     */
+    public boolean hasOutput() {
+      return ((bitField0_ & 0x00000020) != 0);
+    }
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     * @return The output.
+     */
+    public ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract getOutput() {
+      if (outputBuilder_ == null) {
+        return output_ == null ? ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.getDefaultInstance() : output_;
+      } else {
+        return outputBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     */
+    public Builder setOutput(ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract value) {
+      if (outputBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        output_ = value;
+      } else {
+        outputBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     */
+    public Builder setOutput(
+        ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.Builder builderForValue) {
+      if (outputBuilder_ == null) {
+        output_ = builderForValue.build();
+      } else {
+        outputBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     */
+    public Builder mergeOutput(ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract value) {
+      if (outputBuilder_ == null) {
+        if (((bitField0_ & 0x00000020) != 0) &&
+          output_ != null &&
+          output_ != ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.getDefaultInstance()) {
+          getOutputBuilder().mergeFrom(value);
+        } else {
+          output_ = value;
+        }
+      } else {
+        outputBuilder_.mergeFrom(value);
+      }
+      if (output_ != null) {
+        bitField0_ |= 0x00000020;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     */
+    public Builder clearOutput() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      output_ = null;
+      if (outputBuilder_ != null) {
+        outputBuilder_.dispose();
+        outputBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     */
+    public ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.Builder getOutputBuilder() {
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return internalGetOutputFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     */
+    public ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractOrBuilder getOutputOrBuilder() {
+      if (outputBuilder_ != null) {
+        return outputBuilder_.getMessageOrBuilder();
+      } else {
+        return output_ == null ?
+            ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.getDefaultInstance() : output_;
+      }
+    }
+    /**
+     * <pre>
+     * Structured output contract for this agent call.
+     *
+     * When set, the workflow runner extracts structured JSON from the agent's
+     * final response and validates it against the declared schema. The validated
+     * JSON is placed in the task output under the "structured" key, enabling
+     * reliable downstream routing via switch_case expressions.
+     *
+     * When not set, the task output contains the agent's raw text response
+     * (backward compatible with existing workflows).
+     *
+     * &#64;since T02 (Structured Agent Output Model)
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract, ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.Builder, ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractOrBuilder> 
+        internalGetOutputFieldBuilder() {
+      if (outputBuilder_ == null) {
+        outputBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract, ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.Builder, ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractOrBuilder>(
+                getOutput(),
+                getParentForChildren(),
+                isClean());
+        output_ = null;
+      }
+      return outputBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig)

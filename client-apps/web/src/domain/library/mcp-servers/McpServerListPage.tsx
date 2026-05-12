@@ -5,6 +5,10 @@ import Link from "next/link";
 import { Plus, Upload, Server } from "lucide-react";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import {
+  readPersistedScope,
+  writePersistedScope,
+} from "@/domain/library/scope-persistence";
+import {
   ResourceWorkbench,
   McpServerConnectDialog,
   ImportResourceDialog,
@@ -14,14 +18,7 @@ import {
 } from "@stigmer/react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
-const SCOPE_STORAGE_KEY = "stigmer:library:mcp-servers:scope";
 const VIEW_MODE_STORAGE_KEY = "stigmer:workbench:mcp-servers:viewMode";
-
-function readPersistedScope(): "org" | "all" {
-  if (typeof window === "undefined") return "org";
-  const stored = localStorage.getItem(SCOPE_STORAGE_KEY);
-  return stored === "all" ? "all" : "org";
-}
 
 interface ConnectTarget {
   readonly org: string;

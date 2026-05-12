@@ -180,14 +180,14 @@ const (
 	// Not yet determined or not applicable (non-Cursor harness).
 	// Runner defaults to LOCAL for backward compatibility.
 	CursorMode_CURSOR_MODE_UNSPECIFIED CursorMode = 0
-	// Local Cursor agent via Agent.create({ local: { cwd } }).
+	// Local Cursor agent created with a local cwd configuration.
 	//
 	// Works with any workspace source (git or local path). Stigmer owns
 	// the durable conversation layer — always sends continuation prompts
 	// because Cursor local agents do not reliably retain context across
 	// Agent.send() calls.
 	CursorMode_CURSOR_MODE_LOCAL CursorMode = 1
-	// Cloud Cursor agent via Agent.create({ cloud: { repos } }).
+	// Cloud Cursor agent created with a cloud repos configuration.
 	//
 	// Requires all workspace entries to be GitRepoSource (HTTPS URLs).
 	// Cursor natively manages conversation state for cloud agents, but

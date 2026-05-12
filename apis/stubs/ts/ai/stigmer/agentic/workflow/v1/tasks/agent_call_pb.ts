@@ -2,19 +2,20 @@
 // @generated from file ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto (package ai.stigmer.agentic.workflow.v1.tasks, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ContextManagementConfig } from "../../../agentexecution/v1/spec_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_spec } from "../../../agentexecution/v1/spec_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../../commons/apiresource/field_options_pb.js";
 import { file_buf_validate_validate } from "../../../../../../buf/validate/validate_pb.js";
-import type { Message } from "@bufbuild/protobuf";
+import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
+import type { JsonObject, Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call: GenFile = /*@__PURE__*/
-  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvYWdlbnRfY2FsbC5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzIrkCChNBZ2VudENhbGxUYXNrQ29uZmlnEhsKBWFnZW50GAEgASgJQgy6SAnIAQFyBBABGH8SCwoDb3JnGAIgASgJEh8KB21lc3NhZ2UYAyABKAlCDrpIB8gBAXICEAHYhSwBEk8KA2VudhgEIAMoCzJCLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5BZ2VudENhbGxUYXNrQ29uZmlnLkVudkVudHJ5EkoKBmNvbmZpZxgFIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5BZ2VudEV4ZWN1dGlvbkNvbmZpZxoqCghFbnZFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBOg7qiywKYWdlbnRfY2FsbCLDAQoUQWdlbnRFeGVjdXRpb25Db25maWcSDQoFbW9kZWwYASABKAkSGwoHdGltZW91dBgCIAEoBUIKukgHGgUYkBwoARIkCgt0ZW1wZXJhdHVyZRgDIAEoAkIPukgMCgodAACAPy0AAAAAElkKEmNvbnRleHRfbWFuYWdlbWVudBgEIAEoCzI9LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Db250ZXh0TWFuYWdlbWVudENvbmZpZ2IGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
+  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvYWdlbnRfY2FsbC5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzIogDChNBZ2VudENhbGxUYXNrQ29uZmlnEhsKBWFnZW50GAEgASgJQgy6SAnIAQFyBBABGH8SCwoDb3JnGAIgASgJEh8KB21lc3NhZ2UYAyABKAlCDrpIB8gBAXICEAHYhSwBEk8KA2VudhgEIAMoCzJCLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5BZ2VudENhbGxUYXNrQ29uZmlnLkVudkVudHJ5EkoKBmNvbmZpZxgFIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5BZ2VudEV4ZWN1dGlvbkNvbmZpZxJNCgZvdXRwdXQYBiABKAsyPS5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuQWdlbnRDYWxsT3V0cHV0Q29udHJhY3QaKgoIRW52RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AToO6ossCmFnZW50X2NhbGwi0gEKF0FnZW50Q2FsbE91dHB1dENvbnRyYWN0Ei8KBnNjaGVtYRgBIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3RCBrpIA8gBARJPCgpvbl9pbnZhbGlkGAIgASgOMjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLk9uSW52YWxpZE91dHB1dFBvbGljeRIeCgttYXhfcmV0cmllcxgDIAEoBUIJukgGGgQYBSgBEhUKDWZhbGxiYWNrX3Rhc2sYBCABKAkiwwEKFEFnZW50RXhlY3V0aW9uQ29uZmlnEg0KBW1vZGVsGAEgASgJEhsKB3RpbWVvdXQYAiABKAVCCrpIBxoFGJAcKAESJAoLdGVtcGVyYXR1cmUYAyABKAJCD7pIDAoKHQAAgD8tAAAAABJZChJjb250ZXh0X21hbmFnZW1lbnQYBCABKAsyPS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ29udGV4dE1hbmFnZW1lbnRDb25maWcqfgoVT25JbnZhbGlkT3V0cHV0UG9saWN5EiEKHU9OX0lOVkFMSURfUE9MSUNZX1VOU1BFQ0lGSUVEEAASEwoPT05fSU5WQUxJRF9GQUlMEAESFAoQT05fSU5WQUxJRF9SRVRSWRACEhcKE09OX0lOVkFMSURfRkFMTEJBQ0sQA2IGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.
@@ -29,18 +30,43 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call: GenFile = /*@
  * The workflow's execution context (environment variables, secrets) is
  * passed to the agent invocation, allowing agents to access workflow state.
  *
- * YAML Example:
+ * YAML Example (without structured output):
  *   - analyze:
  *       call: agent
  *       with:
- *         agent: "code-reviewer"           # Uses workflow's org
- *         # OR agent: "stigmer/code-reviewer"  # Explicit org reference
+ *         agent: "code-reviewer"
  *         message: "Review this code: ${ $context.fetchCode.body }"
  *         env:
  *           GITHUB_TOKEN: "${ .secrets.GH_TOKEN }"
  *         config:
  *           model: "claude-3-5-sonnet"
  *           timeout: 300
+ *
+ * YAML Example (with structured output):
+ *   - triage_ticket:
+ *       call: agent
+ *       with:
+ *         agent: "support-triage"
+ *         message: "${ .ticket.description }"
+ *         output:
+ *           schema:
+ *             type: object
+ *             required: [severity, category, customer_impact]
+ *             properties:
+ *               severity:
+ *                 type: string
+ *                 enum: [low, medium, high, critical]
+ *               category:
+ *                 type: string
+ *               customer_impact:
+ *                 type: boolean
+ *               rationale:
+ *                 type: string
+ *           on_invalid: ON_INVALID_RETRY
+ *           max_retries: 2
+ *           fallback_task: human_review
+ *       export:
+ *         as: "${ .structured }"
  *
  * Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
  *
@@ -95,6 +121,23 @@ export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
    * @generated from field: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig config = 5;
    */
   config?: AgentExecutionConfig;
+
+  /**
+   * Structured output contract for this agent call.
+   *
+   * When set, the workflow runner extracts structured JSON from the agent's
+   * final response and validates it against the declared schema. The validated
+   * JSON is placed in the task output under the "structured" key, enabling
+   * reliable downstream routing via switch_case expressions.
+   *
+   * When not set, the task output contains the agent's raw text response
+   * (backward compatible with existing workflows).
+   *
+   * @since T02 (Structured Agent Output Model)
+   *
+   * @generated from field: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6;
+   */
+  output?: AgentCallOutputContract;
 };
 
 /**
@@ -103,6 +146,114 @@ export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
  */
 export const AgentCallTaskConfigSchema: GenMessage<AgentCallTaskConfig> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflow_v1_tasks_agent_call, 0);
+
+/**
+ * AgentCallOutputContract defines the structured output contract for an agent_call task.
+ *
+ * When configured, the workflow runner extracts structured JSON from the agent's
+ * final response and validates it against the provided JSON Schema. The validated
+ * JSON becomes the task's primary output under the "structured" key, accessible
+ * via export expressions (e.g., export.as: "${ .structured }").
+ *
+ * This enables reliable downstream routing: switch_case can evaluate expressions
+ * against typed fields (e.g., "${ $context.triage.severity == 'critical' }")
+ * rather than parsing unstructured prose.
+ *
+ * The dual-channel output model populates WorkflowTask.output as:
+ *   {
+ *     "structured": { <validated JSON matching the schema> },
+ *     "final_text": "<the agent's human-readable response>",
+ *     "agent_execution_id": "<execution ID for drill-down>",
+ *     "usage_summary": {
+ *       "total_tokens": 4523,
+ *       "estimated_cost_usd": 0.045,
+ *       "tool_call_count": 3,
+ *       "artifact_count": 1
+ *     }
+ *   }
+ *
+ * YAML Example:
+ *   output:
+ *     schema:
+ *       type: object
+ *       required: [severity, category, customer_impact]
+ *       properties:
+ *         severity:
+ *           type: string
+ *           enum: [low, medium, high, critical]
+ *         category:
+ *           type: string
+ *         customer_impact:
+ *           type: boolean
+ *         rationale:
+ *           type: string
+ *     on_invalid: ON_INVALID_RETRY
+ *     max_retries: 2
+ *     fallback_task: human_review
+ *
+ * @since T02 (Structured Agent Output Model)
+ *
+ * @generated from message ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract
+ */
+export type AgentCallOutputContract = Message<"ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract"> & {
+  /**
+   * JSON Schema that the agent's structured output must conform to.
+   *
+   * Standard JSON Schema (draft 2020-12 or compatible). The workflow runner
+   * extracts JSON from the agent's final response and validates it against
+   * this schema. If validation fails, the on_invalid policy determines
+   * what happens next.
+   *
+   * The schema is carried as a google.protobuf.Struct to preserve the
+   * existing kind+Struct envelope pattern and allow YAML authors to write
+   * standard JSON Schema inline without a Stigmer-specific schema language.
+   *
+   * @generated from field: google.protobuf.Struct schema = 1;
+   */
+  schema?: JsonObject;
+
+  /**
+   * Policy when agent output fails schema validation.
+   * Default: ON_INVALID_FAIL (task fails immediately).
+   *
+   * @generated from field: ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy on_invalid = 2;
+   */
+  onInvalid: OnInvalidOutputPolicy;
+
+  /**
+   * Maximum retry attempts when on_invalid is ON_INVALID_RETRY.
+   *
+   * Each retry re-prompts the agent with the specific validation errors and
+   * the expected schema, giving the agent an opportunity to self-correct.
+   *
+   * Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.
+   * Default: 1. Valid range: 1-5.
+   *
+   * @generated from field: int32 max_retries = 3;
+   */
+  maxRetries: number;
+
+  /**
+   * Target task to branch to when schema validation cannot be resolved.
+   *
+   * Used in two scenarios:
+   * 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted
+   * 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry)
+   *
+   * Must reference a valid task name in the same workflow.
+   * When empty and retries are exhausted, the task fails.
+   *
+   * @generated from field: string fallback_task = 4;
+   */
+  fallbackTask: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.
+ * Use `create(AgentCallOutputContractSchema)` to create a new message.
+ */
+export const AgentCallOutputContractSchema: GenMessage<AgentCallOutputContract> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflow_v1_tasks_agent_call, 1);
 
 /**
  * AgentExecutionConfig defines optional execution parameters for agent calls.
@@ -169,5 +320,71 @@ export type AgentExecutionConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks
  * Use `create(AgentExecutionConfigSchema)` to create a new message.
  */
 export const AgentExecutionConfigSchema: GenMessage<AgentExecutionConfig> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflow_v1_tasks_agent_call, 1);
+  messageDesc(file_ai_stigmer_agentic_workflow_v1_tasks_agent_call, 2);
+
+/**
+ * OnInvalidOutputPolicy defines what happens when an agent's output
+ * fails schema validation against the declared output contract.
+ *
+ * @internal
+ * Used exclusively by AgentCallOutputContract.on_invalid.
+ *
+ * Failure handling follows a deliberate hierarchy:
+ * - FAIL: strictest — bad output is unacceptable, fail the task immediately
+ * - RETRY: re-prompt with validation errors, up to max_retries attempts
+ * - FALLBACK: branch to a named task (e.g., human_review) without retrying
+ *
+ * When ON_INVALID_RETRY is used and all retries are exhausted:
+ * - If fallback_task is set: branch to that task
+ * - If fallback_task is empty: task fails
+ *
+ * @since T02 (Structured Agent Output Model)
+ *
+ * @generated from enum ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy
+ */
+export enum OnInvalidOutputPolicy {
+  /**
+   * Unspecified: defaults to ON_INVALID_FAIL behavior.
+   *
+   * @generated from enum value: ON_INVALID_POLICY_UNSPECIFIED = 0;
+   */
+  ON_INVALID_POLICY_UNSPECIFIED = 0,
+
+  /**
+   * Task fails immediately with a schema validation error.
+   * The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+   *
+   * @generated from enum value: ON_INVALID_FAIL = 1;
+   */
+  ON_INVALID_FAIL = 1,
+
+  /**
+   * Re-prompt the agent with the validation error message, up to max_retries
+   * attempts. The retry message includes the schema and specific validation
+   * errors so the agent can self-correct.
+   *
+   * After exhausting retries:
+   *   - If fallback_task is set: branch to that task
+   *   - Otherwise: task fails with a schema validation error
+   *
+   * @generated from enum value: ON_INVALID_RETRY = 2;
+   */
+  ON_INVALID_RETRY = 2,
+
+  /**
+   * Branch immediately to fallback_task without retrying.
+   * Requires fallback_task to be set on AgentCallOutputContract.
+   * Use when human review or an alternative extraction path is preferred
+   * over automated retry.
+   *
+   * @generated from enum value: ON_INVALID_FALLBACK = 3;
+   */
+  ON_INVALID_FALLBACK = 3,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy.
+ */
+export const OnInvalidOutputPolicySchema: GenEnum<OnInvalidOutputPolicy> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_workflow_v1_tasks_agent_call, 0);
 

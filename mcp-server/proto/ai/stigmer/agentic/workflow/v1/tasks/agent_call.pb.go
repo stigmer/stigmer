@@ -12,6 +12,7 @@ import (
 	_ "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -23,6 +24,88 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+// OnInvalidOutputPolicy defines what happens when an agent's output
+// fails schema validation against the declared output contract.
+//
+// @internal
+// Used exclusively by AgentCallOutputContract.on_invalid.
+//
+// Failure handling follows a deliberate hierarchy:
+// - FAIL: strictest — bad output is unacceptable, fail the task immediately
+// - RETRY: re-prompt with validation errors, up to max_retries attempts
+// - FALLBACK: branch to a named task (e.g., human_review) without retrying
+//
+// When ON_INVALID_RETRY is used and all retries are exhausted:
+// - If fallback_task is set: branch to that task
+// - If fallback_task is empty: task fails
+//
+// @since T02 (Structured Agent Output Model)
+type OnInvalidOutputPolicy int32
+
+const (
+	// Unspecified: defaults to ON_INVALID_FAIL behavior.
+	OnInvalidOutputPolicy_ON_INVALID_POLICY_UNSPECIFIED OnInvalidOutputPolicy = 0
+	// Task fails immediately with a schema validation error.
+	// The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+	OnInvalidOutputPolicy_ON_INVALID_FAIL OnInvalidOutputPolicy = 1
+	// Re-prompt the agent with the validation error message, up to max_retries
+	// attempts. The retry message includes the schema and specific validation
+	// errors so the agent can self-correct.
+	//
+	// After exhausting retries:
+	//   - If fallback_task is set: branch to that task
+	//   - Otherwise: task fails with a schema validation error
+	OnInvalidOutputPolicy_ON_INVALID_RETRY OnInvalidOutputPolicy = 2
+	// Branch immediately to fallback_task without retrying.
+	// Requires fallback_task to be set on AgentCallOutputContract.
+	// Use when human review or an alternative extraction path is preferred
+	// over automated retry.
+	OnInvalidOutputPolicy_ON_INVALID_FALLBACK OnInvalidOutputPolicy = 3
+)
+
+// Enum value maps for OnInvalidOutputPolicy.
+var (
+	OnInvalidOutputPolicy_name = map[int32]string{
+		0: "ON_INVALID_POLICY_UNSPECIFIED",
+		1: "ON_INVALID_FAIL",
+		2: "ON_INVALID_RETRY",
+		3: "ON_INVALID_FALLBACK",
+	}
+	OnInvalidOutputPolicy_value = map[string]int32{
+		"ON_INVALID_POLICY_UNSPECIFIED": 0,
+		"ON_INVALID_FAIL":               1,
+		"ON_INVALID_RETRY":              2,
+		"ON_INVALID_FALLBACK":           3,
+	}
+)
+
+func (x OnInvalidOutputPolicy) Enum() *OnInvalidOutputPolicy {
+	p := new(OnInvalidOutputPolicy)
+	*p = x
+	return p
+}
+
+func (x OnInvalidOutputPolicy) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (OnInvalidOutputPolicy) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_enumTypes[0].Descriptor()
+}
+
+func (OnInvalidOutputPolicy) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_enumTypes[0]
+}
+
+func (x OnInvalidOutputPolicy) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use OnInvalidOutputPolicy.Descriptor instead.
+func (OnInvalidOutputPolicy) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDescGZIP(), []int{0}
+}
 
 // AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.
 //
@@ -36,18 +119,43 @@ const (
 // The workflow's execution context (environment variables, secrets) is
 // passed to the agent invocation, allowing agents to access workflow state.
 //
-// YAML Example:
+// YAML Example (without structured output):
 //   - analyze:
 //     call: agent
 //     with:
-//     agent: "code-reviewer"           # Uses workflow's org
-//     # OR agent: "stigmer/code-reviewer"  # Explicit org reference
+//     agent: "code-reviewer"
 //     message: "Review this code: ${ $context.fetchCode.body }"
 //     env:
 //     GITHUB_TOKEN: "${ .secrets.GH_TOKEN }"
 //     config:
 //     model: "claude-3-5-sonnet"
 //     timeout: 300
+//
+// YAML Example (with structured output):
+//   - triage_ticket:
+//     call: agent
+//     with:
+//     agent: "support-triage"
+//     message: "${ .ticket.description }"
+//     output:
+//     schema:
+//     type: object
+//     required: [severity, category, customer_impact]
+//     properties:
+//     severity:
+//     type: string
+//     enum: [low, medium, high, critical]
+//     category:
+//     type: string
+//     customer_impact:
+//     type: boolean
+//     rationale:
+//     type: string
+//     on_invalid: ON_INVALID_RETRY
+//     max_retries: 2
+//     fallback_task: human_review
+//     export:
+//     as: "${ .structured }"
 //
 // Reference: design doc at stigmer/_cursor/add-agent-config-to-workflow.md
 type AgentCallTaskConfig struct {
@@ -75,7 +183,19 @@ type AgentCallTaskConfig struct {
 	Env map[string]string `protobuf:"bytes,4,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Execution configuration for the agent invocation.
 	// Optional - defaults are applied if not specified.
-	Config        *AgentExecutionConfig `protobuf:"bytes,5,opt,name=config,proto3" json:"config,omitempty"`
+	Config *AgentExecutionConfig `protobuf:"bytes,5,opt,name=config,proto3" json:"config,omitempty"`
+	// Structured output contract for this agent call.
+	//
+	// When set, the workflow runner extracts structured JSON from the agent's
+	// final response and validates it against the declared schema. The validated
+	// JSON is placed in the task output under the "structured" key, enabling
+	// reliable downstream routing via switch_case expressions.
+	//
+	// When not set, the task output contains the agent's raw text response
+	// (backward compatible with existing workflows).
+	//
+	// @since T02 (Structured Agent Output Model)
+	Output        *AgentCallOutputContract `protobuf:"bytes,6,opt,name=output,proto3" json:"output,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -145,6 +265,154 @@ func (x *AgentCallTaskConfig) GetConfig() *AgentExecutionConfig {
 	return nil
 }
 
+func (x *AgentCallTaskConfig) GetOutput() *AgentCallOutputContract {
+	if x != nil {
+		return x.Output
+	}
+	return nil
+}
+
+// AgentCallOutputContract defines the structured output contract for an agent_call task.
+//
+// When configured, the workflow runner extracts structured JSON from the agent's
+// final response and validates it against the provided JSON Schema. The validated
+// JSON becomes the task's primary output under the "structured" key, accessible
+// via export expressions (e.g., export.as: "${ .structured }").
+//
+// This enables reliable downstream routing: switch_case can evaluate expressions
+// against typed fields (e.g., "${ $context.triage.severity == 'critical' }")
+// rather than parsing unstructured prose.
+//
+// The dual-channel output model populates WorkflowTask.output as:
+//
+//	{
+//	  "structured": { <validated JSON matching the schema> },
+//	  "final_text": "<the agent's human-readable response>",
+//	  "agent_execution_id": "<execution ID for drill-down>",
+//	  "usage_summary": {
+//	    "total_tokens": 4523,
+//	    "estimated_cost_usd": 0.045,
+//	    "tool_call_count": 3,
+//	    "artifact_count": 1
+//	  }
+//	}
+//
+// YAML Example:
+//
+//	output:
+//	  schema:
+//	    type: object
+//	    required: [severity, category, customer_impact]
+//	    properties:
+//	      severity:
+//	        type: string
+//	        enum: [low, medium, high, critical]
+//	      category:
+//	        type: string
+//	      customer_impact:
+//	        type: boolean
+//	      rationale:
+//	        type: string
+//	  on_invalid: ON_INVALID_RETRY
+//	  max_retries: 2
+//	  fallback_task: human_review
+//
+// @since T02 (Structured Agent Output Model)
+type AgentCallOutputContract struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// JSON Schema that the agent's structured output must conform to.
+	//
+	// Standard JSON Schema (draft 2020-12 or compatible). The workflow runner
+	// extracts JSON from the agent's final response and validates it against
+	// this schema. If validation fails, the on_invalid policy determines
+	// what happens next.
+	//
+	// The schema is carried as a google.protobuf.Struct to preserve the
+	// existing kind+Struct envelope pattern and allow YAML authors to write
+	// standard JSON Schema inline without a Stigmer-specific schema language.
+	Schema *structpb.Struct `protobuf:"bytes,1,opt,name=schema,proto3" json:"schema,omitempty"`
+	// Policy when agent output fails schema validation.
+	// Default: ON_INVALID_FAIL (task fails immediately).
+	OnInvalid OnInvalidOutputPolicy `protobuf:"varint,2,opt,name=on_invalid,json=onInvalid,proto3,enum=ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy" json:"on_invalid,omitempty"`
+	// Maximum retry attempts when on_invalid is ON_INVALID_RETRY.
+	//
+	// Each retry re-prompts the agent with the specific validation errors and
+	// the expected schema, giving the agent an opportunity to self-correct.
+	//
+	// Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise.
+	// Default: 1. Valid range: 1-5.
+	MaxRetries int32 `protobuf:"varint,3,opt,name=max_retries,json=maxRetries,proto3" json:"max_retries,omitempty"`
+	// Target task to branch to when schema validation cannot be resolved.
+	//
+	// Used in two scenarios:
+	// 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted
+	// 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry)
+	//
+	// Must reference a valid task name in the same workflow.
+	// When empty and retries are exhausted, the task fails.
+	FallbackTask  string `protobuf:"bytes,4,opt,name=fallback_task,json=fallbackTask,proto3" json:"fallback_task,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AgentCallOutputContract) Reset() {
+	*x = AgentCallOutputContract{}
+	mi := &file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgentCallOutputContract) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentCallOutputContract) ProtoMessage() {}
+
+func (x *AgentCallOutputContract) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentCallOutputContract.ProtoReflect.Descriptor instead.
+func (*AgentCallOutputContract) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *AgentCallOutputContract) GetSchema() *structpb.Struct {
+	if x != nil {
+		return x.Schema
+	}
+	return nil
+}
+
+func (x *AgentCallOutputContract) GetOnInvalid() OnInvalidOutputPolicy {
+	if x != nil {
+		return x.OnInvalid
+	}
+	return OnInvalidOutputPolicy_ON_INVALID_POLICY_UNSPECIFIED
+}
+
+func (x *AgentCallOutputContract) GetMaxRetries() int32 {
+	if x != nil {
+		return x.MaxRetries
+	}
+	return 0
+}
+
+func (x *AgentCallOutputContract) GetFallbackTask() string {
+	if x != nil {
+		return x.FallbackTask
+	}
+	return ""
+}
+
 // AgentExecutionConfig defines optional execution parameters for agent calls.
 // These settings override the agent's default configuration for this specific invocation.
 type AgentExecutionConfig struct {
@@ -188,7 +456,7 @@ type AgentExecutionConfig struct {
 
 func (x *AgentExecutionConfig) Reset() {
 	*x = AgentExecutionConfig{}
-	mi := &file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -200,7 +468,7 @@ func (x *AgentExecutionConfig) String() string {
 func (*AgentExecutionConfig) ProtoMessage() {}
 
 func (x *AgentExecutionConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_msgTypes[1]
+	mi := &file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -213,7 +481,7 @@ func (x *AgentExecutionConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentExecutionConfig.ProtoReflect.Descriptor instead.
 func (*AgentExecutionConfig) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDescGZIP(), []int{1}
+	return file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *AgentExecutionConfig) GetModel() string {
@@ -248,17 +516,25 @@ var File_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto protoreflect.File
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc = "" +
 	"\n" +
-	"5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\"\xe7\x02\n" +
+	"5ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xbe\x03\n" +
 	"\x13AgentCallTaskConfig\x12\"\n" +
 	"\x05agent\x18\x01 \x01(\tB\f\xbaH\t\xc8\x01\x01r\x04\x10\x01\x18\x7fR\x05agent\x12\x10\n" +
 	"\x03org\x18\x02 \x01(\tR\x03org\x12(\n" +
 	"\amessage\x18\x03 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\amessage\x12T\n" +
 	"\x03env\x18\x04 \x03(\v2B.ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntryR\x03env\x12R\n" +
-	"\x06config\x18\x05 \x01(\v2:.ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfigR\x06config\x1a6\n" +
+	"\x06config\x18\x05 \x01(\v2:.ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfigR\x06config\x12U\n" +
+	"\x06output\x18\x06 \x01(\v2=.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractR\x06output\x1a6\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:\x0e\xea\x8b,\n" +
-	"agent_call\"\xf3\x01\n" +
+	"agent_call\"\xff\x01\n" +
+	"\x17AgentCallOutputContract\x127\n" +
+	"\x06schema\x18\x01 \x01(\v2\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\x06schema\x12Z\n" +
+	"\n" +
+	"on_invalid\x18\x02 \x01(\x0e2;.ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicyR\tonInvalid\x12*\n" +
+	"\vmax_retries\x18\x03 \x01(\x05B\t\xbaH\x06\x1a\x04\x18\x05(\x01R\n" +
+	"maxRetries\x12#\n" +
+	"\rfallback_task\x18\x04 \x01(\tR\ffallbackTask\"\xf3\x01\n" +
 	"\x14AgentExecutionConfig\x12\x14\n" +
 	"\x05model\x18\x01 \x01(\tR\x05model\x12$\n" +
 	"\atimeout\x18\x02 \x01(\x05B\n" +
@@ -266,7 +542,12 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc = "" +
 	"\vtemperature\x18\x03 \x01(\x02B\x0f\xbaH\f\n" +
 	"\n" +
 	"\x1d\x00\x00\x80?-\x00\x00\x00\x00R\vtemperature\x12l\n" +
-	"\x12context_management\x18\x04 \x01(\v2=.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfigR\x11contextManagementB\xc4\x02\n" +
+	"\x12context_management\x18\x04 \x01(\v2=.ai.stigmer.agentic.agentexecution.v1.ContextManagementConfigR\x11contextManagement*~\n" +
+	"\x15OnInvalidOutputPolicy\x12!\n" +
+	"\x1dON_INVALID_POLICY_UNSPECIFIED\x10\x00\x12\x13\n" +
+	"\x0fON_INVALID_FAIL\x10\x01\x12\x14\n" +
+	"\x10ON_INVALID_RETRY\x10\x02\x12\x17\n" +
+	"\x13ON_INVALID_FALLBACK\x10\x03B\xc4\x02\n" +
 	"(com.ai.stigmer.agentic.workflow.v1.tasksB\x0eAgentCallProtoP\x01ZPgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 
 var (
@@ -281,22 +562,29 @@ func file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDescGZIP() []
 	return file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_goTypes = []any{
-	(*AgentCallTaskConfig)(nil),        // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
-	(*AgentExecutionConfig)(nil),       // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
-	nil,                                // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
-	(*v1.ContextManagementConfig)(nil), // 3: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
+	(OnInvalidOutputPolicy)(0),         // 0: ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy
+	(*AgentCallTaskConfig)(nil),        // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
+	(*AgentCallOutputContract)(nil),    // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract
+	(*AgentExecutionConfig)(nil),       // 3: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
+	nil,                                // 4: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
+	(*structpb.Struct)(nil),            // 5: google.protobuf.Struct
+	(*v1.ContextManagementConfig)(nil), // 6: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
 }
 var file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_depIdxs = []int32{
-	2, // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.env:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
-	1, // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.config:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
-	3, // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	4, // 0: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.env:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.EnvEntry
+	3, // 1: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.config:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig
+	2, // 2: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig.output:type_name -> ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract
+	5, // 3: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.schema:type_name -> google.protobuf.Struct
+	0, // 4: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.on_invalid:type_name -> ai.stigmer.agentic.workflow.v1.tasks.OnInvalidOutputPolicy
+	6, // 5: ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_init() }
@@ -309,13 +597,14 @@ func file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc), len(file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   3,
+			NumEnums:      1,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_depIdxs,
+		EnumInfos:         file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_agentic_workflow_v1_tasks_agent_call_proto = out.File
