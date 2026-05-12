@@ -251,6 +251,77 @@ func (WorkflowTaskKind) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDescGZIP(), []int{0}
 }
 
+// BudgetExceededPolicy defines the runtime behavior when a workflow or per-task
+// budget limit is exceeded.
+//
+// The runtime (T13) evaluates this policy at task boundaries: after each task
+// completes, accumulated costs and tokens are compared against the declared
+// budget. If a limit is breached, the policy determines what happens next.
+//
+// @since T05 (Workflow-Level Budget Primitives)
+type BudgetExceededPolicy int32
+
+const (
+	// Default: no specific policy set. The runtime treats this as
+	// budget_exceeded_terminate (fail-safe behavior).
+	BudgetExceededPolicy_budget_exceeded_policy_unspecified BudgetExceededPolicy = 0
+	// Terminate the workflow immediately with EXECUTION_FAILED status.
+	// The execution record includes the budget breach details for diagnostics.
+	BudgetExceededPolicy_budget_exceeded_terminate BudgetExceededPolicy = 1
+	// Pause the workflow and request human review via a system-generated
+	// approval gate. The reviewer can approve continued execution (with
+	// an increased budget) or confirm termination.
+	// Depends on the human_input runtime (T13). If human_input runtime
+	// is not available, falls back to terminate with a descriptive error.
+	BudgetExceededPolicy_budget_exceeded_human_review BudgetExceededPolicy = 2
+	// Log a warning but allow the workflow to continue executing.
+	// Useful for monitoring/alerting without interrupting production workflows.
+	BudgetExceededPolicy_budget_exceeded_warn BudgetExceededPolicy = 3
+)
+
+// Enum value maps for BudgetExceededPolicy.
+var (
+	BudgetExceededPolicy_name = map[int32]string{
+		0: "budget_exceeded_policy_unspecified",
+		1: "budget_exceeded_terminate",
+		2: "budget_exceeded_human_review",
+		3: "budget_exceeded_warn",
+	}
+	BudgetExceededPolicy_value = map[string]int32{
+		"budget_exceeded_policy_unspecified": 0,
+		"budget_exceeded_terminate":          1,
+		"budget_exceeded_human_review":       2,
+		"budget_exceeded_warn":               3,
+	}
+)
+
+func (x BudgetExceededPolicy) Enum() *BudgetExceededPolicy {
+	p := new(BudgetExceededPolicy)
+	*p = x
+	return p
+}
+
+func (x BudgetExceededPolicy) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (BudgetExceededPolicy) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_workflow_v1_enum_proto_enumTypes[1].Descriptor()
+}
+
+func (BudgetExceededPolicy) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_workflow_v1_enum_proto_enumTypes[1]
+}
+
+func (x BudgetExceededPolicy) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use BudgetExceededPolicy.Descriptor instead.
+func (BudgetExceededPolicy) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDescGZIP(), []int{1}
+}
+
 var File_ai_stigmer_agentic_workflow_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc = "" +
@@ -280,7 +351,12 @@ const file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc = "" +
 	"\bvalidate\x10\x11\x12\x0e\n" +
 	"\n" +
 	"emit_event\x10\x12\x12\x10\n" +
-	"\fnotification\x10\x13B\xa0\x02\n" +
+	"\fnotification\x10\x13*\x99\x01\n" +
+	"\x14BudgetExceededPolicy\x12&\n" +
+	"\"budget_exceeded_policy_unspecified\x10\x00\x12\x1d\n" +
+	"\x19budget_exceeded_terminate\x10\x01\x12 \n" +
+	"\x1cbudget_exceeded_human_review\x10\x02\x12\x18\n" +
+	"\x14budget_exceeded_warn\x10\x03B\xa0\x02\n" +
 	"\"com.ai.stigmer.agentic.workflow.v1B\tEnumProtoP\x01ZRgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var (
@@ -295,9 +371,10 @@ func file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_workflow_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_ai_stigmer_agentic_workflow_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_ai_stigmer_agentic_workflow_v1_enum_proto_goTypes = []any{
-	(WorkflowTaskKind)(0), // 0: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
+	(WorkflowTaskKind)(0),     // 0: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
+	(BudgetExceededPolicy)(0), // 1: ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
 }
 var file_ai_stigmer_agentic_workflow_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -317,7 +394,7 @@ func file_ai_stigmer_agentic_workflow_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

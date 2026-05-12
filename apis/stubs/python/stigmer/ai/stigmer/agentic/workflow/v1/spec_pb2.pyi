@@ -12,7 +12,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class WorkflowSpec(_message.Message):
-    __slots__ = ("description", "document", "tasks", "env")
+    __slots__ = ("description", "document", "tasks", "env", "budget")
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -24,11 +24,25 @@ class WorkflowSpec(_message.Message):
     DOCUMENT_FIELD_NUMBER: _ClassVar[int]
     TASKS_FIELD_NUMBER: _ClassVar[int]
     ENV_FIELD_NUMBER: _ClassVar[int]
+    BUDGET_FIELD_NUMBER: _ClassVar[int]
     description: str
     document: WorkflowDocument
     tasks: _containers.RepeatedCompositeFieldContainer[WorkflowTask]
     env: _containers.MessageMap[str, _spec_pb2.EnvVarDeclaration]
-    def __init__(self, description: _Optional[str] = ..., document: _Optional[_Union[WorkflowDocument, _Mapping]] = ..., tasks: _Optional[_Iterable[_Union[WorkflowTask, _Mapping]]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ...) -> None: ...
+    budget: WorkflowBudget
+    def __init__(self, description: _Optional[str] = ..., document: _Optional[_Union[WorkflowDocument, _Mapping]] = ..., tasks: _Optional[_Iterable[_Union[WorkflowTask, _Mapping]]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ..., budget: _Optional[_Union[WorkflowBudget, _Mapping]] = ...) -> None: ...
+
+class WorkflowBudget(_message.Message):
+    __slots__ = ("max_cost_micros", "max_total_tokens", "max_duration_seconds", "on_exceeded")
+    MAX_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
+    MAX_TOTAL_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    MAX_DURATION_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    ON_EXCEEDED_FIELD_NUMBER: _ClassVar[int]
+    max_cost_micros: int
+    max_total_tokens: int
+    max_duration_seconds: int
+    on_exceeded: _enum_pb2.BudgetExceededPolicy
+    def __init__(self, max_cost_micros: _Optional[int] = ..., max_total_tokens: _Optional[int] = ..., max_duration_seconds: _Optional[int] = ..., on_exceeded: _Optional[_Union[_enum_pb2.BudgetExceededPolicy, str]] = ...) -> None: ...
 
 class WorkflowDocument(_message.Message):
     __slots__ = ("dsl", "namespace", "name", "version", "description")

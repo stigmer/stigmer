@@ -68,6 +68,7 @@ type WorkflowDocumentInput = gen.WorkflowDocumentInput
 type WorkflowTaskInput = gen.WorkflowTaskInput
 type ExportInput = gen.ExportInput
 type FlowControlInput = gen.FlowControlInput
+type WorkflowBudgetInput = gen.WorkflowBudgetInput
 type WorkflowExecutionInput = gen.WorkflowExecutionInput
 type WorkflowInstanceInput = gen.WorkflowInstanceInput
 

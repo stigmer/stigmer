@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "body": {
+      "description": "Notification body / message content. Supports ${ } expression interpolation. The primary content of the notification. Formatting depends on channel (e.g., Slack Markdown, HTML for email, plain text for SMS). When template is also set, body serves as the fallback content if the template cannot be resolved.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "channel": {
+      "description": "Notification channel identifier. Determines which notification provider processes this message. Common values: \"slack\", \"email\", \"discord\", \"teams\", \"webhook\" This is a string (not an enum) for extensibility — new channels can be added without proto changes. The runtime resolves the channel to its configured provider in the workflow instance's environment.",
+      "maxLength": 63,
+      "minLength": 1,
+      "type": "string"
+    },
+    "metadata": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Channel-specific metadata as key-value pairs. Provides additional configuration that varies by notification channel: - slack: {\"thread_ts\": \"...\", \"unfurl_links\": \"false\"} - email: {\"priority\": \"high\", \"reply_to\": \"...\", \"cc\": \"...\"} - webhook: {\"method\": \"POST\", \"content_type\": \"application/json\"} Values may contain ${ } expressions that the runtime evaluates before delivery.",
+      "type": "object"
+    },
+    "recipients": {
+      "description": "Recipient identifiers for the notification. Format depends on the channel: - slack: \"#channel-name\", \"@username\", or Slack user IDs - email: \"user@example.com\" - discord: \"#channel-name\", \"@role\" - teams: \"#channel-name\" - webhook: URL or webhook identifier At least one recipient is required. Individual values may contain ${ } expressions that the runtime evaluates before delivery (e.g., \"${ $context.customer.email }\").",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "subject": {
+      "description": "Notification subject or title. Supports ${ } expression interpolation. Used as: email subject line, Slack message title, webhook payload title. Optional — some channels (e.g., simple Slack messages) may not use it.",
+      "type": "string"
+    },
+    "template": {
+      "description": "Named template reference for rendering the notification. When set, the runtime looks up this template in the workflow instance's environment and uses it for rendering, with the workflow context as template data. The body field is used as fallback if the template cannot be resolved. Examples: \"incident-alert\", \"order-confirmation\", \"approval-request\" Template resolution and rendering is a runtime concern (T13).",
+      "type": "string"
+    }
+  },
+  "required": [
+    "channel",
+    "body"
+  ],
+  "title": "NotificationTaskConfig",
+  "type": "object"
+}

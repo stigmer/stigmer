@@ -241,4 +241,14 @@ message AgentExecutionConfig {
   //       custom_trigger_threshold: 150000
   //       custom_target_tokens: 120000
   ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig context_management = 4;
+
+  // Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros).
+  // When set, the runtime terminates this agent call if its accumulated cost
+  // exceeds this limit. This uses the workflow domain's micro-USD convention
+  // and provides per-task cost control at the workflow level.
+  // The runtime checks both: per-task limit first, then workflow remaining budget.
+  // Optional — when 0, no per-task cost limit is enforced.
+  //
+  // @since T05 (Workflow-Level Budget Primitives)
+  int64 max_cost_micros = 5;
 }

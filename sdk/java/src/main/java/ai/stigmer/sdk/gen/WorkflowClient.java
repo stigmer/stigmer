@@ -2,6 +2,9 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.agentic.workflow.v1.GetTaskKindRegistryRequest;
+import ai.stigmer.agentic.workflow.v1.GetTaskKindRegistryResponse;
+import ai.stigmer.agentic.workflow.v1.TaskKindRegistryQueryControllerGrpc;
 import ai.stigmer.agentic.workflow.v1.Workflow;
 import ai.stigmer.agentic.workflow.v1.WorkflowCommandControllerGrpc;
 import ai.stigmer.agentic.workflow.v1.WorkflowId;
@@ -14,10 +17,12 @@ import io.grpc.StatusRuntimeException;
 public final class WorkflowClient {
     private final WorkflowCommandControllerGrpc.WorkflowCommandControllerBlockingStub command;
     private final WorkflowQueryControllerGrpc.WorkflowQueryControllerBlockingStub query;
+    private final TaskKindRegistryQueryControllerGrpc.TaskKindRegistryQueryControllerBlockingStub taskKindRegistryQuery;
 
     WorkflowClient(Channel channel) {
         this.command = WorkflowCommandControllerGrpc.newBlockingStub(channel);
         this.query = WorkflowQueryControllerGrpc.newBlockingStub(channel);
+        this.taskKindRegistryQuery = TaskKindRegistryQueryControllerGrpc.newBlockingStub(channel);
     }
 
     public Workflow apply(WorkflowInput input) {
@@ -53,6 +58,12 @@ public final class WorkflowClient {
     public Workflow getByReference(ResourceRef ref) {
         try {
             return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.workflow).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public GetTaskKindRegistryResponse getTaskKindRegistry(GetTaskKindRegistryRequest input) {
+        try {
+            return taskKindRegistryQuery.getTaskKindRegistry(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

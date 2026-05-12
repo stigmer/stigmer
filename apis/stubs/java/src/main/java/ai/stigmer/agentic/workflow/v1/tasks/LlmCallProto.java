@@ -46,7 +46,7 @@ public final class LlmCallProto extends com.google.protobuf.GeneratedFile {
       "/v1/tasks/common.proto\0322ai/stigmer/commo" +
       "ns/apiresource/field_options.proto\032\033buf/" +
       "validate/validate.proto\032\034google/protobuf" +
-      "/struct.proto\"\210\004\n\021LlmCallTaskConfig\022\"\n\005m" +
+      "/struct.proto\"\332\004\n\021LlmCallTaskConfig\022\"\n\005m" +
       "odel\030\001 \001(\tB\014\272H\tr\004\020\001\030\177\310\001\001R\005model\022)\n\rsyste" +
       "m_prompt\030\002 \001(\tB\004\330\205,\001R\014systemPrompt\022&\n\006pr" +
       "ompt\030\003 \001(\tB\016\272H\007r\002\020\001\310\001\001\330\205,\001R\006prompt\022@\n\017re" +
@@ -59,12 +59,14 @@ public final class LlmCallProto extends com.google.protobuf.GeneratedFile {
       "v1.tasks.OnInvalidOutputPolicyR\tonInvali" +
       "d\022*\n\013max_retries\030\t \001(\005B\t\272H\006\032\004\030\005(\001R\nmaxRe" +
       "tries\022#\n\rfallback_task\030\n \001(\tR\014fallbackTa" +
-      "sk:\014\352\213,\010llm_callB\306\001B\014LlmCallProtoP\001\242\002\006AS" +
-      "AWVT\252\002$Ai.Stigmer.Agentic.Workflow.V1.Ta" +
-      "sks\312\002$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tas" +
-      "ks\342\0020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Task" +
-      "s\\GPBMetadata\352\002)Ai::Stigmer::Agentic::Wo" +
-      "rkflow::V1::Tasksb\006proto3"
+      "sk\022&\n\017max_cost_micros\030\013 \001(\003R\rmaxCostMicr" +
+      "os\022(\n\020max_total_tokens\030\014 \001(\003R\016maxTotalTo" +
+      "kens:\014\352\213,\010llm_callB\306\001B\014LlmCallProtoP\001\242\002\006" +
+      "ASAWVT\252\002$Ai.Stigmer.Agentic.Workflow.V1." +
+      "Tasks\312\002$Ai\\Stigmer\\Agentic\\Workflow\\V1\\T" +
+      "asks\342\0020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Ta" +
+      "sks\\GPBMetadata\352\002)Ai::Stigmer::Agentic::" +
+      "Workflow::V1::Tasksb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -79,7 +81,7 @@ public final class LlmCallProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflow_v1_tasks_LlmCallTaskConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflow_v1_tasks_LlmCallTaskConfig_descriptor,
-        new java.lang.String[] { "Model", "SystemPrompt", "Prompt", "ResponseSchema", "Temperature", "MaxTokens", "Timeout", "OnInvalid", "MaxRetries", "FallbackTask", });
+        new java.lang.String[] { "Model", "SystemPrompt", "Prompt", "ResponseSchema", "Temperature", "MaxTokens", "Timeout", "OnInvalid", "MaxRetries", "FallbackTask", "MaxCostMicros", "MaxTotalTokens", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.workflow.v1.tasks.CommonProto.getDescriptor();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();

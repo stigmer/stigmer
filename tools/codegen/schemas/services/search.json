@@ -6,6 +6,7 @@
     {
       "name": "SearchService",
       "role": "query",
+      "protoFile": "ai/stigmer/search/v1/query.proto",
       "methods": [
         {
           "name": "Search",

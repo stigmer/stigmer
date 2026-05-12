@@ -80,13 +80,14 @@ public final class AgentCallProto extends com.google.protobuf.GeneratedFile {
       "workflow.v1.tasks.OnInvalidOutputPolicyR" +
       "\tonInvalid\022*\n\013max_retries\030\003 \001(\005B\t\272H\006\032\004\030\005" +
       "(\001R\nmaxRetries\022#\n\rfallback_task\030\004 \001(\tR\014f" +
-      "allbackTask\"\363\001\n\024AgentExecutionConfig\022\024\n\005" +
+      "allbackTask\"\233\002\n\024AgentExecutionConfig\022\024\n\005" +
       "model\030\001 \001(\tR\005model\022$\n\007timeout\030\002 \001(\005B\n\272H\007" +
       "\032\005\030\220\034(\001R\007timeout\0221\n\013temperature\030\003 \001(\002B\017\272" +
       "H\014\n\n\035\000\000\200?-\000\000\000\000R\013temperature\022l\n\022context_m" +
       "anagement\030\004 \001(\0132=.ai.stigmer.agentic.age" +
       "ntexecution.v1.ContextManagementConfigR\021" +
-      "contextManagementB\310\001B\016AgentCallProtoP\001\242\002" +
+      "contextManagement\022&\n\017max_cost_micros\030\005 \001" +
+      "(\003R\rmaxCostMicrosB\310\001B\016AgentCallProtoP\001\242\002" +
       "\006ASAWVT\252\002$Ai.Stigmer.Agentic.Workflow.V1" +
       ".Tasks\312\002$Ai\\Stigmer\\Agentic\\Workflow\\V1\\" +
       "Tasks\342\0020Ai\\Stigmer\\Agentic\\Workflow\\V1\\T" +
@@ -125,7 +126,7 @@ public final class AgentCallProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentExecutionConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflow_v1_tasks_AgentExecutionConfig_descriptor,
-        new java.lang.String[] { "Model", "Timeout", "Temperature", "ContextManagement", });
+        new java.lang.String[] { "Model", "Timeout", "Temperature", "ContextManagement", "MaxCostMicros", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentexecution.v1.SpecProto.getDescriptor();
     ai.stigmer.agentic.workflow.v1.tasks.CommonProto.getDescriptor();

@@ -10,7 +10,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class LlmCallTaskConfig(_message.Message):
-    __slots__ = ("model", "system_prompt", "prompt", "response_schema", "temperature", "max_tokens", "timeout", "on_invalid", "max_retries", "fallback_task")
+    __slots__ = ("model", "system_prompt", "prompt", "response_schema", "temperature", "max_tokens", "timeout", "on_invalid", "max_retries", "fallback_task", "max_cost_micros", "max_total_tokens")
     MODEL_FIELD_NUMBER: _ClassVar[int]
     SYSTEM_PROMPT_FIELD_NUMBER: _ClassVar[int]
     PROMPT_FIELD_NUMBER: _ClassVar[int]
@@ -21,6 +21,8 @@ class LlmCallTaskConfig(_message.Message):
     ON_INVALID_FIELD_NUMBER: _ClassVar[int]
     MAX_RETRIES_FIELD_NUMBER: _ClassVar[int]
     FALLBACK_TASK_FIELD_NUMBER: _ClassVar[int]
+    MAX_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
+    MAX_TOTAL_TOKENS_FIELD_NUMBER: _ClassVar[int]
     model: str
     system_prompt: str
     prompt: str
@@ -31,4 +33,6 @@ class LlmCallTaskConfig(_message.Message):
     on_invalid: _common_pb2.OnInvalidOutputPolicy
     max_retries: int
     fallback_task: str
-    def __init__(self, model: _Optional[str] = ..., system_prompt: _Optional[str] = ..., prompt: _Optional[str] = ..., response_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., temperature: _Optional[float] = ..., max_tokens: _Optional[int] = ..., timeout: _Optional[int] = ..., on_invalid: _Optional[_Union[_common_pb2.OnInvalidOutputPolicy, str]] = ..., max_retries: _Optional[int] = ..., fallback_task: _Optional[str] = ...) -> None: ...
+    max_cost_micros: int
+    max_total_tokens: int
+    def __init__(self, model: _Optional[str] = ..., system_prompt: _Optional[str] = ..., prompt: _Optional[str] = ..., response_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., temperature: _Optional[float] = ..., max_tokens: _Optional[int] = ..., timeout: _Optional[int] = ..., on_invalid: _Optional[_Union[_common_pb2.OnInvalidOutputPolicy, str]] = ..., max_retries: _Optional[int] = ..., fallback_task: _Optional[str] = ..., max_cost_micros: _Optional[int] = ..., max_total_tokens: _Optional[int] = ...) -> None: ...

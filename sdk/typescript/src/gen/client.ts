@@ -110,7 +110,7 @@ export { type SessionInput, type WorkspaceEntryInput, type WorkspaceSourceInput,
 export { SkillClient } from "./skill";
 export { type SkillInput } from "./skill";
 export { WorkflowClient } from "./workflow";
-export { type WorkflowInput, type WorkflowDocumentInput, type WorkflowTaskInput, type ExportInput, type FlowControlInput } from "./workflow";
+export { type WorkflowInput, type WorkflowDocumentInput, type WorkflowTaskInput, type ExportInput, type FlowControlInput, type WorkflowBudgetInput } from "./workflow";
 export { WorkflowExecutionClient } from "./workflowexecution";
 export { type WorkflowExecutionInput } from "./workflowexecution";
 export { WorkflowInstanceClient } from "./workflowinstance";

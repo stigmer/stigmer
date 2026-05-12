@@ -140,4 +140,22 @@ message LlmCallTaskConfig {
   // Must reference a valid task name in the same workflow.
   // When empty and retries are exhausted, the task fails.
   string fallback_task = 10;
+
+  // Per-task cost cap in micro-USD (1 USD = 1,000,000 micros).
+  // When set, the runtime terminates this specific LLM call if its cost
+  // exceeds this limit, independent of the workflow-level budget.
+  // The runtime checks both: per-task limit first, then workflow remaining budget.
+  // Optional — when 0, no per-task cost limit is enforced.
+  //
+  // @since T05 (Workflow-Level Budget Primitives)
+  int64 max_cost_micros = 11;
+
+  // Per-task token cap (input + output tokens combined).
+  // When set, the runtime terminates this specific LLM call if total tokens
+  // exceed this limit. Complements max_tokens (field 6), which limits only
+  // the output token count as a generation parameter.
+  // Optional — when 0, no per-task total token limit is enforced.
+  //
+  // @since T05 (Workflow-Level Budget Primitives)
+  int64 max_total_tokens = 12;
 }

@@ -15,14 +15,16 @@ import (
 
 // WorkflowClient provides operations on workflow resources.
 type WorkflowClient struct {
-	command workflowv1.WorkflowCommandControllerClient
-	query   workflowv1.WorkflowQueryControllerClient
+	command               workflowv1.WorkflowCommandControllerClient
+	query                 workflowv1.WorkflowQueryControllerClient
+	taskKindRegistryQuery workflowv1.TaskKindRegistryQueryControllerClient
 }
 
 func NewWorkflowClient(conn grpc.ClientConnInterface) *WorkflowClient {
 	return &WorkflowClient{
-		command: workflowv1.NewWorkflowCommandControllerClient(conn),
-		query:   workflowv1.NewWorkflowQueryControllerClient(conn),
+		command:               workflowv1.NewWorkflowCommandControllerClient(conn),
+		query:                 workflowv1.NewWorkflowQueryControllerClient(conn),
+		taskKindRegistryQuery: workflowv1.NewTaskKindRegistryQueryControllerClient(conn),
 	}
 }
 
@@ -57,6 +59,11 @@ func (w *WorkflowClient) GetByReference(ctx context.Context, ref ResourceRef) (*
 	return resp, wrapErr(err)
 }
 
+func (w *WorkflowClient) GetTaskKindRegistry(ctx context.Context, input *workflowv1.GetTaskKindRegistryRequest) (*workflowv1.GetTaskKindRegistryResponse, error) {
+	resp, err := w.taskKindRegistryQuery.GetTaskKindRegistry(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // WorkflowInput holds the fields for creating/updating a Workflow.
 type WorkflowInput struct {
 	Name        string
@@ -67,6 +74,7 @@ type WorkflowInput struct {
 	Document    *WorkflowDocumentInput
 	Tasks       []*WorkflowTaskInput
 	Env         map[string]*EnvVarDeclarationInput
+	Budget      *WorkflowBudgetInput
 }
 
 // WorkflowDocumentInput is the SDK input type for WorkflowDocument.
@@ -97,6 +105,14 @@ type FlowControlInput struct {
 	Then string
 }
 
+// WorkflowBudgetInput is the SDK input type for WorkflowBudget.
+type WorkflowBudgetInput struct {
+	MaxCostMicros      int64
+	MaxTotalTokens     int64
+	MaxDurationSeconds int32
+	OnExceeded         workflowv1.BudgetExceededPolicy
+}
+
 func (i *WorkflowInput) toProto() *workflowv1.Workflow {
 	resource := &workflowv1.Workflow{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -121,6 +137,9 @@ func (i *WorkflowInput) toProto() *workflowv1.Workflow {
 		for k, v := range i.Env {
 			resource.Spec.Env[k] = v.toProto()
 		}
+	}
+	if i.Budget != nil {
+		resource.Spec.Budget = i.Budget.toProto()
 	}
 	return resource
 }
@@ -157,6 +176,15 @@ func (i *FlowControlInput) toProto() *workflowv1.FlowControl {
 	}
 }
 
+func (i *WorkflowBudgetInput) toProto() *workflowv1.WorkflowBudget {
+	return &workflowv1.WorkflowBudget{
+		MaxCostMicros:      i.MaxCostMicros,
+		MaxTotalTokens:     i.MaxTotalTokens,
+		MaxDurationSeconds: i.MaxDurationSeconds,
+		OnExceeded:         i.OnExceeded,
+	}
+}
+
 // WorkflowInputFromProto creates a WorkflowInput from a proto Workflow resource.
 func WorkflowInputFromProto(p *workflowv1.Workflow) *WorkflowInput {
 	if p == nil {
@@ -181,6 +209,7 @@ func WorkflowInputFromProto(p *workflowv1.Workflow) *WorkflowInput {
 				input.Env[k] = envVarDeclarationInputFromProto(v)
 			}
 		}
+		input.Budget = workflowBudgetInputFromProto(s.GetBudget())
 	}
 	return input
 }
@@ -228,5 +257,17 @@ func flowControlInputFromProto(p *workflowv1.FlowControl) *FlowControlInput {
 	}
 	input := &FlowControlInput{}
 	input.Then = p.GetThen()
+	return input
+}
+
+func workflowBudgetInputFromProto(p *workflowv1.WorkflowBudget) *WorkflowBudgetInput {
+	if p == nil {
+		return nil
+	}
+	input := &WorkflowBudgetInput{}
+	input.MaxCostMicros = p.GetMaxCostMicros()
+	input.MaxTotalTokens = p.GetMaxTotalTokens()
+	input.MaxDurationSeconds = p.GetMaxDurationSeconds()
+	input.OnExceeded = p.GetOnExceeded()
 	return input
 }

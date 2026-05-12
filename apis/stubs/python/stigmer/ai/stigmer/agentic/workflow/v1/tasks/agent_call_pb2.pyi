@@ -47,13 +47,15 @@ class AgentCallOutputContract(_message.Message):
     def __init__(self, schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., on_invalid: _Optional[_Union[_common_pb2.OnInvalidOutputPolicy, str]] = ..., max_retries: _Optional[int] = ..., fallback_task: _Optional[str] = ...) -> None: ...
 
 class AgentExecutionConfig(_message.Message):
-    __slots__ = ("model", "timeout", "temperature", "context_management")
+    __slots__ = ("model", "timeout", "temperature", "context_management", "max_cost_micros")
     MODEL_FIELD_NUMBER: _ClassVar[int]
     TIMEOUT_FIELD_NUMBER: _ClassVar[int]
     TEMPERATURE_FIELD_NUMBER: _ClassVar[int]
     CONTEXT_MANAGEMENT_FIELD_NUMBER: _ClassVar[int]
+    MAX_COST_MICROS_FIELD_NUMBER: _ClassVar[int]
     model: str
     timeout: int
     temperature: float
     context_management: _spec_pb2.ContextManagementConfig
-    def __init__(self, model: _Optional[str] = ..., timeout: _Optional[int] = ..., temperature: _Optional[float] = ..., context_management: _Optional[_Union[_spec_pb2.ContextManagementConfig, _Mapping]] = ...) -> None: ...
+    max_cost_micros: int
+    def __init__(self, model: _Optional[str] = ..., timeout: _Optional[int] = ..., temperature: _Optional[float] = ..., context_management: _Optional[_Union[_spec_pb2.ContextManagementConfig, _Mapping]] = ..., max_cost_micros: _Optional[int] = ...) -> None: ...

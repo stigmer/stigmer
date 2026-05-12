@@ -19,9 +19,9 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//apis/stubs/go/ai/stigmer/iam/v1:iam",
+        "@in_gopkg_yaml_v3//:yaml_v3",
         "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//types/descriptorpb",
-        "@in_gopkg_yaml_v3//:yaml_v3",
     ],
 )
 

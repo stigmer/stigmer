@@ -45,11 +45,15 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "se_error\020\013\022\020\n\014run_workflow\020\014\022\016\n\nagent_ca" +
       "ll\020\r\022\014\n\010llm_call\020\016\022\r\n\ttransform\020\017\022\017\n\013hum" +
       "an_input\020\020\022\014\n\010validate\020\021\022\016\n\nemit_event\020\022" +
-      "\022\020\n\014notification\020\023B\250\001B\tEnumProtoP\001\242\002\004ASA" +
-      "W\252\002\036Ai.Stigmer.Agentic.Workflow.V1\312\002\036Ai\\" +
-      "Stigmer\\Agentic\\Workflow\\V1\342\002*Ai\\Stigmer" +
-      "\\Agentic\\Workflow\\V1\\GPBMetadata\352\002\"Ai::S" +
-      "tigmer::Agentic::Workflow::V1b\006proto3"
+      "\022\020\n\014notification\020\023*\231\001\n\024BudgetExceededPol" +
+      "icy\022&\n\"budget_exceeded_policy_unspecifie" +
+      "d\020\000\022\035\n\031budget_exceeded_terminate\020\001\022 \n\034bu" +
+      "dget_exceeded_human_review\020\002\022\030\n\024budget_e" +
+      "xceeded_warn\020\003B\250\001B\tEnumProtoP\001\242\002\004ASAW\252\002\036" +
+      "Ai.Stigmer.Agentic.Workflow.V1\312\002\036Ai\\Stig" +
+      "mer\\Agentic\\Workflow\\V1\342\002*Ai\\Stigmer\\Age" +
+      "ntic\\Workflow\\V1\\GPBMetadata\352\002\"Ai::Stigm" +
+      "er::Agentic::Workflow::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

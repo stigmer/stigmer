@@ -1,0 +1,2036 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "generated-by-codegen",
+  "descriptors": [
+    {
+      "kind": "set_vars",
+      "displayName": "Set Variables",
+      "description": "Assign values to workflow state variables using expressions.",
+      "category": "data",
+      "icon": "variable",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig",
+      "fields": [
+        {
+          "name": "variables",
+          "displayName": "Variables",
+          "description": "Variables to set in workflow state. Keys are variable names, values can be literals or expressions. Expressions use ${...} syntax, e.g., \"${.a + .b}\" or \"${now}\"",
+          "type": "map",
+          "required": true,
+          "groupId": "core",
+          "fieldNumber": 1,
+          "validationHints": [
+            "required"
+          ]
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Variables"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "variables": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Variables to set in workflow state. Keys are variable names, values can be literals or expressions. Expressions use ${...} syntax, e.g., \"${.a + .b}\" or \"${now}\"",
+            "type": "object"
+          }
+        },
+        "required": [
+          "variables"
+        ],
+        "title": "SetTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "set_vars mutates workflow context directly; it does not produce task output.",
+        "type": "null"
+      },
+      "yamlExamples": [
+        "- initialize:\n    set:\n      variables:\n        status: \"pending\"\n        timestamp: \"${ now() }\"\n        request_id: \"${ $context.input.id }\"\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/set-vars",
+      "isAiNative": false,
+      "requiresExternalService": false
+    },
+    {
+      "kind": "http_call",
+      "displayName": "HTTP Call",
+      "description": "Make an HTTP request to an external API endpoint.",
+      "category": "invocation",
+      "icon": "globe",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig",
+      "fields": [
+        {
+          "name": "method",
+          "displayName": "Method",
+          "description": "HTTP method (GET, POST, PUT, DELETE, PATCH).",
+          "type": "string",
+          "required": true,
+          "groupId": "request",
+          "fieldNumber": 1,
+          "validationHints": [
+            "required"
+          ]
+        },
+        {
+          "name": "endpoint",
+          "displayName": "Endpoint",
+          "description": "HTTP endpoint configuration.",
+          "type": "message",
+          "required": true,
+          "groupId": "request",
+          "fieldNumber": 2,
+          "elementType": "HttpEndpoint",
+          "validationHints": [
+            "required"
+          ]
+        },
+        {
+          "name": "headers",
+          "displayName": "Headers",
+          "description": "HTTP headers (optional). Values can contain expressions: \"Bearer ${TOKEN}\"",
+          "type": "map",
+          "required": false,
+          "groupId": "request",
+          "fieldNumber": 3
+        },
+        {
+          "name": "body",
+          "displayName": "Body",
+          "description": "Request body (optional). Can be any JSON structure. Supports expressions in string values.",
+          "type": "struct",
+          "required": false,
+          "groupId": "request",
+          "fieldNumber": 4
+        },
+        {
+          "name": "timeout_seconds",
+          "displayName": "Timeout Seconds",
+          "description": "Request timeout in seconds (optional, default: 30).",
+          "type": "int32",
+          "required": false,
+          "fieldNumber": 5,
+          "validationHints": [
+            "min: 1",
+            "max: 300"
+          ]
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "request",
+          "displayName": "Request"
+        },
+        {
+          "id": "auth",
+          "displayName": "Authentication"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "description": "Request body (optional). Can be any JSON structure. Supports expressions in string values.",
+            "type": "object"
+          },
+          "endpoint": {
+            "description": "HTTP endpoint configuration.",
+            "type": "object"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "HTTP headers (optional). Values can contain expressions: \"Bearer ${TOKEN}\"",
+            "type": "object"
+          },
+          "method": {
+            "description": "HTTP method (GET, POST, PUT, DELETE, PATCH).",
+            "type": "string"
+          },
+          "timeout_seconds": {
+            "description": "Request timeout in seconds (optional, default: 30).",
+            "maximum": 300,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "method",
+          "endpoint"
+        ],
+        "title": "HttpCallTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "HTTP response including status code, headers, and body.",
+        "properties": {
+          "body": {
+            "type": "object"
+          },
+          "headers": {
+            "type": "object"
+          },
+          "status_code": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "yamlExamples": [
+        "- fetch_data:\n    call: http\n    with:\n      method: \"GET\"\n      endpoint:\n        uri: \"https://api.example.com/tickets/${ $context.ticket_id }\"\n      headers:\n        Authorization: \"Bearer ${ .secrets.API_TOKEN }\"\n    export:\n      as: \"${ . }\"\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/http-call",
+      "isAiNative": false,
+      "requiresExternalService": true
+    },
+    {
+      "kind": "grpc_call",
+      "displayName": "gRPC Call",
+      "description": "Invoke a gRPC method on an external service.",
+      "category": "invocation",
+      "icon": "server",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.GrpcCallTaskConfig",
+      "fields": [
+        {
+          "name": "service",
+          "displayName": "Service",
+          "description": "Fully qualified service name. Example: \"com.example.UserService\"",
+          "type": "string",
+          "required": true,
+          "groupId": "core",
+          "fieldNumber": 1,
+          "validationHints": [
+            "required",
+            "min_length: 1"
+          ]
+        },
+        {
+          "name": "method",
+          "displayName": "Method",
+          "description": "Method name to call. Example: \"GetUser\"",
+          "type": "string",
+          "required": true,
+          "groupId": "core",
+          "fieldNumber": 2,
+          "validationHints": [
+            "required",
+            "min_length: 1"
+          ]
+        },
+        {
+          "name": "request",
+          "displayName": "Request",
+          "description": "Request message (optional). Can be any JSON structure matching the proto schema. Supports expressions in string values.",
+          "type": "struct",
+          "required": false,
+          "groupId": "core",
+          "fieldNumber": 3
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Service Configuration"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "description": "Method name to call. Example: \"GetUser\"",
+            "minLength": 1,
+            "type": "string"
+          },
+          "request": {
+            "description": "Request message (optional). Can be any JSON structure matching the proto schema. Supports expressions in string values.",
+            "type": "object"
+          },
+          "service": {
+            "description": "Fully qualified service name. Example: \"com.example.UserService\"",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "service",
+          "method"
+        ],
+        "title": "GrpcCallTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "gRPC response message as JSON.",
+        "type": "object"
+      },
+      "yamlExamples": [
+        "- call_service:\n    call: grpc\n    with:\n      service: \"user.UserService\"\n      method: \"GetUser\"\n      request:\n        user_id: \"${ $context.user_id }\"\n    export:\n      as: \"${ . }\"\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/grpc-call",
+      "isAiNative": false,
+      "requiresExternalService": true
+    },
+    {
+      "kind": "activity_call",
+      "displayName": "Activity Call",
+      "description": "Execute a Temporal activity by name with typed input.",
+      "category": "invocation",
+      "icon": "cog",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig",
+      "fields": [
+        {
+          "name": "activity",
+          "displayName": "Activity",
+          "description": "Activity name to execute. Must match a registered Temporal activity.",
+          "type": "string",
+          "required": true,
+          "groupId": "core",
+          "fieldNumber": 1,
+          "validationHints": [
+            "required",
+            "min_length: 1"
+          ]
+        },
+        {
+          "name": "input",
+          "displayName": "Input",
+          "description": "Activity input (optional). Can be any JSON structure. Supports expressions in string values.",
+          "type": "struct",
+          "required": false,
+          "groupId": "core",
+          "fieldNumber": 2
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Activity Configuration"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "activity": {
+            "description": "Activity name to execute. Must match a registered Temporal activity.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "input": {
+            "description": "Activity input (optional). Can be any JSON structure. Supports expressions in string values.",
+            "type": "object"
+          }
+        },
+        "required": [
+          "activity"
+        ],
+        "title": "CallActivityTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "Activity return value as JSON.",
+        "type": "object"
+      },
+      "yamlExamples": [
+        "- process_payment:\n    call: activity\n    with:\n      activity: \"ProcessPayment\"\n      input:\n        amount: \"${ $context.order.total }\"\n        currency: \"USD\"\n    export:\n      as: \"${ . }\"\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/activity-call",
+      "isAiNative": false,
+      "requiresExternalService": false
+    },
+    {
+      "kind": "switch_case",
+      "displayName": "Switch Case",
+      "description": "Branch conditionally based on expression evaluation.",
+      "category": "control_flow",
+      "icon": "git-branch",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig",
+      "fields": [
+        {
+          "name": "cases",
+          "displayName": "Cases",
+          "description": "List of switch cases (at least one required). Cases are evaluated in order. First matching case executes. If no \"when\" is specified, the case acts as default.",
+          "type": "repeated",
+          "required": false,
+          "groupId": "core",
+          "fieldNumber": 1,
+          "elementType": "SwitchCase",
+          "validationHints": [
+            "min_items: 1"
+          ]
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Conditions"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "cases": {
+            "description": "List of switch cases (at least one required). Cases are evaluated in order. First matching case executes. If no \"when\" is specified, the case acts as default.",
+            "items": {
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "title": "SwitchTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "switch_case directs flow control; it does not produce task output.",
+        "type": "null"
+      },
+      "yamlExamples": [
+        "- route_by_severity:\n    switch:\n      cases:\n        - name: critical\n          when: \"${ $context.triage.severity == 'critical' }\"\n          then: escalate\n        - name: high\n          when: \"${ $context.triage.severity == 'high' }\"\n          then: notify_team\n        - name: default\n          then: log_and_close\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/switch-case",
+      "isAiNative": false,
+      "requiresExternalService": false
+    },
+    {
+      "kind": "for_each",
+      "displayName": "For Each",
+      "description": "Iterate over a collection, executing tasks for each item.",
+      "category": "control_flow",
+      "icon": "repeat",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig",
+      "fields": [
+        {
+          "name": "each",
+          "displayName": "Each",
+          "description": "Variable name for each item in the iteration. Accessible via ${ $data.item } in expressions.",
+          "type": "string",
+          "required": true,
+          "groupId": "core",
+          "fieldNumber": 1,
+          "validationHints": [
+            "required",
+            "min_length: 1"
+          ]
+        },
+        {
+          "name": "in",
+          "displayName": "In",
+          "description": "Expression evaluating to the collection to iterate over. Example: \"${ $data.items }\" or \"${ [1, 2, 3] }\"",
+          "type": "string",
+          "required": true,
+          "isExpression": true,
+          "groupId": "core",
+          "fieldNumber": 2,
+          "validationHints": [
+            "required",
+            "min_length: 1"
+          ]
+        },
+        {
+          "name": "do",
+          "displayName": "Do",
+          "description": "Tasks to execute for each iteration. Loop variables available: ${ $data.item }, ${ $data.index }",
+          "type": "repeated",
+          "required": false,
+          "groupId": "core",
+          "fieldNumber": 3,
+          "elementType": "WorkflowTask",
+          "validationHints": [
+            "min_items: 1"
+          ]
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Iteration"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "do": {
+            "description": "Tasks to execute for each iteration. Loop variables available: ${ $data.item }, ${ $data.index }",
+            "items": {
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "each": {
+            "description": "Variable name for each item in the iteration. Accessible via ${ $data.item } in expressions.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "in": {
+            "description": "Expression evaluating to the collection to iterate over. Example: \"${ $data.items }\" or \"${ [1, 2, 3] }\"",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "each",
+          "in"
+        ],
+        "title": "ForTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "Collected results from each iteration.",
+        "type": "array"
+      },
+      "yamlExamples": [
+        "- process_items:\n    for:\n      each: item\n      in: \"${ $context.items }\"\n      do:\n        - classify_item:\n            call: llm\n            with:\n              model: \"gpt-4o-mini\"\n              prompt: \"Classify: ${ $item.description }\"\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/for-each",
+      "isAiNative": false,
+      "requiresExternalService": false
+    },
+    {
+      "kind": "fork",
+      "displayName": "Fork",
+      "description": "Execute multiple branches in parallel, optionally racing.",
+      "category": "control_flow",
+      "icon": "git-fork",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.ForkTaskConfig",
+      "fields": [
+        {
+          "name": "branches",
+          "displayName": "Branches",
+          "description": "Branches to execute in parallel (at least 2 required).",
+          "type": "repeated",
+          "required": false,
+          "groupId": "core",
+          "fieldNumber": 1,
+          "elementType": "ForkBranch",
+          "validationHints": [
+            "min_items: 2"
+          ]
+        },
+        {
+          "name": "compete",
+          "displayName": "Compete",
+          "description": "If true, first branch to complete wins (race mode). If false, all branches must complete (default).",
+          "type": "bool",
+          "required": false,
+          "groupId": "core",
+          "fieldNumber": 2
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Parallel Branches"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "branches": {
+            "description": "Branches to execute in parallel (at least 2 required).",
+            "items": {
+              "type": "object"
+            },
+            "minItems": 2,
+            "type": "array"
+          },
+          "compete": {
+            "description": "If true, first branch to complete wins (race mode). If false, all branches must complete (default).",
+            "type": "boolean"
+          }
+        },
+        "title": "ForkTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "Combined results from all branches (or winner if compete=true).",
+        "type": "object"
+      },
+      "yamlExamples": [
+        "- parallel_enrichment:\n    fork:\n      branches:\n        - name: fetch_profile\n          do:\n            - get_profile:\n                call: http\n                with:\n                  method: \"GET\"\n                  endpoint:\n                    uri: \"https://api.example.com/users/${ $context.user_id }\"\n        - name: fetch_history\n          do:\n            - get_history:\n                call: http\n                with:\n                  method: \"GET\"\n                  endpoint:\n                    uri: \"https://api.example.com/history/${ $context.user_id }\"\n      compete: false\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/fork",
+      "isAiNative": false,
+      "requiresExternalService": false
+    },
+    {
+      "kind": "try_catch",
+      "displayName": "Try/Catch",
+      "description": "Handle errors from a block of tasks with recovery logic.",
+      "category": "control_flow",
+      "icon": "shield",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.TryTaskConfig",
+      "fields": [
+        {
+          "name": "try",
+          "displayName": "Try",
+          "description": "Tasks to attempt (at least one required). If any task fails, execution jumps to catch block.",
+          "type": "repeated",
+          "required": false,
+          "groupId": "core",
+          "fieldNumber": 1,
+          "elementType": "WorkflowTask",
+          "validationHints": [
+            "min_items: 1"
+          ]
+        },
+        {
+          "name": "catch",
+          "displayName": "Catch",
+          "description": "Catch block for error handling (optional). If not provided, errors propagate to parent.",
+          "type": "message",
+          "required": false,
+          "groupId": "core",
+          "fieldNumber": 2,
+          "elementType": "CatchBlock"
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Error Handling"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "catch": {
+            "description": "Catch block for error handling (optional). If not provided, errors propagate to parent.",
+            "type": "object"
+          },
+          "try": {
+            "description": "Tasks to attempt (at least one required). If any task fails, execution jumps to catch block.",
+            "items": {
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "title": "TryTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "Output from the try block (success) or catch block (recovery).",
+        "type": "object"
+      },
+      "yamlExamples": [
+        "- safe_api_call:\n    try:\n      - risky_call:\n          call: http\n          with:\n            method: \"POST\"\n            endpoint:\n              uri: \"https://api.unreliable.com/submit\"\n    catch:\n      as: error\n      do:\n        - log_failure:\n            set:\n              variables:\n                error_message: \"${ $error.message }\"\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/try-catch",
+      "isAiNative": false,
+      "requiresExternalService": false
+    },
+    {
+      "kind": "listen",
+      "displayName": "Listen",
+      "description": "Wait for external signals or events before proceeding.",
+      "category": "event",
+      "icon": "radio",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.ListenTaskConfig",
+      "fields": [
+        {
+          "name": "to",
+          "displayName": "To",
+          "description": "Signal listening configuration.",
+          "type": "message",
+          "required": true,
+          "groupId": "core",
+          "fieldNumber": 1,
+          "elementType": "ListenTo",
+          "validationHints": [
+            "required"
+          ]
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Signal Configuration"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "to": {
+            "description": "Signal listening configuration.",
+            "type": "object"
+          }
+        },
+        "required": [
+          "to"
+        ],
+        "title": "ListenTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "Signal payload received from the external source.",
+        "type": "object"
+      },
+      "yamlExamples": [
+        "- wait_for_approval:\n    listen:\n      to:\n        mode: \"one\"\n        signals:\n          - id: \"approval_signal\"\n            type: \"signal\"\n    export:\n      as: \"${ . }\"\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/listen",
+      "isAiNative": false,
+      "requiresExternalService": false
+    },
+    {
+      "kind": "wait",
+      "displayName": "Wait",
+      "description": "Pause execution for a specified duration.",
+      "category": "control_flow",
+      "icon": "clock",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig",
+      "fields": [
+        {
+          "name": "duration",
+          "displayName": "Duration",
+          "description": "Relative duration to wait from now. Use this when you want to wait for a specific amount of time regardless of when the workflow reaches this task. Example: { days: 7 } = wait 1 week from now",
+          "type": "message",
+          "required": false,
+          "fieldNumber": 1,
+          "elementType": "Duration"
+        },
+        {
+          "name": "until",
+          "displayName": "Until",
+          "description": "Absolute timestamp to wait until. Use this when you want to wait until a specific point in time. If the timestamp is in the past, the task completes immediately. Example: \"2026-03-01T09:00:00Z\" = wait until March 1st, 2026 at 9am UTC",
+          "type": "string",
+          "required": false,
+          "fieldNumber": 2
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Duration"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "duration": {
+            "description": "Relative duration to wait from now. Use this when you want to wait for a specific amount of time regardless of when the workflow reaches this task. Example: { days: 7 } = wait 1 week from now",
+            "type": "object"
+          },
+          "until": {
+            "description": "Absolute timestamp to wait until. Use this when you want to wait until a specific point in time. If the timestamp is in the past, the task completes immediately. Example: \"2026-03-01T09:00:00Z\" = wait until March 1st, 2026 at 9am UTC",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "title": "WaitTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "wait does not produce task output.",
+        "type": "null"
+      },
+      "yamlExamples": [
+        "- cooldown:\n    wait:\n      seconds: 30\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/wait",
+      "isAiNative": false,
+      "requiresExternalService": false
+    },
+    {
+      "kind": "raise_error",
+      "displayName": "Raise Error",
+      "description": "Raise an error to terminate execution or trigger error handling.",
+      "category": "event",
+      "icon": "alert-triangle",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.RaiseTaskConfig",
+      "fields": [
+        {
+          "name": "error",
+          "displayName": "Error",
+          "description": "Error type/name.",
+          "type": "string",
+          "required": true,
+          "isExpression": true,
+          "groupId": "core",
+          "fieldNumber": 1,
+          "validationHints": [
+            "required",
+            "min_length: 1"
+          ]
+        },
+        {
+          "name": "message",
+          "displayName": "Message",
+          "description": "Error message. Can contain expressions: \"${ .errorMessage }\"",
+          "type": "string",
+          "required": true,
+          "isExpression": true,
+          "groupId": "core",
+          "fieldNumber": 2,
+          "validationHints": [
+            "required",
+            "min_length: 1"
+          ]
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Error"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "description": "Error type/name.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "message": {
+            "description": "Error message. Can contain expressions: \"${ .errorMessage }\"",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ],
+        "title": "RaiseTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "raise_error terminates the current execution path.",
+        "type": "null"
+      },
+      "yamlExamples": [
+        "- fail_invalid:\n    raise:\n      error: \"ValidationError\"\n      message: \"Required field missing: ${ $context.missing_field }\"\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/raise-error",
+      "isAiNative": false,
+      "requiresExternalService": false
+    },
+    {
+      "kind": "run_workflow",
+      "displayName": "Run Workflow",
+      "description": "Execute a sub-workflow as a child of the current workflow.",
+      "category": "invocation",
+      "icon": "workflow",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.RunTaskConfig",
+      "fields": [
+        {
+          "name": "workflow",
+          "displayName": "Workflow",
+          "description": "Sub-workflow name/identifier to execute.",
+          "type": "string",
+          "required": true,
+          "groupId": "core",
+          "fieldNumber": 1,
+          "validationHints": [
+            "required",
+            "min_length: 1"
+          ]
+        },
+        {
+          "name": "input",
+          "displayName": "Input",
+          "description": "Sub-workflow input (optional). Can be any JSON structure. Supports expressions in string values.",
+          "type": "struct",
+          "required": false,
+          "groupId": "core",
+          "fieldNumber": 2
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Sub-Workflow"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "input": {
+            "description": "Sub-workflow input (optional). Can be any JSON structure. Supports expressions in string values.",
+            "type": "object"
+          },
+          "workflow": {
+            "description": "Sub-workflow name/identifier to execute.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "workflow"
+        ],
+        "title": "RunTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "Output from the child workflow execution.",
+        "type": "object"
+      },
+      "yamlExamples": [
+        "- run_enrichment:\n    run:\n      workflow: \"data-enrichment\"\n      input:\n        user_id: \"${ $context.user.id }\"\n        source: \"parent_workflow\"\n    export:\n      as: \"${ . }\"\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/run-workflow",
+      "isAiNative": false,
+      "requiresExternalService": false
+    },
+    {
+      "kind": "agent_call",
+      "displayName": "Agent Call",
+      "description": "Invoke an AI agent for complex, multi-step reasoning with tool access.",
+      "category": "ai",
+      "icon": "bot",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig",
+      "fields": [
+        {
+          "name": "agent",
+          "displayName": "Agent",
+          "description": "Agent reference in \"org/slug\" or \"slug\" format. - \"slug\" only: uses the workflow's organization - \"org/slug\": explicit organization reference Examples: \"code-reviewer\", \"stigmer/code-reviewer\", \"acme/data-analyst\" Required field.",
+          "type": "string",
+          "required": true,
+          "groupId": "core",
+          "fieldNumber": 1,
+          "validationHints": [
+            "required",
+            "min_length: 1",
+            "max_length: 127"
+          ]
+        },
+        {
+          "name": "org",
+          "displayName": "Org",
+          "description": "Explicit organization for agent resolution. Optional. If empty, the org is parsed from the agent field or defaults to workflow's org. Use this when you need to override the parsed org.",
+          "type": "string",
+          "required": false,
+          "groupId": "core",
+          "fieldNumber": 2
+        },
+        {
+          "name": "message",
+          "displayName": "Message",
+          "description": "Instructions/prompt to send to the agent. Supports interpolation of workflow variables using JQ expressions. Example: \"Analyze this code: ${ $context.fetchCode.body }\" Required field.",
+          "type": "string",
+          "required": true,
+          "isExpression": true,
+          "groupId": "core",
+          "fieldNumber": 3,
+          "validationHints": [
+            "required",
+            "min_length: 1"
+          ]
+        },
+        {
+          "name": "env",
+          "displayName": "Env",
+          "description": "Runtime environment variables to pass to the agent. Values can be literal strings or JQ expressions that reference workflow context or secrets. Example: {\"GITHUB_TOKEN\": \"${ .secrets.GH_TOKEN }\"} Optional.",
+          "type": "map",
+          "required": false,
+          "groupId": "runtime",
+          "fieldNumber": 4
+        },
+        {
+          "name": "config",
+          "displayName": "Config",
+          "description": "Execution configuration for the agent invocation. Optional - defaults are applied if not specified.",
+          "type": "message",
+          "required": false,
+          "groupId": "runtime",
+          "fieldNumber": 5,
+          "elementType": "AgentExecutionConfig"
+        },
+        {
+          "name": "output",
+          "displayName": "Output",
+          "description": "Structured output contract for this agent call. When set, the workflow runner extracts structured JSON from the agent's final response and validates it against the declared schema. The validated JSON is placed in the task output under the \"structured\" key, enabling reliable downstream routing via switch_case expressions. When not set, the task output contains the agent's raw text response (backward compatible with existing workflows).",
+          "type": "message",
+          "required": false,
+          "groupId": "output",
+          "fieldNumber": 6,
+          "elementType": "AgentCallOutputContract"
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Agent Configuration"
+        },
+        {
+          "id": "runtime",
+          "displayName": "Runtime Settings"
+        },
+        {
+          "id": "budget",
+          "displayName": "Budget Limits"
+        },
+        {
+          "id": "output",
+          "displayName": "Structured Output"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "agent": {
+            "description": "Agent reference in \"org/slug\" or \"slug\" format. - \"slug\" only: uses the workflow's organization - \"org/slug\": explicit organization reference Examples: \"code-reviewer\", \"stigmer/code-reviewer\", \"acme/data-analyst\" Required field.",
+            "maxLength": 127,
+            "minLength": 1,
+            "type": "string"
+          },
+          "config": {
+            "description": "Execution configuration for the agent invocation. Optional - defaults are applied if not specified.",
+            "type": "object"
+          },
+          "env": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Runtime environment variables to pass to the agent. Values can be literal strings or JQ expressions that reference workflow context or secrets. Example: {\"GITHUB_TOKEN\": \"${ .secrets.GH_TOKEN }\"} Optional.",
+            "type": "object"
+          },
+          "message": {
+            "description": "Instructions/prompt to send to the agent. Supports interpolation of workflow variables using JQ expressions. Example: \"Analyze this code: ${ $context.fetchCode.body }\" Required field.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "org": {
+            "description": "Explicit organization for agent resolution. Optional. If empty, the org is parsed from the agent field or defaults to workflow's org. Use this when you need to override the parsed org.",
+            "type": "string"
+          },
+          "output": {
+            "description": "Structured output contract for this agent call. When set, the workflow runner extracts structured JSON from the agent's final response and validates it against the declared schema. The validated JSON is placed in the task output under the \"structured\" key, enabling reliable downstream routing via switch_case expressions. When not set, the task output contains the agent's raw text response (backward compatible with existing workflows).",
+            "type": "object"
+          }
+        },
+        "required": [
+          "agent",
+          "message"
+        ],
+        "title": "AgentCallTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "Agent execution result with dual-channel output.",
+        "properties": {
+          "agent_execution_id": {
+            "description": "Execution ID for drill-down into agent trace.",
+            "type": "string"
+          },
+          "final_text": {
+            "description": "Human-readable agent response.",
+            "type": "string"
+          },
+          "structured": {
+            "description": "Validated JSON output (when output contract is configured).",
+            "type": "object"
+          },
+          "usage_summary": {
+            "properties": {
+              "artifact_count": {
+                "type": "integer"
+              },
+              "estimated_cost_usd": {
+                "type": "number"
+              },
+              "tool_call_count": {
+                "type": "integer"
+              },
+              "total_tokens": {
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "yamlExamples": [
+        "- triage_ticket:\n    call: agent\n    with:\n      agent: \"support-triage\"\n      message: \"${ .ticket.description }\"\n      output:\n        schema:\n          type: object\n          required: [severity, category]\n          properties:\n            severity:\n              type: string\n              enum: [low, medium, high, critical]\n            category:\n              type: string\n        on_invalid: ON_INVALID_RETRY\n        max_retries: 2\n    export:\n      as: \"${ .structured }\"\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/agent-call",
+      "isAiNative": true,
+      "requiresExternalService": true
+    },
+    {
+      "kind": "llm_call",
+      "displayName": "LLM Call",
+      "description": "Direct LLM call for classification, extraction, scoring, or routing without agent overhead.",
+      "category": "ai",
+      "icon": "brain",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig",
+      "fields": [
+        {
+          "name": "model",
+          "displayName": "Model",
+          "description": "Model reference resolved via the Stigmer model registry. Examples: \"gpt-4o\", \"gpt-4o-mini\", \"claude-sonnet-4-5\", \"claude-haiku-3-5\" Required field.",
+          "type": "string",
+          "required": true,
+          "groupId": "core",
+          "fieldNumber": 1,
+          "validationHints": [
+            "required",
+            "min_length: 1",
+            "max_length: 127"
+          ]
+        },
+        {
+          "name": "system_prompt",
+          "displayName": "System Prompt",
+          "description": "System prompt that sets the LLM's role and constraints. Supports ${ } expression interpolation for dynamic system prompts. Optional — omit for tasks where the user prompt is self-contained.",
+          "type": "string",
+          "required": false,
+          "isExpression": true,
+          "groupId": "core",
+          "fieldNumber": 2
+        },
+        {
+          "name": "prompt",
+          "displayName": "Prompt",
+          "description": "User prompt / instruction sent to the LLM. Supports ${ } expression interpolation for injecting workflow context. Example: \"Classify this ticket: ${ $context.ticket.description }\" Required field.",
+          "type": "string",
+          "required": true,
+          "isExpression": true,
+          "groupId": "core",
+          "fieldNumber": 3,
+          "validationHints": [
+            "required",
+            "min_length: 1"
+          ]
+        },
+        {
+          "name": "response_schema",
+          "displayName": "Response Schema",
+          "description": "JSON Schema for structured output. When set, the runner requests structured output from the provider (e.g., OpenAI's response_format, Anthropic's tool_use extraction) and validates the response against this schema. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema for consistency across the workflow domain. When not set, the task output is the LLM's raw text response.",
+          "type": "struct",
+          "required": false,
+          "groupId": "output",
+          "fieldNumber": 4
+        },
+        {
+          "name": "temperature",
+          "displayName": "Temperature",
+          "description": "Sampling temperature (0.0 to 2.0). Lower = more deterministic, higher = more creative. Range is 0.0-2.0 to accommodate all major providers (OpenAI supports up to 2.0; others clamp to their supported range at runtime). Optional — uses the provider's default when not set.",
+          "type": "float",
+          "required": false,
+          "groupId": "tuning",
+          "fieldNumber": 5,
+          "validationHints": [
+            "max: 2"
+          ]
+        },
+        {
+          "name": "max_tokens",
+          "displayName": "Max Tokens",
+          "description": "Maximum tokens in the LLM response. Optional — uses the provider's default when not set.",
+          "type": "int32",
+          "required": false,
+          "groupId": "tuning",
+          "fieldNumber": 6,
+          "validationHints": [
+            "min: 1"
+          ]
+        },
+        {
+          "name": "timeout",
+          "displayName": "Timeout",
+          "description": "Timeout for the LLM call in seconds. Default: 60. Max: 600 (10 minutes). Optional.",
+          "type": "int32",
+          "required": false,
+          "groupId": "tuning",
+          "fieldNumber": 7,
+          "validationHints": [
+            "min: 1",
+            "max: 600"
+          ]
+        },
+        {
+          "name": "on_invalid",
+          "displayName": "On Invalid",
+          "description": "Policy when the LLM response fails schema validation. Only meaningful when response_schema is set; ignored otherwise. Default: ON_INVALID_FAIL (task fails immediately).",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "ON_INVALID_FAIL",
+            "ON_INVALID_RETRY",
+            "ON_INVALID_FALLBACK"
+          ],
+          "groupId": "output",
+          "fieldNumber": 8
+        },
+        {
+          "name": "max_retries",
+          "displayName": "Max Retries",
+          "description": "Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the LLM with the validation errors and expected schema, giving it an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5.",
+          "type": "int32",
+          "required": false,
+          "groupId": "output",
+          "fieldNumber": 9,
+          "validationHints": [
+            "min: 1",
+            "max: 5"
+          ]
+        },
+        {
+          "name": "fallback_task",
+          "displayName": "Fallback Task",
+          "description": "Target task to branch to when schema validation cannot be resolved. Used in two scenarios: 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry) Must reference a valid task name in the same workflow. When empty and retries are exhausted, the task fails.",
+          "type": "string",
+          "required": false,
+          "groupId": "output",
+          "fieldNumber": 10
+        },
+        {
+          "name": "max_cost_micros",
+          "displayName": "Max Cost Micros",
+          "description": "Per-task cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this specific LLM call if its cost exceeds this limit, independent of the workflow-level budget. The runtime checks both: per-task limit first, then workflow remaining budget. Optional — when 0, no per-task cost limit is enforced.",
+          "type": "int32",
+          "required": false,
+          "groupId": "budget",
+          "fieldNumber": 11
+        },
+        {
+          "name": "max_total_tokens",
+          "displayName": "Max Total Tokens",
+          "description": "Per-task token cap (input + output tokens combined). When set, the runtime terminates this specific LLM call if total tokens exceed this limit. Complements max_tokens (field 6), which limits only the output token count as a generation parameter. Optional — when 0, no per-task total token limit is enforced.",
+          "type": "int32",
+          "required": false,
+          "groupId": "budget",
+          "fieldNumber": 12
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Core Configuration"
+        },
+        {
+          "id": "output",
+          "displayName": "Output Control"
+        },
+        {
+          "id": "tuning",
+          "displayName": "Model Tuning"
+        },
+        {
+          "id": "budget",
+          "displayName": "Budget Limits"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "fallback_task": {
+            "description": "Target task to branch to when schema validation cannot be resolved. Used in two scenarios: 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry) Must reference a valid task name in the same workflow. When empty and retries are exhausted, the task fails.",
+            "type": "string"
+          },
+          "max_cost_micros": {
+            "description": "Per-task cost cap in micro-USD (1 USD = 1,000,000 micros). When set, the runtime terminates this specific LLM call if its cost exceeds this limit, independent of the workflow-level budget. The runtime checks both: per-task limit first, then workflow remaining budget. Optional — when 0, no per-task cost limit is enforced.",
+            "type": "integer"
+          },
+          "max_retries": {
+            "description": "Maximum schema-validation retry attempts when on_invalid is ON_INVALID_RETRY. Each retry re-prompts the LLM with the validation errors and expected schema, giving it an opportunity to self-correct. Only meaningful when on_invalid is ON_INVALID_RETRY; ignored otherwise. Default: 1. Valid range: 1-5.",
+            "maximum": 5,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "max_tokens": {
+            "description": "Maximum tokens in the LLM response. Optional — uses the provider's default when not set.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "max_total_tokens": {
+            "description": "Per-task token cap (input + output tokens combined). When set, the runtime terminates this specific LLM call if total tokens exceed this limit. Complements max_tokens (field 6), which limits only the output token count as a generation parameter. Optional — when 0, no per-task total token limit is enforced.",
+            "type": "integer"
+          },
+          "model": {
+            "description": "Model reference resolved via the Stigmer model registry. Examples: \"gpt-4o\", \"gpt-4o-mini\", \"claude-sonnet-4-5\", \"claude-haiku-3-5\" Required field.",
+            "maxLength": 127,
+            "minLength": 1,
+            "type": "string"
+          },
+          "on_invalid": {
+            "description": "Policy when the LLM response fails schema validation. Only meaningful when response_schema is set; ignored otherwise. Default: ON_INVALID_FAIL (task fails immediately).",
+            "enum": [
+              "ON_INVALID_FAIL",
+              "ON_INVALID_RETRY",
+              "ON_INVALID_FALLBACK"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "description": "User prompt / instruction sent to the LLM. Supports ${ } expression interpolation for injecting workflow context. Example: \"Classify this ticket: ${ $context.ticket.description }\" Required field.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "response_schema": {
+            "description": "JSON Schema for structured output. When set, the runner requests structured output from the provider (e.g., OpenAI's response_format, Anthropic's tool_use extraction) and validates the response against this schema. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema for consistency across the workflow domain. When not set, the task output is the LLM's raw text response.",
+            "type": "object"
+          },
+          "system_prompt": {
+            "description": "System prompt that sets the LLM's role and constraints. Supports ${ } expression interpolation for dynamic system prompts. Optional — omit for tasks where the user prompt is self-contained.",
+            "type": "string"
+          },
+          "temperature": {
+            "description": "Sampling temperature (0.0 to 2.0). Lower = more deterministic, higher = more creative. Range is 0.0-2.0 to accommodate all major providers (OpenAI supports up to 2.0; others clamp to their supported range at runtime). Optional — uses the provider's default when not set.",
+            "maximum": 2,
+            "type": "number"
+          },
+          "timeout": {
+            "description": "Timeout for the LLM call in seconds. Default: 60. Max: 600 (10 minutes). Optional.",
+            "maximum": 600,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "model",
+          "prompt"
+        ],
+        "title": "LlmCallTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "LLM response — structured JSON if response_schema is set, raw text otherwise.",
+        "properties": {
+          "structured": {
+            "description": "Validated JSON output (when response_schema is configured).",
+            "type": "object"
+          },
+          "text": {
+            "description": "Raw text response from the LLM.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "yamlExamples": [
+        "- classify_severity:\n    call: llm\n    with:\n      model: \"gpt-4o-mini\"\n      system_prompt: \"You are a support ticket classifier.\"\n      prompt: \"Classify this ticket: ${ $context.ticket.description }\"\n      response_schema:\n        type: object\n        required: [severity, category]\n        properties:\n          severity:\n            type: string\n            enum: [low, medium, high, critical]\n          category:\n            type: string\n      on_invalid: ON_INVALID_RETRY\n      max_retries: 2\n    export:\n      as: \"${ . }\"\n",
+        "- summarize:\n    call: llm\n    with:\n      model: \"claude-sonnet-4-5\"\n      prompt: \"Summarize in 2 sentences: ${ $context.document.text }\"\n      temperature: 0.3\n      max_tokens: 200\n    export:\n      as: \"${ . }\"\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/llm-call",
+      "isAiNative": true,
+      "requiresExternalService": true
+    },
+    {
+      "kind": "transform",
+      "displayName": "Transform",
+      "description": "Deterministic data transformation using JQ, JSONata, or template engines.",
+      "category": "data",
+      "icon": "shuffle",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig",
+      "fields": [
+        {
+          "name": "engine",
+          "displayName": "Engine",
+          "description": "Transformation engine to use. Required — must be explicitly set (not UNSPECIFIED).",
+          "type": "enum",
+          "required": true,
+          "enumValues": [
+            "TRANSFORM_ENGINE_JQ",
+            "TRANSFORM_ENGINE_JSONATA",
+            "TRANSFORM_ENGINE_TEMPLATE"
+          ],
+          "groupId": "core",
+          "fieldNumber": 1,
+          "validationHints": [
+            "required"
+          ]
+        },
+        {
+          "name": "expression",
+          "displayName": "Expression",
+          "description": "Transformation expression in the chosen engine's syntax. For JQ: a JQ filter expression (e.g., '{name: .full_name}') For JSONata: a JSONata expression (e.g., '{\"name\": full_name}') For TEMPLATE: a Go text/template string with {{ }} placeholders Required field.",
+          "type": "string",
+          "required": true,
+          "groupId": "core",
+          "fieldNumber": 2,
+          "validationHints": [
+            "required",
+            "min_length: 1"
+          ]
+        },
+        {
+          "name": "input",
+          "displayName": "Input",
+          "description": "Expression selecting the input data for the transformation. Supports ${ } expression interpolation. When omitted, the entire workflow context is used as input. Example: \"${ $context.triage }\" to transform just the triage output.",
+          "type": "string",
+          "required": false,
+          "isExpression": true,
+          "groupId": "core",
+          "fieldNumber": 3
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Transformation"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "engine": {
+            "description": "Transformation engine to use. Required — must be explicitly set (not UNSPECIFIED).",
+            "enum": [
+              "TRANSFORM_ENGINE_JQ",
+              "TRANSFORM_ENGINE_JSONATA",
+              "TRANSFORM_ENGINE_TEMPLATE"
+            ],
+            "type": "string"
+          },
+          "expression": {
+            "description": "Transformation expression in the chosen engine's syntax. For JQ: a JQ filter expression (e.g., '{name: .full_name}') For JSONata: a JSONata expression (e.g., '{\"name\": full_name}') For TEMPLATE: a Go text/template string with {{ }} placeholders Required field.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "input": {
+            "description": "Expression selecting the input data for the transformation. Supports ${ } expression interpolation. When omitted, the entire workflow context is used as input. Example: \"${ $context.triage }\" to transform just the triage output.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "engine",
+          "expression"
+        ],
+        "title": "TransformTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "Result of applying the transformation expression to the input data.",
+        "type": "object"
+      },
+      "yamlExamples": [
+        "- build_api_payload:\n    transform:\n      engine: jq\n      expression: '{name: .customer.full_name, severity: .triage.severity, summary: .agent_analysis.structured.summary}'\n      input: \"${ $context }\"\n    export:\n      as: \"${ . }\"\n",
+        "- render_message:\n    transform:\n      engine: template\n      expression: \"Ticket {{ .ticket_id }} classified as {{ .severity }}\"\n      input: \"${ $context.build_api_payload }\"\n    export:\n      as: \"${ . }\"\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/transform",
+      "isAiNative": false,
+      "requiresExternalService": false
+    },
+    {
+      "kind": "human_input",
+      "displayName": "Human Input",
+      "description": "Workflow-level approval gate that pauses execution for human review or input.",
+      "category": "governance",
+      "icon": "user-check",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig",
+      "fields": [
+        {
+          "name": "prompt",
+          "displayName": "Prompt",
+          "description": "Message shown to the reviewer explaining what needs approval or input. Supports ${ } expression interpolation for injecting workflow context. Example: \"Approve escalation for ticket ${ $context.ticket.id }?\"",
+          "type": "string",
+          "required": true,
+          "isExpression": true,
+          "groupId": "core",
+          "fieldNumber": 1,
+          "validationHints": [
+            "required",
+            "min_length: 1"
+          ]
+        },
+        {
+          "name": "form_schema",
+          "displayName": "Form Schema",
+          "description": "JSON Schema defining the input form rendered to the reviewer. When set, the approval UI renders a typed form based on this schema. The reviewer's form response is validated against the schema before the task completes, and the validated data appears in the task output under the \"form_data\" key. When not set, the reviewer sees only the outcome buttons (approve/deny or custom outcomes) without a data entry form. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema and LlmCallTaskConfig.response_schema.",
+          "type": "struct",
+          "required": false,
+          "groupId": "form",
+          "fieldNumber": 2
+        },
+        {
+          "name": "outcomes",
+          "displayName": "Outcomes",
+          "description": "Named outcomes that the reviewer can select. Each outcome represents a decision the reviewer can make, with optional routing to a different downstream task. This enables rich branching beyond binary approve/deny. When empty, the task defaults to binary behavior: - \"approve\": task completes, workflow continues to next task - \"deny\": task fails (enters try_catch or EXECUTION_FAILED) When custom outcomes are defined, the first outcome is used as the default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used as the default for HUMAN_INPUT_TIMEOUT_DENY.",
+          "type": "repeated",
+          "required": false,
+          "groupId": "core",
+          "fieldNumber": 3,
+          "elementType": "HumanInputOutcome"
+        },
+        {
+          "name": "approvers",
+          "displayName": "Approvers",
+          "description": "Approver identifiers — who is allowed to respond to this task. Supports user IDs, team slugs, and role names. Format examples: - \"user:jane@acme.com\" — specific user - \"team:engineering-leads\" — any member of the team - \"role:content-admin\" — any user with the role When empty, any authenticated user can respond. Resolution of these identifiers is a runtime concern (T13).",
+          "type": "repeated",
+          "required": false,
+          "groupId": "access",
+          "fieldNumber": 4,
+          "elementType": "string"
+        },
+        {
+          "name": "timeout",
+          "displayName": "Timeout",
+          "description": "Timeout in seconds before the on_timeout policy applies. Default: 0 (no timeout — the task waits indefinitely). Max: 2592000 (30 days). A timeout of 0 means the workflow will wait until a human responds. For production workflows, setting a timeout with an appropriate on_timeout policy is strongly recommended.",
+          "type": "int32",
+          "required": false,
+          "groupId": "timeout",
+          "fieldNumber": 5,
+          "validationHints": [
+            "max: 2592000"
+          ]
+        },
+        {
+          "name": "on_timeout",
+          "displayName": "On Timeout",
+          "description": "Policy applied when the timeout expires without a response. Only meaningful when timeout \u003e 0; ignored when timeout is 0. Default: HUMAN_INPUT_TIMEOUT_FAIL (task fails with timeout error).",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "HUMAN_INPUT_TIMEOUT_FAIL",
+            "HUMAN_INPUT_TIMEOUT_APPROVE",
+            "HUMAN_INPUT_TIMEOUT_DENY",
+            "HUMAN_INPUT_TIMEOUT_ESCALATE"
+          ],
+          "groupId": "timeout",
+          "fieldNumber": 6
+        },
+        {
+          "name": "notification_channels",
+          "displayName": "Notification Channels",
+          "description": "Channel identifiers for sending approval request notifications. When the task starts, the runtime sends notifications through these channels to alert potential approvers. Format examples: - \"slack:#approvals\" — Slack channel - \"email:ops@acme.com\" — email address - \"teams:#incident-response\" — Microsoft Teams channel The format and routing of notifications is a runtime concern (T13). The proto carries the identifiers; the runtime resolves them to actual notification providers configured in the workflow instance's environment.",
+          "type": "repeated",
+          "required": false,
+          "groupId": "access",
+          "fieldNumber": 7,
+          "elementType": "string"
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Prompt \u0026 Outcomes"
+        },
+        {
+          "id": "form",
+          "displayName": "Input Form"
+        },
+        {
+          "id": "access",
+          "displayName": "Access \u0026 Routing"
+        },
+        {
+          "id": "timeout",
+          "displayName": "Timeout Policy"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "approvers": {
+            "description": "Approver identifiers — who is allowed to respond to this task. Supports user IDs, team slugs, and role names. Format examples: - \"user:jane@acme.com\" — specific user - \"team:engineering-leads\" — any member of the team - \"role:content-admin\" — any user with the role When empty, any authenticated user can respond. Resolution of these identifiers is a runtime concern (T13).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "form_schema": {
+            "description": "JSON Schema defining the input form rendered to the reviewer. When set, the approval UI renders a typed form based on this schema. The reviewer's form response is validated against the schema before the task completes, and the validated data appears in the task output under the \"form_data\" key. When not set, the reviewer sees only the outcome buttons (approve/deny or custom outcomes) without a data entry form. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema and LlmCallTaskConfig.response_schema.",
+            "type": "object"
+          },
+          "notification_channels": {
+            "description": "Channel identifiers for sending approval request notifications. When the task starts, the runtime sends notifications through these channels to alert potential approvers. Format examples: - \"slack:#approvals\" — Slack channel - \"email:ops@acme.com\" — email address - \"teams:#incident-response\" — Microsoft Teams channel The format and routing of notifications is a runtime concern (T13). The proto carries the identifiers; the runtime resolves them to actual notification providers configured in the workflow instance's environment.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "on_timeout": {
+            "description": "Policy applied when the timeout expires without a response. Only meaningful when timeout \u003e 0; ignored when timeout is 0. Default: HUMAN_INPUT_TIMEOUT_FAIL (task fails with timeout error).",
+            "enum": [
+              "HUMAN_INPUT_TIMEOUT_FAIL",
+              "HUMAN_INPUT_TIMEOUT_APPROVE",
+              "HUMAN_INPUT_TIMEOUT_DENY",
+              "HUMAN_INPUT_TIMEOUT_ESCALATE"
+            ],
+            "type": "string"
+          },
+          "outcomes": {
+            "description": "Named outcomes that the reviewer can select. Each outcome represents a decision the reviewer can make, with optional routing to a different downstream task. This enables rich branching beyond binary approve/deny. When empty, the task defaults to binary behavior: - \"approve\": task completes, workflow continues to next task - \"deny\": task fails (enters try_catch or EXECUTION_FAILED) When custom outcomes are defined, the first outcome is used as the default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used as the default for HUMAN_INPUT_TIMEOUT_DENY.",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "prompt": {
+            "description": "Message shown to the reviewer explaining what needs approval or input. Supports ${ } expression interpolation for injecting workflow context. Example: \"Approve escalation for ticket ${ $context.ticket.id }?\"",
+            "minLength": 1,
+            "type": "string"
+          },
+          "timeout": {
+            "description": "Timeout in seconds before the on_timeout policy applies. Default: 0 (no timeout — the task waits indefinitely). Max: 2592000 (30 days). A timeout of 0 means the workflow will wait until a human responds. For production workflows, setting a timeout with an appropriate on_timeout policy is strongly recommended.",
+            "maximum": 2592000,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "title": "HumanInputTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "Reviewer response including selected outcome and form data.",
+        "properties": {
+          "form_data": {
+            "description": "Validated form response (when form_schema is configured).",
+            "type": "object"
+          },
+          "outcome": {
+            "description": "Selected outcome name (e.g., 'approve', 'deny', 'needs_revision').",
+            "type": "string"
+          },
+          "responded_at": {
+            "description": "ISO 8601 timestamp of the response.",
+            "type": "string"
+          },
+          "reviewer": {
+            "description": "Identity of the user who responded.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "yamlExamples": [
+        "- manager_approval:\n    human_input:\n      prompt: \"Approve escalation for ${ $context.triage.severity } incident?\"\n      form_schema:\n        type: object\n        properties:\n          notes:\n            type: string\n            description: \"Optional notes for the engineering team\"\n          priority_override:\n            type: string\n            enum: [P1, P2, P3]\n      outcomes:\n        - name: approve\n          label: \"Approve Escalation\"\n        - name: deny\n          label: \"Reject\"\n          then: re_classify\n      approvers:\n        - \"team:engineering-leads\"\n      timeout: 86400\n      on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE\n      notification_channels:\n        - \"slack:#incident-approvals\"\n    export:\n      as: \"${ . }\"\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/human-input",
+      "isAiNative": false,
+      "requiresExternalService": false
+    },
+    {
+      "kind": "validate",
+      "displayName": "Validate",
+      "description": "Schema and business-rule validation checkpoint for workflow data.",
+      "category": "data",
+      "icon": "check-circle",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig",
+      "fields": [
+        {
+          "name": "input",
+          "displayName": "Input",
+          "description": "Expression selecting the data to validate. Supports ${ } expression interpolation. Example: \"${ $context.triage }\" to validate the triage task's output.",
+          "type": "string",
+          "required": true,
+          "isExpression": true,
+          "groupId": "core",
+          "fieldNumber": 1,
+          "validationHints": [
+            "required",
+            "min_length: 1"
+          ]
+        },
+        {
+          "name": "schema",
+          "displayName": "Schema",
+          "description": "JSON Schema to validate the input data against. Standard JSON Schema (draft 2020-12 or compatible). The runtime validates the input data against this schema and reports detailed errors for any constraint violations. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema, LlmCallTaskConfig.response_schema, and HumanInputTaskConfig.form_schema. At least one of schema or rules must be set.",
+          "type": "struct",
+          "required": false,
+          "groupId": "schema",
+          "fieldNumber": 2
+        },
+        {
+          "name": "rules",
+          "displayName": "Rules",
+          "description": "Business rules to evaluate against the input data. Each rule is a boolean expression that must evaluate to true. Rules complement schema validation by expressing constraints that JSON Schema cannot: cross-field dependencies, conditional requirements, and domain-specific invariants. At least one of schema or rules must be set.",
+          "type": "repeated",
+          "required": false,
+          "groupId": "rules",
+          "fieldNumber": 3,
+          "elementType": "ValidationRule"
+        },
+        {
+          "name": "on_fail",
+          "displayName": "On Fail",
+          "description": "Policy applied when validation fails. Default: VALIDATION_FAIL_RAISE (task fails with validation error).",
+          "type": "enum",
+          "required": false,
+          "enumValues": [
+            "VALIDATION_FAIL_RAISE",
+            "VALIDATION_FAIL_BRANCH",
+            "VALIDATION_FAIL_WARN"
+          ],
+          "groupId": "policy",
+          "fieldNumber": 4
+        },
+        {
+          "name": "fallback_task",
+          "displayName": "Fallback Task",
+          "description": "Target task to branch to when on_fail is VALIDATION_FAIL_BRANCH. Must reference a valid task name in the same workflow. Only meaningful when on_fail is VALIDATION_FAIL_BRANCH; ignored otherwise. When on_fail is BRANCH and fallback_task is empty, the task fails.",
+          "type": "string",
+          "required": false,
+          "groupId": "policy",
+          "fieldNumber": 5
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Validation Target"
+        },
+        {
+          "id": "schema",
+          "displayName": "Schema Validation"
+        },
+        {
+          "id": "rules",
+          "displayName": "Business Rules"
+        },
+        {
+          "id": "policy",
+          "displayName": "Failure Policy"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "fallback_task": {
+            "description": "Target task to branch to when on_fail is VALIDATION_FAIL_BRANCH. Must reference a valid task name in the same workflow. Only meaningful when on_fail is VALIDATION_FAIL_BRANCH; ignored otherwise. When on_fail is BRANCH and fallback_task is empty, the task fails.",
+            "type": "string"
+          },
+          "input": {
+            "description": "Expression selecting the data to validate. Supports ${ } expression interpolation. Example: \"${ $context.triage }\" to validate the triage task's output.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "on_fail": {
+            "description": "Policy applied when validation fails. Default: VALIDATION_FAIL_RAISE (task fails with validation error).",
+            "enum": [
+              "VALIDATION_FAIL_RAISE",
+              "VALIDATION_FAIL_BRANCH",
+              "VALIDATION_FAIL_WARN"
+            ],
+            "type": "string"
+          },
+          "rules": {
+            "description": "Business rules to evaluate against the input data. Each rule is a boolean expression that must evaluate to true. Rules complement schema validation by expressing constraints that JSON Schema cannot: cross-field dependencies, conditional requirements, and domain-specific invariants. At least one of schema or rules must be set.",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "schema": {
+            "description": "JSON Schema to validate the input data against. Standard JSON Schema (draft 2020-12 or compatible). The runtime validates the input data against this schema and reports detailed errors for any constraint violations. Uses the same google.protobuf.Struct + JSON Schema pattern as AgentCallOutputContract.schema, LlmCallTaskConfig.response_schema, and HumanInputTaskConfig.form_schema. At least one of schema or rules must be set.",
+            "type": "object"
+          }
+        },
+        "required": [
+          "input"
+        ],
+        "title": "ValidateTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "Validation result with pass/fail status and error details.",
+        "properties": {
+          "data": {
+            "description": "The original input data that was validated.",
+            "type": "object"
+          },
+          "errors": {
+            "description": "List of validation errors (empty when valid is true).",
+            "items": {
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "rule": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "valid": {
+            "description": "Whether all schema and rule validations passed.",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "yamlExamples": [
+        "- check_triage_quality:\n    validate:\n      input: \"${ $context.triage }\"\n      schema:\n        type: object\n        required: [severity, category, customer_impact]\n        properties:\n          severity:\n            type: string\n            enum: [low, medium, high, critical]\n          category:\n            type: string\n            minLength: 1\n          customer_impact:\n            type: boolean\n      rules:\n        - name: critical_needs_rationale\n          expression: \"${ .severity != 'critical' || (.rationale != null \u0026\u0026 .rationale != '') }\"\n          message: \"Critical severity requires a rationale\"\n      on_fail: VALIDATION_FAIL_BRANCH\n      fallback_task: human_review\n    export:\n      as: \"${ . }\"\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/validate",
+      "isAiNative": false,
+      "requiresExternalService": false
+    },
+    {
+      "kind": "emit_event",
+      "displayName": "Emit Event",
+      "description": "Publish a CloudEvents-formatted event for external consumers or other workflows.",
+      "category": "event",
+      "icon": "send",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.EmitEventTaskConfig",
+      "fields": [
+        {
+          "name": "event",
+          "displayName": "Event",
+          "description": "The event specification to emit. Contains the CloudEvents envelope fields (type, source, data, subject). Required field.",
+          "type": "message",
+          "required": true,
+          "groupId": "core",
+          "fieldNumber": 1,
+          "elementType": "EmitEventSpec",
+          "validationHints": [
+            "required"
+          ]
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Event Specification"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "event": {
+            "description": "The event specification to emit. Contains the CloudEvents envelope fields (type, source, data, subject). Required field.",
+            "type": "object"
+          }
+        },
+        "required": [
+          "event"
+        ],
+        "title": "EmitEventTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "Fully-resolved CloudEvents envelope with runtime-generated fields.",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "datacontenttype": {
+            "description": "Always 'application/json'.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Generated UUID for this event.",
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "specversion": {
+            "description": "Always '1.0'.",
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "time": {
+            "description": "ISO 8601 timestamp of emission.",
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "yamlExamples": [
+        "- notify_classified:\n    emit_event:\n      event:\n        type: \"stigmer.workflow.ticket.classified\"\n        subject: \"${ $context.ticket.id }\"\n        data:\n          ticket_id: \"${ $context.ticket.id }\"\n          severity: \"${ $context.triage.severity }\"\n          category: \"${ $context.triage.category }\"\n    export:\n      as: \"${ . }\"\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/emit-event",
+      "isAiNative": false,
+      "requiresExternalService": false
+    },
+    {
+      "kind": "notification",
+      "displayName": "Notification",
+      "description": "Send a notification to humans through a channel (Slack, email, Discord, etc.).",
+      "category": "event",
+      "icon": "bell",
+      "configProtoType": "ai.stigmer.agentic.workflow.v1.tasks.NotificationTaskConfig",
+      "fields": [
+        {
+          "name": "channel",
+          "displayName": "Channel",
+          "description": "Notification channel identifier. Determines which notification provider processes this message. Common values: \"slack\", \"email\", \"discord\", \"teams\", \"webhook\" This is a string (not an enum) for extensibility — new channels can be added without proto changes. The runtime resolves the channel to its configured provider in the workflow instance's environment.",
+          "type": "string",
+          "required": true,
+          "groupId": "core",
+          "fieldNumber": 1,
+          "validationHints": [
+            "required",
+            "min_length: 1",
+            "max_length: 63"
+          ]
+        },
+        {
+          "name": "recipients",
+          "displayName": "Recipients",
+          "description": "Recipient identifiers for the notification. Format depends on the channel: - slack: \"#channel-name\", \"@username\", or Slack user IDs - email: \"user@example.com\" - discord: \"#channel-name\", \"@role\" - teams: \"#channel-name\" - webhook: URL or webhook identifier At least one recipient is required. Individual values may contain ${ } expressions that the runtime evaluates before delivery (e.g., \"${ $context.customer.email }\").",
+          "type": "repeated",
+          "required": false,
+          "groupId": "core",
+          "fieldNumber": 2,
+          "elementType": "string",
+          "validationHints": [
+            "min_items: 1"
+          ]
+        },
+        {
+          "name": "subject",
+          "displayName": "Subject",
+          "description": "Notification subject or title. Supports ${ } expression interpolation. Used as: email subject line, Slack message title, webhook payload title. Optional — some channels (e.g., simple Slack messages) may not use it.",
+          "type": "string",
+          "required": false,
+          "isExpression": true,
+          "groupId": "core",
+          "fieldNumber": 3
+        },
+        {
+          "name": "body",
+          "displayName": "Body",
+          "description": "Notification body / message content. Supports ${ } expression interpolation. The primary content of the notification. Formatting depends on channel (e.g., Slack Markdown, HTML for email, plain text for SMS). When template is also set, body serves as the fallback content if the template cannot be resolved.",
+          "type": "string",
+          "required": true,
+          "isExpression": true,
+          "groupId": "core",
+          "fieldNumber": 4,
+          "validationHints": [
+            "required",
+            "min_length: 1"
+          ]
+        },
+        {
+          "name": "template",
+          "displayName": "Template",
+          "description": "Named template reference for rendering the notification. When set, the runtime looks up this template in the workflow instance's environment and uses it for rendering, with the workflow context as template data. The body field is used as fallback if the template cannot be resolved. Examples: \"incident-alert\", \"order-confirmation\", \"approval-request\" Template resolution and rendering is a runtime concern (T13).",
+          "type": "string",
+          "required": false,
+          "groupId": "template",
+          "fieldNumber": 5
+        },
+        {
+          "name": "metadata",
+          "displayName": "Metadata",
+          "description": "Channel-specific metadata as key-value pairs. Provides additional configuration that varies by notification channel: - slack: {\"thread_ts\": \"...\", \"unfurl_links\": \"false\"} - email: {\"priority\": \"high\", \"reply_to\": \"...\", \"cc\": \"...\"} - webhook: {\"method\": \"POST\", \"content_type\": \"application/json\"} Values may contain ${ } expressions that the runtime evaluates before delivery.",
+          "type": "map",
+          "required": false,
+          "groupId": "advanced",
+          "fieldNumber": 6
+        }
+      ],
+      "fieldGroups": [
+        {
+          "id": "core",
+          "displayName": "Message"
+        },
+        {
+          "id": "template",
+          "displayName": "Template"
+        },
+        {
+          "id": "advanced",
+          "displayName": "Channel Options"
+        }
+      ],
+      "configJsonSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "description": "Notification body / message content. Supports ${ } expression interpolation. The primary content of the notification. Formatting depends on channel (e.g., Slack Markdown, HTML for email, plain text for SMS). When template is also set, body serves as the fallback content if the template cannot be resolved.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "channel": {
+            "description": "Notification channel identifier. Determines which notification provider processes this message. Common values: \"slack\", \"email\", \"discord\", \"teams\", \"webhook\" This is a string (not an enum) for extensibility — new channels can be added without proto changes. The runtime resolves the channel to its configured provider in the workflow instance's environment.",
+            "maxLength": 63,
+            "minLength": 1,
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Channel-specific metadata as key-value pairs. Provides additional configuration that varies by notification channel: - slack: {\"thread_ts\": \"...\", \"unfurl_links\": \"false\"} - email: {\"priority\": \"high\", \"reply_to\": \"...\", \"cc\": \"...\"} - webhook: {\"method\": \"POST\", \"content_type\": \"application/json\"} Values may contain ${ } expressions that the runtime evaluates before delivery.",
+            "type": "object"
+          },
+          "recipients": {
+            "description": "Recipient identifiers for the notification. Format depends on the channel: - slack: \"#channel-name\", \"@username\", or Slack user IDs - email: \"user@example.com\" - discord: \"#channel-name\", \"@role\" - teams: \"#channel-name\" - webhook: URL or webhook identifier At least one recipient is required. Individual values may contain ${ } expressions that the runtime evaluates before delivery (e.g., \"${ $context.customer.email }\").",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "subject": {
+            "description": "Notification subject or title. Supports ${ } expression interpolation. Used as: email subject line, Slack message title, webhook payload title. Optional — some channels (e.g., simple Slack messages) may not use it.",
+            "type": "string"
+          },
+          "template": {
+            "description": "Named template reference for rendering the notification. When set, the runtime looks up this template in the workflow instance's environment and uses it for rendering, with the workflow context as template data. The body field is used as fallback if the template cannot be resolved. Examples: \"incident-alert\", \"order-confirmation\", \"approval-request\" Template resolution and rendering is a runtime concern (T13).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel",
+          "body"
+        ],
+        "title": "NotificationTaskConfig",
+        "type": "object"
+      },
+      "outputJsonSchema": {
+        "description": "Delivery confirmation.",
+        "properties": {
+          "channel": {
+            "type": "string"
+          },
+          "delivered": {
+            "type": "boolean"
+          },
+          "delivered_at": {
+            "description": "ISO 8601 timestamp of delivery.",
+            "type": "string"
+          },
+          "recipients": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "yamlExamples": [
+        "- alert_slack:\n    notification:\n      channel: \"slack\"\n      recipients:\n        - \"#incident-response\"\n        - \"@oncall-lead\"\n      subject: \"P${ $context.triage.severity } Incident: ${ $context.ticket.title }\"\n      body: |\n        *Severity*: ${ $context.triage.severity }\n        *Category*: ${ $context.triage.category }\n        *Summary*: ${ $context.agent_analysis.structured.summary }\n      metadata:\n        thread_ts: \"${ $context.slack_thread_id }\"\n    export:\n      as: \"${ . }\"\n"
+      ],
+      "documentationUrl": "/docs/workflow/tasks/notification",
+      "isAiNative": false,
+      "requiresExternalService": true
+    }
+  ]
+}

@@ -136,6 +136,26 @@
       },
       "description": "Target task to branch to when schema validation cannot be resolved.\n\n Used in two scenarios:\n 1. on_invalid is ON_INVALID_RETRY and all retries are exhausted\n 2. on_invalid is ON_INVALID_FALLBACK (immediate branch, no retry)\n\n Must reference a valid task name in the same workflow.\n When empty and retries are exhausted, the task fails.",
       "required": false
+    },
+    {
+      "name": "MaxCostMicros",
+      "jsonName": "maxCostMicros",
+      "protoField": "max_cost_micros",
+      "type": {
+        "kind": "int64"
+      },
+      "description": "Per-task cost cap in micro-USD (1 USD = 1,000,000 micros).\n When set, the runtime terminates this specific LLM call if its cost\n exceeds this limit, independent of the workflow-level budget.\n The runtime checks both: per-task limit first, then workflow remaining budget.\n Optional — when 0, no per-task cost limit is enforced.\n\n @since T05 (Workflow-Level Budget Primitives)",
+      "required": false
+    },
+    {
+      "name": "MaxTotalTokens",
+      "jsonName": "maxTotalTokens",
+      "protoField": "max_total_tokens",
+      "type": {
+        "kind": "int64"
+      },
+      "description": "Per-task token cap (input + output tokens combined).\n When set, the runtime terminates this specific LLM call if total tokens\n exceed this limit. Complements max_tokens (field 6), which limits only\n the output token count as a generation parameter.\n Optional — when 0, no per-task total token limit is enforced.\n\n @since T05 (Workflow-Level Budget Primitives)",
+      "required": false
     }
   ]
 }

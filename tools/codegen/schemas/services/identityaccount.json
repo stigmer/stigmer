@@ -6,6 +6,7 @@
     {
       "name": "IdentityAccountCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/iam/identityaccount/v1/command.proto",
       "methods": [
         {
           "name": "Create",
@@ -68,6 +69,7 @@
     {
       "name": "IdentityAccountQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/iam/identityaccount/v1/query.proto",
       "methods": [
         {
           "name": "Get",

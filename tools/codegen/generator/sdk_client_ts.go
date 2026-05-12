@@ -55,6 +55,16 @@ func tsProtoFileToSuffix(protoFile string) string {
 	return name + "_pb"
 }
 
+// tsServiceImportSuffix returns the TS import module suffix for a service.
+// When ProtoFile is set, it derives the suffix from the actual proto file name
+// (e.g., "task_kind_registry_query_pb"). Otherwise falls back to role + "_pb".
+func tsServiceImportSuffix(svc *ServiceDefinition) string {
+	if svc.ProtoFile != "" {
+		return tsProtoFileToSuffix(svc.ProtoFile)
+	}
+	return svc.Role + "_pb"
+}
+
 // tsApisDir is the root directory containing proto API definitions.
 // Used by tsResolveEnumImport to determine whether a package has a
 // dedicated enum.proto file. Defaults to "apis" (repo root CWD).
@@ -293,7 +303,7 @@ func generateTSResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, 
 	imports.addValue("./errors", "wrapError")
 
 	for _, svc := range schema.Services {
-		file := svc.Role + "_pb"
+		file := tsServiceImportSuffix(&svc)
 		imports.addValue(importBase+"/"+file, svc.Name)
 	}
 

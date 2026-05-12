@@ -28,6 +28,9 @@ field_groups:
   - id: tuning
     display_name: "Model Tuning"
     fields: [temperature, max_tokens, timeout]
+  - id: budget
+    display_name: "Budget Limits"
+    fields: [max_cost_micros, max_total_tokens]
 
 yaml_examples:
   - |

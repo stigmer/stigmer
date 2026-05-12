@@ -6,6 +6,7 @@
     {
       "name": "AgentInstanceCommandController",
       "role": "command",
+      "protoFile": "ai/stigmer/agentic/agentinstance/v1/command.proto",
       "methods": [
         {
           "name": "Apply",
@@ -44,6 +45,7 @@
     {
       "name": "AgentInstanceQueryController",
       "role": "query",
+      "protoFile": "ai/stigmer/agentic/agentinstance/v1/query.proto",
       "methods": [
         {
           "name": "Get",
