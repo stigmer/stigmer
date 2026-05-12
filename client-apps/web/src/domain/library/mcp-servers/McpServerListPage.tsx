@@ -62,13 +62,13 @@ export function McpServerListPage() {
   const stigmer = useStigmer();
   const { navigateToDetail } = useLibraryNavigation();
 
-  const [scope, setScope] = useState<"org" | "all">(readPersistedScope);
+  const [scope, setScope] = useState<"org" | "all">(() => readPersistedScope("mcp-servers"));
   const [connectTarget, setConnectTarget] = useState<ConnectTarget | null>(null);
   const [importOpen, setImportOpen] = useState(false);
 
   const handleScopeChange = useCallback((newScope: "org" | "all") => {
     setScope(newScope);
-    localStorage.setItem(SCOPE_STORAGE_KEY, newScope);
+    writePersistedScope("mcp-servers", newScope);
   }, []);
 
   const listFn = useMemo(

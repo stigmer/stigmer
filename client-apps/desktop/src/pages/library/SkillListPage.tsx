@@ -9,6 +9,10 @@ import {
   Trash2,
 } from "lucide-react";
 import {
+  readPersistedScope,
+  writePersistedScope,
+} from "./scope-persistence";
+import {
   ResourceWorkbench,
   ActionMenu,
   useStigmer,
@@ -20,13 +24,7 @@ import {
 } from "@stigmer/react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
-const SCOPE_STORAGE_KEY = "stigmer:library:skills:scope";
 const VIEW_MODE_STORAGE_KEY = "stigmer:workbench:skills:viewMode";
-
-function readPersistedScope(): "org" | "all" {
-  const stored = localStorage.getItem(SCOPE_STORAGE_KEY);
-  return stored === "all" ? "all" : "org";
-}
 
 const SKILL_COLUMNS: WorkbenchColumnDef<SearchResult>[] = [
   {
@@ -67,12 +65,12 @@ export default function SkillListPage() {
   const { confirmState, confirm, handleConfirm, handleCancel } =
     useConfirmAction();
 
-  const [scope, setScope] = useState<"org" | "all">(readPersistedScope);
+  const [scope, setScope] = useState<"org" | "all">(() => readPersistedScope("skills"));
   const [listVersion, setListVersion] = useState(0);
 
   const handleScopeChange = useCallback((newScope: "org" | "all") => {
     setScope(newScope);
-    localStorage.setItem(SCOPE_STORAGE_KEY, newScope);
+    writePersistedScope("skills", newScope);
   }, []);
 
   const listFn = useMemo(

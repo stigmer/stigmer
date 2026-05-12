@@ -84,12 +84,23 @@ export interface DetailAction {
 export interface ResourceHeaderMeta {
   /** Display name of the resource. */
   readonly name: string;
+  /**
+   * Custom element for the name area. When provided, replaces the
+   * default `<h2>` rendering — useful for inline-editable names.
+   */
+  readonly nameElement?: ReactNode;
   /** Resource ID (opaque string). */
   readonly id: string;
   /** Organization slug that owns the resource. */
   readonly org?: string;
   /** URL-friendly slug. */
   readonly slug?: string;
+  /**
+   * Qualified path shown as a monospace line below the title
+   * (e.g., `"acme/my-server"`). When provided, renders beneath the
+   * title row — unlike `slug` which appears as a chip beside the name.
+   */
+  readonly qualifiedSlug?: string;
   /** Resource description. */
   readonly description?: string;
   /** Optional icon URL (e.g. agent icon). */
@@ -144,6 +155,20 @@ export interface ResourceDetailShellProps {
    * Rendered inline after the resource name.
    */
   readonly visibilityControl?: ReactNode;
+
+  /**
+   * Additional content rendered in the header's metadata line
+   * (between org and timestamps). Use for resource-specific
+   * indicators like validation state or discovery timestamps.
+   */
+  readonly headerMetaExtra?: ReactNode;
+
+  /**
+   * Banner content rendered above the header row.
+   * Use for validation warnings or other full-width alerts
+   * that should appear before the resource title.
+   */
+  readonly headerBanner?: ReactNode;
 
   /**
    * Primary action rendered as a visible button in the header area.

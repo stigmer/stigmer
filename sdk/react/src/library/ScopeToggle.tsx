@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useId } from "react";
 import { cn } from "@stigmer/theme";
 import type { ResourceListScope } from "../search";
 
@@ -16,26 +16,16 @@ export interface ScopeToggleProps {
   readonly className?: string;
 }
 
-const SCOPE_OPTIONS: readonly {
-  readonly value: ResourceListScope;
-  readonly label: string;
-}[] = [
-  { value: "org", label: "Org" },
-  { value: "all", label: "All" },
-];
-
 /**
- * Segmented control for toggling resource scope between "Org"
- * (only the current organization's resources) and "All"
- * (including public and platform resources).
+ * Checkbox toggle for including public/community resources alongside
+ * the current organization's resources.
  *
- * Designed for use in Library list headers alongside a search input.
+ * Unchecked (default) = "org" scope — only the active org's resources.
+ * Checked = "all" scope — org resources plus public community resources.
+ *
+ * Designed for use in Library list toolbars alongside a search input.
  * The component is controlled — the consumer owns the `value` state
  * and handles persistence (e.g., localStorage).
- *
- * Implements the WAI-ARIA Radio Group pattern with roving tabindex
- * for keyboard navigation: Arrow Left/Right moves focus and selects,
- * Tab enters/exits the group.
  *
  * All visual properties flow through `--stgm-*` tokens.
  *
@@ -55,68 +45,30 @@ export function ScopeToggle({
   disabled = false,
   className,
 }: ScopeToggleProps) {
-  const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
-      let nextIndex: number | null = null;
-
-      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-        e.preventDefault();
-        nextIndex = (index + 1) % SCOPE_OPTIONS.length;
-      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-        e.preventDefault();
-        nextIndex =
-          (index - 1 + SCOPE_OPTIONS.length) % SCOPE_OPTIONS.length;
-      }
-
-      if (nextIndex !== null) {
-        optionRefs.current[nextIndex]?.focus();
-        onChange(SCOPE_OPTIONS[nextIndex].value);
-      }
-    },
-    [onChange],
-  );
+  const id = useId();
+  const checked = value === "all";
 
   return (
-    <div
-      role="radiogroup"
-      aria-label="Resource scope"
-      aria-disabled={disabled || undefined}
+    <label
+      htmlFor={id}
       className={cn(
-        "inline-flex rounded-md bg-muted p-0.5",
+        "inline-flex cursor-pointer select-none items-center gap-1.5 text-xs text-muted-foreground",
         disabled && "pointer-events-none opacity-50",
         className,
       )}
     >
-      {SCOPE_OPTIONS.map((option, index) => {
-        const isSelected = value === option.value;
-
-        return (
-          <button
-            key={option.value}
-            ref={(el) => {
-              optionRefs.current[index] = el;
-            }}
-            type="button"
-            role="radio"
-            aria-checked={isSelected}
-            tabIndex={isSelected ? 0 : -1}
-            disabled={disabled}
-            onClick={() => onChange(option.value)}
-            onKeyDown={(e) => handleKeyDown(e, index)}
-            className={cn(
-              "cursor-pointer rounded-sm px-3 py-1 text-xs font-medium transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              isSelected
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={() => onChange(checked ? "org" : "all")}
+        className={cn(
+          "h-3.5 w-3.5 cursor-pointer rounded border-input accent-primary",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+        )}
+      />
+      Include public
+    </label>
   );
 }
