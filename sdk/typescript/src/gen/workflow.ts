@@ -2,7 +2,7 @@
 
 import { wrapError } from "./errors";
 import { stripUndefined } from "./proto-utils";
-import { type ResourceRef } from "./types";
+import { type ListParams, type ListResult, type ResourceRef } from "./types";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
@@ -17,17 +17,22 @@ import { TaskKindRegistryQueryController } from "@stigmer/protos/ai/stigmer/agen
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
+import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 
 /** Provides operations on workflow resources. */
 export class WorkflowClient {
   private readonly command: Client<typeof WorkflowCommandController>;
   private readonly query: Client<typeof WorkflowQueryController>;
   private readonly taskKindRegistryQuery: Client<typeof TaskKindRegistryQueryController>;
+  private readonly search: Client<typeof SearchService>;
 
   constructor(transport: Transport) {
     this.command = createClient(WorkflowCommandController, transport);
     this.query = createClient(WorkflowQueryController, transport);
     this.taskKindRegistryQuery = createClient(TaskKindRegistryQueryController, transport);
+    this.search = createClient(SearchService, transport);
   }
 
   async apply(input: WorkflowInput): Promise<Workflow> {
@@ -69,6 +74,24 @@ export class WorkflowClient {
   async getTaskKindRegistry(input: GetTaskKindRegistryRequest): Promise<GetTaskKindRegistryResponse> {
     try {
       return await this.taskKindRegistryQuery.getTaskKindRegistry(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async list(params: ListParams): Promise<ListResult> {
+    try {
+      const resp = await this.search.search(create(SearchRequestSchema, {
+        kinds: [ApiResourceKind.workflow],
+        query: params.query,
+        org: params.org,
+        excludePublic: params.excludePublic ?? false,
+        crossOrgPublic: params.crossOrgPublic ?? false,
+        page: params.page ? create(PageInfoSchema, params.page) : undefined,
+      }));
+      return {
+        entries: resp.entries,
+        totalCount: resp.totalCount,
+        totalPages: resp.totalPages,
+      };
     } catch (e) { throw wrapError(e); }
   }
 }

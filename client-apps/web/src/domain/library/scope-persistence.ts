@@ -4,6 +4,7 @@ const SCOPE_KEYS = {
   agents: "stigmer:library:agents:scope",
   skills: "stigmer:library:skills:scope",
   "mcp-servers": "stigmer:library:mcp-servers:scope",
+  workflows: "stigmer:workflows:scope",
 } as const;
 
 export type LibraryResourceKey = keyof typeof SCOPE_KEYS;

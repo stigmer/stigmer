@@ -3,7 +3,7 @@
 import { type MouseEvent, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plus, Library, Server, MessageSquare, PanelLeft } from "lucide-react";
+import { Plus, Library, Workflow, Server, MessageSquare, PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { useSessionList, groupSessionsByTime, resolvedSubject } from "@stigmer/react";
 import type { SessionGroup } from "@stigmer/react";
@@ -34,6 +34,7 @@ export function Sidebar() {
     useSessionNavigation();
 
   const isLibraryActive = !isSessionZone && pathname.startsWith("/library");
+  const isWorkflowsActive = !isSessionZone && pathname.startsWith("/workflows");
   const isRunnersActive = !isSessionZone && pathname.startsWith("/runners");
 
   useEffect(() => {
@@ -117,6 +118,23 @@ export function Sidebar() {
         >
           <Library className="size-4 shrink-0" />
           Library
+        </Link>
+      </div>
+
+      {/* Workflows */}
+      <div className="flex-none px-3 py-1">
+        <Link
+          href="/workflows"
+          aria-current={isWorkflowsActive ? "page" : undefined}
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
+            isWorkflowsActive
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          )}
+        >
+          <Workflow className="size-4 shrink-0" />
+          Workflows
         </Link>
       </div>
 
