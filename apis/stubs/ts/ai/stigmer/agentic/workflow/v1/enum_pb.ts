@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/workflow/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvZW51bS5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxKpMCChBXb3JrZmxvd1Rhc2tLaW5kEiIKHndvcmtmbG93X3Rhc2tfa2luZF91bnNwZWNpZmllZBAAEgwKCHNldF92YXJzEAESDQoJaHR0cF9jYWxsEAISDQoJZ3JwY19jYWxsEAMSEQoNYWN0aXZpdHlfY2FsbBAEEg8KC3N3aXRjaF9jYXNlEAUSDAoIZm9yX2VhY2gQBhIICgRmb3JrEAcSDQoJdHJ5X2NhdGNoEAgSCgoGbGlzdGVuEAkSCAoEd2FpdBAKEg8KC3JhaXNlX2Vycm9yEAsSEAoMcnVuX3dvcmtmbG93EAwSDgoKYWdlbnRfY2FsbBANEgwKCGxsbV9jYWxsEA4SDQoJdHJhbnNmb3JtEA9iBnByb3RvMw");
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvZW51bS5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxKrICChBXb3JrZmxvd1Rhc2tLaW5kEiIKHndvcmtmbG93X3Rhc2tfa2luZF91bnNwZWNpZmllZBAAEgwKCHNldF92YXJzEAESDQoJaHR0cF9jYWxsEAISDQoJZ3JwY19jYWxsEAMSEQoNYWN0aXZpdHlfY2FsbBAEEg8KC3N3aXRjaF9jYXNlEAUSDAoIZm9yX2VhY2gQBhIICgRmb3JrEAcSDQoJdHJ5X2NhdGNoEAgSCgoGbGlzdGVuEAkSCAoEd2FpdBAKEg8KC3JhaXNlX2Vycm9yEAsSEAoMcnVuX3dvcmtmbG93EAwSDgoKYWdlbnRfY2FsbBANEgwKCGxsbV9jYWxsEA4SDQoJdHJhbnNmb3JtEA8SDwoLaHVtYW5faW5wdXQQEBIMCgh2YWxpZGF0ZRARYgZwcm90bzM");
 
 /**
  * WorkflowTaskKind defines the supported task types in a workflow.
@@ -41,6 +41,8 @@ export const file_ai_stigmer_agentic_workflow_v1_enum: GenFile = /*@__PURE__*/
  * agent_call: {"agent": "agent-slug", "message": "...", "env": {...}}
  * llm_call: {"model": "...", "prompt": "...", "response_schema": {...}, "on_invalid": "..."}
  * transform: {"engine": "jq", "expression": "...", "input": "${...}"}
+ * human_input: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...], "timeout": 86400}
+ * validate: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
  *
  * @generated from enum ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
  */
@@ -210,6 +212,32 @@ export enum WorkflowTaskKind {
    * @generated from enum value: transform = 15;
    */
   transform = 15,
+
+  /**
+   * Workflow-level approval gate for human input, review, or sign-off.
+   *
+   * @internal
+   * Pauses workflow execution to collect typed input or approval from a
+   * human reviewer. Supports custom outcomes, form schemas, approver
+   * lists, timeouts, and notification channels.
+   * Config: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...]}
+   *
+   * @generated from enum value: human_input = 16;
+   */
+  human_input = 16,
+
+  /**
+   * Schema and business-rule validation checkpoint.
+   *
+   * @internal
+   * Validates workflow data against JSON Schema and/or business rules
+   * before downstream tasks consume it. Supports fail, branch, and warn
+   * policies for flexible error handling.
+   * Config: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+   *
+   * @generated from enum value: validate = 17;
+   */
+  validate = 17,
 }
 
 /**

@@ -31,6 +31,8 @@ package ai.stigmer.agentic.workflow.v1;
 // agent_call: {"agent": "agent-slug", "message": "...", "env": {...}}
 // llm_call: {"model": "...", "prompt": "...", "response_schema": {...}, "on_invalid": "..."}
 // transform: {"engine": "jq", "expression": "...", "input": "${...}"}
+// human_input: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...], "timeout": 86400}
+// validate: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
 enum WorkflowTaskKind {
   // Default value, not a valid task kind.
   workflow_task_kind_unspecified = 0;
@@ -133,4 +135,22 @@ enum WorkflowTaskKind {
   // via export, unlike set_vars which mutates workflow state as a side effect.
   // Config: {"engine": "jq", "expression": "...", "input": "${...}"}
   transform = 15;
+
+  // Workflow-level approval gate for human input, review, or sign-off.
+  //
+  // @internal
+  // Pauses workflow execution to collect typed input or approval from a
+  // human reviewer. Supports custom outcomes, form schemas, approver
+  // lists, timeouts, and notification channels.
+  // Config: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...]}
+  human_input = 16;
+
+  // Schema and business-rule validation checkpoint.
+  //
+  // @internal
+  // Validates workflow data against JSON Schema and/or business rules
+  // before downstream tasks consume it. Supports fail, branch, and warn
+  // policies for flexible error handling.
+  // Config: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+  validate = 17;
 }

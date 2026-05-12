@@ -45,6 +45,8 @@ import (
 // - agent_call → AgentCallTaskConfig
 // - llm_call → LlmCallTaskConfig
 // - transform → TransformTaskConfig
+// - human_input → HumanInputTaskConfig
+// - validate → ValidateTaskConfig
 func UnmarshalTaskConfig(
 	kind workflowv1.WorkflowTaskKind,
 	config *structpb.Struct,
@@ -107,6 +109,12 @@ func UnmarshalTaskConfig(
 
 	case workflowv1.WorkflowTaskKind_transform:
 		protoMsg = &tasksv1.TransformTaskConfig{}
+
+	case workflowv1.WorkflowTaskKind_human_input:
+		protoMsg = &tasksv1.HumanInputTaskConfig{}
+
+	case workflowv1.WorkflowTaskKind_validate:
+		protoMsg = &tasksv1.ValidateTaskConfig{}
 
 	default:
 		return nil, fmt.Errorf("unsupported task kind: %v", kind)

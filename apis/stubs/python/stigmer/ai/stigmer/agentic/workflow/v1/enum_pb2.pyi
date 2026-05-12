@@ -22,6 +22,8 @@ class WorkflowTaskKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     agent_call: _ClassVar[WorkflowTaskKind]
     llm_call: _ClassVar[WorkflowTaskKind]
     transform: _ClassVar[WorkflowTaskKind]
+    human_input: _ClassVar[WorkflowTaskKind]
+    validate: _ClassVar[WorkflowTaskKind]
 workflow_task_kind_unspecified: WorkflowTaskKind
 set_vars: WorkflowTaskKind
 http_call: WorkflowTaskKind
@@ -38,3 +40,5 @@ run_workflow: WorkflowTaskKind
 agent_call: WorkflowTaskKind
 llm_call: WorkflowTaskKind
 transform: WorkflowTaskKind
+human_input: WorkflowTaskKind
+validate: WorkflowTaskKind

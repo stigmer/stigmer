@@ -36,6 +36,8 @@ package ai.stigmer.agentic.workflow.v1;
  * agent_call: {"agent": "agent-slug", "message": "...", "env": {...}}
  * llm_call: {"model": "...", "prompt": "...", "response_schema": {...}, "on_invalid": "..."}
  * transform: {"engine": "jq", "expression": "...", "input": "${...}"}
+ * human_input: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...], "timeout": 86400}
+ * validate: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflow.v1.WorkflowTaskKind}
@@ -225,6 +227,34 @@ public enum WorkflowTaskKind
    * <code>transform = 15;</code>
    */
   transform(15),
+  /**
+   * <pre>
+   * Workflow-level approval gate for human input, review, or sign-off.
+   *
+   * &#64;internal
+   * Pauses workflow execution to collect typed input or approval from a
+   * human reviewer. Supports custom outcomes, form schemas, approver
+   * lists, timeouts, and notification channels.
+   * Config: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...]}
+   * </pre>
+   *
+   * <code>human_input = 16;</code>
+   */
+  human_input(16),
+  /**
+   * <pre>
+   * Schema and business-rule validation checkpoint.
+   *
+   * &#64;internal
+   * Validates workflow data against JSON Schema and/or business rules
+   * before downstream tasks consume it. Supports fail, branch, and warn
+   * policies for flexible error handling.
+   * Config: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+   * </pre>
+   *
+   * <code>validate = 17;</code>
+   */
+  validate(17),
   UNRECOGNIZED(-1),
   ;
 
@@ -419,6 +449,34 @@ public enum WorkflowTaskKind
    * <code>transform = 15;</code>
    */
   public static final int transform_VALUE = 15;
+  /**
+   * <pre>
+   * Workflow-level approval gate for human input, review, or sign-off.
+   *
+   * &#64;internal
+   * Pauses workflow execution to collect typed input or approval from a
+   * human reviewer. Supports custom outcomes, form schemas, approver
+   * lists, timeouts, and notification channels.
+   * Config: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...]}
+   * </pre>
+   *
+   * <code>human_input = 16;</code>
+   */
+  public static final int human_input_VALUE = 16;
+  /**
+   * <pre>
+   * Schema and business-rule validation checkpoint.
+   *
+   * &#64;internal
+   * Validates workflow data against JSON Schema and/or business rules
+   * before downstream tasks consume it. Supports fail, branch, and warn
+   * policies for flexible error handling.
+   * Config: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+   * </pre>
+   *
+   * <code>validate = 17;</code>
+   */
+  public static final int validate_VALUE = 17;
 
 
   public final int getNumber() {
@@ -461,6 +519,8 @@ public enum WorkflowTaskKind
       case 13: return agent_call;
       case 14: return llm_call;
       case 15: return transform;
+      case 16: return human_input;
+      case 17: return validate;
       default: return null;
     }
   }

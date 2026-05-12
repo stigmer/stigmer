@@ -50,6 +50,8 @@ const (
 // agent_call: {"agent": "agent-slug", "message": "...", "env": {...}}
 // llm_call: {"model": "...", "prompt": "...", "response_schema": {...}, "on_invalid": "..."}
 // transform: {"engine": "jq", "expression": "...", "input": "${...}"}
+// human_input: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...], "timeout": 86400}
+// validate: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
 type WorkflowTaskKind int32
 
 const (
@@ -139,6 +141,22 @@ const (
 	// via export, unlike set_vars which mutates workflow state as a side effect.
 	// Config: {"engine": "jq", "expression": "...", "input": "${...}"}
 	WorkflowTaskKind_transform WorkflowTaskKind = 15
+	// Workflow-level approval gate for human input, review, or sign-off.
+	//
+	// @internal
+	// Pauses workflow execution to collect typed input or approval from a
+	// human reviewer. Supports custom outcomes, form schemas, approver
+	// lists, timeouts, and notification channels.
+	// Config: {"prompt": "...", "form_schema": {...}, "outcomes": [...], "approvers": [...]}
+	WorkflowTaskKind_human_input WorkflowTaskKind = 16
+	// Schema and business-rule validation checkpoint.
+	//
+	// @internal
+	// Validates workflow data against JSON Schema and/or business rules
+	// before downstream tasks consume it. Supports fail, branch, and warn
+	// policies for flexible error handling.
+	// Config: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
+	WorkflowTaskKind_validate WorkflowTaskKind = 17
 )
 
 // Enum value maps for WorkflowTaskKind.
@@ -160,6 +178,8 @@ var (
 		13: "agent_call",
 		14: "llm_call",
 		15: "transform",
+		16: "human_input",
+		17: "validate",
 	}
 	WorkflowTaskKind_value = map[string]int32{
 		"workflow_task_kind_unspecified": 0,
@@ -178,6 +198,8 @@ var (
 		"agent_call":                     13,
 		"llm_call":                       14,
 		"transform":                      15,
+		"human_input":                    16,
+		"validate":                       17,
 	}
 )
 
@@ -212,7 +234,7 @@ var File_ai_stigmer_agentic_workflow_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/workflow/v1/enum.proto\x12\x1eai.stigmer.agentic.workflow.v1*\x93\x02\n" +
+	")ai/stigmer/agentic/workflow/v1/enum.proto\x12\x1eai.stigmer.agentic.workflow.v1*\xb2\x02\n" +
 	"\x10WorkflowTaskKind\x12\"\n" +
 	"\x1eworkflow_task_kind_unspecified\x10\x00\x12\f\n" +
 	"\bset_vars\x10\x01\x12\r\n" +
@@ -232,7 +254,9 @@ const file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc = "" +
 	"\n" +
 	"agent_call\x10\r\x12\f\n" +
 	"\bllm_call\x10\x0e\x12\r\n" +
-	"\ttransform\x10\x0fB\xa3\x02\n" +
+	"\ttransform\x10\x0f\x12\x0f\n" +
+	"\vhuman_input\x10\x10\x12\f\n" +
+	"\bvalidate\x10\x11B\xa3\x02\n" +
 	"\"com.ai.stigmer.agentic.workflow.v1B\tEnumProtoP\x01ZUgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var (

@@ -170,6 +170,8 @@ private static final long serialVersionUID = 0L;
    * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
    * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
    * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+   * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+   * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
    *
    * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
    * </pre>
@@ -202,6 +204,8 @@ private static final long serialVersionUID = 0L;
    * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
    * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
    * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+   * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+   * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
    *
    * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
    * </pre>
@@ -234,6 +238,8 @@ private static final long serialVersionUID = 0L;
    * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
    * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
    * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+   * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+   * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
    *
    * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
    * </pre>
@@ -975,6 +981,8 @@ private static final long serialVersionUID = 0L;
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
      * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
      * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
@@ -1006,6 +1014,8 @@ private static final long serialVersionUID = 0L;
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
      * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
      * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
@@ -1041,6 +1051,8 @@ private static final long serialVersionUID = 0L;
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
      * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
      * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
@@ -1081,6 +1093,8 @@ private static final long serialVersionUID = 0L;
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
      * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
      * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
@@ -1119,6 +1133,8 @@ private static final long serialVersionUID = 0L;
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
      * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
      * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
@@ -1164,6 +1180,8 @@ private static final long serialVersionUID = 0L;
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
      * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
      * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
@@ -1201,6 +1219,8 @@ private static final long serialVersionUID = 0L;
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
      * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
      * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
@@ -1233,6 +1253,8 @@ private static final long serialVersionUID = 0L;
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
      * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
      * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
@@ -1268,6 +1290,8 @@ private static final long serialVersionUID = 0L;
      * - agent_call: ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig
      * - llm_call: ai.stigmer.agentic.workflow.v1.tasks.LlmCallTaskConfig
      * - transform: ai.stigmer.agentic.workflow.v1.tasks.TransformTaskConfig
+     * - human_input: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
+     * - validate: ai.stigmer.agentic.workflow.v1.tasks.ValidateTaskConfig
      *
      * See: apis/ai/stigmer/agentic/workflow/v1/tasks/&#42;.proto for detailed schemas.
      * </pre>
