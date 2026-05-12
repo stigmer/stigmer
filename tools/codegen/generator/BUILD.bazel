@@ -12,6 +12,7 @@ go_library(
         "sdk_client_ts.go",
         "sdk_docs.go",
         "sdk_kind_meta_ts.go",
+        "task_registry.go",
     ],
     importpath = "github.com/stigmer/stigmer/tools/codegen/generator",
     visibility = ["//visibility:private"],
@@ -20,6 +21,7 @@ go_library(
         "//apis/stubs/go/ai/stigmer/iam/v1:iam",
         "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//types/descriptorpb",
+        "@in_gopkg_yaml_v3//:yaml_v3",
     ],
 )
 

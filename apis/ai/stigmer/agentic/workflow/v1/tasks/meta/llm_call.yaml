@@ -1,0 +1,62 @@
+kind: llm_call
+display_name: "LLM Call"
+description: "Direct LLM call for classification, extraction, scoring, or routing without agent overhead."
+category: ai
+icon: "brain"
+is_ai_native: true
+requires_external_service: true
+documentation_url: "/docs/workflow/tasks/llm-call"
+
+output_schema:
+  type: object
+  description: "LLM response — structured JSON if response_schema is set, raw text otherwise."
+  properties:
+    text:
+      type: string
+      description: "Raw text response from the LLM."
+    structured:
+      type: object
+      description: "Validated JSON output (when response_schema is configured)."
+
+field_groups:
+  - id: core
+    display_name: "Core Configuration"
+    fields: [model, prompt, system_prompt]
+  - id: output
+    display_name: "Output Control"
+    fields: [response_schema, on_invalid, max_retries, fallback_task]
+  - id: tuning
+    display_name: "Model Tuning"
+    fields: [temperature, max_tokens, timeout]
+
+yaml_examples:
+  - |
+    - classify_severity:
+        call: llm
+        with:
+          model: "gpt-4o-mini"
+          system_prompt: "You are a support ticket classifier."
+          prompt: "Classify this ticket: ${ $context.ticket.description }"
+          response_schema:
+            type: object
+            required: [severity, category]
+            properties:
+              severity:
+                type: string
+                enum: [low, medium, high, critical]
+              category:
+                type: string
+          on_invalid: ON_INVALID_RETRY
+          max_retries: 2
+        export:
+          as: "${ . }"
+  - |
+    - summarize:
+        call: llm
+        with:
+          model: "claude-sonnet-4-5"
+          prompt: "Summarize in 2 sentences: ${ $context.document.text }"
+          temperature: 0.3
+          max_tokens: 200
+        export:
+          as: "${ . }"

@@ -1073,3 +1073,18 @@ export type {
   ResourceWorkbenchProps,
   ResourceAvatarProps,
 } from "./resource-workbench";
+
+// Workflow — task kind registry
+export {
+  TaskKindRegistryContext,
+  useTaskKindRegistry,
+} from "./workflow";
+export type {
+  TaskKindDescriptor,
+  TaskKindCategory,
+  TaskFieldDescriptor,
+  TaskFieldType,
+  TaskFieldGroup,
+  TaskKindRegistryState,
+  UseTaskKindRegistryReturn,
+} from "./workflow";

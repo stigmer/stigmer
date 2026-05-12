@@ -1,0 +1,31 @@
+kind: switch_case
+display_name: "Switch Case"
+description: "Branch conditionally based on expression evaluation."
+category: control_flow
+icon: "git-branch"
+is_ai_native: false
+requires_external_service: false
+documentation_url: "/docs/workflow/tasks/switch-case"
+
+output_schema:
+  type: "null"
+  description: "switch_case directs flow control; it does not produce task output."
+
+field_groups:
+  - id: core
+    display_name: "Conditions"
+    fields: [cases]
+
+yaml_examples:
+  - |
+    - route_by_severity:
+        switch:
+          cases:
+            - name: critical
+              when: "${ $context.triage.severity == 'critical' }"
+              then: escalate
+            - name: high
+              when: "${ $context.triage.severity == 'high' }"
+              then: notify_team
+            - name: default
+              then: log_and_close

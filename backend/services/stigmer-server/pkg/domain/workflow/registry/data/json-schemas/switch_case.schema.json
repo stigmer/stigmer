@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "cases": {
+      "description": "List of switch cases (at least one required). Cases are evaluated in order. First matching case executes. If no \"when\" is specified, the case acts as default.",
+      "items": {
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    }
+  },
+  "title": "SwitchTaskConfig",
+  "type": "object"
+}

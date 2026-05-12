@@ -1,0 +1,35 @@
+kind: transform
+display_name: "Transform"
+description: "Deterministic data transformation using JQ, JSONata, or template engines."
+category: data
+icon: "shuffle"
+is_ai_native: false
+requires_external_service: false
+documentation_url: "/docs/workflow/tasks/transform"
+
+output_schema:
+  type: object
+  description: "Result of applying the transformation expression to the input data."
+
+field_groups:
+  - id: core
+    display_name: "Transformation"
+    fields: [engine, expression, input]
+
+yaml_examples:
+  - |
+    - build_api_payload:
+        transform:
+          engine: jq
+          expression: '{name: .customer.full_name, severity: .triage.severity, summary: .agent_analysis.structured.summary}'
+          input: "${ $context }"
+        export:
+          as: "${ . }"
+  - |
+    - render_message:
+        transform:
+          engine: template
+          expression: "Ticket {{ .ticket_id }} classified as {{ .severity }}"
+          input: "${ $context.build_api_payload }"
+        export:
+          as: "${ . }"

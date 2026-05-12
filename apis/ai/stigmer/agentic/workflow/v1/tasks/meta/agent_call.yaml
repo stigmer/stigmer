@@ -1,0 +1,66 @@
+kind: agent_call
+display_name: "Agent Call"
+description: "Invoke an AI agent for complex, multi-step reasoning with tool access."
+category: ai
+icon: "bot"
+is_ai_native: true
+requires_external_service: true
+documentation_url: "/docs/workflow/tasks/agent-call"
+
+output_schema:
+  type: object
+  description: "Agent execution result with dual-channel output."
+  properties:
+    structured:
+      type: object
+      description: "Validated JSON output (when output contract is configured)."
+    final_text:
+      type: string
+      description: "Human-readable agent response."
+    agent_execution_id:
+      type: string
+      description: "Execution ID for drill-down into agent trace."
+    usage_summary:
+      type: object
+      properties:
+        total_tokens:
+          type: integer
+        estimated_cost_usd:
+          type: number
+        tool_call_count:
+          type: integer
+        artifact_count:
+          type: integer
+
+field_groups:
+  - id: core
+    display_name: "Agent Configuration"
+    fields: [agent, message, org]
+  - id: runtime
+    display_name: "Runtime Settings"
+    fields: [env, config]
+  - id: output
+    display_name: "Structured Output"
+    fields: [output]
+
+yaml_examples:
+  - |
+    - triage_ticket:
+        call: agent
+        with:
+          agent: "support-triage"
+          message: "${ .ticket.description }"
+          output:
+            schema:
+              type: object
+              required: [severity, category]
+              properties:
+                severity:
+                  type: string
+                  enum: [low, medium, high, critical]
+                category:
+                  type: string
+            on_invalid: ON_INVALID_RETRY
+            max_retries: 2
+        export:
+          as: "${ .structured }"

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "do": {
+      "description": "Tasks to execute for each iteration. Loop variables available: ${ $data.item }, ${ $data.index }",
+      "items": {
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "each": {
+      "description": "Variable name for each item in the iteration. Accessible via ${ $data.item } in expressions.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "in": {
+      "description": "Expression evaluating to the collection to iterate over. Example: \"${ $data.items }\" or \"${ [1, 2, 3] }\"",
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "each",
+    "in"
+  ],
+  "title": "ForTaskConfig",
+  "type": "object"
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "event": {
+      "description": "The event specification to emit. Contains the CloudEvents envelope fields (type, source, data, subject). Required field.",
+      "type": "object"
+    }
+  },
+  "required": [
+    "event"
+  ],
+  "title": "EmitEventTaskConfig",
+  "type": "object"
+}

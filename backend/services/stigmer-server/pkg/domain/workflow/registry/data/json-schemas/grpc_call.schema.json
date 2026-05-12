@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "method": {
+      "description": "Method name to call. Example: \"GetUser\"",
+      "minLength": 1,
+      "type": "string"
+    },
+    "request": {
+      "description": "Request message (optional). Can be any JSON structure matching the proto schema. Supports expressions in string values.",
+      "type": "object"
+    },
+    "service": {
+      "description": "Fully qualified service name. Example: \"com.example.UserService\"",
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "service",
+    "method"
+  ],
+  "title": "GrpcCallTaskConfig",
+  "type": "object"
+}

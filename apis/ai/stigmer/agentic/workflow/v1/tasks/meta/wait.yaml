@@ -1,0 +1,23 @@
+kind: wait
+display_name: "Wait"
+description: "Pause execution for a specified duration."
+category: control_flow
+icon: "clock"
+is_ai_native: false
+requires_external_service: false
+documentation_url: "/docs/workflow/tasks/wait"
+
+output_schema:
+  type: "null"
+  description: "wait does not produce task output."
+
+field_groups:
+  - id: core
+    display_name: "Duration"
+    fields: [seconds]
+
+yaml_examples:
+  - |
+    - cooldown:
+        wait:
+          seconds: 30

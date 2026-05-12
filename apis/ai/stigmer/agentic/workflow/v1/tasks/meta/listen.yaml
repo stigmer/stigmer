@@ -1,0 +1,29 @@
+kind: listen
+display_name: "Listen"
+description: "Wait for external signals or events before proceeding."
+category: event
+icon: "radio"
+is_ai_native: false
+requires_external_service: false
+documentation_url: "/docs/workflow/tasks/listen"
+
+output_schema:
+  type: object
+  description: "Signal payload received from the external source."
+
+field_groups:
+  - id: core
+    display_name: "Signal Configuration"
+    fields: [to]
+
+yaml_examples:
+  - |
+    - wait_for_approval:
+        listen:
+          to:
+            mode: "one"
+            signals:
+              - id: "approval_signal"
+                type: "signal"
+        export:
+          as: "${ . }"

@@ -141,6 +141,10 @@ func ValidateTask(task *workflowv1.WorkflowTask) error {
 
 // ValidateWorkflow validates all tasks in a workflow.
 //
+// Validation layers (in order):
+//  1. Per-task structural validation (unmarshal + buf.validate constraints)
+//  2. Cross-task reference validation (fallback_task, then, outcome.then)
+//
 // Returns error on first validation failure, or nil if all tasks are valid.
 func ValidateWorkflow(spec *workflowv1.WorkflowSpec) error {
 	if spec == nil {
@@ -151,11 +155,16 @@ func ValidateWorkflow(spec *workflowv1.WorkflowSpec) error {
 		return fmt.Errorf("workflow must have at least one task")
 	}
 
-	// Validate each task
+	// Layer 1: Validate each task's structure and field constraints.
 	for i, task := range spec.Tasks {
 		if err := ValidateTask(task); err != nil {
 			return fmt.Errorf("task %d validation failed: %w", i+1, err)
 		}
+	}
+
+	// Layer 2: Validate cross-task references (fallback_task, then, outcome.then).
+	if err := ValidateCrossTaskReferences(spec); err != nil {
+		return err
 	}
 
 	return nil
