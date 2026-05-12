@@ -2,14 +2,27 @@
 #
 # Caddy on :9090 is the single entry point for the desktop frontend.
 # It routes:
-#   /v1/proxy/*  → Java embedded Tomcat on :8081 (REST endpoints)
-#   everything   → grpcwebproxy on :9091 (translates gRPC-Web to native gRPC on :8080)
+#   /v1/proxy/*        → Java embedded Tomcat on :8081 (REST endpoints)
+#   native gRPC        → Java gRPC on :8080 via h2c (CLI sidecar, grpcurl, etc.)
+#   gRPC-Web / other   → grpcwebproxy on :9091 (translates gRPC-Web to native gRPC on :8080)
 #
 # Requires: grpcwebproxy running on :9091 and Java stigmer-service on :8080/:8081.
 
 :9090 {
 	handle /v1/proxy/* {
 		reverse_proxy localhost:8081
+	}
+
+	@grpcNative {
+		header Content-Type application/grpc*
+		not header Content-Type application/grpc-web*
+	}
+	handle @grpcNative {
+		reverse_proxy localhost:8080 {
+			transport http {
+				versions h2c
+			}
+		}
 	}
 
 	handle {
