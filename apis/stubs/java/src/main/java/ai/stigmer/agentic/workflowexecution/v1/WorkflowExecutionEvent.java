@@ -113,6 +113,7 @@ private static final long serialVersionUID = 0L;
     BUDGET_CHECKPOINT(50),
     SIGNAL_RECEIVED(60),
     EVENT_EMITTED(61),
+    ARTIFACT_CREATED(70),
     PAYLOAD_NOT_SET(0);
     private final int value;
     private PayloadCase(int value) {
@@ -150,6 +151,7 @@ private static final long serialVersionUID = 0L;
         case 50: return BUDGET_CHECKPOINT;
         case 60: return SIGNAL_RECEIVED;
         case 61: return EVENT_EMITTED;
+        case 70: return ARTIFACT_CREATED;
         case 0: return PAYLOAD_NOT_SET;
         default: return null;
       }
@@ -1024,6 +1026,37 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.workflowexecution.v1.EventEmittedPayload.getDefaultInstance();
   }
 
+  public static final int ARTIFACT_CREATED_FIELD_NUMBER = 70;
+  /**
+   * <code>.ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload artifact_created = 70 [json_name = "artifactCreated"];</code>
+   * @return Whether the artifactCreated field is set.
+   */
+  @java.lang.Override
+  public boolean hasArtifactCreated() {
+    return payloadCase_ == 70;
+  }
+  /**
+   * <code>.ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload artifact_created = 70 [json_name = "artifactCreated"];</code>
+   * @return The artifactCreated.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload getArtifactCreated() {
+    if (payloadCase_ == 70) {
+       return (ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload) payload_;
+    }
+    return ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload.getDefaultInstance();
+  }
+  /**
+   * <code>.ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload artifact_created = 70 [json_name = "artifactCreated"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayloadOrBuilder getArtifactCreatedOrBuilder() {
+    if (payloadCase_ == 70) {
+       return (ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload) payload_;
+    }
+    return ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload.getDefaultInstance();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1112,6 +1145,9 @@ private static final long serialVersionUID = 0L;
     }
     if (payloadCase_ == 61) {
       output.writeMessage(61, (ai.stigmer.agentic.workflowexecution.v1.EventEmittedPayload) payload_);
+    }
+    if (payloadCase_ == 70) {
+      output.writeMessage(70, (ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload) payload_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1219,6 +1255,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(61, (ai.stigmer.agentic.workflowexecution.v1.EventEmittedPayload) payload_);
     }
+    if (payloadCase_ == 70) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(70, (ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload) payload_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1325,6 +1365,10 @@ private static final long serialVersionUID = 0L;
         if (!getEventEmitted()
             .equals(other.getEventEmitted())) return false;
         break;
+      case 70:
+        if (!getArtifactCreated()
+            .equals(other.getArtifactCreated())) return false;
+        break;
       case 0:
       default:
     }
@@ -1430,6 +1474,10 @@ private static final long serialVersionUID = 0L;
       case 61:
         hash = (37 * hash) + EVENT_EMITTED_FIELD_NUMBER;
         hash = (53 * hash) + getEventEmitted().hashCode();
+        break;
+      case 70:
+        hash = (37 * hash) + ARTIFACT_CREATED_FIELD_NUMBER;
+        hash = (53 * hash) + getArtifactCreated().hashCode();
         break;
       case 0:
       default:
@@ -1665,6 +1713,9 @@ private static final long serialVersionUID = 0L;
       if (eventEmittedBuilder_ != null) {
         eventEmittedBuilder_.clear();
       }
+      if (artifactCreatedBuilder_ != null) {
+        artifactCreatedBuilder_.clear();
+      }
       payloadCase_ = 0;
       payload_ = null;
       return this;
@@ -1801,6 +1852,10 @@ private static final long serialVersionUID = 0L;
           eventEmittedBuilder_ != null) {
         result.payload_ = eventEmittedBuilder_.build();
       }
+      if (payloadCase_ == 70 &&
+          artifactCreatedBuilder_ != null) {
+        result.payload_ = artifactCreatedBuilder_.build();
+      }
     }
 
     @java.lang.Override
@@ -1915,6 +1970,10 @@ private static final long serialVersionUID = 0L;
         }
         case EVENT_EMITTED: {
           mergeEventEmitted(other.getEventEmitted());
+          break;
+        }
+        case ARTIFACT_CREATED: {
+          mergeArtifactCreated(other.getArtifactCreated());
           break;
         }
         case PAYLOAD_NOT_SET: {
@@ -2112,6 +2171,13 @@ private static final long serialVersionUID = 0L;
               payloadCase_ = 61;
               break;
             } // case 490
+            case 562: {
+              input.readMessage(
+                  internalGetArtifactCreatedFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              payloadCase_ = 70;
+              break;
+            } // case 562
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -5521,6 +5587,148 @@ private static final long serialVersionUID = 0L;
       payloadCase_ = 61;
       onChanged();
       return eventEmittedBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload, ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload.Builder, ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayloadOrBuilder> artifactCreatedBuilder_;
+    /**
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload artifact_created = 70 [json_name = "artifactCreated"];</code>
+     * @return Whether the artifactCreated field is set.
+     */
+    @java.lang.Override
+    public boolean hasArtifactCreated() {
+      return payloadCase_ == 70;
+    }
+    /**
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload artifact_created = 70 [json_name = "artifactCreated"];</code>
+     * @return The artifactCreated.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload getArtifactCreated() {
+      if (artifactCreatedBuilder_ == null) {
+        if (payloadCase_ == 70) {
+          return (ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload) payload_;
+        }
+        return ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload.getDefaultInstance();
+      } else {
+        if (payloadCase_ == 70) {
+          return artifactCreatedBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload.getDefaultInstance();
+      }
+    }
+    /**
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload artifact_created = 70 [json_name = "artifactCreated"];</code>
+     */
+    public Builder setArtifactCreated(ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload value) {
+      if (artifactCreatedBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        payload_ = value;
+        onChanged();
+      } else {
+        artifactCreatedBuilder_.setMessage(value);
+      }
+      payloadCase_ = 70;
+      return this;
+    }
+    /**
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload artifact_created = 70 [json_name = "artifactCreated"];</code>
+     */
+    public Builder setArtifactCreated(
+        ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload.Builder builderForValue) {
+      if (artifactCreatedBuilder_ == null) {
+        payload_ = builderForValue.build();
+        onChanged();
+      } else {
+        artifactCreatedBuilder_.setMessage(builderForValue.build());
+      }
+      payloadCase_ = 70;
+      return this;
+    }
+    /**
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload artifact_created = 70 [json_name = "artifactCreated"];</code>
+     */
+    public Builder mergeArtifactCreated(ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload value) {
+      if (artifactCreatedBuilder_ == null) {
+        if (payloadCase_ == 70 &&
+            payload_ != ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload.getDefaultInstance()) {
+          payload_ = ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload.newBuilder((ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload) payload_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          payload_ = value;
+        }
+        onChanged();
+      } else {
+        if (payloadCase_ == 70) {
+          artifactCreatedBuilder_.mergeFrom(value);
+        } else {
+          artifactCreatedBuilder_.setMessage(value);
+        }
+      }
+      payloadCase_ = 70;
+      return this;
+    }
+    /**
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload artifact_created = 70 [json_name = "artifactCreated"];</code>
+     */
+    public Builder clearArtifactCreated() {
+      if (artifactCreatedBuilder_ == null) {
+        if (payloadCase_ == 70) {
+          payloadCase_ = 0;
+          payload_ = null;
+          onChanged();
+        }
+      } else {
+        if (payloadCase_ == 70) {
+          payloadCase_ = 0;
+          payload_ = null;
+        }
+        artifactCreatedBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload artifact_created = 70 [json_name = "artifactCreated"];</code>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload.Builder getArtifactCreatedBuilder() {
+      return internalGetArtifactCreatedFieldBuilder().getBuilder();
+    }
+    /**
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload artifact_created = 70 [json_name = "artifactCreated"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayloadOrBuilder getArtifactCreatedOrBuilder() {
+      if ((payloadCase_ == 70) && (artifactCreatedBuilder_ != null)) {
+        return artifactCreatedBuilder_.getMessageOrBuilder();
+      } else {
+        if (payloadCase_ == 70) {
+          return (ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload) payload_;
+        }
+        return ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload.getDefaultInstance();
+      }
+    }
+    /**
+     * <code>.ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload artifact_created = 70 [json_name = "artifactCreated"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload, ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload.Builder, ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayloadOrBuilder> 
+        internalGetArtifactCreatedFieldBuilder() {
+      if (artifactCreatedBuilder_ == null) {
+        if (!(payloadCase_ == 70)) {
+          payload_ = ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload.getDefaultInstance();
+        }
+        artifactCreatedBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload, ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload.Builder, ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayloadOrBuilder>(
+                (ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload) payload_,
+                getParentForChildren(),
+                isClean());
+        payload_ = null;
+      }
+      payloadCase_ = 70;
+      onChanged();
+      return artifactCreatedBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent)

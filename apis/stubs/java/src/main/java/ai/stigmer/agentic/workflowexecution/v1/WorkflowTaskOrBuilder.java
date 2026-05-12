@@ -396,4 +396,105 @@ public interface WorkflowTaskOrBuilder extends
    * <code>.google.protobuf.Struct metadata = 10 [json_name = "metadata"];</code>
    */
   com.google.protobuf.StructOrBuilder getMetadataOrBuilder();
+
+  /**
+   * <pre>
+   * Artifact IDs produced by this task.
+   *
+   * &#64;internal
+   * Populated when the task's output (or portions of it) is auto-promoted
+   * to the artifact store because it exceeds the size threshold (256KB),
+   * or when the workflow author explicitly declares artifact persistence.
+   *
+   * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+   * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+   *
+   * When artifact_ids is non-empty, the task's output field contains
+   * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+   * the original inline data. Consumers (execution viewer, SDK hooks)
+   * detect these references and resolve them via the Artifact APIs.
+   *
+   * &#64;since T07 (Artifact Store)
+   * </pre>
+   *
+   * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+   * @return A list containing the artifactIds.
+   */
+  java.util.List<java.lang.String>
+      getArtifactIdsList();
+  /**
+   * <pre>
+   * Artifact IDs produced by this task.
+   *
+   * &#64;internal
+   * Populated when the task's output (or portions of it) is auto-promoted
+   * to the artifact store because it exceeds the size threshold (256KB),
+   * or when the workflow author explicitly declares artifact persistence.
+   *
+   * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+   * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+   *
+   * When artifact_ids is non-empty, the task's output field contains
+   * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+   * the original inline data. Consumers (execution viewer, SDK hooks)
+   * detect these references and resolve them via the Artifact APIs.
+   *
+   * &#64;since T07 (Artifact Store)
+   * </pre>
+   *
+   * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+   * @return The count of artifactIds.
+   */
+  int getArtifactIdsCount();
+  /**
+   * <pre>
+   * Artifact IDs produced by this task.
+   *
+   * &#64;internal
+   * Populated when the task's output (or portions of it) is auto-promoted
+   * to the artifact store because it exceeds the size threshold (256KB),
+   * or when the workflow author explicitly declares artifact persistence.
+   *
+   * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+   * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+   *
+   * When artifact_ids is non-empty, the task's output field contains
+   * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+   * the original inline data. Consumers (execution viewer, SDK hooks)
+   * detect these references and resolve them via the Artifact APIs.
+   *
+   * &#64;since T07 (Artifact Store)
+   * </pre>
+   *
+   * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+   * @param index The index of the element to return.
+   * @return The artifactIds at the given index.
+   */
+  java.lang.String getArtifactIds(int index);
+  /**
+   * <pre>
+   * Artifact IDs produced by this task.
+   *
+   * &#64;internal
+   * Populated when the task's output (or portions of it) is auto-promoted
+   * to the artifact store because it exceeds the size threshold (256KB),
+   * or when the workflow author explicitly declares artifact persistence.
+   *
+   * Each entry is an Artifact ID (format: "art_{unique-suffix}") that can
+   * be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.
+   *
+   * When artifact_ids is non-empty, the task's output field contains
+   * artifact references ({"_artifact_ref": "art_xxx", ...}) instead of
+   * the original inline data. Consumers (execution viewer, SDK hooks)
+   * detect these references and resolve them via the Artifact APIs.
+   *
+   * &#64;since T07 (Artifact Store)
+   * </pre>
+   *
+   * <code>repeated string artifact_ids = 11 [json_name = "artifactIds"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the artifactIds at the given index.
+   */
+  com.google.protobuf.ByteString
+      getArtifactIdsBytes(int index);
 }

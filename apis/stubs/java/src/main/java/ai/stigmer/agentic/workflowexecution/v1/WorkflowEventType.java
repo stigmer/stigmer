@@ -216,6 +216,15 @@ public enum WorkflowEventType
    * <code>event_emitted = 52;</code>
    */
   event_emitted(52),
+  /**
+   * <pre>
+   * A task output was persisted as an artifact (auto-promoted or explicit).
+   * Payload: ArtifactCreatedPayload.
+   * </pre>
+   *
+   * <code>artifact_created = 53;</code>
+   */
+  artifact_created(53),
   UNRECOGNIZED(-1),
   ;
 
@@ -418,6 +427,15 @@ public enum WorkflowEventType
    * <code>event_emitted = 52;</code>
    */
   public static final int event_emitted_VALUE = 52;
+  /**
+   * <pre>
+   * A task output was persisted as an artifact (auto-promoted or explicit).
+   * Payload: ArtifactCreatedPayload.
+   * </pre>
+   *
+   * <code>artifact_created = 53;</code>
+   */
+  public static final int artifact_created_VALUE = 53;
 
 
   public final int getNumber() {
@@ -465,6 +483,7 @@ public enum WorkflowEventType
       case 41: return budget_checkpoint;
       case 51: return signal_received;
       case 52: return event_emitted;
+      case 53: return artifact_created;
       default: return null;
     }
   }

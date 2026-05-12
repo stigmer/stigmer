@@ -444,6 +444,11 @@
           "description": "Named set of variables and secrets for agent and workflow execution."
         },
         {
+          "name": "artifact",
+          "number": 55,
+          "description": "Persisted blob produced during workflow or agent execution."
+        },
+        {
           "name": "execution_context",
           "number": 54,
           "description": "User-owned runtime context for managing execution state."
