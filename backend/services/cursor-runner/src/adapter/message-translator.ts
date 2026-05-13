@@ -19,6 +19,15 @@
  *
  * Task (sub-agent) tool calls additionally produce SubAgentExecution
  * protos accessible via MessageAccumulator.subAgentExecutions.
+ *
+ * MCP tool enrichment:
+ * Cursor reports MCP tool calls with name="mcp" and the actual details
+ * (providerIdentifier, toolName, args) inside event.args. This module
+ * extracts those details to populate the ToolCall proto with:
+ * - name: the actual MCP tool name (e.g., "search_services")
+ * - mcpServerSlug: the MCP server identifier (e.g., "planton")
+ * - requiresApproval: from the merged policy chain
+ * - approvalMessage: from the policy, with placeholder resolution
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -28,9 +37,49 @@ import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agen
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { MessageType, ToolCallStatus, SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
+import type { MergedToolPolicy } from "../hitl/approval-policy.js";
+import { lookupMcpToolPolicy, resolveApprovalMessage, builtInRequiresApproval } from "../hitl/approval-policy.js";
 
 export function utcTimestamp(): string {
   return new Date().toISOString().replace("+00:00", "Z");
+}
+
+/**
+ * Details extracted from an MCP tool call event's args.
+ *
+ * When Cursor invokes an MCP tool, the SDK stream reports event.name as
+ * "mcp" and packs the real tool identity into event.args:
+ * { providerIdentifier: "planton", toolName: "search_services", args: {...} }
+ */
+export interface McpToolDetails {
+  providerIdentifier: string;
+  toolName: string;
+  innerArgs: Record<string, unknown>;
+}
+
+/**
+ * Try to extract MCP tool details from a tool_call event.
+ * Returns undefined if the event is not an MCP tool call.
+ */
+export function extractMcpToolDetails(
+  event: Extract<SDKMessage, { type: "tool_call" }>,
+): McpToolDetails | undefined {
+  if (event.name !== "mcp") return undefined;
+
+  const args = event.args;
+  if (args == null || typeof args !== "object") return undefined;
+
+  const obj = args as Record<string, unknown>;
+  const providerIdentifier = typeof obj.providerIdentifier === "string" ? obj.providerIdentifier : "";
+  const toolName = typeof obj.toolName === "string" ? obj.toolName : "";
+
+  if (!toolName) return undefined;
+
+  const innerArgs = (typeof obj.args === "object" && obj.args !== null)
+    ? obj.args as Record<string, unknown>
+    : {};
+
+  return { providerIdentifier, toolName, innerArgs };
 }
 
 /**
@@ -91,9 +140,12 @@ function translateThinking(event: Extract<SDKMessage, { type: "thinking" }>): Ag
  */
 function translateToolCall(event: Extract<SDKMessage, { type: "tool_call" }>): AgentMessage {
   const toolCall = buildToolCallProto(event);
+  const displayName = toolCall.mcpServerSlug
+    ? `${toolCall.mcpServerSlug}/${toolCall.name}`
+    : toolCall.name;
   return create(AgentMessageSchema, {
     type: MessageType.MESSAGE_TOOL,
-    content: `Tool: ${event.name} [${event.status}]`,
+    content: `Tool: ${displayName} [${event.status}]`,
     timestamp: utcTimestamp(),
     toolCalls: [toolCall],
   });
@@ -102,14 +154,26 @@ function translateToolCall(event: Extract<SDKMessage, { type: "tool_call" }>): A
 /**
  * Build a ToolCall proto from a Cursor SDK tool_call event.
  *
- * Extracted from translateToolCall so that MessageAccumulator can create
- * ToolCall protos without wrapping them in a MESSAGE_TOOL message.
+ * For MCP tools (event.name === "mcp"), extracts the actual tool name
+ * and server slug from event.args. For built-in tools, uses the event
+ * name directly.
+ *
+ * Approval fields are populated when mergedPolicies are provided.
+ * Without policies, only basic fields are set (backward compatible).
  */
-export function buildToolCallProto(event: Extract<SDKMessage, { type: "tool_call" }>): ToolCall {
+export function buildToolCallProto(
+  event: Extract<SDKMessage, { type: "tool_call" }>,
+  mergedPolicies?: Map<string, MergedToolPolicy>,
+): ToolCall {
   const status = mapToolCallStatus(event.status);
+  const mcpDetails = extractMcpToolDetails(event);
+
+  const actualName = mcpDetails?.toolName ?? event.name;
+  const mcpServerSlug = mcpDetails?.providerIdentifier ?? "";
+
   const toolCall = create(ToolCallSchema, {
     id: event.call_id,
-    name: event.name,
+    name: actualName,
     status,
     startedAt: status === ToolCallStatus.TOOL_CALL_RUNNING ? utcTimestamp() : "",
     completedAt: isTerminalToolStatus(status) ? utcTimestamp() : "",
@@ -117,12 +181,31 @@ export function buildToolCallProto(event: Extract<SDKMessage, { type: "tool_call
     error: status === ToolCallStatus.TOOL_CALL_FAILED
       ? (typeof event.result === "string" ? event.result : "Tool call failed")
       : "",
+    mcpServerSlug,
   });
 
   if (event.args != null) {
     toolCall.argsPreview = typeof event.args === "string"
       ? event.args
       : JSON.stringify(event.args);
+  }
+
+  // Populate approval fields from the merged policy chain
+  if (mergedPolicies && mcpDetails) {
+    const policy = lookupMcpToolPolicy(actualName, mcpServerSlug, mergedPolicies);
+    if (policy) {
+      toolCall.requiresApproval = true;
+      toolCall.approvalMessage = resolveApprovalMessage(
+        policy.approvalMessage,
+        actualName,
+        mcpDetails.innerArgs,
+      );
+      if (status === ToolCallStatus.TOOL_CALL_FAILED) {
+        toolCall.approvalRequestedAt = utcTimestamp();
+      }
+    }
+  } else if (mergedPolicies && !mcpDetails) {
+    toolCall.requiresApproval = builtInRequiresApproval(actualName);
   }
 
   return toolCall;
@@ -170,15 +253,19 @@ function isTerminalToolStatus(status: ToolCallStatus): boolean {
   );
 }
 
-/**
- * Safely extract a string field from an unknown args/result object.
- */
 function safeString(obj: unknown, key: string): string {
   if (obj != null && typeof obj === "object" && key in obj) {
     const val = (obj as Record<string, unknown>)[key];
     return typeof val === "string" ? val : "";
   }
   return "";
+}
+
+/**
+ * Options for creating a MessageAccumulator with policy awareness.
+ */
+export interface MessageAccumulatorOptions {
+  mergedPolicies?: Map<string, MergedToolPolicy>;
 }
 
 /**
@@ -207,9 +294,11 @@ export class MessageAccumulator {
   private activeThinkingByRunId = new Map<string, AgentMessage>();
   private readonly _subAgentExecutions: SubAgentExecution[] = [];
   private readonly subAgentMap = new Map<string, SubAgentExecution>();
+  private readonly mergedPolicies?: Map<string, MergedToolPolicy>;
 
-  constructor(messages: AgentMessage[]) {
+  constructor(messages: AgentMessage[], options?: MessageAccumulatorOptions) {
     this.messages = messages;
+    this.mergedPolicies = options?.mergedPolicies;
   }
 
   get subAgentExecutions(): SubAgentExecution[] {
@@ -236,10 +325,6 @@ export class MessageAccumulator {
     }
   }
 
-  /**
-   * Close all active streaming messages. Call after the stream loop ends
-   * so that persisted messages have is_streaming=false.
-   */
   finalize(): void {
     for (const msg of this.activeAiByRunId.values()) {
       msg.isStreaming = false;
@@ -251,19 +336,6 @@ export class MessageAccumulator {
     this.activeThinkingByRunId.clear();
   }
 
-  /**
-   * Attach a tool call to the most recent MESSAGE_AI message.
-   *
-   * For "running" events: create a new ToolCall proto and append it.
-   * For "completed"/"error" events: find the existing ToolCall by
-   * call_id and update its status, result, and timestamps.
-   *
-   * If no MESSAGE_AI exists yet (edge case: tool call before any
-   * assistant text), creates an empty AI message as the attachment point.
-   *
-   * When the tool is a "task" (sub-agent), additionally creates or
-   * updates a SubAgentExecution proto.
-   */
   private attachToolCallToLastAi(
     event: Extract<SDKMessage, { type: "tool_call" }>,
   ): void {
@@ -271,7 +343,7 @@ export class MessageAccumulator {
     const status = mapToolCallStatus(event.status);
 
     if (event.status === "running") {
-      const tc = buildToolCallProto(event);
+      const tc = buildToolCallProto(event, this.mergedPolicies);
       aiMsg.toolCalls.push(tc);
     } else {
       const existing = aiMsg.toolCalls.find((tc) => tc.id === event.call_id);
@@ -289,6 +361,9 @@ export class MessageAccumulator {
           existing.error = typeof event.result === "string"
             ? event.result
             : "Tool call failed";
+          if (existing.requiresApproval) {
+            existing.approvalRequestedAt = utcTimestamp();
+          }
         }
         if (event.args != null && !existing.argsPreview) {
           existing.argsPreview = typeof event.args === "string"
@@ -296,7 +371,7 @@ export class MessageAccumulator {
             : JSON.stringify(event.args);
         }
       } else {
-        const tc = buildToolCallProto(event);
+        const tc = buildToolCallProto(event, this.mergedPolicies);
         aiMsg.toolCalls.push(tc);
       }
     }
@@ -306,10 +381,6 @@ export class MessageAccumulator {
     }
   }
 
-  /**
-   * Find the most recent MESSAGE_AI message scanning backwards.
-   * If none exists, create an empty one as the tool call attachment point.
-   */
   private findOrCreateLastAiMessage(): AgentMessage {
     for (let i = this.messages.length - 1; i >= 0; i--) {
       if (this.messages[i].type === MessageType.MESSAGE_AI) {
@@ -325,12 +396,6 @@ export class MessageAccumulator {
     return msg;
   }
 
-  /**
-   * Create or update a SubAgentExecution for a "task" tool call.
-   *
-   * On "running": create a new SubAgentExecution with metadata from args.
-   * On "completed"/"error": update the existing one with result/error.
-   */
   private trackSubAgentExecution(
     event: Extract<SDKMessage, { type: "tool_call" }>,
   ): void {
@@ -415,11 +480,6 @@ export class MessageAccumulator {
     this.activeThinkingByRunId.set(event.run_id, msg);
   }
 
-  /**
-   * Finalize streaming messages for a given run_id. Called when a
-   * non-text event (tool_call) arrives, indicating the model has
-   * finished its text output for this turn and moved on.
-   */
   private finalizeStreaming(runId: string): void {
     const ai = this.activeAiByRunId.get(runId);
     if (ai) {
@@ -440,22 +500,49 @@ export class MessageAccumulator {
  * When a preToolUse hook denies a tool, Cursor emits a tool_call event
  * with status "error". This function identifies those denied calls so the
  * activity can populate pending_approvals.
+ *
+ * For MCP tools, extracts the actual tool name and server slug from args.
  */
 export interface DeniedToolCall {
   callId: string;
   name: string;
+  mcpServerSlug: string;
   argsPreview: string;
+  approvalMessage: string;
 }
 
-export function extractDeniedToolCalls(events: SDKMessage[]): DeniedToolCall[] {
+export function extractDeniedToolCalls(
+  events: SDKMessage[],
+  mergedPolicies?: Map<string, MergedToolPolicy>,
+): DeniedToolCall[] {
   return events
     .filter((e): e is Extract<SDKMessage, { type: "tool_call" }> =>
       e.type === "tool_call" && e.status === "error")
-    .map((e) => ({
-      callId: e.call_id,
-      name: e.name,
-      argsPreview: e.args != null
-        ? (typeof e.args === "string" ? e.args : JSON.stringify(e.args))
-        : "",
-    }));
+    .map((e) => {
+      const mcpDetails = extractMcpToolDetails(e);
+      const actualName = mcpDetails?.toolName ?? e.name;
+      const mcpServerSlug = mcpDetails?.providerIdentifier ?? "";
+
+      let approvalMessage = `Tool requires approval: ${actualName}`;
+      if (mergedPolicies && mcpDetails) {
+        const policy = lookupMcpToolPolicy(actualName, mcpServerSlug, mergedPolicies);
+        if (policy) {
+          approvalMessage = resolveApprovalMessage(
+            policy.approvalMessage,
+            actualName,
+            mcpDetails.innerArgs,
+          );
+        }
+      }
+
+      return {
+        callId: e.call_id,
+        name: actualName,
+        mcpServerSlug,
+        argsPreview: e.args != null
+          ? (typeof e.args === "string" ? e.args : JSON.stringify(e.args))
+          : "",
+        approvalMessage,
+      };
+    });
 }

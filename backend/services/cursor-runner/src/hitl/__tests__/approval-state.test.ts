@@ -1,128 +1,59 @@
-import { describe, it, expect, afterEach } from "vitest";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { describe, it, expect } from "vitest";
+import { buildApprovalState } from "../approval-state.js";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import {
-  buildApprovalState,
-  writeApprovalStateFile,
-} from "../approval-state.js";
+import type { MergedToolPolicy } from "../approval-policy.js";
+
+function makePolicies(...entries: [string, string][]): Map<string, MergedToolPolicy> {
+  const map = new Map<string, MergedToolPolicy>();
+  for (const [key, toolName] of entries) {
+    map.set(key, {
+      toolName,
+      mcpServerSlug: key.split("/")[0],
+      requiresApproval: true,
+      approvalMessage: `Execute tool: ${toolName}`,
+    });
+  }
+  return map;
+}
 
 describe("buildApprovalState", () => {
-  it("returns default state with no decisions", () => {
-    const state = buildApprovalState();
-    expect(state.autoApproveAll).toBe(false);
-    expect(state.approvedTools).toEqual([]);
+  it("includes built-in allow list", () => {
+    const state = buildApprovalState(new Map(), false);
+    expect(state.builtInAllowList).toContain("Read");
+    expect(state.builtInAllowList).toContain("Grep");
+    expect(state.builtInAllowList).not.toContain("Shell");
   });
 
-  it("returns default state for undefined decisions", () => {
-    const state = buildApprovalState(undefined);
-    expect(state.autoApproveAll).toBe(false);
-    expect(state.approvedTools).toEqual([]);
-  });
-
-  it("returns default state for empty decisions map", () => {
-    const state = buildApprovalState(new Map());
-    expect(state.approvedTools).toEqual([]);
-  });
-
-  it("adds wildcard entry for each APPROVE decision", () => {
-    const decisions = new Map<string, ApprovalAction>([
-      ["tc-1", ApprovalAction.APPROVE],
-    ]);
-    const state = buildApprovalState(decisions);
-    expect(state.approvedTools).toEqual([{ name: "*", argsPreview: "*" }]);
-  });
-
-  it("adds entries for multiple APPROVE decisions", () => {
-    const decisions = new Map<string, ApprovalAction>([
-      ["tc-1", ApprovalAction.APPROVE],
-      ["tc-2", ApprovalAction.APPROVE],
-    ]);
-    const state = buildApprovalState(decisions);
-    expect(state.approvedTools).toHaveLength(2);
-  });
-
-  it("does not add entries for SKIP decisions", () => {
-    const decisions = new Map<string, ApprovalAction>([
-      ["tc-1", ApprovalAction.SKIP],
-    ]);
-    const state = buildApprovalState(decisions);
-    expect(state.approvedTools).toEqual([]);
-  });
-
-  it("does not add entries for REJECT decisions", () => {
-    const decisions = new Map<string, ApprovalAction>([
-      ["tc-1", ApprovalAction.REJECT],
-    ]);
-    const state = buildApprovalState(decisions);
-    expect(state.approvedTools).toEqual([]);
-  });
-
-  it("only adds entries for APPROVE, ignoring SKIP and REJECT", () => {
-    const decisions = new Map<string, ApprovalAction>([
-      ["tc-1", ApprovalAction.APPROVE],
-      ["tc-2", ApprovalAction.SKIP],
-      ["tc-3", ApprovalAction.REJECT],
-      ["tc-4", ApprovalAction.APPROVE],
-    ]);
-    const state = buildApprovalState(decisions);
-    expect(state.approvedTools).toHaveLength(2);
-  });
-});
-
-describe("writeApprovalStateFile", () => {
-  let tempDir: string;
-
-  afterEach(async () => {
-    if (tempDir) {
-      await rm(tempDir, { recursive: true, force: true });
-    }
-  });
-
-  it("writes valid JSON to the workspace", async () => {
-    tempDir = await mkdtemp(join(tmpdir(), "cursor-runner-test-"));
-    const state = buildApprovalState();
-    const filePath = await writeApprovalStateFile(tempDir, state);
-
-    const raw = await readFile(filePath, "utf-8");
-    const parsed = JSON.parse(raw);
-    expect(parsed.autoApproveAll).toBe(false);
-    expect(parsed.approvedTools).toEqual([]);
-  });
-
-  it("writes to .cursor/hooks/ subdirectory", async () => {
-    tempDir = await mkdtemp(join(tmpdir(), "cursor-runner-test-"));
-    const filePath = await writeApprovalStateFile(tempDir, buildApprovalState());
-
-    expect(filePath).toContain(".cursor/hooks/");
-    expect(filePath).toContain("stigmer-approval-state.json");
-  });
-
-  it("creates directories if they do not exist", async () => {
-    tempDir = await mkdtemp(join(tmpdir(), "cursor-runner-test-"));
-    const filePath = await writeApprovalStateFile(tempDir, buildApprovalState());
-    const raw = await readFile(filePath, "utf-8");
-    expect(JSON.parse(raw)).toBeDefined();
-  });
-
-  it("overwrites existing state file", async () => {
-    tempDir = await mkdtemp(join(tmpdir(), "cursor-runner-test-"));
-
-    await writeApprovalStateFile(tempDir, {
-      autoApproveAll: false,
-      approvedTools: [],
+  it("populates mcpToolPolicies from merged policies", () => {
+    const policies = makePolicies(
+      ["planton/apply_service", "apply_service"],
+      ["planton/delete_service", "delete_service"],
+    );
+    const state = buildApprovalState(policies, false);
+    expect(state.mcpToolPolicies["apply_service"]).toEqual({
+      requiresApproval: true,
+      message: "Execute tool: apply_service",
     });
+    expect(state.mcpToolPolicies["delete_service"]).toBeDefined();
+  });
 
-    const withEntries = {
-      autoApproveAll: false,
-      approvedTools: [{ name: "Shell", argsPreview: "ls" }],
-    };
-    const filePath = await writeApprovalStateFile(tempDir, withEntries);
+  it("sets autoApproveAll correctly", () => {
+    const state = buildApprovalState(new Map(), true);
+    expect(state.autoApproveAll).toBe(true);
+  });
 
-    const raw = await readFile(filePath, "utf-8");
-    const parsed = JSON.parse(raw);
-    expect(parsed.approvedTools).toHaveLength(1);
-    expect(parsed.approvedTools[0].name).toBe("Shell");
+  it("populates approvedToolCallIds from APPROVE decisions", () => {
+    const decisions = new Map<string, ApprovalAction>([
+      ["tc_1", ApprovalAction.APPROVE],
+      ["tc_2", ApprovalAction.SKIP],
+      ["tc_3", ApprovalAction.APPROVE],
+    ]);
+    const state = buildApprovalState(new Map(), false, decisions);
+    expect(state.approvedToolCallIds).toEqual(["tc_1", "tc_3"]);
+  });
+
+  it("returns empty approved list when no decisions", () => {
+    const state = buildApprovalState(new Map(), false);
+    expect(state.approvedToolCallIds).toEqual([]);
   });
 });
