@@ -3,7 +3,8 @@
 import { memo, useMemo, useRef, useState, useCallback } from "react";
 import { cn } from "@stigmer/theme";
 import dagre from "@dagrejs/dagre";
-import type { TopologyNode, TopologyEdge, TopologyNodeCategory, UseWorkflowTopologyReturn } from "./useWorkflowTopology";
+import type { TopologyNode, TopologyEdge, UseWorkflowTopologyReturn } from "./useWorkflowTopology";
+import { CATEGORY_COLORS, DAGRE_CONFIG, GRAPH_PADDING } from "./canvas-constants";
 
 /** Props for {@link WorkflowTopologyGraph}. */
 export interface WorkflowTopologyGraphProps {
@@ -12,22 +13,6 @@ export interface WorkflowTopologyGraphProps {
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
-
-const RANK_SEP = 60;
-const NODE_SEP = 30;
-const PADDING = 40;
-
-const CATEGORY_COLORS: Record<TopologyNodeCategory, string> = {
-  start: "var(--stgm-muted-foreground, #737373)",
-  end: "var(--stgm-muted-foreground, #737373)",
-  ai: "var(--stgm-chart-purple, #8b5cf6)",
-  control_flow: "var(--stgm-chart-blue, #3b82f6)",
-  invocation: "var(--stgm-muted-foreground, #737373)",
-  data: "var(--stgm-chart-green, #22c55e)",
-  governance: "var(--stgm-chart-orange, #f97316)",
-  event: "var(--stgm-chart-yellow, #eab308)",
-  unspecified: "var(--stgm-muted-foreground, #737373)",
-};
 
 /**
  * Read-only SVG DAG renderer for workflow topology.
@@ -104,7 +89,7 @@ export const WorkflowTopologyGraph = memo(function WorkflowTopologyGraph({
     <svg
       ref={svgRef}
       className={cn("h-full w-full cursor-grab select-none active:cursor-grabbing", className)}
-      viewBox={`0 0 ${width + PADDING * 2} ${height + PADDING * 2}`}
+      viewBox={`0 0 ${width + GRAPH_PADDING * 2} ${height + GRAPH_PADDING * 2}`}
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -129,7 +114,7 @@ export const WorkflowTopologyGraph = memo(function WorkflowTopologyGraph({
         </marker>
       </defs>
 
-      <g transform={`translate(${PADDING + transform.x}, ${PADDING + transform.y}) scale(${transform.scale})`}>
+      <g transform={`translate(${GRAPH_PADDING + transform.x}, ${GRAPH_PADDING + transform.y}) scale(${transform.scale})`}>
         {layoutEdges.map((edge, i) => (
           <EdgePath key={i} edge={edge} />
         ))}
@@ -163,7 +148,7 @@ function computeLayout(
   edges: readonly TopologyEdge[],
 ): LayoutResult {
   const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: "TB", ranksep: RANK_SEP, nodesep: NODE_SEP });
+  g.setGraph({ rankdir: DAGRE_CONFIG.rankdir, ranksep: DAGRE_CONFIG.ranksep, nodesep: DAGRE_CONFIG.nodesep });
   g.setDefaultEdgeLabel(() => ({}));
 
   for (const node of nodes) {
