@@ -19,12 +19,57 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-13 — T13 COMPLETE (Phase 1 continues)
-**Current Task**: T13 COMPLETE — P0 Task Types Backend Implementation (Go)
+**Last Session**: 2026-05-13 — T10 COMPLETE (Phase 1 continues)
+**Current Task**: T10 COMPLETE — YAML Editor with Graph Preview
 **Phase**: Phase 1 — Foreground MVP — IN PROGRESS
-**Next Task**: T10 (YAML Editor) or T13b (Java/Cloud Parity)
+**Next Task**: T11 (Run Workflow from UI) or T13b (Java/Cloud Parity)
 
-## Session Progress (2026-05-13, T13)
+## Session Progress (2026-05-13, T10)
+
+### T10: YAML Editor with Graph Preview — COMPLETE
+
+Built the full workflow YAML editor with live topology graph preview following
+SDK-first architecture (DD-001). 9 new files, 6 modified. First full-document
+editor in the platform — CodeMirror 6 for editing, dagre for graph layout.
+
+#### T10.1: Workflow YAML Serializer
+- `serializeWorkflowYaml` (proto → YAML) + `parseWorkflowYaml` (YAML → WorkflowInput)
+- Full enum mapping for 19 task kinds and budget policies
+- Extended `useExportResource` with `kind: "Workflow"` support
+- `useWorkflowYaml(org, slug)` data hook
+
+#### T10.2: CodeMirror 6 Base Component
+- `WorkflowYamlEditor` — CodeMirror 6 in React with `--stgm-*` theme bridge
+- Optional peer deps (DD-013), Compartment-based readOnly, external diagnostics
+
+#### T10.3: Validation Pipeline
+- `useWorkflowValidation` — 150ms debounced, 5-layer pipeline
+- Source-mapped diagnostics via YAML CST ranges
+- Syntax → structural → task kinds → config presence → flow references
+
+#### T10.4: Topology Graph
+- `useWorkflowTopology` — YAML → `{ nodes, edges }` DAG with category classification
+- `WorkflowTopologyGraph` — SVG + dagre layout, category-colored nodes, zoom/pan
+
+#### T10.5: Composed Editor View
+- `useWorkflowEditor` — orchestrator (validation + topology + save + dirty tracking)
+- `WorkflowEditorView` — side-by-side (60/40), toolbar, full-page toggle
+
+#### T10.6: Console Integration
+- Editor tab on `WorkflowDetailPage` via `additionalTabs`
+- Toast feedback on save success/error
+
+#### Design Decisions
+- DD-T10-001: CodeMirror 6 over Monaco (MIT, ~80KB, embeddable, no Workers)
+- DD-T10-002: Dagre over React Flow (read-only needs ~40KB, not ~200KB)
+- DD-T10-003: Editor as tab on WorkflowDetailView
+- DD-T10-004: Client-side validation via TaskKindRegistry JSON schemas
+
+#### Verification
+- `tsc --noEmit` — clean (sdk/react, sdk/typescript, client-apps/web)
+- `eslint` — clean (2 pre-existing warnings in T09 file)
+
+## Previous Session Progress (2026-05-13, T13)
 
 ### T13: P0 Task Types — Backend Implementation (Go) — COMPLETE
 
@@ -151,11 +196,10 @@ New Task Types — llm_call, transform, human_input, validate, emit_event, notif
 Structured Agent Output Model
 
 ## Next Steps
-1. **T10: YAML Editor with Graph Preview** — schema-aware editor with live topology graph
-2. **T11: Run Workflow from UI** — input form auto-generated from schema, start/cancel/watch
-3. **T12: CLI Parity** — `stigmer workflow list/get/validate/apply/diff/run/logs/trace/cancel/resume`
-4. **T13b: Java/Cloud Backend Parity** — implement matching task types in stigmer-service (Java)
-5. **T14: Dashboard Integration** — pending approvals, failed runs, cost charts
+1. **T11: Run Workflow from UI** — input form auto-generated from schema, start/cancel/watch
+2. **T12: CLI Parity** — `stigmer workflow list/get/validate/apply/diff/run/logs/trace/cancel/resume`
+3. **T13b: Java/Cloud Backend Parity** — implement matching task types in stigmer-service (Java)
+4. **T14: Dashboard Integration** — pending approvals, failed runs, cost charts
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
