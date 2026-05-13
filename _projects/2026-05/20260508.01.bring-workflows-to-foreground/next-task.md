@@ -19,12 +19,81 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-13 — T09 COMPLETE (Phase 1 continues)
-**Current Task**: T09 COMPLETE — Workflow Execution Viewer
+**Last Session**: 2026-05-13 — T13 COMPLETE (Phase 1 continues)
+**Current Task**: T13 COMPLETE — P0 Task Types Backend Implementation (Go)
 **Phase**: Phase 1 — Foreground MVP — IN PROGRESS
-**Next Task**: T10 (YAML Editor) or T13 (Backend Implementation)
+**Next Task**: T10 (YAML Editor) or T13b (Java/Cloud Parity)
 
-## Session Progress (2026-05-13, T09)
+## Session Progress (2026-05-13, T13)
+
+### T13: P0 Task Types — Backend Implementation (Go) — COMPLETE
+
+Implemented runtime execution for 6 new P0 task types in the Go workflow-runner,
+plus shared infrastructure (budget tracker, event emitter, LLM provider abstraction,
+notification provider interface). 20 new files, 5 modified. All existing tests pass.
+
+#### T13.1: Foundation — Converter Pipeline + Shared Infrastructure
+- 6 new call function constants in `constants.go`
+- `NewTaskBuilder` factory dispatches to 6 new builders
+- 6 new converter methods in `task_converters.go` + dispatch entries in `proto_to_yaml.go`
+- `pkg/budget/tracker.go` — budget accumulator (cost, tokens, duration)
+- `pkg/events/emitter.go` — typed event builder with auto-incrementing sequences
+- Added deps: `santhosh-tekuri/jsonschema/v6`, `sashabaranov/go-openai`, `liushuangls/go-anthropic/v2`
+
+#### T13.2: transform Task
+- `task_builder_transform.go` + `task_builder_transform_activities.go`
+- JQ engine via `gojq`, Go `text/template` engine, JSONata returns UNIMPLEMENTED
+
+#### T13.3: validate Task
+- `task_builder_validate.go` + `task_builder_validate_activities.go`
+- JSON Schema validation via `jsonschema/v6`, business rules via JQ boolean expressions
+- on_fail policies: RAISE (fail), BRANCH (fallback_task via `__stigmer_branch_override`), WARN (continue)
+
+#### T13.4: emit_event Task
+- `task_builder_emit_event.go` + `task_builder_emit_event_activities.go`
+- Constructs full CloudEvents envelope (id, specversion, type, source, time, data)
+- Cross-workflow delivery deferred to Phase 2
+
+#### T13.5: notification Task
+- `task_builder_notification.go` + `task_builder_notification_activities.go`
+- `pkg/notification/provider.go` — NotificationProvider interface
+- `pkg/notification/webhook.go` — Webhook provider (POST to recipient URLs)
+- Other channels (Slack, email) return descriptive UNIMPLEMENTED error
+
+#### T13.6: llm_call Task
+- `task_builder_call_llm.go` + `task_builder_call_llm_activities.go`
+- `pkg/llm/provider.go` — LLMProvider interface
+- `pkg/llm/openai.go` — OpenAI provider (ChatCompletion, structured output via json_object)
+- `pkg/llm/anthropic.go` — Anthropic provider (Messages API)
+- `pkg/llm/registry.go` — Prefix-based model resolution (gpt-*/o1*/o3* → OpenAI, claude-* → Anthropic)
+- Structured output validation + on_invalid retry logic (re-prompt with errors)
+- JIT API key resolution from runtime environment (OPENAI_API_KEY, ANTHROPIC_API_KEY)
+
+#### T13.7: human_input Task
+- `task_builder_human_input.go` — Temporal signal-based approval gate
+- Signal channel: `human_input_{task_name}`, payload: outcome + form_data + reviewer
+- Timeout handling via Temporal timer + `workflow.NewSelector`
+- 4 timeout policies: FAIL, AUTO_APPROVE, AUTO_DENY, ESCALATE
+- Custom outcomes with `then` routing via `__stigmer_branch_override`
+- Binary approve/deny when no custom outcomes defined
+
+#### T13.8: Branch Override + Budget Wiring
+- Modified `DoTaskBuilder.runTask` to return optional branch override from task output
+- Modified `DoTaskBuilder.iterateTasks` to apply `__stigmer_branch_override` before static flow directives
+- Budget tracker + event emitter infrastructure ready for integration
+
+#### Verification
+- `go build ./...` — clean
+- `go vet ./...` — clean
+- `go test ./pkg/...` — all existing tests pass (zero regressions)
+
+#### Open Items for Future Sessions
+- Event emission integration — emitter built, wiring into updateStatus RPC deferred
+- Budget enforcement at task boundaries — tracker built, integration into iterateTasks deferred
+- stigmer-server signal routing for human_input submitWorkflowApproval
+- Java/Cloud parity (T13b)
+
+## Previous Session Progress (2026-05-13, T09)
 
 ### T09: Workflow Execution Viewer — COMPLETE
 
@@ -85,7 +154,7 @@ Structured Agent Output Model
 1. **T10: YAML Editor with Graph Preview** — schema-aware editor with live topology graph
 2. **T11: Run Workflow from UI** — input form auto-generated from schema, start/cancel/watch
 3. **T12: CLI Parity** — `stigmer workflow list/get/validate/apply/diff/run/logs/trace/cancel/resume`
-4. **T13: Backend Implementation** — runtime execution for P0 task types, may interleave if needed
+4. **T13b: Java/Cloud Backend Parity** — implement matching task types in stigmer-service (Java)
 5. **T14: Dashboard Integration** — pending approvals, failed runs, cost charts
 
 ## Context for Resume

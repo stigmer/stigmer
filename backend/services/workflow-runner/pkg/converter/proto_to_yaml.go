@@ -200,8 +200,25 @@ func (c *Converter) convertTask(task *workflowv1.WorkflowTask) (map[string]inter
 	case workflowv1.WorkflowTaskKind_agent_call:
 		yamlTask[task.Name] = c.convertAgentCallTask(typedProto.(*tasksv1.AgentCallTaskConfig))
 
+	case workflowv1.WorkflowTaskKind_llm_call:
+		yamlTask[task.Name] = c.convertLlmCallTask(typedProto.(*tasksv1.LlmCallTaskConfig))
+
+	case workflowv1.WorkflowTaskKind_transform:
+		yamlTask[task.Name] = c.convertTransformTask(typedProto.(*tasksv1.TransformTaskConfig))
+
+	case workflowv1.WorkflowTaskKind_human_input:
+		yamlTask[task.Name] = c.convertHumanInputTask(typedProto.(*tasksv1.HumanInputTaskConfig))
+
+	case workflowv1.WorkflowTaskKind_validate:
+		yamlTask[task.Name] = c.convertValidateTask(typedProto.(*tasksv1.ValidateTaskConfig))
+
+	case workflowv1.WorkflowTaskKind_emit_event:
+		yamlTask[task.Name] = c.convertEmitEventTask(typedProto.(*tasksv1.EmitEventTaskConfig))
+
+	case workflowv1.WorkflowTaskKind_notification:
+		yamlTask[task.Name] = c.convertNotificationTask(typedProto.(*tasksv1.NotificationTaskConfig))
+
 	case workflowv1.WorkflowTaskKind_activity_call:
-		// activity_call: Future implementation for Temporal activities
 		return nil, fmt.Errorf("activity_call not yet implemented")
 
 	default:

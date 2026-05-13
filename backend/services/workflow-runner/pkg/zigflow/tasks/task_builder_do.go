@@ -344,8 +344,18 @@ func (t *DoTaskBuilder) iterateTasks(
 			ctx = wCtx
 		}
 
-		if err := t.runTask(ctx, task, input, state); err != nil {
+		branchOverride, err := t.runTask(ctx, task, input, state)
+		if err != nil {
 			return err
+		}
+
+		// Dynamic branch override takes precedence over static flow directives.
+		// This enables validate/llm_call/human_input to route dynamically based
+		// on validation results, LLM output, or reviewer decisions.
+		if branchOverride != nil {
+			logger.Debug("Using dynamic branch override", "task", task.Name, "target", *branchOverride)
+			nextTargetName = branchOverride
+			continue
 		}
 
 		next, terminate := t.handleFlowDirective(ctx, taskBase)
@@ -447,7 +457,9 @@ func (t *DoTaskBuilder) processTaskOutput(task workflowFunc, taskOutput any, sta
 	return nil
 }
 
-func (t *DoTaskBuilder) runTask(ctx workflow.Context, task workflowFunc, input any, state *utils.State) error {
+// runTask executes a single task and processes its output. Returns an optional
+// branch override target if the task set __stigmer_branch_override in its output.
+func (t *DoTaskBuilder) runTask(ctx workflow.Context, task workflowFunc, input any, state *utils.State) (branchOverride *string, err error) {
 	logger := workflow.GetLogger(ctx)
 
 	logger.Info("Running task", "name", task.Name)
@@ -455,25 +467,34 @@ func (t *DoTaskBuilder) runTask(ctx workflow.Context, task workflowFunc, input a
 	if err != nil {
 		if temporal.IsCanceledError(err) {
 			logger.Debug("Task cancelled", "name", task.Name)
-			return nil
+			return nil, nil
 		}
 
 		logger.Error("Error running task", "name", task.Name, "error", err)
-		return err
+		return nil, err
 	}
 
-	// Set the output
+	// Check for dynamic branch override (used by validate, llm_call, human_input)
+	if outputMap, ok := output.(map[string]any); ok {
+		if override, exists := outputMap["__stigmer_branch_override"]; exists {
+			if target, ok := override.(string); ok && target != "" {
+				logger.Info("Dynamic branch override detected",
+					"task", task.Name,
+					"target", target)
+				branchOverride = &target
+				delete(outputMap, "__stigmer_branch_override")
+			}
+		}
+	}
+
 	if err := t.processTaskOutput(task, output, state); err != nil {
-		return fmt.Errorf("error processing task output: %w", err)
+		return nil, fmt.Errorf("error processing task output: %w", err)
 	}
 
-	// Set the export
 	if err := t.processTaskExport(task, output, state); err != nil {
-		return fmt.Errorf("error processing task export: %w", err)
+		return nil, fmt.Errorf("error processing task export: %w", err)
 	}
 
-	// Phase 4+: Apply Claim Check to large state data AFTER each step
-	// This prevents large data from being passed to the next activity
 	if claimcheck.IsEnabled() {
 		logger.Debug("Claim Check enabled - checking state data size after step",
 			"task", task.Name)
@@ -482,11 +503,10 @@ func (t *DoTaskBuilder) runTask(ctx workflow.Context, task workflowFunc, input a
 			logger.Warn("Failed to offload state data after step, continuing",
 				"task", task.Name,
 				"error", err)
-			// Don't fail the workflow if offload fails - just continue
 		}
 	}
 
-	return nil
+	return branchOverride, nil
 }
 
 func (t *DoTaskBuilder) shouldContinueAsNew(ctx workflow.Context) bool {
