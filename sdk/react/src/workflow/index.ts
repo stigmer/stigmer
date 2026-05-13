@@ -194,3 +194,37 @@ export {
   WorkflowExecutionApprovalCard,
   type WorkflowExecutionApprovalCardProps,
 } from "./WorkflowExecutionApprovalCard";
+
+// T14: Dashboard — data hooks
+export {
+  useWorkflowDashboardSummary,
+  type UseWorkflowDashboardSummaryOptions,
+  type UseWorkflowDashboardSummaryReturn,
+} from "./useWorkflowDashboardSummary";
+
+export {
+  usePendingApprovals,
+  type UsePendingApprovalsOptions,
+  type UsePendingApprovalsReturn,
+} from "./usePendingApprovals";
+
+// T14: Dashboard — styled components
+export {
+  ExecutionSummaryWidget,
+  type ExecutionSummaryWidgetProps,
+} from "./ExecutionSummaryWidget";
+
+export {
+  PendingApprovalsWidget,
+  type PendingApprovalsWidgetProps,
+} from "./PendingApprovalsWidget";
+
+export {
+  FailedRunsWidget,
+  type FailedRunsWidgetProps,
+} from "./FailedRunsWidget";
+
+export {
+  WorkflowDashboard,
+  type WorkflowDashboardProps,
+} from "./WorkflowDashboard";

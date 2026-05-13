@@ -1111,6 +1111,12 @@ export {
   useRunWorkflowFlow,
   WorkflowRunForm,
   WorkflowRunDialog,
+  useWorkflowDashboardSummary,
+  usePendingApprovals,
+  ExecutionSummaryWidget,
+  PendingApprovalsWidget,
+  FailedRunsWidget,
+  WorkflowDashboard,
 } from "./workflow";
 export type {
   TaskKindDescriptor,
@@ -1162,4 +1168,12 @@ export type {
   RunWorkflowFieldErrors,
   WorkflowRunFormProps,
   WorkflowRunDialogProps,
+  UseWorkflowDashboardSummaryOptions,
+  UseWorkflowDashboardSummaryReturn,
+  UsePendingApprovalsOptions,
+  UsePendingApprovalsReturn,
+  ExecutionSummaryWidgetProps,
+  PendingApprovalsWidgetProps,
+  FailedRunsWidgetProps,
+  WorkflowDashboardProps,
 } from "./workflow";

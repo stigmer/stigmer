@@ -13,10 +13,35 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: COMPLETE — All tasks done (T01–T09) + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation + RUNNER_PHASE_STARTING lifecycle + cursor-runner enum crash fix + parallel bootstrap + Temporal routing fix + process resilience + proxy observability + event visibility (tool calls, sub-agents, thinking) + delta enrichment (shell output, tool timing) + model selector harness fix + **user-facing documentation**
-- **Last Session**: May 3, 2026 — Session 24: Cursor Harness User-Facing Documentation
-- **Active Task**: None — documentation complete and committed
+- **Status**: COMPLETE — All tasks done (T01–T09) + HITL approval policy enforcement fix + gap assessment + automated tests + cloud availability fix + unified model selector + dev-mode startup delay fix + agent blueprint propagation + RUNNER_PHASE_STARTING lifecycle + cursor-runner enum crash fix + parallel bootstrap + Temporal routing fix + process resilience + proxy observability + event visibility (tool calls, sub-agents, thinking) + delta enrichment (shell output, tool timing) + model selector harness fix + **user-facing documentation**
+- **Last Session**: May 13, 2026 — Session 25: Cursor Harness Approval Policy Enforcement Fix
+- **Active Task**: None — approval policy enforcement fix complete and committed
 - **Branch**: `feat/react-sdk-streaming-ux`
+
+## Session Progress (May 13, 2026 — Session 25)
+
+### Fix Cursor Harness Tool Approval Policy Enforcement
+
+Diagnosed and fixed a critical gap where MCP tool approval policies were not being enforced in the Cursor harness, despite being fully functional in the LangGraph runner.
+
+**Diagnosis (MongoDB investigation)**:
+- Queried `mcp_server` collection: confirmed 90+ tool approval policies exist for "planton" server
+- Queried `agent_execution` collection: all Cursor-harness tool calls showed `name: "mcp"` (generic), `requiresApproval: undefined`, `mcpServerSlug: undefined`
+- Compared with LangGraph execution: proper fields (`requiresApproval: true`, `mcpServerSlug: "mcp-server-linear"`, `approvalMessage: "Execute tool: list_issues"`)
+- Root cause: cursor-runner was disconnected from the platform's approval policy system
+
+**Implementation (12 files modified + 1 new)**:
+- `mcp-resolver.ts`: loads `toolApprovals` + `pinnedToolApprovals` from each McpServer resource
+- `approval-policy.ts`: four-level merge chain (status -> pinned -> agent overrides -> auto_approve_all)
+- `hook-script.ts`: JSON-driven policy lookup replaces hardcoded case statement
+- `approval-state.ts`: per-tool policies + specific call IDs replace wildcards
+- `message-translator.ts`: extracts actual MCP tool name from `event.args`, populates `mcpServerSlug`, `requiresApproval`, `approvalMessage`
+- `connect-backfill.ts` (new): mirrors Python agent-runner's `_backfill_undiscovered_servers()`
+- `stigmer-client.ts`: adds `connectMcpServer()` for backfill
+- `execute-cursor.ts`: wires all phases together
+
+**Tests**: 401 passed, 0 failed. TypeScript type-check clean.
+**Commit**: `56f90ac57` on `feat/bring-workflows-to-foreground`
 
 ## Session Progress (May 3, 2026 — Session 24)
 

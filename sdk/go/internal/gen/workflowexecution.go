@@ -153,6 +153,16 @@ func (w *WorkflowExecutionClient) SubscribeEvents(ctx context.Context, input *wo
 	return &WorkflowExecutionSubscribeEventsStream{stream: stream}, nil
 }
 
+func (w *WorkflowExecutionClient) GetExecutionSummary(ctx context.Context, input *workflowexecutionv1.GetExecutionSummaryRequest) (*workflowexecutionv1.ExecutionSummary, error) {
+	resp, err := w.query.GetExecutionSummary(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (w *WorkflowExecutionClient) ListPendingApprovals(ctx context.Context, input *workflowexecutionv1.ListPendingApprovalsRequest) (*workflowexecutionv1.PendingApprovalsList, error) {
+	resp, err := w.query.ListPendingApprovals(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // WorkflowExecutionInput holds the fields for creating/updating a WorkflowExecution.
 type WorkflowExecutionInput struct {
 	Name               string

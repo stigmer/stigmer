@@ -19,12 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	WorkflowExecutionQueryController_Get_FullMethodName             = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get"
-	WorkflowExecutionQueryController_List_FullMethodName            = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/list"
-	WorkflowExecutionQueryController_ListByWorkflow_FullMethodName  = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/listByWorkflow"
-	WorkflowExecutionQueryController_Subscribe_FullMethodName       = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/subscribe"
-	WorkflowExecutionQueryController_GetEventLog_FullMethodName     = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/getEventLog"
-	WorkflowExecutionQueryController_SubscribeEvents_FullMethodName = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/subscribeEvents"
+	WorkflowExecutionQueryController_Get_FullMethodName                  = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/get"
+	WorkflowExecutionQueryController_List_FullMethodName                 = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/list"
+	WorkflowExecutionQueryController_ListByWorkflow_FullMethodName       = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/listByWorkflow"
+	WorkflowExecutionQueryController_Subscribe_FullMethodName            = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/subscribe"
+	WorkflowExecutionQueryController_GetEventLog_FullMethodName          = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/getEventLog"
+	WorkflowExecutionQueryController_SubscribeEvents_FullMethodName      = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/subscribeEvents"
+	WorkflowExecutionQueryController_GetExecutionSummary_FullMethodName  = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/getExecutionSummary"
+	WorkflowExecutionQueryController_ListPendingApprovals_FullMethodName = "/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/listPendingApprovals"
 )
 
 // WorkflowExecutionQueryControllerClient is the client API for WorkflowExecutionQueryController service.
@@ -489,6 +491,57 @@ type WorkflowExecutionQueryControllerClient interface {
 	//
 	// @since T06 (Execution Event Stream Model)
 	SubscribeEvents(ctx context.Context, in *SubscribeEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WorkflowExecutionEvent], error)
+	// Get aggregated execution statistics for an organization's workflows.
+	//
+	// Returns counts by phase, total cost, average duration, top failing
+	// workflows, and per-workflow cost breakdown — scoped to a configurable
+	// time window (24h, 7d, 30d, all-time).
+	//
+	// @internal
+	// Authorization:
+	// Custom authorization — user must have organization-level access.
+	// Results are scoped to the user's organization.
+	//
+	// Use Cases:
+	//
+	// 1. Dashboard Overview:
+	//   - Display KPI cards: active runs, completed, failed, total cost
+	//   - Time window selector toggles between 24h / 7d / 30d views
+	//
+	// 2. Cost Monitoring:
+	//   - Show per-workflow cost breakdown to identify expensive workflows
+	//   - Track cost trends across time windows
+	//
+	// 3. Reliability Monitoring:
+	//   - Surface top failing workflows for investigation
+	//   - Track failure rates across the organization
+	//
+	// @since T14 (Dashboard Integration)
+	GetExecutionSummary(ctx context.Context, in *GetExecutionSummaryRequest, opts ...grpc.CallOption) (*ExecutionSummary, error)
+	// List workflow executions with pending human_input tasks awaiting reviewer decisions.
+	//
+	// Returns a paginated list of executions where at least one human_input
+	// task is actively waiting for a response. Each entry includes the
+	// execution context, task details, requester, and timeout information.
+	//
+	// @internal
+	// Authorization:
+	// Custom authorization — user must have organization-level access.
+	// Results are scoped to the user's organization.
+	//
+	// Use Cases:
+	//
+	// 1. Pending Approvals Dashboard Widget:
+	//   - Display a list of items requiring human attention
+	//   - Show time waiting and timeout countdown
+	//   - Link to execution viewer for review action
+	//
+	// 2. Approval Queue:
+	//   - Reviewers see all pending approvals in one view
+	//   - Sorted by urgency (closest to timeout first)
+	//
+	// @since T14 (Dashboard Integration)
+	ListPendingApprovals(ctx context.Context, in *ListPendingApprovalsRequest, opts ...grpc.CallOption) (*PendingApprovalsList, error)
 }
 
 type workflowExecutionQueryControllerClient struct {
@@ -576,6 +629,26 @@ func (c *workflowExecutionQueryControllerClient) SubscribeEvents(ctx context.Con
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type WorkflowExecutionQueryController_SubscribeEventsClient = grpc.ServerStreamingClient[WorkflowExecutionEvent]
+
+func (c *workflowExecutionQueryControllerClient) GetExecutionSummary(ctx context.Context, in *GetExecutionSummaryRequest, opts ...grpc.CallOption) (*ExecutionSummary, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExecutionSummary)
+	err := c.cc.Invoke(ctx, WorkflowExecutionQueryController_GetExecutionSummary_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *workflowExecutionQueryControllerClient) ListPendingApprovals(ctx context.Context, in *ListPendingApprovalsRequest, opts ...grpc.CallOption) (*PendingApprovalsList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PendingApprovalsList)
+	err := c.cc.Invoke(ctx, WorkflowExecutionQueryController_ListPendingApprovals_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 // WorkflowExecutionQueryControllerServer is the server API for WorkflowExecutionQueryController service.
 // All implementations should embed UnimplementedWorkflowExecutionQueryControllerServer
@@ -1039,6 +1112,57 @@ type WorkflowExecutionQueryControllerServer interface {
 	//
 	// @since T06 (Execution Event Stream Model)
 	SubscribeEvents(*SubscribeEventsRequest, grpc.ServerStreamingServer[WorkflowExecutionEvent]) error
+	// Get aggregated execution statistics for an organization's workflows.
+	//
+	// Returns counts by phase, total cost, average duration, top failing
+	// workflows, and per-workflow cost breakdown — scoped to a configurable
+	// time window (24h, 7d, 30d, all-time).
+	//
+	// @internal
+	// Authorization:
+	// Custom authorization — user must have organization-level access.
+	// Results are scoped to the user's organization.
+	//
+	// Use Cases:
+	//
+	// 1. Dashboard Overview:
+	//   - Display KPI cards: active runs, completed, failed, total cost
+	//   - Time window selector toggles between 24h / 7d / 30d views
+	//
+	// 2. Cost Monitoring:
+	//   - Show per-workflow cost breakdown to identify expensive workflows
+	//   - Track cost trends across time windows
+	//
+	// 3. Reliability Monitoring:
+	//   - Surface top failing workflows for investigation
+	//   - Track failure rates across the organization
+	//
+	// @since T14 (Dashboard Integration)
+	GetExecutionSummary(context.Context, *GetExecutionSummaryRequest) (*ExecutionSummary, error)
+	// List workflow executions with pending human_input tasks awaiting reviewer decisions.
+	//
+	// Returns a paginated list of executions where at least one human_input
+	// task is actively waiting for a response. Each entry includes the
+	// execution context, task details, requester, and timeout information.
+	//
+	// @internal
+	// Authorization:
+	// Custom authorization — user must have organization-level access.
+	// Results are scoped to the user's organization.
+	//
+	// Use Cases:
+	//
+	// 1. Pending Approvals Dashboard Widget:
+	//   - Display a list of items requiring human attention
+	//   - Show time waiting and timeout countdown
+	//   - Link to execution viewer for review action
+	//
+	// 2. Approval Queue:
+	//   - Reviewers see all pending approvals in one view
+	//   - Sorted by urgency (closest to timeout first)
+	//
+	// @since T14 (Dashboard Integration)
+	ListPendingApprovals(context.Context, *ListPendingApprovalsRequest) (*PendingApprovalsList, error)
 }
 
 // UnimplementedWorkflowExecutionQueryControllerServer should be embedded to have
@@ -1065,6 +1189,12 @@ func (UnimplementedWorkflowExecutionQueryControllerServer) GetEventLog(context.C
 }
 func (UnimplementedWorkflowExecutionQueryControllerServer) SubscribeEvents(*SubscribeEventsRequest, grpc.ServerStreamingServer[WorkflowExecutionEvent]) error {
 	return status.Errorf(codes.Unimplemented, "method SubscribeEvents not implemented")
+}
+func (UnimplementedWorkflowExecutionQueryControllerServer) GetExecutionSummary(context.Context, *GetExecutionSummaryRequest) (*ExecutionSummary, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetExecutionSummary not implemented")
+}
+func (UnimplementedWorkflowExecutionQueryControllerServer) ListPendingApprovals(context.Context, *ListPendingApprovalsRequest) (*PendingApprovalsList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListPendingApprovals not implemented")
 }
 func (UnimplementedWorkflowExecutionQueryControllerServer) testEmbeddedByValue() {}
 
@@ -1180,6 +1310,42 @@ func _WorkflowExecutionQueryController_SubscribeEvents_Handler(srv interface{}, 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type WorkflowExecutionQueryController_SubscribeEventsServer = grpc.ServerStreamingServer[WorkflowExecutionEvent]
 
+func _WorkflowExecutionQueryController_GetExecutionSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetExecutionSummaryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowExecutionQueryControllerServer).GetExecutionSummary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowExecutionQueryController_GetExecutionSummary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowExecutionQueryControllerServer).GetExecutionSummary(ctx, req.(*GetExecutionSummaryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WorkflowExecutionQueryController_ListPendingApprovals_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPendingApprovalsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowExecutionQueryControllerServer).ListPendingApprovals(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowExecutionQueryController_ListPendingApprovals_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowExecutionQueryControllerServer).ListPendingApprovals(ctx, req.(*ListPendingApprovalsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WorkflowExecutionQueryController_ServiceDesc is the grpc.ServiceDesc for WorkflowExecutionQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1202,6 +1368,14 @@ var WorkflowExecutionQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getEventLog",
 			Handler:    _WorkflowExecutionQueryController_GetEventLog_Handler,
+		},
+		{
+			MethodName: "getExecutionSummary",
+			Handler:    _WorkflowExecutionQueryController_GetExecutionSummary_Handler,
+		},
+		{
+			MethodName: "listPendingApprovals",
+			Handler:    _WorkflowExecutionQueryController_ListPendingApprovals_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

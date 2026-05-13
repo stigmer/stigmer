@@ -3,11 +3,15 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput;
+import ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary;
 import ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest;
 import ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse;
+import ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest;
+import ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest;
 import ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest;
 import ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest;
 import ai.stigmer.agentic.workflowexecution.v1.PauseWorkflowExecutionInput;
+import ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList;
 import ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput;
 import ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput;
 import ai.stigmer.agentic.workflowexecution.v1.SendSignalInput;
@@ -144,6 +148,18 @@ public final class WorkflowExecutionClient {
         try {
             java.util.Iterator<WorkflowExecutionEvent> iter = query.subscribeEvents(input);
             return new StigmerStream<>(iter);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ExecutionSummary getExecutionSummary(GetExecutionSummaryRequest input) {
+        try {
+            return query.getExecutionSummary(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public PendingApprovalsList listPendingApprovals(ListPendingApprovalsRequest input) {
+        try {
+            return query.listPendingApprovals(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

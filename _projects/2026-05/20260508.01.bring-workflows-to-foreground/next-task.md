@@ -19,12 +19,85 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-13 — T12 COMPLETE (Phase 1 continues)
-**Current Task**: T12 COMPLETE — CLI Parity
-**Phase**: Phase 1 — Foreground MVP — IN PROGRESS
-**Next Task**: T14 (Dashboard Integration), Go event/budget wiring
+**Last Session**: 2026-05-13 — T14 COMPLETE (Phase 1 COMPLETE)
+**Current Task**: T14 COMPLETE — Dashboard Integration + Desktop Workflow Parity
+**Phase**: Phase 1 — Foreground MVP — COMPLETE
+**Next Task**: T15 (Visual Canvas Editor — Phase 2)
 
-## Session Progress (2026-05-13, T12)
+## Session Progress (2026-05-13, T14)
+
+### T14: Dashboard Integration + Desktop Workflow Parity — COMPLETE
+
+Four-phase delivery completing Phase 1. Brought all workflow UI to desktop (7 new
+pages/layout/breadcrumb), designed new aggregation proto APIs (getExecutionSummary +
+listPendingApprovals), implemented Go + Java backends, built SDK dashboard components
+(2 hooks, 4 styled components), and integrated dashboard into both web and desktop.
+
+#### Phase A: Desktop Workflow Parity
+- Sidebar "Workflows" nav item, 4-route tree, 4 thin page shells
+- `WorkflowLayout` + `WorkflowBreadcrumb` following `LibraryLayout` pattern
+- DD-016 verified: identical SDK component prop wiring across web/desktop
+
+#### Phase B: Proto APIs + Backend
+- `SummaryTimeWindow` enum, `ExecutionSummary`, `WorkflowCostSummary`, `WorkflowFailureRank`, `WorkflowCostBreakdown`, `PendingApproval`, `PendingApprovalsList`
+- Go: in-memory aggregation over SQLite store
+- Java: IAM-scoped aggregation with `IamPolicyGrpcRepo` + `WorkflowExecutionRepo`
+
+#### Phase C: SDK Dashboard Components
+- `useWorkflowDashboardSummary` + `usePendingApprovals` data hooks
+- `ExecutionSummaryWidget` (stat cards + phase bar), `PendingApprovalsWidget`, `FailedRunsWidget`, `WorkflowDashboard` (composed container)
+
+#### Phase D: Integration
+- `WorkflowDashboard` rendered at top of `/workflows` page in both web and desktop
+
+#### Verification
+- `tsc --noEmit` clean: sdk/react, sdk/typescript, client-apps/web, client-apps/desktop
+- `go build` + `go vet` clean: stigmer-server
+- `bazelw build` clean: stigmer-service (85 targets)
+
+## Previous Session Progress (2026-05-13, Go Event/Budget Wiring)
+
+### Go Event Emission + Budget Enforcement Wiring — COMPLETE
+
+Wired the existing event emitter (T13) and budget tracker (T13) into the
+task execution loop, completing the event-to-persistence pipeline. 2 new
+files, 9 modified. The entire event pipeline (Go emitter -> gRPC events
+field -> Java MongoDB/Redis persistence -> getEventLog/subscribeEvents)
+is now connected end-to-end.
+
+#### Event Emission
+- TaskStarted/Completed/Failed/Skipped events emitted in `iterateTasks`
+- ExecutionStarted/Completed/Failed lifecycle events in executor
+- New `FlushEventsActivity` — Temporal activity for gRPC event delivery
+- New `UpdateStatusWithEvents` gRPC method populates events field (T06 contract)
+- New `ResolveTaskKind` mapping (CNCF model -> WorkflowTaskKind enum)
+
+#### Budget Enforcement
+- `WorkflowBudget` carried on `TemporalWorkflowInput` (survives YAML round-trip)
+- Cost/tokens recorded after each task via `__stigmer_cost_micros` convention
+- Budget checked at task boundaries with three policies:
+  - `terminate` (default): non-retryable error stops workflow
+  - `human_review`: signal-based approval gate (`budget_review_{id}`)
+  - `warn`: log warning + budget_checkpoint event, continue
+- `BudgetCheckpoint` events emitted with consumed vs. remaining capacity
+
+#### Files (11 total: 2 new, 9 modified)
+- `pkg/types/progress.go` — Added Budget, WorkflowID, WorkflowInstanceID fields
+- `worker/activities/execute_workflow_activity.go` — Populates budget from proto spec
+- `pkg/grpc_client/workflow_execution_client.go` — Added UpdateStatusWithEvents
+- `pkg/zigflow/tasks/task_builder_do.go` — Core wiring: emitter + tracker + event buffer + flush + budget check
+- `pkg/zigflow/tasks/task_kind_mapping.go` (new) — CNCF model -> WorkflowTaskKind
+- `pkg/zigflow/tasks/flush_events_activity.go` (new) — Temporal activity for event delivery
+- `pkg/zigflow/tasks/task_builder_call_llm_activities.go` — Added cost/token output
+- `pkg/executor/temporal_workflow.go` — Creates emitter/tracker, emits lifecycle events
+- 3 BUILD.bazel files updated with new deps
+
+#### Verification
+- `go build ./...` — clean
+- `go vet ./...` — clean
+- `go test ./pkg/...` — all pass, zero regressions
+
+## Previous Session Progress (2026-05-13, T12)
 
 ### T12: CLI Parity — Unified Execution Commands + Developer Workflow Tools — COMPLETE
 
@@ -355,29 +428,29 @@ New Task Types — llm_call, transform, human_input, validate, emit_event, notif
 Structured Agent Output Model
 
 ## Next Steps
-1. **T14: Dashboard Integration** — pending approvals, failed runs, cost charts
-2. **Go event emission wiring** — connect `pkg/events/emitter.go` to the updateStatus gRPC call path so events flow to Java
-3. **Budget enforcement wiring** — connect `pkg/budget/tracker.go` to iterateTasks loop
-4. **T15: Visual Canvas Editor** (Phase 2) — drag-and-drop DAG builder
+1. **T15: Visual Canvas Editor** (Phase 2) — drag-and-drop DAG construction, YAML round-trip
+2. **T16: Natural Language to Workflow** (Phase 3) — prompt-to-workflow generation
+3. **Chart visualizations** — add recharts/visx for Cost by Workflow chart (deferred from T14, needs DD-012 license check + DD-013 lazy-loading)
+4. **Workflow execution → session navigation fix** — web `onNavigateToAgentExecution` uses `/sessions?execution=` which doesn't match session zone routing
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
-- Phase 1 (Foreground MVP) IN PROGRESS — T08, T09, T10, T11, T12, T13, T13b complete
-- Only T14 (Dashboard Integration) remains for Phase 1 completion
-- All verification passes: `tsc --noEmit` for sdk/react, sdk/typescript, client-apps/web
-- CLI now has full `stigmer execution` command group (cancel/terminate/pause/resume/logs/trace/approve) + `stigmer diff`
-- `stigmer validate` already existed — discovered during T12 implementation
+- Phase 1 (Foreground MVP) COMPLETE — T08, T09, T10, T11, T12, T13, T13b, Go wiring, T14 all complete
+- Desktop now has full workflow parity with web (list, detail, editor, run, executions, dashboard)
+- Dashboard aggregation RPCs (`getExecutionSummary`, `listPendingApprovals`) implemented in both Go and Java
+- SDK dashboard components exported from `@stigmer/react`: `WorkflowDashboard`, `ExecutionSummaryWidget`, `PendingApprovalsWidget`, `FailedRunsWidget`
+- Cost data in dashboard currently empty for OSS (budget fields not populated in store) — will populate once cost tracking is wired
 - `useExportResource` only supports Agent and McpServer — workflow YAML export deferred
 - Search indexing for workflows in backend unverified — `list()` may return empty
 - `CheckBudgetWarnings()` (T05) still standalone — NOT wired into `ValidateWorkflow()` yet
-- Backend RPCs `getEventLog` and `subscribeEvents` now have Java handlers; `getDownloadUrl` still UNIMPLEMENTED
-- Go runner event emission NOT yet wired — Java persistence layer is ready but Go doesn't send events yet
+- `getDownloadUrl` still UNIMPLEMENTED (artifact store)
+- OSS stigmer-server updateStatus handler does NOT yet persist events (separate task from Java/Cloud parity)
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-13-t11-run-workflow-ui.md
+_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-13-t14-dashboard-desktop-parity.md
 ```
 
 ### 2. Task Directory
@@ -436,7 +509,7 @@ When starting a new session:
 ## Project Phases
 
 - **Phase 0**: Harden Workflow Core (T02-T07) — COMPLETE
-- **Phase 1**: Foreground MVP (T08-T14) — IN PROGRESS (T08, T09 done)
+- **Phase 1**: Foreground MVP (T08-T14) — COMPLETE
 - **Phase 2**: Visual Builder (T15) — canvas editor, drag-and-drop, YAML round-trip
 - **Phase 3**: AI-Assisted Creation (T16) — NL-to-workflow, chat-to-workflow, repair assistant
 - **Phase 4**: Advanced Agentic Orchestration (T17) — plan_and_execute, handoff, eval, batch, cache, code_execution, memory

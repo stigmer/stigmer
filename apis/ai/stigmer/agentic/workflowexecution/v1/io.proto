@@ -7,7 +7,9 @@ import "ai/stigmer/agentic/workflowexecution/v1/api.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/enum.proto";
 import "ai/stigmer/agentic/workflowexecution/v1/event.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/duration.proto";
 import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
 
 // WorkflowExecutionId wraps a workflow execution identifier.
 //
@@ -513,4 +515,155 @@ message SubscribeEventsRequest {
   // When empty, all event types are streamed.
   // Applied to both replayed and live events.
   repeated WorkflowEventType event_types = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard aggregation messages
+// ---------------------------------------------------------------------------
+
+// SummaryTimeWindow controls the time range for aggregated dashboard queries.
+//
+// @since T14 (Dashboard Integration)
+enum SummaryTimeWindow {
+  SUMMARY_TIME_WINDOW_UNSPECIFIED = 0;
+  SUMMARY_TIME_WINDOW_LAST_24H = 1;
+  SUMMARY_TIME_WINDOW_LAST_7D = 2;
+  SUMMARY_TIME_WINDOW_LAST_30D = 3;
+  SUMMARY_TIME_WINDOW_ALL_TIME = 4;
+}
+
+// GetExecutionSummaryRequest fetches aggregated execution statistics for an organization.
+//
+// @since T14 (Dashboard Integration)
+message GetExecutionSummaryRequest {
+  // Organization slug to scope the summary.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Time window for aggregation.
+  //
+  // Defaults to LAST_7D when unspecified.
+  SummaryTimeWindow time_window = 2;
+}
+
+// ExecutionSummary contains aggregated statistics for workflow executions.
+//
+// All counts, costs, and durations are scoped to the requested time window.
+//
+// @since T14 (Dashboard Integration)
+message ExecutionSummary {
+  // Number of executions currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
+  int32 active_count = 1;
+
+  // Execution counts broken down by phase.
+  //
+  // Keys are ExecutionPhase enum values (as int32).
+  // Only phases with at least one execution are included.
+  map<int32, int32> phase_counts = 2;
+
+  // Aggregate cost across all executions in the time window.
+  WorkflowCostSummary total_cost = 3;
+
+  // Mean execution duration (from started_at to completed_at) for completed executions.
+  //
+  // Zero when no completed executions exist in the window.
+  google.protobuf.Duration avg_duration = 4;
+
+  // Workflows with the highest failure count in the time window, ranked descending.
+  //
+  // Capped at 10 entries.
+  repeated WorkflowFailureRank top_failing_workflows = 5;
+
+  // Per-workflow cost breakdown, ranked by total_cost descending.
+  //
+  // Capped at 10 entries.
+  repeated WorkflowCostBreakdown cost_by_workflow = 6;
+}
+
+// WorkflowCostSummary aggregates token and dollar costs.
+//
+// @since T14 (Dashboard Integration)
+message WorkflowCostSummary {
+  double total_cost_usd = 1;
+  int64 total_input_tokens = 2;
+  int64 total_output_tokens = 3;
+}
+
+// WorkflowFailureRank represents a workflow and its failure count within a time window.
+//
+// @since T14 (Dashboard Integration)
+message WorkflowFailureRank {
+  string workflow_slug = 1;
+  string workflow_name = 2;
+  int32 failure_count = 3;
+}
+
+// WorkflowCostBreakdown represents per-workflow cost aggregation.
+//
+// @since T14 (Dashboard Integration)
+message WorkflowCostBreakdown {
+  string workflow_slug = 1;
+  string workflow_name = 2;
+  double total_cost_usd = 3;
+  int32 execution_count = 4;
+}
+
+// ListPendingApprovalsRequest fetches workflow executions that have active
+// human_input tasks awaiting reviewer decisions.
+//
+// @since T14 (Dashboard Integration)
+message ListPendingApprovalsRequest {
+  // Organization slug to scope the query.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Maximum number of pending approvals to return per page.
+  //
+  // Default: 20. Maximum: 100.
+  int32 page_size = 2;
+
+  // Opaque pagination token from a previous response.
+  string page_token = 3;
+}
+
+// PendingApproval represents a single human_input task awaiting a reviewer decision.
+//
+// @since T14 (Dashboard Integration)
+message PendingApproval {
+  // Workflow execution containing the pending task.
+  string execution_id = 1;
+
+  // Human-readable workflow name for display.
+  string workflow_name = 2;
+
+  // Name of the human_input task awaiting response.
+  string task_name = 3;
+
+  // Identity of the user or system that triggered the execution.
+  string requester = 4;
+
+  // When the approval was requested (task entered waiting state).
+  google.protobuf.Timestamp requested_at = 5;
+
+  // When the approval times out (if a timeout policy is configured).
+  //
+  // Zero value when no timeout is configured.
+  google.protobuf.Timestamp timeout_at = 6;
+
+  // Optional JSON Schema for the approval form.
+  //
+  // When present, the reviewer is expected to fill in form data
+  // that conforms to this schema before submitting the decision.
+  google.protobuf.Struct form_schema = 7;
+}
+
+// PendingApprovalsList contains a paginated list of pending approvals.
+//
+// @since T14 (Dashboard Integration)
+message PendingApprovalsList {
+  repeated PendingApproval entries = 1;
+
+  // Total number of pending approvals matching the query (across all pages).
+  int32 total_count = 2;
+
+  // Pagination token for the next page. Empty when no more pages exist.
+  string next_page_token = 3;
 }

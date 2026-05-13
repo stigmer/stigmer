@@ -138,6 +138,18 @@ class WorkflowExecutionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def get_execution_summary(self, input: io_pb2.GetExecutionSummaryRequest) -> io_pb2.ExecutionSummary:
+        try:
+            return self._query.getExecutionSummary(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list_pending_approvals(self, input: io_pb2.ListPendingApprovalsRequest) -> io_pb2.PendingApprovalsList:
+        try:
+            return self._query.listPendingApprovals(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
 
 @dataclass
 class WorkflowExecutionInput:
