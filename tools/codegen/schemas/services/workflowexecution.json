@@ -160,6 +160,22 @@
           "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent",
           "serverStreaming": true,
           "description": "Subscribe to real-time execution events (incremental event stream).\n\n Opens a server-side streaming RPC that pushes individual\n WorkflowExecutionEvent messages as they occur during execution.\n Unlike subscribe() which streams full WorkflowExecution snapshots,\n this streams lightweight incremental events for the timeline view.\n\n @internal\n Authorization:\n Standard authorization checks that user has \"get\" permission on the\n WorkflowExecution. Same permission as get() and subscribe().\n\n Stream Lifecycle:\n 1. Client sends SubscribeEventsRequest with execution_id\n 2. Server validates authorization\n 3. If after_sequence \u003e 0: Server replays missed events from persistence\n 4. Server streams new events in real-time as the runner emits them\n 5. Server closes stream when execution reaches a terminal phase\n    (COMPLETED, FAILED, CANCELLED, TERMINATED)\n 6. Client can close stream early\n\n Reconnection:\n On disconnect, the client reconnects with after_sequence set to the\n sequence_number of the last received event. The server replays any\n events missed during the disconnect, then resumes live streaming.\n No events are lost.\n\n Complementary Streams:\n - subscribe(): Full snapshots for current-state views (progress bars, dashboards)\n - subscribeEvents(): Incremental events for timeline views (execution viewer)\n Both streams can be used simultaneously for different UI concerns.\n\n Use Cases:\n\n 1. Live Execution Timeline:\n    - User watches a running execution in the execution viewer\n    - Events stream in real-time, building the timeline as tasks progress\n    - Each event adds a row: \"task X started\", \"task X completed (2.3s, $0.05)\"\n\n 2. Cost Monitoring:\n    - Dashboard subscribes with event_types filter for budget_checkpoint\n    - Budget gauge updates in real-time as costs accumulate\n\n 3. Approval Notifications:\n    - Subscribe with event_types filter for approval_requested\n    - Surface approval gates immediately when they activate\n\n Error Cases:\n\n - NOT_FOUND: No WorkflowExecution exists with the given ID\n - PERMISSION_DENIED: User doesn't have \"get\" permission\n - DEADLINE_EXCEEDED: Client timeout (reconnect with after_sequence)\n - UNAVAILABLE: Server unavailable (retry with backoff)\n\n @since T06 (Execution Event Stream Model)"
+        },
+        {
+          "name": "GetExecutionSummary",
+          "inputType": "GetExecutionSummaryRequest",
+          "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest",
+          "outputType": "ExecutionSummary",
+          "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary",
+          "description": "Get aggregated execution statistics for an organization's workflows.\n\n Returns counts by phase, total cost, average duration, top failing\n workflows, and per-workflow cost breakdown — scoped to a configurable\n time window (24h, 7d, 30d, all-time).\n\n @internal\n Authorization:\n Custom authorization — user must have organization-level access.\n Results are scoped to the user's organization.\n\n Use Cases:\n\n 1. Dashboard Overview:\n    - Display KPI cards: active runs, completed, failed, total cost\n    - Time window selector toggles between 24h / 7d / 30d views\n\n 2. Cost Monitoring:\n    - Show per-workflow cost breakdown to identify expensive workflows\n    - Track cost trends across time windows\n\n 3. Reliability Monitoring:\n    - Surface top failing workflows for investigation\n    - Track failure rates across the organization\n\n @since T14 (Dashboard Integration)"
+        },
+        {
+          "name": "ListPendingApprovals",
+          "inputType": "ListPendingApprovalsRequest",
+          "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest",
+          "outputType": "PendingApprovalsList",
+          "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList",
+          "description": "List workflow executions with pending human_input tasks awaiting reviewer decisions.\n\n Returns a paginated list of executions where at least one human_input\n task is actively waiting for a response. Each entry includes the\n execution context, task details, requester, and timeout information.\n\n @internal\n Authorization:\n Custom authorization — user must have organization-level access.\n Results are scoped to the user's organization.\n\n Use Cases:\n\n 1. Pending Approvals Dashboard Widget:\n    - Display a list of items requiring human attention\n    - Show time waiting and timeout countdown\n    - Link to execution viewer for review action\n\n 2. Approval Queue:\n    - Reviewers see all pending approvals in one view\n    - Sorted by urgency (closest to timeout first)\n\n @since T14 (Dashboard Integration)"
         }
       ]
     }
@@ -1242,6 +1258,211 @@
           "oneofGroup": "payload"
         }
       ]
+    },
+    {
+      "name": "GetExecutionSummaryRequest",
+      "description": "GetExecutionSummaryRequest fetches aggregated execution statistics for an organization.\n\n @since T14 (Dashboard Integration)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to scope the summary.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "TimeWindow",
+          "jsonName": "timeWindow",
+          "protoField": "time_window",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.workflowexecution.v1.SummaryTimeWindow",
+            "enumValues": [
+              "SUMMARY_TIME_WINDOW_LAST_24H",
+              "SUMMARY_TIME_WINDOW_LAST_7D",
+              "SUMMARY_TIME_WINDOW_LAST_30D",
+              "SUMMARY_TIME_WINDOW_ALL_TIME"
+            ]
+          },
+          "description": "Time window for aggregation.\n\n Defaults to LAST_7D when unspecified.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ExecutionSummary",
+      "description": "ExecutionSummary contains aggregated statistics for workflow executions.\n\n All counts, costs, and durations are scoped to the requested time window.\n\n @since T14 (Dashboard Integration)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ActiveCount",
+          "jsonName": "activeCount",
+          "protoField": "active_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Number of executions currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).",
+          "required": false
+        },
+        {
+          "name": "PhaseCounts",
+          "jsonName": "phaseCounts",
+          "protoField": "phase_counts",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "int32"
+            },
+            "valueType": {
+              "kind": "int32"
+            }
+          },
+          "description": "Execution counts broken down by phase.\n\n Keys are ExecutionPhase enum values (as int32).\n Only phases with at least one execution are included.",
+          "required": false
+        },
+        {
+          "name": "TotalCost",
+          "jsonName": "totalCost",
+          "protoField": "total_cost",
+          "type": {
+            "kind": "message",
+            "messageType": "WorkflowCostSummary"
+          },
+          "description": "Aggregate cost across all executions in the time window.",
+          "required": false
+        },
+        {
+          "name": "AvgDuration",
+          "jsonName": "avgDuration",
+          "protoField": "avg_duration",
+          "type": {
+            "kind": "message",
+            "messageType": "Duration"
+          },
+          "description": "Mean execution duration (from started_at to completed_at) for completed executions.\n\n Zero when no completed executions exist in the window.",
+          "required": false
+        },
+        {
+          "name": "TopFailingWorkflows",
+          "jsonName": "topFailingWorkflows",
+          "protoField": "top_failing_workflows",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "WorkflowFailureRank"
+            }
+          },
+          "description": "Workflows with the highest failure count in the time window, ranked descending.\n\n Capped at 10 entries.",
+          "required": false
+        },
+        {
+          "name": "CostByWorkflow",
+          "jsonName": "costByWorkflow",
+          "protoField": "cost_by_workflow",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "WorkflowCostBreakdown"
+            }
+          },
+          "description": "Per-workflow cost breakdown, ranked by total_cost descending.\n\n Capped at 10 entries.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListPendingApprovalsRequest",
+      "description": "ListPendingApprovalsRequest fetches workflow executions that have active\n human_input tasks awaiting reviewer decisions.\n\n @since T14 (Dashboard Integration)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to scope the query.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of pending approvals to return per page.\n\n Default: 20. Maximum: 100.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Opaque pagination token from a previous response.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PendingApprovalsList",
+      "description": "PendingApprovalsList contains a paginated list of pending approvals.\n\n @since T14 (Dashboard Integration)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "PendingApproval"
+            }
+          },
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of pending approvals matching the query (across all pages).",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Pagination token for the next page. Empty when no more pages exist.",
+          "required": false
+        }
+      ]
     }
   ],
   "enumTypes": [
@@ -1418,6 +1639,33 @@
           "name": "artifact_created",
           "number": 53,
           "description": "A task output was persisted as an artifact (auto-promoted or explicit).\n Payload: ArtifactCreatedPayload."
+        }
+      ]
+    },
+    {
+      "name": "SummaryTimeWindow",
+      "description": "SummaryTimeWindow controls the time range for aggregated dashboard queries.\n\n @since T14 (Dashboard Integration)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.SummaryTimeWindow",
+      "values": [
+        {
+          "name": "SUMMARY_TIME_WINDOW_LAST_24H",
+          "number": 1,
+          "description": ""
+        },
+        {
+          "name": "SUMMARY_TIME_WINDOW_LAST_7D",
+          "number": 2,
+          "description": ""
+        },
+        {
+          "name": "SUMMARY_TIME_WINDOW_LAST_30D",
+          "number": 3,
+          "description": ""
+        },
+        {
+          "name": "SUMMARY_TIME_WINDOW_ALL_TIME",
+          "number": 4,
+          "description": ""
         }
       ]
     },

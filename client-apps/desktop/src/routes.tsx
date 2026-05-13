@@ -30,6 +30,11 @@ const McpServerDetailPage = lazy(() => import("./pages/library/McpServerDetailPa
 const AgentNewPage = lazy(() => import("./pages/library/AgentNewPage"));
 const SkillNewPage = lazy(() => import("./pages/library/SkillNewPage"));
 const McpServerNewPage = lazy(() => import("./pages/library/McpServerNewPage"));
+const WorkflowLayout = lazy(() => import("./pages/workflow/WorkflowLayout"));
+const WorkflowListPage = lazy(() => import("./pages/workflow/WorkflowListPage"));
+const WorkflowDetailPage = lazy(() => import("./pages/workflow/WorkflowDetailPage"));
+const WorkflowExecutionListPage = lazy(() => import("./pages/workflow/WorkflowExecutionListPage"));
+const WorkflowExecutionDetailPage = lazy(() => import("./pages/workflow/WorkflowExecutionDetailPage"));
 const SettingsLayout = lazy(() => import("./pages/settings/SettingsLayout"));
 const SettingsLanding = lazy(() => import("./pages/settings/SettingsLanding"));
 const BillingPage = lazy(() => import("./pages/settings/BillingPage"));
@@ -151,6 +156,48 @@ const routes: RouteObject[] = [
             element: (
               <LazyPage>
                 <McpServerDetailPage />
+              </LazyPage>
+            ),
+          },
+        ],
+      },
+      {
+        path: "workflows",
+        element: (
+          <LazyPage>
+            <WorkflowLayout />
+          </LazyPage>
+        ),
+        children: [
+          {
+            index: true,
+            element: (
+              <LazyPage>
+                <WorkflowListPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: ":org/:slug",
+            element: (
+              <LazyPage>
+                <WorkflowDetailPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: "executions",
+            element: (
+              <LazyPage>
+                <WorkflowExecutionListPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: "executions/:id",
+            element: (
+              <LazyPage>
+                <WorkflowExecutionDetailPage />
               </LazyPage>
             ),
           },

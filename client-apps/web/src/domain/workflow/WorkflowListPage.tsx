@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { GitBranch, MoreHorizontal, Copy, ExternalLink, Trash2 } from "lucide-react";
 import { useWorkflowNavigation } from "@/domain/workflow/workflow-navigation";
 import {
@@ -10,6 +11,7 @@ import {
 import {
   ResourceWorkbench,
   ActionMenu,
+  WorkflowDashboard,
   useStigmer,
   useActiveOrgSlug,
   useConfirmAction,
@@ -56,6 +58,7 @@ const WORKFLOW_COLUMNS: WorkbenchColumnDef<SearchResult>[] = [
 export function WorkflowListPage() {
   const org = useActiveOrgSlug();
   const stigmer = useStigmer();
+  const router = useRouter();
   const { navigateToDetail } = useWorkflowNavigation();
   const { confirmState, confirm, handleConfirm, handleCancel } =
     useConfirmAction();
@@ -97,6 +100,13 @@ export function WorkflowListPage() {
     [stigmer],
   );
 
+  const handleExecutionNav = useCallback(
+    (executionId: string) => {
+      router.push(`/workflows/executions/${executionId}`);
+    },
+    [router],
+  );
+
   return (
     <>
       <div className="mb-6">
@@ -105,6 +115,13 @@ export function WorkflowListPage() {
           Browse and manage multi-step orchestration workflows.
         </p>
       </div>
+
+      <WorkflowDashboard
+        org={org}
+        onApprovalClick={handleExecutionNav}
+        onFailedRunClick={handleExecutionNav}
+        className="mb-8"
+      />
 
       <ResourceWorkbench
         key={listVersion}

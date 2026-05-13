@@ -3,6 +3,7 @@ import { NavLink, useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   Plus,
   Library,
+  Workflow,
   Server,
   MessageSquare,
   PanelLeft,
@@ -56,6 +57,7 @@ export function Sidebar() {
   }, [navigate]);
 
   const isLibraryActive = !isSessionZone && location.pathname.startsWith("/library");
+  const isWorkflowsActive = !isSessionZone && location.pathname.startsWith("/workflows");
   const isRunnersActive = !isSessionZone && location.pathname.startsWith("/runners");
 
   return (
@@ -109,6 +111,22 @@ export function Sidebar() {
         >
           <Library className="size-4 shrink-0" />
           Library
+        </NavLink>
+      </div>
+
+      {/* Workflows */}
+      <div className="flex-none px-3 py-1">
+        <NavLink
+          to="/workflows"
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
+            isWorkflowsActive
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          )}
+        >
+          <Workflow className="size-4 shrink-0" />
+          Workflows
         </NavLink>
       </div>
 

@@ -211,6 +211,68 @@ public final class WorkflowExecutionQueryControllerGrpc {
     return getSubscribeEventsMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest,
+      ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary> getGetExecutionSummaryMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getExecutionSummary",
+      requestType = ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest.class,
+      responseType = ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest,
+      ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary> getGetExecutionSummaryMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest, ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary> getGetExecutionSummaryMethod;
+    if ((getGetExecutionSummaryMethod = WorkflowExecutionQueryControllerGrpc.getGetExecutionSummaryMethod) == null) {
+      synchronized (WorkflowExecutionQueryControllerGrpc.class) {
+        if ((getGetExecutionSummaryMethod = WorkflowExecutionQueryControllerGrpc.getGetExecutionSummaryMethod) == null) {
+          WorkflowExecutionQueryControllerGrpc.getGetExecutionSummaryMethod = getGetExecutionSummaryMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest, ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getExecutionSummary"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowExecutionQueryControllerMethodDescriptorSupplier("getExecutionSummary"))
+              .build();
+        }
+      }
+    }
+    return getGetExecutionSummaryMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest,
+      ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList> getListPendingApprovalsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listPendingApprovals",
+      requestType = ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest.class,
+      responseType = ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest,
+      ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList> getListPendingApprovalsMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest, ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList> getListPendingApprovalsMethod;
+    if ((getListPendingApprovalsMethod = WorkflowExecutionQueryControllerGrpc.getListPendingApprovalsMethod) == null) {
+      synchronized (WorkflowExecutionQueryControllerGrpc.class) {
+        if ((getListPendingApprovalsMethod = WorkflowExecutionQueryControllerGrpc.getListPendingApprovalsMethod) == null) {
+          WorkflowExecutionQueryControllerGrpc.getListPendingApprovalsMethod = getListPendingApprovalsMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest, ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listPendingApprovals"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowExecutionQueryControllerMethodDescriptorSupplier("listPendingApprovals"))
+              .build();
+        }
+      }
+    }
+    return getListPendingApprovalsMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -680,6 +742,60 @@ public final class WorkflowExecutionQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSubscribeEventsMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Get aggregated execution statistics for an organization's workflows.
+     * Returns counts by phase, total cost, average duration, top failing
+     * workflows, and per-workflow cost breakdown — scoped to a configurable
+     * time window (24h, 7d, 30d, all-time).
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Dashboard Overview:
+     *    - Display KPI cards: active runs, completed, failed, total cost
+     *    - Time window selector toggles between 24h / 7d / 30d views
+     * 2. Cost Monitoring:
+     *    - Show per-workflow cost breakdown to identify expensive workflows
+     *    - Track cost trends across time windows
+     * 3. Reliability Monitoring:
+     *    - Surface top failing workflows for investigation
+     *    - Track failure rates across the organization
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    default void getExecutionSummary(ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetExecutionSummaryMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List workflow executions with pending human_input tasks awaiting reviewer decisions.
+     * Returns a paginated list of executions where at least one human_input
+     * task is actively waiting for a response. Each entry includes the
+     * execution context, task details, requester, and timeout information.
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Pending Approvals Dashboard Widget:
+     *    - Display a list of items requiring human attention
+     *    - Show time waiting and timeout countdown
+     *    - Link to execution viewer for review action
+     * 2. Approval Queue:
+     *    - Reviewers see all pending approvals in one view
+     *    - Sorted by urgency (closest to timeout first)
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    default void listPendingApprovals(ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListPendingApprovalsMethod(), responseObserver);
+    }
   }
 
   /**
@@ -1134,6 +1250,62 @@ public final class WorkflowExecutionQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncServerStreamingCall(
           getChannel().newCall(getSubscribeEventsMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Get aggregated execution statistics for an organization's workflows.
+     * Returns counts by phase, total cost, average duration, top failing
+     * workflows, and per-workflow cost breakdown — scoped to a configurable
+     * time window (24h, 7d, 30d, all-time).
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Dashboard Overview:
+     *    - Display KPI cards: active runs, completed, failed, total cost
+     *    - Time window selector toggles between 24h / 7d / 30d views
+     * 2. Cost Monitoring:
+     *    - Show per-workflow cost breakdown to identify expensive workflows
+     *    - Track cost trends across time windows
+     * 3. Reliability Monitoring:
+     *    - Surface top failing workflows for investigation
+     *    - Track failure rates across the organization
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    public void getExecutionSummary(ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetExecutionSummaryMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List workflow executions with pending human_input tasks awaiting reviewer decisions.
+     * Returns a paginated list of executions where at least one human_input
+     * task is actively waiting for a response. Each entry includes the
+     * execution context, task details, requester, and timeout information.
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Pending Approvals Dashboard Widget:
+     *    - Display a list of items requiring human attention
+     *    - Show time waiting and timeout countdown
+     *    - Link to execution viewer for review action
+     * 2. Approval Queue:
+     *    - Reviewers see all pending approvals in one view
+     *    - Sorted by urgency (closest to timeout first)
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    public void listPendingApprovals(ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListPendingApprovalsMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -1562,6 +1734,60 @@ public final class WorkflowExecutionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2ServerStreamingCall(
           getChannel(), getSubscribeEventsMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Get aggregated execution statistics for an organization's workflows.
+     * Returns counts by phase, total cost, average duration, top failing
+     * workflows, and per-workflow cost breakdown — scoped to a configurable
+     * time window (24h, 7d, 30d, all-time).
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Dashboard Overview:
+     *    - Display KPI cards: active runs, completed, failed, total cost
+     *    - Time window selector toggles between 24h / 7d / 30d views
+     * 2. Cost Monitoring:
+     *    - Show per-workflow cost breakdown to identify expensive workflows
+     *    - Track cost trends across time windows
+     * 3. Reliability Monitoring:
+     *    - Surface top failing workflows for investigation
+     *    - Track failure rates across the organization
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary getExecutionSummary(ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetExecutionSummaryMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List workflow executions with pending human_input tasks awaiting reviewer decisions.
+     * Returns a paginated list of executions where at least one human_input
+     * task is actively waiting for a response. Each entry includes the
+     * execution context, task details, requester, and timeout information.
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Pending Approvals Dashboard Widget:
+     *    - Display a list of items requiring human attention
+     *    - Show time waiting and timeout countdown
+     *    - Link to execution viewer for review action
+     * 2. Approval Queue:
+     *    - Reviewers see all pending approvals in one view
+     *    - Sorted by urgency (closest to timeout first)
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList listPendingApprovals(ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListPendingApprovalsMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -1988,6 +2214,60 @@ public final class WorkflowExecutionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingServerStreamingCall(
           getChannel(), getSubscribeEventsMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Get aggregated execution statistics for an organization's workflows.
+     * Returns counts by phase, total cost, average duration, top failing
+     * workflows, and per-workflow cost breakdown — scoped to a configurable
+     * time window (24h, 7d, 30d, all-time).
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Dashboard Overview:
+     *    - Display KPI cards: active runs, completed, failed, total cost
+     *    - Time window selector toggles between 24h / 7d / 30d views
+     * 2. Cost Monitoring:
+     *    - Show per-workflow cost breakdown to identify expensive workflows
+     *    - Track cost trends across time windows
+     * 3. Reliability Monitoring:
+     *    - Surface top failing workflows for investigation
+     *    - Track failure rates across the organization
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary getExecutionSummary(ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetExecutionSummaryMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List workflow executions with pending human_input tasks awaiting reviewer decisions.
+     * Returns a paginated list of executions where at least one human_input
+     * task is actively waiting for a response. Each entry includes the
+     * execution context, task details, requester, and timeout information.
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Pending Approvals Dashboard Widget:
+     *    - Display a list of items requiring human attention
+     *    - Show time waiting and timeout countdown
+     *    - Link to execution viewer for review action
+     * 2. Approval Queue:
+     *    - Reviewers see all pending approvals in one view
+     *    - Sorted by urgency (closest to timeout first)
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList listPendingApprovals(ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListPendingApprovalsMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -2260,6 +2540,62 @@ public final class WorkflowExecutionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetEventLogMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Get aggregated execution statistics for an organization's workflows.
+     * Returns counts by phase, total cost, average duration, top failing
+     * workflows, and per-workflow cost breakdown — scoped to a configurable
+     * time window (24h, 7d, 30d, all-time).
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Dashboard Overview:
+     *    - Display KPI cards: active runs, completed, failed, total cost
+     *    - Time window selector toggles between 24h / 7d / 30d views
+     * 2. Cost Monitoring:
+     *    - Show per-workflow cost breakdown to identify expensive workflows
+     *    - Track cost trends across time windows
+     * 3. Reliability Monitoring:
+     *    - Surface top failing workflows for investigation
+     *    - Track failure rates across the organization
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary> getExecutionSummary(
+        ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetExecutionSummaryMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * List workflow executions with pending human_input tasks awaiting reviewer decisions.
+     * Returns a paginated list of executions where at least one human_input
+     * task is actively waiting for a response. Each entry includes the
+     * execution context, task details, requester, and timeout information.
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Pending Approvals Dashboard Widget:
+     *    - Display a list of items requiring human attention
+     *    - Show time waiting and timeout countdown
+     *    - Link to execution viewer for review action
+     * 2. Approval Queue:
+     *    - Reviewers see all pending approvals in one view
+     *    - Sorted by urgency (closest to timeout first)
+     * &#64;since T14 (Dashboard Integration)
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList> listPendingApprovals(
+        ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListPendingApprovalsMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
@@ -2268,6 +2604,8 @@ public final class WorkflowExecutionQueryControllerGrpc {
   private static final int METHODID_SUBSCRIBE = 3;
   private static final int METHODID_GET_EVENT_LOG = 4;
   private static final int METHODID_SUBSCRIBE_EVENTS = 5;
+  private static final int METHODID_GET_EXECUTION_SUMMARY = 6;
+  private static final int METHODID_LIST_PENDING_APPROVALS = 7;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -2309,6 +2647,14 @@ public final class WorkflowExecutionQueryControllerGrpc {
         case METHODID_SUBSCRIBE_EVENTS:
           serviceImpl.subscribeEvents((ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent>) responseObserver);
+          break;
+        case METHODID_GET_EXECUTION_SUMMARY:
+          serviceImpl.getExecutionSummary((ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary>) responseObserver);
+          break;
+        case METHODID_LIST_PENDING_APPROVALS:
+          serviceImpl.listPendingApprovals((ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -2370,6 +2716,20 @@ public final class WorkflowExecutionQueryControllerGrpc {
               ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest,
               ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent>(
                 service, METHODID_SUBSCRIBE_EVENTS)))
+        .addMethod(
+          getGetExecutionSummaryMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest,
+              ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary>(
+                service, METHODID_GET_EXECUTION_SUMMARY)))
+        .addMethod(
+          getListPendingApprovalsMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest,
+              ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList>(
+                service, METHODID_LIST_PENDING_APPROVALS)))
         .build();
   }
 
@@ -2424,6 +2784,8 @@ public final class WorkflowExecutionQueryControllerGrpc {
               .addMethod(getSubscribeMethod())
               .addMethod(getGetEventLogMethod())
               .addMethod(getSubscribeEventsMethod())
+              .addMethod(getGetExecutionSummaryMethod())
+              .addMethod(getListPendingApprovalsMethod())
               .build();
         }
       }

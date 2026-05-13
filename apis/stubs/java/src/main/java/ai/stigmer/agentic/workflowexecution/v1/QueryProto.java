@@ -43,7 +43,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ai/stigmer/agentic/workflowexecution/v1/" +
       "io.proto\0328ai/stigmer/commons/apiresource" +
       "/rpc_service_options.proto\032+ai/stigmer/c" +
-      "ommons/rpc/method_options.proto2\301\t\n Work" +
+      "ommons/rpc/method_options.proto2\203\014\n Work" +
       "flowExecutionQueryController\022\270\001\n\003get\022<.a" +
       "i.stigmer.agentic.workflowexecution.v1.W" +
       "orkflowExecutionId\032:.ai.stigmer.agentic." +
@@ -74,12 +74,20 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "workflowexecution.v1.WorkflowExecutionEv" +
       "ent\"N\302\270\030J\010\001\0204\"\014execution_id*6unauthorize" +
       "d to subscribe to workflow execution eve" +
-      "nts0\001\032\004\240\377+4B\315\001B\nQueryProtoP\001\242\002\004ASAW\252\002\'Ai" +
-      ".Stigmer.Agentic.Workflowexecution.V1\312\002\'" +
-      "Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\342" +
-      "\0023Ai\\Stigmer\\Agentic\\Workflowexecution\\V" +
-      "1\\GPBMetadata\352\002+Ai::Stigmer::Agentic::Wo" +
-      "rkflowexecution::V1b\006proto3"
+      "nts0\001\022\233\001\n\023getExecutionSummary\022C.ai.stigm" +
+      "er.agentic.workflowexecution.v1.GetExecu" +
+      "tionSummaryRequest\0329.ai.stigmer.agentic." +
+      "workflowexecution.v1.ExecutionSummary\"\004\320" +
+      "\270\030\001\022\241\001\n\024listPendingApprovals\022D.ai.stigme" +
+      "r.agentic.workflowexecution.v1.ListPendi" +
+      "ngApprovalsRequest\032=.ai.stigmer.agentic." +
+      "workflowexecution.v1.PendingApprovalsLis" +
+      "t\"\004\320\270\030\001\032\004\240\377+4B\315\001B\nQueryProtoP\001\242\002\004ASAW\252\002\'" +
+      "Ai.Stigmer.Agentic.Workflowexecution.V1\312" +
+      "\002\'Ai\\Stigmer\\Agentic\\Workflowexecution\\V" +
+      "1\342\0023Ai\\Stigmer\\Agentic\\Workflowexecution" +
+      "\\V1\\GPBMetadata\352\002+Ai::Stigmer::Agentic::" +
+      "Workflowexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

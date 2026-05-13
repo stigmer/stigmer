@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "controller",
+    srcs = ["platform_controller.go"],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/platform/controller",
+    visibility = ["//visibility:public"],
+    deps = ["//apis/stubs/go/ai/stigmer/platform/v1:platform"],
+)

@@ -1,16 +1,34 @@
+import datetime
+
 from ai.stigmer.agentic.agentexecution.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.workflowexecution.v1 import api_pb2 as _api_pb2
 from ai.stigmer.agentic.workflowexecution.v1 import enum_pb2 as _enum_pb2_1
 from ai.stigmer.agentic.workflowexecution.v1 import event_pb2 as _event_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf import duration_pb2 as _duration_pb2
 from google.protobuf import struct_pb2 as _struct_pb2
+from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Iterable as _Iterable, Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
+
+class SummaryTimeWindow(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    SUMMARY_TIME_WINDOW_UNSPECIFIED: _ClassVar[SummaryTimeWindow]
+    SUMMARY_TIME_WINDOW_LAST_24H: _ClassVar[SummaryTimeWindow]
+    SUMMARY_TIME_WINDOW_LAST_7D: _ClassVar[SummaryTimeWindow]
+    SUMMARY_TIME_WINDOW_LAST_30D: _ClassVar[SummaryTimeWindow]
+    SUMMARY_TIME_WINDOW_ALL_TIME: _ClassVar[SummaryTimeWindow]
+SUMMARY_TIME_WINDOW_UNSPECIFIED: SummaryTimeWindow
+SUMMARY_TIME_WINDOW_LAST_24H: SummaryTimeWindow
+SUMMARY_TIME_WINDOW_LAST_7D: SummaryTimeWindow
+SUMMARY_TIME_WINDOW_LAST_30D: SummaryTimeWindow
+SUMMARY_TIME_WINDOW_ALL_TIME: SummaryTimeWindow
 
 class WorkflowExecutionId(_message.Message):
     __slots__ = ("value",)
@@ -181,3 +199,104 @@ class SubscribeEventsRequest(_message.Message):
     after_sequence: int
     event_types: _containers.RepeatedScalarFieldContainer[_event_pb2.WorkflowEventType]
     def __init__(self, execution_id: _Optional[str] = ..., after_sequence: _Optional[int] = ..., event_types: _Optional[_Iterable[_Union[_event_pb2.WorkflowEventType, str]]] = ...) -> None: ...
+
+class GetExecutionSummaryRequest(_message.Message):
+    __slots__ = ("org", "time_window")
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    TIME_WINDOW_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    time_window: SummaryTimeWindow
+    def __init__(self, org: _Optional[str] = ..., time_window: _Optional[_Union[SummaryTimeWindow, str]] = ...) -> None: ...
+
+class ExecutionSummary(_message.Message):
+    __slots__ = ("active_count", "phase_counts", "total_cost", "avg_duration", "top_failing_workflows", "cost_by_workflow")
+    class PhaseCountsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: int
+        value: int
+        def __init__(self, key: _Optional[int] = ..., value: _Optional[int] = ...) -> None: ...
+    ACTIVE_COUNT_FIELD_NUMBER: _ClassVar[int]
+    PHASE_COUNTS_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_COST_FIELD_NUMBER: _ClassVar[int]
+    AVG_DURATION_FIELD_NUMBER: _ClassVar[int]
+    TOP_FAILING_WORKFLOWS_FIELD_NUMBER: _ClassVar[int]
+    COST_BY_WORKFLOW_FIELD_NUMBER: _ClassVar[int]
+    active_count: int
+    phase_counts: _containers.ScalarMap[int, int]
+    total_cost: WorkflowCostSummary
+    avg_duration: _duration_pb2.Duration
+    top_failing_workflows: _containers.RepeatedCompositeFieldContainer[WorkflowFailureRank]
+    cost_by_workflow: _containers.RepeatedCompositeFieldContainer[WorkflowCostBreakdown]
+    def __init__(self, active_count: _Optional[int] = ..., phase_counts: _Optional[_Mapping[int, int]] = ..., total_cost: _Optional[_Union[WorkflowCostSummary, _Mapping]] = ..., avg_duration: _Optional[_Union[datetime.timedelta, _duration_pb2.Duration, _Mapping]] = ..., top_failing_workflows: _Optional[_Iterable[_Union[WorkflowFailureRank, _Mapping]]] = ..., cost_by_workflow: _Optional[_Iterable[_Union[WorkflowCostBreakdown, _Mapping]]] = ...) -> None: ...
+
+class WorkflowCostSummary(_message.Message):
+    __slots__ = ("total_cost_usd", "total_input_tokens", "total_output_tokens")
+    TOTAL_COST_USD_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_OUTPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    total_cost_usd: float
+    total_input_tokens: int
+    total_output_tokens: int
+    def __init__(self, total_cost_usd: _Optional[float] = ..., total_input_tokens: _Optional[int] = ..., total_output_tokens: _Optional[int] = ...) -> None: ...
+
+class WorkflowFailureRank(_message.Message):
+    __slots__ = ("workflow_slug", "workflow_name", "failure_count")
+    WORKFLOW_SLUG_FIELD_NUMBER: _ClassVar[int]
+    WORKFLOW_NAME_FIELD_NUMBER: _ClassVar[int]
+    FAILURE_COUNT_FIELD_NUMBER: _ClassVar[int]
+    workflow_slug: str
+    workflow_name: str
+    failure_count: int
+    def __init__(self, workflow_slug: _Optional[str] = ..., workflow_name: _Optional[str] = ..., failure_count: _Optional[int] = ...) -> None: ...
+
+class WorkflowCostBreakdown(_message.Message):
+    __slots__ = ("workflow_slug", "workflow_name", "total_cost_usd", "execution_count")
+    WORKFLOW_SLUG_FIELD_NUMBER: _ClassVar[int]
+    WORKFLOW_NAME_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_COST_USD_FIELD_NUMBER: _ClassVar[int]
+    EXECUTION_COUNT_FIELD_NUMBER: _ClassVar[int]
+    workflow_slug: str
+    workflow_name: str
+    total_cost_usd: float
+    execution_count: int
+    def __init__(self, workflow_slug: _Optional[str] = ..., workflow_name: _Optional[str] = ..., total_cost_usd: _Optional[float] = ..., execution_count: _Optional[int] = ...) -> None: ...
+
+class ListPendingApprovalsRequest(_message.Message):
+    __slots__ = ("org", "page_size", "page_token")
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    page_size: int
+    page_token: str
+    def __init__(self, org: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+
+class PendingApproval(_message.Message):
+    __slots__ = ("execution_id", "workflow_name", "task_name", "requester", "requested_at", "timeout_at", "form_schema")
+    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    WORKFLOW_NAME_FIELD_NUMBER: _ClassVar[int]
+    TASK_NAME_FIELD_NUMBER: _ClassVar[int]
+    REQUESTER_FIELD_NUMBER: _ClassVar[int]
+    REQUESTED_AT_FIELD_NUMBER: _ClassVar[int]
+    TIMEOUT_AT_FIELD_NUMBER: _ClassVar[int]
+    FORM_SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    execution_id: str
+    workflow_name: str
+    task_name: str
+    requester: str
+    requested_at: _timestamp_pb2.Timestamp
+    timeout_at: _timestamp_pb2.Timestamp
+    form_schema: _struct_pb2.Struct
+    def __init__(self, execution_id: _Optional[str] = ..., workflow_name: _Optional[str] = ..., task_name: _Optional[str] = ..., requester: _Optional[str] = ..., requested_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., timeout_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., form_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
+
+class PendingApprovalsList(_message.Message):
+    __slots__ = ("entries", "total_count", "next_page_token")
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_COUNT_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    entries: _containers.RepeatedCompositeFieldContainer[PendingApproval]
+    total_count: int
+    next_page_token: str
+    def __init__(self, entries: _Optional[_Iterable[_Union[PendingApproval, _Mapping]]] = ..., total_count: _Optional[int] = ..., next_page_token: _Optional[str] = ...) -> None: ...
