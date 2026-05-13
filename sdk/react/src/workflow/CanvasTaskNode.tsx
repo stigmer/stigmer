@@ -72,18 +72,33 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
       </div>
 
       {hasMultipleOutputs ? (
-        multiOutputHandles.map((handle, idx) => (
-          <Handle
-            key={handle.id}
-            type="source"
-            position={Position.Bottom}
-            id={handle.id}
-            className="!h-2 !w-2 !rounded-full !border-[var(--stgm-border,#d4d4d8)] !bg-[var(--stgm-background,#fff)]"
-            style={{
-              left: `${((idx + 1) / (multiOutputHandles.length + 1)) * 100}%`,
-            }}
-          />
-        ))
+        <>
+          {multiOutputHandles.map((handle, idx) => {
+            const leftPct = ((idx + 1) / (multiOutputHandles.length + 1)) * 100;
+            return (
+              <div key={handle.id}>
+                <Handle
+                  type="source"
+                  position={Position.Bottom}
+                  id={handle.id}
+                  className="!h-2 !w-2 !rounded-full !border-[var(--stgm-border,#d4d4d8)] !bg-[var(--stgm-background,#fff)]"
+                  style={{ left: `${leftPct}%` }}
+                />
+                <span
+                  className="pointer-events-none absolute text-[8px] font-medium leading-none text-[var(--stgm-muted-foreground,#737373)]"
+                  style={{
+                    left: `${leftPct}%`,
+                    bottom: -14,
+                    transform: "translateX(-50%)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {handle.label}
+                </span>
+              </div>
+            );
+          })}
+        </>
       ) : (
         <Handle
           type="source"
@@ -159,10 +174,10 @@ function getMultiOutputHandles(data: CanvasTaskNodeData): OutputHandle[] {
     const cases = config.cases;
     if (!Array.isArray(cases)) return [];
     return cases
-      .filter((c): c is Record<string, unknown> => c != null && typeof c === "object")
-      .map((c, idx) => ({
-        id: `case_${idx}`,
-        label: typeof c.name === "string" ? c.name : "",
+      .filter((c): c is Record<string, unknown> => c != null && typeof c === "object" && typeof c.name === "string")
+      .map((c) => ({
+        id: `case_${c.name as string}`,
+        label: c.name as string,
       }));
   }
 
@@ -170,10 +185,10 @@ function getMultiOutputHandles(data: CanvasTaskNodeData): OutputHandle[] {
     const outcomes = config.outcomes;
     if (!Array.isArray(outcomes)) return [];
     return outcomes
-      .filter((o): o is Record<string, unknown> => o != null && typeof o === "object")
-      .map((o, idx) => ({
-        id: `outcome_${idx}`,
-        label: typeof o.name === "string" ? o.name : "",
+      .filter((o): o is Record<string, unknown> => o != null && typeof o === "object" && typeof o.name === "string")
+      .map((o) => ({
+        id: `outcome_${o.name as string}`,
+        label: o.name as string,
       }));
   }
 

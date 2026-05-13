@@ -19,10 +19,46 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-13 — T15 Batch 3 COMPLETE (Inspector + Edit Loop)
-**Current Task**: T15 Batch 3 COMPLETE — Inspector + Edit Loop
+**Last Session**: 2026-05-13 — T15 Batch 4 COMPLETE (Specialized Task Editors)
+**Current Task**: T15 Batch 4 COMPLETE — BranchConditionBuilder + ApprovalFormBuilder
 **Phase**: Phase 2 — Visual Builder — IN PROGRESS
-**Next Task**: T15 Batch 4 (Specialized Task Editors — BranchConditionBuilder + ApprovalFormBuilder)
+**Next Task**: T15 Batch 5 (Integration + Polish — Console wiring, barrel exports, a11y, verification)
+
+## Session Progress (2026-05-13, T15 Batch 4)
+
+### T15 Batch 4: Specialized Task Editors — COMPLETE
+
+Built specialized visual editors for switch_case (BranchConditionBuilder) and
+human_input (ApprovalFormBuilder), replacing the generic TaskConfigForm with
+purpose-built UIs. Refactored handle IDs from index-based to name-based,
+added edge-config sync methods, and fixed human_input outcome serialization gap.
+2 new files, 6 modified.
+
+#### New Files (2)
+- `BranchConditionBuilder.tsx` — switch_case: ordered case list with name/when/then,
+  up/down reorder, add/remove, default case indicator, edge-driven routing
+- `ApprovalFormBuilder.tsx` — human_input: 6 collapsible sections (Prompt, Outcomes,
+  Form Fields with JSON Schema builder, Timeout with policy, Approvers, Notification
+  Channels)
+
+#### Modified Files (6)
+- `CanvasTaskNode.tsx` — Name-based handle IDs + handle label pills
+- `workflow-graph-conversions.ts` — Name-based handles in yamlToGraph/graphToYaml,
+  new reconstructHumanInputOutcomeThen (gap fix)
+- `graph-commands.ts` — New MigrateBranchHandleCommand for handle rename
+- `useWorkflowCanvas.ts` — 3 new methods: updateBranchRouting, migrateBranchHandle,
+  removeBranchEdges
+- `WorkflowInspectorPanel.tsx` — Task-kind dispatch + new branch routing props
+- `WorkflowCanvasEditor.tsx` — Wires branch routing props to inspector
+
+#### Architectural Decisions
+- AD-T15-B4-001: Name-based handle IDs (case_{name}, outcome_{name})
+- AD-T15-B4-002: Edges as routing source of truth (then derived at serialization)
+- AD-T15-B4-003: Gap fix — reconstructHumanInputOutcomeThen mirrors switch_case
+
+#### Verification
+- `tsc --noEmit` — clean: sdk/react, sdk/typescript, client-apps/web, client-apps/desktop
+- Zero linter errors on all new/modified files
 
 ## Session Progress (2026-05-13, T15 Batch 3)
 
@@ -522,8 +558,7 @@ New Task Types — llm_call, transform, human_input, validate, emit_event, notif
 Structured Agent Output Model
 
 ## Next Steps
-1. **T15 Batch 4: Specialized Task Editors** — switch_case branch builder, human_input approval form builder
-2. **T15 Batch 5: Integration + Polish** — Console wiring (web + desktop), barrel exports, a11y, final verification
+1. **T15 Batch 5: Integration + Polish** — Console wiring (web + desktop), barrel exports, a11y, final verification
 3. **T16: Natural Language to Workflow** (Phase 3) — prompt-to-workflow generation
 4. **Chart visualizations** — add recharts/visx for Cost by Workflow chart (deferred from T14)
 5. **Workflow execution → session navigation fix** — web routing mismatch

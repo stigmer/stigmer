@@ -8,6 +8,8 @@ import { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model";
 import type { CanvasSelection } from "./useWorkflowCanvas";
 import type { TaskKindDescriptor } from "./types";
 import { TaskConfigForm } from "./TaskConfigForm";
+import { BranchConditionBuilder } from "./BranchConditionBuilder";
+import { ApprovalFormBuilder } from "./ApprovalFormBuilder";
 import { CATEGORY_COLORS } from "./canvas-constants";
 import { taskKindToString } from "./workflow-graph-conversions";
 
@@ -29,6 +31,20 @@ export interface WorkflowInspectorPanelProps {
   readonly onUpdateFlow: (nodeId: string, thenTarget: string | undefined) => void;
   /** Called to delete an edge. */
   readonly onDeleteEdge?: (edgeId: string) => void;
+  /** Called to create/update/remove an edge for a specific branch handle. */
+  readonly onUpdateBranchRouting?: (
+    nodeId: string,
+    handleId: string,
+    targetTask: string | undefined,
+  ) => void;
+  /** Called when a branch handle is renamed (case/outcome rename). */
+  readonly onMigrateBranchHandle?: (
+    nodeId: string,
+    oldHandleId: string,
+    newHandleId: string,
+  ) => void;
+  /** Called to remove all edges from a specific branch handle. */
+  readonly onRemoveBranchEdges?: (nodeId: string, handleId: string) => void;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -54,6 +70,9 @@ export const WorkflowInspectorPanel = memo(function WorkflowInspectorPanel({
   onUpdateExport,
   onUpdateFlow,
   onDeleteEdge,
+  onUpdateBranchRouting,
+  onMigrateBranchHandle,
+  onRemoveBranchEdges,
   className,
 }: WorkflowInspectorPanelProps) {
   if (!selection || !graph) {
@@ -95,6 +114,9 @@ export const WorkflowInspectorPanel = memo(function WorkflowInspectorPanel({
       onRenameNode={onRenameNode}
       onUpdateExport={onUpdateExport}
       onUpdateFlow={onUpdateFlow}
+      onUpdateBranchRouting={onUpdateBranchRouting}
+      onMigrateBranchHandle={onMigrateBranchHandle}
+      onRemoveBranchEdges={onRemoveBranchEdges}
     />
   );
 });
@@ -111,6 +133,9 @@ function NodeInspector({
   onRenameNode,
   onUpdateExport,
   onUpdateFlow,
+  onUpdateBranchRouting,
+  onMigrateBranchHandle,
+  onRemoveBranchEdges,
 }: {
   node: WorkflowGraphNode;
   graph: WorkflowGraphModel;
@@ -119,6 +144,9 @@ function NodeInspector({
   onRenameNode: (nodeId: string, newName: string) => void;
   onUpdateExport: (nodeId: string, exportAs: string | undefined) => void;
   onUpdateFlow: (nodeId: string, thenTarget: string | undefined) => void;
+  onUpdateBranchRouting?: (nodeId: string, handleId: string, targetTask: string | undefined) => void;
+  onMigrateBranchHandle?: (nodeId: string, oldHandleId: string, newHandleId: string) => void;
+  onRemoveBranchEdges?: (nodeId: string, handleId: string) => void;
 }) {
   const kindStr = taskKindToString(node.kind);
   const categoryColor = CATEGORY_COLORS[node.category];
@@ -134,9 +162,12 @@ function NodeInspector({
     .filter((n) => n.id !== node.id && n.id !== START_NODE_ID && n.id !== END_NODE_ID)
     .map((n) => n.taskName);
 
+  const isSwitchCase = kindStr === "switch_case";
+  const isHumanInput = kindStr === "human_input";
+  const hasSpecializedEditor = isSwitchCase || isHumanInput;
+
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      {/* Identity Section */}
       <IdentitySection
         node={node}
         graph={graph}
@@ -146,35 +177,67 @@ function NodeInspector({
         onRenameNode={onRenameNode}
       />
 
-      {/* Configuration Section */}
-      {descriptor && descriptor.fields.length > 0 && (
-        <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
-          <SectionHeader title="Configuration" />
+      {/* Configuration: specialized editors for switch_case and human_input */}
+      <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
+        <SectionHeader title="Configuration" />
+        {isSwitchCase && onUpdateBranchRouting && onMigrateBranchHandle && onRemoveBranchEdges ? (
+          <BranchConditionBuilder
+            nodeId={node.id}
+            config={node.config}
+            edges={graph.edges}
+            allTaskNames={otherTaskNames}
+            onUpdateConfig={handleFieldChange}
+            onUpdateBranchRouting={(handleId, target) =>
+              onUpdateBranchRouting(node.id, handleId, target)
+            }
+            onMigrateBranchHandle={(oldId, newId) =>
+              onMigrateBranchHandle(node.id, oldId, newId)
+            }
+            onRemoveBranchEdges={(handleId) =>
+              onRemoveBranchEdges(node.id, handleId)
+            }
+          />
+        ) : isHumanInput && onUpdateBranchRouting && onMigrateBranchHandle && onRemoveBranchEdges ? (
+          <ApprovalFormBuilder
+            nodeId={node.id}
+            config={node.config}
+            edges={graph.edges}
+            allTaskNames={otherTaskNames}
+            onUpdateConfig={handleFieldChange}
+            onUpdateBranchRouting={(handleId, target) =>
+              onUpdateBranchRouting(node.id, handleId, target)
+            }
+            onMigrateBranchHandle={(oldId, newId) =>
+              onMigrateBranchHandle(node.id, oldId, newId)
+            }
+            onRemoveBranchEdges={(handleId) =>
+              onRemoveBranchEdges(node.id, handleId)
+            }
+          />
+        ) : descriptor && descriptor.fields.length > 0 ? (
           <TaskConfigForm
             fields={descriptor.fields}
             fieldGroups={descriptor.fieldGroups}
             config={node.config}
             onChange={handleFieldChange}
           />
+        ) : (
+          <div className="px-3 py-4 text-xs text-[var(--stgm-muted-foreground,#737373)]">
+            No configurable fields for this task kind.
+          </div>
+        )}
+      </div>
+
+      <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
+        <ExportSection node={node} onUpdateExport={onUpdateExport} />
+      </div>
+
+      {/* Flow section hidden for branching tasks (routing is managed by the builder) */}
+      {!hasSpecializedEditor && (
+        <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
+          <FlowSection node={node} otherTaskNames={otherTaskNames} onUpdateFlow={onUpdateFlow} />
         </div>
       )}
-
-      {/* Export Section */}
-      <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
-        <ExportSection
-          node={node}
-          onUpdateExport={onUpdateExport}
-        />
-      </div>
-
-      {/* Flow Section */}
-      <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
-        <FlowSection
-          node={node}
-          otherTaskNames={otherTaskNames}
-          onUpdateFlow={onUpdateFlow}
-        />
-      </div>
     </div>
   );
 }

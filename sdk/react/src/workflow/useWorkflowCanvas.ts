@@ -40,6 +40,7 @@ import {
   UpdateNodeFieldCommand,
   RenameNodeCommand,
   UpdateNodeMetaCommand,
+  MigrateBranchHandleCommand,
   generateEdgeId,
   generateTaskName,
   createTaskNode,
@@ -86,6 +87,17 @@ export interface UseWorkflowCanvasReturn {
   readonly updateNodeFlow: (nodeId: string, thenTarget: string | undefined) => void;
   readonly getNodeDescriptor: (nodeId: string) => TaskKindDescriptor | undefined;
   readonly serializeToYaml: () => string | null;
+  readonly updateBranchRouting: (
+    nodeId: string,
+    handleId: string,
+    targetTask: string | undefined,
+  ) => void;
+  readonly migrateBranchHandle: (
+    nodeId: string,
+    oldHandleId: string,
+    newHandleId: string,
+  ) => void;
+  readonly removeBranchEdges: (nodeId: string, handleId: string) => void;
 }
 
 /**
@@ -425,6 +437,89 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
+  // Branch routing methods (AD-T15-B4: edge-config sync for switch_case/human_input)
+  // ---------------------------------------------------------------------------
+
+  const updateBranchRouting = useCallback(
+    (nodeId: string, handleId: string, targetTask: string | undefined) => {
+      const model = history.currentModel;
+      if (!model) return;
+
+      const existingEdge = model.edges.find(
+        (e) => e.source === nodeId && e.sourceHandle === handleId,
+      );
+
+      if (!targetTask) {
+        if (existingEdge) {
+          dispatch(new DeleteEdgeCommand(existingEdge.id));
+        }
+        return;
+      }
+
+      if (existingEdge) {
+        if (existingEdge.target === targetTask) return;
+        const label = handleId.includes("_") ? handleId.split("_").slice(1).join("_") : undefined;
+        dispatch(
+          new CompoundCommand(`Route ${handleId} to ${targetTask}`, [
+            new DeleteEdgeCommand(existingEdge.id),
+            new AddEdgeCommand({
+              id: generateEdgeId(),
+              source: nodeId,
+              target: targetTask,
+              sourceHandle: handleId,
+              label,
+            }),
+          ]),
+        );
+      } else {
+        const label = handleId.includes("_") ? handleId.split("_").slice(1).join("_") : undefined;
+        dispatch(
+          new AddEdgeCommand({
+            id: generateEdgeId(),
+            source: nodeId,
+            target: targetTask,
+            sourceHandle: handleId,
+            label,
+          }),
+        );
+      }
+    },
+    [history.currentModel, dispatch],
+  );
+
+  const migrateBranchHandle = useCallback(
+    (nodeId: string, oldHandleId: string, newHandleId: string) => {
+      if (oldHandleId === newHandleId) return;
+      dispatch(new MigrateBranchHandleCommand(nodeId, oldHandleId, newHandleId));
+    },
+    [dispatch],
+  );
+
+  const removeBranchEdges = useCallback(
+    (nodeId: string, handleId: string) => {
+      const model = history.currentModel;
+      if (!model) return;
+
+      const edgesToRemove = model.edges.filter(
+        (e) => e.source === nodeId && e.sourceHandle === handleId,
+      );
+      if (edgesToRemove.length === 0) return;
+
+      if (edgesToRemove.length === 1) {
+        dispatch(new DeleteEdgeCommand(edgesToRemove[0].id));
+      } else {
+        dispatch(
+          new CompoundCommand(
+            `Remove ${edgesToRemove.length} branch edges`,
+            edgesToRemove.map((e) => new DeleteEdgeCommand(e.id)),
+          ),
+        );
+      }
+    },
+    [history.currentModel, dispatch],
+  );
+
+  // ---------------------------------------------------------------------------
   // Selection
   // ---------------------------------------------------------------------------
 
@@ -512,6 +607,9 @@ export function useWorkflowCanvas(
       updateNodeFlow,
       getNodeDescriptor,
       serializeToYaml,
+      updateBranchRouting,
+      migrateBranchHandle,
+      removeBranchEdges,
     }),
     [
       nodes, edges, onNodesChange, onEdgesChange, onConnect,
@@ -520,6 +618,7 @@ export function useWorkflowCanvas(
       undo, redo, history.canUndo, history.canRedo, isDirty, graph, error,
       updateNodeField, renameNode, updateNodeExport, updateNodeFlow,
       getNodeDescriptor, serializeToYaml,
+      updateBranchRouting, migrateBranchHandle, removeBranchEdges,
     ],
   );
 }
