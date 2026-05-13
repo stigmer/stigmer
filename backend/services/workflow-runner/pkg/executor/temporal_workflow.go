@@ -19,14 +19,19 @@ package executor
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/serverlessworkflow/sdk-go/v3/model"
+	wfexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/budget"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/claimcheck"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/events"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/types"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/tasks"
 	"go.temporal.io/sdk/log"
+	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
 
@@ -132,6 +137,16 @@ func ExecuteServerlessWorkflow(ctx workflow.Context, input *types.TemporalWorkfl
 	// Set state.Env so activities can access runtime environment (including org ID)
 	state.Env = envVars
 
+	// Initialize event emitter and budget tracker
+	emitter := events.NewEmitter(0)
+	tracker := budget.NewTracker(input.Budget, workflow.Now(ctx))
+	executionStartTime := workflow.Now(ctx)
+
+	taskCount := int32(0)
+	if workflowDef.Do != nil {
+		taskCount = int32(len(*workflowDef.Do))
+	}
+
 	// Build task executor from workflow definition using Zigflow
 	taskBuilder, err := tasks.NewDoTaskBuilder(
 		nil, // worker - not needed inside workflow execution
@@ -142,6 +157,11 @@ func ExecuteServerlessWorkflow(ctx workflow.Context, input *types.TemporalWorkfl
 			DisableRegisterWorkflow: true,
 			Envvars:                 envVars,
 			MaxHistoryLength:        0,
+			Emitter:                 emitter,
+			BudgetTracker:           tracker,
+			ExecutionID:             input.WorkflowExecutionID,
+			WorkflowID:              input.WorkflowID,
+			WorkflowInstanceID:      input.WorkflowInstanceID,
 		},
 	)
 	if err != nil {
@@ -155,23 +175,40 @@ func ExecuteServerlessWorkflow(ctx workflow.Context, input *types.TemporalWorkfl
 		return nil, fmt.Errorf("failed to build workflow: %w", err)
 	}
 
-	// Log execution starting
-	taskCount := 0
-	if workflowDef.Do != nil {
-		taskCount = len(*workflowDef.Do)
-	}
 	logger.Info("Starting workflow task execution", "task_count", taskCount)
+
+	// Emit execution_started event
+	startedEvent := emitter.ExecutionStarted(
+		workflow.Now(ctx), taskCount, input.WorkflowID, input.WorkflowInstanceID,
+	)
+	flushLifecycleEvents(ctx, input.WorkflowExecutionID, startedEvent)
 
 	// Execute workflow tasks
 	result, err := workflowFunc(ctx, input.InitialData, state)
 	if err != nil {
+		durationMs := workflow.Now(ctx).Sub(executionStartTime).Milliseconds()
+		failedEvent := emitter.ExecutionFailed(workflow.Now(ctx), err.Error(), "", durationMs)
+		flushLifecycleEvents(ctx, input.WorkflowExecutionID, failedEvent)
+
 		logger.Error("Workflow execution failed", "error", err)
 		return nil, fmt.Errorf("workflow execution failed: %w", err)
 	}
 
+	// Emit execution_completed event
+	durationMs := workflow.Now(ctx).Sub(executionStartTime).Milliseconds()
+	completedEvent := emitter.ExecutionCompleted(
+		workflow.Now(ctx), durationMs,
+		tracker.CostMicros, tracker.TotalTokens,
+		nil,
+	)
+	flushLifecycleEvents(ctx, input.WorkflowExecutionID, completedEvent)
+
 	logger.Info("Workflow execution completed successfully",
 		"execution_id", input.WorkflowExecutionID,
-		"workflow_name", workflowDef.Document.Name)
+		"workflow_name", workflowDef.Document.Name,
+		"duration_ms", durationMs,
+		"cost_micros", tracker.CostMicros,
+		"total_tokens", tracker.TotalTokens)
 
 	// Phase 4: Apply Claim Check to large results if enabled
 	finalResult := result
@@ -223,6 +260,34 @@ func serializeToBytes(value any) ([]byte, error) {
 		return data, nil
 	}
 	return json.Marshal(value)
+}
+
+// flushLifecycleEvents sends lifecycle events to the backend via activity.
+func flushLifecycleEvents(ctx workflow.Context, executionID string, evts ...*wfexecv1.WorkflowExecutionEvent) {
+	if len(evts) == 0 || executionID == "" {
+		return
+	}
+
+	flushCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+		StartToCloseTimeout: 10 * time.Second,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts: 2,
+		},
+	})
+
+	input := &tasks.FlushEventsInput{
+		ExecutionID: executionID,
+		Events:      evts,
+	}
+
+	err := workflow.ExecuteActivity(flushCtx, tasks.FlushEventsActivity, input).Get(ctx, nil)
+	if err != nil {
+		logger := workflow.GetLogger(ctx)
+		logger.Warn("Failed to flush lifecycle events (non-critical)",
+			"execution_id", executionID,
+			"event_count", len(evts),
+			"error", err)
+	}
 }
 
 // processWithClaimCheck processes data with Claim Check if it exceeds threshold
