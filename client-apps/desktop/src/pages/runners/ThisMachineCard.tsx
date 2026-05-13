@@ -26,6 +26,7 @@ interface ThisMachineCardProps {
   readonly localStatus: LocalRunnerStatus;
   readonly serverRunner: Runner | null;
   readonly error: string | null;
+  readonly bootstrapStatus: string | null;
   readonly onEnable: () => void;
   readonly onDisable: () => void;
   readonly onRetry: () => void;
@@ -44,6 +45,7 @@ export function ThisMachineCard({
   localStatus,
   serverRunner,
   error,
+  bootstrapStatus,
   onEnable,
   onDisable,
   onRetry,
@@ -71,7 +73,13 @@ export function ThisMachineCard({
   }
 
   if (autoEnsureState === "ensuring") {
-    return <EnsuringCard />;
+    return (
+      <EnsuringCard
+        onRetry={onRetry}
+        onDisable={onDisable}
+        bootstrapStatus={bootstrapStatus}
+      />
+    );
   }
 
   if (autoEnsureState === "error") {
@@ -133,7 +141,17 @@ function DisabledCard({ onEnable }: { readonly onEnable: () => void }) {
   );
 }
 
-function EnsuringCard() {
+const ENSURING_STALL_THRESHOLD_S = 60;
+
+function EnsuringCard({
+  onRetry,
+  onDisable,
+  bootstrapStatus,
+}: {
+  readonly onRetry: () => void;
+  readonly onDisable: () => void;
+  readonly bootstrapStatus: string | null;
+}) {
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef(Date.now());
 
@@ -145,27 +163,70 @@ function EnsuringCard() {
     return () => clearInterval(timer);
   }, []);
 
-  const subtitle =
-    elapsed >= 30
-      ? `Setting up runtime environment\u2026 ${elapsed}s elapsed`
-      : elapsed >= 10
-        ? "This may take a minute on first run\u2026"
-        : "Connecting this computer to your organization.";
+  const stalled = elapsed >= ENSURING_STALL_THRESHOLD_S;
+
+  const subtitle = stalled
+    ? `Taking longer than expected\u2026 ${elapsed}s elapsed`
+    : bootstrapStatus
+      ? `${bootstrapStatus} (${elapsed}s)`
+      : elapsed >= 30
+        ? `Setting up runtime environment\u2026 ${elapsed}s elapsed`
+        : elapsed >= 10
+          ? "This may take a minute on first run\u2026"
+          : "Connecting this computer to your organization.";
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border bg-primary-subtle px-4 py-3">
-      <Loader2
-        size={16}
-        className="shrink-0 animate-spin text-primary"
-        aria-hidden="true"
-      />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-foreground">
-          Starting runner&hellip;
-        </p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          {subtitle}
-        </p>
+    <div
+      className={cn(
+        "rounded-lg border border-border px-4 py-3",
+        stalled ? "bg-muted-subtle" : "bg-primary-subtle",
+      )}
+    >
+      <div className="flex items-start gap-3">
+        {stalled ? (
+          <AlertTriangle
+            size={16}
+            className="mt-0.5 shrink-0 text-warning"
+            aria-hidden="true"
+          />
+        ) : (
+          <Loader2
+            size={16}
+            className="mt-0.5 shrink-0 animate-spin text-primary"
+            aria-hidden="true"
+          />
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-foreground">
+            Starting runner&hellip;
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {subtitle}
+          </p>
+          {stalled && (
+            <div className="mt-2 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onRetry}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
+                  "bg-primary text-primary-foreground hover:bg-primary-hover",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                )}
+              >
+                <RotateCw size={12} />
+                Retry
+              </button>
+              <button
+                type="button"
+                onClick={onDisable}
+                className="rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

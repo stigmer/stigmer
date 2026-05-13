@@ -13,6 +13,7 @@ import {
   onRunnerStarted,
   onRunnerStopped,
   onRunnerError,
+  onRunnerLog,
   type LocalRunnerInfo,
 } from "../../hooks/tauri";
 import { useLocalRunners } from "../../hooks/useLocalRunners";
@@ -103,6 +104,32 @@ export default function RunnersPage() {
   useEffect(() => {
     setUrgent(autoEnsureState === "ensuring");
   }, [autoEnsureState, setUrgent]);
+
+  // ---- Bootstrap progress from CLI stderr during ensure ----
+  const [bootstrapStatus, setBootstrapStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (autoEnsureState !== "ensuring") {
+      setBootstrapStatus(null);
+      return;
+    }
+
+    const unlistenPromise = onRunnerLog((payload) => {
+      if (payload.stream !== "stderr") return;
+      const line = payload.line.trim();
+      if (!line || line.startsWith("{")) return;
+      const cleaned = line
+        .replace(/^[\s•→]+/, "")
+        .replace(/\.\.\.\s*$/, "");
+      if (cleaned.length > 0 && cleaned.length < 120) {
+        setBootstrapStatus(cleaned);
+      }
+    });
+
+    return () => {
+      unlistenPromise.then((unlisten) => unlisten());
+    };
+  }, [autoEnsureState]);
 
   // ---- UI state ----
   const [logRunnerName, setLogRunnerName] = useState<string | null>(null);
@@ -431,6 +458,7 @@ export default function RunnersPage() {
               localStatus={localStatus}
               serverRunner={thisMachineRunner}
               error={autoEnsureError ?? launchError}
+              bootstrapStatus={bootstrapStatus}
               onEnable={handleEnable}
               onDisable={disable}
               onRetry={retry}
