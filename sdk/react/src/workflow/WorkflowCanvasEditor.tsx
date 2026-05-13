@@ -5,6 +5,8 @@ import type { ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { useWorkflowCanvas } from "./useWorkflowCanvas";
 import { WorkflowTaskPalette } from "./WorkflowTaskPalette";
+import { WorkflowInspectorPanel } from "./WorkflowInspectorPanel";
+import { DeleteEdgeCommand } from "./graph-commands";
 
 /** Props for {@link WorkflowCanvasEditor}. */
 export interface WorkflowCanvasEditorProps {
@@ -18,6 +20,14 @@ export interface WorkflowCanvasEditorProps {
   readonly onSelectionClear?: () => void;
   /** Whether to show the task palette sidebar. Defaults to true. */
   readonly showPalette?: boolean;
+  /** Whether to show the inspector panel. Defaults to true. */
+  readonly showInspector?: boolean;
+  /** Called when the save button is clicked. Receives the serialized YAML. */
+  readonly onSave?: (yaml: string) => void;
+  /** Whether a save is currently in progress. */
+  readonly isSaving?: boolean;
+  /** Map of nodeId -> error messages for validation badge rendering. */
+  readonly nodeErrors?: ReadonlyMap<string, readonly string[]>;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
   /** Fallback to show while the canvas loads (DD-013 lazy loading). */
@@ -44,6 +54,10 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
   onEdgeSelect,
   onSelectionClear,
   showPalette = true,
+  showInspector = true,
+  onSave,
+  isSaving = false,
+  nodeErrors,
   className,
   loadingFallback,
 }: WorkflowCanvasEditorProps) {
@@ -70,6 +84,23 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
     canvas.clearSelection();
     onSelectionClear?.();
   }, [canvas.clearSelection, onSelectionClear]);
+
+  const handleSave = useCallback(() => {
+    if (!onSave) return;
+    const yamlStr = canvas.serializeToYaml();
+    if (yamlStr) onSave(yamlStr);
+  }, [onSave, canvas.serializeToYaml]);
+
+  const handleDeleteEdge = useCallback(
+    (edgeId: string) => {
+      canvas.onEdgesDelete([{ id: edgeId } as import("@xyflow/react").Edge]);
+    },
+    [canvas.onEdgesDelete],
+  );
+
+  const descriptor = canvas.selection?.type === "node"
+    ? canvas.getNodeDescriptor(canvas.selection.id)
+    : undefined;
 
   const fallback = loadingFallback ?? (
     <div className="flex h-full w-full items-center justify-center text-sm text-[var(--stgm-muted-foreground,#737373)]">
@@ -121,6 +152,8 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
           canUndo={canvas.canUndo}
           canRedo={canvas.canRedo}
           isDirty={canvas.isDirty}
+          onSave={onSave ? handleSave : undefined}
+          isSaving={isSaving}
         />
         <Suspense fallback={fallback}>
           <LazyCanvasInner
@@ -140,6 +173,21 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
           />
         </Suspense>
       </div>
+
+      {showInspector && (
+        <div className="w-[280px] min-w-[240px] overflow-hidden border-l border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-background,#fff)]">
+          <WorkflowInspectorPanel
+            selection={canvas.selection}
+            graph={canvas.graph}
+            descriptor={descriptor}
+            onUpdateField={canvas.updateNodeField}
+            onRenameNode={canvas.renameNode}
+            onUpdateExport={canvas.updateNodeExport}
+            onUpdateFlow={canvas.updateNodeFlow}
+            onDeleteEdge={handleDeleteEdge}
+          />
+        </div>
+      )}
     </div>
   );
 });
@@ -155,6 +203,8 @@ function CanvasToolbar({
   canUndo,
   canRedo,
   isDirty,
+  onSave,
+  isSaving = false,
 }: {
   onAutoLayout: () => void;
   onUndo: () => void;
@@ -162,39 +212,38 @@ function CanvasToolbar({
   canUndo: boolean;
   canRedo: boolean;
   isDirty: boolean;
+  onSave?: () => void;
+  isSaving?: boolean;
 }) {
+  const btnClass =
+    "rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 py-1 text-xs font-medium text-[var(--stgm-foreground,#1a1a2e)] shadow-sm hover:bg-[var(--stgm-muted,#f5f5f5)] active:bg-[var(--stgm-accent,#e5e5e5)] disabled:cursor-not-allowed disabled:opacity-40";
+
   return (
     <div className="absolute left-2 top-2 z-10 flex items-center gap-1">
-      <button
-        type="button"
-        onClick={onUndo}
-        disabled={!canUndo}
-        className="rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 py-1 text-xs font-medium text-[var(--stgm-foreground,#1a1a2e)] shadow-sm hover:bg-[var(--stgm-muted,#f5f5f5)] active:bg-[var(--stgm-accent,#e5e5e5)] disabled:cursor-not-allowed disabled:opacity-40"
-        aria-label="Undo"
-        title="Undo (Ctrl+Z)"
-      >
+      <button type="button" onClick={onUndo} disabled={!canUndo} className={btnClass} aria-label="Undo" title="Undo (Ctrl+Z)">
         Undo
       </button>
-      <button
-        type="button"
-        onClick={onRedo}
-        disabled={!canRedo}
-        className="rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 py-1 text-xs font-medium text-[var(--stgm-foreground,#1a1a2e)] shadow-sm hover:bg-[var(--stgm-muted,#f5f5f5)] active:bg-[var(--stgm-accent,#e5e5e5)] disabled:cursor-not-allowed disabled:opacity-40"
-        aria-label="Redo"
-        title="Redo (Ctrl+Shift+Z)"
-      >
+      <button type="button" onClick={onRedo} disabled={!canRedo} className={btnClass} aria-label="Redo" title="Redo (Ctrl+Shift+Z)">
         Redo
       </button>
       <div className="mx-1 h-4 w-px bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
-      <button
-        type="button"
-        onClick={onAutoLayout}
-        className="rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 py-1 text-xs font-medium text-[var(--stgm-foreground,#1a1a2e)] shadow-sm hover:bg-[var(--stgm-muted,#f5f5f5)] active:bg-[var(--stgm-accent,#e5e5e5)]"
-        aria-label="Auto-layout"
-      >
+      <button type="button" onClick={onAutoLayout} className={btnClass} aria-label="Auto-layout">
         Auto-layout
       </button>
-      {isDirty && (
+      {onSave && (
+        <>
+          <div className="mx-1 h-4 w-px bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={!isDirty || isSaving}
+            className="rounded bg-[var(--stgm-primary,#6366f1)] px-2.5 py-1 text-xs font-medium text-[var(--stgm-primary-foreground,#fff)] shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {isSaving ? "Saving\u2026" : "Save"}
+          </button>
+        </>
+      )}
+      {isDirty && !onSave && (
         <span className="ml-1 text-[10px] text-[var(--stgm-muted-foreground,#737373)]">
           Modified
         </span>

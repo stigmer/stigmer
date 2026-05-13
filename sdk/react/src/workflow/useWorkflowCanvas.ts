@@ -37,11 +37,17 @@ import {
   AddEdgeCommand,
   DeleteEdgeCommand,
   CompoundCommand,
+  UpdateNodeFieldCommand,
+  RenameNodeCommand,
+  UpdateNodeMetaCommand,
   generateEdgeId,
   generateTaskName,
   createTaskNode,
   isSentinelNode,
 } from "./graph-commands";
+import { graphToYaml } from "./workflow-graph-conversions";
+import { useTaskKindRegistry } from "./useTaskKindRegistry";
+import type { TaskKindDescriptor } from "./types";
 import { useGraphHistory } from "./useGraphHistory";
 
 /** Selection state for the canvas inspector. */
@@ -74,6 +80,12 @@ export interface UseWorkflowCanvasReturn {
   readonly isDirty: boolean;
   readonly graph: WorkflowGraphModel | null;
   readonly error: string | null;
+  readonly updateNodeField: (nodeId: string, fieldPath: string, value: unknown) => void;
+  readonly renameNode: (nodeId: string, newName: string) => void;
+  readonly updateNodeExport: (nodeId: string, exportAs: string | undefined) => void;
+  readonly updateNodeFlow: (nodeId: string, thenTarget: string | undefined) => void;
+  readonly getNodeDescriptor: (nodeId: string) => TaskKindDescriptor | undefined;
+  readonly serializeToYaml: () => string | null;
 }
 
 /**
@@ -346,6 +358,73 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
+  // Task kind registry (for inspector descriptor lookup)
+  // ---------------------------------------------------------------------------
+
+  const registry = useTaskKindRegistry();
+
+  // ---------------------------------------------------------------------------
+  // Inspector mutation methods (AD-T15-B3-001)
+  // ---------------------------------------------------------------------------
+
+  const updateNodeField = useCallback(
+    (nodeId: string, fieldPath: string, value: unknown) => {
+      const model = history.currentModel;
+      if (!model) return;
+      const node = model.nodes.find((n) => n.id === nodeId);
+      if (!node) return;
+      dispatch(new UpdateNodeFieldCommand(nodeId, fieldPath, value, node.taskName));
+    },
+    [history.currentModel, dispatch],
+  );
+
+  const renameNode = useCallback(
+    (nodeId: string, newName: string) => {
+      const model = history.currentModel;
+      if (!model) return;
+      const node = model.nodes.find((n) => n.id === nodeId);
+      if (!node || node.taskName === newName) return;
+      dispatch(new RenameNodeCommand(node.taskName, newName));
+      setSelection({ type: "node", id: newName });
+    },
+    [history.currentModel, dispatch],
+  );
+
+  const updateNodeExport = useCallback(
+    (nodeId: string, exportAs: string | undefined) => {
+      const model = history.currentModel;
+      if (!model) return;
+      const node = model.nodes.find((n) => n.id === nodeId);
+      if (!node) return;
+      dispatch(new UpdateNodeMetaCommand(nodeId, "export", exportAs, node.taskName));
+    },
+    [history.currentModel, dispatch],
+  );
+
+  const updateNodeFlow = useCallback(
+    (nodeId: string, thenTarget: string | undefined) => {
+      const model = history.currentModel;
+      if (!model) return;
+      const node = model.nodes.find((n) => n.id === nodeId);
+      if (!node) return;
+      dispatch(new UpdateNodeMetaCommand(nodeId, "flow", thenTarget, node.taskName));
+    },
+    [history.currentModel, dispatch],
+  );
+
+  const getNodeDescriptor = useCallback(
+    (nodeId: string): TaskKindDescriptor | undefined => {
+      const model = history.currentModel;
+      if (!model) return undefined;
+      const node = model.nodes.find((n) => n.id === nodeId);
+      if (!node) return undefined;
+      const kindStr = taskKindToString(node.kind);
+      return registry.getByKind(kindStr);
+    },
+    [history.currentModel, registry.getByKind],
+  );
+
+  // ---------------------------------------------------------------------------
   // Selection
   // ---------------------------------------------------------------------------
 
@@ -394,6 +473,15 @@ export function useWorkflowCanvas(
   const graph = history.currentModel.nodes.length > 0 ? history.currentModel : null;
   const isDirty = initialModelRef.current !== null && graph !== initialModelRef.current;
 
+  const serializeToYaml = useCallback((): string | null => {
+    if (!graph) return null;
+    try {
+      return graphToYaml(graph);
+    } catch {
+      return null;
+    }
+  }, [graph]);
+
   return useMemo(
     () => ({
       nodes,
@@ -418,12 +506,20 @@ export function useWorkflowCanvas(
       isDirty,
       graph,
       error,
+      updateNodeField,
+      renameNode,
+      updateNodeExport,
+      updateNodeFlow,
+      getNodeDescriptor,
+      serializeToYaml,
     }),
     [
       nodes, edges, onNodesChange, onEdgesChange, onConnect,
       isValidConnection, onDrop, onDragOver, onNodesDelete, onEdgesDelete,
       selection, selectNode, selectEdge, clearSelection, autoLayout,
       undo, redo, history.canUndo, history.canRedo, isDirty, graph, error,
+      updateNodeField, renameNode, updateNodeExport, updateNodeFlow,
+      getNodeDescriptor, serializeToYaml,
     ],
   );
 }
