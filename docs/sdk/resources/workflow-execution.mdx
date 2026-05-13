@@ -69,6 +69,7 @@ WorkflowExecution workflowExecution = client.workflowExecutions().get("wex_01j5q
 | [`terminate`](#terminate) | Terminate a workflow execution immediately. | |
 | [`recover`](#recover) | Recover a failed workflow execution from the last checkpoint. | |
 | [`submitApproval`](#submitapproval) | Submit an approval decision for a child agent's tool execution. | |
+| [`submitWorkflowTaskApproval`](#submitworkflowtaskapproval) | Submit a human reviewer's decision for a workflow-level human_input task. | |
 | [`sendSignal`](#sendsignal) | Send a signal to a running workflow execution. | |
 | [`subscribeEvents`](#subscribeevents) | Subscribe to real-time execution events (incremental event stream). | Server |
 
@@ -826,6 +827,67 @@ WorkflowExecution workflowExecution = client.workflowExecutions().submitApproval
 
 **Returns**: [`WorkflowExecution`](#workflowexecution)
 
+### submitWorkflowTaskApproval
+
+Submit a human reviewer's decision for a workflow-level human_input task.
+
+Resolves a human_input approval gate by sending the reviewer's outcome (and optional form data) to the waiting workflow task via Temporal signal.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const workflowExecution = await stigmer.workflowExecution.submitWorkflowTaskApproval({
+  executionId: "...",
+  taskName: "...",
+  outcome: "...",
+  formData: {},
+  reviewer: "...",
+  comment: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+workflowExecution, err := client.WorkflowExecution.SubmitWorkflowTaskApproval(ctx, &stigmer.SubmitWorkflowTaskApprovalInput{
+  ExecutionId: "...",
+  TaskName:    "...",
+  Outcome:     "...",
+  FormData:    nil,
+  Reviewer:    "...",
+  Comment:     "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+workflow_execution = client.workflow_executions.submit_workflow_task_approval(SubmitWorkflowTaskApprovalInput(
+    execution_id="...",
+    task_name="...",
+    outcome="...",
+    form_data=None,
+    reviewer="...",
+    comment="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowExecution workflowExecution = client.workflowExecutions().submitWorkflowTaskApproval(SubmitWorkflowTaskApprovalInput.builder()
+    .executionId("...")
+    .taskName("...")
+    .outcome("...")
+    .formData(null)
+    .reviewer("...")
+    .comment("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`SubmitWorkflowTaskApprovalInput`](#submitworkflowtaskapprovalinput)
+
+**Returns**: [`WorkflowExecution`](#workflowexecution)
+
 ### sendSignal
 
 Send a signal to a running workflow execution.
@@ -981,6 +1043,21 @@ Input for the submitApproval RPC.
     toolCallId: { type: "string", description: "ID of the tool call to approve, skip, or reject." },
     action: { type: "ApprovalAction", description: "Approval decision: APPROVE, SKIP, or REJECT.", typeDescriptionLink: "#approvalaction" },
     comment: { type: "string", description: "Optional reason or comment for the decision, stored in the audit trail." },
+  }}
+/>
+
+### SubmitWorkflowTaskApprovalInput
+
+SubmitWorkflowTaskApprovalInput submits a human reviewer's decision for a workflow-level human_input task.
+
+<TypeTable
+  type={{
+    executionId: { type: "string", description: "ID of the workflow execution containing the human_input task." },
+    taskName: { type: "string", description: "Name of the human_input task to respond to." },
+    outcome: { type: "string", description: "Outcome selected by the reviewer." },
+    formData: { type: "object", description: "Form data collected from the reviewer's response form." },
+    reviewer: { type: "string", description: "Identity of the reviewer submitting the decision." },
+    comment: { type: "string", description: "Optional comment from the reviewer, stored in the audit trail." },
   }}
 />
 

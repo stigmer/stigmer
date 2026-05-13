@@ -41,6 +41,14 @@
           "description": "Submit an approval decision for a child agent's tool execution.\n\n This RPC forwards the approval decision to the child AgentExecution that\n is waiting for approval. The child is identified by the child_agent_execution_id\n in status.pending_approval.\n\n When a workflow invokes an agent that requires tool approval, the approval\n request surfaces at the workflow level via status.pending_approval. Users can\n submit their decision through this RPC, which forwards it to the child agent.\n\n @internal\n The approval is forwarded to the child via AgentExecution.submitApproval RPC,\n ensuring consistent validation and Temporal workflow signaling.\n\n Preconditions:\n - status.pending_approval must be populated\n - tool_call_id must match status.pending_approval.tool_call_id\n - status.pending_approval.child_agent_execution_id must not be empty\n - User must have can_edit permission on the workflow execution\n\n State Transitions\n\n After successful approval:\n - Approval is forwarded to child AgentExecution\n - Child agent resumes execution based on action (APPROVE/SKIP/REJECT)\n - Child agent clears its pending_approval, which triggers signal to parent\n - WorkflowExecution.status.pending_approval is eventually cleared\n - Workflow task status returns from WAITING_APPROVAL to IN_PROGRESS\n\n Approval Actions\n\n - APPROVE: Tool executes with the provided arguments\n - SKIP: Tool execution is skipped, agent continues with skip message\n - REJECT: Agent execution fails with rejection error\n\n Error Cases\n\n - NOT_FOUND: Workflow execution doesn't exist\n - PERMISSION_DENIED: User doesn't have can_edit permission\n - FAILED_PRECONDITION: No pending approval, or child agent not waiting\n - INVALID_ARGUMENT: Tool call ID mismatch, or action is UNSPECIFIED\n - UNAVAILABLE: Failed to forward to child agent (transient error)\n\n Idempotency\n\n If the same approval is submitted twice (same workflow execution, tool_call_id,\n and action), the second call is a no-op if the approval was already processed.\n\n Alternative: Direct Agent Approval\n\n Users can also submit approvals directly via AgentExecution.submitApproval\n using the child_agent_execution_id. Both paths are equivalent and result\n in the same state transitions.\n\n @since Phase 5.3 (Approval Forwarding)"
         },
         {
+          "name": "SubmitWorkflowTaskApproval",
+          "inputType": "SubmitWorkflowTaskApprovalInput",
+          "inputFullType": "ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput",
+          "outputType": "WorkflowExecution",
+          "outputFullType": "ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution",
+          "description": "Submit a human reviewer's decision for a workflow-level human_input task.\n\n Resolves a human_input approval gate by sending the reviewer's outcome\n (and optional form data) to the waiting workflow task via Temporal signal.\n\n @internal\n This RPC is specifically for workflow-level human_input tasks — the approval\n gates defined in workflow YAML that pause execution until a human responds.\n It is distinct from submitApproval, which forwards agent-level tool call\n approvals to child AgentExecutions.\n\n Behavior\n\n 1. Validates execution exists and is in progress\n 2. Validates that task_name references a human_input task in the workflow\n 3. Validates outcome against configured outcomes (if any)\n 4. Constructs signal name: \"human_input_{task_name}\"\n 5. Builds signal payload: {outcome, form_data, reviewer, responded_at}\n 6. Sends signal via Temporal SignalWithStart\n 7. Returns current WorkflowExecution (status updates asynchronously)\n\n Preconditions\n\n - Execution must be in EXECUTION_IN_PROGRESS phase\n - task_name must reference a human_input task in the workflow\n - outcome must be valid for the task's configured outcomes\n - User must have can_edit permission on the workflow execution\n\n Error Cases\n\n - NOT_FOUND: Workflow execution doesn't exist\n - PERMISSION_DENIED: User doesn't have can_edit permission\n - INVALID_ARGUMENT: task_name is not a human_input task, or outcome\n   doesn't match configured outcomes\n - FAILED_PRECONDITION: Execution is not in a signalable phase\n\n @since T13b (Java/Cloud Backend Parity)"
+        },
+        {
           "name": "Delete",
           "inputType": "ApiResourceId",
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
@@ -262,6 +270,83 @@
             "kind": "string"
           },
           "description": "Optional reason or comment for the decision, stored in the audit trail.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SubmitWorkflowTaskApprovalInput",
+      "description": "SubmitWorkflowTaskApprovalInput submits a human reviewer's decision for a\n workflow-level human_input task.\n\n @internal\n Unlike submitApproval (which forwards agent-level tool approvals to a child\n AgentExecution), this RPC resolves workflow-level human_input tasks. The handler:\n\n 1. Validates that the named task exists in the execution and is a human_input task\n 2. Validates the outcome against the task's configured outcomes (if any)\n 3. Constructs the Temporal signal name (\"human_input_{task_name}\")\n 4. Builds the signal payload matching HumanInputSignalPayload\n 5. Sends the signal via SignalWithStart for race-proof delivery\n\n The reviewer's decision (outcome + form_data) becomes the task output after\n the workflow-runner receives and processes the signal.\n\n @since T13b (Java/Cloud Backend Parity)",
+      "protoType": "ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput",
+      "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the workflow execution containing the human_input task.\n\n @internal\n Format: \"wfx_{unique-suffix}\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "TaskName",
+          "jsonName": "taskName",
+          "protoField": "task_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Name of the human_input task to respond to.\n\n @internal\n Must match a task in the workflow whose kind is human_input and whose\n current status is WORKFLOW_TASK_IN_PROGRESS (waiting for signal).\n The handler constructs the signal name as \"human_input_{task_name}\".",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Outcome",
+          "jsonName": "outcome",
+          "protoField": "outcome",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Outcome selected by the reviewer.\n\n @internal\n If the human_input task defines custom outcomes, this must match one of\n the configured outcome names (e.g., \"approve\", \"deny\", \"needs_revision\").\n If no custom outcomes are defined, must be \"approve\" or \"deny\".",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "FormData",
+          "jsonName": "formData",
+          "protoField": "form_data",
+          "type": {
+            "kind": "struct"
+          },
+          "description": "Form data collected from the reviewer's response form.\n\n @internal\n Populated when the human_input task defines a form_schema. The form data\n is delivered to the Go runner as-is and becomes part of the task output.\n Validation against the form_schema is a runtime concern (Go runner side).",
+          "required": false
+        },
+        {
+          "name": "Reviewer",
+          "jsonName": "reviewer",
+          "protoField": "reviewer",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Identity of the reviewer submitting the decision.\n\n @internal\n Typically the authenticated user's identity. Stored in the task output\n for audit trail purposes.",
+          "required": false
+        },
+        {
+          "name": "Comment",
+          "jsonName": "comment",
+          "protoField": "comment",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional comment from the reviewer, stored in the audit trail.",
           "required": false
         }
       ]

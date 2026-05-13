@@ -76,6 +76,22 @@ class SubmitWorkflowApprovalInput(_message.Message):
     comment: str
     def __init__(self, execution_id: _Optional[str] = ..., tool_call_id: _Optional[str] = ..., action: _Optional[_Union[_enum_pb2.ApprovalAction, str]] = ..., comment: _Optional[str] = ...) -> None: ...
 
+class SubmitWorkflowTaskApprovalInput(_message.Message):
+    __slots__ = ("execution_id", "task_name", "outcome", "form_data", "reviewer", "comment")
+    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    TASK_NAME_FIELD_NUMBER: _ClassVar[int]
+    OUTCOME_FIELD_NUMBER: _ClassVar[int]
+    FORM_DATA_FIELD_NUMBER: _ClassVar[int]
+    REVIEWER_FIELD_NUMBER: _ClassVar[int]
+    COMMENT_FIELD_NUMBER: _ClassVar[int]
+    execution_id: str
+    task_name: str
+    outcome: str
+    form_data: _struct_pb2.Struct
+    reviewer: str
+    comment: str
+    def __init__(self, execution_id: _Optional[str] = ..., task_name: _Optional[str] = ..., outcome: _Optional[str] = ..., form_data: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., reviewer: _Optional[str] = ..., comment: _Optional[str] = ...) -> None: ...
+
 class SubscribeWorkflowExecutionRequest(_message.Message):
     __slots__ = ("execution_id",)
     EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
