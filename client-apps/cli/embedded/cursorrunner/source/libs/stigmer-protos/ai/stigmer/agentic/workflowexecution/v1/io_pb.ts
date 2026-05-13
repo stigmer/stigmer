@@ -2,14 +2,16 @@
 // @generated from file ai/stigmer/agentic/workflowexecution/v1/io.proto (package ai.stigmer.agentic.workflowexecution.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
-import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ApprovalAction } from "../../agentexecution/v1/enum_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "../../agentexecution/v1/enum_pb.js";
-import type { WorkflowExecution, WorkflowExecutionStatus, WorkflowTask } from "./api_pb.js";
+import type { WorkflowExecution, WorkflowExecutionStatus } from "./api_pb.js";
 import { file_ai_stigmer_agentic_workflowexecution_v1_api } from "./api_pb.js";
 import type { ExecutionPhase } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_workflowexecution_v1_enum } from "./enum_pb.js";
+import type { WorkflowEventType, WorkflowExecutionEvent } from "./event_pb.js";
+import { file_ai_stigmer_agentic_workflowexecution_v1_event } from "./event_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
 import type { JsonObject, Message } from "@bufbuild/protobuf";
@@ -18,7 +20,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflowexecution/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_workflowexecution_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvaW8ucHJvdG8SJ2FpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MSIsChNXb3JrZmxvd0V4ZWN1dGlvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIwoKV29ya2Zsb3dJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInkKFVdvcmtmbG93RXhlY3V0aW9uTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRJLCgdlbnRyaWVzGAIgAygLMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uIpwBCh1MaXN0V29ya2Zsb3dFeGVjdXRpb25zUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRJGCgVwaGFzZRgDIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZRIMCgR0YWdzGAQgAygJIm0KJ0xpc3RXb3JrZmxvd0V4ZWN1dGlvbnNCeVdvcmtmbG93UmVxdWVzdBIbCgt3b3JrZmxvd19pZBgBIAEoCUIGukgDyAEBEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIp0BCiJXb3JrZmxvd0V4ZWN1dGlvblVwZGF0ZVN0YXR1c0lucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARJYCgZzdGF0dXMYAiABKAsyQC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25TdGF0dXNCBrpIA8gBASK+AQobU3VibWl0V29ya2Zsb3dBcHByb3ZhbElucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIdCgx0b29sX2NhbGxfaWQYAiABKAlCB7pIBHICEAESUAoGYWN0aW9uGAMgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uQgq6SAeCAQQQASAAEg8KB2NvbW1lbnQYBCABKAkiQQohU3Vic2NyaWJlV29ya2Zsb3dFeGVjdXRpb25SZXF1ZXN0EhwKDGV4ZWN1dGlvbl9pZBgBIAEoCUIGukgDyAEBIokCChdXb3JrZmxvd0V4ZWN1dGlvblVwZGF0ZRJaCgt1cGRhdGVfdHlwZRgBIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd1VwZGF0ZVR5cGVCCLpIBYIBAhABEk0KCWV4ZWN1dGlvbhgCIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V4ZWN1dGlvbhJDCgR0YXNrGAMgASgLMjUuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93VGFzayJDChxDYW5jZWxXb3JrZmxvd0V4ZWN1dGlvbklucHV0EhMKAmlkGAEgASgJQge6SARyAhABEg4KBnJlYXNvbhgCIAEoCSJGCh9UZXJtaW5hdGVXb3JrZmxvd0V4ZWN1dGlvbklucHV0EhMKAmlkGAEgASgJQge6SARyAhABEg4KBnJlYXNvbhgCIAEoCSJECh1SZWNvdmVyV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiQgobUGF1c2VXb3JrZmxvd0V4ZWN1dGlvbklucHV0EhMKAmlkGAEgASgJQge6SARyAhABEg4KBnJlYXNvbhgCIAEoCSIzChxSZXN1bWVXb3JrZmxvd0V4ZWN1dGlvbklucHV0EhMKAmlkGAEgASgJQge6SARyAhABIpEBCg9TZW5kU2lnbmFsSW5wdXQSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABEhwKC3NpZ25hbF9uYW1lGAIgASgJQge6SARyAhABEigKB3BheWxvYWQYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EhcKD2lkZW1wb3RlbmN5X2tleRgEIAEoCSrzAQoSV29ya2Zsb3dVcGRhdGVUeXBlEiQKIHdvcmtmbG93X3VwZGF0ZV90eXBlX3Vuc3BlY2lmaWVkEAASHAoYd2ZfdXBkYXRlX3N0YXR1c19jaGFuZ2VkEAESGgoWd2ZfdXBkYXRlX3Rhc2tfc3RhcnRlZBACEhwKGHdmX3VwZGF0ZV90YXNrX2NvbXBsZXRlZBADEhkKFXdmX3VwZGF0ZV90YXNrX2ZhaWxlZBAEEiEKHXdmX3VwZGF0ZV9leGVjdXRpb25fY29tcGxldGVkEAUSIQodd2ZfdXBkYXRlX2V4ZWN1dGlvbl9jYW5jZWxsZWQQBmIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_api, file_ai_stigmer_agentic_workflowexecution_v1_enum, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvaW8ucHJvdG8SJ2FpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MSIsChNXb3JrZmxvd0V4ZWN1dGlvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIwoKV29ya2Zsb3dJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInkKFVdvcmtmbG93RXhlY3V0aW9uTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRJLCgdlbnRyaWVzGAIgAygLMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uIpwBCh1MaXN0V29ya2Zsb3dFeGVjdXRpb25zUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRJGCgVwaGFzZRgDIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZRIMCgR0YWdzGAQgAygJIm0KJ0xpc3RXb3JrZmxvd0V4ZWN1dGlvbnNCeVdvcmtmbG93UmVxdWVzdBIbCgt3b3JrZmxvd19pZBgBIAEoCUIGukgDyAEBEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIu4BCiJXb3JrZmxvd0V4ZWN1dGlvblVwZGF0ZVN0YXR1c0lucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARJYCgZzdGF0dXMYAiABKAsyQC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25TdGF0dXNCBrpIA8gBARJPCgZldmVudHMYCiADKAsyPy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25FdmVudCK+AQobU3VibWl0V29ya2Zsb3dBcHByb3ZhbElucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIdCgx0b29sX2NhbGxfaWQYAiABKAlCB7pIBHICEAESUAoGYWN0aW9uGAMgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uQgq6SAeCAQQQASAAEg8KB2NvbW1lbnQYBCABKAkiQQohU3Vic2NyaWJlV29ya2Zsb3dFeGVjdXRpb25SZXF1ZXN0EhwKDGV4ZWN1dGlvbl9pZBgBIAEoCUIGukgDyAEBIkMKHENhbmNlbFdvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIkYKH1Rlcm1pbmF0ZVdvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIkQKHVJlY292ZXJXb3JrZmxvd0V4ZWN1dGlvbklucHV0EhMKAmlkGAEgASgJQge6SARyAhABEg4KBnJlYXNvbhgCIAEoCSJCChtQYXVzZVdvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIjMKHFJlc3VtZVdvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAEikQEKD1NlbmRTaWduYWxJbnB1dBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAESHAoLc2lnbmFsX25hbWUYAiABKAlCB7pIBHICEAESKAoHcGF5bG9hZBgDIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFwoPaWRlbXBvdGVuY3lfa2V5GAQgASgJIsIBChJHZXRFdmVudExvZ1JlcXVlc3QSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABEhYKDmFmdGVyX3NlcXVlbmNlGAIgASgEEk8KC2V2ZW50X3R5cGVzGAMgAygOMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXZlbnRUeXBlEhEKCXRhc2tfbmFtZRgEIAEoCRIRCglwYWdlX3NpemUYBSABKAUikQEKE0dldEV2ZW50TG9nUmVzcG9uc2USTwoGZXZlbnRzGAEgAygLMj8uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uRXZlbnQSEAoIaGFzX21vcmUYAiABKAgSFwoPbGF0ZXN0X3NlcXVlbmNlGAMgASgEIqABChZTdWJzY3JpYmVFdmVudHNSZXF1ZXN0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIWCg5hZnRlcl9zZXF1ZW5jZRgCIAEoBBJPCgtldmVudF90eXBlcxgDIAMoDjI6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V2ZW50VHlwZWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_api, file_ai_stigmer_agentic_workflowexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_event, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * WorkflowExecutionId wraps a workflow execution identifier.
@@ -243,6 +245,28 @@ export type WorkflowExecutionUpdateStatusInput = Message<"ai.stigmer.agentic.wor
    * @generated from field: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus status = 2;
    */
   status?: WorkflowExecutionStatus;
+
+  /**
+   * Execution events to append to the event log alongside this status update.
+   *
+   * @internal
+   * Append-only: events are added to the persistent event log, never replaced.
+   * This contrasts with status.tasks which uses full-replace protocol.
+   *
+   * The workflow-runner appends events atomically with each status update,
+   * ensuring the event log stays consistent with the status snapshot.
+   * Events must have monotonically increasing sequence_numbers — the handler
+   * rejects batches where any event's sequence_number is <= the current
+   * highest persisted sequence for this execution.
+   *
+   * Empty list means no new events (backward compatible — existing runners
+   * that do not yet emit events continue to work without changes).
+   *
+   * @since T06 (Execution Event Stream Model)
+   *
+   * @generated from field: repeated ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 10;
+   */
+  events: WorkflowExecutionEvent[];
 };
 
 /**
@@ -343,54 +367,6 @@ export const SubscribeWorkflowExecutionRequestSchema: GenMessage<SubscribeWorkfl
   messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 7);
 
 /**
- * WorkflowExecutionUpdate represents a real-time execution update event.
- *
- * @internal
- * Reserved for future WebSocket/SSE streaming implementations.
- * Currently not used by subscribe() RPC (which sends full WorkflowExecution).
- *
- * @generated from message ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate
- */
-export type WorkflowExecutionUpdate = Message<"ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate"> & {
-  /**
-   * Type of update that occurred.
-   *
-   * @internal
-   * Determines which fields in this message are populated.
-   *
-   * @generated from field: ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType update_type = 1;
-   */
-  updateType: WorkflowUpdateType;
-
-  /**
-   * Updated execution state (full or partial).
-   *
-   * @internal
-   * May contain only changed fields. Clients should merge with cached state.
-   *
-   * @generated from field: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution execution = 2;
-   */
-  execution?: WorkflowExecution;
-
-  /**
-   * Updated task, populated only for task-related update types.
-   *
-   * @internal
-   * Provides direct access to the changed task without searching execution.status.tasks[].
-   *
-   * @generated from field: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask task = 3;
-   */
-  task?: WorkflowTask;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdate.
- * Use `create(WorkflowExecutionUpdateSchema)` to create a new message.
- */
-export const WorkflowExecutionUpdateSchema: GenMessage<WorkflowExecutionUpdate> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 8);
-
-/**
  * CancelWorkflowExecutionInput requests graceful cancellation of a workflow execution.
  *
  * @internal
@@ -429,7 +405,7 @@ export type CancelWorkflowExecutionInput = Message<"ai.stigmer.agentic.workflowe
  * Use `create(CancelWorkflowExecutionInputSchema)` to create a new message.
  */
 export const CancelWorkflowExecutionInputSchema: GenMessage<CancelWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 9);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 8);
 
 /**
  * TerminateWorkflowExecutionInput requests immediate termination of a workflow execution.
@@ -470,7 +446,7 @@ export type TerminateWorkflowExecutionInput = Message<"ai.stigmer.agentic.workfl
  * Use `create(TerminateWorkflowExecutionInputSchema)` to create a new message.
  */
 export const TerminateWorkflowExecutionInputSchema: GenMessage<TerminateWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 10);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 9);
 
 /**
  * RecoverWorkflowExecutionInput requests recovery of a failed workflow execution.
@@ -513,7 +489,7 @@ export type RecoverWorkflowExecutionInput = Message<"ai.stigmer.agentic.workflow
  * Use `create(RecoverWorkflowExecutionInputSchema)` to create a new message.
  */
 export const RecoverWorkflowExecutionInputSchema: GenMessage<RecoverWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 11);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 10);
 
 /**
  * PauseWorkflowExecutionInput requests temporarily pausing a workflow execution.
@@ -550,7 +526,7 @@ export type PauseWorkflowExecutionInput = Message<"ai.stigmer.agentic.workflowex
  * Use `create(PauseWorkflowExecutionInputSchema)` to create a new message.
  */
 export const PauseWorkflowExecutionInputSchema: GenMessage<PauseWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 12);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 11);
 
 /**
  * ResumeWorkflowExecutionInput requests resuming a paused workflow execution.
@@ -580,7 +556,7 @@ export type ResumeWorkflowExecutionInput = Message<"ai.stigmer.agentic.workflowe
  * Use `create(ResumeWorkflowExecutionInputSchema)` to create a new message.
  */
 export const ResumeWorkflowExecutionInputSchema: GenMessage<ResumeWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 13);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 12);
 
 /**
  * SendSignalInput delivers a named signal to a workflow execution.
@@ -645,91 +621,207 @@ export type SendSignalInput = Message<"ai.stigmer.agentic.workflowexecution.v1.S
  * Use `create(SendSignalInputSchema)` to create a new message.
  */
 export const SendSignalInputSchema: GenMessage<SendSignalInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 13);
+
+/**
+ * GetEventLogRequest fetches the paginated event log for a workflow execution.
+ *
+ * @internal
+ * Returns events ordered by sequence_number ascending. Supports cursor-based
+ * pagination via after_sequence and optional filtering by event type or task.
+ *
+ * Use Cases:
+ *
+ * 1. Execution Viewer Timeline (T09):
+ *    - UI loads execution state via get(), then fetches event log for timeline
+ *    - Initial load: after_sequence = 0, page_size = 100
+ *    - Subsequent pages: after_sequence = latest_sequence from previous response
+ *
+ * 2. Task Drill-Down:
+ *    - User clicks a task in the viewer to see its full history
+ *    - Filter by task_name to get only events for that task
+ *
+ * 3. Cost Analysis:
+ *    - Filter by budget_checkpoint events to chart cost over time
+ *
+ * @since T06 (Execution Event Stream Model)
+ *
+ * @generated from message ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest
+ */
+export type GetEventLogRequest = Message<"ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest"> & {
+  /**
+   * Execution ID to fetch events for.
+   *
+   * @internal
+   * Format: "wfx_{unique-suffix}"
+   *
+   * @generated from field: string execution_id = 1;
+   */
+  executionId: string;
+
+  /**
+   * Return events with sequence_number strictly greater than this value.
+   *
+   * @internal
+   * Cursor-based pagination: set to 0 for the first page, then to
+   * latest_sequence from the previous response for subsequent pages.
+   * Also used by subscribeEvents for replay + live tail positioning.
+   *
+   * @generated from field: uint64 after_sequence = 2;
+   */
+  afterSequence: bigint;
+
+  /**
+   * Optional filter: return only events of these types.
+   *
+   * @internal
+   * When empty, all event types are returned. When populated, only events
+   * whose event_type matches one of the specified values are included.
+   * Useful for filtering to only task lifecycle events, or only budget events.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3;
+   */
+  eventTypes: WorkflowEventType[];
+
+  /**
+   * Optional filter: return only events for this task.
+   *
+   * @internal
+   * When empty, events for all tasks (and execution-level events) are returned.
+   * When populated, only events where task_name matches are included.
+   * Execution-level events (empty task_name) are excluded when this filter is set.
+   *
+   * @generated from field: string task_name = 4;
+   */
+  taskName: string;
+
+  /**
+   * Maximum number of events to return per page.
+   *
+   * @internal
+   * Default: 100. Maximum: 500 (backend enforces this limit).
+   * Events are always returned in sequence_number ascending order.
+   *
+   * @generated from field: int32 page_size = 5;
+   */
+  pageSize: number;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest.
+ * Use `create(GetEventLogRequestSchema)` to create a new message.
+ */
+export const GetEventLogRequestSchema: GenMessage<GetEventLogRequest> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 14);
 
 /**
- * WorkflowUpdateType defines the type of workflow execution update event.
+ * GetEventLogResponse contains a page of execution events.
  *
  * @internal
- * Used by WorkflowExecutionUpdate to indicate what changed in the execution.
+ * @since T06 (Execution Event Stream Model)
  *
- * @generated from enum ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType
+ * @generated from message ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse
  */
-export enum WorkflowUpdateType {
+export type GetEventLogResponse = Message<"ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse"> & {
   /**
-   * Unspecified update type (invalid).
+   * Events in this page, ordered by sequence_number ascending.
    *
-   * @internal
-   * Exists only for proto3 zero-value semantics.
-   *
-   * @generated from enum value: workflow_update_type_unspecified = 0;
+   * @generated from field: repeated ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent events = 1;
    */
-  workflow_update_type_unspecified = 0,
+  events: WorkflowExecutionEvent[];
 
   /**
-   * Workflow execution phase changed.
+   * Whether more events exist after the last event in this response.
+   * When false, the client has reached the end of the current event log.
+   * For in-progress executions, more events may appear later.
    *
-   * @internal
-   * Triggered when status.phase transitions to a new value.
-   *
-   * @generated from enum value: wf_update_status_changed = 1;
+   * @generated from field: bool has_more = 2;
    */
-  wf_update_status_changed = 1,
+  hasMore: boolean;
 
   /**
-   * A workflow task started executing.
+   * Highest sequence_number returned in this response.
+   * Use as after_sequence in the next request for cursor-based pagination.
+   * 0 when events is empty.
    *
-   * @internal
-   * Triggered when task status changes from PENDING to IN_PROGRESS.
-   *
-   * @generated from enum value: wf_update_task_started = 2;
+   * @generated from field: uint64 latest_sequence = 3;
    */
-  wf_update_task_started = 2,
-
-  /**
-   * A workflow task completed successfully.
-   *
-   * @internal
-   * Triggered when task status changes from IN_PROGRESS to COMPLETED.
-   *
-   * @generated from enum value: wf_update_task_completed = 3;
-   */
-  wf_update_task_completed = 3,
-
-  /**
-   * A workflow task failed.
-   *
-   * @internal
-   * Triggered when task status changes from IN_PROGRESS to FAILED.
-   *
-   * @generated from enum value: wf_update_task_failed = 4;
-   */
-  wf_update_task_failed = 4,
-
-  /**
-   * Workflow execution completed successfully.
-   *
-   * @internal
-   * Terminal event - no more updates will follow.
-   *
-   * @generated from enum value: wf_update_execution_completed = 5;
-   */
-  wf_update_execution_completed = 5,
-
-  /**
-   * Workflow execution was cancelled.
-   *
-   * @internal
-   * Terminal event - no more updates will follow.
-   *
-   * @generated from enum value: wf_update_execution_cancelled = 6;
-   */
-  wf_update_execution_cancelled = 6,
-}
+  latestSequence: bigint;
+};
 
 /**
- * Describes the enum ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType.
+ * Describes the message ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse.
+ * Use `create(GetEventLogResponseSchema)` to create a new message.
  */
-export const WorkflowUpdateTypeSchema: GenEnum<WorkflowUpdateType> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 0);
+export const GetEventLogResponseSchema: GenMessage<GetEventLogResponse> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 15);
+
+/**
+ * SubscribeEventsRequest opens a real-time event stream for a workflow execution.
+ *
+ * @internal
+ * Unlike subscribe() which streams full WorkflowExecution snapshots, this
+ * streams individual WorkflowExecutionEvent messages as they occur.
+ * Lightweight and incremental — suitable for the execution viewer timeline.
+ *
+ * Replay + Live Tail:
+ * When after_sequence is set, the server first replays persisted events
+ * with sequence_number > after_sequence, then switches to live streaming.
+ * This enables seamless reconnection without missing events.
+ *
+ * Stream Lifecycle:
+ * 1. Client sends SubscribeEventsRequest with execution_id
+ * 2. Server validates authorization
+ * 3. If after_sequence > 0: Server replays missed events
+ * 4. Server streams new events in real-time as they occur
+ * 5. Server closes stream when execution reaches a terminal phase
+ * 6. Client can close stream early (e.g., user navigates away)
+ *
+ * @since T06 (Execution Event Stream Model)
+ *
+ * @generated from message ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest
+ */
+export type SubscribeEventsRequest = Message<"ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest"> & {
+  /**
+   * Execution ID to subscribe to.
+   *
+   * @internal
+   * Format: "wfx_{unique-suffix}"
+   *
+   * @generated from field: string execution_id = 1;
+   */
+  executionId: string;
+
+  /**
+   * Resume from this sequence number (replay + live tail).
+   *
+   * @internal
+   * 0 = start from the beginning (replay all events then live tail).
+   * N = replay events with sequence_number > N, then live tail.
+   *
+   * Use the latest_sequence from a previous getEventLog response or
+   * the last received event's sequence_number for reconnection.
+   *
+   * @generated from field: uint64 after_sequence = 2;
+   */
+  afterSequence: bigint;
+
+  /**
+   * Optional filter: stream only events of these types.
+   *
+   * @internal
+   * When empty, all event types are streamed.
+   * Applied to both replayed and live events.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType event_types = 3;
+   */
+  eventTypes: WorkflowEventType[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest.
+ * Use `create(SubscribeEventsRequestSchema)` to create a new message.
+ */
+export const SubscribeEventsRequestSchema: GenMessage<SubscribeEventsRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 16);
 

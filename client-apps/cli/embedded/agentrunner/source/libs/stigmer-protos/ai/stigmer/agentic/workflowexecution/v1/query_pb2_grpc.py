@@ -3,6 +3,7 @@
 import grpc
 
 from ai.stigmer.agentic.workflowexecution.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2
+from ai.stigmer.agentic.workflowexecution.v1 import event_pb2 as ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_event__pb2
 from ai.stigmer.agentic.workflowexecution.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2
 
 
@@ -48,6 +49,16 @@ class WorkflowExecutionQueryControllerStub(object):
                 '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/subscribe',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubscribeWorkflowExecutionRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+                _registered_method=True)
+        self.getEventLog = channel.unary_unary(
+                '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/getEventLog',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.GetEventLogRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.GetEventLogResponse.FromString,
+                _registered_method=True)
+        self.subscribeEvents = channel.unary_stream(
+                '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/subscribeEvents',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubscribeEventsRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_event__pb2.WorkflowExecutionEvent.FromString,
                 _registered_method=True)
 
 
@@ -424,6 +435,111 @@ class WorkflowExecutionQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getEventLog(self, request, context):
+        """Fetch the paginated event log for a workflow execution.
+
+        Returns execution events ordered by sequence_number ascending, with
+        cursor-based pagination and optional filtering by event type or task name.
+
+        @internal
+        Authorization:
+        Standard authorization checks that user has "get" permission on the
+        WorkflowExecution. Same permission as get() and subscribe().
+
+        The event log complements the status snapshot: the snapshot tells you
+        current state, the event log tells you what happened and when.
+
+        Use Cases:
+
+        1. Execution Viewer Timeline:
+        - Load full event history for a completed execution
+        - Render timeline with task transitions, retries, approvals, cost
+
+        2. Task Drill-Down:
+        - Filter by task_name to see all events for a specific task
+        - Inspect retry history, duration, cost per attempt
+
+        3. Cost Audit:
+        - Filter by budget_checkpoint events to chart cost over time
+        - Correlate cost spikes with specific agent_call tasks
+
+        4. Approval Audit Trail:
+        - Filter by approval_requested and approval_resolved
+        - See who approved what, when, and with what comment
+
+        Error Cases:
+
+        - NOT_FOUND: No WorkflowExecution exists with the given ID
+        - PERMISSION_DENIED: User doesn't have "get" permission
+        - INVALID_ARGUMENT: page_size exceeds maximum (500)
+
+        @since T06 (Execution Event Stream Model)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def subscribeEvents(self, request, context):
+        """Subscribe to real-time execution events (incremental event stream).
+
+        Opens a server-side streaming RPC that pushes individual
+        WorkflowExecutionEvent messages as they occur during execution.
+        Unlike subscribe() which streams full WorkflowExecution snapshots,
+        this streams lightweight incremental events for the timeline view.
+
+        @internal
+        Authorization:
+        Standard authorization checks that user has "get" permission on the
+        WorkflowExecution. Same permission as get() and subscribe().
+
+        Stream Lifecycle:
+        1. Client sends SubscribeEventsRequest with execution_id
+        2. Server validates authorization
+        3. If after_sequence > 0: Server replays missed events from persistence
+        4. Server streams new events in real-time as the runner emits them
+        5. Server closes stream when execution reaches a terminal phase
+        (COMPLETED, FAILED, CANCELLED, TERMINATED)
+        6. Client can close stream early
+
+        Reconnection:
+        On disconnect, the client reconnects with after_sequence set to the
+        sequence_number of the last received event. The server replays any
+        events missed during the disconnect, then resumes live streaming.
+        No events are lost.
+
+        Complementary Streams:
+        - subscribe(): Full snapshots for current-state views (progress bars, dashboards)
+        - subscribeEvents(): Incremental events for timeline views (execution viewer)
+        Both streams can be used simultaneously for different UI concerns.
+
+        Use Cases:
+
+        1. Live Execution Timeline:
+        - User watches a running execution in the execution viewer
+        - Events stream in real-time, building the timeline as tasks progress
+        - Each event adds a row: "task X started", "task X completed (2.3s, $0.05)"
+
+        2. Cost Monitoring:
+        - Dashboard subscribes with event_types filter for budget_checkpoint
+        - Budget gauge updates in real-time as costs accumulate
+
+        3. Approval Notifications:
+        - Subscribe with event_types filter for approval_requested
+        - Surface approval gates immediately when they activate
+
+        Error Cases:
+
+        - NOT_FOUND: No WorkflowExecution exists with the given ID
+        - PERMISSION_DENIED: User doesn't have "get" permission
+        - DEADLINE_EXCEEDED: Client timeout (reconnect with after_sequence)
+        - UNAVAILABLE: Server unavailable (retry with backoff)
+
+        @since T06 (Execution Event Stream Model)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_WorkflowExecutionQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -446,6 +562,16 @@ def add_WorkflowExecutionQueryControllerServicer_to_server(servicer, server):
                     servicer.subscribe,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubscribeWorkflowExecutionRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.SerializeToString,
+            ),
+            'getEventLog': grpc.unary_unary_rpc_method_handler(
+                    servicer.getEventLog,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.GetEventLogRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.GetEventLogResponse.SerializeToString,
+            ),
+            'subscribeEvents': grpc.unary_stream_rpc_method_handler(
+                    servicer.subscribeEvents,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubscribeEventsRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_event__pb2.WorkflowExecutionEvent.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -570,6 +696,60 @@ class WorkflowExecutionQueryController(object):
             '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/subscribe',
             ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubscribeWorkflowExecutionRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getEventLog(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/getEventLog',
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.GetEventLogRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.GetEventLogResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def subscribeEvents(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/subscribeEvents',
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubscribeEventsRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_event__pb2.WorkflowExecutionEvent.FromString,
             options,
             channel_credentials,
             insecure,
