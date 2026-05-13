@@ -1,13 +1,48 @@
 "use client";
 
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { useNodesState, useEdgesState } from "@xyflow/react";
-import type { Node, Edge, OnNodesChange, OnEdgesChange } from "@xyflow/react";
+import type { RefObject } from "react";
+import { useNodesState, useEdgesState, useReactFlow } from "@xyflow/react";
+import type {
+  Node,
+  Edge,
+  OnNodesChange,
+  OnEdgesChange,
+  Connection,
+  IsValidConnection,
+} from "@xyflow/react";
 import dagre from "@dagrejs/dagre";
+import type { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { WorkflowGraphModel, WorkflowGraphNode } from "./workflow-graph-model";
 import { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model";
-import { yamlToGraph, toReactFlowElements } from "./workflow-graph-conversions";
-import { DAGRE_CONFIG, CANVAS_NODE_WIDTH, CANVAS_NODE_HEIGHT, SENTINEL_NODE_WIDTH, SENTINEL_NODE_HEIGHT } from "./canvas-constants";
+import {
+  yamlToGraph,
+  toReactFlowElements,
+  categorizeKind,
+  stringToTaskKind,
+  taskKindToString,
+} from "./workflow-graph-conversions";
+import { TASK_KIND_DRAG_MIME } from "./WorkflowTaskPalette";
+import {
+  DAGRE_CONFIG,
+  CANVAS_NODE_WIDTH,
+  CANVAS_NODE_HEIGHT,
+  SENTINEL_NODE_WIDTH,
+  SENTINEL_NODE_HEIGHT,
+} from "./canvas-constants";
+import type { GraphCommand } from "./graph-commands";
+import {
+  AddNodeCommand,
+  DeleteNodeCommand,
+  AddEdgeCommand,
+  DeleteEdgeCommand,
+  CompoundCommand,
+  generateEdgeId,
+  generateTaskName,
+  createTaskNode,
+  isSentinelNode,
+} from "./graph-commands";
+import { useGraphHistory } from "./useGraphHistory";
 
 /** Selection state for the canvas inspector. */
 export interface CanvasSelection {
@@ -21,11 +56,21 @@ export interface UseWorkflowCanvasReturn {
   readonly edges: Edge[];
   readonly onNodesChange: OnNodesChange;
   readonly onEdgesChange: OnEdgesChange;
+  readonly onConnect: (connection: Connection) => void;
+  readonly isValidConnection: IsValidConnection;
+  readonly onDrop: (event: React.DragEvent) => void;
+  readonly onDragOver: (event: React.DragEvent) => void;
+  readonly onNodesDelete: (deleted: Node[]) => void;
+  readonly onEdgesDelete: (deleted: Edge[]) => void;
   readonly selection: CanvasSelection | null;
   readonly selectNode: (id: string) => void;
   readonly selectEdge: (id: string) => void;
   readonly clearSelection: () => void;
   readonly autoLayout: () => void;
+  readonly undo: () => void;
+  readonly redo: () => void;
+  readonly canUndo: boolean;
+  readonly canRedo: boolean;
   readonly isDirty: boolean;
   readonly graph: WorkflowGraphModel | null;
   readonly error: string | null;
@@ -34,65 +79,96 @@ export interface UseWorkflowCanvasReturn {
 /**
  * Orchestrator hook for the workflow canvas editor.
  *
- * Initializes a `WorkflowGraphModel` from YAML, converts it to React Flow
- * elements, manages node positions via React Flow's state, and tracks
- * dirty state by comparing current node positions against the initial layout.
+ * Manages the {@link WorkflowGraphModel} through a command/history pipeline
+ * (AD-T15-B2-001). Structural mutations (add/delete nodes and edges) go
+ * through {@link GraphCommand}s dispatched to the history. React Flow state
+ * is derived from the model after each mutation.
  *
- * @param yaml - The workflow YAML to render. Changes trigger a full re-parse.
+ * @param yaml - The workflow YAML to initialize from. Changes trigger re-parse.
+ * @param containerRef - Ref to the canvas container for keyboard shortcut scoping.
  *
  * @since T15 (Visual Canvas Editor)
  */
-export function useWorkflowCanvas(yaml: string | null): UseWorkflowCanvasReturn {
-  const [graph, setGraph] = useState<WorkflowGraphModel | null>(null);
+export function useWorkflowCanvas(
+  yaml: string | null,
+  containerRef: RefObject<HTMLDivElement | null>,
+): UseWorkflowCanvasReturn {
   const [error, setError] = useState<string | null>(null);
   const [selection, setSelection] = useState<CanvasSelection | null>(null);
-  const initialGraphRef = useRef<WorkflowGraphModel | null>(null);
+  const initialModelRef = useRef<WorkflowGraphModel | null>(null);
 
   const [nodes, setNodes, onNodesChangeRaw] = useNodesState([] as Node[]);
   const [edges, setEdges, onEdgesChangeRaw] = useEdgesState([] as Edge[]);
 
-  const positionsChangedRef = useRef(false);
+  // Parse YAML into the initial graph model
+  const parsedModel = useMemo<WorkflowGraphModel | null>(() => {
+    if (!yaml?.trim()) return null;
+    try {
+      const parsed = yamlToGraph(yaml);
+      return applyDagreLayout(parsed);
+    } catch (e) {
+      return null;
+    }
+  }, [yaml]);
 
-  // Parse YAML → graph → React Flow elements on YAML changes
+  // Set up graph history with the parsed model
+  const history = useGraphHistory(parsedModel, containerRef);
+
+  // Sync: when YAML changes, reset the history and RF elements
   useEffect(() => {
     if (!yaml?.trim()) {
-      setGraph(null);
       setError(null);
       setNodes([]);
       setEdges([]);
-      initialGraphRef.current = null;
+      initialModelRef.current = null;
       return;
     }
 
     try {
       const parsed = yamlToGraph(yaml);
       const laidOut = applyDagreLayout(parsed);
-      setGraph(laidOut);
-      initialGraphRef.current = laidOut;
+      history.reset(laidOut);
+      initialModelRef.current = laidOut;
       setError(null);
 
       const elements = toReactFlowElements(laidOut);
       setNodes(elements.nodes);
       setEdges(elements.edges);
-      positionsChangedRef.current = false;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to parse workflow YAML.");
-      setGraph(null);
       setNodes([]);
       setEdges([]);
+      initialModelRef.current = null;
     }
-  }, [yaml, setNodes, setEdges]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only on yaml change
+  }, [yaml]);
 
-  // Wrap onNodesChange to track position-based dirty state
+  // Sync React Flow elements whenever the model changes via history
+  const syncFromModel = useCallback(
+    (model: WorkflowGraphModel) => {
+      const elements = toReactFlowElements(model);
+      setNodes(elements.nodes);
+      setEdges(elements.edges);
+    },
+    [setNodes, setEdges],
+  );
+
+  const dispatch = useCallback(
+    (command: GraphCommand) => {
+      const next = history.dispatch(command);
+      syncFromModel(next);
+      return next;
+    },
+    [history.dispatch, syncFromModel],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Node position changes (drag) — update the model to stay in sync
+  // ---------------------------------------------------------------------------
+
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
       onNodesChangeRaw(changes);
-      const hasPositionChange = changes.some(
-        (c) => c.type === "position" && "dragging" in c && c.dragging === false,
-      );
-      if (hasPositionChange) {
-        positionsChangedRef.current = true;
-      }
     },
     [onNodesChangeRaw],
   );
@@ -103,6 +179,175 @@ export function useWorkflowCanvas(yaml: string | null): UseWorkflowCanvasReturn 
     },
     [onEdgesChangeRaw],
   );
+
+  // ---------------------------------------------------------------------------
+  // Connection validation (AD-T15-B2-004)
+  // ---------------------------------------------------------------------------
+
+  const isValidConnection: IsValidConnection = useCallback(
+    (connection) => {
+      const model = history.currentModel;
+      if (!model || !connection.source || !connection.target) return false;
+
+      // No self-connections
+      if (connection.source === connection.target) return false;
+
+      // Cannot connect to __start__
+      if (connection.target === START_NODE_ID) return false;
+
+      // Cannot connect from __end__
+      if (connection.source === END_NODE_ID) return false;
+
+      // No duplicate edges (same source+target+sourceHandle)
+      const hasDuplicate = model.edges.some(
+        (e) =>
+          e.source === connection.source &&
+          e.target === connection.target &&
+          (e.sourceHandle ?? null) === (connection.sourceHandle ?? null),
+      );
+      if (hasDuplicate) return false;
+
+      return true;
+    },
+    [history.currentModel],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Connection creation
+  // ---------------------------------------------------------------------------
+
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      if (!connection.source || !connection.target) return;
+      const model = history.currentModel;
+      if (!model) return;
+
+      const sourceNode = model.nodes.find((n) => n.id === connection.source);
+      if (!sourceNode) return;
+
+      const kindStr = taskKindToString(sourceNode.kind);
+      const isMultiOutput = kindStr === "switch_case" || kindStr === "human_input";
+
+      const newEdge = {
+        id: generateEdgeId(),
+        source: connection.source,
+        target: connection.target,
+        ...(connection.sourceHandle && { sourceHandle: connection.sourceHandle }),
+      };
+
+      // For single-output nodes, replace existing outgoing edge (from default handle)
+      if (!isMultiOutput && !connection.sourceHandle) {
+        const existingOutgoing = model.edges.find(
+          (e) => e.source === connection.source && !e.sourceHandle,
+        );
+        if (existingOutgoing) {
+          dispatch(
+            new CompoundCommand("Replace connection", [
+              new DeleteEdgeCommand(existingOutgoing.id),
+              new AddEdgeCommand(newEdge),
+            ]),
+          );
+          return;
+        }
+      }
+
+      dispatch(new AddEdgeCommand(newEdge));
+    },
+    [history.currentModel, dispatch],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Drop handler (drag-to-create from palette)
+  // ---------------------------------------------------------------------------
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      const kindString = event.dataTransfer.getData(TASK_KIND_DRAG_MIME);
+      if (!kindString) return;
+
+      const model = history.currentModel;
+      if (!model) return;
+
+      const kind = stringToTaskKind(kindString);
+      const category = categorizeKind(kindString);
+
+      const existingNames = new Set(model.nodes.map((n) => n.taskName));
+      const taskName = generateTaskName(kindString, existingNames);
+
+      // Convert screen coordinates to flow coordinates
+      const reactFlowBounds = (event.target as HTMLElement)
+        .closest(".react-flow")
+        ?.getBoundingClientRect();
+      const position = reactFlowBounds
+        ? {
+            x: event.clientX - reactFlowBounds.left,
+            y: event.clientY - reactFlowBounds.top,
+          }
+        : { x: event.clientX, y: event.clientY };
+
+      const node = createTaskNode(taskName, kind, kindString, category, position);
+
+      // If no task nodes exist yet, also wire __start__ -> new node
+      const taskNodes = model.nodes.filter((n) => !isSentinelNode(n.id));
+      if (taskNodes.length === 0) {
+        const autoEdge = {
+          id: generateEdgeId(),
+          source: START_NODE_ID,
+          target: taskName,
+        };
+        dispatch(new AddNodeCommand(node, autoEdge));
+      } else {
+        dispatch(new AddNodeCommand(node, null));
+      }
+    },
+    [history.currentModel, dispatch],
+  );
+
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Deletion
+  // ---------------------------------------------------------------------------
+
+  const onNodesDelete = useCallback(
+    (deleted: Node[]) => {
+      const nonSentinels = deleted.filter((n) => !isSentinelNode(n.id));
+      if (nonSentinels.length === 0) return;
+
+      if (nonSentinels.length === 1) {
+        const n = nonSentinels[0];
+        dispatch(new DeleteNodeCommand(n.id, n.data?.taskName as string ?? n.id));
+      } else {
+        const commands = nonSentinels.map(
+          (n) => new DeleteNodeCommand(n.id, n.data?.taskName as string ?? n.id),
+        );
+        dispatch(new CompoundCommand(`Delete ${nonSentinels.length} tasks`, commands));
+      }
+    },
+    [dispatch],
+  );
+
+  const onEdgesDelete = useCallback(
+    (deleted: Edge[]) => {
+      if (deleted.length === 0) return;
+
+      if (deleted.length === 1) {
+        dispatch(new DeleteEdgeCommand(deleted[0].id));
+      } else {
+        const commands = deleted.map((e) => new DeleteEdgeCommand(e.id));
+        dispatch(new CompoundCommand(`Delete ${deleted.length} connections`, commands));
+      }
+    },
+    [dispatch],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Selection
+  // ---------------------------------------------------------------------------
 
   const selectNode = useCallback((id: string) => {
     setSelection({ type: "node", id });
@@ -116,16 +361,38 @@ export function useWorkflowCanvas(yaml: string | null): UseWorkflowCanvasReturn 
     setSelection(null);
   }, []);
 
-  const autoLayout = useCallback(() => {
-    if (!graph) return;
-    const laidOut = applyDagreLayout(graph);
-    setGraph(laidOut);
-    const elements = toReactFlowElements(laidOut);
-    setNodes(elements.nodes);
-    positionsChangedRef.current = false;
-  }, [graph, setNodes]);
+  // ---------------------------------------------------------------------------
+  // Auto-layout
+  // ---------------------------------------------------------------------------
 
-  const isDirty = positionsChangedRef.current;
+  const autoLayout = useCallback(() => {
+    const model = history.currentModel;
+    if (!model || model.nodes.length === 0) return;
+    const laidOut = applyDagreLayout(model);
+    history.reset(laidOut);
+    syncFromModel(laidOut);
+  }, [history, syncFromModel]);
+
+  // ---------------------------------------------------------------------------
+  // Undo / Redo (delegates to history, then syncs RF)
+  // ---------------------------------------------------------------------------
+
+  const undo = useCallback(() => {
+    history.undo();
+    syncFromModel(history.currentModel);
+  }, [history, syncFromModel]);
+
+  const redo = useCallback(() => {
+    history.redo();
+    syncFromModel(history.currentModel);
+  }, [history, syncFromModel]);
+
+  // ---------------------------------------------------------------------------
+  // Dirty tracking: model reference comparison
+  // ---------------------------------------------------------------------------
+
+  const graph = history.currentModel.nodes.length > 0 ? history.currentModel : null;
+  const isDirty = initialModelRef.current !== null && graph !== initialModelRef.current;
 
   return useMemo(
     () => ({
@@ -133,16 +400,31 @@ export function useWorkflowCanvas(yaml: string | null): UseWorkflowCanvasReturn 
       edges,
       onNodesChange,
       onEdgesChange,
+      onConnect,
+      isValidConnection,
+      onDrop,
+      onDragOver,
+      onNodesDelete,
+      onEdgesDelete,
       selection,
       selectNode,
       selectEdge,
       clearSelection,
       autoLayout,
+      undo,
+      redo,
+      canUndo: history.canUndo,
+      canRedo: history.canRedo,
       isDirty,
       graph,
       error,
     }),
-    [nodes, edges, onNodesChange, onEdgesChange, selection, selectNode, selectEdge, clearSelection, autoLayout, isDirty, graph, error],
+    [
+      nodes, edges, onNodesChange, onEdgesChange, onConnect,
+      isValidConnection, onDrop, onDragOver, onNodesDelete, onEdgesDelete,
+      selection, selectNode, selectEdge, clearSelection, autoLayout,
+      undo, redo, history.canUndo, history.canRedo, isDirty, graph, error,
+    ],
   );
 }
 

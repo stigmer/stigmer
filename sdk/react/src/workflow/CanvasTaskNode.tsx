@@ -12,9 +12,12 @@ const NESTED_TASK_KINDS = new Set(["fork", "for_each", "try_catch"]);
 /**
  * Custom React Flow node rendering a single workflow task.
  *
- * Displays the task's kind icon via category-colored left border,
+ * Displays the task's kind via category-colored left border,
  * task name, kind badge, and appropriate connection handles.
  * Sentinel nodes (__start__, __end__) render as compact pills.
+ *
+ * Multi-port output handles are rendered for `switch_case` (per case)
+ * and `human_input` (per outcome) task kinds.
  *
  * @since T15 (Visual Canvas Editor)
  */
@@ -28,8 +31,9 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
 
   const borderColor = CATEGORY_COLORS[data.category];
   const isNested = NESTED_TASK_KINDS.has(data.kindString);
-  const switchCases = data.kindString === "switch_case" ? getSwitchCases(data) : [];
-  const hasMulitpleOutputs = switchCases.length > 0;
+
+  const multiOutputHandles = getMultiOutputHandles(data);
+  const hasMultipleOutputs = multiOutputHandles.length > 0;
 
   return (
     <div
@@ -67,16 +71,16 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
         </div>
       </div>
 
-      {hasMulitpleOutputs ? (
-        switchCases.map((caseName, idx) => (
+      {hasMultipleOutputs ? (
+        multiOutputHandles.map((handle, idx) => (
           <Handle
-            key={`case_${idx}`}
+            key={handle.id}
             type="source"
             position={Position.Bottom}
-            id={`case_${idx}`}
+            id={handle.id}
             className="!h-2 !w-2 !rounded-full !border-[var(--stgm-border,#d4d4d8)] !bg-[var(--stgm-background,#fff)]"
             style={{
-              left: `${((idx + 1) / (switchCases.length + 1)) * 100}%`,
+              left: `${((idx + 1) / (multiOutputHandles.length + 1)) * 100}%`,
             }}
           />
         ))
@@ -90,6 +94,10 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
     </div>
   );
 });
+
+// ---------------------------------------------------------------------------
+// SentinelNode
+// ---------------------------------------------------------------------------
 
 function SentinelNode({
   data,
@@ -127,12 +135,49 @@ function SentinelNode({
   );
 }
 
-function getSwitchCases(data: CanvasTaskNodeData): string[] {
-  const cases = (data.config as Record<string, unknown>)?.cases;
-  if (!Array.isArray(cases)) return [];
-  return cases
-    .filter((c): c is Record<string, unknown> => c != null && typeof c === "object")
-    .map((c) => (typeof c.name === "string" ? c.name : ""));
+// ---------------------------------------------------------------------------
+// Multi-output handle helpers
+// ---------------------------------------------------------------------------
+
+interface OutputHandle {
+  id: string;
+  label: string;
+}
+
+/**
+ * Extracts multi-output handles for task kinds that support branching:
+ * - `switch_case`: one handle per case entry
+ * - `human_input`: one handle per outcome entry
+ *
+ * Returns empty array for all other task kinds (single default output).
+ */
+function getMultiOutputHandles(data: CanvasTaskNodeData): OutputHandle[] {
+  const config = data.config as Record<string, unknown> | undefined;
+  if (!config) return [];
+
+  if (data.kindString === "switch_case") {
+    const cases = config.cases;
+    if (!Array.isArray(cases)) return [];
+    return cases
+      .filter((c): c is Record<string, unknown> => c != null && typeof c === "object")
+      .map((c, idx) => ({
+        id: `case_${idx}`,
+        label: typeof c.name === "string" ? c.name : "",
+      }));
+  }
+
+  if (data.kindString === "human_input") {
+    const outcomes = config.outcomes;
+    if (!Array.isArray(outcomes)) return [];
+    return outcomes
+      .filter((o): o is Record<string, unknown> => o != null && typeof o === "object")
+      .map((o, idx) => ({
+        id: `outcome_${idx}`,
+        label: typeof o.name === "string" ? o.name : "",
+      }));
+  }
+
+  return [];
 }
 
 function formatKindLabel(kind: string): string {
