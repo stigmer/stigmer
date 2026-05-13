@@ -2,14 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   WorkflowDetailView,
+  WorkflowEditorView,
+  useWorkflowYaml,
   useCopyResource,
   useConfirmAction,
   useDeleteResource,
   ConfirmDialog,
   useBreadcrumbOverride,
   type DetailAction,
+  type AdditionalTab,
 } from "@stigmer/react";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 
@@ -34,6 +38,7 @@ export function WorkflowDetailPageInner({
     resourceId,
     resourceName,
   );
+  const { yaml: initialYaml } = useWorkflowYaml(org, slug);
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -45,6 +50,14 @@ export function WorkflowDetailPageInner({
     },
     [setLabel],
   );
+
+  const handleSaveSuccess = useCallback(() => {
+    toast.success("Workflow saved successfully");
+  }, []);
+
+  const handleSaveError = useCallback((error: Error) => {
+    toast.error(error.message);
+  }, []);
 
   const handleDelete = useCallback(async () => {
     const confirmed = await confirm({
@@ -93,6 +106,29 @@ export function WorkflowDetailPageInner({
     [resourceId, copyId, copyQualifiedSlug, org, slug, handleDelete, isDeleting],
   );
 
+  const additionalTabs: AdditionalTab[] = useMemo(
+    () =>
+      initialYaml
+        ? [
+            {
+              id: "editor",
+              label: "Editor",
+              content: (
+                <div className="h-[600px]">
+                  <WorkflowEditorView
+                    initialYaml={initialYaml}
+                    org={org}
+                    onSaveSuccess={handleSaveSuccess}
+                    onSaveError={handleSaveError}
+                  />
+                </div>
+              ),
+            },
+          ]
+        : [],
+    [initialYaml, org, handleSaveSuccess, handleSaveError],
+  );
+
   return (
     <>
       <WorkflowDetailView
@@ -100,6 +136,7 @@ export function WorkflowDetailPageInner({
         slug={slug}
         onResourceLoad={handleResourceLoad}
         actions={actions}
+        additionalTabs={additionalTabs}
       />
       <ConfirmDialog
         state={confirmState}

@@ -7,6 +7,21 @@ export type {
 } from "./types";
 
 export {
+  serializeWorkflowYaml,
+  parseWorkflowYaml,
+} from "./serialize-workflow-yaml";
+
+export {
+  useWorkflowYaml,
+  type UseWorkflowYamlReturn,
+} from "./useWorkflowYaml";
+
+export {
+  useWorkflowSave,
+  type UseWorkflowSaveReturn,
+} from "./useWorkflowSave";
+
+export {
   TaskKindRegistryContext,
   type TaskKindRegistryState,
 } from "./TaskKindRegistryContext";
@@ -72,6 +87,42 @@ export {
   useWorkflowExecutionActions,
   type UseWorkflowExecutionActionsReturn,
 } from "./useWorkflowExecutionActions";
+
+// T10: YAML editor — behavior hooks
+export {
+  useWorkflowValidation,
+  type UseWorkflowValidationReturn,
+} from "./useWorkflowValidation";
+
+export {
+  useWorkflowTopology,
+  type UseWorkflowTopologyReturn,
+  type TopologyNode,
+  type TopologyEdge,
+  type TopologyNodeCategory,
+} from "./useWorkflowTopology";
+
+// T10: YAML editor — styled components
+export {
+  WorkflowYamlEditor,
+  type WorkflowYamlEditorProps,
+} from "./WorkflowYamlEditor";
+
+export {
+  WorkflowTopologyGraph,
+  type WorkflowTopologyGraphProps,
+} from "./WorkflowTopologyGraph";
+
+export {
+  useWorkflowEditor,
+  type UseWorkflowEditorOptions,
+  type UseWorkflowEditorReturn,
+} from "./useWorkflowEditor";
+
+export {
+  WorkflowEditorView,
+  type WorkflowEditorViewProps,
+} from "./WorkflowEditorView";
 
 // T08: Workflow styled components
 export {
