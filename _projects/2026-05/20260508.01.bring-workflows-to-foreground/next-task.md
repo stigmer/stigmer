@@ -19,12 +19,75 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-13 — T11 COMPLETE (Phase 1 continues)
-**Current Task**: T11 COMPLETE — Run Workflow from UI
+**Last Session**: 2026-05-13 — T12 COMPLETE (Phase 1 continues)
+**Current Task**: T12 COMPLETE — CLI Parity
 **Phase**: Phase 1 — Foreground MVP — IN PROGRESS
-**Next Task**: T12 (CLI Parity), T14 (Dashboard Integration)
+**Next Task**: T14 (Dashboard Integration), Go event/budget wiring
 
-## Session Progress (2026-05-13, T11)
+## Session Progress (2026-05-13, T12)
+
+### T12: CLI Parity — Unified Execution Commands + Developer Workflow Tools — COMPLETE
+
+Added `stigmer execution` command group (7 subcommands) for unified lifecycle
+management and observability of both agent and workflow executions, plus
+`stigmer diff` for pre-apply change preview. 20 new files, 3 modified.
+
+#### DD-T12-001: Execution type auto-detection from ID prefix
+- Agent (`aex_`) and workflow (`wex_`) execution IDs auto-route to correct API
+- Uses existing `reference.IsAgentExecutionID` / `IsWorkflowExecutionID`
+- No `--type` flag needed for ID-based commands
+
+#### DD-T12-002: `stigmer execution` as noun-group (hybrid CLI pattern)
+- Verb-first CRUD preserved (`stigmer list/get/delete`)
+- Noun-group for specialized lifecycle/observability operations
+- Follows kubectl precedent: `kubectl get pods` + `kubectl logs`
+
+#### T12.1: Execution Infrastructure
+- `internal/cli/execution/resolve.go` — `ExecutionType` enum + `ResolveType(id)`
+- Enhanced `get execution` to support both `aex_` and `wex_` IDs
+- Enhanced `list executions` with `--type agent|workflow` filter
+- Workflow execution display (table + list formatters)
+
+#### T12.2: `stigmer execution` Command Group + Lifecycle
+- `stigmer execution cancel <id> [--reason]`
+- `stigmer execution terminate <id> [--reason]`
+- `stigmer execution pause <id> [--reason]`
+- `stigmer execution resume <id>`
+- All auto-detect execution type and route to correct API
+
+#### T12.3: `stigmer execution logs <id>`
+- Workflow: `getEventLog` (paginated) + `subscribeEvents` (`--follow`)
+- Agent: message rendering + `subscribe` stream (`--follow`)
+- `--task` filter for workflow events
+- Colored, timestamped event rendering
+
+#### T12.4: `stigmer execution trace <id>`
+- Workflow: task tree with status icons, timing, error details
+- Agent: tool call timeline extracted from messages
+- `--output yaml|json` for structured data
+
+#### T12.5: `stigmer execution approve <id>`
+- Workflow: `submitWorkflowTaskApproval` with `--task`, `--outcome`, `--data-file`
+- Agent: `submitApproval` with `--tool-call`, `--action`
+- Type-specific flag validation
+
+#### T12.6: `stigmer validate -f` — Already existed
+- Discovered during implementation — fully functional validate command was already in place
+
+#### T12.7: `stigmer diff -f <file>`
+- Generic resource diff (auto-detects kind from YAML)
+- Fetches remote by org/slug, renders colored unified diff
+- Supports directories and `--context` lines
+- Uses existing `go-difflib` dependency
+
+#### Verification
+- `go build ./client-apps/cli/...` — clean
+- `go vet ./client-apps/cli/...` — clean
+- `stigmer execution --help` — 7 subcommands registered
+- `stigmer diff --help` — functional
+- Pre-existing test failure in `pkg/display` (unrelated)
+
+## Previous Session Progress (2026-05-13, T11)
 
 ### T11: Run Workflow from UI — COMPLETE
 
@@ -267,6 +330,9 @@ Built the full Execution Viewer following SDK-first architecture (DD-001): event
 
 ## Previous Sessions
 
+### T12 (COMPLETE — 2026-05-13)
+CLI Parity — Unified `stigmer execution` command group (cancel, terminate, pause, resume, logs, trace, approve) + `stigmer diff -f`. 20 new files, 3 modified. Auto-detects agent vs workflow from ID prefix.
+
 ### T08 (COMPLETE — 2026-05-12)
 Workflow List and Detail Pages — codegen fix, React SDK data hooks, styled components (WorkflowDetailView, PhaseBadge, TaskList), web console pages, sidebar navigation, barrel exports
 
@@ -289,15 +355,18 @@ New Task Types — llm_call, transform, human_input, validate, emit_event, notif
 Structured Agent Output Model
 
 ## Next Steps
-1. **T12: CLI Parity** — `stigmer workflow list/get/validate/apply/diff/run/logs/trace/cancel/resume`
-2. **T14: Dashboard Integration** — pending approvals, failed runs, cost charts
-3. **Go event emission wiring** — connect `pkg/events/emitter.go` to the updateStatus gRPC call path so events flow to Java
-4. **Budget enforcement wiring** — connect `pkg/budget/tracker.go` to iterateTasks loop
+1. **T14: Dashboard Integration** — pending approvals, failed runs, cost charts
+2. **Go event emission wiring** — connect `pkg/events/emitter.go` to the updateStatus gRPC call path so events flow to Java
+3. **Budget enforcement wiring** — connect `pkg/budget/tracker.go` to iterateTasks loop
+4. **T15: Visual Canvas Editor** (Phase 2) — drag-and-drop DAG builder
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
-- Phase 1 (Foreground MVP) IN PROGRESS — T08, T09, T10, T11, T13, T13b complete
+- Phase 1 (Foreground MVP) IN PROGRESS — T08, T09, T10, T11, T12, T13, T13b complete
+- Only T14 (Dashboard Integration) remains for Phase 1 completion
 - All verification passes: `tsc --noEmit` for sdk/react, sdk/typescript, client-apps/web
+- CLI now has full `stigmer execution` command group (cancel/terminate/pause/resume/logs/trace/approve) + `stigmer diff`
+- `stigmer validate` already existed — discovered during T12 implementation
 - `useExportResource` only supports Agent and McpServer — workflow YAML export deferred
 - Search indexing for workflows in backend unverified — `list()` may return empty
 - `CheckBudgetWarnings()` (T05) still standalone — NOT wired into `ValidateWorkflow()` yet

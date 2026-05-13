@@ -33,6 +33,7 @@ func NewListCommand() *cobra.Command {
 	var outputFormat string
 	var limit int32
 	var verbFilter string
+	var typeFilter string
 
 	cmd := &cobra.Command{
 		Use:   "list <type>",
@@ -68,7 +69,11 @@ Both singular and plural forms are accepted.`,
   stigmer list agents --output yaml
 
   # List active runners on this machine
-  stigmer list runners`,
+  stigmer list runners
+
+  # List executions filtered by type
+  stigmer list executions --type workflow
+  stigmer list executions --type agent`,
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := executeList(listOptions{
@@ -77,6 +82,7 @@ Both singular and plural forms are accepted.`,
 				OutputFormat: outputFormat,
 				Limit:        limit,
 				VerbFilter:   verbFilter,
+				TypeFilter:   typeFilter,
 			})
 			clierr.Handle(err)
 		},
@@ -85,6 +91,7 @@ Both singular and plural forms are accepted.`,
 	cmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "output format: table, yaml, json")
 	cmd.Flags().Int32Var(&limit, "limit", 50, "maximum number of results")
 	cmd.Flags().StringVar(&verbFilter, "verb", "", "filter to types supporting this verb (only for 'list types')")
+	cmd.Flags().StringVar(&typeFilter, "type", "", "filter executions by type: agent, workflow (only for 'list executions')")
 
 	return cmd
 }
@@ -96,6 +103,7 @@ type listOptions struct {
 	OutputFormat string
 	Limit        int32
 	VerbFilter   string
+	TypeFilter   string
 }
 
 // isTypesType checks if the type arg refers to the meta-listing of resource types.
@@ -328,9 +336,8 @@ func listSkills(orgID, format string, limit int32, client *stigmer.Client) error
 }
 
 // executeListExecutions handles the special case of listing executions.
-// Executions use their own dedicated RPC, not the SearchService.
+// Supports both agent and workflow executions via --type filter.
 func executeListExecutions(opts listOptions) error {
-	// Setup backend connection
 	cfg, err := config.Load()
 	if err != nil {
 		return errors.Wrap(err, "failed to load configuration")
@@ -352,23 +359,54 @@ func executeListExecutions(opts listOptions) error {
 	}
 	defer client.Close()
 
+	typeFilter := strings.ToLower(strings.TrimSpace(opts.TypeFilter))
+
+	switch typeFilter {
+	case "workflow", "wf":
+		return listWorkflowExecutions(client, opts)
+	case "agent", "":
+		return listAgentExecutions(client, opts)
+	default:
+		return fmt.Errorf("unknown execution type filter: %s\n\nValid values: agent, workflow", opts.TypeFilter)
+	}
+}
+
+func listAgentExecutions(client *stigmer.Client, opts listOptions) error {
 	result, err := execution.List(&execution.ListOptions{
 		Client:   client,
 		PageSize: opts.Limit,
-		// Phase filter could be added via --status flag in future
 	})
 	if err != nil {
-		return errors.Wrap(err, "failed to list executions")
+		return errors.Wrap(err, "failed to list agent executions")
 	}
 
-	// Display results
 	execution.DisplayListResult(result, opts.OutputFormat)
 
-	// Show helpful hint if empty
 	if len(result.GetEntries()) == 0 {
 		fmt.Println()
 		climsg.Info("Tip: Run an agent to create an execution:")
 		climsg.Info("  stigmer run agent <name>")
+		fmt.Println()
+	}
+
+	return nil
+}
+
+func listWorkflowExecutions(client *stigmer.Client, opts listOptions) error {
+	result, err := execution.ListWorkflow(&execution.ListWorkflowOptions{
+		Client:   client,
+		PageSize: opts.Limit,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to list workflow executions")
+	}
+
+	execution.DisplayWorkflowExecutionListResult(result, opts.OutputFormat)
+
+	if len(result.GetEntries()) == 0 {
+		fmt.Println()
+		climsg.Info("Tip: Run a workflow to create an execution:")
+		climsg.Info("  stigmer run workflow <name>")
 		fmt.Println()
 	}
 
