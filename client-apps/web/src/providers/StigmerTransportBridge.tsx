@@ -24,7 +24,6 @@ import { useDeploymentMode } from "@/domain/_shared/hooks/useDeploymentMode";
  */
 export function StigmerTransportBridge({ children }: { children: ReactNode }) {
   const { accessToken, logout } = useAuth();
-  const deploymentMode = useDeploymentMode();
   const { resolvedTheme } = useTheme();
   const colorMode: ResolvedColorMode =
     resolvedTheme === "dark" ? "dark" : "light";
@@ -41,6 +40,8 @@ export function StigmerTransportBridge({ children }: { children: ReactNode }) {
       }),
     [getAccessToken, onUnauthenticated],
   );
+
+  const deploymentMode = useDeploymentMode(client);
 
   return (
     <StigmerProvider
