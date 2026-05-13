@@ -868,4 +868,31 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    */
   com.google.protobuf.ByteString
       getRunnerIdBytes();
+
+  /**
+   * <pre>
+   * Runner-reported usage summary, updated progressively during streaming.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
+   * @return Whether the runnerUsage field is set.
+   */
+  boolean hasRunnerUsage();
+  /**
+   * <pre>
+   * Runner-reported usage summary, updated progressively during streaming.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
+   * @return The runnerUsage.
+   */
+  ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary getRunnerUsage();
+  /**
+   * <pre>
+   * Runner-reported usage summary, updated progressively during streaming.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary runner_usage = 20 [json_name = "runnerUsage"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummaryOrBuilder getRunnerUsageOrBuilder();
 }

@@ -59,7 +59,9 @@ import { extractAgentRationale, getGitBranch, getGitHeadSha } from "../adapter/c
 import { writeHooksToWorkspace } from "../hitl/workspace-setup.js";
 import { buildApprovalState } from "../hitl/approval-state.js";
 import { setInterceptorExecutionId } from "../proxy/fetch-interceptor.js";
-import { resolveModelId } from "../adapter/model-pricing.js";
+import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "../adapter/model-pricing.js";
+import { UsageAccumulator } from "../adapter/usage-accumulator.js";
+import { RunnerUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { buildSessionMemory, persistSessionMemory } from "../adapter/session-memory.js";
 import { activityStarted, activityFinished } from "../idle-watchdog.js";
 
@@ -293,6 +295,10 @@ async function executeCursor(
         : (execution.status?.pendingApprovals ?? []),
     });
 
+    // Phase 10b: Initialize usage accumulator for runner-side token tracking
+    await ensurePricingLoaded();
+    const usageAccumulator = new UsageAccumulator(validatedModel);
+
     // Phase 11: Send message and stream events
     status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
     const collectedEvents: SDKMessage[] = [];
@@ -305,6 +311,7 @@ async function executeCursor(
     const run = await resolution.agent.send(prompt, {
       onDelta: ({ update }) => {
         if (update.type === "turn-ended" && update.usage) {
+          usageAccumulator.addTurn(update.usage);
         }
         deltaEnricher.processDelta(update);
         heartbeat();
@@ -328,6 +335,9 @@ async function executeCursor(
       }
 
       const shouldPersist = eventCount % 20 === 0 || deltaEnricher.isDirty || todoTracker.isDirty;
+      if (usageAccumulator.hasTurns) {
+        status.runnerUsage = create(RunnerUsageSummarySchema, usageAccumulator.snapshot());
+      }
       if (shouldPersist) {
         const signal = await persistStatus(client, executionId, status);
         deltaEnricher.markPersisted();
@@ -350,6 +360,9 @@ async function executeCursor(
     accumulator.finalize();
     deltaEnricher.finalize(status.messages);
     status.subAgentExecutions = accumulator.subAgentExecutions;
+    if (usageAccumulator.hasTurns) {
+      status.runnerUsage = create(RunnerUsageSummarySchema, usageAccumulator.snapshot());
+    }
     console.log(
       `ExecuteCursor stream ended: execution=${executionId}, events=${eventCount}, messages=${status.messages.length}, subAgents=${status.subAgentExecutions.length}`,
     );

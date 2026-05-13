@@ -7,7 +7,7 @@ import {
   GetSessionUsageReportInputSchema,
   type GetSessionUsageReportOutput,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import type { ModelUsage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import type { ModelUsage, RunnerUsageSummary } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { useStigmer } from "../hooks";
 import { useFetch } from "../internal/useFetch";
 
@@ -110,6 +110,66 @@ function mapReport(report: GetSessionUsageReportOutput): UseSessionUsageReturn {
 }
 
 /**
+ * Aggregate runner-reported usage from execution status objects.
+ * Used as a fallback when the server-side session usage report is empty
+ * (e.g., Cursor harness where the proxy does not capture main agent turns).
+ */
+function aggregateRunnerUsage(
+  executions: readonly AgentExecution[],
+): UseSessionUsageReturn {
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let cacheReadTokens = 0;
+  let cacheCreationTokens = 0;
+  let totalTokens = 0;
+  let turnCount = 0;
+  let estimatedCost = 0;
+  let model = "";
+
+  for (const exec of executions) {
+    const ru = exec.status?.runnerUsage;
+    if (!ru || ru.turnCount === 0) continue;
+    inputTokens += Number(ru.inputTokens);
+    outputTokens += Number(ru.outputTokens);
+    cacheReadTokens += Number(ru.cacheReadTokens);
+    cacheCreationTokens += Number(ru.cacheWriteTokens);
+    totalTokens += Number(ru.totalTokens);
+    turnCount += ru.turnCount;
+    estimatedCost += ru.estimatedCostUsd;
+    if (!model && ru.model) model = ru.model;
+  }
+
+  if (turnCount === 0) return EMPTY;
+
+  return {
+    totalCostUsd: estimatedCost,
+    totalTokens,
+    inputTokens,
+    outputTokens,
+    cacheReadTokens,
+    cacheCreationTokens,
+    llmCallCount: turnCount,
+    modelBreakdown: model
+      ? [
+          {
+            model,
+            provider: "cursor",
+            estimatedCostUsd: estimatedCost,
+            inputTokens,
+            outputTokens,
+            cacheCreationTokens,
+            cacheReadTokens,
+            callCount: turnCount,
+          },
+        ]
+      : [],
+    primaryModel: model,
+    primaryProvider: model ? "cursor" : "",
+    hasUsage: true,
+  };
+}
+
+/**
  * Usage hook for session-level cost and token aggregation.
  *
  * Calls `getSessionUsageReport` to fetch real usage data from the
@@ -140,8 +200,16 @@ export function useSessionUsage(
     { cacheKey: sessionId ? `session-usage:${sessionId}` : undefined },
   );
 
+  const runnerFallback = useMemo(
+    () => aggregateRunnerUsage(executions),
+    [executions],
+  );
+
   return useMemo(() => {
-    if (!report) return EMPTY;
-    return mapReport(report);
-  }, [report]);
+    if (report) {
+      const mapped = mapReport(report);
+      if (mapped.hasUsage) return mapped;
+    }
+    return runnerFallback;
+  }, [report, runnerFallback]);
 }
