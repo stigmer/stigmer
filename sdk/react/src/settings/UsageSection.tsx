@@ -1,14 +1,11 @@
 "use client";
 
 import { OrgUsagePanel } from "../usage/OrgUsagePanel";
-import { useDeploymentMode } from "../deployment-mode";
-import { CloudFeatureNotice } from "../internal/CloudFeatureNotice";
 import { useOrg } from "../organization/OrgProvider";
 
 /** Settings section for organization usage and cost reporting. */
 export function UsageSection() {
   const { activeOrg } = useOrg();
-  const mode = useDeploymentMode();
   const orgId = activeOrg?.metadata?.id ?? "";
 
   return (
@@ -24,12 +21,7 @@ export function UsageSection() {
         your organization.
       </p>
 
-      {mode === "local" ? (
-        <CloudFeatureNotice>
-          Usage reports are not available in local mode. Connect to Stigmer
-          Cloud to view organization-level cost and token analytics.
-        </CloudFeatureNotice>
-      ) : !orgId ? (
+      {!orgId ? (
         <p className="text-muted-foreground py-4 text-center text-xs">
           Select an organization to view usage.
         </p>
