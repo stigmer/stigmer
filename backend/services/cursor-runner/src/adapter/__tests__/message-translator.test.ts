@@ -587,10 +587,11 @@ describe("extractDeniedToolCalls", () => {
 
     const denied = extractDeniedToolCalls(events);
     expect(denied).toHaveLength(1);
-    expect(denied[0]).toEqual({
+    expect(denied[0]).toMatchObject({
       callId: "tc-d1",
       name: "Shell",
       argsPreview: "rm -rf /",
+      mcpServerSlug: "",
     });
   });
 
@@ -635,5 +636,171 @@ describe("extractDeniedToolCalls", () => {
 
   it("returns empty array for empty input", () => {
     expect(extractDeniedToolCalls([])).toHaveLength(0);
+  });
+});
+
+// --- Tests for MCP tool name extraction and policy enrichment ---
+
+import { extractMcpToolDetails, buildToolCallProto } from "../message-translator.js";
+import type { MergedToolPolicy } from "../../hitl/approval-policy.js";
+
+describe("extractMcpToolDetails", () => {
+  it("extracts providerIdentifier and toolName from MCP tool_call event", () => {
+    const event = {
+      type: "tool_call" as const,
+      name: "mcp",
+      call_id: "tc_1",
+      status: "running",
+      run_id: "r1",
+      args: {
+        providerIdentifier: "planton",
+        toolName: "search_services",
+        args: { input: { search_text: "web" } },
+      },
+      result: null,
+    } as Extract<import("@cursor/sdk").SDKMessage, { type: "tool_call" }>;
+
+    const details = extractMcpToolDetails(event);
+    expect(details).toBeDefined();
+    expect(details!.providerIdentifier).toBe("planton");
+    expect(details!.toolName).toBe("search_services");
+    expect(details!.innerArgs).toEqual({ input: { search_text: "web" } });
+  });
+
+  it("returns undefined for non-MCP tool_call events", () => {
+    const event = {
+      type: "tool_call" as const,
+      name: "Shell",
+      call_id: "tc_2",
+      status: "running",
+      run_id: "r1",
+      args: { command: "ls" },
+      result: null,
+    } as Extract<import("@cursor/sdk").SDKMessage, { type: "tool_call" }>;
+
+    expect(extractMcpToolDetails(event)).toBeUndefined();
+  });
+
+  it("returns undefined when args lack toolName", () => {
+    const event = {
+      type: "tool_call" as const,
+      name: "mcp",
+      call_id: "tc_3",
+      status: "running",
+      run_id: "r1",
+      args: { providerIdentifier: "planton" },
+      result: null,
+    } as Extract<import("@cursor/sdk").SDKMessage, { type: "tool_call" }>;
+
+    expect(extractMcpToolDetails(event)).toBeUndefined();
+  });
+});
+
+describe("buildToolCallProto with MCP enrichment", () => {
+  const mcpEvent = {
+    type: "tool_call" as const,
+    name: "mcp",
+    call_id: "tc_mcp_1",
+    status: "running",
+    run_id: "r1",
+    args: {
+      providerIdentifier: "planton",
+      toolName: "apply_cloud_resource",
+      args: { cloud_object: "my-service" },
+    },
+    result: null,
+  } as Extract<import("@cursor/sdk").SDKMessage, { type: "tool_call" }>;
+
+  it("sets actual tool name instead of 'mcp'", () => {
+    const tc = buildToolCallProto(mcpEvent);
+    expect(tc.name).toBe("apply_cloud_resource");
+  });
+
+  it("sets mcpServerSlug from providerIdentifier", () => {
+    const tc = buildToolCallProto(mcpEvent);
+    expect(tc.mcpServerSlug).toBe("planton");
+  });
+
+  it("populates requiresApproval from merged policies", () => {
+    const policies = new Map<string, MergedToolPolicy>([
+      ["planton/apply_cloud_resource", {
+        toolName: "apply_cloud_resource",
+        mcpServerSlug: "planton",
+        requiresApproval: true,
+        approvalMessage: "Create or update cloud resource {{args.cloud_object}}",
+      }],
+    ]);
+
+    const tc = buildToolCallProto(mcpEvent, policies);
+    expect(tc.requiresApproval).toBe(true);
+    expect(tc.approvalMessage).toBe("Create or update cloud resource my-service");
+  });
+
+  it("does not set requiresApproval when no policy matches", () => {
+    const policies = new Map<string, MergedToolPolicy>();
+    const tc = buildToolCallProto(mcpEvent, policies);
+    expect(tc.requiresApproval).toBe(false);
+  });
+
+  it("preserves argsPreview with full MCP args", () => {
+    const tc = buildToolCallProto(mcpEvent);
+    const preview = JSON.parse(tc.argsPreview);
+    expect(preview.providerIdentifier).toBe("planton");
+    expect(preview.toolName).toBe("apply_cloud_resource");
+  });
+});
+
+describe("extractDeniedToolCalls with MCP details", () => {
+  it("extracts actual MCP tool name from denied events", () => {
+    const events = [
+      {
+        type: "tool_call" as const,
+        name: "mcp",
+        call_id: "tc_denied_1",
+        status: "error",
+        run_id: "r1",
+        args: {
+          providerIdentifier: "planton",
+          toolName: "delete_service",
+          args: { id: "svc-123" },
+        },
+        result: "STIGMER_APPROVAL_REQUIRED",
+      },
+    ] as import("@cursor/sdk").SDKMessage[];
+
+    const denied = extractDeniedToolCalls(events);
+    expect(denied).toHaveLength(1);
+    expect(denied[0].name).toBe("delete_service");
+    expect(denied[0].mcpServerSlug).toBe("planton");
+  });
+
+  it("includes approval message from policies", () => {
+    const policies = new Map<string, MergedToolPolicy>([
+      ["planton/delete_service", {
+        toolName: "delete_service",
+        mcpServerSlug: "planton",
+        requiresApproval: true,
+        approvalMessage: "Delete service {{args.id}}",
+      }],
+    ]);
+
+    const events = [
+      {
+        type: "tool_call" as const,
+        name: "mcp",
+        call_id: "tc_denied_2",
+        status: "error",
+        run_id: "r1",
+        args: {
+          providerIdentifier: "planton",
+          toolName: "delete_service",
+          args: { id: "svc-456" },
+        },
+        result: "denied",
+      },
+    ] as import("@cursor/sdk").SDKMessage[];
+
+    const denied = extractDeniedToolCalls(events, policies);
+    expect(denied[0].approvalMessage).toBe("Delete service svc-456");
   });
 });

@@ -47,6 +47,8 @@ import { MessageAccumulator, extractDeniedToolCalls, utcTimestamp } from "../ada
 import { DeltaEnricher } from "../adapter/delta-enricher.js";
 import { TodoTracker } from "../adapter/todo-tracker.js";
 import { resolveMcpServers } from "../adapter/mcp-resolver.js";
+import { mergeApprovalPolicies } from "../hitl/approval-policy.js";
+import { backfillMcpServersIfNeeded } from "../adapter/connect-backfill.js";
 import { resolveExecutionEnv } from "../adapter/env-resolver.js";
 import { resolveBlueprint } from "../adapter/blueprint-resolver.js";
 import { resolveSkills } from "../adapter/skill-resolver.js";
@@ -165,9 +167,27 @@ async function executeCursor(
       }
     }
 
-    // Phase 4: Resolve MCP servers (merged from agent + session)
+    // Phase 4: Resolve MCP servers with approval policies
     await reportSetupProgress(client, executionId, "Resolving MCP servers");
-    const mcpConfig = await resolveMcpServers(client, blueprint.mergedMcpServerUsages, envVars);
+    let mcpResolution = await resolveMcpServers(
+      client, blueprint.mergedMcpServerUsages, envVars,
+    );
+
+    // Phase 4a: Connect backfill for undiscovered MCP servers
+    const sessionOrg = session.metadata?.org ?? "";
+    mcpResolution = await backfillMcpServersIfNeeded(
+      client, mcpResolution, blueprint.mergedMcpServerUsages, envVars, sessionOrg,
+    );
+    const mcpConfig = mcpResolution.cursorConfig;
+
+    // Phase 4b: Merge approval policies from all layers
+    const agentOverrides = blueprint.mergedMcpServerUsages
+      .flatMap((u) => u.toolApprovalOverrides ?? []);
+    const mergedPolicies = mergeApprovalPolicies(
+      mcpResolution.resolvedServers,
+      agentOverrides,
+      execution.spec?.autoApproveAll ?? false,
+    );
     heartbeat();
 
     // Phase 5: Resolve skills (merged from agent + session)
@@ -230,8 +250,12 @@ async function executeCursor(
       (resolution.resumeFailureDetail ? `, failureDetail=${resolution.resumeFailureDetail}` : ""),
     );
 
-    // Phase 8: Write hooks for HITL
-    const approvalState = buildApprovalState(approvalDecisions);
+    // Phase 8: Write hooks for HITL with policy-aware state
+    const approvalState = buildApprovalState(
+      mergedPolicies,
+      execution.spec?.autoApproveAll ?? false,
+      approvalDecisions,
+    );
     await writeHooksToWorkspace(primaryWorkspaceDir, approvalState);
 
     // Phase 9: Store new agentId as thread_id and persist cursor_mode
@@ -287,7 +311,7 @@ async function executeCursor(
       },
     });
 
-    const accumulator = new MessageAccumulator(status.messages);
+    const accumulator = new MessageAccumulator(status.messages, { mergedPolicies });
     let eventCount = 0;
 
     for await (const event of run.stream()) {
@@ -347,7 +371,7 @@ async function executeCursor(
     }
 
     // Phase 12: Check for denied tool calls (HITL)
-    const deniedCalls = extractDeniedToolCalls(collectedEvents);
+    const deniedCalls = extractDeniedToolCalls(collectedEvents, mergedPolicies);
     if (deniedCalls.length > 0) {
       status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
 
@@ -362,6 +386,7 @@ async function executeCursor(
           toolCallId: dc.callId,
           toolName: dc.name,
           argsPreview: dc.argsPreview,
+          message: dc.approvalMessage,
           agentRationale: extractAgentRationale(status.messages, dc.callId),
           branchAtDeny: gitBranch,
           headShaAtDeny: gitHead,
@@ -369,7 +394,7 @@ async function executeCursor(
       );
       status.messages.push(create(AgentMessageSchema, {
         type: MessageType.MESSAGE_SYSTEM,
-        content: `Tool approval required for: ${deniedCalls.map((d) => d.name).join(", ")}`,
+        content: `Tool approval required for: ${deniedCalls.map((d) => d.mcpServerSlug ? d.mcpServerSlug + "/" + d.name : d.name).join(", ")}`,
         timestamp: utcTimestamp(),
       }));
       await persistStatus(client, executionId, status);

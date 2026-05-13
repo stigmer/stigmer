@@ -1,10 +1,14 @@
 /**
- * Resolves Stigmer McpServerUsage references into Cursor SDK McpServerConfig.
+ * Resolves Stigmer McpServerUsage references into Cursor SDK McpServerConfig
+ * and loads tool approval policies from each MCP server resource.
  *
  * Stigmer sessions reference MCP servers by slug via McpServerUsage. Each
  * usage points to an McpServer resource that has connection config (stdio
- * or HTTP). This module fetches those resources and translates them into
- * the Cursor SDK's McpServerConfig format for Agent.create().
+ * or HTTP) and tool approval policies (system-generated + manual overrides).
+ *
+ * This module fetches those resources and produces:
+ * 1. Cursor SDK McpServerConfig for Agent.create()
+ * 2. Tool approval policies for the HITL hook script
  *
  * Secrets (env vars, headers) come from the merged execution context,
  * same pipeline as the Python agent-runner's config_transformer.py.
@@ -12,6 +16,7 @@
 
 import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import {
   resolveHeaders,
@@ -39,7 +44,11 @@ export type CursorMcpServerConfig =
     };
 
 /**
- * Resolved MCP server with its connection config.
+ * Resolved MCP server with connection config and approval policies.
+ *
+ * Extends the basic connection info with the full policy data needed
+ * for HITL enforcement. Loaded in a single fetch per server to avoid
+ * extra round-trips.
  */
 export interface ResolvedMcpServer {
   slug: string;
@@ -50,22 +59,38 @@ export interface ResolvedMcpServer {
   cwd?: string;
   url?: string;
   headers?: Record<string, string>;
+  /** System-generated approval policies from the connect flow's LLM classifier. */
+  toolApprovals: ToolApprovalPolicy[];
+  /** Manual overrides set by the MCP server owner. */
+  pinnedToolApprovals: ToolApprovalPolicy[];
+  /** True when the server has never been connected (no tool discovery yet). */
+  discoveredCapabilitiesEmpty: boolean;
+}
+
+/**
+ * Result of resolving MCP servers: Cursor SDK config for Agent.create()
+ * and the full resolved server list for policy evaluation.
+ */
+export interface McpResolutionResult {
+  cursorConfig: Record<string, CursorMcpServerConfig>;
+  resolvedServers: ResolvedMcpServer[];
 }
 
 /**
  * Fetch McpServer resources for each merged usage and resolve into
- * Cursor SDK config format.
+ * Cursor SDK config format plus approval policies.
  *
  * Replicates the Python agent-runner's pattern:
  * 1. For each McpServerUsage, use the ref to fetch the full McpServer resource
  * 2. Extract connection config (stdio or http) from McpServerSpec
- * 3. Transform into Cursor SDK's mcpServers config
+ * 3. Extract approval policies from McpServerStatus + McpServerSpec
+ * 4. Transform into Cursor SDK's mcpServers config
  */
 export async function resolveMcpServers(
   client: StigmerClient,
   usages: McpServerUsage[],
   envVars: Record<string, string> = {},
-): Promise<Record<string, CursorMcpServerConfig>> {
+): Promise<McpResolutionResult> {
   const resolved: ResolvedMcpServer[] = [];
 
   for (const usage of usages) {
@@ -94,11 +119,15 @@ export async function resolveMcpServers(
     }
   }
 
-  return toCursorMcpConfig(resolved);
+  return {
+    cursorConfig: toCursorMcpConfig(resolved),
+    resolvedServers: resolved,
+  };
 }
 
 /**
- * Convert a fetched McpServer resource into our intermediate format.
+ * Convert a fetched McpServer resource into our intermediate format,
+ * including approval policies and discovery state.
  */
 function mcpServerToResolved(
   server: McpServer,
@@ -107,6 +136,19 @@ function mcpServerToResolved(
 ): ResolvedMcpServer | null {
   const spec = server.spec;
   if (!spec) return null;
+
+  const status = server.status;
+  const toolApprovals = status?.toolApprovals ?? [];
+  const pinnedToolApprovals = spec.pinnedToolApprovals ?? [];
+  const discoveredCapabilitiesEmpty = !status?.discoveredCapabilities
+    || (status.discoveredCapabilities.tools.length === 0
+      && status.discoveredCapabilities.resourceTemplates.length === 0);
+
+  const base = {
+    toolApprovals,
+    pinnedToolApprovals,
+    discoveredCapabilitiesEmpty,
+  };
 
   switch (spec.serverType.case) {
     case "stdio": {
@@ -124,6 +166,7 @@ function mcpServerToResolved(
         args: resolvedArgs,
         env: Object.keys(envVars).length > 0 ? { ...envVars } : undefined,
         cwd: stdio.workingDir || undefined,
+        ...base,
       };
     }
     case "http": {
@@ -138,6 +181,7 @@ function mcpServerToResolved(
         connectionType: "http",
         url: http.url,
         headers: resolved,
+        ...base,
       };
     }
     default:
@@ -148,9 +192,6 @@ function mcpServerToResolved(
 /**
  * Transform resolved MCP servers into the Cursor SDK's mcpServers config
  * for Agent.create().
- *
- * @param servers - Pre-resolved MCP server configs (fetched from Stigmer)
- * @returns Record keyed by server slug, matching Cursor's mcpServers option
  */
 export function toCursorMcpConfig(
   servers: ResolvedMcpServer[],
@@ -182,7 +223,6 @@ export function toCursorMcpConfig(
 
 /**
  * Extract MCP server slugs from session-level McpServerUsage references.
- * These slugs are used to fetch the full McpServer resources from the server.
  */
 export function extractMcpServerSlugs(usages: McpServerUsage[]): string[] {
   return usages
