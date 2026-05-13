@@ -124,6 +124,25 @@ export {
   type WorkflowEditorViewProps,
 } from "./WorkflowEditorView";
 
+// T11: Run workflow — behavior hook
+export {
+  useRunWorkflowFlow,
+  type UseRunWorkflowFlowOptions,
+  type UseRunWorkflowFlowReturn,
+  type RunWorkflowFieldErrors,
+} from "./useRunWorkflowFlow";
+
+// T11: Run workflow — styled components
+export {
+  WorkflowRunForm,
+  type WorkflowRunFormProps,
+} from "./WorkflowRunForm";
+
+export {
+  WorkflowRunDialog,
+  type WorkflowRunDialogProps,
+} from "./WorkflowRunDialog";
+
 // T08: Workflow styled components
 export {
   WorkflowExecutionPhaseBadge,

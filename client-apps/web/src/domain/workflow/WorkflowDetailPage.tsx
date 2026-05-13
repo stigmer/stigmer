@@ -6,7 +6,10 @@ import { toast } from "sonner";
 import {
   WorkflowDetailView,
   WorkflowEditorView,
+  WorkflowRunDialog,
+  useWorkflow,
   useWorkflowYaml,
+  useWorkflowInstances,
   useCopyResource,
   useConfirmAction,
   useDeleteResource,
@@ -39,6 +42,9 @@ export function WorkflowDetailPageInner({
     resourceName,
   );
   const { yaml: initialYaml } = useWorkflowYaml(org, slug);
+  const { workflow } = useWorkflow(org, slug);
+  const { instances } = useWorkflowInstances(workflow?.metadata?.id);
+  const [showRunDialog, setShowRunDialog] = useState(false);
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -49,6 +55,30 @@ export function WorkflowDetailPageInner({
       setResourceName(name);
     },
     [setLabel],
+  );
+
+  const handleRunSuccess = useCallback(
+    (executionId: string) => {
+      toast.success("Workflow execution started");
+      router.push(`/workflows/executions/${executionId}`);
+    },
+    [router],
+  );
+
+  const handleRunError = useCallback((message: string) => {
+    toast.error(message);
+  }, []);
+
+  const primaryAction: DetailAction | undefined = useMemo(
+    () =>
+      workflow
+        ? {
+            id: "run",
+            label: "Run",
+            onAction: () => setShowRunDialog(true),
+          }
+        : undefined,
+    [workflow],
   );
 
   const handleSaveSuccess = useCallback(() => {
@@ -135,14 +165,27 @@ export function WorkflowDetailPageInner({
         org={org}
         slug={slug}
         onResourceLoad={handleResourceLoad}
+        primaryAction={primaryAction}
         actions={actions}
         additionalTabs={additionalTabs}
+        onExecutionClick={(id) => router.push(`/workflows/executions/${id}`)}
       />
       <ConfirmDialog
         state={confirmState}
         onConfirm={handleConfirm}
         onCancel={handleCancel}
       />
+      {workflow && (
+        <WorkflowRunDialog
+          open={showRunDialog}
+          onOpenChange={setShowRunDialog}
+          org={org}
+          workflow={workflow}
+          instances={instances}
+          onSuccess={handleRunSuccess}
+          onError={handleRunError}
+        />
+      )}
     </>
   );
 }
