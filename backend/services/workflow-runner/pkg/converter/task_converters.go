@@ -264,6 +264,199 @@ func (c *Converter) convertRunTask(cfg *tasksv1.RunTaskConfig) map[string]interf
 	}
 }
 
+// convertLlmCallTask converts LlmCallTaskConfig to YAML structure.
+// Maps to call: "llm" with the LLM-specific configuration.
+func (c *Converter) convertLlmCallTask(cfg *tasksv1.LlmCallTaskConfig) map[string]interface{} {
+	with := map[string]interface{}{
+		"model":  cfg.Model,
+		"prompt": cfg.Prompt,
+	}
+
+	if cfg.SystemPrompt != "" {
+		with["system_prompt"] = cfg.SystemPrompt
+	}
+	if cfg.ResponseSchema != nil && len(cfg.ResponseSchema.AsMap()) > 0 {
+		with["response_schema"] = cfg.ResponseSchema.AsMap()
+	}
+	if cfg.Temperature != 0 {
+		with["temperature"] = cfg.Temperature
+	}
+	if cfg.MaxTokens > 0 {
+		with["max_tokens"] = cfg.MaxTokens
+	}
+	if cfg.Timeout > 0 {
+		with["timeout"] = cfg.Timeout
+	}
+	if cfg.OnInvalid != tasksv1.OnInvalidOutputPolicy_ON_INVALID_POLICY_UNSPECIFIED {
+		with["on_invalid"] = cfg.OnInvalid.String()
+	}
+	if cfg.MaxRetries > 0 {
+		with["max_retries"] = cfg.MaxRetries
+	}
+	if cfg.FallbackTask != "" {
+		with["fallback_task"] = cfg.FallbackTask
+	}
+	if cfg.MaxCostMicros > 0 {
+		with["max_cost_micros"] = cfg.MaxCostMicros
+	}
+	if cfg.MaxTotalTokens > 0 {
+		with["max_total_tokens"] = cfg.MaxTotalTokens
+	}
+
+	return map[string]interface{}{
+		"call": "llm",
+		"with": with,
+	}
+}
+
+// convertTransformTask converts TransformTaskConfig to YAML structure.
+// Maps to call: "transform" with engine, expression, and optional input.
+func (c *Converter) convertTransformTask(cfg *tasksv1.TransformTaskConfig) map[string]interface{} {
+	with := map[string]interface{}{
+		"engine":     cfg.Engine.String(),
+		"expression": cfg.Expression,
+	}
+
+	if cfg.Input != "" {
+		with["input"] = cfg.Input
+	}
+
+	return map[string]interface{}{
+		"call": "transform",
+		"with": with,
+	}
+}
+
+// convertHumanInputTask converts HumanInputTaskConfig to YAML structure.
+// Maps to call: "human_input" with approval gate configuration.
+func (c *Converter) convertHumanInputTask(cfg *tasksv1.HumanInputTaskConfig) map[string]interface{} {
+	with := map[string]interface{}{
+		"prompt": cfg.Prompt,
+	}
+
+	if cfg.FormSchema != nil && len(cfg.FormSchema.AsMap()) > 0 {
+		with["form_schema"] = cfg.FormSchema.AsMap()
+	}
+	if len(cfg.Outcomes) > 0 {
+		outcomes := make([]map[string]interface{}, 0, len(cfg.Outcomes))
+		for _, o := range cfg.Outcomes {
+			om := map[string]interface{}{"name": o.Name}
+			if o.Label != "" {
+				om["label"] = o.Label
+			}
+			if o.Then != "" {
+				om["then"] = o.Then
+			}
+			outcomes = append(outcomes, om)
+		}
+		with["outcomes"] = outcomes
+	}
+	if len(cfg.Approvers) > 0 {
+		with["approvers"] = cfg.Approvers
+	}
+	if cfg.Timeout > 0 {
+		with["timeout"] = cfg.Timeout
+	}
+	if cfg.OnTimeout != tasksv1.HumanInputTimeoutPolicy_HUMAN_INPUT_TIMEOUT_POLICY_UNSPECIFIED {
+		with["on_timeout"] = cfg.OnTimeout.String()
+	}
+	if len(cfg.NotificationChannels) > 0 {
+		with["notification_channels"] = cfg.NotificationChannels
+	}
+
+	return map[string]interface{}{
+		"call": "human_input",
+		"with": with,
+	}
+}
+
+// convertValidateTask converts ValidateTaskConfig to YAML structure.
+// Maps to call: "validate" with schema and business rule configuration.
+func (c *Converter) convertValidateTask(cfg *tasksv1.ValidateTaskConfig) map[string]interface{} {
+	with := map[string]interface{}{
+		"input": cfg.Input,
+	}
+
+	if cfg.Schema != nil && len(cfg.Schema.AsMap()) > 0 {
+		with["schema"] = cfg.Schema.AsMap()
+	}
+	if len(cfg.Rules) > 0 {
+		rules := make([]map[string]interface{}, 0, len(cfg.Rules))
+		for _, r := range cfg.Rules {
+			rm := map[string]interface{}{
+				"name":       r.Name,
+				"expression": r.Expression,
+			}
+			if r.Message != "" {
+				rm["message"] = r.Message
+			}
+			rules = append(rules, rm)
+		}
+		with["rules"] = rules
+	}
+	if cfg.OnFail != tasksv1.ValidationFailPolicy_VALIDATION_FAIL_POLICY_UNSPECIFIED {
+		with["on_fail"] = cfg.OnFail.String()
+	}
+	if cfg.FallbackTask != "" {
+		with["fallback_task"] = cfg.FallbackTask
+	}
+
+	return map[string]interface{}{
+		"call": "validate",
+		"with": with,
+	}
+}
+
+// convertEmitEventTask converts EmitEventTaskConfig to YAML structure.
+// Maps to call: "emit_event" with the CloudEvents envelope specification.
+func (c *Converter) convertEmitEventTask(cfg *tasksv1.EmitEventTaskConfig) map[string]interface{} {
+	event := map[string]interface{}{
+		"type": cfg.Event.Type,
+	}
+
+	if cfg.Event.Source != "" {
+		event["source"] = cfg.Event.Source
+	}
+	if cfg.Event.Subject != "" {
+		event["subject"] = cfg.Event.Subject
+	}
+	if cfg.Event.Data != nil && len(cfg.Event.Data.AsMap()) > 0 {
+		event["data"] = cfg.Event.Data.AsMap()
+	}
+
+	return map[string]interface{}{
+		"call": "emit_event",
+		"with": map[string]interface{}{
+			"event": event,
+		},
+	}
+}
+
+// convertNotificationTask converts NotificationTaskConfig to YAML structure.
+// Maps to call: "notification" with channel, recipients, and content.
+func (c *Converter) convertNotificationTask(cfg *tasksv1.NotificationTaskConfig) map[string]interface{} {
+	with := map[string]interface{}{
+		"channel":    cfg.Channel,
+		"recipients": cfg.Recipients,
+		"body":       cfg.Body,
+	}
+
+	if cfg.Subject != "" {
+		with["subject"] = cfg.Subject
+	}
+	if cfg.Template != "" {
+		with["template"] = cfg.Template
+	}
+	if len(cfg.Metadata) > 0 {
+		with["metadata"] = cfg.Metadata
+	}
+
+	return map[string]interface{}{
+		"call": "notification",
+		"with": with,
+	}
+}
+
 // convertAgentCallTask converts AgentCallTaskConfig to YAML structure
 func (c *Converter) convertAgentCallTask(cfg *tasksv1.AgentCallTaskConfig) map[string]interface{} {
 	with := map[string]interface{}{

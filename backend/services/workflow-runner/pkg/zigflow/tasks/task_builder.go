@@ -268,6 +268,24 @@ func NewTaskBuilder(taskName string, task model.Task, temporalWorker worker.Work
 		if t.Call == customCallFunctionAgent {
 			return NewCallAgentTaskBuilder(temporalWorker, t, taskName, doc)
 		}
+		if t.Call == customCallFunctionLlm {
+			return NewCallLlmTaskBuilder(temporalWorker, t, taskName, doc)
+		}
+		if t.Call == customCallFunctionTransform {
+			return NewTransformTaskBuilder(temporalWorker, t, taskName, doc)
+		}
+		if t.Call == customCallFunctionHumanInput {
+			return NewHumanInputTaskBuilder(temporalWorker, t, taskName, doc)
+		}
+		if t.Call == customCallFunctionValidate {
+			return NewValidateTaskBuilder(temporalWorker, t, taskName, doc)
+		}
+		if t.Call == customCallFunctionEmitEvent {
+			return NewEmitEventTaskBuilder(temporalWorker, t, taskName, doc)
+		}
+		if t.Call == customCallFunctionNotification {
+			return NewNotificationTaskBuilder(temporalWorker, t, taskName, doc)
+		}
 		return nil, fmt.Errorf("unsupported call type '%s' for task '%s'", t.Call, taskName)
 	case *model.CallGRPC:
 		return NewCallGRPCTaskBuilder(temporalWorker, t, taskName, doc)
