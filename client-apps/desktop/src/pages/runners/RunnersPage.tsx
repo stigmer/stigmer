@@ -26,6 +26,23 @@ import { OrgFleetSection } from "./OrgFleetSection";
 import { RunnerLogViewer } from "./RunnerLogViewer";
 import { toGrpcTarget } from "../../lib/grpc-target";
 
+const BASE_URL = import.meta.env.VITE_STIGMER_API_URL ?? "http://localhost:7234";
+
+const SIDECAR_ENDPOINT: string =
+  import.meta.env.VITE_STIGMER_SIDECAR_ENDPOINT ??
+  toGrpcTarget(BASE_URL);
+
+function isLocalEndpoint(url: string): boolean {
+  try {
+    const host = new URL(url).hostname;
+    return host === "localhost" || host === "127.0.0.1" || host === "::1";
+  } catch {
+    return false;
+  }
+}
+
+const SIDECAR_INSECURE = isLocalEndpoint(BASE_URL);
+
 const SESSION_EXPIRED_MESSAGE =
   "Your session has expired. Please sign out and sign back in to start a runner.";
 const NO_ORG_MESSAGE =
@@ -92,8 +109,9 @@ export default function RunnersPage() {
     if (!cred.token) throw new Error(SESSION_EXPIRED_MESSAGE);
     return startRunner({
       token: cred.token,
-      endpoint: toGrpcTarget(cred.endpoint),
+      endpoint: SIDECAR_ENDPOINT,
       org,
+      insecure: SIDECAR_INSECURE,
     });
   }, [org, getCredential, startRunner]);
 
@@ -296,7 +314,7 @@ export default function RunnersPage() {
         const cred = await getCredential(org || undefined);
         await stopRunner(name, {
           token: cred.token || undefined,
-          endpoint: toGrpcTarget(cred.endpoint),
+          endpoint: SIDECAR_ENDPOINT,
           org: org || undefined,
         });
       } catch {
@@ -327,8 +345,9 @@ export default function RunnersPage() {
         const runnerName = await startRunner({
           name,
           token: cred.token,
-          endpoint: toGrpcTarget(cred.endpoint),
+          endpoint: SIDECAR_ENDPOINT,
           org,
+          insecure: SIDECAR_INSECURE,
         });
         lastStartedRef.current = runnerName;
         restartGraceRef.current = Date.now();
@@ -361,8 +380,9 @@ export default function RunnersPage() {
       const runnerName = await startRunner({
         name,
         token: cred.token,
-        endpoint: toGrpcTarget(cred.endpoint),
+        endpoint: SIDECAR_ENDPOINT,
         org,
+        insecure: SIDECAR_INSECURE,
       });
       lastStartedRef.current = runnerName;
       restartGraceRef.current = Date.now();
