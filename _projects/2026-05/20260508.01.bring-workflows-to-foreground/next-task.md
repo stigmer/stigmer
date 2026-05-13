@@ -19,10 +19,42 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-13 — T15 Batch 1 COMPLETE (Canvas Foundation)
-**Current Task**: T15 Batch 1 COMPLETE — Canvas Foundation
+**Last Session**: 2026-05-13 — T15 Batch 2 COMPLETE (Node Authoring)
+**Current Task**: T15 Batch 2 COMPLETE — Node Authoring
 **Phase**: Phase 2 — Visual Builder — IN PROGRESS
-**Next Task**: T15 Batch 2 (Node Authoring — Task Palette + Connections)
+**Next Task**: T15 Batch 3 (Inspector + Edit Loop — Schema-Driven Forms + Mode Toggle)
+
+## Session Progress (2026-05-13, T15 Batch 2)
+
+### T15 Batch 2: Node Authoring — COMPLETE
+
+Turned the Batch 1 read-only canvas into a full authoring tool: task palette with
+drag-to-create, connection drawing with validation, deletion with cascade,
+multi-selection with lasso, and undo/redo for all operations. 3 new files,
+4 modified (+1 minor). Batch 1 bugs fixed (human_input handles, isDirty reactivity).
+
+#### New Files (3)
+- `graph-commands.ts` — GraphCommand interface, 6 concrete commands (AddNode, DeleteNode, AddEdge, DeleteEdge, MoveNodes, Compound), GraphHistory class with 50-entry bounded stack
+- `useGraphHistory.ts` — React wrapper with keyboard shortcuts (Ctrl/Cmd+Z, Shift+Z), focus-scoped
+- `WorkflowTaskPalette.tsx` — Standalone SDK component: categorized task kinds, search, drag-to-create via HTML5 DnD
+
+#### Modified Files (4+1)
+- `useWorkflowCanvas.ts` — Major rewrite: graph history as source of truth, mutation methods, connection validation, drop handlers, model-based dirty tracking
+- `WorkflowCanvasInner.tsx` — Wired onConnect, isValidConnection, onDrop, onDragOver, onNodesDelete, onEdgesDelete, selectionMode, deleteKeyCode
+- `WorkflowCanvasEditor.tsx` — Palette sidebar, undo/redo toolbar, containerRef for shortcuts, empty state prompt
+- `CanvasTaskNode.tsx` — human_input multi-port handles, typo fix
+- `workflow-graph-conversions.ts` — Exported categorizeKind/stringToTaskKind/taskKindToString, added deletable:false for sentinels
+
+#### Architectural Decisions
+- AD-T15-B2-001: Immutable model + command pattern (commands, not snapshots)
+- AD-T15-B2-002: Auto-generated task names ({kind}_{N})
+- AD-T15-B2-003: Sentinel node lifecycle (__start__ always present)
+- AD-T15-B2-004: Connection validation (no self-loops, no duplicates, single-output replacement)
+- AD-T15-B2-005: Palette as standalone SDK component
+
+#### Verification
+- `tsc --noEmit` — clean: sdk/react, sdk/typescript, client-apps/web, client-apps/desktop
+- Zero linter errors on all new/modified files
 
 ## Session Progress (2026-05-13, T15 Batch 1)
 
@@ -462,13 +494,12 @@ New Task Types — llm_call, transform, human_input, validate, emit_event, notif
 Structured Agent Output Model
 
 ## Next Steps
-1. **T15 Batch 2: Node Authoring** — Task palette (drag-to-create), connection drawing, deletion, multi-selection
-2. **T15 Batch 3: Inspector + Edit Loop** — Schema-driven config forms, YAML/Canvas mode toggle, round-trip, save from canvas
-3. **T15 Batch 4: Specialized Task Editors** — switch_case branch builder, human_input approval form builder
-4. **T15 Batch 5: Integration + Polish** — Console wiring (web + desktop), barrel exports, a11y, final verification
-5. **T16: Natural Language to Workflow** (Phase 3) — prompt-to-workflow generation
-6. **Chart visualizations** — add recharts/visx for Cost by Workflow chart (deferred from T14)
-7. **Workflow execution → session navigation fix** — web routing mismatch
+1. **T15 Batch 3: Inspector + Edit Loop** — Schema-driven config forms, YAML/Canvas mode toggle, round-trip, save from canvas
+2. **T15 Batch 4: Specialized Task Editors** — switch_case branch builder, human_input approval form builder
+3. **T15 Batch 5: Integration + Polish** — Console wiring (web + desktop), barrel exports, a11y, final verification
+4. **T16: Natural Language to Workflow** (Phase 3) — prompt-to-workflow generation
+5. **Chart visualizations** — add recharts/visx for Cost by Workflow chart (deferred from T14)
+6. **Workflow execution → session navigation fix** — web routing mismatch
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
@@ -482,6 +513,15 @@ Structured Agent Output Model
 - `CheckBudgetWarnings()` (T05) still standalone — NOT wired into `ValidateWorkflow()` yet
 - `getDownloadUrl` still UNIMPLEMENTED (artifact store)
 - OSS stigmer-server updateStatus handler does NOT yet persist events (separate task from Java/Cloud parity)
+
+## Essential Files — T15 Batch 2 (Canvas Node Authoring)
+- **Graph commands (new)**: `sdk/react/src/workflow/graph-commands.ts`
+- **Graph history hook (new)**: `sdk/react/src/workflow/useGraphHistory.ts`
+- **Task palette (new)**: `sdk/react/src/workflow/WorkflowTaskPalette.tsx`
+- **Canvas hook (rewritten)**: `sdk/react/src/workflow/useWorkflowCanvas.ts`
+- **Canvas inner (updated)**: `sdk/react/src/workflow/WorkflowCanvasInner.tsx`
+- **Canvas editor (updated)**: `sdk/react/src/workflow/WorkflowCanvasEditor.tsx`
+- **Task node (updated)**: `sdk/react/src/workflow/CanvasTaskNode.tsx`
 
 ## Essential Files to Review
 

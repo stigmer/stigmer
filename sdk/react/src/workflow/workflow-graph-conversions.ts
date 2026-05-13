@@ -39,7 +39,7 @@ const DATA_KINDS = new Set(["set_vars", "transform"]);
 const GOVERNANCE_KINDS = new Set(["human_input", "validate"]);
 const EVENT_KINDS = new Set(["listen", "wait", "emit_event", "notification", "raise_error"]);
 
-function categorizeKind(kind: string): TopologyNodeCategory {
+export function categorizeKind(kind: string): TopologyNodeCategory {
   if (AI_KINDS.has(kind)) return "ai";
   if (CONTROL_FLOW_KINDS.has(kind)) return "control_flow";
   if (INVOCATION_KINDS.has(kind)) return "invocation";
@@ -67,11 +67,11 @@ const STRING_TO_TASK_KIND: ReadonlyMap<string, WorkflowTaskKind> = new Map(
   Array.from(TASK_KIND_STRINGS.entries()).map(([value, name]) => [name, value]),
 );
 
-function taskKindToString(kind: WorkflowTaskKind): string {
+export function taskKindToString(kind: WorkflowTaskKind): string {
   return TASK_KIND_STRINGS.get(kind) ?? `unknown_${kind}`;
 }
 
-function stringToTaskKind(str: string): WorkflowTaskKind {
+export function stringToTaskKind(str: string): WorkflowTaskKind {
   return STRING_TO_TASK_KIND.get(str) ?? WorkflowTaskKind.workflow_task_kind_unspecified;
 }
 
@@ -498,6 +498,7 @@ export function toReactFlowElements(graph: WorkflowGraphModel): {
       height: isSentinel ? SENTINEL_NODE_HEIGHT : CANVAS_NODE_HEIGHT,
       draggable: !isSentinel,
       selectable: !isSentinel,
+      deletable: !isSentinel,
     };
   });
 

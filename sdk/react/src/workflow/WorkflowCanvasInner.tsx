@@ -8,8 +8,16 @@ import {
   Background,
   BackgroundVariant,
   MarkerType,
+  SelectionMode,
 } from "@xyflow/react";
-import type { Node, Edge, OnNodesChange, OnEdgesChange } from "@xyflow/react";
+import type {
+  Node,
+  Edge,
+  OnNodesChange,
+  OnEdgesChange,
+  OnConnect,
+  IsValidConnection,
+} from "@xyflow/react";
 import { CanvasTaskNode } from "./CanvasTaskNode";
 import { CanvasTransitionEdge } from "./CanvasTransitionEdge";
 import { CATEGORY_COLORS } from "./canvas-constants";
@@ -24,6 +32,12 @@ interface WorkflowCanvasInnerProps {
   onNodeClick: (event: React.MouseEvent, node: Node) => void;
   onEdgeClick: (event: React.MouseEvent, edge: Edge) => void;
   onPaneClick: () => void;
+  onConnect: OnConnect;
+  isValidConnection: IsValidConnection;
+  onDrop: (event: React.DragEvent) => void;
+  onDragOver: (event: React.DragEvent) => void;
+  onNodesDelete: (nodes: Node[]) => void;
+  onEdgesDelete: (edges: Edge[]) => void;
 }
 
 const nodeTypes = {
@@ -37,6 +51,8 @@ const edgeTypes = {
 const defaultEdgeOptions = {
   markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
 };
+
+const DELETE_KEY_CODES = ["Backspace", "Delete"];
 
 /**
  * Inner React Flow canvas, loaded via React.lazy from WorkflowCanvasEditor.
@@ -54,6 +70,12 @@ export function WorkflowCanvasInner({
   onNodeClick,
   onEdgeClick,
   onPaneClick,
+  onConnect,
+  isValidConnection,
+  onDrop,
+  onDragOver,
+  onNodesDelete,
+  onEdgesDelete,
 }: WorkflowCanvasInnerProps) {
   const minimapNodeColor = useMemo(
     () => (node: Node) => {
@@ -74,9 +96,20 @@ export function WorkflowCanvasInner({
       onNodeClick={onNodeClick}
       onEdgeClick={onEdgeClick}
       onPaneClick={onPaneClick}
+      onConnect={onConnect}
+      isValidConnection={isValidConnection}
+      onDrop={onDrop}
+      onDragOver={onDragOver}
+      onNodesDelete={onNodesDelete}
+      onEdgesDelete={onEdgesDelete}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       defaultEdgeOptions={defaultEdgeOptions}
+      deleteKeyCode={DELETE_KEY_CODES}
+      selectionMode={SelectionMode.Partial}
+      multiSelectionKeyCode="Shift"
+      panOnDrag={[1, 2]}
+      selectionOnDrag
       fitView
       fitViewOptions={{ padding: 0.2 }}
       minZoom={0.2}
