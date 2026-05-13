@@ -417,6 +417,51 @@ export class UpdateNodeMetaCommand implements GraphCommand {
 }
 
 // ---------------------------------------------------------------------------
+// MigrateBranchHandleCommand
+// ---------------------------------------------------------------------------
+
+/**
+ * Updates the `sourceHandle` of all edges from a node's old handle ID
+ * to a new handle ID. Used when a switch_case case or human_input outcome
+ * is renamed (AD-T15-B4: name-based handle IDs).
+ */
+export class MigrateBranchHandleCommand implements GraphCommand {
+  readonly type = "migrate_branch_handle";
+  readonly description: string;
+  private readonly nodeId: string;
+  private readonly oldHandleId: string;
+  private readonly newHandleId: string;
+
+  constructor(nodeId: string, oldHandleId: string, newHandleId: string) {
+    this.nodeId = nodeId;
+    this.oldHandleId = oldHandleId;
+    this.newHandleId = newHandleId;
+    this.description = `Rename handle "${oldHandleId}" to "${newHandleId}"`;
+  }
+
+  apply(model: WorkflowGraphModel): WorkflowGraphModel {
+    return this.migrate(model, this.oldHandleId, this.newHandleId);
+  }
+
+  undo(model: WorkflowGraphModel): WorkflowGraphModel {
+    return this.migrate(model, this.newHandleId, this.oldHandleId);
+  }
+
+  private migrate(
+    model: WorkflowGraphModel,
+    from: string,
+    to: string,
+  ): WorkflowGraphModel {
+    const edges = model.edges.map((e) =>
+      e.source === this.nodeId && e.sourceHandle === from
+        ? { ...e, sourceHandle: to, label: to.includes("_") ? to.split("_").slice(1).join("_") : e.label }
+        : e,
+    );
+    return { ...model, edges };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Nested value utilities for UpdateNodeFieldCommand
 // ---------------------------------------------------------------------------
 

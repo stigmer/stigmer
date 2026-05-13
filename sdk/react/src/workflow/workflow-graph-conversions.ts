@@ -200,18 +200,18 @@ export function yamlToGraph(yaml: string): WorkflowGraphModel {
       const cases = (config as Record<string, unknown>).cases;
       if (Array.isArray(cases)) {
         let hasDefault = false;
-        for (let caseIdx = 0; caseIdx < cases.length; caseIdx++) {
-          const c = cases[caseIdx];
+        for (const c of cases) {
           if (c && typeof c === "object") {
             const caseObj = c as Record<string, unknown>;
+            const caseName = caseObj.name as string | undefined;
             const caseThen = caseObj.then as string | undefined;
-            if (caseThen && taskNameSet.has(caseThen)) {
+            if (caseName && caseThen && taskNameSet.has(caseThen)) {
               edges.push({
                 id: makeEdgeId(),
                 source: task.name,
                 target: caseThen,
-                label: (caseObj.name as string) || undefined,
-                sourceHandle: `case_${caseIdx}`,
+                label: caseName,
+                sourceHandle: `case_${caseName}`,
               });
               if (!(caseObj.when as string)) hasDefault = true;
             }
@@ -229,18 +229,18 @@ export function yamlToGraph(yaml: string): WorkflowGraphModel {
       const outcomes = (config as Record<string, unknown>).outcomes;
       if (Array.isArray(outcomes)) {
         let hasOutcomeEdges = false;
-        for (let outIdx = 0; outIdx < outcomes.length; outIdx++) {
-          const outcome = outcomes[outIdx];
+        for (const outcome of outcomes) {
           if (outcome && typeof outcome === "object") {
             const outObj = outcome as Record<string, unknown>;
+            const outName = outObj.name as string | undefined;
             const outThen = outObj.then as string | undefined;
-            if (outThen && taskNameSet.has(outThen)) {
+            if (outName && outThen && taskNameSet.has(outThen)) {
               edges.push({
                 id: makeEdgeId(),
                 source: task.name,
                 target: outThen,
-                label: (outObj.name as string) || undefined,
-                sourceHandle: `outcome_${outIdx}`,
+                label: outName,
+                sourceHandle: `outcome_${outName}`,
               });
               hasOutcomeEdges = true;
             }
@@ -307,9 +307,11 @@ export function graphToYaml(graph: WorkflowGraphModel): string {
     if (Object.keys(node.config).length > 0) {
       result.task_config = structToPlain(node.config);
 
-      // Reconstruct switch_case cases[].then from edges
       if (kindStr === "switch_case") {
         reconstructSwitchCaseThen(node, graph.edges, result);
+      }
+      if (kindStr === "human_input") {
+        reconstructHumanInputOutcomeThen(node, graph.edges, result);
       }
     }
 
@@ -600,10 +602,38 @@ function reconstructSwitchCaseThen(
   );
 
   for (const edge of caseEdges) {
-    const idxStr = edge.sourceHandle!.replace("case_", "");
-    const idx = parseInt(idxStr, 10);
-    if (!isNaN(idx) && idx < cases.length && cases[idx]) {
-      (cases[idx] as Record<string, unknown>).then = edge.target;
+    const caseName = edge.sourceHandle!.slice(5); // "case_".length
+    const caseEntry = cases.find(
+      (c) => c && typeof c === "object" && (c as Record<string, unknown>).name === caseName,
+    );
+    if (caseEntry) {
+      (caseEntry as Record<string, unknown>).then = edge.target;
+    }
+  }
+}
+
+function reconstructHumanInputOutcomeThen(
+  node: WorkflowGraphNode,
+  edges: readonly WorkflowGraphEdge[],
+  result: Record<string, unknown>,
+): void {
+  const taskConfig = result.task_config as Record<string, unknown> | undefined;
+  if (!taskConfig) return;
+
+  const outcomes = taskConfig.outcomes;
+  if (!Array.isArray(outcomes)) return;
+
+  const outcomeEdges = edges.filter(
+    (e) => e.source === node.id && e.sourceHandle?.startsWith("outcome_"),
+  );
+
+  for (const edge of outcomeEdges) {
+    const outcomeName = edge.sourceHandle!.slice(8); // "outcome_".length
+    const outcomeEntry = outcomes.find(
+      (o) => o && typeof o === "object" && (o as Record<string, unknown>).name === outcomeName,
+    );
+    if (outcomeEntry) {
+      (outcomeEntry as Record<string, unknown>).then = edge.target;
     }
   }
 }

@@ -185,6 +185,9 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
             onUpdateExport={canvas.updateNodeExport}
             onUpdateFlow={canvas.updateNodeFlow}
             onDeleteEdge={handleDeleteEdge}
+            onUpdateBranchRouting={canvas.updateBranchRouting}
+            onMigrateBranchHandle={canvas.migrateBranchHandle}
+            onRemoveBranchEdges={canvas.removeBranchEdges}
           />
         </div>
       )}
