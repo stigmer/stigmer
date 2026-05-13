@@ -6,7 +6,9 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { WorkflowExecutionSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_workflowexecution_v1_api } from "./api_pb.js";
-import type { ListWorkflowExecutionsByWorkflowRequestSchema, ListWorkflowExecutionsRequestSchema, SubscribeWorkflowExecutionRequestSchema, WorkflowExecutionIdSchema, WorkflowExecutionListSchema } from "./io_pb.js";
+import type { WorkflowExecutionEventSchema } from "./event_pb.js";
+import { file_ai_stigmer_agentic_workflowexecution_v1_event } from "./event_pb.js";
+import type { GetEventLogRequestSchema, GetEventLogResponseSchema, ListWorkflowExecutionsByWorkflowRequestSchema, ListWorkflowExecutionsRequestSchema, SubscribeEventsRequestSchema, SubscribeWorkflowExecutionRequestSchema, WorkflowExecutionIdSchema, WorkflowExecutionListSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_workflowexecution_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/workflowexecution/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_workflowexecution_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvcXVlcnkucHJvdG8SJ2FpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MTKEBgogV29ya2Zsb3dFeGVjdXRpb25RdWVyeUNvbnRyb2xsZXISuAEKA2dldBI8LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V4ZWN1dGlvbklkGjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uIjfCuBgzCAEQNCIFdmFsdWUqJnVuYXV0aG9yaXplZCB0byBnZXQgd29ya2Zsb3cgZXhlY3V0aW9uEpQBCgRsaXN0EkYuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkxpc3RXb3JrZmxvd0V4ZWN1dGlvbnNSZXF1ZXN0Gj4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uTGlzdCIE0LgYARKoAQoObGlzdEJ5V29ya2Zsb3cSUC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuTGlzdFdvcmtmbG93RXhlY3V0aW9uc0J5V29ya2Zsb3dSZXF1ZXN0Gj4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uTGlzdCIE0LgYARLcAQoJc3Vic2NyaWJlEkouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLlN1YnNjcmliZVdvcmtmbG93RXhlY3V0aW9uUmVxdWVzdBo6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V4ZWN1dGlvbiJFwrgYQQgBEDQiDGV4ZWN1dGlvbl9pZCotdW5hdXRob3JpemVkIHRvIGdldCB3b3JrZmxvdyBleGVjdXRpb24gc3RyZWFtMAEaBKD/KzRiBnByb3RvMw", [file_ai_stigmer_agentic_workflowexecution_v1_api, file_ai_stigmer_agentic_workflowexecution_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvcXVlcnkucHJvdG8SJ2FpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MTLBCQogV29ya2Zsb3dFeGVjdXRpb25RdWVyeUNvbnRyb2xsZXISuAEKA2dldBI8LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V4ZWN1dGlvbklkGjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uIjfCuBgzCAEQNCIFdmFsdWUqJnVuYXV0aG9yaXplZCB0byBnZXQgd29ya2Zsb3cgZXhlY3V0aW9uEpQBCgRsaXN0EkYuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkxpc3RXb3JrZmxvd0V4ZWN1dGlvbnNSZXF1ZXN0Gj4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uTGlzdCIE0LgYARKoAQoObGlzdEJ5V29ya2Zsb3cSUC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuTGlzdFdvcmtmbG93RXhlY3V0aW9uc0J5V29ya2Zsb3dSZXF1ZXN0Gj4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uTGlzdCIE0LgYARLcAQoJc3Vic2NyaWJlEkouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLlN1YnNjcmliZVdvcmtmbG93RXhlY3V0aW9uUmVxdWVzdBo6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V4ZWN1dGlvbiJFwrgYQQgBEDQiDGV4ZWN1dGlvbl9pZCotdW5hdXRob3JpemVkIHRvIGdldCB3b3JrZmxvdyBleGVjdXRpb24gc3RyZWFtMAES0gEKC2dldEV2ZW50TG9nEjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkdldEV2ZW50TG9nUmVxdWVzdBo8LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5HZXRFdmVudExvZ1Jlc3BvbnNlIkjCuBhECAEQNCIMZXhlY3V0aW9uX2lkKjB1bmF1dGhvcml6ZWQgdG8gZ2V0IHdvcmtmbG93IGV4ZWN1dGlvbiBldmVudCBsb2cS5QEKD3N1YnNjcmliZUV2ZW50cxI/LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5TdWJzY3JpYmVFdmVudHNSZXF1ZXN0Gj8uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uRXZlbnQiTsK4GEoIARA0IgxleGVjdXRpb25faWQqNnVuYXV0aG9yaXplZCB0byBzdWJzY3JpYmUgdG8gd29ya2Zsb3cgZXhlY3V0aW9uIGV2ZW50czABGgSg/ys0YgZwcm90bzM", [file_ai_stigmer_agentic_workflowexecution_v1_api, file_ai_stigmer_agentic_workflowexecution_v1_event, file_ai_stigmer_agentic_workflowexecution_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * WorkflowExecutionQueryController handles read operations (Get, List, Subscribe) for WorkflowExecution resources.
@@ -403,6 +405,117 @@ export const WorkflowExecutionQueryController: GenService<{
     methodKind: "server_streaming";
     input: typeof SubscribeWorkflowExecutionRequestSchema;
     output: typeof WorkflowExecutionSchema;
+  },
+  /**
+   * Fetch the paginated event log for a workflow execution.
+   *
+   * Returns execution events ordered by sequence_number ascending, with
+   * cursor-based pagination and optional filtering by event type or task name.
+   *
+   * @internal
+   * Authorization:
+   * Standard authorization checks that user has "get" permission on the
+   * WorkflowExecution. Same permission as get() and subscribe().
+   *
+   * The event log complements the status snapshot: the snapshot tells you
+   * current state, the event log tells you what happened and when.
+   *
+   * Use Cases:
+   *
+   * 1. Execution Viewer Timeline:
+   *    - Load full event history for a completed execution
+   *    - Render timeline with task transitions, retries, approvals, cost
+   *
+   * 2. Task Drill-Down:
+   *    - Filter by task_name to see all events for a specific task
+   *    - Inspect retry history, duration, cost per attempt
+   *
+   * 3. Cost Audit:
+   *    - Filter by budget_checkpoint events to chart cost over time
+   *    - Correlate cost spikes with specific agent_call tasks
+   *
+   * 4. Approval Audit Trail:
+   *    - Filter by approval_requested and approval_resolved
+   *    - See who approved what, when, and with what comment
+   *
+   * Error Cases:
+   *
+   * - NOT_FOUND: No WorkflowExecution exists with the given ID
+   * - PERMISSION_DENIED: User doesn't have "get" permission
+   * - INVALID_ARGUMENT: page_size exceeds maximum (500)
+   *
+   * @since T06 (Execution Event Stream Model)
+   *
+   * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.getEventLog
+   */
+  getEventLog: {
+    methodKind: "unary";
+    input: typeof GetEventLogRequestSchema;
+    output: typeof GetEventLogResponseSchema;
+  },
+  /**
+   * Subscribe to real-time execution events (incremental event stream).
+   *
+   * Opens a server-side streaming RPC that pushes individual
+   * WorkflowExecutionEvent messages as they occur during execution.
+   * Unlike subscribe() which streams full WorkflowExecution snapshots,
+   * this streams lightweight incremental events for the timeline view.
+   *
+   * @internal
+   * Authorization:
+   * Standard authorization checks that user has "get" permission on the
+   * WorkflowExecution. Same permission as get() and subscribe().
+   *
+   * Stream Lifecycle:
+   * 1. Client sends SubscribeEventsRequest with execution_id
+   * 2. Server validates authorization
+   * 3. If after_sequence > 0: Server replays missed events from persistence
+   * 4. Server streams new events in real-time as the runner emits them
+   * 5. Server closes stream when execution reaches a terminal phase
+   *    (COMPLETED, FAILED, CANCELLED, TERMINATED)
+   * 6. Client can close stream early
+   *
+   * Reconnection:
+   * On disconnect, the client reconnects with after_sequence set to the
+   * sequence_number of the last received event. The server replays any
+   * events missed during the disconnect, then resumes live streaming.
+   * No events are lost.
+   *
+   * Complementary Streams:
+   * - subscribe(): Full snapshots for current-state views (progress bars, dashboards)
+   * - subscribeEvents(): Incremental events for timeline views (execution viewer)
+   * Both streams can be used simultaneously for different UI concerns.
+   *
+   * Use Cases:
+   *
+   * 1. Live Execution Timeline:
+   *    - User watches a running execution in the execution viewer
+   *    - Events stream in real-time, building the timeline as tasks progress
+   *    - Each event adds a row: "task X started", "task X completed (2.3s, $0.05)"
+   *
+   * 2. Cost Monitoring:
+   *    - Dashboard subscribes with event_types filter for budget_checkpoint
+   *    - Budget gauge updates in real-time as costs accumulate
+   *
+   * 3. Approval Notifications:
+   *    - Subscribe with event_types filter for approval_requested
+   *    - Surface approval gates immediately when they activate
+   *
+   * Error Cases:
+   *
+   * - NOT_FOUND: No WorkflowExecution exists with the given ID
+   * - PERMISSION_DENIED: User doesn't have "get" permission
+   * - DEADLINE_EXCEEDED: Client timeout (reconnect with after_sequence)
+   * - UNAVAILABLE: Server unavailable (retry with backoff)
+   *
+   * @since T06 (Execution Event Stream Model)
+   *
+   * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.subscribeEvents
+   */
+  subscribeEvents: {
+    methodKind: "server_streaming";
+    input: typeof SubscribeEventsRequestSchema;
+    output: typeof WorkflowExecutionEventSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_workflowexecution_v1_query, 0);

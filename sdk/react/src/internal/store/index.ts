@@ -6,6 +6,12 @@ import { ConversationStore, type StreamState } from "./conversation-store";
 
 export { ConversationStore, type StreamState } from "./conversation-store";
 export { structuralShare } from "./structural-share";
+export {
+  WorkflowExecutionEventStore,
+  type WorkflowEventStreamState,
+  type DerivedTaskState,
+  type DerivedCostSummary,
+} from "./workflow-execution-event-store";
 
 // ---------------------------------------------------------------------------
 // Context

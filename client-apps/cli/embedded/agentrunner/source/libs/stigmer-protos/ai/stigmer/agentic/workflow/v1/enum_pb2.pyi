@@ -20,6 +20,19 @@ class WorkflowTaskKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     raise_error: _ClassVar[WorkflowTaskKind]
     run_workflow: _ClassVar[WorkflowTaskKind]
     agent_call: _ClassVar[WorkflowTaskKind]
+    llm_call: _ClassVar[WorkflowTaskKind]
+    transform: _ClassVar[WorkflowTaskKind]
+    human_input: _ClassVar[WorkflowTaskKind]
+    validate: _ClassVar[WorkflowTaskKind]
+    emit_event: _ClassVar[WorkflowTaskKind]
+    notification: _ClassVar[WorkflowTaskKind]
+
+class BudgetExceededPolicy(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    budget_exceeded_policy_unspecified: _ClassVar[BudgetExceededPolicy]
+    budget_exceeded_terminate: _ClassVar[BudgetExceededPolicy]
+    budget_exceeded_human_review: _ClassVar[BudgetExceededPolicy]
+    budget_exceeded_warn: _ClassVar[BudgetExceededPolicy]
 workflow_task_kind_unspecified: WorkflowTaskKind
 set_vars: WorkflowTaskKind
 http_call: WorkflowTaskKind
@@ -34,3 +47,13 @@ wait: WorkflowTaskKind
 raise_error: WorkflowTaskKind
 run_workflow: WorkflowTaskKind
 agent_call: WorkflowTaskKind
+llm_call: WorkflowTaskKind
+transform: WorkflowTaskKind
+human_input: WorkflowTaskKind
+validate: WorkflowTaskKind
+emit_event: WorkflowTaskKind
+notification: WorkflowTaskKind
+budget_exceeded_policy_unspecified: BudgetExceededPolicy
+budget_exceeded_terminate: BudgetExceededPolicy
+budget_exceeded_human_review: BudgetExceededPolicy
+budget_exceeded_warn: BudgetExceededPolicy

@@ -19,49 +19,49 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-12 — T08 COMPLETE (Phase 1 started)
-**Current Task**: T08 COMPLETE — Workflow List and Detail Pages
+**Last Session**: 2026-05-13 — T09 COMPLETE (Phase 1 continues)
+**Current Task**: T09 COMPLETE — Workflow Execution Viewer
 **Phase**: Phase 1 — Foreground MVP — IN PROGRESS
-**Next Task**: T09 (Execution Viewer) or T13 (Backend Implementation)
+**Next Task**: T10 (YAML Editor) or T13 (Backend Implementation)
 
-## Session Progress (2026-05-12, T08)
+## Session Progress (2026-05-13, T09)
 
-### T08: Workflow List and Detail Pages — COMPLETE
+### T09: Workflow Execution Viewer — COMPLETE
 
-Built the full Workflow UI layer following SDK-first architecture (DD-001): codegen fix, React SDK data hooks, styled components, web console pages, sidebar navigation, and barrel exports.
+Built the full Execution Viewer following SDK-first architecture (DD-001): event store, data hooks, behavior hooks, styled components (timeline, task panel, cost panel, artifact panel, approval card), and console page shells. 17 new files, 4 modified.
 
-#### Layer 1: Codegen Fix — WorkflowClient.list()
-- Discovered `WorkflowClient` had no `list()` method — `searchListResources` map in `proto2schema` didn't include workflow
-- Added `"workflow": true` to `tools/codegen/proto2schema/main.go` and re-ran `make codegen`
-- `WorkflowClient.list()` now generated across Go, TS, Python, Java SDKs
+#### Layer 0: Event Store — WorkflowExecutionEventStore
+- Append-only external store for `useSyncExternalStore`
+- Derived selectors: `getTaskStates()`, `getCostSummary()`, stream state FSM
+- Simpler than ConversationStore — no structural sharing needed (events are immutable)
 
-#### Layer 2: React SDK Data Hooks (5 new files in `sdk/react/src/workflow/`)
-- `useWorkflow` (single by org/slug), `useWorkflowList` (paginated with scope/search), `useWorkflowCount`, `useWorkflowInstances`, `useWorkflowExecutionList`
+#### Layer 1: SDK Data Hooks (3 new files)
+- `useWorkflowExecution` — single execution by ID
+- `useWorkflowExecutionEventLog` — paginated event log with cursor, type, and task filters
+- `useWorkflowExecutionArtifacts` — artifacts via `listByExecution()`
 
-#### Layer 3: React SDK Styled Components (3 new files)
-- `WorkflowExecutionPhaseBadge` — execution phase status badges
-- `WorkflowTaskList` — compact task display with kind icons
-- `WorkflowDetailView` — composed detail view with 4 tabs (Overview, Tasks, Instances, Executions)
+#### Layer 2: SDK Behavior Hooks (2 new files)
+- `useWorkflowExecutionEventStream` — live `subscribeEvents` + batch `getEventLog` fallback + UNIMPLEMENTED graceful handling
+- `useWorkflowExecutionActions` — cancel/terminate/pause/resume/recover/submitApproval
 
-#### Layer 4: Web Console Pages (9 new files)
-- Routes: `/workflows`, `/workflows/[org]/[slug]`, `/workflows/executions`
-- Domain: `WorkflowListPage`, `WorkflowDetailPage`, `WorkflowExecutionListPage`, `WorkflowLayout`, `workflow-navigation.tsx`, `WorkflowBreadcrumb`
+#### Layer 3: SDK Styled Components (8 new files)
+- `WorkflowExecutionViewer` (composed top-level), `WorkflowExecutionHeader`, `WorkflowExecutionTimeline` (auto-scroll via IntersectionObserver), `WorkflowExecutionTimelineEvent` (18 event type renderers), `WorkflowExecutionApprovalCard`, `WorkflowExecutionTaskPanel`, `WorkflowExecutionCostPanel`, `WorkflowExecutionArtifactPanel`
 
-#### Layer 5: Sidebar + Navigation
-- Top-level "Workflows" sidebar entry between Library and Runners
-- Scope persistence for workflow list
-
-#### Layer 6: Exports + Type Safety
-- All new hooks/components exported from `@stigmer/react`
-- `useDeleteResource` extended with `"workflow"` kind
-- Fixed `ValidationState` enum and `optional` field access bugs
+#### Layer 4: Console Pages
+- Route: `/workflows/executions/[id]`
+- Execution list rows now clickable
 
 #### Decisions
-- Workflows are top-level sidebar item (not nested under Library)
-- WorkflowInstance embedded as tab on Workflow detail page (not standalone route)
-- Export actions (YAML/JSON) deferred — no `serializeWorkflowYaml` exists yet
+- DD-T09-001: Two-region layout (timeline + sidebar), not three-pane
+- DD-T09-002: No rAF coalescing (low-frequency events)
+- DD-T09-003: Agent drill-down via navigation callback
+- DD-T09-004: Append-only event store with memoized derived selectors
+- BigInt compatibility: `BigInt(0)` instead of `0n` for ES target compat
 
 ## Previous Sessions
+
+### T08 (COMPLETE — 2026-05-12)
+Workflow List and Detail Pages — codegen fix, React SDK data hooks, styled components (WorkflowDetailView, PhaseBadge, TaskList), web console pages, sidebar navigation, barrel exports
 
 ### T07 (COMPLETE — 2026-05-12)
 Artifact Store Proto Contract — content-addressable blob storage, ArtifactQueryController/CommandController, ArtifactStorageState, retention policies
@@ -82,23 +82,26 @@ New Task Types — llm_call, transform, human_input, validate, emit_event, notif
 Structured Agent Output Model
 
 ## Next Steps
-1. **T09: Execution Viewer** — timeline, event log, artifact panel (consumes T06 events + T07 artifacts)
-2. **T13: Backend Implementation** — may need to interleave if search indexing gaps block workflow listing
-3. Remaining Phase 1: T10 (YAML Editor), T11 (Run Workflow from UI), T12 (CLI Commands), T14 (Dashboard Widgets)
+1. **T10: YAML Editor with Graph Preview** — schema-aware editor with live topology graph
+2. **T11: Run Workflow from UI** — input form auto-generated from schema, start/cancel/watch
+3. **T12: CLI Parity** — `stigmer workflow list/get/validate/apply/diff/run/logs/trace/cancel/resume`
+4. **T13: Backend Implementation** — runtime execution for P0 task types, may interleave if needed
+5. **T14: Dashboard Integration** — pending approvals, failed runs, cost charts
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
-- Phase 1 (Foreground MVP) STARTED — T08 complete
-- All verification passes: `tsc --noEmit` for sdk/react, sdk/typescript, client-apps/web; `go vet` for codegen tools and sdk/go
-- `useExportResource` only supports Agent and McpServer — workflow YAML export is deferred
-- Search indexing for workflows in backend is unverified — `list()` may return empty until T13
-- `CheckBudgetWarnings()` (from T05) still standalone — NOT wired into `ValidateWorkflow()` yet
+- Phase 1 (Foreground MVP) IN PROGRESS — T08, T09 complete
+- All verification passes: `tsc --noEmit` for sdk/react, sdk/typescript, client-apps/web
+- `useExportResource` only supports Agent and McpServer — workflow YAML export deferred
+- Search indexing for workflows in backend unverified — `list()` may return empty until T13
+- `CheckBudgetWarnings()` (T05) still standalone — NOT wired into `ValidateWorkflow()` yet
+- Backend RPCs `subscribeEvents`, `getEventLog`, `submitApproval`, `getDownloadUrl` — viewer handles UNIMPLEMENTED gracefully
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-12-t08-workflow-pages.md
+_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-13-t09-execution-viewer.md
 ```
 
 ### 2. Task Directory
@@ -106,19 +109,20 @@ _projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-
 _projects/2026-05/20260508.01.bring-workflows-to-foreground/tasks/
 ```
 
-### 3. T08 Key Files Created/Modified
-- **SDK hooks (new)**: `sdk/react/src/workflow/useWorkflow.ts`, `useWorkflowList.ts`, `useWorkflowCount.ts`, `useWorkflowInstances.ts`, `useWorkflowExecutionList.ts`
-- **SDK components (new)**: `sdk/react/src/workflow/WorkflowDetailView.tsx`, `WorkflowExecutionPhaseBadge.tsx`, `WorkflowTaskList.tsx`
-- **Console routes (new)**: `client-apps/web/src/app/workflows/` (4 files)
-- **Console domain (new)**: `client-apps/web/src/domain/workflow/` (6 files)
-- **Modified**: `Sidebar.tsx`, `scope-persistence.ts`, `useDeleteResource.ts`, `sdk/react/src/index.ts`
-- **Codegen**: `tools/codegen/proto2schema/main.go`, `tools/codegen/schemas/services/workflow.json`
+### 3. T09 Key Files Created/Modified
+- **Event store (new)**: `sdk/react/src/internal/store/workflow-execution-event-store.ts`
+- **SDK data hooks (new)**: `sdk/react/src/workflow/useWorkflowExecution.ts`, `useWorkflowExecutionEventLog.ts`, `useWorkflowExecutionArtifacts.ts`
+- **SDK behavior hooks (new)**: `sdk/react/src/workflow/useWorkflowExecutionEventStream.ts`, `useWorkflowExecutionActions.ts`
+- **SDK components (new)**: `sdk/react/src/workflow/WorkflowExecutionViewer.tsx`, `WorkflowExecutionHeader.tsx`, `WorkflowExecutionTimeline.tsx`, `WorkflowExecutionTimelineEvent.tsx`, `WorkflowExecutionApprovalCard.tsx`, `WorkflowExecutionTaskPanel.tsx`, `WorkflowExecutionCostPanel.tsx`, `WorkflowExecutionArtifactPanel.tsx`
+- **Console route (new)**: `client-apps/web/src/app/workflows/executions/[id]/page.tsx`
+- **Console page (new)**: `client-apps/web/src/domain/workflow/WorkflowExecutionDetailPage.tsx`
+- **Modified**: `WorkflowExecutionListPage.tsx` (clickable rows), `sdk/react/src/workflow/index.ts`, `sdk/react/src/index.ts`, `sdk/react/src/internal/store/index.ts`
 
 ### 4. Existing Workflow Protos (the domain being enhanced)
 - **Workflow spec**: `apis/ai/stigmer/agentic/workflow/v1/spec.proto`
-- **Workflow enum**: `apis/ai/stigmer/agentic/workflow/v1/enum.proto`
 - **Workflow execution**: `apis/ai/stigmer/agentic/workflowexecution/v1/`
 - **Workflow tasks**: `apis/ai/stigmer/agentic/workflow/v1/tasks/`
+- **Artifact store**: `apis/ai/stigmer/agentic/artifact/v1/`
 
 ## Knowledge Folders to Check
 
@@ -156,7 +160,7 @@ When starting a new session:
 ## Project Phases
 
 - **Phase 0**: Harden Workflow Core (T02-T07) — COMPLETE
-- **Phase 1**: Foreground MVP (T08-T14) — IN PROGRESS (T08 done)
+- **Phase 1**: Foreground MVP (T08-T14) — IN PROGRESS (T08, T09 done)
 - **Phase 2**: Visual Builder (T15) — canvas editor, drag-and-drop, YAML round-trip
 - **Phase 3**: AI-Assisted Creation (T16) — NL-to-workflow, chat-to-workflow, repair assistant
 - **Phase 4**: Advanced Agentic Orchestration (T17) — plan_and_execute, handoff, eval, batch, cache, code_execution, memory
@@ -165,7 +169,7 @@ When starting a new session:
 
 After loading context:
 - "Show project status" - Get overview of progress
-- "Plan T09" - Design execution viewer
+- "Plan T10" - Design YAML editor
 - "Plan T13" - Design backend implementation
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
