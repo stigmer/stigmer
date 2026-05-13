@@ -1,6 +1,7 @@
 import { BillingClient } from "./billing";
 import { GeneratedClient } from "./gen/client";
 import { GitHubClient } from "./github";
+import { PlatformClient } from "./platform";
 import { SearchClient } from "./search";
 import { createStigmerTransport } from "./transport";
 import {
@@ -55,6 +56,7 @@ export class Stigmer extends GeneratedClient {
   readonly fetch: typeof globalThis.fetch | undefined;
 
   readonly billing: BillingClient;
+  readonly platform: PlatformClient;
   readonly search: SearchClient;
   readonly github: GitHubClient;
 
@@ -73,6 +75,7 @@ export class Stigmer extends GeneratedClient {
       : config.getAccessToken ?? (() => null);
 
     this.billing = new BillingClient(transport);
+    this.platform = new PlatformClient(transport);
     this.search = new SearchClient(transport);
     this.github = new GitHubClient(transport);
   }

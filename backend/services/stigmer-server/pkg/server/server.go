@@ -62,8 +62,10 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption"
 
 	// Platform service imports
+	platformv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/platform/v1"
 	githubv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/platform/github/v1"
 	githubcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/github/controller"
+	platformcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/platform/controller"
 
 	// Search service imports
 	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
@@ -373,6 +375,12 @@ func Run() error {
 	githubv1.RegisterGitHubServiceServer(grpcServer, ghController)
 
 	log.Info().Msg("Registered GitHubService controller")
+
+	// Create and register Platform controller (server info / edition detection)
+	platController := platformcontroller.NewPlatformController()
+	platformv1.RegisterPlatformQueryControllerServer(grpcServer, platController)
+
+	log.Info().Msg("Registered PlatformQueryController")
 
 	// ============================================================================
 	// CRITICAL: All services MUST be registered BEFORE starting the server
