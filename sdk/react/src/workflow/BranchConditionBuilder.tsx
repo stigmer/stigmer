@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, useCallback } from "react";
+import { memo, useState, useCallback, useRef } from "react";
 import { cn } from "@stigmer/theme";
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { WorkflowGraphEdge } from "./workflow-graph-model";
@@ -48,6 +48,8 @@ export const BranchConditionBuilder = memo(function BranchConditionBuilder({
   onRemoveBranchEdges,
 }: BranchConditionBuilderProps) {
   const cases = extractCases(config);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dropIdx, setDropIdx] = useState<number | null>(null);
 
   const routingMap = buildRoutingMap(nodeId, edges, "case_");
 
@@ -122,6 +124,30 @@ export const BranchConditionBuilder = memo(function BranchConditionBuilder({
     [cases, onUpdateBranchRouting],
   );
 
+  const handleDragStart = useCallback((idx: number) => {
+    setDragIdx(idx);
+  }, []);
+
+  const handleDragOver = useCallback((idx: number) => {
+    setDropIdx(idx);
+  }, []);
+
+  const handleDrop = useCallback(() => {
+    if (dragIdx != null && dropIdx != null && dragIdx !== dropIdx) {
+      const updated = [...cases];
+      const [moved] = updated.splice(dragIdx, 1);
+      updated.splice(dropIdx, 0, moved);
+      commitCases(updated);
+    }
+    setDragIdx(null);
+    setDropIdx(null);
+  }, [dragIdx, dropIdx, cases, commitCases]);
+
+  const handleDragEnd = useCallback(() => {
+    setDragIdx(null);
+    setDropIdx(null);
+  }, []);
+
   return (
     <div className="flex flex-col gap-2 px-3 pb-3">
       {cases.length === 0 && (
@@ -151,6 +177,11 @@ export const BranchConditionBuilder = memo(function BranchConditionBuilder({
             onMoveDown={() => handleMoveCase(idx, 1)}
             onRemove={() => handleRemoveCase(idx)}
             canRemove={cases.length > 1}
+            isDragOver={dropIdx === idx && dragIdx !== idx}
+            onDragStart={() => handleDragStart(idx)}
+            onDragOver={() => handleDragOver(idx)}
+            onDrop={handleDrop}
+            onDragEnd={handleDragEnd}
           />
         );
       })}
@@ -185,6 +216,11 @@ function CaseEntry({
   onMoveDown,
   onRemove,
   canRemove,
+  isDragOver,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
 }: {
   caseDef: SwitchCaseEntry;
   index: number;
@@ -200,6 +236,11 @@ function CaseEntry({
   onMoveDown: () => void;
   onRemove: () => void;
   canRemove: boolean;
+  isDragOver: boolean;
+  onDragStart: () => void;
+  onDragOver: () => void;
+  onDrop: () => void;
+  onDragEnd: () => void;
 }) {
   const [nameError, setNameError] = useState<string | null>(null);
   const [editingName, setEditingName] = useState(caseDef.name);
@@ -225,17 +266,29 @@ function CaseEntry({
     onNameChange(trimmed);
   }, [editingName, allCaseNames, index, onNameChange]);
 
+  const handleDragOverEvent = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      onDragOver();
+    },
+    [onDragOver],
+  );
+
   return (
     <div
+      onDragOver={handleDragOverEvent}
+      onDrop={onDrop}
       className={cn(
-        "flex flex-col gap-1.5 rounded-md border p-2",
+        "flex flex-col gap-1.5 rounded-md border p-2 transition-[border-color]",
         isDefault
           ? "border-[var(--stgm-chart-amber,#f59e0b)]/30 bg-[var(--stgm-chart-amber,#f59e0b)]/5"
           : "border-[var(--stgm-border,#e5e5e5)]",
+        isDragOver && "border-[var(--stgm-primary,#6366f1)]",
       )}
     >
-      {/* Header row: name + controls */}
+      {/* Header row: grip + name + controls */}
       <div className="flex items-center gap-1">
+        <DragGrip onDragStart={onDragStart} onDragEnd={onDragEnd} />
         <input
           type="text"
           value={editingName}
@@ -303,6 +356,37 @@ function CaseEntry({
           ))}
         </select>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DragGrip
+// ---------------------------------------------------------------------------
+
+function DragGrip({
+  onDragStart,
+  onDragEnd,
+}: {
+  onDragStart: () => void;
+  onDragEnd: () => void;
+}) {
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      className="flex shrink-0 cursor-grab items-center text-[var(--stgm-muted-foreground,#a3a3a3)] hover:text-[var(--stgm-foreground,#1a1a2e)] active:cursor-grabbing"
+      aria-label="Drag to reorder"
+    >
+      <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor">
+        <circle cx="2" cy="2" r="1" />
+        <circle cx="6" cy="2" r="1" />
+        <circle cx="2" cy="7" r="1" />
+        <circle cx="6" cy="7" r="1" />
+        <circle cx="2" cy="12" r="1" />
+        <circle cx="6" cy="12" r="1" />
+      </svg>
     </div>
   );
 }

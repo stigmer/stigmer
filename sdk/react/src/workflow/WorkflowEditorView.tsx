@@ -6,7 +6,7 @@ import { useWorkflowEditor } from "./useWorkflowEditor";
 import { WorkflowYamlEditor } from "./WorkflowYamlEditor";
 import { WorkflowTopologyGraph } from "./WorkflowTopologyGraph";
 import { WorkflowCanvasEditor } from "./WorkflowCanvasEditor";
-import { yamlToGraph, graphToYaml } from "./workflow-graph-conversions";
+import { yamlToGraph } from "./workflow-graph-conversions";
 
 /** Props for {@link WorkflowEditorView}. */
 export interface WorkflowEditorViewProps {
@@ -265,6 +265,7 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
             yaml={editor.yaml}
             onSave={handleCanvasSave}
             isSaving={canvasIsSaving}
+            onDirtyChange={setCanvasDirty}
             nodeErrors={nodeErrors}
             className="flex-1"
           />

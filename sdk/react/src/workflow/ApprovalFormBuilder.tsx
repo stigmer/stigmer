@@ -106,6 +106,7 @@ export const ApprovalFormBuilder = memo(function ApprovalFormBuilder({
       <TimeoutSection
         timeout={typeof cfg.timeout === "number" ? cfg.timeout : 0}
         onTimeout={typeof cfg.on_timeout === "string" ? cfg.on_timeout : ""}
+        escalationTask={typeof cfg.escalation_task === "string" ? cfg.escalation_task : ""}
         allTaskNames={allTaskNames}
         onUpdateConfig={onUpdateConfig}
       />
@@ -249,6 +250,23 @@ function OutcomesSection({
     [outcomes, onUpdateBranchRouting],
   );
 
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dropIdx, setDropIdx] = useState<number | null>(null);
+
+  const handleDragStart = useCallback((idx: number) => { setDragIdx(idx); }, []);
+  const handleDragOver = useCallback((idx: number) => { setDropIdx(idx); }, []);
+  const handleDrop = useCallback(() => {
+    if (dragIdx != null && dropIdx != null && dragIdx !== dropIdx) {
+      const updated = [...outcomes];
+      const [moved] = updated.splice(dragIdx, 1);
+      updated.splice(dropIdx, 0, moved);
+      commitOutcomes(updated);
+    }
+    setDragIdx(null);
+    setDropIdx(null);
+  }, [dragIdx, dropIdx, outcomes, commitOutcomes]);
+  const handleDragEnd = useCallback(() => { setDragIdx(null); setDropIdx(null); }, []);
+
   return (
     <CollapsibleSection title="Outcomes">
       {outcomes.length === 0 && (
@@ -275,6 +293,11 @@ function OutcomesSection({
               onMoveUp={() => handleMove(idx, -1)}
               onMoveDown={() => handleMove(idx, 1)}
               onRemove={() => handleRemove(idx)}
+              isDragOver={dropIdx === idx && dragIdx !== idx}
+              onDragStart={() => handleDragStart(idx)}
+              onDragOver={() => handleDragOver(idx)}
+              onDrop={handleDrop}
+              onDragEnd={handleDragEnd}
             />
           );
         })}
@@ -304,6 +327,11 @@ function OutcomeEntry({
   onMoveUp,
   onMoveDown,
   onRemove,
+  isDragOver,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
 }: {
   outcome: OutcomeEntry;
   index: number;
@@ -317,6 +345,11 @@ function OutcomeEntry({
   onMoveUp: () => void;
   onMoveDown: () => void;
   onRemove: () => void;
+  isDragOver: boolean;
+  onDragStart: () => void;
+  onDragOver: () => void;
+  onDrop: () => void;
+  onDragEnd: () => void;
 }) {
   const [editingName, setEditingName] = useState(outcome.name);
   const [nameError, setNameError] = useState<string | null>(null);
@@ -336,9 +369,22 @@ function OutcomeEntry({
     onNameChange(trimmed);
   }, [editingName, allOutcomeNames, index, onNameChange]);
 
+  const handleDragOverEvent = useCallback(
+    (e: React.DragEvent) => { e.preventDefault(); onDragOver(); },
+    [onDragOver],
+  );
+
   return (
-    <div className="flex flex-col gap-1 rounded-md border border-[var(--stgm-border,#e5e5e5)] p-2">
+    <div
+      onDragOver={handleDragOverEvent}
+      onDrop={onDrop}
+      className={cn(
+        "flex flex-col gap-1 rounded-md border border-[var(--stgm-border,#e5e5e5)] p-2 transition-[border-color]",
+        isDragOver && "border-[var(--stgm-primary,#6366f1)]",
+      )}
+    >
       <div className="flex items-center gap-1">
+        <DragGrip onDragStart={onDragStart} onDragEnd={onDragEnd} />
         <input
           type="text"
           value={editingName}
@@ -572,11 +618,13 @@ function FormFieldRow({
 function TimeoutSection({
   timeout,
   onTimeout,
+  escalationTask,
   allTaskNames,
   onUpdateConfig,
 }: {
   timeout: number;
   onTimeout: string;
+  escalationTask: string;
   allTaskNames: readonly string[];
   onUpdateConfig: (fieldPath: string, value: unknown) => void;
 }) {
@@ -667,8 +715,8 @@ function TimeoutSection({
             Escalation task
           </label>
           <select
-            value=""
-            onChange={() => {}}
+            value={escalationTask}
+            onChange={(e) => onUpdateConfig("escalation_task", e.target.value || undefined)}
             className={cn(smallInputClass)}
             aria-label="Escalation target task"
           >
@@ -677,9 +725,6 @@ function TimeoutSection({
               <option key={name} value={name}>{name}</option>
             ))}
           </select>
-          <p className="text-[9px] text-[var(--stgm-muted-foreground,#a3a3a3)]">
-            Connect the escalation outcome to a task using the canvas edge or the Outcomes section above.
-          </p>
         </div>
       )}
     </CollapsibleSection>
@@ -802,6 +847,37 @@ function CollapsibleSection({
         {title}
       </button>
       {open && <div className="flex flex-col gap-1.5 px-3 pb-3">{children}</div>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DragGrip
+// ---------------------------------------------------------------------------
+
+function DragGrip({
+  onDragStart,
+  onDragEnd,
+}: {
+  onDragStart: () => void;
+  onDragEnd: () => void;
+}) {
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      className="flex shrink-0 cursor-grab items-center text-[var(--stgm-muted-foreground,#a3a3a3)] hover:text-[var(--stgm-foreground,#1a1a2e)] active:cursor-grabbing"
+      aria-label="Drag to reorder"
+    >
+      <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor">
+        <circle cx="2" cy="2" r="1" />
+        <circle cx="6" cy="2" r="1" />
+        <circle cx="2" cy="7" r="1" />
+        <circle cx="6" cy="7" r="1" />
+        <circle cx="2" cy="12" r="1" />
+        <circle cx="6" cy="12" r="1" />
+      </svg>
     </div>
   );
 }

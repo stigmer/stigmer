@@ -228,3 +228,61 @@ export {
   WorkflowDashboard,
   type WorkflowDashboardProps,
 } from "./WorkflowDashboard";
+
+// T15: Visual canvas editor — types
+export type {
+  WorkflowGraphModel,
+  WorkflowGraphNode,
+  WorkflowGraphEdge,
+  WorkflowGraphDocument,
+  WorkflowGraphEnvVar,
+  WorkflowGraphBudget,
+} from "./workflow-graph-model";
+
+export { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model";
+
+// T15: Visual canvas editor — conversion functions
+export {
+  yamlToGraph,
+  graphToYaml,
+  graphToWorkflowInput,
+} from "./workflow-graph-conversions";
+
+// T15: Visual canvas editor — behavior hook
+export {
+  useWorkflowCanvas,
+  type CanvasSelection,
+  type UseWorkflowCanvasReturn,
+} from "./useWorkflowCanvas";
+
+// T15: Visual canvas editor — styled components
+export {
+  WorkflowCanvasEditor,
+  type WorkflowCanvasEditorProps,
+} from "./WorkflowCanvasEditor";
+
+export {
+  WorkflowTaskPalette,
+  TASK_KIND_DRAG_MIME,
+  type WorkflowTaskPaletteProps,
+} from "./WorkflowTaskPalette";
+
+export {
+  WorkflowInspectorPanel,
+  type WorkflowInspectorPanelProps,
+} from "./WorkflowInspectorPanel";
+
+export {
+  TaskConfigForm,
+  type TaskConfigFormProps,
+} from "./TaskConfigForm";
+
+export {
+  BranchConditionBuilder,
+  type BranchConditionBuilderProps,
+} from "./BranchConditionBuilder";
+
+export {
+  ApprovalFormBuilder,
+  type ApprovalFormBuilderProps,
+} from "./ApprovalFormBuilder";
