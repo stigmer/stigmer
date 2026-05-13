@@ -19,10 +19,44 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-13 — T14 COMPLETE (Phase 1 COMPLETE)
-**Current Task**: T14 COMPLETE — Dashboard Integration + Desktop Workflow Parity
-**Phase**: Phase 1 — Foreground MVP — COMPLETE
-**Next Task**: T15 (Visual Canvas Editor — Phase 2)
+**Last Session**: 2026-05-13 — T15 Batch 1 COMPLETE (Canvas Foundation)
+**Current Task**: T15 Batch 1 COMPLETE — Canvas Foundation
+**Phase**: Phase 2 — Visual Builder — IN PROGRESS
+**Next Task**: T15 Batch 2 (Node Authoring — Task Palette + Connections)
+
+## Session Progress (2026-05-13, T15 Batch 1)
+
+### T15 Batch 1: Canvas Foundation — COMPLETE
+
+Delivered the core infrastructure for the visual canvas editor: graph data model,
+full YAML round-trip conversion pipeline, React Flow integration with custom
+styled nodes/edges, dagre auto-layout, and an orchestrator hook. 8 new files,
+2 modified. Phase 2 officially underway.
+
+#### New Files (8)
+- `workflow-graph-model.ts` — Pure types: WorkflowGraphModel, WorkflowGraphNode, WorkflowGraphEdge, sentinel IDs
+- `canvas-constants.ts` — Shared CATEGORY_COLORS, dagre config, node/sentinel dimensions, handle positions
+- `workflow-graph-conversions.ts` — yamlToGraph, graphToYaml, graphToWorkflowInput, toReactFlowElements + topological sort
+- `CanvasTaskNode.tsx` — Custom React Flow node: category border, name, kind badge, multi-port handles (switch_case)
+- `CanvasTransitionEdge.tsx` — Custom React Flow edge: smoothstep path, label pill, selection state
+- `useWorkflowCanvas.ts` — Orchestrator hook: graph state, dagre auto-layout, RF callbacks, selection, dirty tracking
+- `WorkflowCanvasEditor.tsx` — Public component: React.lazy wrapper, toolbar, error/empty states
+- `WorkflowCanvasInner.tsx` — Code-split inner React Flow canvas (DD-013 lazy loading)
+
+#### Modified Files (2)
+- `sdk/react/package.json` — @xyflow/react added as optional peer dep + dev dep
+- `WorkflowTopologyGraph.tsx` — CATEGORY_COLORS + dagre config extracted to shared canvas-constants.ts
+
+#### Architectural Decisions
+- AD-T15-B1-001: Data types extend `Record<string, unknown>` for React Flow v12 generic constraints
+- AD-T15-B1-002: `WorkflowBudgetInput` not exported from @stigmer/sdk public API — use `NonNullable<WorkflowInput["budget"]>` instead
+- AD-T15-B1-003: Undo/redo deferred to Batch 2 (premature without mutation operations)
+- AD-T15-B1-004: Separate `WorkflowCanvasInner.tsx` for React.lazy code-splitting boundary
+
+#### Verification
+- `tsc --noEmit` — zero errors
+- No linter errors on any new/modified file
+- Existing WorkflowTopologyGraph behavior preserved (pure extraction)
 
 ## Session Progress (2026-05-13, T14)
 
@@ -428,10 +462,13 @@ New Task Types — llm_call, transform, human_input, validate, emit_event, notif
 Structured Agent Output Model
 
 ## Next Steps
-1. **T15: Visual Canvas Editor** (Phase 2) — drag-and-drop DAG construction, YAML round-trip
-2. **T16: Natural Language to Workflow** (Phase 3) — prompt-to-workflow generation
-3. **Chart visualizations** — add recharts/visx for Cost by Workflow chart (deferred from T14, needs DD-012 license check + DD-013 lazy-loading)
-4. **Workflow execution → session navigation fix** — web `onNavigateToAgentExecution` uses `/sessions?execution=` which doesn't match session zone routing
+1. **T15 Batch 2: Node Authoring** — Task palette (drag-to-create), connection drawing, deletion, multi-selection
+2. **T15 Batch 3: Inspector + Edit Loop** — Schema-driven config forms, YAML/Canvas mode toggle, round-trip, save from canvas
+3. **T15 Batch 4: Specialized Task Editors** — switch_case branch builder, human_input approval form builder
+4. **T15 Batch 5: Integration + Polish** — Console wiring (web + desktop), barrel exports, a11y, final verification
+5. **T16: Natural Language to Workflow** (Phase 3) — prompt-to-workflow generation
+6. **Chart visualizations** — add recharts/visx for Cost by Workflow chart (deferred from T14)
+7. **Workflow execution → session navigation fix** — web routing mismatch
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
