@@ -71,8 +71,9 @@ export function BillingSection({
 
       {mode === "local" ? (
         <CloudFeatureNotice>
-          Billing is available on Stigmer Cloud. Connect to a Cloud
-          organization to manage credits and purchase credit packs.
+          Credit billing and purchases are available on Stigmer Cloud. Local
+          mode uses your own LLM API keys directly — no Stigmer credits
+          needed.
         </CloudFeatureNotice>
       ) : !orgId ? (
         <p className="text-muted-foreground py-4 text-center text-xs">
