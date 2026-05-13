@@ -76,6 +76,11 @@ public final class UsageProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentexecution_v1_ModelUsage_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentexecution_v1_RunnerUsageSummary_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentexecution_v1_RunnerUsageSummary_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -217,48 +222,57 @@ public final class UsageProto extends com.google.protobuf.GeneratedFile {
       "\003R\024cacheReadInputTokens\022\035\n\ncall_count\030\007 " +
       "\001(\005R\tcallCount\0220\n\024billable_cost_micros\030\010" +
       " \001(\003R\022billableCostMicros\0220\n\024provider_cos" +
-      "t_micros\030\t \001(\003R\022providerCostMicros*\256\002\n\023U" +
-      "sageMeteringSource\022%\n!USAGE_METERING_SOU" +
-      "RCE_UNSPECIFIED\020\000\0221\n-USAGE_METERING_SOUR" +
-      "CE_PROXY_PROVIDER_REPORTED\020\001\0226\n2USAGE_ME" +
-      "TERING_SOURCE_RUNNER_PROVIDER_REPORTED_O" +
-      "SS\020\002\022#\n\037USAGE_METERING_SOURCE_ESTIMATED\020" +
-      "\003\0223\n/USAGE_METERING_SOURCE_PROVIDER_ADMI" +
-      "N_RECONCILED\020\004\022+\n\'USAGE_METERING_SOURCE_" +
-      "MANUAL_ADJUSTMENT\020\005*\250\001\n\017UsageTrustLevel\022" +
-      "!\n\035USAGE_TRUST_LEVEL_UNSPECIFIED\020\000\022\'\n#US" +
-      "AGE_TRUST_LEVEL_BILLING_AUTHORITY\020\001\022%\n!U" +
-      "SAGE_TRUST_LEVEL_SERVER_OBSERVED\020\002\022\"\n\036US" +
-      "AGE_TRUST_LEVEL_DISPLAY_ONLY\020\003*\374\002\n\025Usage" +
-      "CompletionStatus\022\'\n#USAGE_COMPLETION_STA" +
-      "TUS_UNSPECIFIED\020\000\022$\n USAGE_COMPLETION_ST" +
-      "ATUS_COMPLETE\020\001\022.\n*USAGE_COMPLETION_STAT" +
-      "US_STREAM_INTERRUPTED\020\002\0225\n1USAGE_COMPLET" +
-      "ION_STATUS_PROVIDER_ERROR_WITH_USAGE\020\003\0223" +
-      "\n/USAGE_COMPLETION_STATUS_PROVIDER_ERROR" +
-      "_NO_USAGE\020\004\022*\n&USAGE_COMPLETION_STATUS_E" +
-      "STIMATED_ONLY\020\005\022&\n\"USAGE_COMPLETION_STAT" +
-      "US_RECONCILED\020\006\022$\n USAGE_COMPLETION_STAT" +
-      "US_CONFLICT\020\007*\237\002\n\022BillingDebitStatus\022$\n " +
-      "BILLING_DEBIT_STATUS_UNSPECIFIED\020\000\022\'\n#BI" +
-      "LLING_DEBIT_STATUS_NOT_APPLICABLE\020\001\022 \n\034B" +
-      "ILLING_DEBIT_STATUS_PENDING\020\002\022 \n\034BILLING" +
-      "_DEBIT_STATUS_DEBITED\020\003\022)\n%BILLING_DEBIT" +
-      "_STATUS_FAILED_RETRYABLE\020\004\022(\n$BILLING_DE" +
-      "BIT_STATUS_FAILED_TERMINAL\020\005\022!\n\035BILLING_" +
-      "DEBIT_STATUS_CONFLICT\020\006*\217\002\n\025CostCalculat" +
-      "ionStatus\022\'\n#COST_CALCULATION_STATUS_UNS" +
-      "PECIFIED\020\000\022$\n COST_CALCULATION_STATUS_CO" +
-      "MPUTED\020\001\022%\n!COST_CALCULATION_STATUS_ESTI" +
-      "MATED\020\002\022+\n\'COST_CALCULATION_STATUS_PRICE" +
-      "_NOT_FOUND\020\003\022&\n\"COST_CALCULATION_STATUS_" +
-      "RECONCILED\020\004\022+\n\'COST_CALCULATION_STATUS_" +
-      "MANUAL_ADJUSTED\020\005B\301\001B\nUsageProtoP\001\242\002\004ASA" +
-      "A\252\002$Ai.Stigmer.Agentic.Agentexecution.V1" +
-      "\312\002$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\342" +
-      "\0020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\G" +
-      "PBMetadata\352\002(Ai::Stigmer::Agentic::Agent" +
-      "execution::V1b\006proto3"
+      "t_micros\030\t \001(\003R\022providerCostMicros\"\335\002\n\022R" +
+      "unnerUsageSummary\022!\n\014input_tokens\030\001 \001(\003R" +
+      "\013inputTokens\022#\n\routput_tokens\030\002 \001(\003R\014out" +
+      "putTokens\022*\n\021cache_read_tokens\030\003 \001(\003R\017ca" +
+      "cheReadTokens\022,\n\022cache_write_tokens\030\004 \001(" +
+      "\003R\020cacheWriteTokens\022!\n\014total_tokens\030\005 \001(" +
+      "\003R\013totalTokens\022\035\n\nturn_count\030\006 \001(\005R\tturn" +
+      "Count\022,\n\022estimated_cost_usd\030\007 \001(\001R\020estim" +
+      "atedCostUsd\022\024\n\005model\030\010 \001(\tR\005model\022\037\n\013obs" +
+      "erved_at\030\t \001(\tR\nobservedAt*\256\002\n\023UsageMete" +
+      "ringSource\022%\n!USAGE_METERING_SOURCE_UNSP" +
+      "ECIFIED\020\000\0221\n-USAGE_METERING_SOURCE_PROXY" +
+      "_PROVIDER_REPORTED\020\001\0226\n2USAGE_METERING_S" +
+      "OURCE_RUNNER_PROVIDER_REPORTED_OSS\020\002\022#\n\037" +
+      "USAGE_METERING_SOURCE_ESTIMATED\020\003\0223\n/USA" +
+      "GE_METERING_SOURCE_PROVIDER_ADMIN_RECONC" +
+      "ILED\020\004\022+\n\'USAGE_METERING_SOURCE_MANUAL_A" +
+      "DJUSTMENT\020\005*\250\001\n\017UsageTrustLevel\022!\n\035USAGE" +
+      "_TRUST_LEVEL_UNSPECIFIED\020\000\022\'\n#USAGE_TRUS" +
+      "T_LEVEL_BILLING_AUTHORITY\020\001\022%\n!USAGE_TRU" +
+      "ST_LEVEL_SERVER_OBSERVED\020\002\022\"\n\036USAGE_TRUS" +
+      "T_LEVEL_DISPLAY_ONLY\020\003*\374\002\n\025UsageCompleti" +
+      "onStatus\022\'\n#USAGE_COMPLETION_STATUS_UNSP" +
+      "ECIFIED\020\000\022$\n USAGE_COMPLETION_STATUS_COM" +
+      "PLETE\020\001\022.\n*USAGE_COMPLETION_STATUS_STREA" +
+      "M_INTERRUPTED\020\002\0225\n1USAGE_COMPLETION_STAT" +
+      "US_PROVIDER_ERROR_WITH_USAGE\020\003\0223\n/USAGE_" +
+      "COMPLETION_STATUS_PROVIDER_ERROR_NO_USAG" +
+      "E\020\004\022*\n&USAGE_COMPLETION_STATUS_ESTIMATED" +
+      "_ONLY\020\005\022&\n\"USAGE_COMPLETION_STATUS_RECON" +
+      "CILED\020\006\022$\n USAGE_COMPLETION_STATUS_CONFL" +
+      "ICT\020\007*\237\002\n\022BillingDebitStatus\022$\n BILLING_" +
+      "DEBIT_STATUS_UNSPECIFIED\020\000\022\'\n#BILLING_DE" +
+      "BIT_STATUS_NOT_APPLICABLE\020\001\022 \n\034BILLING_D" +
+      "EBIT_STATUS_PENDING\020\002\022 \n\034BILLING_DEBIT_S" +
+      "TATUS_DEBITED\020\003\022)\n%BILLING_DEBIT_STATUS_" +
+      "FAILED_RETRYABLE\020\004\022(\n$BILLING_DEBIT_STAT" +
+      "US_FAILED_TERMINAL\020\005\022!\n\035BILLING_DEBIT_ST" +
+      "ATUS_CONFLICT\020\006*\217\002\n\025CostCalculationStatu" +
+      "s\022\'\n#COST_CALCULATION_STATUS_UNSPECIFIED" +
+      "\020\000\022$\n COST_CALCULATION_STATUS_COMPUTED\020\001" +
+      "\022%\n!COST_CALCULATION_STATUS_ESTIMATED\020\002\022" +
+      "+\n\'COST_CALCULATION_STATUS_PRICE_NOT_FOU" +
+      "ND\020\003\022&\n\"COST_CALCULATION_STATUS_RECONCIL" +
+      "ED\020\004\022+\n\'COST_CALCULATION_STATUS_MANUAL_A" +
+      "DJUSTED\020\005B\301\001B\nUsageProtoP\001\242\002\004ASAA\252\002$Ai.S" +
+      "tigmer.Agentic.Agentexecution.V1\312\002$Ai\\St" +
+      "igmer\\Agentic\\Agentexecution\\V1\342\0020Ai\\Sti" +
+      "gmer\\Agentic\\Agentexecution\\V1\\GPBMetada" +
+      "ta\352\002(Ai::Stigmer::Agentic::Agentexecutio" +
+      "n::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -325,6 +339,12 @@ public final class UsageProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ModelUsage_descriptor,
         new java.lang.String[] { "Model", "Provider", "InputTokens", "OutputTokens", "CacheCreationInputTokens", "CacheReadInputTokens", "CallCount", "BillableCostMicros", "ProviderCostMicros", });
+    internal_static_ai_stigmer_agentic_agentexecution_v1_RunnerUsageSummary_descriptor =
+      getDescriptor().getMessageType(8);
+    internal_static_ai_stigmer_agentic_agentexecution_v1_RunnerUsageSummary_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentexecution_v1_RunnerUsageSummary_descriptor,
+        new java.lang.String[] { "InputTokens", "OutputTokens", "CacheReadTokens", "CacheWriteTokens", "TotalTokens", "TurnCount", "EstimatedCostUsd", "Model", "ObservedAt", });
     descriptor.resolveAllFeaturesImmutable();
     com.google.protobuf.TimestampProto.getDescriptor();
   }

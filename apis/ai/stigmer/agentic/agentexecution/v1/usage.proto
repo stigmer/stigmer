@@ -428,3 +428,49 @@ message ModelUsage {
   int64 billable_cost_micros = 8;
   int64 provider_cost_micros = 9;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RUNNER-REPORTED USAGE SUMMARY
+//
+// Provisional usage captured from the runner's onDelta callbacks during
+// streaming. Updated progressively as turn-ended events arrive.
+//
+// Trust level: DISPLAY_ONLY. This data is reported by the runner process
+// (which may run on untrusted user machines) and is NOT billing-authoritative.
+// Use for real-time UX (session sidebar cost display) only.
+//
+// Billing settlement uses LlmCallUsageRecord from the proxy (native harness)
+// or future Cursor Admin API reconciliation (Cursor harness).
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Accumulated token usage from runner-observed turn-ended events.
+// Carried on AgentExecutionStatus.runner_usage for real-time streaming UX.
+message RunnerUsageSummary {
+  // Accumulated input tokens across all turns.
+  int64 input_tokens = 1;
+
+  // Accumulated output tokens across all turns.
+  int64 output_tokens = 2;
+
+  // Accumulated cache-read tokens across all turns.
+  int64 cache_read_tokens = 3;
+
+  // Accumulated cache-write tokens across all turns.
+  int64 cache_write_tokens = 4;
+
+  // Sum of all token buckets.
+  int64 total_tokens = 5;
+
+  // Number of completed turns observed.
+  int32 turn_count = 6;
+
+  // Estimated cost in USD computed from runner-side rate card.
+  // Labeled "Estimated" in the UI — not provider-verified.
+  double estimated_cost_usd = 7;
+
+  // Model identifier observed during streaming (from RunResult or assistant events).
+  string model = 8;
+
+  // ISO 8601 timestamp of the last turn-ended event observed.
+  string observed_at = 9;
+}

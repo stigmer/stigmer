@@ -1823,6 +1823,17 @@
         },
         "description": "ID of the Runner that executed this execution.\n\n Set once when the execution is dispatched to a runner; immutable after.\n For cloud executions, this references the system-managed ephemeral runner\n that was auto-created for this execution. For local executions, this\n references the user-created persistent runner selected via the session.\n\n Used for observability: \"which runner handled this work?\"",
         "required": false
+      },
+      {
+        "name": "RunnerUsage",
+        "jsonName": "runnerUsage",
+        "protoField": "runner_usage",
+        "type": {
+          "kind": "message",
+          "messageType": "RunnerUsageSummary"
+        },
+        "description": "Runner-reported usage summary, updated progressively during streaming.",
+        "required": false
       }
     ]
   },
@@ -2449,6 +2460,104 @@
             }
           },
           "description": "Skills that were available but excluded from the system prompt because\n they were not relevant to the current execution context.\n Enables visibility into the filtering decision for debugging and tuning.\n Sorted alphabetically for consistent ordering and deterministic comparison.\n\n When smart context filtering is active, this captures skills that were\n configured on the agent but scored below the relevance threshold for the\n current user message. Empty when all skills are included (no filtering).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RunnerUsageSummary",
+      "description": "Accumulated token usage from runner-observed turn-ended events.\n Carried on AgentExecutionStatus.runner_usage for real-time streaming UX.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/usage.proto",
+      "fields": [
+        {
+          "name": "InputTokens",
+          "jsonName": "inputTokens",
+          "protoField": "input_tokens",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Accumulated input tokens across all turns.",
+          "required": false
+        },
+        {
+          "name": "OutputTokens",
+          "jsonName": "outputTokens",
+          "protoField": "output_tokens",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Accumulated output tokens across all turns.",
+          "required": false
+        },
+        {
+          "name": "CacheReadTokens",
+          "jsonName": "cacheReadTokens",
+          "protoField": "cache_read_tokens",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Accumulated cache-read tokens across all turns.",
+          "required": false
+        },
+        {
+          "name": "CacheWriteTokens",
+          "jsonName": "cacheWriteTokens",
+          "protoField": "cache_write_tokens",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Accumulated cache-write tokens across all turns.",
+          "required": false
+        },
+        {
+          "name": "TotalTokens",
+          "jsonName": "totalTokens",
+          "protoField": "total_tokens",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Sum of all token buckets.",
+          "required": false
+        },
+        {
+          "name": "TurnCount",
+          "jsonName": "turnCount",
+          "protoField": "turn_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Number of completed turns observed.",
+          "required": false
+        },
+        {
+          "name": "EstimatedCostUsd",
+          "jsonName": "estimatedCostUsd",
+          "protoField": "estimated_cost_usd",
+          "type": {
+            "kind": "double"
+          },
+          "description": "Estimated cost in USD computed from runner-side rate card.\n Labeled \"Estimated\" in the UI — not provider-verified.",
+          "required": false
+        },
+        {
+          "name": "Model",
+          "jsonName": "model",
+          "protoField": "model",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Model identifier observed during streaming (from RunResult or assistant events).",
+          "required": false
+        },
+        {
+          "name": "ObservedAt",
+          "jsonName": "observedAt",
+          "protoField": "observed_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp of the last turn-ended event observed.",
           "required": false
         }
       ]

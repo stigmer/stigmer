@@ -68,58 +68,58 @@ When starting a new session:
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: May 13, 2026 — Server-Reported Deployment Mode + Feature Parity
-- **Active Task**: T01 plan reviewed; parity + server-info complete, main plan (Phase 1-5) pending review
+- **Last Session**: May 13, 2026 — Usage MVP: Stop Showing $0.00
+- **Active Task**: Phase 1 Usage MVP implemented (uncommitted). Needs commit, push, deployment verification.
 - **Branch**: `feat/bring-workflows-to-foreground`
 
-## Session Progress (May 13, 2026 — Session 2)
+## Session Progress (May 13, 2026 — Session 3: Usage MVP)
 
-### Server-Reported Deployment Mode
+### Diagnostic Findings
 
-Replaced URL-based deployment mode guessing with server-reported `getServerInfo` RPC.
+- Confirmed Cursor SDK returns usage via `onDelta` (`turn-ended.usage`) with real token counts (10K+ input)
+- Discovered Cursor SDK streaming bypasses `globalThis.fetch` — proxy CANNOT observe main agent turns
+- MongoDB investigation: 47 records exist, all `harness: "native"`, `customer_billable_amount_micros: 0`
+- 14 records from Cursor sessions are MCP classifier sidecar calls, not main agent turns
+- Deep Research report confirms: runner-reported usage is DISPLAY_ONLY, needs Admin API reconciliation for billing authority
 
-**Committed** (`e090a92b7`):
-- New proto: `PlatformQueryController.getServerInfo` with `ServerEdition` enum (oss/cloud)
-- OSS Go handler returns `edition=oss`, Cloud Java handler returns `edition=cloud`
-- SDK TypeScript `PlatformClient.getServerInfo()` maps edition to `DeploymentMode`
-- Desktop `App.tsx`: new `useServerDeploymentMode(client)` hook replaces `isLocalMode()`
-- Web `useDeploymentMode(client?)`: queries server when client provided, falls back to URL
-- Full codegen: Go, Java, Python, TypeScript stubs generated
-- Cloud stubs regenerated via `make protos` in stigmer-cloud
+### Three Root Causes Fixed
 
-### Session 1: Web-Desktop Feature Parity Audit
+1. **Cursor turns not captured**: Empty `onDelta` handler filled — `UsageAccumulator` captures turn-ended usage, computes provisional cost, streams to execution status
+2. **Harness always "native"**: Added `harness` field to `RecordLlmCallUsageInput`, proxy controllers pass their identity
+3. **Billable always $0**: `customer_billable_amount_micros` now written back to MongoDB after debit. Backfilled 47 existing records.
 
-**Committed** (`2ba7abaf9`):
-- Removed incorrect local-mode gate from `UsageSection` — OSS server already implements `getOrgUsageReport`
-- Improved billing `CloudFeatureNotice` messaging to frame local mode positively
-- Added `lastSessionZonePath` tracking to desktop `ManagementSidebar` for session-return parity
+### Changes (uncommitted)
 
-**Findings deferred**:
-- Workflows missing from desktop sidebar/routes — deferred to `20260508.01.bring-workflows-to-foreground` project
-- All other cloud-only settings gates (API Keys, Members, Invitations, Identity Providers, Platform Clients, OAuth Apps) are correctly gated — no OSS backend for those
+**stigmer OSS**: 3 proto files + generated stubs, 1 new TS file (`usage-accumulator.ts`), 2 modified TS files, research folder
+**stigmer-cloud**: 5 Java files modified (proxy + billing layers)
+
+### Previous Sessions
+
+- **Session 2** (`e090a92b7`): Server-reported deployment mode (getServerInfo RPC)
+- **Session 1** (`2ba7abaf9`): Web-desktop feature parity fixes
 
 ## Next Steps
 
-1. Review and provide feedback on the main T01 plan (Phase 1-5: usage tracking, context window, summarization, Plan/Ask mode, reconciliation)
-2. Begin Phase 1: Diagnose the $0.00 usage root cause for Cursor harness sessions
-3. Continue with context window visibility (Phase 2) based on plan approval
+1. Commit and push OSS changes (create PR)
+2. Commit and push cloud changes (create linked PR)
+3. Deploy and verify end-to-end in prod
+4. Plan Phase 2: Context window visibility OR Admin API reconciliation (from research report phases)
 
 ## Context for Resume
 
-- The T01 plan at `tasks/T01_0_plan.md` covers 5 phases over 4-6 weeks
-- Phase 1 is CRITICAL: fix $0.00 usage for Cursor sessions (user trust issue)
-- Three deep research reports in `research.*` folders provide detailed technical context
-- The parity audit revealed the OSS Go server has more capability than the frontend exposes
-- Server-reported deployment mode is now the authoritative source — URL fallback is backward compat only
-- Cloud Java handler in stigmer-cloud needs to be committed separately (different repo)
+- `RunnerUsageSummary` is field 20 on `AgentExecutionStatus`, defined in `usage.proto`
+- `useSessionUsage` hook falls back to `runner_usage` from execution status when server report is empty
+- Trust model: runner usage = DISPLAY_ONLY, proxy usage = BILLING_AUTHORITY, future Admin API = PROVIDER_SETTLED
+- Deep Research report at `research.runner-usage-tamper-resistance/04.report.gpt.md` recommends phased approach: estimated now, reconciliation soon, signed receipts later
+- Cloud Java changes in stigmer-cloud must be committed separately
 
 ## Quick Commands
 
 After loading context:
-- "Review T01 plan" — Revisit the 5-phase implementation plan
-- "Start Phase 1" — Begin diagnosing the $0.00 usage root cause
-- "Show project status" — Get overview of progress
-- "Create checkpoint" — Save current progress
+- "Commit OSS changes" — Create PR for stigmer repo
+- "Commit cloud changes" — Create PR for stigmer-cloud repo
+- "Plan Phase 2" — Begin context window visibility
+- "Plan reconciliation" — Begin Cursor Admin API reconciliation
 
 ---
 

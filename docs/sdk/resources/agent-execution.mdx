@@ -1537,6 +1537,7 @@ AgentExecutionStatus contains all execution results and state.
     workspaceWriteBacks: { type: "WorkspaceWriteBack[]", description: "Git write-back outcomes for workspace entries that had changes.", typeDescriptionLink: "#workspacewriteback" },
     setupProgress: { type: "SetupProgress", description: "Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.", typeDescriptionLink: "#setupprogress" },
     runnerId: { type: "string", description: "ID of the Runner that executed this execution." },
+    runnerUsage: { type: "RunnerUsageSummary", description: "Runner-reported usage summary, updated progressively during streaming.", typeDescriptionLink: "#runnerusagesummary" },
   }}
 />
 
@@ -1633,6 +1634,24 @@ ResolvedExecutionContext captures the resolved configuration state at execution 
     mcpServers: { type: "Record<string, McpServerResolutionStatus>", description: "MCP servers referenced by the agent and their resolution status." },
     skillNames: { type: "string[]", description: "Names of skills injected into the agent's system prompt." },
     excludedSkillNames: { type: "string[]", description: "Skills that were available but excluded from the system prompt because they were not relevant to the current execution context." },
+  }}
+/>
+
+### RunnerUsageSummary
+
+Accumulated token usage from runner-observed turn-ended events.
+
+<TypeTable
+  type={{
+    inputTokens: { type: "number", description: "Accumulated input tokens across all turns." },
+    outputTokens: { type: "number", description: "Accumulated output tokens across all turns." },
+    cacheReadTokens: { type: "number", description: "Accumulated cache-read tokens across all turns." },
+    cacheWriteTokens: { type: "number", description: "Accumulated cache-write tokens across all turns." },
+    totalTokens: { type: "number", description: "Sum of all token buckets." },
+    turnCount: { type: "number", description: "Number of completed turns observed." },
+    estimatedCostUsd: { type: "number", description: "Estimated cost in USD computed from runner-side rate card." },
+    model: { type: "string", description: "Model identifier observed during streaming (from RunResult or assistant events)." },
+    observedAt: { type: "string", description: "ISO 8601 timestamp of the last turn-ended event observed." },
   }}
 />
 

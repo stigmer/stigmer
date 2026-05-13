@@ -59,7 +59,7 @@ class AuthorizeExecutionResponse(_message.Message):
     def __init__(self, authorized: bool = ..., reservation_id: _Optional[str] = ..., reserved_micros: _Optional[int] = ..., available_balance_micros: _Optional[int] = ..., denial_reason: _Optional[str] = ...) -> None: ...
 
 class RecordLlmCallUsageInput(_message.Message):
-    __slots__ = ("execution_id", "sequence", "provider", "resolved_model", "requested_model", "tokens", "usage_status", "provider_request_id", "http_status_code", "streaming", "finish_reason", "proxy_timing", "provider_usage_json")
+    __slots__ = ("execution_id", "sequence", "provider", "resolved_model", "requested_model", "tokens", "usage_status", "provider_request_id", "http_status_code", "streaming", "finish_reason", "proxy_timing", "provider_usage_json", "harness")
     EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     SEQUENCE_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
@@ -73,6 +73,7 @@ class RecordLlmCallUsageInput(_message.Message):
     FINISH_REASON_FIELD_NUMBER: _ClassVar[int]
     PROXY_TIMING_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_USAGE_JSON_FIELD_NUMBER: _ClassVar[int]
+    HARNESS_FIELD_NUMBER: _ClassVar[int]
     execution_id: str
     sequence: int
     provider: str
@@ -86,7 +87,8 @@ class RecordLlmCallUsageInput(_message.Message):
     finish_reason: str
     proxy_timing: _usage_pb2.ProxyTiming
     provider_usage_json: str
-    def __init__(self, execution_id: _Optional[str] = ..., sequence: _Optional[int] = ..., provider: _Optional[str] = ..., resolved_model: _Optional[str] = ..., requested_model: _Optional[str] = ..., tokens: _Optional[_Union[_usage_pb2.TokenUsage, _Mapping]] = ..., usage_status: _Optional[_Union[_usage_pb2.UsageCompletionStatus, str]] = ..., provider_request_id: _Optional[str] = ..., http_status_code: _Optional[int] = ..., streaming: bool = ..., finish_reason: _Optional[str] = ..., proxy_timing: _Optional[_Union[_usage_pb2.ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ...) -> None: ...
+    harness: str
+    def __init__(self, execution_id: _Optional[str] = ..., sequence: _Optional[int] = ..., provider: _Optional[str] = ..., resolved_model: _Optional[str] = ..., requested_model: _Optional[str] = ..., tokens: _Optional[_Union[_usage_pb2.TokenUsage, _Mapping]] = ..., usage_status: _Optional[_Union[_usage_pb2.UsageCompletionStatus, str]] = ..., provider_request_id: _Optional[str] = ..., http_status_code: _Optional[int] = ..., streaming: bool = ..., finish_reason: _Optional[str] = ..., proxy_timing: _Optional[_Union[_usage_pb2.ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., harness: _Optional[str] = ...) -> None: ...
 
 class RecordLlmCallUsageResponse(_message.Message):
     __slots__ = ("usage_record_id", "provider_cost_micros", "customer_billable_amount_micros", "is_billable", "is_duplicate")

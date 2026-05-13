@@ -244,4 +244,28 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    */
   com.google.protobuf.ByteString
       getProviderUsageJsonBytes();
+
+  /**
+   * <pre>
+   * Harness that originated this call ("native" or "cursor").
+   * Set by the proxy controller based on which proxy path handled the request.
+   * When empty, the billing handler falls back to the model pricing registry.
+   * </pre>
+   *
+   * <code>string harness = 14 [json_name = "harness"];</code>
+   * @return The harness.
+   */
+  java.lang.String getHarness();
+  /**
+   * <pre>
+   * Harness that originated this call ("native" or "cursor").
+   * Set by the proxy controller based on which proxy path handled the request.
+   * When empty, the billing handler falls back to the model pricing registry.
+   * </pre>
+   *
+   * <code>string harness = 14 [json_name = "harness"];</code>
+   * @return The bytes for harness.
+   */
+  com.google.protobuf.ByteString
+      getHarnessBytes();
 }
