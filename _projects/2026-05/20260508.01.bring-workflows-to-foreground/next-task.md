@@ -19,10 +19,38 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-13 — T15 Batch 2 COMPLETE (Node Authoring)
-**Current Task**: T15 Batch 2 COMPLETE — Node Authoring
+**Last Session**: 2026-05-13 — T15 Batch 3 COMPLETE (Inspector + Edit Loop)
+**Current Task**: T15 Batch 3 COMPLETE — Inspector + Edit Loop
 **Phase**: Phase 2 — Visual Builder — IN PROGRESS
-**Next Task**: T15 Batch 3 (Inspector + Edit Loop — Schema-Driven Forms + Mode Toggle)
+**Next Task**: T15 Batch 4 (Specialized Task Editors — BranchConditionBuilder + ApprovalFormBuilder)
+
+## Session Progress (2026-05-13, T15 Batch 3)
+
+### T15 Batch 3: Inspector + Edit Loop — COMPLETE
+
+Completed the full visual editing loop: schema-driven inspector panel, YAML/Canvas
+mode toggle with round-trip, canvas save, and validation error mapping. 2 new files,
+4 modified.
+
+#### New Files (2)
+- `TaskConfigForm.tsx` — Schema-driven form from TaskKindDescriptor fields/fieldGroups. 8 field types: string, int32, float, bool, enum, struct, repeated, map. Collapsible groups, required indicators, expression highlighting.
+- `WorkflowInspectorPanel.tsx` — Right sidebar: Identity (editable name w/ validation), Configuration (TaskConfigForm), Export, Flow (transition dropdown). Edge/sentinel inspectors. Controlled component pattern.
+
+#### Modified Files (4)
+- `graph-commands.ts` — 3 new commands: UpdateNodeFieldCommand (dot-path config edits), RenameNodeCommand (atomic name+edge+flow.then cascading), UpdateNodeMetaCommand (export/flow mutations)
+- `useWorkflowCanvas.ts` — 6 new methods: updateNodeField, renameNode, updateNodeExport, updateNodeFlow, getNodeDescriptor, serializeToYaml
+- `WorkflowEditorView.tsx` — Mode state (code/visual), segmented control, mode switch with warning/dirty dialogs, canvas save via YAML pipeline, validation error mapping
+- `WorkflowCanvasEditor.tsx` — Inspector panel sidebar, onSave/isSaving/nodeErrors props, save button in toolbar, edge deletion via inspector
+
+#### Architectural Decisions
+- AD-T15-B3-001: Granular update commands (field-level undo/redo)
+- AD-T15-B3-002: Save via YAML (both modes see identical persisted content)
+- AD-T15-B3-003: Mode state lives in WorkflowEditorView (shared YAML sync medium)
+- AD-T15-B3-004: Inspector as controlled sidebar (no graph state ownership)
+
+#### Verification
+- `tsc --noEmit` — clean: sdk/react, sdk/typescript, client-apps/web, client-apps/desktop
+- Zero linter errors on all new/modified files
 
 ## Session Progress (2026-05-13, T15 Batch 2)
 
@@ -494,12 +522,11 @@ New Task Types — llm_call, transform, human_input, validate, emit_event, notif
 Structured Agent Output Model
 
 ## Next Steps
-1. **T15 Batch 3: Inspector + Edit Loop** — Schema-driven config forms, YAML/Canvas mode toggle, round-trip, save from canvas
-2. **T15 Batch 4: Specialized Task Editors** — switch_case branch builder, human_input approval form builder
-3. **T15 Batch 5: Integration + Polish** — Console wiring (web + desktop), barrel exports, a11y, final verification
-4. **T16: Natural Language to Workflow** (Phase 3) — prompt-to-workflow generation
-5. **Chart visualizations** — add recharts/visx for Cost by Workflow chart (deferred from T14)
-6. **Workflow execution → session navigation fix** — web routing mismatch
+1. **T15 Batch 4: Specialized Task Editors** — switch_case branch builder, human_input approval form builder
+2. **T15 Batch 5: Integration + Polish** — Console wiring (web + desktop), barrel exports, a11y, final verification
+3. **T16: Natural Language to Workflow** (Phase 3) — prompt-to-workflow generation
+4. **Chart visualizations** — add recharts/visx for Cost by Workflow chart (deferred from T14)
+5. **Workflow execution → session navigation fix** — web routing mismatch
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07

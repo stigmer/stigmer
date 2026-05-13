@@ -1,10 +1,12 @@
 "use client";
 
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { useWorkflowEditor, type UseWorkflowEditorOptions } from "./useWorkflowEditor";
+import { useWorkflowEditor } from "./useWorkflowEditor";
 import { WorkflowYamlEditor } from "./WorkflowYamlEditor";
 import { WorkflowTopologyGraph } from "./WorkflowTopologyGraph";
+import { WorkflowCanvasEditor } from "./WorkflowCanvasEditor";
+import { yamlToGraph, graphToYaml } from "./workflow-graph-conversions";
 
 /** Props for {@link WorkflowEditorView}. */
 export interface WorkflowEditorViewProps {
@@ -44,6 +46,9 @@ export interface WorkflowEditorViewProps {
  *
  * @since T10 (YAML Editor with Graph Preview)
  */
+/** Editing mode for the workflow editor. */
+export type WorkflowEditorMode = "code" | "visual";
+
 export const WorkflowEditorView = memo(function WorkflowEditorView({
   initialYaml,
   org,
@@ -53,6 +58,13 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
 }: WorkflowEditorViewProps) {
   const editor = useWorkflowEditor(initialYaml, { org });
   const [isFullPage, setIsFullPage] = useState(false);
+  const [mode, setMode] = useState<WorkflowEditorMode>("code");
+  const [showModeWarning, setShowModeWarning] = useState(false);
+  const [canvasIsSaving, setCanvasIsSaving] = useState(false);
+
+  // Track canvas dirty state separately for mode switch prompts
+  const [canvasDirty, setCanvasDirty] = useState(false);
+  const [showDirtyPrompt, setShowDirtyPrompt] = useState(false);
 
   const handleSave = useCallback(async () => {
     const success = await editor.save();
@@ -67,6 +79,87 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
     setIsFullPage((prev) => !prev);
   }, []);
 
+  // -------------------------------------------------------------------------
+  // Mode switching (AD-T15-B3-003)
+  // -------------------------------------------------------------------------
+
+  const handleSwitchToVisual = useCallback(() => {
+    try {
+      yamlToGraph(editor.yaml);
+      setShowModeWarning(true);
+    } catch {
+      onSaveError?.(new Error("Cannot switch to visual mode: the current YAML has structural errors that prevent parsing."));
+    }
+  }, [editor.yaml, onSaveError]);
+
+  const confirmSwitchToVisual = useCallback(() => {
+    setShowModeWarning(false);
+    setMode("visual");
+  }, []);
+
+  const cancelSwitchToVisual = useCallback(() => {
+    setShowModeWarning(false);
+  }, []);
+
+  const handleSwitchToCode = useCallback(() => {
+    if (canvasDirty) {
+      setShowDirtyPrompt(true);
+      return;
+    }
+    setMode("code");
+  }, [canvasDirty]);
+
+  const confirmDiscardAndSwitchToCode = useCallback(() => {
+    setShowDirtyPrompt(false);
+    setMode("code");
+    setCanvasDirty(false);
+  }, []);
+
+  const cancelSwitchToCode = useCallback(() => {
+    setShowDirtyPrompt(false);
+  }, []);
+
+  // Canvas save handler (AD-T15-B3-002: save via YAML)
+  const handleCanvasSave = useCallback(
+    async (yamlStr: string) => {
+      setCanvasIsSaving(true);
+      editor.setYaml(yamlStr);
+      // Allow React to propagate the YAML before saving
+      setTimeout(async () => {
+        const success = await editor.save();
+        setCanvasIsSaving(false);
+        setCanvasDirty(false);
+        if (success) {
+          onSaveSuccess?.();
+        } else if (editor.saveError) {
+          onSaveError?.(editor.saveError);
+        }
+      }, 0);
+    },
+    [editor, onSaveSuccess, onSaveError],
+  );
+
+  // Validation error mapping for canvas mode
+  const nodeErrors = useMemo<ReadonlyMap<string, readonly string[]>>(() => {
+    if (mode !== "visual") return new Map();
+    const errorMap = new Map<string, string[]>();
+    for (const diag of editor.diagnostics) {
+      if (diag.severity !== "error") continue;
+      const match = diag.message.match(/task\s+"([^"]+)"/i) ??
+        diag.message.match(/task\s+(\S+)/i);
+      if (match) {
+        const taskName = match[1];
+        const existing = errorMap.get(taskName);
+        if (existing) {
+          existing.push(diag.message);
+        } else {
+          errorMap.set(taskName, [diag.message]);
+        }
+      }
+    }
+    return errorMap;
+  }, [mode, editor.diagnostics]);
+
   const rootClassName = cn(
     "stgm-workflow-editor flex flex-col",
     isFullPage && "fixed inset-0 z-50 bg-background",
@@ -79,40 +172,47 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
       {/* Toolbar */}
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <div className="flex items-center gap-3">
+          {/* Mode Toggle */}
+          <ModeToggle mode={mode} onSwitchToCode={handleSwitchToCode} onSwitchToVisual={handleSwitchToVisual} />
+          <div className="mx-1 h-4 w-px bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
           <ValidationSummary
             errorCount={editor.errorCount}
             warningCount={editor.warningCount}
           />
-          {editor.isDirty && (
+          {(editor.isDirty || canvasDirty) && (
             <span className="text-xs text-muted-foreground">Unsaved changes</span>
           )}
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={editor.reset}
-            disabled={!editor.isDirty || editor.isSaving}
-            className={cn(
-              "rounded px-2.5 py-1 text-xs font-medium transition-colors",
-              "text-muted-foreground hover:bg-muted hover:text-foreground",
-              "disabled:pointer-events-none disabled:opacity-40",
-            )}
-          >
-            Reset
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!editor.isDirty || editor.isSaving || editor.errorCount > 0}
-            className={cn(
-              "rounded bg-primary px-3 py-1 text-xs font-medium text-primary-foreground transition-colors",
-              "hover:bg-primary/90",
-              "disabled:pointer-events-none disabled:opacity-40",
-            )}
-          >
-            {editor.isSaving ? "Saving\u2026" : "Save"}
-          </button>
+          {mode === "code" && (
+            <button
+              type="button"
+              onClick={editor.reset}
+              disabled={!editor.isDirty || editor.isSaving}
+              className={cn(
+                "rounded px-2.5 py-1 text-xs font-medium transition-colors",
+                "text-muted-foreground hover:bg-muted hover:text-foreground",
+                "disabled:pointer-events-none disabled:opacity-40",
+              )}
+            >
+              Reset
+            </button>
+          )}
+          {mode === "code" && (
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!editor.isDirty || editor.isSaving || editor.errorCount > 0}
+              className={cn(
+                "rounded bg-primary px-3 py-1 text-xs font-medium text-primary-foreground transition-colors",
+                "hover:bg-primary/90",
+                "disabled:pointer-events-none disabled:opacity-40",
+              )}
+            >
+              {editor.isSaving ? "Saving\u2026" : "Save"}
+            </button>
+          )}
           <button
             type="button"
             onClick={toggleFullPage}
@@ -131,26 +231,157 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
         </div>
       )}
 
-      {/* Split pane: editor + graph */}
+      {/* Mode warning dialog */}
+      {showModeWarning && (
+        <ModeWarningDialog onConfirm={confirmSwitchToVisual} onCancel={cancelSwitchToVisual} />
+      )}
+
+      {/* Dirty prompt dialog */}
+      {showDirtyPrompt && (
+        <DirtyPromptDialog onDiscard={confirmDiscardAndSwitchToCode} onCancel={cancelSwitchToCode} />
+      )}
+
+      {/* Main content area */}
       <div className="flex min-h-0 flex-1">
-        <div className="flex-1 overflow-hidden border-r border-border">
-          <WorkflowYamlEditor
-            value={editor.yaml}
-            onChange={editor.setYaml}
-            diagnostics={editor.diagnostics as import("@codemirror/lint").Diagnostic[]}
-            className="h-full rounded-none border-0"
+        {mode === "code" ? (
+          <>
+            <div className="flex-1 overflow-hidden border-r border-border">
+              <WorkflowYamlEditor
+                value={editor.yaml}
+                onChange={editor.setYaml}
+                diagnostics={editor.diagnostics as import("@codemirror/lint").Diagnostic[]}
+                className="h-full rounded-none border-0"
+              />
+            </div>
+            <div className="w-[40%] min-w-[240px] overflow-hidden">
+              <WorkflowTopologyGraph
+                topology={editor.topology}
+                className="h-full"
+              />
+            </div>
+          </>
+        ) : (
+          <WorkflowCanvasEditor
+            yaml={editor.yaml}
+            onSave={handleCanvasSave}
+            isSaving={canvasIsSaving}
+            nodeErrors={nodeErrors}
+            className="flex-1"
           />
-        </div>
-        <div className="w-[40%] min-w-[240px] overflow-hidden">
-          <WorkflowTopologyGraph
-            topology={editor.topology}
-            className="h-full"
-          />
-        </div>
+        )}
       </div>
     </div>
   );
 });
+
+// ---------------------------------------------------------------------------
+// Mode Toggle
+// ---------------------------------------------------------------------------
+
+function ModeToggle({
+  mode,
+  onSwitchToCode,
+  onSwitchToVisual,
+}: {
+  mode: WorkflowEditorMode;
+  onSwitchToCode: () => void;
+  onSwitchToVisual: () => void;
+}) {
+  const segmentClass = (active: boolean) =>
+    cn(
+      "rounded px-2.5 py-1 text-xs font-medium transition-colors",
+      active
+        ? "bg-[var(--stgm-primary,#6366f1)] text-[var(--stgm-primary-foreground,#fff)]"
+        : "text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-muted,#f5f5f5)] hover:text-[var(--stgm-foreground,#1a1a2e)]",
+    );
+
+  return (
+    <div className="flex items-center gap-0.5 rounded-md border border-[var(--stgm-border,#d4d4d8)] p-0.5" role="tablist" aria-label="Editor mode">
+      <button type="button" role="tab" aria-selected={mode === "code"} onClick={onSwitchToCode} className={segmentClass(mode === "code")}>
+        Code
+      </button>
+      <button type="button" role="tab" aria-selected={mode === "visual"} onClick={onSwitchToVisual} className={segmentClass(mode === "visual")}>
+        Visual
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Mode Warning Dialog
+// ---------------------------------------------------------------------------
+
+function ModeWarningDialog({
+  onConfirm,
+  onCancel,
+}: {
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="border-b border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-accent,#fffbeb)] px-3 py-2">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-[var(--stgm-foreground,#1a1a2e)]">
+          Switching to visual mode will normalize YAML formatting. Comments and custom ordering will not be preserved.
+        </p>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded px-2 py-1 text-xs text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-muted,#f5f5f5)]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded bg-[var(--stgm-primary,#6366f1)] px-2.5 py-1 text-xs font-medium text-[var(--stgm-primary-foreground,#fff)] hover:opacity-90"
+          >
+            Continue
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Dirty Prompt Dialog
+// ---------------------------------------------------------------------------
+
+function DirtyPromptDialog({
+  onDiscard,
+  onCancel,
+}: {
+  onDiscard: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="border-b border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-accent,#fffbeb)] px-3 py-2">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-[var(--stgm-foreground,#1a1a2e)]">
+          You have unsaved changes in the visual editor. Switching to code mode will discard them.
+        </p>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded px-2 py-1 text-xs text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-muted,#f5f5f5)]"
+          >
+            Stay in Visual
+          </button>
+          <button
+            type="button"
+            onClick={onDiscard}
+            className="rounded bg-[var(--stgm-destructive,#ef4444)] px-2.5 py-1 text-xs font-medium text-white hover:opacity-90"
+          >
+            Discard &amp; Switch
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Sub-components

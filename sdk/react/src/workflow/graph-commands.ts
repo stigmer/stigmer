@@ -233,6 +233,229 @@ export class CompoundCommand implements GraphCommand {
 }
 
 // ---------------------------------------------------------------------------
+// UpdateNodeFieldCommand
+// ---------------------------------------------------------------------------
+
+/**
+ * Updates a single field path within a node's `config` object.
+ *
+ * Stores the previous value at that path for precise undo.
+ * Supports dot-separated paths for nested fields (e.g., "response_schema.type").
+ */
+export class UpdateNodeFieldCommand implements GraphCommand {
+  readonly type = "update_node_field";
+  readonly description: string;
+  private readonly nodeId: string;
+  private readonly fieldPath: string;
+  private readonly newValue: unknown;
+  private oldValue: unknown = undefined;
+
+  constructor(nodeId: string, fieldPath: string, newValue: unknown, taskName: string) {
+    this.nodeId = nodeId;
+    this.fieldPath = fieldPath;
+    this.newValue = newValue;
+    this.description = `Update "${taskName}" field "${fieldPath}"`;
+  }
+
+  apply(model: WorkflowGraphModel): WorkflowGraphModel {
+    const node = model.nodes.find((n) => n.id === this.nodeId);
+    if (!node) return model;
+
+    this.oldValue = getNestedValue(node.config as Record<string, unknown>, this.fieldPath);
+    const newConfig = setNestedValue(
+      node.config as Record<string, unknown>,
+      this.fieldPath,
+      this.newValue,
+    ) as JsonObject;
+
+    const nodes = model.nodes.map((n) =>
+      n.id === this.nodeId ? { ...n, config: newConfig } : n,
+    );
+    return { ...model, nodes };
+  }
+
+  undo(model: WorkflowGraphModel): WorkflowGraphModel {
+    const node = model.nodes.find((n) => n.id === this.nodeId);
+    if (!node) return model;
+
+    const restoredConfig = this.oldValue === undefined
+      ? deleteNestedValue(node.config as Record<string, unknown>, this.fieldPath) as JsonObject
+      : setNestedValue(node.config as Record<string, unknown>, this.fieldPath, this.oldValue) as JsonObject;
+
+    const nodes = model.nodes.map((n) =>
+      n.id === this.nodeId ? { ...n, config: restoredConfig } : n,
+    );
+    return { ...model, nodes };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// RenameNodeCommand
+// ---------------------------------------------------------------------------
+
+/**
+ * Renames a task node, updating its `id`, `taskName`, and all references
+ * in edges (source/target) and other nodes' `flow.then` values.
+ *
+ * Atomic: undo restores all references to the old name.
+ */
+export class RenameNodeCommand implements GraphCommand {
+  readonly type = "rename_node";
+  readonly description: string;
+  private readonly oldName: string;
+  private readonly newName: string;
+
+  constructor(oldName: string, newName: string) {
+    this.oldName = oldName;
+    this.newName = newName;
+    this.description = `Rename "${oldName}" to "${newName}"`;
+  }
+
+  apply(model: WorkflowGraphModel): WorkflowGraphModel {
+    return this.rename(model, this.oldName, this.newName);
+  }
+
+  undo(model: WorkflowGraphModel): WorkflowGraphModel {
+    return this.rename(model, this.newName, this.oldName);
+  }
+
+  private rename(model: WorkflowGraphModel, from: string, to: string): WorkflowGraphModel {
+    const nodes = model.nodes.map((n) => {
+      if (n.id === from) {
+        return { ...n, id: to, taskName: to };
+      }
+      if (n.flow?.then === from) {
+        return { ...n, flow: { then: to } };
+      }
+      return n;
+    });
+
+    const edges = model.edges.map((e) => {
+      const sourceMatch = e.source === from;
+      const targetMatch = e.target === from;
+      if (!sourceMatch && !targetMatch) return e;
+      return {
+        ...e,
+        ...(sourceMatch && { source: to }),
+        ...(targetMatch && { target: to }),
+      };
+    });
+
+    return { ...model, nodes, edges };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// UpdateNodeMetaCommand
+// ---------------------------------------------------------------------------
+
+/** Which meta property is being updated. */
+export type NodeMetaField = "export" | "flow";
+
+/**
+ * Updates non-config node properties: `export.as` or `flow.then`.
+ *
+ * Lightweight command for small property mutations that don't touch
+ * the task_config object.
+ */
+export class UpdateNodeMetaCommand implements GraphCommand {
+  readonly type = "update_node_meta";
+  readonly description: string;
+  private readonly nodeId: string;
+  private readonly field: NodeMetaField;
+  private readonly newValue: string | undefined;
+  private oldValue: string | undefined = undefined;
+
+  constructor(nodeId: string, field: NodeMetaField, newValue: string | undefined, taskName: string) {
+    this.nodeId = nodeId;
+    this.field = field;
+    this.newValue = newValue;
+    this.description = `Update "${taskName}" ${field}`;
+  }
+
+  apply(model: WorkflowGraphModel): WorkflowGraphModel {
+    const node = model.nodes.find((n) => n.id === this.nodeId);
+    if (!node) return model;
+
+    if (this.field === "export") {
+      this.oldValue = node.export?.as;
+      const exportVal = this.newValue ? { as: this.newValue } : undefined;
+      const nodes = model.nodes.map((n) =>
+        n.id === this.nodeId ? { ...n, export: exportVal } : n,
+      );
+      return { ...model, nodes };
+    }
+
+    // field === "flow"
+    this.oldValue = node.flow?.then;
+    const flowVal = this.newValue ? { then: this.newValue } : undefined;
+    const nodes = model.nodes.map((n) =>
+      n.id === this.nodeId ? { ...n, flow: flowVal } : n,
+    );
+    return { ...model, nodes };
+  }
+
+  undo(model: WorkflowGraphModel): WorkflowGraphModel {
+    const node = model.nodes.find((n) => n.id === this.nodeId);
+    if (!node) return model;
+
+    if (this.field === "export") {
+      const exportVal = this.oldValue ? { as: this.oldValue } : undefined;
+      const nodes = model.nodes.map((n) =>
+        n.id === this.nodeId ? { ...n, export: exportVal } : n,
+      );
+      return { ...model, nodes };
+    }
+
+    // field === "flow"
+    const flowVal = this.oldValue ? { then: this.oldValue } : undefined;
+    const nodes = model.nodes.map((n) =>
+      n.id === this.nodeId ? { ...n, flow: flowVal } : n,
+    );
+    return { ...model, nodes };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Nested value utilities for UpdateNodeFieldCommand
+// ---------------------------------------------------------------------------
+
+function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
+  const keys = path.split(".");
+  let current: unknown = obj;
+  for (const key of keys) {
+    if (current == null || typeof current !== "object") return undefined;
+    current = (current as Record<string, unknown>)[key];
+  }
+  return current;
+}
+
+function setNestedValue(obj: Record<string, unknown>, path: string, value: unknown): Record<string, unknown> {
+  const keys = path.split(".");
+  if (keys.length === 1) {
+    return { ...obj, [keys[0]]: value };
+  }
+  const [head, ...rest] = keys;
+  const child = (obj[head] != null && typeof obj[head] === "object")
+    ? obj[head] as Record<string, unknown>
+    : {};
+  return { ...obj, [head]: setNestedValue(child, rest.join("."), value) };
+}
+
+function deleteNestedValue(obj: Record<string, unknown>, path: string): Record<string, unknown> {
+  const keys = path.split(".");
+  if (keys.length === 1) {
+    const { [keys[0]]: _, ...rest } = obj;
+    return rest;
+  }
+  const [head, ...restKeys] = keys;
+  const child = (obj[head] != null && typeof obj[head] === "object")
+    ? obj[head] as Record<string, unknown>
+    : {};
+  return { ...obj, [head]: deleteNestedValue(child, restKeys.join(".")) };
+}
+
+// ---------------------------------------------------------------------------
 // GraphHistory
 // ---------------------------------------------------------------------------
 
