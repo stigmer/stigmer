@@ -163,6 +163,8 @@ func buildLlmOutput(resp *llm.Response) map[string]any {
 			"total_tokens":      resp.TotalTokens,
 			"cost_micros":       resp.CostMicros,
 		},
+		"__stigmer_cost_micros": resp.CostMicros,
+		"__stigmer_tokens":      int64(resp.TotalTokens),
 	}
 
 	if resp.Structured != nil {

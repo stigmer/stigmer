@@ -18,11 +18,16 @@ package tasks
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	swUtil "github.com/serverlessworkflow/sdk-go/v3/impl/utils"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	wfexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/budget"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/claimcheck"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/events"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/types"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/utils"
 	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/zigflow/metadata"
@@ -36,6 +41,11 @@ type DoTaskOpts struct {
 	Envvars                 map[string]any
 	MaxHistoryLength        int
 	Validator               *utils.Validator
+	Emitter                 *events.Emitter
+	BudgetTracker           *budget.Tracker
+	ExecutionID             string
+	WorkflowID              string
+	WorkflowInstanceID      string
 }
 
 func NewDoTaskBuilder(
@@ -67,7 +77,8 @@ func NewDoTaskBuilder(
 
 type DoTaskBuilder struct {
 	builder[*model.DoTask]
-	opts DoTaskOpts
+	opts        DoTaskOpts
+	eventBuffer []*wfexecv1.WorkflowExecutionEvent
 }
 
 type workflowFunc struct {
@@ -253,6 +264,9 @@ func (t *DoTaskBuilder) continueAsNew(
 			InitialData:              state.Data,
 			OrgId:                    originalInput.OrgId,
 			InvokerIdentityAccountID: originalInput.InvokerIdentityAccountID,
+			Budget:                   originalInput.Budget,
+			WorkflowID:               originalInput.WorkflowID,
+			WorkflowInstanceID:       originalInput.WorkflowInstanceID,
 		}
 
 		// Log with safe metadata access
@@ -317,11 +331,15 @@ func (t *DoTaskBuilder) iterateTasks(
 		}
 
 		logger.Debug("Check if task should be run", "task", task.Name)
+		taskKind := ResolveTaskKind(task.GetTask())
 		if toRun, err := task.ShouldRun(state); err != nil {
 			logger.Error("Error checking if statement", "error", err, "name", task.Name)
 			return err
 		} else if !toRun {
 			logger.Debug("Skipping task as if statement resolve as false", "name", task.Name)
+			if t.opts.Emitter != nil {
+				t.bufferEvent(t.opts.Emitter.TaskSkipped(workflow.Now(ctx), task.Name, taskKind, "condition evaluated to false"))
+			}
 			continue
 		}
 
@@ -344,10 +362,37 @@ func (t *DoTaskBuilder) iterateTasks(
 			ctx = wCtx
 		}
 
+		taskStartTime := workflow.Now(ctx)
+		if t.opts.Emitter != nil {
+			t.bufferEvent(t.opts.Emitter.TaskStarted(taskStartTime, task.Name, taskKind, 1, nil))
+		}
+
 		branchOverride, err := t.runTask(ctx, task, input, state)
 		if err != nil {
+			durationMs := workflow.Now(ctx).Sub(taskStartTime).Milliseconds()
+			if t.opts.Emitter != nil {
+				t.bufferEvent(t.opts.Emitter.TaskFailed(workflow.Now(ctx), task.Name, taskKind, err.Error(), 1, 1, false, durationMs))
+			}
+			t.flushEvents(ctx)
 			return err
 		}
+
+		durationMs := workflow.Now(ctx).Sub(taskStartTime).Milliseconds()
+		costMicros, tokens := extractCostFromOutput(state.Output)
+
+		if t.opts.Emitter != nil {
+			t.bufferEvent(t.opts.Emitter.TaskCompleted(workflow.Now(ctx), task.Name, taskKind, durationMs, costMicros, tokens, nil))
+		}
+
+		if t.opts.BudgetTracker != nil {
+			t.opts.BudgetTracker.Record(costMicros, tokens)
+			if err := t.checkBudget(ctx, task.Name); err != nil {
+				t.flushEvents(ctx)
+				return err
+			}
+		}
+
+		t.flushEvents(ctx)
 
 		// Dynamic branch override takes precedence over static flow directives.
 		// This enables validate/llm_call/human_input to route dynamically based
@@ -553,6 +598,162 @@ func (t *DoTaskBuilder) shouldSkip(taskID string, task workflowFunc, state *util
 	}
 
 	return false
+}
+
+// ── Event emission helpers ──────────────────────────────────────────────
+
+// bufferEvent appends an event to the pending buffer. No-op if emitter is nil.
+func (t *DoTaskBuilder) bufferEvent(ev *wfexecv1.WorkflowExecutionEvent) {
+	if ev != nil {
+		t.eventBuffer = append(t.eventBuffer, ev)
+	}
+}
+
+// flushEvents sends all buffered events to the backend via a Temporal activity.
+// Clears the buffer after a successful flush. Errors are logged but do not fail
+// the workflow — event delivery is best-effort; the status snapshot is the
+// authoritative state.
+func (t *DoTaskBuilder) flushEvents(ctx workflow.Context) {
+	if len(t.eventBuffer) == 0 || t.opts.ExecutionID == "" {
+		return
+	}
+
+	batch := make([]*wfexecv1.WorkflowExecutionEvent, len(t.eventBuffer))
+	copy(batch, t.eventBuffer)
+	t.eventBuffer = t.eventBuffer[:0]
+
+	logger := workflow.GetLogger(ctx)
+	flushCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+		StartToCloseTimeout: 10 * time.Second,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts: 2,
+		},
+	})
+
+	input := &FlushEventsInput{
+		ExecutionID: t.opts.ExecutionID,
+		Events:      batch,
+	}
+
+	err := workflow.ExecuteActivity(flushCtx, FlushEventsActivity, input).Get(ctx, nil)
+	if err != nil {
+		logger.Warn("Failed to flush events (non-critical)",
+			"execution_id", t.opts.ExecutionID,
+			"event_count", len(batch),
+			"error", err)
+	}
+}
+
+// extractCostFromOutput reads cost/token metadata from the task output using
+// the __stigmer_cost_micros / __stigmer_tokens convention (same pattern as
+// __stigmer_branch_override).
+func extractCostFromOutput(output any) (costMicros, tokens int64) {
+	outputMap, ok := output.(map[string]any)
+	if !ok {
+		return 0, 0
+	}
+
+	if v, exists := outputMap["__stigmer_cost_micros"]; exists {
+		switch n := v.(type) {
+		case float64:
+			costMicros = int64(n)
+		case int64:
+			costMicros = n
+		case int:
+			costMicros = int64(n)
+		}
+		delete(outputMap, "__stigmer_cost_micros")
+	}
+
+	if v, exists := outputMap["__stigmer_tokens"]; exists {
+		switch n := v.(type) {
+		case float64:
+			tokens = int64(n)
+		case int64:
+			tokens = n
+		case int:
+			tokens = int64(n)
+		}
+		delete(outputMap, "__stigmer_tokens")
+	}
+
+	return costMicros, tokens
+}
+
+// ── Budget enforcement ──────────────────────────────────────────────────
+
+// checkBudget evaluates accumulated usage after a task completes. Emits a
+// budget_checkpoint event and enforces the on_exceeded policy.
+// Returns an error only if the policy is terminate.
+func (t *DoTaskBuilder) checkBudget(ctx workflow.Context, taskName string) error {
+	tracker := t.opts.BudgetTracker
+	emitter := t.opts.Emitter
+	if tracker == nil {
+		return nil
+	}
+
+	now := workflow.Now(ctx)
+	result := tracker.Check(now)
+
+	if emitter != nil {
+		var policy workflowv1.BudgetExceededPolicy
+		if result.Exceeded {
+			policy = result.Policy
+		}
+		t.bufferEvent(emitter.BudgetCheckpoint(
+			now, taskName,
+			tracker.CostMicros, tracker.CostRemaining(),
+			tracker.TotalTokens, tracker.TokensRemaining(),
+			result.Exceeded, policy,
+		))
+	}
+
+	if !result.Exceeded {
+		return nil
+	}
+
+	logger := workflow.GetLogger(ctx)
+
+	switch result.Policy {
+	case workflowv1.BudgetExceededPolicy_budget_exceeded_warn:
+		logger.Warn("Budget limit exceeded (warn policy, continuing)",
+			"limit", result.ExceededLimit.String(),
+			"message", result.ExceededMessage)
+		return nil
+
+	case workflowv1.BudgetExceededPolicy_budget_exceeded_human_review:
+		logger.Info("Budget limit exceeded, requesting human review",
+			"limit", result.ExceededLimit.String(),
+			"message", result.ExceededMessage)
+
+		if emitter != nil {
+			t.bufferEvent(emitter.ApprovalRequested(
+				now, taskName,
+				fmt.Sprintf("Budget exceeded: %s", result.ExceededMessage),
+				nil, 0,
+			))
+		}
+		t.flushEvents(ctx)
+
+		signalCh := workflow.GetSignalChannel(ctx, fmt.Sprintf("budget_review_%s", t.opts.ExecutionID))
+		var approved bool
+		signalCh.Receive(ctx, &approved)
+		if !approved {
+			return temporal.NewNonRetryableApplicationError(
+				result.ExceededMessage,
+				"BudgetExceeded",
+				nil,
+			)
+		}
+		return nil
+
+	default:
+		return temporal.NewNonRetryableApplicationError(
+			result.ExceededMessage,
+			"BudgetExceeded",
+			nil,
+		)
+	}
 }
 
 // maybeOffloadStateData applies claim check to state.Data after task execution

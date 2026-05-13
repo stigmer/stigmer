@@ -334,6 +334,9 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 		EnvVars:                  runtimeEnv,
 		OrgId:                    input.OrgID,
 		InvokerIdentityAccountID: input.InvokerIdentityAccountID,
+		Budget:                   workflow.Spec.Budget,
+		WorkflowID:               workflowID,
+		WorkflowInstanceID:       workflowInstanceID,
 	}
 
 	// Start the workflow
