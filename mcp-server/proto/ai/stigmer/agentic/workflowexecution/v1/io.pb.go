@@ -537,6 +537,135 @@ func (x *SubmitWorkflowApprovalInput) GetComment() string {
 	return ""
 }
 
+// SubmitWorkflowTaskApprovalInput submits a human reviewer's decision for a
+// workflow-level human_input task.
+//
+// @internal
+// Unlike submitApproval (which forwards agent-level tool approvals to a child
+// AgentExecution), this RPC resolves workflow-level human_input tasks. The handler:
+//
+// 1. Validates that the named task exists in the execution and is a human_input task
+// 2. Validates the outcome against the task's configured outcomes (if any)
+// 3. Constructs the Temporal signal name ("human_input_{task_name}")
+// 4. Builds the signal payload matching HumanInputSignalPayload
+// 5. Sends the signal via SignalWithStart for race-proof delivery
+//
+// The reviewer's decision (outcome + form_data) becomes the task output after
+// the workflow-runner receives and processes the signal.
+//
+// @since T13b (Java/Cloud Backend Parity)
+type SubmitWorkflowTaskApprovalInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ID of the workflow execution containing the human_input task.
+	//
+	// @internal
+	// Format: "wfx_{unique-suffix}"
+	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	// Name of the human_input task to respond to.
+	//
+	// @internal
+	// Must match a task in the workflow whose kind is human_input and whose
+	// current status is WORKFLOW_TASK_IN_PROGRESS (waiting for signal).
+	// The handler constructs the signal name as "human_input_{task_name}".
+	TaskName string `protobuf:"bytes,2,opt,name=task_name,json=taskName,proto3" json:"task_name,omitempty"`
+	// Outcome selected by the reviewer.
+	//
+	// @internal
+	// If the human_input task defines custom outcomes, this must match one of
+	// the configured outcome names (e.g., "approve", "deny", "needs_revision").
+	// If no custom outcomes are defined, must be "approve" or "deny".
+	Outcome string `protobuf:"bytes,3,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	// Form data collected from the reviewer's response form.
+	//
+	// @internal
+	// Populated when the human_input task defines a form_schema. The form data
+	// is delivered to the Go runner as-is and becomes part of the task output.
+	// Validation against the form_schema is a runtime concern (Go runner side).
+	FormData *structpb.Struct `protobuf:"bytes,4,opt,name=form_data,json=formData,proto3" json:"form_data,omitempty"`
+	// Identity of the reviewer submitting the decision.
+	//
+	// @internal
+	// Typically the authenticated user's identity. Stored in the task output
+	// for audit trail purposes.
+	Reviewer string `protobuf:"bytes,5,opt,name=reviewer,proto3" json:"reviewer,omitempty"`
+	// Optional comment from the reviewer, stored in the audit trail.
+	Comment       string `protobuf:"bytes,6,opt,name=comment,proto3" json:"comment,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubmitWorkflowTaskApprovalInput) Reset() {
+	*x = SubmitWorkflowTaskApprovalInput{}
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubmitWorkflowTaskApprovalInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubmitWorkflowTaskApprovalInput) ProtoMessage() {}
+
+func (x *SubmitWorkflowTaskApprovalInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubmitWorkflowTaskApprovalInput.ProtoReflect.Descriptor instead.
+func (*SubmitWorkflowTaskApprovalInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *SubmitWorkflowTaskApprovalInput) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *SubmitWorkflowTaskApprovalInput) GetTaskName() string {
+	if x != nil {
+		return x.TaskName
+	}
+	return ""
+}
+
+func (x *SubmitWorkflowTaskApprovalInput) GetOutcome() string {
+	if x != nil {
+		return x.Outcome
+	}
+	return ""
+}
+
+func (x *SubmitWorkflowTaskApprovalInput) GetFormData() *structpb.Struct {
+	if x != nil {
+		return x.FormData
+	}
+	return nil
+}
+
+func (x *SubmitWorkflowTaskApprovalInput) GetReviewer() string {
+	if x != nil {
+		return x.Reviewer
+	}
+	return ""
+}
+
+func (x *SubmitWorkflowTaskApprovalInput) GetComment() string {
+	if x != nil {
+		return x.Comment
+	}
+	return ""
+}
+
 // SubscribeWorkflowExecutionRequest subscribes to real-time execution updates.
 //
 // @internal
@@ -555,7 +684,7 @@ type SubscribeWorkflowExecutionRequest struct {
 
 func (x *SubscribeWorkflowExecutionRequest) Reset() {
 	*x = SubscribeWorkflowExecutionRequest{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -567,7 +696,7 @@ func (x *SubscribeWorkflowExecutionRequest) String() string {
 func (*SubscribeWorkflowExecutionRequest) ProtoMessage() {}
 
 func (x *SubscribeWorkflowExecutionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -580,7 +709,7 @@ func (x *SubscribeWorkflowExecutionRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use SubscribeWorkflowExecutionRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeWorkflowExecutionRequest) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *SubscribeWorkflowExecutionRequest) GetExecutionId() string {
@@ -616,7 +745,7 @@ type CancelWorkflowExecutionInput struct {
 
 func (x *CancelWorkflowExecutionInput) Reset() {
 	*x = CancelWorkflowExecutionInput{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -628,7 +757,7 @@ func (x *CancelWorkflowExecutionInput) String() string {
 func (*CancelWorkflowExecutionInput) ProtoMessage() {}
 
 func (x *CancelWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -641,7 +770,7 @@ func (x *CancelWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelWorkflowExecutionInput.ProtoReflect.Descriptor instead.
 func (*CancelWorkflowExecutionInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CancelWorkflowExecutionInput) GetId() string {
@@ -684,7 +813,7 @@ type TerminateWorkflowExecutionInput struct {
 
 func (x *TerminateWorkflowExecutionInput) Reset() {
 	*x = TerminateWorkflowExecutionInput{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -696,7 +825,7 @@ func (x *TerminateWorkflowExecutionInput) String() string {
 func (*TerminateWorkflowExecutionInput) ProtoMessage() {}
 
 func (x *TerminateWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -709,7 +838,7 @@ func (x *TerminateWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TerminateWorkflowExecutionInput.ProtoReflect.Descriptor instead.
 func (*TerminateWorkflowExecutionInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{9}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *TerminateWorkflowExecutionInput) GetId() string {
@@ -754,7 +883,7 @@ type RecoverWorkflowExecutionInput struct {
 
 func (x *RecoverWorkflowExecutionInput) Reset() {
 	*x = RecoverWorkflowExecutionInput{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -766,7 +895,7 @@ func (x *RecoverWorkflowExecutionInput) String() string {
 func (*RecoverWorkflowExecutionInput) ProtoMessage() {}
 
 func (x *RecoverWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -779,7 +908,7 @@ func (x *RecoverWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecoverWorkflowExecutionInput.ProtoReflect.Descriptor instead.
 func (*RecoverWorkflowExecutionInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{10}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *RecoverWorkflowExecutionInput) GetId() string {
@@ -818,7 +947,7 @@ type PauseWorkflowExecutionInput struct {
 
 func (x *PauseWorkflowExecutionInput) Reset() {
 	*x = PauseWorkflowExecutionInput{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[11]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -830,7 +959,7 @@ func (x *PauseWorkflowExecutionInput) String() string {
 func (*PauseWorkflowExecutionInput) ProtoMessage() {}
 
 func (x *PauseWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[11]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -843,7 +972,7 @@ func (x *PauseWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PauseWorkflowExecutionInput.ProtoReflect.Descriptor instead.
 func (*PauseWorkflowExecutionInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{11}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *PauseWorkflowExecutionInput) GetId() string {
@@ -880,7 +1009,7 @@ type ResumeWorkflowExecutionInput struct {
 
 func (x *ResumeWorkflowExecutionInput) Reset() {
 	*x = ResumeWorkflowExecutionInput{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[12]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -892,7 +1021,7 @@ func (x *ResumeWorkflowExecutionInput) String() string {
 func (*ResumeWorkflowExecutionInput) ProtoMessage() {}
 
 func (x *ResumeWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[12]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -905,7 +1034,7 @@ func (x *ResumeWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResumeWorkflowExecutionInput.ProtoReflect.Descriptor instead.
 func (*ResumeWorkflowExecutionInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{12}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ResumeWorkflowExecutionInput) GetId() string {
@@ -955,7 +1084,7 @@ type SendSignalInput struct {
 
 func (x *SendSignalInput) Reset() {
 	*x = SendSignalInput{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[13]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -967,7 +1096,7 @@ func (x *SendSignalInput) String() string {
 func (*SendSignalInput) ProtoMessage() {}
 
 func (x *SendSignalInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[13]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -980,7 +1109,7 @@ func (x *SendSignalInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendSignalInput.ProtoReflect.Descriptor instead.
 func (*SendSignalInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{13}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *SendSignalInput) GetExecutionId() string {
@@ -1072,7 +1201,7 @@ type GetEventLogRequest struct {
 
 func (x *GetEventLogRequest) Reset() {
 	*x = GetEventLogRequest{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[14]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1084,7 +1213,7 @@ func (x *GetEventLogRequest) String() string {
 func (*GetEventLogRequest) ProtoMessage() {}
 
 func (x *GetEventLogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[14]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1097,7 +1226,7 @@ func (x *GetEventLogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEventLogRequest.ProtoReflect.Descriptor instead.
 func (*GetEventLogRequest) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{14}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetEventLogRequest) GetExecutionId() string {
@@ -1157,7 +1286,7 @@ type GetEventLogResponse struct {
 
 func (x *GetEventLogResponse) Reset() {
 	*x = GetEventLogResponse{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[15]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1169,7 +1298,7 @@ func (x *GetEventLogResponse) String() string {
 func (*GetEventLogResponse) ProtoMessage() {}
 
 func (x *GetEventLogResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[15]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1182,7 +1311,7 @@ func (x *GetEventLogResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEventLogResponse.ProtoReflect.Descriptor instead.
 func (*GetEventLogResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{15}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetEventLogResponse) GetEvents() []*WorkflowExecutionEvent {
@@ -1255,7 +1384,7 @@ type SubscribeEventsRequest struct {
 
 func (x *SubscribeEventsRequest) Reset() {
 	*x = SubscribeEventsRequest{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[16]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1267,7 +1396,7 @@ func (x *SubscribeEventsRequest) String() string {
 func (*SubscribeEventsRequest) ProtoMessage() {}
 
 func (x *SubscribeEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[16]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1280,7 +1409,7 @@ func (x *SubscribeEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeEventsRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeEventsRequest) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{16}
+	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *SubscribeEventsRequest) GetExecutionId() string {
@@ -1341,7 +1470,14 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"toolCallId\x12X\n" +
 	"\x06action\x18\x03 \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ApprovalActionB\n" +
 	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\x06action\x12\x18\n" +
-	"\acomment\x18\x04 \x01(\tR\acomment\"N\n" +
+	"\acomment\x18\x04 \x01(\tR\acomment\"\x82\x02\n" +
+	"\x1fSubmitWorkflowTaskApprovalInput\x12*\n" +
+	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12$\n" +
+	"\ttask_name\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btaskName\x12!\n" +
+	"\aoutcome\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aoutcome\x124\n" +
+	"\tform_data\x18\x04 \x01(\v2\x17.google.protobuf.StructR\bformData\x12\x1a\n" +
+	"\breviewer\x18\x05 \x01(\tR\breviewer\x12\x18\n" +
+	"\acomment\x18\x06 \x01(\tR\acomment\"N\n" +
 	"!SubscribeWorkflowExecutionRequest\x12)\n" +
 	"\fexecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexecutionId\"O\n" +
 	"\x1cCancelWorkflowExecutionInput\x12\x17\n" +
@@ -1394,7 +1530,7 @@ func file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescGZIP() []byte 
 	return file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_goTypes = []any{
 	(*WorkflowExecutionId)(nil),                     // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionId
 	(*WorkflowId)(nil),                              // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowId
@@ -1403,39 +1539,41 @@ var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_goTypes = []any{
 	(*ListWorkflowExecutionsByWorkflowRequest)(nil), // 4: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsByWorkflowRequest
 	(*WorkflowExecutionUpdateStatusInput)(nil),      // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput
 	(*SubmitWorkflowApprovalInput)(nil),             // 6: ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput
-	(*SubscribeWorkflowExecutionRequest)(nil),       // 7: ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest
-	(*CancelWorkflowExecutionInput)(nil),            // 8: ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput
-	(*TerminateWorkflowExecutionInput)(nil),         // 9: ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput
-	(*RecoverWorkflowExecutionInput)(nil),           // 10: ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput
-	(*PauseWorkflowExecutionInput)(nil),             // 11: ai.stigmer.agentic.workflowexecution.v1.PauseWorkflowExecutionInput
-	(*ResumeWorkflowExecutionInput)(nil),            // 12: ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput
-	(*SendSignalInput)(nil),                         // 13: ai.stigmer.agentic.workflowexecution.v1.SendSignalInput
-	(*GetEventLogRequest)(nil),                      // 14: ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest
-	(*GetEventLogResponse)(nil),                     // 15: ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse
-	(*SubscribeEventsRequest)(nil),                  // 16: ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest
-	(*WorkflowExecution)(nil),                       // 17: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	(ExecutionPhase)(0),                             // 18: ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
-	(*WorkflowExecutionStatus)(nil),                 // 19: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
-	(*WorkflowExecutionEvent)(nil),                  // 20: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent
-	(v1.ApprovalAction)(0),                          // 21: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(*structpb.Struct)(nil),                         // 22: google.protobuf.Struct
-	(WorkflowEventType)(0),                          // 23: ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType
+	(*SubmitWorkflowTaskApprovalInput)(nil),         // 7: ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput
+	(*SubscribeWorkflowExecutionRequest)(nil),       // 8: ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest
+	(*CancelWorkflowExecutionInput)(nil),            // 9: ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput
+	(*TerminateWorkflowExecutionInput)(nil),         // 10: ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput
+	(*RecoverWorkflowExecutionInput)(nil),           // 11: ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput
+	(*PauseWorkflowExecutionInput)(nil),             // 12: ai.stigmer.agentic.workflowexecution.v1.PauseWorkflowExecutionInput
+	(*ResumeWorkflowExecutionInput)(nil),            // 13: ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput
+	(*SendSignalInput)(nil),                         // 14: ai.stigmer.agentic.workflowexecution.v1.SendSignalInput
+	(*GetEventLogRequest)(nil),                      // 15: ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest
+	(*GetEventLogResponse)(nil),                     // 16: ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse
+	(*SubscribeEventsRequest)(nil),                  // 17: ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest
+	(*WorkflowExecution)(nil),                       // 18: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	(ExecutionPhase)(0),                             // 19: ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
+	(*WorkflowExecutionStatus)(nil),                 // 20: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
+	(*WorkflowExecutionEvent)(nil),                  // 21: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent
+	(v1.ApprovalAction)(0),                          // 22: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(*structpb.Struct)(nil),                         // 23: google.protobuf.Struct
+	(WorkflowEventType)(0),                          // 24: ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType
 }
 var file_ai_stigmer_agentic_workflowexecution_v1_io_proto_depIdxs = []int32{
-	17, // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList.entries:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
-	18, // 1: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest.phase:type_name -> ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
-	19, // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
-	20, // 3: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput.events:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent
-	21, // 4: ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	22, // 5: ai.stigmer.agentic.workflowexecution.v1.SendSignalInput.payload:type_name -> google.protobuf.Struct
-	23, // 6: ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest.event_types:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType
-	20, // 7: ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse.events:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent
-	23, // 8: ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest.event_types:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType
-	9,  // [9:9] is the sub-list for method output_type
-	9,  // [9:9] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	18, // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionList.entries:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
+	19, // 1: ai.stigmer.agentic.workflowexecution.v1.ListWorkflowExecutionsRequest.phase:type_name -> ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
+	20, // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
+	21, // 3: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput.events:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent
+	22, // 4: ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	23, // 5: ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput.form_data:type_name -> google.protobuf.Struct
+	23, // 6: ai.stigmer.agentic.workflowexecution.v1.SendSignalInput.payload:type_name -> google.protobuf.Struct
+	24, // 7: ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest.event_types:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType
+	21, // 8: ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse.events:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent
+	24, // 9: ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest.event_types:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType
+	10, // [10:10] is the sub-list for method output_type
+	10, // [10:10] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflowexecution_v1_io_proto_init() }
@@ -1452,7 +1590,7 @@ func file_ai_stigmer_agentic_workflowexecution_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

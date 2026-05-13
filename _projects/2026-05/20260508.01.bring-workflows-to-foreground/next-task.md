@@ -19,12 +19,57 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-13 — T10 COMPLETE (Phase 1 continues)
-**Current Task**: T10 COMPLETE — YAML Editor with Graph Preview
+**Last Session**: 2026-05-13 — T13b COMPLETE (Phase 1 continues)
+**Current Task**: T13b COMPLETE — Java/Cloud Backend Parity
 **Phase**: Phase 1 — Foreground MVP — IN PROGRESS
-**Next Task**: T11 (Run Workflow from UI) or T13b (Java/Cloud Parity)
+**Next Task**: T10 (YAML Editor — already complete), T11 (Run Workflow from UI), T12 (CLI Parity), T14 (Dashboard Integration)
 
-## Session Progress (2026-05-13, T10)
+## Session Progress (2026-05-13, T13b)
+
+### T13b: Java/Cloud Backend Parity — COMPLETE
+
+Implemented Java control plane support for the 6 new P0 task types. The polyglot
+architecture means Go (workflow-runner) handles execution; Java (stigmer-service) handles
+orchestration, persistence, and API serving. T13b completes the control plane so new
+task types are fully observable, queryable, and interactable through the Java service.
+
+#### Proto Changes (OSS repo)
+- Added `SubmitWorkflowTaskApprovalInput` message to `io.proto`
+- Added `submitWorkflowTaskApproval` RPC to `command.proto`
+- Ran `make codegen` (OSS) + `make protos` (Cloud) — stubs in Go, Java, TS, Python, Dart
+- `repeated WorkflowExecutionEvent events` field on `UpdateStatusInput` already existed (T06)
+
+#### Java Implementation (Cloud repo — 5 new files)
+- `WorkflowExecutionEventRepo.java` — MongoDB event log with separate collection, compound unique index, TTL, cursor pagination
+- `WorkflowExecutionEventRedisWriter.java` — per-execution Redis event stream (`wfx_events:{id}`)
+- `WorkflowExecutionGetEventLogHandler.java` — `getEventLog` RPC handler with cursor pagination
+- `WorkflowExecutionSubscribeEventsHandler.java` — `subscribeEvents` server-streaming with replay + live tail
+- `WorkflowExecutionSubmitWorkflowTaskApprovalHandler.java` — typed approval for human_input tasks
+
+#### Modified Files
+- `WorkflowExecutionUpdateStatusHandler.java` — added PersistEventsStep + PublishEventsToRedisStep
+- `BUILD.bazel` — registered 2 new test targets
+
+#### Tests (2 new, both pass)
+- `WorkflowExecutionGetEventLogHandlerTest.java`
+- `WorkflowExecutionSubmitWorkflowTaskApprovalHandlerTest.java`
+
+#### Verification
+- `bazelw build //backend/services/stigmer-service/...` — 85 targets, all pass
+- `bazelw test` — 2/2 new tests pass
+- `go build ./backend/services/workflow-runner/...` — clean
+
+#### Key Design Decisions
+- DD-T13b-001: Event repo uses separate MongoDB collection (not embedded in WorkflowExecution) to support unbounded event growth and efficient cursor pagination
+- DD-T13b-002: Task approval validates task existence by name only (not kind) — the signal naming convention (`human_input_{task_name}`) is the real discriminator
+- DD-T13b-003: Event ingestion is backward-compatible — empty events list in status updates is a no-op for older runners that don't emit events yet
+
+#### Open Items for Future Sessions
+- Go-side event emission wiring — `pkg/events/emitter.go` is built but not wired into the updateStatus call path
+- Budget enforcement integration at task boundaries
+- Event TTL configuration (hardcoded at 90 days, could be configurable)
+
+## Previous Session Progress (2026-05-13, T10)
 
 ### T10: YAML Editor with Graph Preview — COMPLETE
 
@@ -198,23 +243,25 @@ Structured Agent Output Model
 ## Next Steps
 1. **T11: Run Workflow from UI** — input form auto-generated from schema, start/cancel/watch
 2. **T12: CLI Parity** — `stigmer workflow list/get/validate/apply/diff/run/logs/trace/cancel/resume`
-3. **T13b: Java/Cloud Backend Parity** — implement matching task types in stigmer-service (Java)
-4. **T14: Dashboard Integration** — pending approvals, failed runs, cost charts
+3. **T14: Dashboard Integration** — pending approvals, failed runs, cost charts
+4. **Go event emission wiring** — connect `pkg/events/emitter.go` to the updateStatus gRPC call path so events flow to Java
+5. **Budget enforcement wiring** — connect `pkg/budget/tracker.go` to iterateTasks loop
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
-- Phase 1 (Foreground MVP) IN PROGRESS — T08, T09 complete
+- Phase 1 (Foreground MVP) IN PROGRESS — T08, T09, T10, T13, T13b complete
 - All verification passes: `tsc --noEmit` for sdk/react, sdk/typescript, client-apps/web
 - `useExportResource` only supports Agent and McpServer — workflow YAML export deferred
-- Search indexing for workflows in backend unverified — `list()` may return empty until T13
+- Search indexing for workflows in backend unverified — `list()` may return empty
 - `CheckBudgetWarnings()` (T05) still standalone — NOT wired into `ValidateWorkflow()` yet
-- Backend RPCs `subscribeEvents`, `getEventLog`, `submitApproval`, `getDownloadUrl` — viewer handles UNIMPLEMENTED gracefully
+- Backend RPCs `getEventLog` and `subscribeEvents` now have Java handlers; `getDownloadUrl` still UNIMPLEMENTED
+- Go runner event emission NOT yet wired — Java persistence layer is ready but Go doesn't send events yet
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-13-t09-execution-viewer.md
+_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-13-t13b-java-cloud-parity.md
 ```
 
 ### 2. Task Directory

@@ -149,6 +149,37 @@ public final class WorkflowExecutionCommandControllerGrpc {
     return getSubmitApprovalMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput,
+      ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> getSubmitWorkflowTaskApprovalMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "submitWorkflowTaskApproval",
+      requestType = ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput.class,
+      responseType = ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput,
+      ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> getSubmitWorkflowTaskApprovalMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> getSubmitWorkflowTaskApprovalMethod;
+    if ((getSubmitWorkflowTaskApprovalMethod = WorkflowExecutionCommandControllerGrpc.getSubmitWorkflowTaskApprovalMethod) == null) {
+      synchronized (WorkflowExecutionCommandControllerGrpc.class) {
+        if ((getSubmitWorkflowTaskApprovalMethod = WorkflowExecutionCommandControllerGrpc.getSubmitWorkflowTaskApprovalMethod) == null) {
+          WorkflowExecutionCommandControllerGrpc.getSubmitWorkflowTaskApprovalMethod = getSubmitWorkflowTaskApprovalMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput, ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "submitWorkflowTaskApproval"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowExecutionCommandControllerMethodDescriptorSupplier("submitWorkflowTaskApproval"))
+              .build();
+        }
+      }
+    }
+    return getSubmitWorkflowTaskApprovalMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.ApiResourceId,
       ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> getDeleteMethod;
 
@@ -703,6 +734,43 @@ public final class WorkflowExecutionCommandControllerGrpc {
     default void submitApproval(ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSubmitApprovalMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Submit a human reviewer's decision for a workflow-level human_input task.
+     * Resolves a human_input approval gate by sending the reviewer's outcome
+     * (and optional form data) to the waiting workflow task via Temporal signal.
+     * &#64;internal
+     * This RPC is specifically for workflow-level human_input tasks — the approval
+     * gates defined in workflow YAML that pause execution until a human responds.
+     * It is distinct from submitApproval, which forwards agent-level tool call
+     * approvals to child AgentExecutions.
+     * Behavior
+     * 1. Validates execution exists and is in progress
+     * 2. Validates that task_name references a human_input task in the workflow
+     * 3. Validates outcome against configured outcomes (if any)
+     * 4. Constructs signal name: "human_input_{task_name}"
+     * 5. Builds signal payload: {outcome, form_data, reviewer, responded_at}
+     * 6. Sends signal via Temporal SignalWithStart
+     * 7. Returns current WorkflowExecution (status updates asynchronously)
+     * Preconditions
+     * - Execution must be in EXECUTION_IN_PROGRESS phase
+     * - task_name must reference a human_input task in the workflow
+     * - outcome must be valid for the task's configured outcomes
+     * - User must have can_edit permission on the workflow execution
+     * Error Cases
+     * - NOT_FOUND: Workflow execution doesn't exist
+     * - PERMISSION_DENIED: User doesn't have can_edit permission
+     * - INVALID_ARGUMENT: task_name is not a human_input task, or outcome
+     *   doesn't match configured outcomes
+     * - FAILED_PRECONDITION: Execution is not in a signalable phase
+     * &#64;since T13b (Java/Cloud Backend Parity)
+     * </pre>
+     */
+    default void submitWorkflowTaskApproval(ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSubmitWorkflowTaskApprovalMethod(), responseObserver);
     }
 
     /**
@@ -1414,6 +1482,44 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Submit a human reviewer's decision for a workflow-level human_input task.
+     * Resolves a human_input approval gate by sending the reviewer's outcome
+     * (and optional form data) to the waiting workflow task via Temporal signal.
+     * &#64;internal
+     * This RPC is specifically for workflow-level human_input tasks — the approval
+     * gates defined in workflow YAML that pause execution until a human responds.
+     * It is distinct from submitApproval, which forwards agent-level tool call
+     * approvals to child AgentExecutions.
+     * Behavior
+     * 1. Validates execution exists and is in progress
+     * 2. Validates that task_name references a human_input task in the workflow
+     * 3. Validates outcome against configured outcomes (if any)
+     * 4. Constructs signal name: "human_input_{task_name}"
+     * 5. Builds signal payload: {outcome, form_data, reviewer, responded_at}
+     * 6. Sends signal via Temporal SignalWithStart
+     * 7. Returns current WorkflowExecution (status updates asynchronously)
+     * Preconditions
+     * - Execution must be in EXECUTION_IN_PROGRESS phase
+     * - task_name must reference a human_input task in the workflow
+     * - outcome must be valid for the task's configured outcomes
+     * - User must have can_edit permission on the workflow execution
+     * Error Cases
+     * - NOT_FOUND: Workflow execution doesn't exist
+     * - PERMISSION_DENIED: User doesn't have can_edit permission
+     * - INVALID_ARGUMENT: task_name is not a human_input task, or outcome
+     *   doesn't match configured outcomes
+     * - FAILED_PRECONDITION: Execution is not in a signalable phase
+     * &#64;since T13b (Java/Cloud Backend Parity)
+     * </pre>
+     */
+    public void submitWorkflowTaskApproval(ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getSubmitWorkflowTaskApprovalMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow execution.
      * </pre>
      */
@@ -2100,6 +2206,43 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Submit a human reviewer's decision for a workflow-level human_input task.
+     * Resolves a human_input approval gate by sending the reviewer's outcome
+     * (and optional form data) to the waiting workflow task via Temporal signal.
+     * &#64;internal
+     * This RPC is specifically for workflow-level human_input tasks — the approval
+     * gates defined in workflow YAML that pause execution until a human responds.
+     * It is distinct from submitApproval, which forwards agent-level tool call
+     * approvals to child AgentExecutions.
+     * Behavior
+     * 1. Validates execution exists and is in progress
+     * 2. Validates that task_name references a human_input task in the workflow
+     * 3. Validates outcome against configured outcomes (if any)
+     * 4. Constructs signal name: "human_input_{task_name}"
+     * 5. Builds signal payload: {outcome, form_data, reviewer, responded_at}
+     * 6. Sends signal via Temporal SignalWithStart
+     * 7. Returns current WorkflowExecution (status updates asynchronously)
+     * Preconditions
+     * - Execution must be in EXECUTION_IN_PROGRESS phase
+     * - task_name must reference a human_input task in the workflow
+     * - outcome must be valid for the task's configured outcomes
+     * - User must have can_edit permission on the workflow execution
+     * Error Cases
+     * - NOT_FOUND: Workflow execution doesn't exist
+     * - PERMISSION_DENIED: User doesn't have can_edit permission
+     * - INVALID_ARGUMENT: task_name is not a human_input task, or outcome
+     *   doesn't match configured outcomes
+     * - FAILED_PRECONDITION: Execution is not in a signalable phase
+     * &#64;since T13b (Java/Cloud Backend Parity)
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution submitWorkflowTaskApproval(ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getSubmitWorkflowTaskApprovalMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow execution.
      * </pre>
      */
@@ -2775,6 +2918,43 @@ public final class WorkflowExecutionCommandControllerGrpc {
     public ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution submitApproval(ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getSubmitApprovalMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Submit a human reviewer's decision for a workflow-level human_input task.
+     * Resolves a human_input approval gate by sending the reviewer's outcome
+     * (and optional form data) to the waiting workflow task via Temporal signal.
+     * &#64;internal
+     * This RPC is specifically for workflow-level human_input tasks — the approval
+     * gates defined in workflow YAML that pause execution until a human responds.
+     * It is distinct from submitApproval, which forwards agent-level tool call
+     * approvals to child AgentExecutions.
+     * Behavior
+     * 1. Validates execution exists and is in progress
+     * 2. Validates that task_name references a human_input task in the workflow
+     * 3. Validates outcome against configured outcomes (if any)
+     * 4. Constructs signal name: "human_input_{task_name}"
+     * 5. Builds signal payload: {outcome, form_data, reviewer, responded_at}
+     * 6. Sends signal via Temporal SignalWithStart
+     * 7. Returns current WorkflowExecution (status updates asynchronously)
+     * Preconditions
+     * - Execution must be in EXECUTION_IN_PROGRESS phase
+     * - task_name must reference a human_input task in the workflow
+     * - outcome must be valid for the task's configured outcomes
+     * - User must have can_edit permission on the workflow execution
+     * Error Cases
+     * - NOT_FOUND: Workflow execution doesn't exist
+     * - PERMISSION_DENIED: User doesn't have can_edit permission
+     * - INVALID_ARGUMENT: task_name is not a human_input task, or outcome
+     *   doesn't match configured outcomes
+     * - FAILED_PRECONDITION: Execution is not in a signalable phase
+     * &#64;since T13b (Java/Cloud Backend Parity)
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution submitWorkflowTaskApproval(ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getSubmitWorkflowTaskApprovalMethod(), getCallOptions(), request);
     }
 
     /**
@@ -3462,6 +3642,44 @@ public final class WorkflowExecutionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Submit a human reviewer's decision for a workflow-level human_input task.
+     * Resolves a human_input approval gate by sending the reviewer's outcome
+     * (and optional form data) to the waiting workflow task via Temporal signal.
+     * &#64;internal
+     * This RPC is specifically for workflow-level human_input tasks — the approval
+     * gates defined in workflow YAML that pause execution until a human responds.
+     * It is distinct from submitApproval, which forwards agent-level tool call
+     * approvals to child AgentExecutions.
+     * Behavior
+     * 1. Validates execution exists and is in progress
+     * 2. Validates that task_name references a human_input task in the workflow
+     * 3. Validates outcome against configured outcomes (if any)
+     * 4. Constructs signal name: "human_input_{task_name}"
+     * 5. Builds signal payload: {outcome, form_data, reviewer, responded_at}
+     * 6. Sends signal via Temporal SignalWithStart
+     * 7. Returns current WorkflowExecution (status updates asynchronously)
+     * Preconditions
+     * - Execution must be in EXECUTION_IN_PROGRESS phase
+     * - task_name must reference a human_input task in the workflow
+     * - outcome must be valid for the task's configured outcomes
+     * - User must have can_edit permission on the workflow execution
+     * Error Cases
+     * - NOT_FOUND: Workflow execution doesn't exist
+     * - PERMISSION_DENIED: User doesn't have can_edit permission
+     * - INVALID_ARGUMENT: task_name is not a human_input task, or outcome
+     *   doesn't match configured outcomes
+     * - FAILED_PRECONDITION: Execution is not in a signalable phase
+     * &#64;since T13b (Java/Cloud Backend Parity)
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution> submitWorkflowTaskApproval(
+        ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getSubmitWorkflowTaskApprovalMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Delete a workflow execution.
      * </pre>
      */
@@ -3858,13 +4076,14 @@ public final class WorkflowExecutionCommandControllerGrpc {
   private static final int METHODID_UPDATE = 1;
   private static final int METHODID_UPDATE_STATUS = 2;
   private static final int METHODID_SUBMIT_APPROVAL = 3;
-  private static final int METHODID_DELETE = 4;
-  private static final int METHODID_SEND_SIGNAL = 5;
-  private static final int METHODID_CANCEL = 6;
-  private static final int METHODID_TERMINATE = 7;
-  private static final int METHODID_RECOVER = 8;
-  private static final int METHODID_PAUSE = 9;
-  private static final int METHODID_RESUME = 10;
+  private static final int METHODID_SUBMIT_WORKFLOW_TASK_APPROVAL = 4;
+  private static final int METHODID_DELETE = 5;
+  private static final int METHODID_SEND_SIGNAL = 6;
+  private static final int METHODID_CANCEL = 7;
+  private static final int METHODID_TERMINATE = 8;
+  private static final int METHODID_RECOVER = 9;
+  private static final int METHODID_PAUSE = 10;
+  private static final int METHODID_RESUME = 11;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -3897,6 +4116,10 @@ public final class WorkflowExecutionCommandControllerGrpc {
           break;
         case METHODID_SUBMIT_APPROVAL:
           serviceImpl.submitApproval((ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution>) responseObserver);
+          break;
+        case METHODID_SUBMIT_WORKFLOW_TASK_APPROVAL:
+          serviceImpl.submitWorkflowTaskApproval((ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -3973,6 +4196,13 @@ public final class WorkflowExecutionCommandControllerGrpc {
               ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput,
               ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution>(
                 service, METHODID_SUBMIT_APPROVAL)))
+        .addMethod(
+          getSubmitWorkflowTaskApprovalMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput,
+              ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution>(
+                service, METHODID_SUBMIT_WORKFLOW_TASK_APPROVAL)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -4074,6 +4304,7 @@ public final class WorkflowExecutionCommandControllerGrpc {
               .addMethod(getUpdateMethod())
               .addMethod(getUpdateStatusMethod())
               .addMethod(getSubmitApprovalMethod())
+              .addMethod(getSubmitWorkflowTaskApprovalMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getSendSignalMethod())
               .addMethod(getCancelMethod())

@@ -52,6 +52,12 @@ class WorkflowExecutionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def submit_workflow_task_approval(self, input: io_pb2.SubmitWorkflowTaskApprovalInput) -> api_pb2.WorkflowExecution:
+        try:
+            return self._command.submitWorkflowTaskApproval(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def delete(self, id: str) -> api_pb2.WorkflowExecution:
         try:
             return self._command.delete(apiresource_io_pb2.ApiResourceId(value=id))

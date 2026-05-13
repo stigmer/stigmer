@@ -45,6 +45,11 @@ func (w *WorkflowExecutionClient) SubmitApproval(ctx context.Context, input *wor
 	return resp, wrapErr(err)
 }
 
+func (w *WorkflowExecutionClient) SubmitWorkflowTaskApproval(ctx context.Context, input *workflowexecutionv1.SubmitWorkflowTaskApprovalInput) (*workflowexecutionv1.WorkflowExecution, error) {
+	resp, err := w.command.SubmitWorkflowTaskApproval(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (w *WorkflowExecutionClient) Delete(ctx context.Context, id string) (*workflowexecutionv1.WorkflowExecution, error) {
 	resp, err := w.command.Delete(ctx, &apiresource.ApiResourceId{Value: id})
 	return resp, wrapErr(err)

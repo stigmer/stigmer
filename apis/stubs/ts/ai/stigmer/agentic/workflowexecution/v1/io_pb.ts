@@ -20,7 +20,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflowexecution/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_workflowexecution_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvaW8ucHJvdG8SJ2FpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MSIsChNXb3JrZmxvd0V4ZWN1dGlvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIwoKV29ya2Zsb3dJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInkKFVdvcmtmbG93RXhlY3V0aW9uTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRJLCgdlbnRyaWVzGAIgAygLMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uIpwBCh1MaXN0V29ya2Zsb3dFeGVjdXRpb25zUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRJGCgVwaGFzZRgDIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZRIMCgR0YWdzGAQgAygJIm0KJ0xpc3RXb3JrZmxvd0V4ZWN1dGlvbnNCeVdvcmtmbG93UmVxdWVzdBIbCgt3b3JrZmxvd19pZBgBIAEoCUIGukgDyAEBEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIu4BCiJXb3JrZmxvd0V4ZWN1dGlvblVwZGF0ZVN0YXR1c0lucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARJYCgZzdGF0dXMYAiABKAsyQC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25TdGF0dXNCBrpIA8gBARJPCgZldmVudHMYCiADKAsyPy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25FdmVudCK+AQobU3VibWl0V29ya2Zsb3dBcHByb3ZhbElucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIdCgx0b29sX2NhbGxfaWQYAiABKAlCB7pIBHICEAESUAoGYWN0aW9uGAMgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uQgq6SAeCAQQQASAAEg8KB2NvbW1lbnQYBCABKAkiQQohU3Vic2NyaWJlV29ya2Zsb3dFeGVjdXRpb25SZXF1ZXN0EhwKDGV4ZWN1dGlvbl9pZBgBIAEoCUIGukgDyAEBIkMKHENhbmNlbFdvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIkYKH1Rlcm1pbmF0ZVdvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIkQKHVJlY292ZXJXb3JrZmxvd0V4ZWN1dGlvbklucHV0EhMKAmlkGAEgASgJQge6SARyAhABEg4KBnJlYXNvbhgCIAEoCSJCChtQYXVzZVdvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIjMKHFJlc3VtZVdvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAEikQEKD1NlbmRTaWduYWxJbnB1dBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAESHAoLc2lnbmFsX25hbWUYAiABKAlCB7pIBHICEAESKAoHcGF5bG9hZBgDIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFwoPaWRlbXBvdGVuY3lfa2V5GAQgASgJIsIBChJHZXRFdmVudExvZ1JlcXVlc3QSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABEhYKDmFmdGVyX3NlcXVlbmNlGAIgASgEEk8KC2V2ZW50X3R5cGVzGAMgAygOMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXZlbnRUeXBlEhEKCXRhc2tfbmFtZRgEIAEoCRIRCglwYWdlX3NpemUYBSABKAUikQEKE0dldEV2ZW50TG9nUmVzcG9uc2USTwoGZXZlbnRzGAEgAygLMj8uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uRXZlbnQSEAoIaGFzX21vcmUYAiABKAgSFwoPbGF0ZXN0X3NlcXVlbmNlGAMgASgEIqABChZTdWJzY3JpYmVFdmVudHNSZXF1ZXN0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIWCg5hZnRlcl9zZXF1ZW5jZRgCIAEoBBJPCgtldmVudF90eXBlcxgDIAMoDjI6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V2ZW50VHlwZWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_api, file_ai_stigmer_agentic_workflowexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_event, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvaW8ucHJvdG8SJ2FpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MSIsChNXb3JrZmxvd0V4ZWN1dGlvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIwoKV29ya2Zsb3dJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInkKFVdvcmtmbG93RXhlY3V0aW9uTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRJLCgdlbnRyaWVzGAIgAygLMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uIpwBCh1MaXN0V29ya2Zsb3dFeGVjdXRpb25zUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRJGCgVwaGFzZRgDIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZRIMCgR0YWdzGAQgAygJIm0KJ0xpc3RXb3JrZmxvd0V4ZWN1dGlvbnNCeVdvcmtmbG93UmVxdWVzdBIbCgt3b3JrZmxvd19pZBgBIAEoCUIGukgDyAEBEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIu4BCiJXb3JrZmxvd0V4ZWN1dGlvblVwZGF0ZVN0YXR1c0lucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARJYCgZzdGF0dXMYAiABKAsyQC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25TdGF0dXNCBrpIA8gBARJPCgZldmVudHMYCiADKAsyPy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25FdmVudCK+AQobU3VibWl0V29ya2Zsb3dBcHByb3ZhbElucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIdCgx0b29sX2NhbGxfaWQYAiABKAlCB7pIBHICEAESUAoGYWN0aW9uGAMgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uQgq6SAeCAQQQASAAEg8KB2NvbW1lbnQYBCABKAkixQEKH1N1Ym1pdFdvcmtmbG93VGFza0FwcHJvdmFsSW5wdXQSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABEhoKCXRhc2tfbmFtZRgCIAEoCUIHukgEcgIQARIYCgdvdXRjb21lGAMgASgJQge6SARyAhABEioKCWZvcm1fZGF0YRgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSEAoIcmV2aWV3ZXIYBSABKAkSDwoHY29tbWVudBgGIAEoCSJBCiFTdWJzY3JpYmVXb3JrZmxvd0V4ZWN1dGlvblJlcXVlc3QSHAoMZXhlY3V0aW9uX2lkGAEgASgJQga6SAPIAQEiQwocQ2FuY2VsV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiRgofVGVybWluYXRlV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiRAodUmVjb3ZlcldvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIkIKG1BhdXNlV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiMwocUmVzdW1lV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQASKRAQoPU2VuZFNpZ25hbElucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIcCgtzaWduYWxfbmFtZRgCIAEoCUIHukgEcgIQARIoCgdwYXlsb2FkGAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIXCg9pZGVtcG90ZW5jeV9rZXkYBCABKAkiwgEKEkdldEV2ZW50TG9nUmVxdWVzdBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAESFgoOYWZ0ZXJfc2VxdWVuY2UYAiABKAQSTwoLZXZlbnRfdHlwZXMYAyADKA4yOi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFdmVudFR5cGUSEQoJdGFza19uYW1lGAQgASgJEhEKCXBhZ2Vfc2l6ZRgFIAEoBSKRAQoTR2V0RXZlbnRMb2dSZXNwb25zZRJPCgZldmVudHMYASADKAsyPy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25FdmVudBIQCghoYXNfbW9yZRgCIAEoCBIXCg9sYXRlc3Rfc2VxdWVuY2UYAyABKAQioAEKFlN1YnNjcmliZUV2ZW50c1JlcXVlc3QSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABEhYKDmFmdGVyX3NlcXVlbmNlGAIgASgEEk8KC2V2ZW50X3R5cGVzGAMgAygOMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXZlbnRUeXBlYgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_api, file_ai_stigmer_agentic_workflowexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_event, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * WorkflowExecutionId wraps a workflow execution identifier.
@@ -339,6 +339,100 @@ export const SubmitWorkflowApprovalInputSchema: GenMessage<SubmitWorkflowApprova
   messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 6);
 
 /**
+ * SubmitWorkflowTaskApprovalInput submits a human reviewer's decision for a
+ * workflow-level human_input task.
+ *
+ * @internal
+ * Unlike submitApproval (which forwards agent-level tool approvals to a child
+ * AgentExecution), this RPC resolves workflow-level human_input tasks. The handler:
+ *
+ * 1. Validates that the named task exists in the execution and is a human_input task
+ * 2. Validates the outcome against the task's configured outcomes (if any)
+ * 3. Constructs the Temporal signal name ("human_input_{task_name}")
+ * 4. Builds the signal payload matching HumanInputSignalPayload
+ * 5. Sends the signal via SignalWithStart for race-proof delivery
+ *
+ * The reviewer's decision (outcome + form_data) becomes the task output after
+ * the workflow-runner receives and processes the signal.
+ *
+ * @since T13b (Java/Cloud Backend Parity)
+ *
+ * @generated from message ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput
+ */
+export type SubmitWorkflowTaskApprovalInput = Message<"ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput"> & {
+  /**
+   * ID of the workflow execution containing the human_input task.
+   *
+   * @internal
+   * Format: "wfx_{unique-suffix}"
+   *
+   * @generated from field: string execution_id = 1;
+   */
+  executionId: string;
+
+  /**
+   * Name of the human_input task to respond to.
+   *
+   * @internal
+   * Must match a task in the workflow whose kind is human_input and whose
+   * current status is WORKFLOW_TASK_IN_PROGRESS (waiting for signal).
+   * The handler constructs the signal name as "human_input_{task_name}".
+   *
+   * @generated from field: string task_name = 2;
+   */
+  taskName: string;
+
+  /**
+   * Outcome selected by the reviewer.
+   *
+   * @internal
+   * If the human_input task defines custom outcomes, this must match one of
+   * the configured outcome names (e.g., "approve", "deny", "needs_revision").
+   * If no custom outcomes are defined, must be "approve" or "deny".
+   *
+   * @generated from field: string outcome = 3;
+   */
+  outcome: string;
+
+  /**
+   * Form data collected from the reviewer's response form.
+   *
+   * @internal
+   * Populated when the human_input task defines a form_schema. The form data
+   * is delivered to the Go runner as-is and becomes part of the task output.
+   * Validation against the form_schema is a runtime concern (Go runner side).
+   *
+   * @generated from field: google.protobuf.Struct form_data = 4;
+   */
+  formData?: JsonObject;
+
+  /**
+   * Identity of the reviewer submitting the decision.
+   *
+   * @internal
+   * Typically the authenticated user's identity. Stored in the task output
+   * for audit trail purposes.
+   *
+   * @generated from field: string reviewer = 5;
+   */
+  reviewer: string;
+
+  /**
+   * Optional comment from the reviewer, stored in the audit trail.
+   *
+   * @generated from field: string comment = 6;
+   */
+  comment: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput.
+ * Use `create(SubmitWorkflowTaskApprovalInputSchema)` to create a new message.
+ */
+export const SubmitWorkflowTaskApprovalInputSchema: GenMessage<SubmitWorkflowTaskApprovalInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 7);
+
+/**
  * SubscribeWorkflowExecutionRequest subscribes to real-time execution updates.
  *
  * @internal
@@ -364,7 +458,7 @@ export type SubscribeWorkflowExecutionRequest = Message<"ai.stigmer.agentic.work
  * Use `create(SubscribeWorkflowExecutionRequestSchema)` to create a new message.
  */
 export const SubscribeWorkflowExecutionRequestSchema: GenMessage<SubscribeWorkflowExecutionRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 7);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 8);
 
 /**
  * CancelWorkflowExecutionInput requests graceful cancellation of a workflow execution.
@@ -405,7 +499,7 @@ export type CancelWorkflowExecutionInput = Message<"ai.stigmer.agentic.workflowe
  * Use `create(CancelWorkflowExecutionInputSchema)` to create a new message.
  */
 export const CancelWorkflowExecutionInputSchema: GenMessage<CancelWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 8);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 9);
 
 /**
  * TerminateWorkflowExecutionInput requests immediate termination of a workflow execution.
@@ -446,7 +540,7 @@ export type TerminateWorkflowExecutionInput = Message<"ai.stigmer.agentic.workfl
  * Use `create(TerminateWorkflowExecutionInputSchema)` to create a new message.
  */
 export const TerminateWorkflowExecutionInputSchema: GenMessage<TerminateWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 9);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 10);
 
 /**
  * RecoverWorkflowExecutionInput requests recovery of a failed workflow execution.
@@ -489,7 +583,7 @@ export type RecoverWorkflowExecutionInput = Message<"ai.stigmer.agentic.workflow
  * Use `create(RecoverWorkflowExecutionInputSchema)` to create a new message.
  */
 export const RecoverWorkflowExecutionInputSchema: GenMessage<RecoverWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 10);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 11);
 
 /**
  * PauseWorkflowExecutionInput requests temporarily pausing a workflow execution.
@@ -526,7 +620,7 @@ export type PauseWorkflowExecutionInput = Message<"ai.stigmer.agentic.workflowex
  * Use `create(PauseWorkflowExecutionInputSchema)` to create a new message.
  */
 export const PauseWorkflowExecutionInputSchema: GenMessage<PauseWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 11);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 12);
 
 /**
  * ResumeWorkflowExecutionInput requests resuming a paused workflow execution.
@@ -556,7 +650,7 @@ export type ResumeWorkflowExecutionInput = Message<"ai.stigmer.agentic.workflowe
  * Use `create(ResumeWorkflowExecutionInputSchema)` to create a new message.
  */
 export const ResumeWorkflowExecutionInputSchema: GenMessage<ResumeWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 12);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 13);
 
 /**
  * SendSignalInput delivers a named signal to a workflow execution.
@@ -621,7 +715,7 @@ export type SendSignalInput = Message<"ai.stigmer.agentic.workflowexecution.v1.S
  * Use `create(SendSignalInputSchema)` to create a new message.
  */
 export const SendSignalInputSchema: GenMessage<SendSignalInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 13);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 14);
 
 /**
  * GetEventLogRequest fetches the paginated event log for a workflow execution.
@@ -712,7 +806,7 @@ export type GetEventLogRequest = Message<"ai.stigmer.agentic.workflowexecution.v
  * Use `create(GetEventLogRequestSchema)` to create a new message.
  */
 export const GetEventLogRequestSchema: GenMessage<GetEventLogRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 14);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 15);
 
 /**
  * GetEventLogResponse contains a page of execution events.
@@ -754,7 +848,7 @@ export type GetEventLogResponse = Message<"ai.stigmer.agentic.workflowexecution.
  * Use `create(GetEventLogResponseSchema)` to create a new message.
  */
 export const GetEventLogResponseSchema: GenMessage<GetEventLogResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 15);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 16);
 
 /**
  * SubscribeEventsRequest opens a real-time event stream for a workflow execution.
@@ -823,5 +917,5 @@ export type SubscribeEventsRequest = Message<"ai.stigmer.agentic.workflowexecuti
  * Use `create(SubscribeEventsRequestSchema)` to create a new message.
  */
 export const SubscribeEventsRequestSchema: GenMessage<SubscribeEventsRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 16);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 17);
 

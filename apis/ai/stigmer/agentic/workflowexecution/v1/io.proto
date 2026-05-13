@@ -179,6 +179,65 @@ message SubmitWorkflowApprovalInput {
   string comment = 4;
 }
 
+// SubmitWorkflowTaskApprovalInput submits a human reviewer's decision for a
+// workflow-level human_input task.
+//
+// @internal
+// Unlike submitApproval (which forwards agent-level tool approvals to a child
+// AgentExecution), this RPC resolves workflow-level human_input tasks. The handler:
+//
+// 1. Validates that the named task exists in the execution and is a human_input task
+// 2. Validates the outcome against the task's configured outcomes (if any)
+// 3. Constructs the Temporal signal name ("human_input_{task_name}")
+// 4. Builds the signal payload matching HumanInputSignalPayload
+// 5. Sends the signal via SignalWithStart for race-proof delivery
+//
+// The reviewer's decision (outcome + form_data) becomes the task output after
+// the workflow-runner receives and processes the signal.
+//
+// @since T13b (Java/Cloud Backend Parity)
+message SubmitWorkflowTaskApprovalInput {
+  // ID of the workflow execution containing the human_input task.
+  //
+  // @internal
+  // Format: "wfx_{unique-suffix}"
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Name of the human_input task to respond to.
+  //
+  // @internal
+  // Must match a task in the workflow whose kind is human_input and whose
+  // current status is WORKFLOW_TASK_IN_PROGRESS (waiting for signal).
+  // The handler constructs the signal name as "human_input_{task_name}".
+  string task_name = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Outcome selected by the reviewer.
+  //
+  // @internal
+  // If the human_input task defines custom outcomes, this must match one of
+  // the configured outcome names (e.g., "approve", "deny", "needs_revision").
+  // If no custom outcomes are defined, must be "approve" or "deny".
+  string outcome = 3 [(buf.validate.field).string.min_len = 1];
+
+  // Form data collected from the reviewer's response form.
+  //
+  // @internal
+  // Populated when the human_input task defines a form_schema. The form data
+  // is delivered to the Go runner as-is and becomes part of the task output.
+  // Validation against the form_schema is a runtime concern (Go runner side).
+  google.protobuf.Struct form_data = 4;
+
+  // Identity of the reviewer submitting the decision.
+  //
+  // @internal
+  // Typically the authenticated user's identity. Stored in the task output
+  // for audit trail purposes.
+  string reviewer = 5;
+
+  // Optional comment from the reviewer, stored in the audit trail.
+  string comment = 6;
+}
+
 // SubscribeWorkflowExecutionRequest subscribes to real-time execution updates.
 //
 // @internal

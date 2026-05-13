@@ -9,7 +9,7 @@ import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executi
 import { WorkflowExecutionSchema, type WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
 import { WorkflowExecutionEventSchema, type WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import { WorkflowExecutionIdSchema, WorkflowExecutionUpdateStatusInputSchema, SubmitWorkflowApprovalInputSchema, SendSignalInputSchema, CancelWorkflowExecutionInputSchema, TerminateWorkflowExecutionInputSchema, RecoverWorkflowExecutionInputSchema, PauseWorkflowExecutionInputSchema, ResumeWorkflowExecutionInputSchema, ListWorkflowExecutionsRequestSchema, WorkflowExecutionListSchema, ListWorkflowExecutionsByWorkflowRequestSchema, SubscribeWorkflowExecutionRequestSchema, GetEventLogRequestSchema, GetEventLogResponseSchema, SubscribeEventsRequestSchema, type WorkflowExecutionUpdateStatusInput, type SubmitWorkflowApprovalInput, type SendSignalInput, type CancelWorkflowExecutionInput, type TerminateWorkflowExecutionInput, type RecoverWorkflowExecutionInput, type PauseWorkflowExecutionInput, type ResumeWorkflowExecutionInput, type ListWorkflowExecutionsRequest, type WorkflowExecutionList, type ListWorkflowExecutionsByWorkflowRequest, type SubscribeWorkflowExecutionRequest, type GetEventLogRequest, type GetEventLogResponse, type SubscribeEventsRequest } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
+import { WorkflowExecutionIdSchema, WorkflowExecutionUpdateStatusInputSchema, SubmitWorkflowApprovalInputSchema, SubmitWorkflowTaskApprovalInputSchema, SendSignalInputSchema, CancelWorkflowExecutionInputSchema, TerminateWorkflowExecutionInputSchema, RecoverWorkflowExecutionInputSchema, PauseWorkflowExecutionInputSchema, ResumeWorkflowExecutionInputSchema, ListWorkflowExecutionsRequestSchema, WorkflowExecutionListSchema, ListWorkflowExecutionsByWorkflowRequestSchema, SubscribeWorkflowExecutionRequestSchema, GetEventLogRequestSchema, GetEventLogResponseSchema, SubscribeEventsRequestSchema, type WorkflowExecutionUpdateStatusInput, type SubmitWorkflowApprovalInput, type SubmitWorkflowTaskApprovalInput, type SendSignalInput, type CancelWorkflowExecutionInput, type TerminateWorkflowExecutionInput, type RecoverWorkflowExecutionInput, type PauseWorkflowExecutionInput, type ResumeWorkflowExecutionInput, type ListWorkflowExecutionsRequest, type WorkflowExecutionList, type ListWorkflowExecutionsByWorkflowRequest, type SubscribeWorkflowExecutionRequest, type GetEventLogRequest, type GetEventLogResponse, type SubscribeEventsRequest } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
 import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
 import { WorkflowExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/spec_pb";
 import { ApiResourceIdSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -46,6 +46,12 @@ export class WorkflowExecutionClient {
   async submitApproval(input: SubmitWorkflowApprovalInput): Promise<WorkflowExecution> {
     try {
       return await this.command.submitApproval(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async submitWorkflowTaskApproval(input: SubmitWorkflowTaskApprovalInput): Promise<WorkflowExecution> {
+    try {
+      return await this.command.submitWorkflowTaskApproval(input);
     } catch (e) { throw wrapError(e); }
   }
 

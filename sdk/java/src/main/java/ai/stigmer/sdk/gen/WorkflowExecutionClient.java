@@ -12,6 +12,7 @@ import ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput;
 import ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput;
 import ai.stigmer.agentic.workflowexecution.v1.SendSignalInput;
 import ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput;
+import ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput;
 import ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest;
 import ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest;
 import ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput;
@@ -57,6 +58,12 @@ public final class WorkflowExecutionClient {
     public WorkflowExecution submitApproval(SubmitWorkflowApprovalInput input) {
         try {
             return command.submitApproval(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public WorkflowExecution submitWorkflowTaskApproval(SubmitWorkflowTaskApprovalInput input) {
+        try {
+            return command.submitWorkflowTaskApproval(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
