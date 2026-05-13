@@ -31,6 +31,7 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
 
   const borderColor = CATEGORY_COLORS[data.category];
   const isNested = NESTED_TASK_KINDS.has(data.kindString);
+  const errorCount = data.errorCount ?? 0;
 
   const multiOutputHandles = getMultiOutputHandles(data);
   const hasMultipleOutputs = multiOutputHandles.length > 0;
@@ -40,9 +41,19 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
       className={cn(
         "stgm relative flex min-w-[200px] items-center gap-2 rounded-md border bg-[var(--stgm-background,#fff)] px-3 py-2 shadow-sm transition-shadow",
         selected && "ring-2 ring-[var(--stgm-ring,#3b82f6)]",
+        errorCount > 0 && "border-[var(--stgm-destructive,#ef4444)]",
       )}
       style={{ borderLeftWidth: 4, borderLeftColor: borderColor }}
+      aria-label={`Task: ${data.taskName}, type: ${formatKindLabel(data.kindString)}${errorCount > 0 ? `, ${errorCount} ${errorCount === 1 ? "error" : "errors"}` : ""}`}
     >
+      {errorCount > 0 && (
+        <span
+          className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--stgm-destructive,#ef4444)] px-1 text-[9px] font-bold leading-none text-white"
+          title={`${errorCount} validation ${errorCount === 1 ? "error" : "errors"}`}
+        >
+          {errorCount}
+        </span>
+      )}
       <Handle
         type="target"
         position={Position.Top}

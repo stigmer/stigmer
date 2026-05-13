@@ -209,7 +209,7 @@ function PaletteCategory({
       </button>
 
       {!isCollapsed && (
-        <div className="mt-0.5 space-y-0.5">
+        <div className="mt-0.5 space-y-0.5" role="listbox" aria-label={CATEGORY_DISPLAY_NAMES[category]}>
           {descriptors.map((descriptor) => (
             <PaletteItem
               key={descriptor.kind}

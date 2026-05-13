@@ -19,10 +19,50 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-13 — T15 Batch 4 COMPLETE (Specialized Task Editors)
-**Current Task**: T15 Batch 4 COMPLETE — BranchConditionBuilder + ApprovalFormBuilder
-**Phase**: Phase 2 — Visual Builder — IN PROGRESS
-**Next Task**: T15 Batch 5 (Integration + Polish — Console wiring, barrel exports, a11y, verification)
+**Last Session**: 2026-05-13 — T15 Batch 5 COMPLETE (Integration + Polish)
+**Current Task**: T15 COMPLETE — Phase 2 (Visual Builder) COMPLETE
+**Phase**: Phase 2 — Visual Builder — COMPLETE
+**Next Task**: T16 (Natural Language to Workflow — Phase 3) or chart visualizations or routing fix
+
+## Session Progress (2026-05-13, T15 Batch 5)
+
+### T15 Batch 5: Integration + Polish — COMPLETE
+
+Final integration batch for the Visual Canvas Editor. Wired canvas into both
+web and desktop consoles, exported full T15 public API surface, fixed five
+pre-implementation research findings, added drag-handle reordering (deferred
+from Batch 4), and completed accessibility pass. 0 new files, 12 modified.
+
+#### Console Integration (DD-016)
+- Added `@xyflow/react: ^12.10.2` to web and desktop `package.json`
+- Added `import "@xyflow/react/dist/style.css"` at lazy-load boundary
+
+#### Bug Fixes
+- `onDirtyChange` callback prop on `WorkflowCanvasEditor` — canvasDirty wiring gap
+- `nodeErrors` threaded through to `CanvasTaskNode` — red error badges on nodes
+- Escalation task `<select>` wired to `onUpdateConfig("escalation_task", ...)`
+
+#### Barrel Exports
+- 58 lines added to `sdk/react/src/workflow/index.ts`
+- 27 lines added to `sdk/react/src/index.ts`
+- Types, hooks, components, functions, and constants all exported
+
+#### Drag-Handle Reordering (Deferred from Batch 4)
+- 6-dot grip handles on case rows (`BranchConditionBuilder`) and outcome rows (`ApprovalFormBuilder`)
+- HTML5 DnD with drop-target highlighting, coexists with up/down arrow buttons
+
+#### Accessibility
+- Palette: `role="listbox"` parent for `role="option"` items
+- Canvas: `aria-live="polite"` selection announcement region
+- Node: `aria-label` with task name, kind, and error count
+
+#### Cleanup
+- Removed unused `DeleteEdgeCommand` and `graphToYaml` imports
+
+#### Verification
+- `tsc --noEmit` — clean: sdk/react, sdk/typescript, client-apps/web, client-apps/desktop
+- Zero linter errors on all modified files
+- DD-016 parity confirmed
 
 ## Session Progress (2026-05-13, T15 Batch 4)
 
@@ -558,15 +598,15 @@ New Task Types — llm_call, transform, human_input, validate, emit_event, notif
 Structured Agent Output Model
 
 ## Next Steps
-1. **T15 Batch 5: Integration + Polish** — Console wiring (web + desktop), barrel exports, a11y, final verification
-3. **T16: Natural Language to Workflow** (Phase 3) — prompt-to-workflow generation
-4. **Chart visualizations** — add recharts/visx for Cost by Workflow chart (deferred from T14)
-5. **Workflow execution → session navigation fix** — web routing mismatch
+1. **T16: Natural Language to Workflow** (Phase 3) — prompt-to-workflow generation
+2. **Chart visualizations** — add recharts/visx for Cost by Workflow chart (deferred from T14)
+3. **Workflow execution → session navigation fix** — web routing mismatch
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
 - Phase 1 (Foreground MVP) COMPLETE — T08, T09, T10, T11, T12, T13, T13b, Go wiring, T14 all complete
-- Desktop now has full workflow parity with web (list, detail, editor, run, executions, dashboard)
+- Phase 2 (Visual Builder) COMPLETE — T15 all 5 batches complete
+- Desktop now has full workflow parity with web (list, detail, editor, run, executions, dashboard, visual canvas)
 - Dashboard aggregation RPCs (`getExecutionSummary`, `listPendingApprovals`) implemented in both Go and Java
 - SDK dashboard components exported from `@stigmer/react`: `WorkflowDashboard`, `ExecutionSummaryWidget`, `PendingApprovalsWidget`, `FailedRunsWidget`
 - Cost data in dashboard currently empty for OSS (budget fields not populated in store) — will populate once cost tracking is wired
@@ -649,7 +689,7 @@ When starting a new session:
 
 - **Phase 0**: Harden Workflow Core (T02-T07) — COMPLETE
 - **Phase 1**: Foreground MVP (T08-T14) — COMPLETE
-- **Phase 2**: Visual Builder (T15) — canvas editor, drag-and-drop, YAML round-trip
+- **Phase 2**: Visual Builder (T15) — COMPLETE — canvas editor, drag-and-drop, YAML round-trip
 - **Phase 3**: AI-Assisted Creation (T16) — NL-to-workflow, chat-to-workflow, repair assistant
 - **Phase 4**: Advanced Agentic Orchestration (T17) — plan_and_execute, handoff, eval, batch, cache, code_execution, memory
 

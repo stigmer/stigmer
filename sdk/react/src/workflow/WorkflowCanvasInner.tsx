@@ -1,5 +1,7 @@
 "use client";
 
+import "@xyflow/react/dist/style.css";
+
 import { useMemo } from "react";
 import {
   ReactFlow,
@@ -38,6 +40,7 @@ interface WorkflowCanvasInnerProps {
   onDragOver: (event: React.DragEvent) => void;
   onNodesDelete: (nodes: Node[]) => void;
   onEdgesDelete: (edges: Edge[]) => void;
+  nodeErrors?: ReadonlyMap<string, readonly string[]>;
 }
 
 const nodeTypes = {
@@ -76,7 +79,18 @@ export function WorkflowCanvasInner({
   onDragOver,
   onNodesDelete,
   onEdgesDelete,
+  nodeErrors,
 }: WorkflowCanvasInnerProps) {
+  const enrichedNodes = useMemo(() => {
+    if (!nodeErrors || nodeErrors.size === 0) return nodes;
+    return nodes.map((node) => {
+      const data = node.data as CanvasTaskNodeData | undefined;
+      const errors = data?.taskName ? nodeErrors.get(data.taskName) : undefined;
+      if (!errors || errors.length === 0) return node;
+      return { ...node, data: { ...node.data, errorCount: errors.length } };
+    });
+  }, [nodes, nodeErrors]);
+
   const minimapNodeColor = useMemo(
     () => (node: Node) => {
       const data = node.data as CanvasTaskNodeData | undefined;
@@ -89,7 +103,7 @@ export function WorkflowCanvasInner({
 
   return (
     <ReactFlow
-      nodes={nodes}
+      nodes={enrichedNodes}
       edges={edges}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}

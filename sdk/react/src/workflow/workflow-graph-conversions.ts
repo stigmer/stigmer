@@ -463,6 +463,7 @@ export interface CanvasTaskNodeData extends Record<string, unknown> {
   config: JsonObject;
   exportAs?: string;
   isSentinel: boolean;
+  errorCount?: number;
 }
 
 /** Data payload attached to canvas transition edges. */

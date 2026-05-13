@@ -1,12 +1,11 @@
 "use client";
 
-import { lazy, Suspense, memo, useCallback, useRef } from "react";
+import { lazy, Suspense, memo, useCallback, useEffect, useMemo, useRef } from "react";
 import type { ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { useWorkflowCanvas } from "./useWorkflowCanvas";
 import { WorkflowTaskPalette } from "./WorkflowTaskPalette";
 import { WorkflowInspectorPanel } from "./WorkflowInspectorPanel";
-import { DeleteEdgeCommand } from "./graph-commands";
 
 /** Props for {@link WorkflowCanvasEditor}. */
 export interface WorkflowCanvasEditorProps {
@@ -26,6 +25,8 @@ export interface WorkflowCanvasEditorProps {
   readonly onSave?: (yaml: string) => void;
   /** Whether a save is currently in progress. */
   readonly isSaving?: boolean;
+  /** Called when the canvas dirty state changes. */
+  readonly onDirtyChange?: (dirty: boolean) => void;
   /** Map of nodeId -> error messages for validation badge rendering. */
   readonly nodeErrors?: ReadonlyMap<string, readonly string[]>;
   /** Additional CSS class names for the root container. */
@@ -57,12 +58,17 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
   showInspector = true,
   onSave,
   isSaving = false,
+  onDirtyChange,
   nodeErrors,
   className,
   loadingFallback,
 }: WorkflowCanvasEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvas = useWorkflowCanvas(yaml, containerRef);
+
+  useEffect(() => {
+    onDirtyChange?.(canvas.isDirty);
+  }, [canvas.isDirty, onDirtyChange]);
 
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: { id: string }) => {
@@ -101,6 +107,21 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
   const descriptor = canvas.selection?.type === "node"
     ? canvas.getNodeDescriptor(canvas.selection.id)
     : undefined;
+
+  const selectionAnnouncement = useMemo(() => {
+    if (!canvas.selection || !canvas.graph) return "";
+    if (canvas.selection.type === "node") {
+      const node = canvas.graph.nodes.find((n) => n.id === canvas.selection!.id);
+      if (!node) return "";
+      return `Selected task: ${node.taskName}`;
+    }
+    if (canvas.selection.type === "edge") {
+      const edge = canvas.graph.edges.find((e) => e.id === canvas.selection!.id);
+      if (!edge) return "";
+      return `Selected edge: ${edge.source} to ${edge.target}`;
+    }
+    return "";
+  }, [canvas.selection, canvas.graph]);
 
   const fallback = loadingFallback ?? (
     <div className="flex h-full w-full items-center justify-center text-sm text-[var(--stgm-muted-foreground,#737373)]">
@@ -142,6 +163,10 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
       className={cn("stgm relative flex h-full w-full", className)}
       tabIndex={-1}
     >
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {selectionAnnouncement}
+      </div>
+
       {showPalette && <WorkflowTaskPalette />}
 
       <div className="relative flex-1">
@@ -170,6 +195,7 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
             onDragOver={canvas.onDragOver}
             onNodesDelete={canvas.onNodesDelete}
             onEdgesDelete={canvas.onEdgesDelete}
+            nodeErrors={nodeErrors}
           />
         </Suspense>
       </div>
