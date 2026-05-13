@@ -1108,6 +1108,9 @@ export {
   WorkflowTopologyGraph,
   useWorkflowEditor,
   WorkflowEditorView,
+  useRunWorkflowFlow,
+  WorkflowRunForm,
+  WorkflowRunDialog,
 } from "./workflow";
 export type {
   TaskKindDescriptor,
@@ -1154,4 +1157,9 @@ export type {
   UseWorkflowEditorOptions,
   UseWorkflowEditorReturn,
   WorkflowEditorViewProps,
+  UseRunWorkflowFlowOptions,
+  UseRunWorkflowFlowReturn,
+  RunWorkflowFieldErrors,
+  WorkflowRunFormProps,
+  WorkflowRunDialogProps,
 } from "./workflow";

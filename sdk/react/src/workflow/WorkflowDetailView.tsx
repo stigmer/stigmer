@@ -51,6 +51,11 @@ export interface WorkflowDetailViewProps {
   readonly onTabChange?: (tabId: string) => void;
   /** Default active tab ID when in uncontrolled mode. @default "overview" */
   readonly defaultTab?: string;
+  /**
+   * Called when a user clicks an execution row in the Executions tab.
+   * Receives the execution ID — use for navigation to the execution viewer.
+   */
+  readonly onExecutionClick?: (executionId: string) => void;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -85,6 +90,7 @@ export function WorkflowDetailView({
   activeTab,
   onTabChange,
   defaultTab,
+  onExecutionClick,
   className,
 }: WorkflowDetailViewProps) {
   const { workflow, isLoading, error, refetch } = useWorkflow(org, slug);
@@ -151,7 +157,7 @@ export function WorkflowDetailView({
   } else if (effectiveActiveTab === "instances") {
     tabContent = <InstancesTab workflowId={meta?.id} />;
   } else if (effectiveActiveTab === "executions") {
-    tabContent = <ExecutionsTab workflowId={meta?.id} />;
+    tabContent = <ExecutionsTab workflowId={meta?.id} onExecutionClick={onExecutionClick} />;
   } else {
     tabContent = <OverviewTab workflow={workflow} />;
   }
@@ -324,7 +330,13 @@ function InstancesTab({ workflowId }: { readonly workflowId?: string }) {
   );
 }
 
-function ExecutionsTab({ workflowId }: { readonly workflowId?: string }) {
+function ExecutionsTab({
+  workflowId,
+  onExecutionClick,
+}: {
+  readonly workflowId?: string;
+  readonly onExecutionClick?: (executionId: string) => void;
+}) {
   const { executions, isLoading, error } = useWorkflowExecutionList({
     workflowId,
     pageSize: 10,
@@ -362,9 +374,30 @@ function ExecutionsTab({ workflowId }: { readonly workflowId?: string }) {
         </thead>
         <tbody className="divide-y divide-border">
           {executions.map((exec) => {
+            const execId = exec.metadata?.id;
             const startedAt = exec.status?.audit?.specAudit?.createdAt;
+            const clickable = !!onExecutionClick && !!execId;
             return (
-              <tr key={exec.metadata?.id} className="hover:bg-muted/30 transition-colors">
+              <tr
+                key={execId}
+                onClick={clickable ? () => onExecutionClick(execId!) : undefined}
+                role={clickable ? "link" : undefined}
+                tabIndex={clickable ? 0 : undefined}
+                onKeyDown={
+                  clickable
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onExecutionClick(execId!);
+                        }
+                      }
+                    : undefined
+                }
+                className={cn(
+                  "transition-colors hover:bg-muted/30",
+                  clickable && "cursor-pointer",
+                )}
+              >
                 <td className="px-4 py-2.5 font-medium text-foreground">
                   {exec.metadata?.name || exec.metadata?.slug || "—"}
                 </td>

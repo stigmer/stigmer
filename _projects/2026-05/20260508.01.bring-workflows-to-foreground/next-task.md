@@ -19,12 +19,60 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-13 — T13b COMPLETE (Phase 1 continues)
-**Current Task**: T13b COMPLETE — Java/Cloud Backend Parity
+**Last Session**: 2026-05-13 — T11 COMPLETE (Phase 1 continues)
+**Current Task**: T11 COMPLETE — Run Workflow from UI
 **Phase**: Phase 1 — Foreground MVP — IN PROGRESS
-**Next Task**: T10 (YAML Editor — already complete), T11 (Run Workflow from UI), T12 (CLI Parity), T14 (Dashboard Integration)
+**Next Task**: T12 (CLI Parity), T14 (Dashboard Integration)
 
-## Session Progress (2026-05-13, T13b)
+## Session Progress (2026-05-13, T11)
+
+### T11: Run Workflow from UI — COMPLETE
+
+Built the complete "Run Workflow" experience following SDK-first architecture
+(DD-001): behavior hook, form component, dialog component, and console
+integration. 3 new files, 4 modified. Closes the create-run-observe loop —
+users can now edit workflows (T10), run them, and watch executions (T09).
+
+#### T11.1: useRunWorkflowFlow — SDK Behavior Hook
+- Orchestrator hook following `useNewSessionFlow` pattern
+- Manages trigger message, runtime env overrides, instance selection
+- Validates required env vars before submission
+- Calls `WorkflowExecutionClient.create()` via `useStigmer()`
+- Framework-agnostic: consumer provides `onSuccess`/`onError` callbacks
+
+#### T11.2: WorkflowRunForm — SDK Styled Component
+- Auto-generated form from `WorkflowSpec.env` declarations
+- Trigger message textarea with template reference hint
+- Env var inputs: labeled, required indicators, secret field masking, inline errors
+- Instance selector (hidden when only 0-1 instances)
+- All visuals via `--stgm-*` tokens, zero Console dependencies
+
+#### T11.3: WorkflowRunDialog — SDK Styled Component
+- Native `<dialog>` + `showModal()` (same pattern as `ConfirmDialog`)
+- Composes `useRunWorkflowFlow` + `WorkflowRunForm`
+- Header, scrollable body with error banner, Cancel/Run footer with spinner
+- Resets form state on open, closes on success
+
+#### T11.4: Console Integration
+- "Run" as `primaryAction` on `WorkflowDetailView`
+- `WorkflowRunDialog` wired into `WorkflowDetailPage`
+- `onSuccess`: navigates to `/workflows/executions/[id]` + toast
+- Fetches workflow + instances via existing SDK hooks
+
+#### T11.5: Execution Row Navigation
+- Added `onExecutionClick` callback prop to `WorkflowDetailViewProps`
+- Execution rows in Executions tab now clickable with keyboard a11y
+- Console wires `(id) => router.push(/workflows/executions/${id})`
+
+#### T11.6: Barrel Exports
+- All new hooks/components exported from `sdk/react/src/workflow/index.ts`
+- Top-level exports added to `sdk/react/src/index.ts`
+
+#### Verification
+- `tsc --noEmit` — clean (sdk/react, sdk/typescript, client-apps/web)
+- `eslint` — clean (zero linter errors on all new/modified files)
+
+## Previous Session Progress (2026-05-13, T13b)
 
 ### T13b: Java/Cloud Backend Parity — COMPLETE
 
@@ -241,15 +289,14 @@ New Task Types — llm_call, transform, human_input, validate, emit_event, notif
 Structured Agent Output Model
 
 ## Next Steps
-1. **T11: Run Workflow from UI** — input form auto-generated from schema, start/cancel/watch
-2. **T12: CLI Parity** — `stigmer workflow list/get/validate/apply/diff/run/logs/trace/cancel/resume`
-3. **T14: Dashboard Integration** — pending approvals, failed runs, cost charts
-4. **Go event emission wiring** — connect `pkg/events/emitter.go` to the updateStatus gRPC call path so events flow to Java
-5. **Budget enforcement wiring** — connect `pkg/budget/tracker.go` to iterateTasks loop
+1. **T12: CLI Parity** — `stigmer workflow list/get/validate/apply/diff/run/logs/trace/cancel/resume`
+2. **T14: Dashboard Integration** — pending approvals, failed runs, cost charts
+3. **Go event emission wiring** — connect `pkg/events/emitter.go` to the updateStatus gRPC call path so events flow to Java
+4. **Budget enforcement wiring** — connect `pkg/budget/tracker.go` to iterateTasks loop
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
-- Phase 1 (Foreground MVP) IN PROGRESS — T08, T09, T10, T13, T13b complete
+- Phase 1 (Foreground MVP) IN PROGRESS — T08, T09, T10, T11, T13, T13b complete
 - All verification passes: `tsc --noEmit` for sdk/react, sdk/typescript, client-apps/web
 - `useExportResource` only supports Agent and McpServer — workflow YAML export deferred
 - Search indexing for workflows in backend unverified — `list()` may return empty
@@ -261,7 +308,7 @@ Structured Agent Output Model
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-13-t13b-java-cloud-parity.md
+_projects/2026-05/20260508.01.bring-workflows-to-foreground/checkpoints/2026-05-13-t11-run-workflow-ui.md
 ```
 
 ### 2. Task Directory
