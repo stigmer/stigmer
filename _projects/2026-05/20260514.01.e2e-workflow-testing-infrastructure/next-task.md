@@ -68,8 +68,46 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: OpenFGA Authorization Bypass — COMPLETE
-**Status**: In Progress (auth + authz bypass done, moving to T03)
+**Current Task**: T03 Test Harness Core — COMPLETE
+**Status**: In Progress (T03+T05 code complete, ready for runtime validation)
+
+## Session Progress (2026-05-14, Session 3)
+
+### Accomplished
+- Implemented T03 Test Harness Core: fixture deployer, assertion helpers, workflow-runner supervisor
+- Combined T03 + T05 into a single implementation pass
+- Refactored from per-test harness to suite-scoped TestMain (start infra once, share across all tests)
+- Built `harness/clients.go` — typed gRPC client factory for all workflow services
+- Built `harness/fixture.go` — FixtureDeployer with ApplyWorkflow, CreateExecution, cleanup tracking
+- Built `harness/assertions.go` — ExecutionWaiter with polling-based phase/terminal waiters
+- Built `harness/workflow_runner.go` — Go workflow-runner binary build + child process supervisor
+- Wrote `workflow_lifecycle_test.go` — first real E2E test (set_vars task → assert COMPLETED)
+- Discovered `WorkflowExecutionSpec.workflow_id` shortcut that auto-resolves to default instance
+- All code compiles cleanly (`go build`, `go vet` pass)
+
+### Key Decisions Made
+- **Suite-scoped harness via TestMain**: Start MongoDB/Redis/Temporal/Java/Runner once; share across tests
+- **Thin fixture deployer**: Proto types are the domain types; no custom abstraction layer
+- **Polling-first assertions**: Streaming subscription deferred to T07 when actually needed
+- **Workflow-runner confirmed required**: Java service dispatches ExecuteWorkflow activity to Go runner task queues
+- **workflow_id shortcut**: WorkflowExecution.spec.workflow_id auto-creates default instance; simplifies basic tests
+
+### Files Changed
+
+**stigmer (OSS)** — new:
+- `test/integration/suite_test.go` — TestMain, suite-scoped harness
+- `test/integration/harness/clients.go` — typed gRPC client factory
+- `test/integration/harness/fixture.go` — FixtureDeployer
+- `test/integration/harness/assertions.go` — ExecutionWaiter + assertion helpers
+- `test/integration/harness/workflow_runner.go` — workflow-runner child process supervisor
+- `test/integration/workflow_lifecycle_test.go` — first real smoke test
+
+**stigmer (OSS)** — modified:
+- `test/integration/harness/harness.go` — added WorkflowRunner field, updated Stop()
+- `test/integration/infra_test.go` — uses suite-scoped testHarness
+- `test/integration/service_test.go` — uses shared grpcConn
+- `test/integration/smoke_test.go` — uses shared grpcConn
+- `test/integration/go.mod` — added google/uuid, protobuf deps
 
 ## Session Progress (2026-05-14, Session 2)
 
@@ -130,15 +168,19 @@ When starting a new session:
 - `IntegrationTestSecurityConfig.java` — NEW: permit-all security + synthetic test caller identity
 
 ## Next Steps
-1. **T03: Test Harness Core** — complete the full harness with fixture deployer, assertion helpers, trace bundle output
-2. **T05: First real smoke test** — apply a workflow via gRPC, trigger execution, assert COMPLETED
-3. **T02: Delete Legacy E2E Tests** — remove `test/e2e/` (76 files) and clean up Makefile/CI references
+1. **Runtime validation** — build the fat JAR and run `go test -tags=integration -v -timeout=5m ./...` to validate the full pipeline
+2. **Org bootstrap** — if the runtime test reveals org-creation issues, add org bootstrap to fixture deployer
+3. **T04: JUnit XML + Trace Bundle Output** — wire gotestsum, collect service logs on failure
+4. **T02: Delete Legacy E2E Tests** — remove `test/e2e/` (76 files) and clean up Makefile/CI references
+5. **T06: CI Workflow** — create `.github/workflows/ci.integration-offline.yaml`
 
 ## Context for Resume
-- Both authentication AND authorization are now bypassed in test mode — the full handler pipeline works
-- The smoke test proves it: workflow Get returns `NotFound` (correct) instead of `INTERNAL` (OpenFGA failure)
-- All Bazel builds succeed, all 62 unit tests pass, all 3 integration tests pass
-- The Go test harness in `test/integration/` is ready for fixture deployer and assertion helpers
+- T03 code is complete — fixture deployer, assertion helpers, workflow-runner supervisor, and the first E2E test all compile
+- The code has NOT been runtime-tested yet — need to build the fat JAR and run the integration tests
+- The `DeployAndExecute` convenience method uses `spec.workflow_id` (auto-resolves to default instance) — no explicit WorkflowInstance creation needed for simple tests
+- The workflow-runner is started as a child process via `go build` from `backend/services/workflow-runner/`
+- Org bootstrap question remains empirical — discovered at first `apply()` call runtime
+- Runner startup is non-blocking (no port to wait on — it's a Temporal worker that polls)
 
 ## Quick Commands
 
