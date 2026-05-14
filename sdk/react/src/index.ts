@@ -1144,6 +1144,8 @@ export {
   BranchConditionBuilder,
   ApprovalFormBuilder,
   useResolveAgentExecutionSession,
+  CostByWorkflowChart,
+  ExecutionTrendChart,
 } from "./workflow";
 export type {
   TaskKindDescriptor,
@@ -1218,4 +1220,6 @@ export type {
   BranchConditionBuilderProps,
   ApprovalFormBuilderProps,
   UseResolveAgentExecutionSessionReturn,
+  CostByWorkflowChartProps,
+  ExecutionTrendChartProps,
 } from "./workflow";

@@ -88,7 +88,8 @@
     "@codemirror/lang-yaml": "^6.0.0",
     "@codemirror/lint": "^6.0.0",
     "@codemirror/autocomplete": "^6.0.0",
-    "@codemirror/language": "^6.0.0"
+    "@codemirror/language": "^6.0.0",
+    "recharts": "^2.15.0"
   },
   "peerDependenciesMeta": {
     "@base-ui/react": {
@@ -123,6 +124,9 @@
     },
     "@xyflow/react": {
       "optional": true
+    },
+    "recharts": {
+      "optional": true
     }
   },
   "devDependencies": {
@@ -142,6 +146,7 @@
     "react-virtuoso": "^4.18.6",
     "tsx": "^4.21.0",
     "typedoc": "^0.28.18",
+    "recharts": "^2.15.0",
     "vitest": "^3.2.4"
   }
 }
