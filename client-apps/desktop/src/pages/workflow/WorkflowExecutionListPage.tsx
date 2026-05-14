@@ -72,14 +72,14 @@ export default function WorkflowExecutionListPage() {
                     onClick={() => {
                       if (exec.metadata?.id) {
                         navigate(
-                          `/workflows/executions/${exec.metadata.id}`,
+                          `/executions/${exec.metadata.id}`,
                         );
                       }
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && exec.metadata?.id) {
                         navigate(
-                          `/workflows/executions/${exec.metadata.id}`,
+                          `/executions/${exec.metadata.id}`,
                         );
                       }
                     }}

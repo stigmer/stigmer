@@ -60,7 +60,7 @@ export function WorkflowDetailPageInner({
   const handleRunSuccess = useCallback(
     (executionId: string) => {
       toast.success("Workflow execution started");
-      router.push(`/workflows/executions/${executionId}`);
+      router.push(`/executions/${executionId}`);
     },
     [router],
   );
@@ -100,7 +100,7 @@ export function WorkflowDetailPageInner({
     if (confirmed) {
       try {
         await deleteResource();
-        router.push("/workflows");
+        router.push("/library/workflows");
       } catch {
         // error toast handled by useDeleteResource
       }
@@ -168,7 +168,7 @@ export function WorkflowDetailPageInner({
         primaryAction={primaryAction}
         actions={actions}
         additionalTabs={additionalTabs}
-        onExecutionClick={(id) => router.push(`/workflows/executions/${id}`)}
+        onExecutionClick={(id) => router.push(`/executions/${id}`)}
       />
       <ConfirmDialog
         state={confirmState}

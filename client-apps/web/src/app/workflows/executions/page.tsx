@@ -1,5 +1,5 @@
-import { WorkflowExecutionListPage } from "@/domain/workflow/WorkflowExecutionListPage";
+import { redirect } from "next/navigation";
 
-export default function ExecutionsPage() {
-  return <WorkflowExecutionListPage />;
+export default function ExecutionsRedirect() {
+  redirect("/library/workflows/executions");
 }

@@ -1,5 +1,5 @@
-import { WorkflowListPage } from "@/domain/workflow/WorkflowListPage";
+import { redirect } from "next/navigation";
 
-export default function WorkflowsPage() {
-  return <WorkflowListPage />;
+export default function WorkflowsRedirect() {
+  redirect("/library/workflows");
 }

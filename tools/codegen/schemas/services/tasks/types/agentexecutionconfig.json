@@ -1,0 +1,66 @@
+{
+  "name": "AgentExecutionConfig",
+  "description": "AgentExecutionConfig defines optional execution parameters for agent calls.\n These settings override the agent's default configuration for this specific invocation.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.AgentExecutionConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto",
+  "fields": [
+    {
+      "name": "Model",
+      "jsonName": "model",
+      "protoField": "model",
+      "type": {
+        "kind": "string"
+      },
+      "description": "LLM model to use for this invocation.\n Example: \"claude-3-5-sonnet\", \"gpt-4\", \"claude-3-opus\"\n Optional - uses agent's default model if not specified.",
+      "required": false
+    },
+    {
+      "name": "Timeout",
+      "jsonName": "timeout",
+      "protoField": "timeout",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Timeout for agent execution in seconds.\n Default: 300 (5 minutes)\n Optional.",
+      "required": false,
+      "validation": {
+        "min": 1,
+        "max": 3600
+      }
+    },
+    {
+      "name": "Temperature",
+      "jsonName": "temperature",
+      "protoField": "temperature",
+      "type": {
+        "kind": "float"
+      },
+      "description": "Temperature for LLM sampling (0.0 to 1.0).\n Lower = more deterministic, Higher = more creative\n Default: 0.7\n Optional.",
+      "required": false,
+      "validation": {
+        "max": 1
+      }
+    },
+    {
+      "name": "ContextManagement",
+      "jsonName": "contextManagement",
+      "protoField": "context_management",
+      "type": {
+        "kind": "message",
+        "messageType": "ContextManagementConfig"
+      },
+      "description": "Context management configuration for this agent invocation.\n Controls automatic summarization behavior for long-running conversations.\n When specified, overrides model defaults from the Model Registry.\n\n @internal\n @since Phase 3 (Context Summarization Architecture)\n\n Use cases:\n - Disable summarization for short-lived agents\n - Custom thresholds for agents with specific context requirements\n - Fine-tune summarization behavior per workflow task\n\n Example YAML:\n   config:\n     model: \"claude-sonnet-4.5\"\n     context_management:\n       custom_trigger_threshold: 150000\n       custom_target_tokens: 120000",
+      "required": false
+    },
+    {
+      "name": "MaxCostMicros",
+      "jsonName": "maxCostMicros",
+      "protoField": "max_cost_micros",
+      "type": {
+        "kind": "int64"
+      },
+      "description": "Per-agent-call cost cap in micro-USD (1 USD = 1,000,000 micros).\n When set, the runtime terminates this agent call if its accumulated cost\n exceeds this limit. This uses the workflow domain's micro-USD convention\n and provides per-task cost control at the workflow level.\n The runtime checks both: per-task limit first, then workflow remaining budget.\n Optional — when 0, no per-task cost limit is enforced.\n\n @since T05 (Workflow-Level Budget Primitives)",
+      "required": false
+    }
+  ]
+}

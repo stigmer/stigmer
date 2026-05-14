@@ -8,9 +8,11 @@ go_library(
         "create_execution_context_step.go",
         "delete.go",
         "get.go",
+        "get_execution_summary.go",
         "lifecycle_steps.go",
         "list.go",
         "list_by_workflow.go",
+        "list_pending_approvals.go",
         "pause.go",
         "recover.go",
         "resume.go",
@@ -53,6 +55,8 @@ go_library(
         "@io_temporal_go_api//workflowservice/v1:workflowservice",
         "@io_temporal_go_sdk//client",
         "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//types/known/durationpb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
     ],
 )
 

@@ -1,0 +1,102 @@
+{
+  "name": "AgentSpec",
+  "kind": "AGENT_SPEC",
+  "description": "AgentSpec defines the configurable properties of an agent.\n\n @internal\n This is the \"Template\" layer — declares capabilities and requirements.\n The overview.md file provides the SDK-facing description and example YAML.",
+  "protoType": "ai.stigmer.agentic.agent.v1.AgentSpec",
+  "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable description for UI and marketplace display.",
+      "required": false
+    },
+    {
+      "name": "IconUrl",
+      "jsonName": "iconUrl",
+      "protoField": "icon_url",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Icon URL for marketplace and UI display.\n Must be a publicly accessible URL to an image (SVG, PNG, or JPEG).",
+      "required": false
+    },
+    {
+      "name": "Instructions",
+      "jsonName": "instructions",
+      "protoField": "instructions",
+      "type": {
+        "kind": "string"
+      },
+      "description": "System prompt defining the agent's behavior and personality.",
+      "required": false,
+      "validation": {
+        "minLength": 10
+      }
+    },
+    {
+      "name": "McpServerUsages",
+      "jsonName": "mcpServerUsages",
+      "protoField": "mcp_server_usages",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "McpServerUsage"
+        }
+      },
+      "description": "MCP servers this agent can use.\n Each entry must reference a unique McpServer resource by slug.",
+      "required": false
+    },
+    {
+      "name": "SkillRefs",
+      "jsonName": "skillRefs",
+      "protoField": "skill_refs",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ApiResourceReference"
+        }
+      },
+      "description": "Skill resources providing additional knowledge to the agent.",
+      "required": false,
+      "referenceKind": 43
+    },
+    {
+      "name": "SubAgents",
+      "jsonName": "subAgents",
+      "protoField": "sub_agents",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "SubAgent"
+        }
+      },
+      "description": "Sub-agents that can be delegated to.\n Sub-agents can access a subset of the parent's MCP servers and tools.",
+      "required": false
+    },
+    {
+      "name": "Env",
+      "jsonName": "env",
+      "protoField": "env",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "message",
+          "messageType": "EnvVarDeclaration"
+        }
+      },
+      "description": "Environment variable declarations for this agent.\n Keys are variable names; values describe their metadata and optionality.",
+      "required": false
+    }
+  ]
+}

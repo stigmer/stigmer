@@ -1,0 +1,543 @@
+{
+  "resource": "invitation",
+  "package": "ai.stigmer.iam.invitation.v1",
+  "goImportPath": "invitationv1",
+  "services": [
+    {
+      "name": "InvitationCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/iam/invitation/v1/command.proto",
+      "methods": [
+        {
+          "name": "Create",
+          "inputType": "Invitation",
+          "inputFullType": "ai.stigmer.iam.invitation.v1.Invitation",
+          "outputType": "Invitation",
+          "outputFullType": "ai.stigmer.iam.invitation.v1.Invitation",
+          "description": "Create an invitation link for an organization.\n\n Generates a cryptographically random token and returns the full\n invitation resource including the token. The invite URL is\n constructed as: https://\u003chost\u003e/invite/\u003ctoken\u003e\n\n The specified role must be in the organization's grantable_roles.\n Platform-managed organizations cannot create invitations.\n\n @internal\n Authorization: Requires can_grant_access permission on the organization."
+        },
+        {
+          "name": "Revoke",
+          "inputType": "InvitationId",
+          "inputFullType": "ai.stigmer.iam.invitation.v1.InvitationId",
+          "outputType": "Invitation",
+          "outputFullType": "ai.stigmer.iam.invitation.v1.Invitation",
+          "description": "Revoke an active invitation, preventing further redemptions.\n\n Sets the invitation state to revoked. Idempotent — revoking an\n already-revoked invitation is a no-op.\n\n @internal\n Authorization is handled in the handler: loads the invitation,\n resolves its organization, and checks can_grant_access on the org.\n Proto-level auth is skipped because the input (InvitationId) does\n not directly identify the org."
+        },
+        {
+          "name": "Redeem",
+          "inputType": "RedeemInvitationInput",
+          "inputFullType": "ai.stigmer.iam.invitation.v1.RedeemInvitationInput",
+          "outputType": "Invitation",
+          "outputFullType": "ai.stigmer.iam.invitation.v1.Invitation",
+          "description": "Redeem an invitation to join an organization.\n\n Creates an IAM policy granting the invitation's configured role to\n the authenticated user on the invitation's organization. The\n redemption is atomic: the IAM policy is created and the redemption\n count is incremented in a single operation.\n\n Validation:\n - Invitation must be in active state\n - Invitation must not be expired\n - Invitation must not have reached max_redemptions (if \u003e 0)\n - Redeemer must not already be a member of the organization\n\n @internal\n Authorization: The token itself is the authorization mechanism.\n The redeemer's identity is resolved from the authentication header.\n FGA authorization is skipped — any authenticated user with a valid\n token can redeem."
+        }
+      ]
+    },
+    {
+      "name": "InvitationQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/iam/invitation/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "InvitationId",
+          "inputFullType": "ai.stigmer.iam.invitation.v1.InvitationId",
+          "outputType": "Invitation",
+          "outputFullType": "ai.stigmer.iam.invitation.v1.Invitation",
+          "description": "Get an invitation by its unique identifier.\n\n @internal\n Authorization: Requires can_view permission on the invitation resource."
+        },
+        {
+          "name": "ListByOrg",
+          "inputType": "ListInvitationsByOrgInput",
+          "inputFullType": "ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput",
+          "outputType": "Invitations",
+          "outputFullType": "ai.stigmer.iam.invitation.v1.Invitations",
+          "description": "List all invitations belonging to an organization.\n\n Returns invitations ordered by creation time (newest first).\n\n @internal\n Authorization: Requires can_view_access permission on the organization.\n This is intentionally stricter than can_view — only users who can\n manage org access (admins and owners) should see invitation links."
+        },
+        {
+          "name": "GetByToken",
+          "inputType": "InvitationTokenInput",
+          "inputFullType": "ai.stigmer.iam.invitation.v1.InvitationTokenInput",
+          "outputType": "InvitationPreview",
+          "outputFullType": "ai.stigmer.iam.invitation.v1.InvitationPreview",
+          "description": "Get a preview of an invitation by its shareable token.\n\n Returns a safe projection (InvitationPreview) containing only the\n information needed to render the invite acceptance page: organization\n name, logo, the role being offered, and whether the invitation is\n still valid.\n\n This endpoint is called by the web app's invite page before the user\n has authenticated, so it requires no authorization. The response\n intentionally omits the token value, redemption history, and internal\n invitation metadata.\n\n @internal\n Authorization: none — unauthenticated, public endpoint for rendering\n the invite acceptance page. Uses is_skip_authorization following the\n getSsoProvider precedent."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "RedeemInvitationInput",
+      "description": "RedeemInvitationInput is the request to redeem an invitation.\n The redeemer's identity is resolved from the authentication header.",
+      "protoType": "ai.stigmer.iam.invitation.v1.RedeemInvitationInput",
+      "protoFile": "apis/ai/stigmer/iam/invitation/v1/io.proto",
+      "fields": [
+        {
+          "name": "Token",
+          "jsonName": "token",
+          "protoField": "token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The cryptographically random token from the invite URL.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListInvitationsByOrgInput",
+      "description": "ListInvitationsByOrgInput specifies the organization whose invitations\n should be returned.",
+      "protoType": "ai.stigmer.iam.invitation.v1.ListInvitationsByOrgInput",
+      "protoFile": "apis/ai/stigmer/iam/invitation/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to list invitations for.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invitations",
+      "description": "Invitations contains a list of invitation resources.",
+      "protoType": "ai.stigmer.iam.invitation.v1.Invitations",
+      "protoFile": "apis/ai/stigmer/iam/invitation/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "Invitation"
+            }
+          },
+          "description": "Invitation entries.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "InvitationTokenInput",
+      "description": "InvitationTokenInput identifies an invitation by its shareable token.",
+      "protoType": "ai.stigmer.iam.invitation.v1.InvitationTokenInput",
+      "protoFile": "apis/ai/stigmer/iam/invitation/v1/io.proto",
+      "fields": [
+        {
+          "name": "Token",
+          "jsonName": "token",
+          "protoField": "token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The cryptographically random token from the invite URL.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "InvitationPreview",
+      "description": "InvitationPreview is a safe projection of an invitation for unauthenticated\n users viewing an invite link.\n\n This message is returned by the getByToken query, which requires no\n authentication. It intentionally omits sensitive fields (token value,\n redemption history) and includes only the information needed to render\n the \"You've been invited to join [org]\" page.\n\n Information disclosure is acceptable here because the token is already\n a shared secret — knowing the org name is necessary to render the\n invitation acceptance page.",
+      "protoType": "ai.stigmer.iam.invitation.v1.InvitationPreview",
+      "protoFile": "apis/ai/stigmer/iam/invitation/v1/io.proto",
+      "fields": [
+        {
+          "name": "OrganizationName",
+          "jsonName": "organizationName",
+          "protoField": "organization_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Display name of the organization.",
+          "required": false
+        },
+        {
+          "name": "OrganizationSlug",
+          "jsonName": "organizationSlug",
+          "protoField": "organization_slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL-friendly identifier of the organization.",
+          "required": false
+        },
+        {
+          "name": "OrganizationLogoUrl",
+          "jsonName": "organizationLogoUrl",
+          "protoField": "organization_logo_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the organization's logo image.",
+          "required": false
+        },
+        {
+          "name": "Role",
+          "jsonName": "role",
+          "protoField": "role",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.iam.v1.IamRole",
+            "enumValues": [
+              "owner",
+              "admin",
+              "member",
+              "viewer"
+            ]
+          },
+          "description": "The role that will be granted upon redemption.",
+          "required": false
+        },
+        {
+          "name": "ExpiresAt",
+          "jsonName": "expiresAt",
+          "protoField": "expires_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When this invitation expires.",
+          "required": false
+        },
+        {
+          "name": "Label",
+          "jsonName": "label",
+          "protoField": "label",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable label describing the invitation's purpose.",
+          "required": false
+        },
+        {
+          "name": "IsValid",
+          "jsonName": "isValid",
+          "protoField": "is_valid",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether this invitation can currently be redeemed.\n False if expired, revoked, or fully redeemed.",
+          "required": false
+        },
+        {
+          "name": "InvalidReason",
+          "jsonName": "invalidReason",
+          "protoField": "invalid_reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable reason when is_valid is false.\n Empty when the invitation is valid.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "IamRole",
+      "description": "IamRole defines the roles that can be assigned to principals on resources\n via IAM policies.\n\n Roles are human-assigned and represent a principal's relationship to a\n resource. They are distinct from permissions (which are computed from roles\n and checked by the authorization interceptor) and structural relations\n (which are internal FGA wiring like organization or session links).\n\n Each ApiResourceKind declares which of these roles are grantable via\n the grantable_roles field in its AuthorizationConfig.",
+      "protoType": "ai.stigmer.iam.v1.IamRole",
+      "values": [
+        {
+          "name": "owner",
+          "number": 1,
+          "description": "Full control of the resource. Typically assigned to the creator."
+        },
+        {
+          "name": "admin",
+          "number": 2,
+          "description": "Administrative access. Grants most permissions except ownership transfer."
+        },
+        {
+          "name": "member",
+          "number": 3,
+          "description": "Membership-level access. Grants read and limited write permissions."
+        },
+        {
+          "name": "viewer",
+          "number": 4,
+          "description": "Read-only access to the resource."
+        }
+      ]
+    },
+    {
+      "name": "InvitationState",
+      "description": "InvitationState tracks the lifecycle of an invitation link.\n\n State transitions:\n   active -\u003e expired       (system: past expires_at)\n   active -\u003e revoked       (admin: explicit revocation)\n   active -\u003e fully_redeemed (system: redemption_count \u003e= max_redemptions)",
+      "protoType": "ai.stigmer.iam.invitation.v1.InvitationState",
+      "values": [
+        {
+          "name": "active",
+          "number": 1,
+          "description": "The invitation is valid and can be redeemed."
+        },
+        {
+          "name": "expired",
+          "number": 2,
+          "description": "The invitation has passed its expires_at timestamp."
+        },
+        {
+          "name": "revoked",
+          "number": 3,
+          "description": "An org admin explicitly revoked the invitation."
+        },
+        {
+          "name": "fully_redeemed",
+          "number": 4,
+          "description": "The invitation reached its max_redemptions limit."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only members of the owning organization can access.\n This is the default for most resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "Invitation is a shareable link that grants org membership with a configurable role.\n\n Invitations support two patterns:\n - Multi-use (max_redemptions = 0): persistent org invite link, suitable for\n   public sharing. Best paired with the viewer role to avoid cost exposure.\n - Single-use (max_redemptions = 1): targeted invitation for a specific person.\n\n The invite URL format is: https://\u003chost\u003e/invite/\u003ctoken\u003e\n where token is a server-generated cryptographically random value.\n\n Creating an invitation requires can_grant_access on the organization.\n Redeeming an invitation requires only a valid token and authentication.",
+  "statusType": {
+    "name": "InvitationStatus",
+    "description": "InvitationStatus contains system-managed state for an invitation.",
+    "protoType": "ai.stigmer.iam.invitation.v1.InvitationStatus",
+    "protoFile": "apis/ai/stigmer/iam/invitation/v1/api.proto",
+    "fields": [
+      {
+        "name": "Token",
+        "jsonName": "token",
+        "protoField": "token",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Server-generated cryptographically random token.\n Included in the invite URL: /invite/\u003ctoken\u003e\n Generated once at creation; immutable thereafter.",
+        "required": false
+      },
+      {
+        "name": "State",
+        "jsonName": "state",
+        "protoField": "state",
+        "type": {
+          "kind": "string",
+          "enumType": "ai.stigmer.iam.invitation.v1.InvitationState",
+          "enumValues": [
+            "active",
+            "expired",
+            "revoked",
+            "fully_redeemed"
+          ]
+        },
+        "description": "Current lifecycle state of the invitation.",
+        "required": false
+      },
+      {
+        "name": "RedemptionCount",
+        "jsonName": "redemptionCount",
+        "protoField": "redemption_count",
+        "type": {
+          "kind": "int32"
+        },
+        "description": "Number of times this invitation has been successfully redeemed.",
+        "required": false
+      },
+      {
+        "name": "Redemptions",
+        "jsonName": "redemptions",
+        "protoField": "redemptions",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "InvitationRedemption"
+          }
+        },
+        "description": "Audit trail of each successful redemption.",
+        "required": false
+      },
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.).",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "InvitationRedemption",
+      "description": "InvitationRedemption records a single successful redemption event.",
+      "protoType": "ai.stigmer.iam.invitation.v1.InvitationRedemption",
+      "protoFile": "apis/ai/stigmer/iam/invitation/v1/api.proto",
+      "fields": [
+        {
+          "name": "IdentityAccountId",
+          "jsonName": "identityAccountId",
+          "protoField": "identity_account_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The identity account that redeemed the invitation.",
+          "required": false
+        },
+        {
+          "name": "RedeemedAt",
+          "jsonName": "redeemedAt",
+          "protoField": "redeemed_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the redemption occurred.",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

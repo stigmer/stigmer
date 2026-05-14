@@ -2,8 +2,8 @@
 // @generated from file ai/stigmer/agentic/workflowexecution/v1/io.proto (package ai.stigmer.agentic.workflowexecution.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ApprovalAction } from "../../agentexecution/v1/enum_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "../../agentexecution/v1/enum_pb.js";
 import type { WorkflowExecution, WorkflowExecutionStatus } from "./api_pb.js";
@@ -13,14 +13,15 @@ import { file_ai_stigmer_agentic_workflowexecution_v1_enum } from "./enum_pb.js"
 import type { WorkflowEventType, WorkflowExecutionEvent } from "./event_pb.js";
 import { file_ai_stigmer_agentic_workflowexecution_v1_event } from "./event_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
-import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
+import type { Duration, Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_duration, file_google_protobuf_struct, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { JsonObject, Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/workflowexecution/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_workflowexecution_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvaW8ucHJvdG8SJ2FpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MSIsChNXb3JrZmxvd0V4ZWN1dGlvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIwoKV29ya2Zsb3dJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInkKFVdvcmtmbG93RXhlY3V0aW9uTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRJLCgdlbnRyaWVzGAIgAygLMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uIpwBCh1MaXN0V29ya2Zsb3dFeGVjdXRpb25zUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRJGCgVwaGFzZRgDIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZRIMCgR0YWdzGAQgAygJIm0KJ0xpc3RXb3JrZmxvd0V4ZWN1dGlvbnNCeVdvcmtmbG93UmVxdWVzdBIbCgt3b3JrZmxvd19pZBgBIAEoCUIGukgDyAEBEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIu4BCiJXb3JrZmxvd0V4ZWN1dGlvblVwZGF0ZVN0YXR1c0lucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARJYCgZzdGF0dXMYAiABKAsyQC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25TdGF0dXNCBrpIA8gBARJPCgZldmVudHMYCiADKAsyPy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25FdmVudCK+AQobU3VibWl0V29ya2Zsb3dBcHByb3ZhbElucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIdCgx0b29sX2NhbGxfaWQYAiABKAlCB7pIBHICEAESUAoGYWN0aW9uGAMgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uQgq6SAeCAQQQASAAEg8KB2NvbW1lbnQYBCABKAkiQQohU3Vic2NyaWJlV29ya2Zsb3dFeGVjdXRpb25SZXF1ZXN0EhwKDGV4ZWN1dGlvbl9pZBgBIAEoCUIGukgDyAEBIkMKHENhbmNlbFdvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIkYKH1Rlcm1pbmF0ZVdvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIkQKHVJlY292ZXJXb3JrZmxvd0V4ZWN1dGlvbklucHV0EhMKAmlkGAEgASgJQge6SARyAhABEg4KBnJlYXNvbhgCIAEoCSJCChtQYXVzZVdvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIjMKHFJlc3VtZVdvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAEikQEKD1NlbmRTaWduYWxJbnB1dBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAESHAoLc2lnbmFsX25hbWUYAiABKAlCB7pIBHICEAESKAoHcGF5bG9hZBgDIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFwoPaWRlbXBvdGVuY3lfa2V5GAQgASgJIsIBChJHZXRFdmVudExvZ1JlcXVlc3QSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABEhYKDmFmdGVyX3NlcXVlbmNlGAIgASgEEk8KC2V2ZW50X3R5cGVzGAMgAygOMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXZlbnRUeXBlEhEKCXRhc2tfbmFtZRgEIAEoCRIRCglwYWdlX3NpemUYBSABKAUikQEKE0dldEV2ZW50TG9nUmVzcG9uc2USTwoGZXZlbnRzGAEgAygLMj8uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uRXZlbnQSEAoIaGFzX21vcmUYAiABKAgSFwoPbGF0ZXN0X3NlcXVlbmNlGAMgASgEIqABChZTdWJzY3JpYmVFdmVudHNSZXF1ZXN0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIWCg5hZnRlcl9zZXF1ZW5jZRgCIAEoBBJPCgtldmVudF90eXBlcxgDIAMoDjI6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V2ZW50VHlwZWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_api, file_ai_stigmer_agentic_workflowexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_event, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvaW8ucHJvdG8SJ2FpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MSIsChNXb3JrZmxvd0V4ZWN1dGlvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIwoKV29ya2Zsb3dJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBInkKFVdvcmtmbG93RXhlY3V0aW9uTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRJLCgdlbnRyaWVzGAIgAygLMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uIpwBCh1MaXN0V29ya2Zsb3dFeGVjdXRpb25zUmVxdWVzdBIRCglwYWdlX3NpemUYASABKAUSEgoKcGFnZV90b2tlbhgCIAEoCRJGCgVwaGFzZRgDIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZRIMCgR0YWdzGAQgAygJIm0KJ0xpc3RXb3JrZmxvd0V4ZWN1dGlvbnNCeVdvcmtmbG93UmVxdWVzdBIbCgt3b3JrZmxvd19pZBgBIAEoCUIGukgDyAEBEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIu4BCiJXb3JrZmxvd0V4ZWN1dGlvblVwZGF0ZVN0YXR1c0lucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARJYCgZzdGF0dXMYAiABKAsyQC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25TdGF0dXNCBrpIA8gBARJPCgZldmVudHMYCiADKAsyPy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25FdmVudCK+AQobU3VibWl0V29ya2Zsb3dBcHByb3ZhbElucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIdCgx0b29sX2NhbGxfaWQYAiABKAlCB7pIBHICEAESUAoGYWN0aW9uGAMgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uQgq6SAeCAQQQASAAEg8KB2NvbW1lbnQYBCABKAkixQEKH1N1Ym1pdFdvcmtmbG93VGFza0FwcHJvdmFsSW5wdXQSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABEhoKCXRhc2tfbmFtZRgCIAEoCUIHukgEcgIQARIYCgdvdXRjb21lGAMgASgJQge6SARyAhABEioKCWZvcm1fZGF0YRgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSEAoIcmV2aWV3ZXIYBSABKAkSDwoHY29tbWVudBgGIAEoCSJBCiFTdWJzY3JpYmVXb3JrZmxvd0V4ZWN1dGlvblJlcXVlc3QSHAoMZXhlY3V0aW9uX2lkGAEgASgJQga6SAPIAQEiQwocQ2FuY2VsV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiRgofVGVybWluYXRlV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiRAodUmVjb3ZlcldvcmtmbG93RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIkIKG1BhdXNlV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiMwocUmVzdW1lV29ya2Zsb3dFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQASKRAQoPU2VuZFNpZ25hbElucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARIcCgtzaWduYWxfbmFtZRgCIAEoCUIHukgEcgIQARIoCgdwYXlsb2FkGAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIXCg9pZGVtcG90ZW5jeV9rZXkYBCABKAkiwgEKEkdldEV2ZW50TG9nUmVxdWVzdBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAESFgoOYWZ0ZXJfc2VxdWVuY2UYAiABKAQSTwoLZXZlbnRfdHlwZXMYAyADKA4yOi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFdmVudFR5cGUSEQoJdGFza19uYW1lGAQgASgJEhEKCXBhZ2Vfc2l6ZRgFIAEoBSKRAQoTR2V0RXZlbnRMb2dSZXNwb25zZRJPCgZldmVudHMYASADKAsyPy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dFeGVjdXRpb25FdmVudBIQCghoYXNfbW9yZRgCIAEoCBIXCg9sYXRlc3Rfc2VxdWVuY2UYAyABKAQioAEKFlN1YnNjcmliZUV2ZW50c1JlcXVlc3QSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABEhYKDmFmdGVyX3NlcXVlbmNlGAIgASgEEk8KC2V2ZW50X3R5cGVzGAMgAygOMjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXZlbnRUeXBlIoMBChpHZXRFeGVjdXRpb25TdW1tYXJ5UmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESTwoLdGltZV93aW5kb3cYAiABKA4yOi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuU3VtbWFyeVRpbWVXaW5kb3ci+AMKEEV4ZWN1dGlvblN1bW1hcnkSFAoMYWN0aXZlX2NvdW50GAEgASgFEmAKDHBoYXNlX2NvdW50cxgCIAMoCzJKLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5FeGVjdXRpb25TdW1tYXJ5LlBoYXNlQ291bnRzRW50cnkSUAoKdG90YWxfY29zdBgDIAEoCzI8LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0Nvc3RTdW1tYXJ5Ei8KDGF2Z19kdXJhdGlvbhgEIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbhJbChV0b3BfZmFpbGluZ193b3JrZmxvd3MYBSADKAsyPC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dGYWlsdXJlUmFuaxJYChBjb3N0X2J5X3dvcmtmbG93GAYgAygLMj4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93Q29zdEJyZWFrZG93bhoyChBQaGFzZUNvdW50c0VudHJ5EgsKA2tleRgBIAEoBRINCgV2YWx1ZRgCIAEoBToCOAEiZgoTV29ya2Zsb3dDb3N0U3VtbWFyeRIWCg50b3RhbF9jb3N0X3VzZBgBIAEoARIaChJ0b3RhbF9pbnB1dF90b2tlbnMYAiABKAMSGwoTdG90YWxfb3V0cHV0X3Rva2VucxgDIAEoAyJaChNXb3JrZmxvd0ZhaWx1cmVSYW5rEhUKDXdvcmtmbG93X3NsdWcYASABKAkSFQoNd29ya2Zsb3dfbmFtZRgCIAEoCRIVCg1mYWlsdXJlX2NvdW50GAMgASgFInYKFVdvcmtmbG93Q29zdEJyZWFrZG93bhIVCg13b3JrZmxvd19zbHVnGAEgASgJEhUKDXdvcmtmbG93X25hbWUYAiABKAkSFgoOdG90YWxfY29zdF91c2QYAyABKAESFwoPZXhlY3V0aW9uX2NvdW50GAQgASgFIloKG0xpc3RQZW5kaW5nQXBwcm92YWxzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESEQoJcGFnZV9zaXplGAIgASgFEhIKCnBhZ2VfdG9rZW4YAyABKAki9AEKD1BlbmRpbmdBcHByb3ZhbBIUCgxleGVjdXRpb25faWQYASABKAkSFQoNd29ya2Zsb3dfbmFtZRgCIAEoCRIRCgl0YXNrX25hbWUYAyABKAkSEQoJcmVxdWVzdGVyGAQgASgJEjAKDHJlcXVlc3RlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdGltZW91dF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLAoLZm9ybV9zY2hlbWEYByABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Io8BChRQZW5kaW5nQXBwcm92YWxzTGlzdBJJCgdlbnRyaWVzGAEgAygLMjguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLlBlbmRpbmdBcHByb3ZhbBITCgt0b3RhbF9jb3VudBgCIAEoBRIXCg9uZXh0X3BhZ2VfdG9rZW4YAyABKAkqvwEKEVN1bW1hcnlUaW1lV2luZG93EiMKH1NVTU1BUllfVElNRV9XSU5ET1dfVU5TUEVDSUZJRUQQABIgChxTVU1NQVJZX1RJTUVfV0lORE9XX0xBU1RfMjRIEAESHwobU1VNTUFSWV9USU1FX1dJTkRPV19MQVNUXzdEEAISIAocU1VNTUFSWV9USU1FX1dJTkRPV19MQVNUXzMwRBADEiAKHFNVTU1BUllfVElNRV9XSU5ET1dfQUxMX1RJTUUQBGIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_api, file_ai_stigmer_agentic_workflowexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_event, file_buf_validate_validate, file_google_protobuf_duration, file_google_protobuf_struct, file_google_protobuf_timestamp]);
 
 /**
  * WorkflowExecutionId wraps a workflow execution identifier.
@@ -339,6 +340,100 @@ export const SubmitWorkflowApprovalInputSchema: GenMessage<SubmitWorkflowApprova
   messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 6);
 
 /**
+ * SubmitWorkflowTaskApprovalInput submits a human reviewer's decision for a
+ * workflow-level human_input task.
+ *
+ * @internal
+ * Unlike submitApproval (which forwards agent-level tool approvals to a child
+ * AgentExecution), this RPC resolves workflow-level human_input tasks. The handler:
+ *
+ * 1. Validates that the named task exists in the execution and is a human_input task
+ * 2. Validates the outcome against the task's configured outcomes (if any)
+ * 3. Constructs the Temporal signal name ("human_input_{task_name}")
+ * 4. Builds the signal payload matching HumanInputSignalPayload
+ * 5. Sends the signal via SignalWithStart for race-proof delivery
+ *
+ * The reviewer's decision (outcome + form_data) becomes the task output after
+ * the workflow-runner receives and processes the signal.
+ *
+ * @since T13b (Java/Cloud Backend Parity)
+ *
+ * @generated from message ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput
+ */
+export type SubmitWorkflowTaskApprovalInput = Message<"ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput"> & {
+  /**
+   * ID of the workflow execution containing the human_input task.
+   *
+   * @internal
+   * Format: "wfx_{unique-suffix}"
+   *
+   * @generated from field: string execution_id = 1;
+   */
+  executionId: string;
+
+  /**
+   * Name of the human_input task to respond to.
+   *
+   * @internal
+   * Must match a task in the workflow whose kind is human_input and whose
+   * current status is WORKFLOW_TASK_IN_PROGRESS (waiting for signal).
+   * The handler constructs the signal name as "human_input_{task_name}".
+   *
+   * @generated from field: string task_name = 2;
+   */
+  taskName: string;
+
+  /**
+   * Outcome selected by the reviewer.
+   *
+   * @internal
+   * If the human_input task defines custom outcomes, this must match one of
+   * the configured outcome names (e.g., "approve", "deny", "needs_revision").
+   * If no custom outcomes are defined, must be "approve" or "deny".
+   *
+   * @generated from field: string outcome = 3;
+   */
+  outcome: string;
+
+  /**
+   * Form data collected from the reviewer's response form.
+   *
+   * @internal
+   * Populated when the human_input task defines a form_schema. The form data
+   * is delivered to the Go runner as-is and becomes part of the task output.
+   * Validation against the form_schema is a runtime concern (Go runner side).
+   *
+   * @generated from field: google.protobuf.Struct form_data = 4;
+   */
+  formData?: JsonObject;
+
+  /**
+   * Identity of the reviewer submitting the decision.
+   *
+   * @internal
+   * Typically the authenticated user's identity. Stored in the task output
+   * for audit trail purposes.
+   *
+   * @generated from field: string reviewer = 5;
+   */
+  reviewer: string;
+
+  /**
+   * Optional comment from the reviewer, stored in the audit trail.
+   *
+   * @generated from field: string comment = 6;
+   */
+  comment: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowTaskApprovalInput.
+ * Use `create(SubmitWorkflowTaskApprovalInputSchema)` to create a new message.
+ */
+export const SubmitWorkflowTaskApprovalInputSchema: GenMessage<SubmitWorkflowTaskApprovalInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 7);
+
+/**
  * SubscribeWorkflowExecutionRequest subscribes to real-time execution updates.
  *
  * @internal
@@ -364,7 +459,7 @@ export type SubscribeWorkflowExecutionRequest = Message<"ai.stigmer.agentic.work
  * Use `create(SubscribeWorkflowExecutionRequestSchema)` to create a new message.
  */
 export const SubscribeWorkflowExecutionRequestSchema: GenMessage<SubscribeWorkflowExecutionRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 7);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 8);
 
 /**
  * CancelWorkflowExecutionInput requests graceful cancellation of a workflow execution.
@@ -405,7 +500,7 @@ export type CancelWorkflowExecutionInput = Message<"ai.stigmer.agentic.workflowe
  * Use `create(CancelWorkflowExecutionInputSchema)` to create a new message.
  */
 export const CancelWorkflowExecutionInputSchema: GenMessage<CancelWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 8);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 9);
 
 /**
  * TerminateWorkflowExecutionInput requests immediate termination of a workflow execution.
@@ -446,7 +541,7 @@ export type TerminateWorkflowExecutionInput = Message<"ai.stigmer.agentic.workfl
  * Use `create(TerminateWorkflowExecutionInputSchema)` to create a new message.
  */
 export const TerminateWorkflowExecutionInputSchema: GenMessage<TerminateWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 9);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 10);
 
 /**
  * RecoverWorkflowExecutionInput requests recovery of a failed workflow execution.
@@ -489,7 +584,7 @@ export type RecoverWorkflowExecutionInput = Message<"ai.stigmer.agentic.workflow
  * Use `create(RecoverWorkflowExecutionInputSchema)` to create a new message.
  */
 export const RecoverWorkflowExecutionInputSchema: GenMessage<RecoverWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 10);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 11);
 
 /**
  * PauseWorkflowExecutionInput requests temporarily pausing a workflow execution.
@@ -526,7 +621,7 @@ export type PauseWorkflowExecutionInput = Message<"ai.stigmer.agentic.workflowex
  * Use `create(PauseWorkflowExecutionInputSchema)` to create a new message.
  */
 export const PauseWorkflowExecutionInputSchema: GenMessage<PauseWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 11);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 12);
 
 /**
  * ResumeWorkflowExecutionInput requests resuming a paused workflow execution.
@@ -556,7 +651,7 @@ export type ResumeWorkflowExecutionInput = Message<"ai.stigmer.agentic.workflowe
  * Use `create(ResumeWorkflowExecutionInputSchema)` to create a new message.
  */
 export const ResumeWorkflowExecutionInputSchema: GenMessage<ResumeWorkflowExecutionInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 12);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 13);
 
 /**
  * SendSignalInput delivers a named signal to a workflow execution.
@@ -621,7 +716,7 @@ export type SendSignalInput = Message<"ai.stigmer.agentic.workflowexecution.v1.S
  * Use `create(SendSignalInputSchema)` to create a new message.
  */
 export const SendSignalInputSchema: GenMessage<SendSignalInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 13);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 14);
 
 /**
  * GetEventLogRequest fetches the paginated event log for a workflow execution.
@@ -712,7 +807,7 @@ export type GetEventLogRequest = Message<"ai.stigmer.agentic.workflowexecution.v
  * Use `create(GetEventLogRequestSchema)` to create a new message.
  */
 export const GetEventLogRequestSchema: GenMessage<GetEventLogRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 14);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 15);
 
 /**
  * GetEventLogResponse contains a page of execution events.
@@ -754,7 +849,7 @@ export type GetEventLogResponse = Message<"ai.stigmer.agentic.workflowexecution.
  * Use `create(GetEventLogResponseSchema)` to create a new message.
  */
 export const GetEventLogResponseSchema: GenMessage<GetEventLogResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 15);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 16);
 
 /**
  * SubscribeEventsRequest opens a real-time event stream for a workflow execution.
@@ -823,5 +918,389 @@ export type SubscribeEventsRequest = Message<"ai.stigmer.agentic.workflowexecuti
  * Use `create(SubscribeEventsRequestSchema)` to create a new message.
  */
 export const SubscribeEventsRequestSchema: GenMessage<SubscribeEventsRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 16);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 17);
+
+/**
+ * GetExecutionSummaryRequest fetches aggregated execution statistics for an organization.
+ *
+ * @since T14 (Dashboard Integration)
+ *
+ * @generated from message ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest
+ */
+export type GetExecutionSummaryRequest = Message<"ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest"> & {
+  /**
+   * Organization slug to scope the summary.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * Time window for aggregation.
+   *
+   * Defaults to LAST_7D when unspecified.
+   *
+   * @generated from field: ai.stigmer.agentic.workflowexecution.v1.SummaryTimeWindow time_window = 2;
+   */
+  timeWindow: SummaryTimeWindow;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest.
+ * Use `create(GetExecutionSummaryRequestSchema)` to create a new message.
+ */
+export const GetExecutionSummaryRequestSchema: GenMessage<GetExecutionSummaryRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 18);
+
+/**
+ * ExecutionSummary contains aggregated statistics for workflow executions.
+ *
+ * All counts, costs, and durations are scoped to the requested time window.
+ *
+ * @since T14 (Dashboard Integration)
+ *
+ * @generated from message ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary
+ */
+export type ExecutionSummary = Message<"ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary"> & {
+  /**
+   * Number of executions currently in a non-terminal phase (PENDING, IN_PROGRESS, PAUSED).
+   *
+   * @generated from field: int32 active_count = 1;
+   */
+  activeCount: number;
+
+  /**
+   * Execution counts broken down by phase.
+   *
+   * Keys are ExecutionPhase enum values (as int32).
+   * Only phases with at least one execution are included.
+   *
+   * @generated from field: map<int32, int32> phase_counts = 2;
+   */
+  phaseCounts: { [key: number]: number };
+
+  /**
+   * Aggregate cost across all executions in the time window.
+   *
+   * @generated from field: ai.stigmer.agentic.workflowexecution.v1.WorkflowCostSummary total_cost = 3;
+   */
+  totalCost?: WorkflowCostSummary;
+
+  /**
+   * Mean execution duration (from started_at to completed_at) for completed executions.
+   *
+   * Zero when no completed executions exist in the window.
+   *
+   * @generated from field: google.protobuf.Duration avg_duration = 4;
+   */
+  avgDuration?: Duration;
+
+  /**
+   * Workflows with the highest failure count in the time window, ranked descending.
+   *
+   * Capped at 10 entries.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.workflowexecution.v1.WorkflowFailureRank top_failing_workflows = 5;
+   */
+  topFailingWorkflows: WorkflowFailureRank[];
+
+  /**
+   * Per-workflow cost breakdown, ranked by total_cost descending.
+   *
+   * Capped at 10 entries.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.workflowexecution.v1.WorkflowCostBreakdown cost_by_workflow = 6;
+   */
+  costByWorkflow: WorkflowCostBreakdown[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary.
+ * Use `create(ExecutionSummarySchema)` to create a new message.
+ */
+export const ExecutionSummarySchema: GenMessage<ExecutionSummary> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 19);
+
+/**
+ * WorkflowCostSummary aggregates token and dollar costs.
+ *
+ * @since T14 (Dashboard Integration)
+ *
+ * @generated from message ai.stigmer.agentic.workflowexecution.v1.WorkflowCostSummary
+ */
+export type WorkflowCostSummary = Message<"ai.stigmer.agentic.workflowexecution.v1.WorkflowCostSummary"> & {
+  /**
+   * @generated from field: double total_cost_usd = 1;
+   */
+  totalCostUsd: number;
+
+  /**
+   * @generated from field: int64 total_input_tokens = 2;
+   */
+  totalInputTokens: bigint;
+
+  /**
+   * @generated from field: int64 total_output_tokens = 3;
+   */
+  totalOutputTokens: bigint;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflowexecution.v1.WorkflowCostSummary.
+ * Use `create(WorkflowCostSummarySchema)` to create a new message.
+ */
+export const WorkflowCostSummarySchema: GenMessage<WorkflowCostSummary> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 20);
+
+/**
+ * WorkflowFailureRank represents a workflow and its failure count within a time window.
+ *
+ * @since T14 (Dashboard Integration)
+ *
+ * @generated from message ai.stigmer.agentic.workflowexecution.v1.WorkflowFailureRank
+ */
+export type WorkflowFailureRank = Message<"ai.stigmer.agentic.workflowexecution.v1.WorkflowFailureRank"> & {
+  /**
+   * @generated from field: string workflow_slug = 1;
+   */
+  workflowSlug: string;
+
+  /**
+   * @generated from field: string workflow_name = 2;
+   */
+  workflowName: string;
+
+  /**
+   * @generated from field: int32 failure_count = 3;
+   */
+  failureCount: number;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflowexecution.v1.WorkflowFailureRank.
+ * Use `create(WorkflowFailureRankSchema)` to create a new message.
+ */
+export const WorkflowFailureRankSchema: GenMessage<WorkflowFailureRank> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 21);
+
+/**
+ * WorkflowCostBreakdown represents per-workflow cost aggregation.
+ *
+ * @since T14 (Dashboard Integration)
+ *
+ * @generated from message ai.stigmer.agentic.workflowexecution.v1.WorkflowCostBreakdown
+ */
+export type WorkflowCostBreakdown = Message<"ai.stigmer.agentic.workflowexecution.v1.WorkflowCostBreakdown"> & {
+  /**
+   * @generated from field: string workflow_slug = 1;
+   */
+  workflowSlug: string;
+
+  /**
+   * @generated from field: string workflow_name = 2;
+   */
+  workflowName: string;
+
+  /**
+   * @generated from field: double total_cost_usd = 3;
+   */
+  totalCostUsd: number;
+
+  /**
+   * @generated from field: int32 execution_count = 4;
+   */
+  executionCount: number;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflowexecution.v1.WorkflowCostBreakdown.
+ * Use `create(WorkflowCostBreakdownSchema)` to create a new message.
+ */
+export const WorkflowCostBreakdownSchema: GenMessage<WorkflowCostBreakdown> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 22);
+
+/**
+ * ListPendingApprovalsRequest fetches workflow executions that have active
+ * human_input tasks awaiting reviewer decisions.
+ *
+ * @since T14 (Dashboard Integration)
+ *
+ * @generated from message ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest
+ */
+export type ListPendingApprovalsRequest = Message<"ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest"> & {
+  /**
+   * Organization slug to scope the query.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * Maximum number of pending approvals to return per page.
+   *
+   * Default: 20. Maximum: 100.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * Opaque pagination token from a previous response.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest.
+ * Use `create(ListPendingApprovalsRequestSchema)` to create a new message.
+ */
+export const ListPendingApprovalsRequestSchema: GenMessage<ListPendingApprovalsRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 23);
+
+/**
+ * PendingApproval represents a single human_input task awaiting a reviewer decision.
+ *
+ * @since T14 (Dashboard Integration)
+ *
+ * @generated from message ai.stigmer.agentic.workflowexecution.v1.PendingApproval
+ */
+export type PendingApproval = Message<"ai.stigmer.agentic.workflowexecution.v1.PendingApproval"> & {
+  /**
+   * Workflow execution containing the pending task.
+   *
+   * @generated from field: string execution_id = 1;
+   */
+  executionId: string;
+
+  /**
+   * Human-readable workflow name for display.
+   *
+   * @generated from field: string workflow_name = 2;
+   */
+  workflowName: string;
+
+  /**
+   * Name of the human_input task awaiting response.
+   *
+   * @generated from field: string task_name = 3;
+   */
+  taskName: string;
+
+  /**
+   * Identity of the user or system that triggered the execution.
+   *
+   * @generated from field: string requester = 4;
+   */
+  requester: string;
+
+  /**
+   * When the approval was requested (task entered waiting state).
+   *
+   * @generated from field: google.protobuf.Timestamp requested_at = 5;
+   */
+  requestedAt?: Timestamp;
+
+  /**
+   * When the approval times out (if a timeout policy is configured).
+   *
+   * Zero value when no timeout is configured.
+   *
+   * @generated from field: google.protobuf.Timestamp timeout_at = 6;
+   */
+  timeoutAt?: Timestamp;
+
+  /**
+   * Optional JSON Schema for the approval form.
+   *
+   * When present, the reviewer is expected to fill in form data
+   * that conforms to this schema before submitting the decision.
+   *
+   * @generated from field: google.protobuf.Struct form_schema = 7;
+   */
+  formSchema?: JsonObject;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflowexecution.v1.PendingApproval.
+ * Use `create(PendingApprovalSchema)` to create a new message.
+ */
+export const PendingApprovalSchema: GenMessage<PendingApproval> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 24);
+
+/**
+ * PendingApprovalsList contains a paginated list of pending approvals.
+ *
+ * @since T14 (Dashboard Integration)
+ *
+ * @generated from message ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList
+ */
+export type PendingApprovalsList = Message<"ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList"> & {
+  /**
+   * @generated from field: repeated ai.stigmer.agentic.workflowexecution.v1.PendingApproval entries = 1;
+   */
+  entries: PendingApproval[];
+
+  /**
+   * Total number of pending approvals matching the query (across all pages).
+   *
+   * @generated from field: int32 total_count = 2;
+   */
+  totalCount: number;
+
+  /**
+   * Pagination token for the next page. Empty when no more pages exist.
+   *
+   * @generated from field: string next_page_token = 3;
+   */
+  nextPageToken: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList.
+ * Use `create(PendingApprovalsListSchema)` to create a new message.
+ */
+export const PendingApprovalsListSchema: GenMessage<PendingApprovalsList> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 25);
+
+/**
+ * SummaryTimeWindow controls the time range for aggregated dashboard queries.
+ *
+ * @since T14 (Dashboard Integration)
+ *
+ * @generated from enum ai.stigmer.agentic.workflowexecution.v1.SummaryTimeWindow
+ */
+export enum SummaryTimeWindow {
+  /**
+   * @generated from enum value: SUMMARY_TIME_WINDOW_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: SUMMARY_TIME_WINDOW_LAST_24H = 1;
+   */
+  LAST_24H = 1,
+
+  /**
+   * @generated from enum value: SUMMARY_TIME_WINDOW_LAST_7D = 2;
+   */
+  LAST_7D = 2,
+
+  /**
+   * @generated from enum value: SUMMARY_TIME_WINDOW_LAST_30D = 3;
+   */
+  LAST_30D = 3,
+
+  /**
+   * @generated from enum value: SUMMARY_TIME_WINDOW_ALL_TIME = 4;
+   */
+  ALL_TIME = 4,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.workflowexecution.v1.SummaryTimeWindow.
+ */
+export const SummaryTimeWindowSchema: GenEnum<SummaryTimeWindow> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_workflowexecution_v1_io, 0);
 

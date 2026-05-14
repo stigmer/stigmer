@@ -187,4 +187,37 @@ service AgentExecutionQueryController {
     option (ai.stigmer.commons.rpc.config).field_path = "org_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to view organization usage report";
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Execution Summary (Dashboard Aggregation)
+  //
+  // Operational summary for the unified platform dashboard. Returns phase
+  // counts and active execution count — cost is sourced separately from
+  // getOrgUsageReport to prevent double-counting (AD-DASH-005).
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Get aggregated execution statistics for an organization's agent executions.
+  //
+  // Returns counts by phase, active count, average duration, and top failing
+  // agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
+  //
+  // @internal
+  // Authorization:
+  // Custom authorization — user must have organization-level access.
+  // Results are scoped to the user's organization.
+  //
+  // Use Cases:
+  //
+  // 1. Unified Dashboard Overview:
+  //    - Display combined agent + workflow KPI cards
+  //    - Agent phase counts are merged client-side with workflow phase counts
+  //
+  // 2. Reliability Monitoring:
+  //    - Surface top failing agents for investigation
+  //    - Track failure rates across the organization
+  //
+  // @since Unified Platform Dashboard
+  rpc getExecutionSummary(GetAgentExecutionSummaryRequest) returns (AgentExecutionSummary) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
 }

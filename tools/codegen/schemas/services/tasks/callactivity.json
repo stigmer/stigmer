@@ -1,0 +1,34 @@
+{
+  "name": "CallActivityTaskConfig",
+  "kind": "CALL_ACTIVITY",
+  "description": "CallActivityTaskConfig defines the configuration for activity_call tasks that execute activities.\n\n @internal\n Executes Temporal activities.\n\n YAML Example:\n   - taskName:\n       call: activity\n       with:\n         activity: \"ProcessDataActivity\"\n         input:\n           data: ${ .data }\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 10",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.CallActivityTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/call_activity.proto",
+  "discriminatorValue": "activity_call",
+  "fields": [
+    {
+      "name": "Activity",
+      "jsonName": "activity",
+      "protoField": "activity",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Activity name to execute.\n\n @internal\n Must match a registered Temporal activity.",
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
+    },
+    {
+      "name": "Input",
+      "jsonName": "input",
+      "protoField": "input",
+      "type": {
+        "kind": "struct"
+      },
+      "description": "Activity input (optional).\n Can be any JSON structure.\n Supports expressions in string values.",
+      "required": false
+    }
+  ]
+}

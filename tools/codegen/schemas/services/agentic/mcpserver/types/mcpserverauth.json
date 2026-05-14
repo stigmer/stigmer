@@ -1,0 +1,66 @@
+{
+  "name": "McpServerAuth",
+  "description": "McpServerAuth configures automated credential acquisition via OAuth.\n\n @internal\n Two authentication modes are determined by the presence of oauth_app_ref:\n\n - When oauth_app_ref is empty: the MCP server implements the MCP\n   Authorization specification (RFC 8414 discovery, RFC 7591 Dynamic Client\n   Registration, OAuth 2.1 with PKCE). Stigmer auto-discovers everything\n   from the server URL. No OAuthApp resource is needed — credentials are\n   obtained automatically via DCR.\n\n - When oauth_app_ref is set: the MCP server requires pre-registered OAuth\n   app credentials from a specific vendor (Slack, Salesforce, Figma, etc.).\n   The referenced OAuthApp holds the client_id, client_secret, and endpoint\n   URLs needed for the authorization code flow.\n\n In both cases, the acquired access token is stored in a system-managed\n environment (labeled stigmer.ai/managed=true) as target_env_var. A refresh\n token (if issued by the vendor) is stored alongside as\n {target_env_var}_REFRESH_TOKEN by convention. The managed environment ID\n is recorded on the OAuthGrant for all subsequent reads and refreshes.\n\n Token lifecycle:\n - Pre-flight check before execution: if the access token is expired,\n   the backend uses the refresh token to obtain a new one automatically.\n - If the refresh token is also expired: execution fails with a clear\n   error, and the user re-authenticates from the MCP server Connect page.",
+  "protoType": "ai.stigmer.agentic.mcpserver.v1.McpServerAuth",
+  "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/spec.proto",
+  "fields": [
+    {
+      "name": "OauthAppRef",
+      "jsonName": "oauthAppRef",
+      "protoField": "oauth_app_ref",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceReference"
+      },
+      "description": "Reference to an OAuthApp for vendor-specific OAuth.\n\n When empty: the server supports the MCP Authorization spec (DCR + PKCE).\n Stigmer discovers the authorization server metadata, registers a client\n via DCR, and performs the authorization code flow with PKCE — all\n automatically at connect time.\n\n When set: Stigmer uses the referenced OAuthApp's client credentials to\n perform the OAuth authorization code flow with the vendor on behalf of\n the user. The OAuthApp must belong to the same organization as the\n McpServer (or be accessible via cross-org reference).",
+      "required": false,
+      "referenceKind": 22
+    },
+    {
+      "name": "TargetEnvVar",
+      "jsonName": "targetEnvVar",
+      "protoField": "target_env_var",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The env var where the acquired access token is stored.\n Must correspond to an entry in env so the execution pipeline\n resolves it. The refresh token is stored as\n {target_env_var}_REFRESH_TOKEN\n by convention. Both are written to the grant's managed environment.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "TokenLifetimeHint",
+      "jsonName": "tokenLifetimeHint",
+      "protoField": "token_lifetime_hint",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Informational hint about expected token lifetime for UI display.\n Helps users understand when re-authentication may be needed.\n Empty means unknown. Examples: \"1h\", \"2h\", \"90d\", \"never\".",
+      "required": false
+    },
+    {
+      "name": "ScopeHints",
+      "jsonName": "scopeHints",
+      "protoField": "scope_hints",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Optional scope hints for UI display before the OAuth flow starts.\n For DCR servers: shown to the user since actual scopes are discovered\n at connect time during authorization server metadata retrieval.\n For vendor OAuth: informational (scopes are defined on the OAuthApp).",
+      "required": false
+    },
+    {
+      "name": "DiscoveryUrl",
+      "jsonName": "discoveryUrl",
+      "protoField": "discovery_url",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Optional URL for OAuth authorization server discovery on stdio servers.\n\n HTTP servers do not need this: the platform derives the discovery\n endpoint from http.url (fetching /.well-known/oauth-authorization-server\n relative to the server URL).\n\n Stdio servers have no URL, so DCR discovery has nothing to derive from.\n Set this field to the base URL of the vendor's OAuth authorization\n server to enable DCR for a stdio-based MCP server.\n\n Resolution priority:\n   1. discovery_url (if set — used for both stdio and HTTP)\n   2. http.url (default for HTTP servers)\n\n Ignored when oauth_app_ref is set (vendor OAuth uses OAuthApp endpoints\n directly, no discovery needed).",
+      "required": false
+    }
+  ]
+}

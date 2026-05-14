@@ -1,0 +1,66 @@
+{
+  "name": "HttpServerConfig",
+  "description": "HttpServerConfig defines an MCP server accessible via HTTP + Server-Sent Events.\n\n @internal\n Communication flow:\n 1. Agent sends JSON-RPC requests via HTTP POST\n 2. Server streams responses via Server-Sent Events (SSE)\n\n Use cases:\n - Managed MCP services (e.g., hosted by a cloud provider)\n - MCP servers behind a reverse proxy or API gateway\n - Sharing a single MCP server instance across multiple agents",
+  "protoType": "ai.stigmer.agentic.mcpserver.v1.HttpServerConfig",
+  "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Url",
+      "jsonName": "url",
+      "protoField": "url",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Base URL of the MCP server endpoint.\n Must be a valid HTTP or HTTPS URL.\n Examples:\n - \"http://localhost:3000/mcp\"\n - \"https://mcp.example.com/v1\"\n - \"https://api.company.com/mcp/github\"",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Headers",
+      "jsonName": "headers",
+      "protoField": "headers",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "string"
+        }
+      },
+      "description": "HTTP headers to include with every request.\n Use for authentication, API versioning, or custom routing.\n\n Header values can reference environment variables using ${VAR_NAME} syntax.\n These placeholders are resolved at runtime from AgentInstance's environment.\n\n Examples:\n   \"Authorization\": \"Bearer ${API_TOKEN}\"\n   \"X-API-Version\": \"2024-01\"\n   \"X-Tenant-ID\": \"${TENANT_ID}\"",
+      "required": false
+    },
+    {
+      "name": "QueryParams",
+      "jsonName": "queryParams",
+      "protoField": "query_params",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "string"
+        }
+      },
+      "description": "Query parameters to append to the URL.\n Values can reference environment variables using ${VAR_NAME} syntax.\n\n Examples:\n   \"region\": \"${AWS_REGION}\"\n   \"version\": \"v1\"",
+      "required": false
+    },
+    {
+      "name": "TimeoutSeconds",
+      "jsonName": "timeoutSeconds",
+      "protoField": "timeout_seconds",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Timeout for HTTP requests in seconds.\n Applies to both the initial connection and response streaming.\n Default: 30 seconds if not specified.\n Set higher values for MCP servers that perform long-running operations.",
+      "required": false,
+      "validation": {
+        "max": 300
+      }
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "name": "SkillSpec",
+  "kind": "SKILL_SPEC",
+  "description": "SkillSpec defines the desired state of a skill.\n\n @internal\n All fields are extracted from the skill artifact by the backend.\n This follows the Kubernetes spec pattern — contains user's desired state.\n Source/provenance information is NOT stored here — it's in SkillStatus\n as GitProvenance (observed state). See synth.proto for SDK input structure.",
+  "protoType": "ai.stigmer.agentic.skill.v1.SkillSpec",
+  "protoFile": "apis/ai/stigmer/agentic/skill/v1/spec.proto",
+  "fields": [
+    {
+      "name": "SkillMd",
+      "jsonName": "skillMd",
+      "protoField": "skill_md",
+      "type": {
+        "kind": "string"
+      },
+      "description": "SKILL.md content extracted from the artifact.\n Contains the skill's interface definition, documentation, usage examples,\n and tool descriptions. This content is injected into agent prompts.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "Tag",
+      "jsonName": "tag",
+      "protoField": "tag",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Optional user-provided tag for this skill version.\n Tags are mutable pointers that can be updated to reference new versions.\n Examples: \"stable\", \"v1.0\", \"beta\", \"latest\"\n If not provided, the version will only be accessible via its immutable hash.",
+      "required": false,
+      "validation": {
+        "pattern": "^$|^[a-zA-Z0-9._-]+$"
+      }
+    },
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Skill name extracted from SKILL.md YAML frontmatter.\n This is the canonical name used for identification and references.\n Must be kebab-case: lowercase letters, numbers, and hyphens only.\n Examples: \"calculator\", \"web-scraper\", \"math-utils\"",
+      "required": false,
+      "validation": {
+        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+      }
+    },
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable description extracted from SKILL.md YAML frontmatter.\n Provides a concise summary of what this skill does for marketplace display\n and system prompt injection into AI agents.\n Should be 1-2 sentences, ideally under 100 tokens for prompt efficiency.\n Example: \"Extracts text and tables from PDF files using OCR when needed\"",
+      "required": false
+    }
+  ]
+}

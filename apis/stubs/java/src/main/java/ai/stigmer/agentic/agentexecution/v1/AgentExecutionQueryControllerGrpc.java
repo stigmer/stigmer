@@ -325,6 +325,37 @@ public final class AgentExecutionQueryControllerGrpc {
     return getGetOrgUsageReportMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest,
+      ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary> getGetExecutionSummaryMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getExecutionSummary",
+      requestType = ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest.class,
+      responseType = ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest,
+      ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary> getGetExecutionSummaryMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest, ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary> getGetExecutionSummaryMethod;
+    if ((getGetExecutionSummaryMethod = AgentExecutionQueryControllerGrpc.getGetExecutionSummaryMethod) == null) {
+      synchronized (AgentExecutionQueryControllerGrpc.class) {
+        if ((getGetExecutionSummaryMethod = AgentExecutionQueryControllerGrpc.getGetExecutionSummaryMethod) == null) {
+          AgentExecutionQueryControllerGrpc.getGetExecutionSummaryMethod = getGetExecutionSummaryMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest, ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getExecutionSummary"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentExecutionQueryControllerMethodDescriptorSupplier("getExecutionSummary"))
+              .build();
+        }
+      }
+    }
+    return getGetExecutionSummaryMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -550,6 +581,30 @@ public final class AgentExecutionQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetOrgUsageReportMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Get aggregated execution statistics for an organization's agent executions.
+     * Returns counts by phase, active count, average duration, and top failing
+     * agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Unified Dashboard Overview:
+     *    - Display combined agent + workflow KPI cards
+     *    - Agent phase counts are merged client-side with workflow phase counts
+     * 2. Reliability Monitoring:
+     *    - Surface top failing agents for investigation
+     *    - Track failure rates across the organization
+     * &#64;since Unified Platform Dashboard
+     * </pre>
+     */
+    default void getExecutionSummary(ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetExecutionSummaryMethod(), responseObserver);
+    }
   }
 
   /**
@@ -754,6 +809,31 @@ public final class AgentExecutionQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetOrgUsageReportMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Get aggregated execution statistics for an organization's agent executions.
+     * Returns counts by phase, active count, average duration, and top failing
+     * agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Unified Dashboard Overview:
+     *    - Display combined agent + workflow KPI cards
+     *    - Agent phase counts are merged client-side with workflow phase counts
+     * 2. Reliability Monitoring:
+     *    - Surface top failing agents for investigation
+     *    - Track failure rates across the organization
+     * &#64;since Unified Platform Dashboard
+     * </pre>
+     */
+    public void getExecutionSummary(ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetExecutionSummaryMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -936,6 +1016,30 @@ public final class AgentExecutionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetOrgUsageReportMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Get aggregated execution statistics for an organization's agent executions.
+     * Returns counts by phase, active count, average duration, and top failing
+     * agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Unified Dashboard Overview:
+     *    - Display combined agent + workflow KPI cards
+     *    - Agent phase counts are merged client-side with workflow phase counts
+     * 2. Reliability Monitoring:
+     *    - Surface top failing agents for investigation
+     *    - Track failure rates across the organization
+     * &#64;since Unified Platform Dashboard
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary getExecutionSummary(ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetExecutionSummaryMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -1117,6 +1221,30 @@ public final class AgentExecutionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetOrgUsageReportMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Get aggregated execution statistics for an organization's agent executions.
+     * Returns counts by phase, active count, average duration, and top failing
+     * agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Unified Dashboard Overview:
+     *    - Display combined agent + workflow KPI cards
+     *    - Agent phase counts are merged client-side with workflow phase counts
+     * 2. Reliability Monitoring:
+     *    - Surface top failing agents for investigation
+     *    - Track failure rates across the organization
+     * &#64;since Unified Platform Dashboard
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary getExecutionSummary(ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetExecutionSummaryMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -1294,6 +1422,31 @@ public final class AgentExecutionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetOrgUsageReportMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Get aggregated execution statistics for an organization's agent executions.
+     * Returns counts by phase, active count, average duration, and top failing
+     * agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
+     * &#64;internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     * Use Cases:
+     * 1. Unified Dashboard Overview:
+     *    - Display combined agent + workflow KPI cards
+     *    - Agent phase counts are merged client-side with workflow phase counts
+     * 2. Reliability Monitoring:
+     *    - Surface top failing agents for investigation
+     *    - Track failure rates across the organization
+     * &#64;since Unified Platform Dashboard
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary> getExecutionSummary(
+        ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetExecutionSummaryMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
@@ -1306,6 +1459,7 @@ public final class AgentExecutionQueryControllerGrpc {
   private static final int METHODID_GET_SESSION_USAGE_REPORT = 7;
   private static final int METHODID_GET_AGENT_USAGE_REPORT = 8;
   private static final int METHODID_GET_ORG_USAGE_REPORT = 9;
+  private static final int METHODID_GET_EXECUTION_SUMMARY = 10;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1363,6 +1517,10 @@ public final class AgentExecutionQueryControllerGrpc {
         case METHODID_GET_ORG_USAGE_REPORT:
           serviceImpl.getOrgUsageReport((ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput>) responseObserver);
+          break;
+        case METHODID_GET_EXECUTION_SUMMARY:
+          serviceImpl.getExecutionSummary((ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -1452,6 +1610,13 @@ public final class AgentExecutionQueryControllerGrpc {
               ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput,
               ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput>(
                 service, METHODID_GET_ORG_USAGE_REPORT)))
+        .addMethod(
+          getGetExecutionSummaryMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest,
+              ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary>(
+                service, METHODID_GET_EXECUTION_SUMMARY)))
         .build();
   }
 
@@ -1510,6 +1675,7 @@ public final class AgentExecutionQueryControllerGrpc {
               .addMethod(getGetSessionUsageReportMethod())
               .addMethod(getGetAgentUsageReportMethod())
               .addMethod(getGetOrgUsageReportMethod())
+              .addMethod(getGetExecutionSummaryMethod())
               .build();
         }
       }

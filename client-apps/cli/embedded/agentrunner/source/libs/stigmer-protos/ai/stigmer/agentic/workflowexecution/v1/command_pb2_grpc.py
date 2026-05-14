@@ -50,6 +50,11 @@ class WorkflowExecutionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubmitWorkflowApprovalInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
                 _registered_method=True)
+        self.submitWorkflowTaskApproval = channel.unary_unary(
+                '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitWorkflowTaskApproval',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubmitWorkflowTaskApprovalInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceId.SerializeToString,
@@ -401,6 +406,49 @@ class WorkflowExecutionCommandControllerServicer(object):
         in the same state transitions.
 
         @since Phase 5.3 (Approval Forwarding)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def submitWorkflowTaskApproval(self, request, context):
+        """Submit a human reviewer's decision for a workflow-level human_input task.
+
+        Resolves a human_input approval gate by sending the reviewer's outcome
+        (and optional form data) to the waiting workflow task via Temporal signal.
+
+        @internal
+        This RPC is specifically for workflow-level human_input tasks — the approval
+        gates defined in workflow YAML that pause execution until a human responds.
+        It is distinct from submitApproval, which forwards agent-level tool call
+        approvals to child AgentExecutions.
+
+        Behavior
+
+        1. Validates execution exists and is in progress
+        2. Validates that task_name references a human_input task in the workflow
+        3. Validates outcome against configured outcomes (if any)
+        4. Constructs signal name: "human_input_{task_name}"
+        5. Builds signal payload: {outcome, form_data, reviewer, responded_at}
+        6. Sends signal via Temporal SignalWithStart
+        7. Returns current WorkflowExecution (status updates asynchronously)
+
+        Preconditions
+
+        - Execution must be in EXECUTION_IN_PROGRESS phase
+        - task_name must reference a human_input task in the workflow
+        - outcome must be valid for the task's configured outcomes
+        - User must have can_edit permission on the workflow execution
+
+        Error Cases
+
+        - NOT_FOUND: Workflow execution doesn't exist
+        - PERMISSION_DENIED: User doesn't have can_edit permission
+        - INVALID_ARGUMENT: task_name is not a human_input task, or outcome
+        doesn't match configured outcomes
+        - FAILED_PRECONDITION: Execution is not in a signalable phase
+
+        @since T13b (Java/Cloud Backend Parity)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -905,6 +953,11 @@ def add_WorkflowExecutionCommandControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubmitWorkflowApprovalInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.SerializeToString,
             ),
+            'submitWorkflowTaskApproval': grpc.unary_unary_rpc_method_handler(
+                    servicer.submitWorkflowTaskApproval,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubmitWorkflowTaskApprovalInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.SerializeToString,
+            ),
             'delete': grpc.unary_unary_rpc_method_handler(
                     servicer.delete,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceId.FromString,
@@ -1062,6 +1115,33 @@ class WorkflowExecutionCommandController(object):
             target,
             '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitApproval',
             ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubmitWorkflowApprovalInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def submitWorkflowTaskApproval(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController/submitWorkflowTaskApproval',
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubmitWorkflowTaskApprovalInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_api__pb2.WorkflowExecution.FromString,
             options,
             channel_credentials,

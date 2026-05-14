@@ -5,7 +5,7 @@
 
 import { WorkflowExecution } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { CancelWorkflowExecutionInput, PauseWorkflowExecutionInput, RecoverWorkflowExecutionInput, ResumeWorkflowExecutionInput, SendSignalInput, SubmitWorkflowApprovalInput, TerminateWorkflowExecutionInput, WorkflowExecutionUpdateStatusInput } from "./io_pbjs";
+import { CancelWorkflowExecutionInput, PauseWorkflowExecutionInput, RecoverWorkflowExecutionInput, ResumeWorkflowExecutionInput, SendSignalInput, SubmitWorkflowApprovalInput, SubmitWorkflowTaskApprovalInput, TerminateWorkflowExecutionInput, WorkflowExecutionUpdateStatusInput } from "./io_pbjs";
 import { ApiResourceId } from "../../../commons/apiresource/io_pbjs";
 
 /**
@@ -344,6 +344,53 @@ export const WorkflowExecutionCommandController = {
     submitApproval: {
       name: "submitApproval",
       I: SubmitWorkflowApprovalInput,
+      O: WorkflowExecution,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Submit a human reviewer's decision for a workflow-level human_input task.
+     *
+     * Resolves a human_input approval gate by sending the reviewer's outcome
+     * (and optional form data) to the waiting workflow task via Temporal signal.
+     *
+     * @internal
+     * This RPC is specifically for workflow-level human_input tasks — the approval
+     * gates defined in workflow YAML that pause execution until a human responds.
+     * It is distinct from submitApproval, which forwards agent-level tool call
+     * approvals to child AgentExecutions.
+     *
+     * Behavior
+     *
+     * 1. Validates execution exists and is in progress
+     * 2. Validates that task_name references a human_input task in the workflow
+     * 3. Validates outcome against configured outcomes (if any)
+     * 4. Constructs signal name: "human_input_{task_name}"
+     * 5. Builds signal payload: {outcome, form_data, reviewer, responded_at}
+     * 6. Sends signal via Temporal SignalWithStart
+     * 7. Returns current WorkflowExecution (status updates asynchronously)
+     *
+     * Preconditions
+     *
+     * - Execution must be in EXECUTION_IN_PROGRESS phase
+     * - task_name must reference a human_input task in the workflow
+     * - outcome must be valid for the task's configured outcomes
+     * - User must have can_edit permission on the workflow execution
+     *
+     * Error Cases
+     *
+     * - NOT_FOUND: Workflow execution doesn't exist
+     * - PERMISSION_DENIED: User doesn't have can_edit permission
+     * - INVALID_ARGUMENT: task_name is not a human_input task, or outcome
+     *   doesn't match configured outcomes
+     * - FAILED_PRECONDITION: Execution is not in a signalable phase
+     *
+     * @since T13b (Java/Cloud Backend Parity)
+     *
+     * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionCommandController.submitWorkflowTaskApproval
+     */
+    submitWorkflowTaskApproval: {
+      name: "submitWorkflowTaskApproval",
+      I: SubmitWorkflowTaskApprovalInput,
       O: WorkflowExecution,
       kind: MethodKind.Unary,
     },

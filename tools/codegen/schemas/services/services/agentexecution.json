@@ -1,0 +1,3374 @@
+{
+  "resource": "agentexecution",
+  "package": "ai.stigmer.agentic.agentexecution.v1",
+  "goImportPath": "agentexecutionv1",
+  "services": [
+    {
+      "name": "AgentExecutionCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/agentexecution/v1/command.proto",
+      "methods": [
+        {
+          "name": "Create",
+          "inputType": "AgentExecution",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
+          "outputType": "AgentExecution",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
+          "description": "Create and trigger a new agent execution.\n Session is optional — can be provided or auto-created from agent_id.\n\n @internal\n Authorization is handled in handler:\n   - If session_id provided: checks can_create_execution_in on session\n   - If session_id NOT provided: checks can_create_execution_in on organization"
+        },
+        {
+          "name": "Update",
+          "inputType": "AgentExecution",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
+          "outputType": "AgentExecution",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
+          "description": "Update an agent execution.\n\n @internal\n Used by users to update execution configuration (spec fields).\n No individual field updates - always provide complete state."
+        },
+        {
+          "name": "UpdateStatus",
+          "inputType": "AgentExecutionUpdateStatusInput",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput",
+          "outputType": "UpdateStatusResponse",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse",
+          "description": "Update an agent execution's status.\n\n @internal\n Used by agent-runner to send progressive status updates (messages,\n tool_calls, phase, etc.). The runner authenticates as the triggering user,\n who owns the execution through the session ownership chain.\n Optimized for frequent status updates and merges status fields with\n existing state."
+        },
+        {
+          "name": "Delete",
+          "inputType": "ApiResourceId",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
+          "outputType": "AgentExecution",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
+          "description": "Delete an agent execution by ID."
+        },
+        {
+          "name": "SubmitApproval",
+          "inputType": "SubmitApprovalInput",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput",
+          "outputType": "AgentExecution",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
+          "description": "Submit an approval decision for a pending tool call.\n\n ## Preconditions\n\n - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase\n - tool_call_id must match status.pending_approval.tool_call_id\n - User must have can_edit permission on the execution\n\n ## Behavior by Action\n\n - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS\n - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS\n - REJECT: Execution fails with rejection error, phase becomes FAILED\n\n @internal\n\n ## State Transitions\n\n On success:\n - ToolCall.approval_action = submitted action\n - ToolCall.approval_decided_at = current timestamp\n - ToolCall.approved_by = authenticated user ID\n - AgentExecutionStatus.pending_approval = cleared\n - ExecutionPhase = EXECUTION_IN_PROGRESS (or EXECUTION_FAILED if REJECT)\n\n ## Error Conditions\n\n - NOT_FOUND: Execution doesn't exist\n - FAILED_PRECONDITION: Execution not in WAITING_FOR_APPROVAL phase\n - INVALID_ARGUMENT: tool_call_id doesn't match pending approval, or action is UNSPECIFIED\n - PERMISSION_DENIED: User lacks can_edit permission\n\n ## Idempotency\n\n If the same approval is submitted twice (same execution, tool_call, action),\n the second call is a no-op and returns the current state."
+        },
+        {
+          "name": "Cancel",
+          "inputType": "CancelAgentExecutionInput",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.CancelAgentExecutionInput",
+          "outputType": "AgentExecution",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
+          "description": "Cancel a running agent execution gracefully.\n\n Sends a cancellation signal to the agent execution. The agent can handle\n the cancellation signal to save checkpoint and clean up before\n transitioning to the CANCELLED phase.\n\n @internal\n Temporal Equivalent: `temporal workflow cancel --workflow-id \u003cid\u003e`\n\n ## Behavior\n\n 1. Validates execution exists and is in a cancellable phase\n 2. Sends cancellation signal to Temporal workflow\n 3. Python activity receives cancellation and saves LangGraph checkpoint\n 4. Execution transitions to EXECUTION_CANCELLED phase\n 5. Returns updated AgentExecution with new phase\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot cancel already-terminal executions (COMPLETED, FAILED, CANCELLED, TERMINATED)\n\n ## State Transitions\n\n - status.phase: PENDING/IN_PROGRESS → CANCELLED\n - status.completed_at: Set to current timestamp\n - LangGraph checkpoint: Preserved for potential future reference\n\n ## Idempotency\n\n Cancelling an already-cancelled execution succeeds as a no-op.\n The call returns the current execution state without side effects.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION: Execution is in a terminal phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n @since Agent Execution Lifecycle"
+        },
+        {
+          "name": "Terminate",
+          "inputType": "TerminateAgentExecutionInput",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.TerminateAgentExecutionInput",
+          "outputType": "AgentExecution",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
+          "description": "Terminate an agent execution immediately.\n\n Force-stops the agent execution without allowing cleanup. Unlike cancel,\n the agent cannot respond to termination - it is stopped immediately.\n Use this for stuck or unresponsive agents.\n\n @internal\n Temporal Equivalent: `temporal workflow terminate --workflow-id \u003cid\u003e`\n\n ## Behavior\n\n 1. Validates execution exists and is in a terminable phase\n 2. Force-kills workflow via Temporal (no signal sent to agent)\n 3. Execution transitions to EXECUTION_TERMINATED phase immediately\n 4. No cleanup callbacks or checkpoint saves occur\n 5. Returns updated AgentExecution with TERMINATED phase\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot terminate already-terminal executions\n\n ## State Transitions\n\n - status.phase: PENDING/IN_PROGRESS → TERMINATED\n - status.completed_at: Set to current timestamp\n - LangGraph checkpoint: May be incomplete (no graceful save)\n\n ## Terminated vs Cancelled\n\n | Aspect | cancel | terminate |\n |--------|--------|-----------|\n | Signal to agent | Yes (can handle) | No |\n | Checkpoint saved | Yes (graceful) | No |\n | Use case | Normal stop | Stuck agents |\n | Can recover? | No | No |\n\n ## Idempotency\n\n Terminating an already-terminated execution succeeds as a no-op.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission on the execution\n - FAILED_PRECONDITION: Execution is in a terminal phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n @since Agent Execution Lifecycle"
+        },
+        {
+          "name": "Recover",
+          "inputType": "RecoverAgentExecutionInput",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.RecoverAgentExecutionInput",
+          "outputType": "AgentExecution",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
+          "description": "Recover a failed agent execution from the last checkpoint.\n\n Resumes execution from the last checkpoint. Completed work is preserved -\n successful tool calls are NOT re-executed.\n\n @internal\n Temporal Equivalent: `temporal workflow reset --workflow-id \u003cid\u003e --type LastWorkflowTask`\n Uses LangGraph checkpoint for state restoration.\n\n ## Behavior\n\n 1. Validates execution is in FAILED phase (recoverable)\n 2. Uses Temporal ResetWorkflow to resume from last checkpoint\n 3. Activity re-invoked with same thread_id\n 4. LangGraph loads from checkpoint automatically\n 5. Execution transitions from FAILED to IN_PROGRESS phase\n 6. Agent continues from where it failed\n\n ## Preconditions\n\n - Execution must be in EXECUTION_FAILED phase\n - TERMINATED executions cannot be recovered (incomplete checkpoint)\n - CANCELLED executions cannot be recovered (intentional user action)\n\n ## State Transitions\n\n - status.phase: FAILED → IN_PROGRESS\n - status.completed_at: Cleared\n - status.error: Cleared\n - Completed tool calls: Preserved (not re-executed)\n\n ## Idempotency\n\n If recovery already succeeded (execution is now IN_PROGRESS),\n the call succeeds as a no-op.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission\n - FAILED_PRECONDITION: Execution is not in FAILED phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n @since Agent Execution Lifecycle"
+        },
+        {
+          "name": "Pause",
+          "inputType": "PauseAgentExecutionInput",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.PauseAgentExecutionInput",
+          "outputType": "AgentExecution",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
+          "description": "Pause a running agent execution.\n\n Temporarily stops the agent at its current checkpoint. Unlike cancel,\n the execution is NOT terminal and can be resumed later from where it left off.\n\n @internal\n\n ## Behavior\n\n 1. Validates execution exists and is in a pausable phase\n 2. Sends \"pause\" signal to Temporal workflow\n 3. Workflow cancels running activity gracefully\n 4. Python activity saves LangGraph checkpoint on cancellation\n 5. Execution transitions to EXECUTION_PAUSED phase\n 6. Workflow waits for resume signal (no resources consumed)\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot pause already-terminal or already-paused executions\n\n ## State Transitions\n\n - status.phase: PENDING/IN_PROGRESS → PAUSED\n - status.completed_at: NOT set (execution is not finished)\n - LangGraph checkpoint: Saved via thread_id\n\n ## Paused vs Cancelled\n\n | Aspect | pause | cancel |\n |--------|-------|--------|\n | Terminal state? | No | Yes |\n | Can resume? | Yes (via resume RPC) | No |\n | Checkpoint saved? | Yes | Best-effort |\n | Use case | Temporary stop | Permanent stop |\n\n ## Idempotency\n\n Pausing an already-paused execution succeeds as a no-op.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission\n - FAILED_PRECONDITION: Execution is in a terminal phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n @since Agent Execution Lifecycle"
+        },
+        {
+          "name": "Resume",
+          "inputType": "ResumeAgentExecutionInput",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.ResumeAgentExecutionInput",
+          "outputType": "AgentExecution",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
+          "description": "Resume a paused agent execution.\n\n Continues execution from the checkpoint where it was paused. The agent\n re-invokes with the same thread_id, loading from LangGraph checkpoint\n and continuing from where it left off.\n\n @internal\n\n ## Behavior\n\n 1. Validates execution is in EXECUTION_PAUSED phase\n 2. Sends \"resume\" signal to Temporal workflow\n 3. Workflow unblocks and re-invokes activity\n 4. Activity loads from LangGraph checkpoint using thread_id\n 5. Execution transitions back to EXECUTION_IN_PROGRESS phase\n 6. Agent continues from exact pause point\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PAUSED phase\n - Cannot resume non-paused executions\n\n ## State Transitions\n\n - status.phase: PAUSED → IN_PROGRESS\n - Activities: Re-invoked, load from checkpoint\n - LangGraph state: Loaded from checkpoint via thread_id\n\n ## Idempotency\n\n Resuming an already-running execution succeeds as a no-op.\n\n ## Error Cases\n\n - NOT_FOUND: Execution with given ID doesn't exist\n - PERMISSION_DENIED: User lacks can_edit permission\n - FAILED_PRECONDITION: Execution is not in PAUSED phase\n - INVALID_ARGUMENT: ID is empty or malformed\n\n @since Agent Execution Lifecycle"
+        },
+        {
+          "name": "UploadAttachment",
+          "inputType": "UploadAttachmentRequest",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.UploadAttachmentRequest",
+          "outputType": "UploadAttachmentResponse",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.UploadAttachmentResponse",
+          "description": "Upload a file attachment for use in an agent execution.\n\n Pre-uploads files to artifact storage before creating an execution.\n The returned storage_key can be used in Attachment.storage_key when\n creating the execution.\n\n @internal\n\n ## Authorization\n\n This endpoint does not require authorization. The storage_key returned\n acts as a capability token - knowing the key grants access to the content.\n This simplifies the upload flow for CLI and other clients.\n\n ## Storage Path\n\n Files are stored at: attachments/{ulid}/{filename}\n The ULID ensures unique paths and enables future cleanup policies.\n\n ## Use Cases\n\n - CLI uploading files (\u003e4MB) before agent execution\n - Pre-uploading datasets for agent processing\n - Uploading binary files that cannot be embedded inline in Attachment\n\n ## Example Flow\n\n 1. Client calls uploadAttachment with file content\n 2. Server uploads to storage, returns storage_key\n 3. Client creates AgentExecution with Attachment using storage_key\n 4. Agent-runner downloads attachment content when execution starts\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)"
+        }
+      ]
+    },
+    {
+      "name": "AgentExecutionQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/agentexecution/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "AgentExecutionId",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionId",
+          "outputType": "AgentExecution",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
+          "description": "Get a single agent execution by ID."
+        },
+        {
+          "name": "List",
+          "inputType": "ListAgentExecutionsRequest",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest",
+          "outputType": "AgentExecutionList",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionList",
+          "description": "List all agent executions with pagination and optional filtering."
+        },
+        {
+          "name": "ListBySession",
+          "inputType": "ListAgentExecutionsBySessionRequest",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest",
+          "outputType": "AgentExecutionList",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionList",
+          "description": "List all executions in a specific session.\n\n @internal\n Authorization is handled in handler via FGA query for authorized agent_execution_ids,\n then filtered by session_id. This ensures consistent authorization pattern across all list operations."
+        },
+        {
+          "name": "Subscribe",
+          "inputType": "AgentExecutionId",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionId",
+          "outputType": "AgentExecution",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
+          "serverStreaming": true,
+          "description": "Subscribe to real-time execution updates (streaming).\n\n @internal\n Authorization is handled by the FJ model via proto configuration."
+        },
+        {
+          "name": "GetArtifactDownloadUrl",
+          "inputType": "GetArtifactDownloadUrlRequest",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest",
+          "outputType": "GetArtifactDownloadUrlResponse",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse",
+          "description": "Get a presigned download URL for an execution artifact.\n\n Returns a time-limited URL for downloading an artifact published by\n an agent during execution. The URL can be used with a simple HTTP GET\n request without authentication.\n\n @internal\n\n ## Authorization\n\n Requires can_view permission on the execution. This ensures users can\n only download artifacts from executions they have access to.\n\n ## Security\n\n The storage_key is validated to ensure it belongs to the specified\n execution. Keys must start with \"artifacts/{execution_id}/\" to prevent\n path traversal attacks.\n\n ## URL Expiration\n\n Download URLs expire after 7 days (configurable). After expiration,\n call this endpoint again to get a fresh URL.\n\n ## Use Cases\n\n - CLI downloading agent-created files\n - Web UI providing download links for artifacts\n - Refreshing expired download URLs\n\n ## Example Flow\n\n 1. Get execution via AgentExecutionQueryController.get\n 2. Find artifact in status.artifacts[]\n 3. Call getArtifactDownloadUrl with execution_id and storage_key\n 4. Use returned download_url for HTTP GET\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)"
+        },
+        {
+          "name": "GetArtifactContent",
+          "inputType": "GetArtifactContentRequest",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest",
+          "outputType": "GetArtifactContentResponse",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse",
+          "description": "Read the raw content of an execution artifact.\n\n Returns artifact bytes through the Stigmer API, eliminating CORS\n concerns for SDK consumers who need to read content programmatically\n (e.g., YAML parsing for resource detection, in-app preview rendering).\n\n For direct file downloads, use getArtifactDownloadUrl instead — it\n returns a presigned R2 URL that avoids proxying bytes through the server.\n\n @internal\n\n ## Authorization\n\n Requires can_view permission on the execution. This ensures users can\n only read artifacts from executions they have access to.\n\n ## Security\n\n The storage_key is validated to ensure it belongs to the specified\n execution. Keys must start with \"artifacts/{execution_id}/\" to prevent\n path traversal attacks.\n\n ## Size Limit\n\n Content is truncated to max_bytes (default: 512 KB). The response\n includes total_size_bytes and a truncated flag so callers can decide\n whether to offer a full download via getArtifactDownloadUrl.\n\n ## Example Flow\n\n 1. Get execution via AgentExecutionQueryController.get\n 2. Find artifact in status.artifacts[]\n 3. Call getArtifactContent with execution_id and storage_key\n 4. Decode content bytes as UTF-8 for text artifacts\n 5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)"
+        },
+        {
+          "name": "GetExecutionUsageReport",
+          "inputType": "GetExecutionUsageReportInput",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput",
+          "outputType": "GetExecutionUsageReportOutput",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput",
+          "description": "Get a usage report for a single execution.\n\n Returns aggregated tokens, cost, and per-model breakdown for one execution."
+        },
+        {
+          "name": "GetSessionUsageReport",
+          "inputType": "GetSessionUsageReportInput",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput",
+          "outputType": "GetSessionUsageReportOutput",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput",
+          "description": "Get a usage report for a session.\n\n Returns aggregated tokens, cost, and per-execution breakdown."
+        },
+        {
+          "name": "GetAgentUsageReport",
+          "inputType": "GetAgentUsageReportInput",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput",
+          "outputType": "GetAgentUsageReportOutput",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput",
+          "description": "Get a usage report for an agent.\n\n Returns aggregated tokens, cost, and per-session breakdown with pagination.\n\n @internal\n Not consumed by any UI. Authorization model TBD — when a product need\n arises, this should likely be org-scoped (usage of agent X within org Y)."
+        },
+        {
+          "name": "GetOrgUsageReport",
+          "inputType": "GetOrgUsageReportInput",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput",
+          "outputType": "GetOrgUsageReportOutput",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput",
+          "description": "Get a usage report for an organization.\n\n Returns org-wide totals, top agents by cost, model breakdown, and daily trend."
+        },
+        {
+          "name": "GetExecutionSummary",
+          "inputType": "GetAgentExecutionSummaryRequest",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest",
+          "outputType": "AgentExecutionSummary",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary",
+          "description": "Get aggregated execution statistics for an organization's agent executions.\n\n Returns counts by phase, active count, average duration, and top failing\n agents — scoped to a configurable time window (24h, 7d, 30d, all-time).\n\n @internal\n Authorization:\n Custom authorization — user must have organization-level access.\n Results are scoped to the user's organization.\n\n Use Cases:\n\n 1. Unified Dashboard Overview:\n    - Display combined agent + workflow KPI cards\n    - Agent phase counts are merged client-side with workflow phase counts\n\n 2. Reliability Monitoring:\n    - Surface top failing agents for investigation\n    - Track failure rates across the organization\n\n @since Unified Platform Dashboard"
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "AgentExecutionUpdateStatusInput",
+      "description": "Input message for updateStatus RPC.\n Contains only the execution ID and the status fields to be updated.\n This avoids validation errors on incomplete metadata/spec fields and makes the API contract clearer.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent execution to update (required).\n Format: \"aex_abc123xyz456\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Status",
+          "jsonName": "status",
+          "protoField": "status",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentExecutionStatus"
+          },
+          "description": "Status fields to update.\n The handler will merge these status fields with the existing execution's status.\n Only the fields present in this status object will be updated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "UpdateStatusResponse",
+      "description": "UpdateStatusResponse is the lightweight response returned by the\n updateStatus RPC. It replaces the previous AgentExecution return type\n to avoid serializing the full resource on every progressive update\n (~every 2-3 seconds during streaming).\n\n The response carries an optional execution control signal from the\n platform back to the runner. The signal is generic — the runner acts\n on STOP / WARNING without knowing the source (billing, admin, budget).",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Signal",
+          "jsonName": "signal",
+          "protoField": "signal",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal",
+            "enumValues": [
+              "EXECUTION_CONTROL_SIGNAL_STOP",
+              "EXECUTION_CONTROL_SIGNAL_WARNING"
+            ]
+          },
+          "description": "Platform-to-runner directive. UNSPECIFIED means continue normally.",
+          "required": false
+        },
+        {
+          "name": "SignalReason",
+          "jsonName": "signalReason",
+          "protoField": "signal_reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable reason for the signal (optional).\n Logged by the runner and may be surfaced to the user in the stop summary.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SubmitApprovalInput",
+      "description": "Input for submitting an approval decision (HITL Phase 1).\n\n All required fields must be provided. The handler validates:\n 1. The execution exists and is in EXECUTION_WAITING_FOR_APPROVAL phase\n 2. The tool_call_id matches status.pending_approval.tool_call_id\n 3. The action is a valid non-UNSPECIFIED enum value\n\n Example:\n   {\n     \"agent_execution_id\": \"aex_abc123xyz456\",\n     \"tool_call_id\": \"call_def789\",\n     \"action\": \"APPROVAL_ACTION_APPROVE\",\n     \"comment\": \"Verified safe to execute\"\n   }",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "AgentExecutionId",
+          "jsonName": "agentExecutionId",
+          "protoField": "agent_execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent execution.\n Format: \"aex_abc123xyz456\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "ToolCallId",
+          "jsonName": "toolCallId",
+          "protoField": "tool_call_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the tool call to approve/skip/reject.\n Must match status.pending_approval.tool_call_id exactly.\n Format: Tool call ID from agent runtime (e.g., \"call_abc123\")",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Action",
+          "jsonName": "action",
+          "protoField": "action",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ApprovalAction",
+            "enumValues": [
+              "APPROVAL_ACTION_APPROVE",
+              "APPROVAL_ACTION_SKIP",
+              "APPROVAL_ACTION_REJECT"
+            ]
+          },
+          "description": "User's decision: APPROVE, SKIP, or REJECT.\n APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.",
+          "required": false
+        },
+        {
+          "name": "Comment",
+          "jsonName": "comment",
+          "protoField": "comment",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional reason/comment for the decision.\n Stored in audit trail for compliance and debugging.\n Examples:\n   - \"Verified the target repository is safe to delete\" (on APPROVE)\n   - \"Will handle this operation manually\" (on SKIP)\n   - \"Unexpected target - this looks like the wrong repository\" (on REJECT)",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "CancelAgentExecutionInput",
+      "description": "CancelAgentExecutionInput requests graceful cancellation of an agent execution.\n\n Cancellation sends a signal to the agent execution, allowing it to clean up\n gracefully. The agent can handle the cancellation signal (e.g., save checkpoint,\n report status) before the execution transitions to CANCELLED phase.\n\n ## Behavior\n\n - Sends cancellation signal to Temporal via CancelWorkflow API\n - Agent activity receives cancellation and saves checkpoint\n - Execution transitions to EXECUTION_CANCELLED phase after cleanup\n - LangGraph checkpoint is preserved for potential future recovery\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - User must have can_edit permission on the agent execution\n\n ## Idempotency\n\n If the execution is already cancelled (phase == EXECUTION_CANCELLED),\n the call succeeds as a no-op and returns the current execution state.\n\n ## Use Cases\n\n - User realizes they provided incorrect input to the agent\n - Business decision to stop a long-running agent task\n - Graceful shutdown before maintenance window\n - Cancel agent that is taking too long\n\n ## Example\n\n {\n   \"id\": \"aex_abc123xyz456\",\n   \"reason\": \"User requested cancellation - task no longer needed\"\n }",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.CancelAgentExecutionInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent execution ID to cancel.\n\n Format: \"aex_{ulid}\" (auto-generated unique identifier)\n Example: \"aex_abc123xyz456\"\n\n Validation: Required, cannot be empty",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable reason for cancellation.\n\n Stored in the audit trail and passed to Temporal for operational debugging.\n Optional but strongly recommended for compliance and troubleshooting.\n\n Examples:\n - \"User requested cancellation\"\n - \"Incorrect input provided to agent\"\n - \"Superseded by newer execution\"\n - \"Pre-maintenance shutdown\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "TerminateAgentExecutionInput",
+      "description": "TerminateAgentExecutionInput requests immediate termination of an agent execution.\n\n Termination forcefully kills the agent execution without allowing cleanup.\n Unlike cancellation, the agent cannot respond to termination - it is stopped\n immediately. Use this for stuck or unresponsive agent executions.\n\n ## Behavior\n\n - Force-kills workflow via Temporal TerminateWorkflow API\n - Agent activity does NOT receive any signal (cannot clean up)\n - Execution transitions to EXECUTION_TERMINATED phase immediately\n - All in-progress tool calls are stopped abruptly\n - LangGraph checkpoint may be incomplete\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - User must have can_edit permission on the agent execution\n\n ## Idempotency\n\n If the execution is already terminated (phase == EXECUTION_TERMINATED),\n the call succeeds as a no-op and returns the current execution state.\n\n ## Terminated vs Cancelled\n\n | Aspect | Cancel | Terminate |\n |--------|--------|-----------|\n | Signal | Agent receives cancellation signal | No signal sent |\n | Cleanup | Agent can save checkpoint | No cleanup possible |\n | Use case | Normal cancellation | Stuck/unresponsive agents |\n | Recovery | Cannot recover | Cannot recover |\n\n ## Use Cases\n\n - Agent is stuck and not responding to cancellation\n - Agent is in an infinite loop\n - Emergency stop for misbehaving agent\n - Agent has a bug causing it to ignore cancellation signals\n\n ## Example\n\n {\n   \"id\": \"aex_abc123xyz456\",\n   \"reason\": \"Agent stuck in infinite loop, not responding to cancel\"\n }",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.TerminateAgentExecutionInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent execution ID to terminate.\n\n Format: \"aex_{ulid}\" (auto-generated unique identifier)\n Example: \"aex_abc123xyz456\"\n\n Validation: Required, cannot be empty",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable reason for termination.\n\n Stored in the audit trail and passed to Temporal for operational debugging.\n Optional but strongly recommended - termination is a drastic action\n and the reason helps with post-incident analysis.\n\n Examples:\n - \"Agent stuck for 30 minutes, not responding to cancel\"\n - \"Infinite loop detected in tool calls\"\n - \"Emergency stop - agent making unexpected API calls\"\n - \"Cancel failed after 3 attempts, force terminating\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RecoverAgentExecutionInput",
+      "description": "RecoverAgentExecutionInput requests recovery of a failed agent execution.\n\n Recovery resumes execution from the last LangGraph checkpoint, preserving\n all completed work. The agent continues from where it failed without\n re-executing successful steps.\n\n ## Behavior\n\n - Uses Temporal ResetWorkflow API to resume from last successful point\n - LangGraph checkpoint is loaded using the preserved thread_id\n - Completed tool calls are NOT re-executed\n - Execution transitions from FAILED back to IN_PROGRESS phase\n - Agent continues from where it failed\n\n ## Preconditions\n\n - Execution must be in EXECUTION_FAILED phase\n - TERMINATED executions cannot be recovered (incomplete checkpoint)\n - CANCELLED executions cannot be recovered (intentional user action)\n - User must have can_edit permission on the agent execution\n\n ## Idempotency\n\n If recovery is already in progress (execution moved to IN_PROGRESS after\n a previous recover call), the call succeeds as a no-op and returns current state.\n\n ## Use Cases\n\n - Agent failed due to transient error (network timeout, rate limit)\n - External API was down but is now available\n - Bug was fixed and agent should continue from failure point\n - Retry after investigating and fixing the root cause\n\n ## Example\n\n {\n   \"id\": \"aex_abc123xyz456\"\n }",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.RecoverAgentExecutionInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent execution ID to recover.\n\n Must be in FAILED phase. TERMINATED and CANCELLED executions\n cannot be recovered.\n\n Format: \"aex_{ulid}\" (auto-generated unique identifier)\n Example: \"aex_abc123xyz456\"\n\n Validation: Required, cannot be empty",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "PauseAgentExecutionInput",
+      "description": "PauseAgentExecutionInput requests temporarily pausing an agent execution.\n\n Pauses the agent at its current checkpoint. Unlike cancel, the execution\n is NOT terminal and can be resumed later from where it left off.\n\n ## Behavior\n\n When an agent is paused:\n 1. A \"pause\" signal is sent to the Temporal workflow\n 2. Running activity is gracefully cancelled (checkpoint saved)\n 3. LangGraph auto-saves checkpoint on cancellation\n 4. Execution transitions to EXECUTION_PAUSED phase\n 5. Workflow waits for resume signal (no resources consumed)\n\n ## Resume Flow\n\n The paused agent can be resumed via the resume RPC:\n 1. Resume signal unblocks the workflow\n 2. Activity is re-invoked with same thread_id\n 3. LangGraph loads from checkpoint automatically\n 4. Agent continues from exact pause point\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase\n - Cannot pause already paused or terminal executions\n\n ## Use Cases\n\n - User wants to review agent progress before continuing\n - Scheduled maintenance window requires pausing work\n - Rate limit concerns require throttling agent work\n - Need to modify agent configuration before continuing\n\n ## Example\n\n {\n   \"id\": \"aex_abc123xyz456\",\n   \"reason\": \"Pausing to review progress before continuing\"\n }\n\n @since Agent Execution Lifecycle",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.PauseAgentExecutionInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent execution ID to pause.\n\n Must be in PENDING or IN_PROGRESS phase. Cannot pause\n executions that are already terminal (COMPLETED, FAILED, CANCELLED, TERMINATED).\n\n Format: \"aex_{ulid}\" (auto-generated unique identifier)\n Example: \"aex_abc123xyz456\"\n\n Validation: Required, cannot be empty",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable reason for pausing.\n\n Stored in the audit trail for operational debugging and compliance.\n Helps track why the pause was needed.\n\n Examples:\n - \"Pausing for scheduled maintenance window\"\n - \"User requested pause to review progress\"\n - \"Pausing due to rate limit concerns\"\n - \"Emergency pause - investigating issue\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ResumeAgentExecutionInput",
+      "description": "ResumeAgentExecutionInput requests resuming a paused agent execution.\n\n Continues execution from the checkpoint where it was paused. The agent\n re-invokes activities with the same thread_id, which loads from checkpoint\n and continues from where it left off.\n\n ## Behavior\n\n When an agent is resumed:\n 1. A \"resume\" signal is sent to the paused Temporal workflow\n 2. Workflow unblocks from its wait state\n 3. Activity is re-invoked with same execution context\n 4. LangGraph loads checkpoint using thread_id\n 5. Agent continues from exact pause point\n\n ## Preconditions\n\n - Execution must be in EXECUTION_PAUSED phase\n - Cannot resume non-paused executions\n\n ## Idempotency\n\n If the execution is not paused (already IN_PROGRESS),\n the call succeeds as a no-op and returns the current execution state.\n\n ## Example\n\n {\n   \"id\": \"aex_abc123xyz456\"\n }\n\n @since Agent Execution Lifecycle",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ResumeAgentExecutionInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent execution ID to resume.\n\n Must be in PAUSED phase. Cannot resume executions\n that are not paused.\n\n Format: \"aex_{ulid}\" (auto-generated unique identifier)\n Example: \"aex_abc123xyz456\"\n\n Validation: Required, cannot be empty",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "UploadAttachmentRequest",
+      "description": "UploadAttachmentRequest uploads a file attachment for use in an agent execution.\n\n This endpoint allows CLI and other clients to pre-upload large files (\u003e4MB)\n to artifact storage before creating an agent execution. The returned storage_key\n can then be used in the Attachment message when creating the execution.\n\n ## Storage\n\n Files are uploaded to: attachments/{ulid}/{filename}\n The ULID ensures unique paths and allows for future cleanup policies.\n\n ## Authorization\n\n This endpoint does not require authorization. The storage_key returned acts\n as a capability token - knowing the key grants access to the content. This\n simplifies the upload flow while maintaining security through obscurity\n of the storage path.\n\n ## Use Cases\n\n - CLI uploading files before agent execution\n - Pre-uploading large datasets for agent processing\n - Uploading binary files that cannot be embedded inline\n\n ## Example\n\n Request:\n {\n   \"filename\": \"dataset.csv\",\n   \"content\": \u003cbinary data\u003e,\n   \"content_type\": \"text/csv\"\n }\n\n Response:\n {\n   \"storage_key\": \"attachments/01HGXXX.../dataset.csv\"\n }\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.UploadAttachmentRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Filename",
+          "jsonName": "filename",
+          "protoField": "filename",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Original filename of the attachment.\n\n Used in the storage path and for display purposes.\n Should not contain path separators or special characters.\n\n Examples: \"dataset.csv\", \"config.json\", \"report.pdf\"\n\n Validation: Required, minimum 1 character",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Content",
+          "jsonName": "content",
+          "protoField": "content",
+          "type": {
+            "kind": "bytes"
+          },
+          "description": "Binary content of the file.\n\n Maximum size depends on gRPC message limits (typically 4MB).\n For very large files, consider chunked upload (future enhancement).\n\n Validation: Required, cannot be empty",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "ContentType",
+          "jsonName": "contentType",
+          "protoField": "content_type",
+          "type": {
+            "kind": "string"
+          },
+          "description": "MIME type of the file content.\n\n Used for Content-Type header when downloading.\n If not provided, will be guessed from filename extension.\n\n Examples: \"text/csv\", \"application/json\", \"application/pdf\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "UploadAttachmentResponse",
+      "description": "UploadAttachmentResponse returns the storage key for the uploaded attachment.\n\n The storage_key should be used in the Attachment message when creating\n an agent execution. The key is opaque to clients - do not parse or\n construct keys manually.\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.UploadAttachmentResponse",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "StorageKey",
+          "jsonName": "storageKey",
+          "protoField": "storage_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Storage key for the uploaded attachment.\n\n Use this key in Attachment.storage_key when creating an execution.\n The key includes a unique identifier and the filename.\n\n Format: \"attachments/{ulid}/{filename}\"\n Example: \"attachments/01HGXXX123ABC/dataset.csv\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListAgentExecutionsRequest",
+      "description": "ListAgentExecutionsRequest specifies parameters for listing executions.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of executions to return per page.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token for pagination, obtained from previous response.",
+          "required": false
+        },
+        {
+          "name": "Phase",
+          "jsonName": "phase",
+          "protoField": "phase",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ExecutionPhase",
+            "enumValues": [
+              "EXECUTION_PENDING",
+              "EXECUTION_IN_PROGRESS",
+              "EXECUTION_COMPLETED",
+              "EXECUTION_FAILED",
+              "EXECUTION_CANCELLED",
+              "EXECUTION_TERMINATED",
+              "EXECUTION_WAITING_FOR_APPROVAL",
+              "EXECUTION_PAUSED"
+            ]
+          },
+          "description": "Filter by execution phase (optional).",
+          "required": false
+        },
+        {
+          "name": "Tags",
+          "jsonName": "tags",
+          "protoField": "tags",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Filter by tags (optional).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "AgentExecutionList",
+      "description": "AgentExecutionList contains a paginated list of agent executions.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionList",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "TotalPages",
+          "jsonName": "totalPages",
+          "protoField": "total_pages",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of pages available.",
+          "required": false
+        },
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "AgentExecution"
+            }
+          },
+          "description": "Agent executions in the current page.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListAgentExecutionsBySessionRequest",
+      "description": "ListAgentExecutionsBySessionRequest lists all executions in a session.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Session ID to filter by.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of executions to return per page.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token for pagination, obtained from previous response.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetArtifactDownloadUrlRequest",
+      "description": "GetArtifactDownloadUrlRequest requests a download URL for an execution artifact.\n\n This endpoint generates presigned URLs for artifacts published by agents\n during execution. The URLs are time-limited and can be used for direct\n HTTP download without authentication.\n\n ## Authorization\n\n Requires can_view permission on the execution. This ensures users can only\n access artifacts from executions they have access to.\n\n ## Security\n\n The storage_key is validated to ensure it belongs to the specified execution.\n Storage keys must start with \"artifacts/{execution_id}/\" to prevent path\n traversal attacks where a user could request URLs for other executions'\n artifacts.\n\n ## Use Cases\n\n - CLI downloading agent-created files\n - Web UI providing download links for artifacts\n - Refreshing expired download URLs\n\n ## Example\n\n Request:\n {\n   \"execution_id\": \"aex_abc123xyz456\",\n   \"storage_key\": \"artifacts/aex_abc123xyz456/generated-skill.zip\"\n }\n\n Response:\n {\n   \"download_url\": \"https://r2.example.com/...\",\n   \"expires_at\": \"2026-02-20T10:30:00Z\"\n }\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent execution that produced the artifact.\n\n Used for authorization (can_view check) and storage_key validation.\n\n Format: \"aex_{ulid}\"\n Example: \"aex_abc123xyz456\"\n\n Validation: Required, minimum 1 character",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "StorageKey",
+          "jsonName": "storageKey",
+          "protoField": "storage_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Storage key of the artifact to download.\n\n Must be an artifact from the specified execution. The storage_key\n is validated to start with \"artifacts/{execution_id}/\" to prevent\n access to other executions' artifacts.\n\n Obtain this value from ExecutionArtifact.storage_key in the execution status.\n\n Format: \"artifacts/{execution_id}/{filename}\"\n Example: \"artifacts/aex_abc123xyz456/generated-skill.zip\"\n\n Validation: Required, minimum 1 character",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetArtifactDownloadUrlResponse",
+      "description": "GetArtifactDownloadUrlResponse returns a presigned download URL for an artifact.\n\n The download_url can be used with a simple HTTP GET request to download\n the artifact. No authentication headers are required - the URL contains\n embedded authorization.\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "DownloadUrl",
+          "jsonName": "downloadUrl",
+          "protoField": "download_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Presigned URL for downloading the artifact.\n\n Valid for direct HTTP GET request without authentication.\n The URL includes embedded authorization that expires at expires_at.\n\n Example: \"https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=...\"",
+          "required": false
+        },
+        {
+          "name": "ExpiresAt",
+          "jsonName": "expiresAt",
+          "protoField": "expires_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the download URL expires.\n\n After this time, the URL will no longer work and a new URL\n must be requested via this endpoint.\n\n Default expiration: 7 days from generation.\n\n Example: \"2026-02-20T10:30:00Z\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetArtifactContentRequest",
+      "description": "GetArtifactContentRequest reads the raw content of an execution artifact.\n\n Unlike getArtifactDownloadUrl (which returns a presigned URL for direct\n browser download), this endpoint returns the artifact bytes through the\n Stigmer API. This eliminates CORS concerns for SDK consumers who need to\n read artifact content programmatically — e.g., for YAML parsing, resource\n detection, or in-app preview rendering.\n\n ## Authorization\n\n Requires can_view permission on the execution. This ensures users can only\n read artifacts from executions they have access to.\n\n ## Security\n\n The storage_key is validated to ensure it belongs to the specified execution.\n Storage keys must start with \"artifacts/{execution_id}/\" to prevent path\n traversal attacks where a user could request content from other executions'\n artifacts.\n\n ## Size Limit\n\n The server enforces a maximum content size (default: 512 KB). If the\n artifact exceeds max_bytes, the response contains the first max_bytes of\n content with truncated=true. Callers can use total_size_bytes to decide\n whether to offer a full download via getArtifactDownloadUrl instead.\n\n ## Use Cases\n\n - Web UI reading YAML artifacts for Stigmer resource detection\n - SDK consumers rendering artifact previews in embedded components\n - CLI inspecting artifact content without a separate HTTP download\n\n ## Example\n\n Request:\n {\n   \"execution_id\": \"aex_abc123xyz456\",\n   \"storage_key\": \"artifacts/aex_abc123xyz456/pr-review-agent.yaml\"\n }\n\n Response:\n {\n   \"content\": \u003cbytes\u003e,\n   \"content_type\": \"text/yaml\",\n   \"total_size_bytes\": 1842,\n   \"truncated\": false\n }\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent execution that produced the artifact.\n\n Used for authorization (can_view check) and storage_key validation.\n\n Format: \"aex_{ulid}\"\n Example: \"aex_abc123xyz456\"\n\n Validation: Required, minimum 1 character",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "StorageKey",
+          "jsonName": "storageKey",
+          "protoField": "storage_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Storage key of the artifact to read.\n\n Must be an artifact from the specified execution. The storage_key\n is validated to start with \"artifacts/{execution_id}/\" to prevent\n access to other executions' artifacts.\n\n Obtain this value from ExecutionArtifact.storage_key in the execution status.\n\n Format: \"artifacts/{execution_id}/{filename}\"\n Example: \"artifacts/aex_abc123xyz456/pr-review-agent.yaml\"\n\n Validation: Required, minimum 1 character",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "MaxBytes",
+          "jsonName": "maxBytes",
+          "protoField": "max_bytes",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Maximum number of bytes to return.\n\n If the artifact is larger than this limit, the response will contain\n the first max_bytes of content with truncated=true.\n\n When 0 or unset, the server applies a default limit (512 KB).\n The server may also enforce a hard upper bound regardless of this value.\n\n Example: 524288 (512 KB)",
+          "required": false
+        },
+        {
+          "name": "EntryPath",
+          "jsonName": "entryPath",
+          "protoField": "entry_path",
+          "type": {
+            "kind": "string"
+          },
+          "description": "For directory artifacts (ZIPs): extract a specific file by its\n path within the archive instead of returning the raw ZIP bytes.\n\n When empty, returns the full artifact content (existing behavior).\n When set for a FILE artifact, this field is ignored.\n\n The path must match an entry in the archive exactly (case-sensitive).\n Use the paths from ExecutionArtifact.entries to discover valid values.\n\n Example: \"SKILL.md\", \"scripts/init_skill.py\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetArtifactContentResponse",
+      "description": "GetArtifactContentResponse returns the raw content of an execution artifact.\n\n The content field contains the artifact bytes (up to max_bytes). For text\n artifacts, clients decode via TextDecoder or equivalent. The content_type\n field provides a hint for rendering (detected by file extension).\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Content",
+          "jsonName": "content",
+          "protoField": "content",
+          "type": {
+            "kind": "bytes"
+          },
+          "description": "Raw artifact content (up to max_bytes).\n\n For text artifacts (YAML, JSON, Markdown, etc.), decode as UTF-8.\n For binary artifacts, this contains raw bytes — but callers should\n generally use getArtifactDownloadUrl for binary downloads instead.",
+          "required": false
+        },
+        {
+          "name": "ContentType",
+          "jsonName": "contentType",
+          "protoField": "content_type",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Detected content type based on file extension.\n\n Examples: \"text/yaml\", \"text/plain\", \"application/json\",\n \"application/zip\" (for directory artifacts).\n\n This is a best-effort detection — not based on content inspection.",
+          "required": false
+        },
+        {
+          "name": "TotalSizeBytes",
+          "jsonName": "totalSizeBytes",
+          "protoField": "total_size_bytes",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Actual total size of the artifact in bytes.\n\n May be larger than len(content) when truncated=true.\n Callers can use this to show \"showing 512 KB of 2.1 MB\" messages\n or to decide whether to offer a full download link.",
+          "required": false
+        },
+        {
+          "name": "Truncated",
+          "jsonName": "truncated",
+          "protoField": "truncated",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether the content was truncated to fit within max_bytes.\n\n When true, content contains only the first max_bytes of the artifact.\n The full artifact can be downloaded via getArtifactDownloadUrl.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetExecutionUsageReportInput",
+      "description": "GetExecutionUsageReportInput requests a usage report for a single execution.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Execution ID to get usage report for.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetExecutionUsageReportOutput",
+      "description": "GetExecutionUsageReportOutput returns aggregated usage for one execution.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Aggregate",
+          "jsonName": "aggregate",
+          "protoField": "aggregate",
+          "type": {
+            "kind": "message",
+            "messageType": "UsageReportAggregate"
+          },
+          "description": "Aggregated token counts and cost for this execution.",
+          "required": false
+        },
+        {
+          "name": "ModelBreakdown",
+          "jsonName": "modelBreakdown",
+          "protoField": "model_breakdown",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ModelUsage"
+            }
+          },
+          "description": "Per-model breakdown within this execution.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetSessionUsageReportInput",
+      "description": "GetSessionUsageReportInput requests a usage report for a single session.\n Aggregates cost and token data across all executions in the session.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Session ID to get usage report for.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetSessionUsageReportOutput",
+      "description": "GetSessionUsageReportOutput returns aggregated usage for a session.\n\n Provides both the session-level totals and per-execution breakdown,\n enabling drill-down from \"this session cost $0.90\" to \"execution #3\n cost $0.12 because it used claude-sonnet-4.\"",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Session identifier.",
+          "required": false
+        },
+        {
+          "name": "ExecutionCount",
+          "jsonName": "executionCount",
+          "protoField": "execution_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of executions in this session.",
+          "required": false
+        },
+        {
+          "name": "TotalUsage",
+          "jsonName": "totalUsage",
+          "protoField": "total_usage",
+          "type": {
+            "kind": "message",
+            "messageType": "UsageReportAggregate"
+          },
+          "description": "Aggregated usage across all executions in this session.",
+          "required": false
+        },
+        {
+          "name": "Executions",
+          "jsonName": "executions",
+          "protoField": "executions",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ExecutionUsageSummary"
+            }
+          },
+          "description": "Per-execution breakdown (ordered chronologically).",
+          "required": false
+        },
+        {
+          "name": "ModelBreakdown",
+          "jsonName": "modelBreakdown",
+          "protoField": "model_breakdown",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ModelUsage"
+            }
+          },
+          "description": "Per-model breakdown across the entire session.",
+          "required": false
+        },
+        {
+          "name": "FirstExecutionAt",
+          "jsonName": "firstExecutionAt",
+          "protoField": "first_execution_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp of the first execution in this session.",
+          "required": false
+        },
+        {
+          "name": "LastExecutionAt",
+          "jsonName": "lastExecutionAt",
+          "protoField": "last_execution_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp of the most recent execution in this session.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetAgentUsageReportInput",
+      "description": "GetAgentUsageReportInput requests a usage report for a specific agent.\n Aggregates cost and token data across all sessions for the agent within\n a time range.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "AgentId",
+          "jsonName": "agentId",
+          "protoField": "agent_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent ID to get usage report for.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "FromDate",
+          "jsonName": "fromDate",
+          "protoField": "from_date",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Start of time range filter (ISO 8601, inclusive).\n Example: \"2026-03-01\"",
+          "required": false
+        },
+        {
+          "name": "ToDate",
+          "jsonName": "toDate",
+          "protoField": "to_date",
+          "type": {
+            "kind": "string"
+          },
+          "description": "End of time range filter (ISO 8601, inclusive).\n Example: \"2026-03-13\"",
+          "required": false
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of sessions to return per page.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token for pagination, obtained from previous response.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetAgentUsageReportOutput",
+      "description": "GetAgentUsageReportOutput returns aggregated usage for an agent.\n\n Provides agent-level totals, per-model breakdown, and per-session\n summaries within the requested time range.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "AgentId",
+          "jsonName": "agentId",
+          "protoField": "agent_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent identifier.",
+          "required": false
+        },
+        {
+          "name": "AgentName",
+          "jsonName": "agentName",
+          "protoField": "agent_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable agent name for display.",
+          "required": false
+        },
+        {
+          "name": "TotalUsage",
+          "jsonName": "totalUsage",
+          "protoField": "total_usage",
+          "type": {
+            "kind": "message",
+            "messageType": "UsageReportAggregate"
+          },
+          "description": "Aggregated usage within the time range.",
+          "required": false
+        },
+        {
+          "name": "ModelBreakdown",
+          "jsonName": "modelBreakdown",
+          "protoField": "model_breakdown",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ModelUsage"
+            }
+          },
+          "description": "Per-model breakdown across the agent's executions.",
+          "required": false
+        },
+        {
+          "name": "Sessions",
+          "jsonName": "sessions",
+          "protoField": "sessions",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "SessionUsageSummary"
+            }
+          },
+          "description": "Per-session breakdown within the time range.",
+          "required": false
+        },
+        {
+          "name": "TotalSessions",
+          "jsonName": "totalSessions",
+          "protoField": "total_sessions",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of sessions within the time range.",
+          "required": false
+        },
+        {
+          "name": "TotalExecutions",
+          "jsonName": "totalExecutions",
+          "protoField": "total_executions",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of executions within the time range.",
+          "required": false
+        },
+        {
+          "name": "TotalBillableCostMicros",
+          "jsonName": "totalBillableCostMicros",
+          "protoField": "total_billable_cost_micros",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Total billable cost in micro-USD within the time range.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token for the next page of sessions (empty if no more pages).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetOrgUsageReportInput",
+      "description": "GetOrgUsageReportInput requests a usage report for an entire organization.\n Aggregates cost and token data across all agents and sessions within a\n time range.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "OrgId",
+          "jsonName": "orgId",
+          "protoField": "org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization ID.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "FromDate",
+          "jsonName": "fromDate",
+          "protoField": "from_date",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Start of time range filter (ISO 8601, inclusive, required).\n Example: \"2026-03-01\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "ToDate",
+          "jsonName": "toDate",
+          "protoField": "to_date",
+          "type": {
+            "kind": "string"
+          },
+          "description": "End of time range filter (ISO 8601, inclusive, required).\n Example: \"2026-03-13\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetOrgUsageReportOutput",
+      "description": "GetOrgUsageReportOutput returns aggregated usage for an organization.\n\n Provides org-level totals, per-model breakdown, top agents by cost,\n and a daily cost trend for capacity planning and budget monitoring.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "OrgId",
+          "jsonName": "orgId",
+          "protoField": "org_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization identifier.",
+          "required": false
+        },
+        {
+          "name": "TotalAgents",
+          "jsonName": "totalAgents",
+          "protoField": "total_agents",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total distinct agents with executions in the time range.",
+          "required": false
+        },
+        {
+          "name": "TotalSessions",
+          "jsonName": "totalSessions",
+          "protoField": "total_sessions",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total sessions across all agents in the time range.",
+          "required": false
+        },
+        {
+          "name": "TotalExecutions",
+          "jsonName": "totalExecutions",
+          "protoField": "total_executions",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total executions across all agents in the time range.",
+          "required": false
+        },
+        {
+          "name": "TotalBillableCostMicros",
+          "jsonName": "totalBillableCostMicros",
+          "protoField": "total_billable_cost_micros",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Total billable cost in micro-USD across the organization in the time range.",
+          "required": false
+        },
+        {
+          "name": "ModelBreakdown",
+          "jsonName": "modelBreakdown",
+          "protoField": "model_breakdown",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ModelUsage"
+            }
+          },
+          "description": "Per-model breakdown across the organization.",
+          "required": false
+        },
+        {
+          "name": "TopAgentsByCost",
+          "jsonName": "topAgentsByCost",
+          "protoField": "top_agents_by_cost",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "AgentUsageSummary"
+            }
+          },
+          "description": "Top agents by cost (top 10), ordered by billable_cost_micros descending.",
+          "required": false
+        },
+        {
+          "name": "DailyCosts",
+          "jsonName": "dailyCosts",
+          "protoField": "daily_costs",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "DailyCostEntry"
+            }
+          },
+          "description": "Daily cost trend within the time range, ordered chronologically.",
+          "required": false
+        },
+        {
+          "name": "HarnessBreakdown",
+          "jsonName": "harnessBreakdown",
+          "protoField": "harness_breakdown",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "HarnessCostSummary"
+            }
+          },
+          "description": "Cost split by execution harness (e.g., \"native\" vs \"cursor\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetAgentExecutionSummaryRequest",
+      "description": "GetAgentExecutionSummaryRequest fetches aggregated execution statistics\n for an organization's agent executions.\n\n @since Unified Platform Dashboard",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to scope the summary.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "TimeWindow",
+          "jsonName": "timeWindow",
+          "protoField": "time_window",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummaryTimeWindow",
+            "enumValues": [
+              "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_24H",
+              "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_7D",
+              "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_30D",
+              "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_ALL_TIME"
+            ]
+          },
+          "description": "Time window for aggregation.\n\n Defaults to LAST_7D when unspecified.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "AgentExecutionSummary",
+      "description": "AgentExecutionSummary contains aggregated operational statistics for agent\n executions. Designed for the platform dashboard's unified health view.\n\n Cost is intentionally omitted. The dashboard sources cost from\n getOrgUsageReport (billing source of truth) to prevent double-counting\n when workflows delegate to agents. See AD-DASH-005.\n\n @since Unified Platform Dashboard",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ActiveCount",
+          "jsonName": "activeCount",
+          "protoField": "active_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Number of executions currently in a non-terminal phase\n (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).",
+          "required": false
+        },
+        {
+          "name": "PhaseCounts",
+          "jsonName": "phaseCounts",
+          "protoField": "phase_counts",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "int32"
+            },
+            "valueType": {
+              "kind": "int32"
+            }
+          },
+          "description": "Execution counts broken down by ExecutionPhase enum value.\n\n Keys are ExecutionPhase enum values (as int32).\n Only phases with at least one execution are included.",
+          "required": false
+        },
+        {
+          "name": "AvgDuration",
+          "jsonName": "avgDuration",
+          "protoField": "avg_duration",
+          "type": {
+            "kind": "message",
+            "messageType": "Duration"
+          },
+          "description": "Mean execution duration (from started_at to completed_at) for completed\n executions in the time window.\n\n Zero when no completed executions exist.",
+          "required": false
+        },
+        {
+          "name": "TopFailingAgents",
+          "jsonName": "topFailingAgents",
+          "protoField": "top_failing_agents",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "AgentFailureRank"
+            }
+          },
+          "description": "Agents with the highest failure count in the time window, ranked descending.\n\n Capped at 10 entries.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ExecutionControlSignal",
+      "description": "ExecutionControlSignal is a platform-to-runner directive returned by the\n updateStatus RPC. The runner inspects this signal after every status\n update and acts accordingly.\n\n Signal sources are opaque to the runner — the platform may set STOP due\n to credit exhaustion, an admin kill, a user-configured budget cap, or any\n future enforcement mechanism. The runner does not know or care about the\n source; it only reacts to the signal value.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal",
+      "values": [
+        {
+          "name": "EXECUTION_CONTROL_SIGNAL_STOP",
+          "number": 1,
+          "description": "Execution must stop gracefully. The runner should block further tool\n calls and give the model one final turn to produce a summary."
+        },
+        {
+          "name": "EXECUTION_CONTROL_SIGNAL_WARNING",
+          "number": 2,
+          "description": "Informational warning (e.g. low credit balance). The runner logs the\n warning and continues execution."
+        }
+      ]
+    },
+    {
+      "name": "ApprovalAction",
+      "description": "ApprovalAction represents the user's decision on an approval request.\n\n ## Action Semantics\n\n - APPROVE: Execute the tool normally, continue execution\n - SKIP: Return \"skipped by user\" message to LLM, continue execution\n - REJECT: Fail the execution immediately with rejection error\n\n ## LLM Behavior on Skip\n\n When a tool is skipped, the LLM receives a message like:\n \"Tool 'delete_repository' was skipped by user. Please proceed without this operation.\"\n This allows the LLM to adapt its plan while preserving execution continuity.\n\n ## Usage\n\n Used in:\n - ToolCall.approval_action: Records the decision made\n - SubmitApprovalInput.action: User's submitted decision",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalAction",
+      "values": [
+        {
+          "name": "APPROVAL_ACTION_APPROVE",
+          "number": 1,
+          "description": "Execute the tool normally.\n Tool transitions from WAITING_APPROVAL to RUNNING, then executes.\n Execution phase returns to IN_PROGRESS."
+        },
+        {
+          "name": "APPROVAL_ACTION_SKIP",
+          "number": 2,
+          "description": "Skip tool execution, continue without it.\n Tool transitions to SKIPPED status.\n LLM receives: \"Tool '{name}' was skipped by user. Please proceed without this operation.\"\n Execution continues - this is NOT a failure."
+        },
+        {
+          "name": "APPROVAL_ACTION_REJECT",
+          "number": 3,
+          "description": "Reject tool execution, fail the entire execution.\n Execution phase transitions to FAILED.\n Error message includes rejection reason from user's comment."
+        }
+      ]
+    },
+    {
+      "name": "ExecutionPhase",
+      "description": "ExecutionPhase defines the lifecycle phase of an agent execution.\n\n Phase Transitions:\n\n Normal flow:\n EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_COMPLETED\n\n Failure flow:\n EXECUTION_PENDING → EXECUTION_IN_PROGRESS → EXECUTION_FAILED\n\n Termination flow (platform-initiated stop):\n EXECUTION_IN_PROGRESS → EXECUTION_TERMINATED\n\n Approval flow (HITL):\n EXECUTION_IN_PROGRESS → EXECUTION_WAITING_FOR_APPROVAL → EXECUTION_IN_PROGRESS\n\n Pause/Resume flow:\n EXECUTION_IN_PROGRESS → EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n\n Terminal States:\n - EXECUTION_COMPLETED: Agent finished successfully\n - EXECUTION_FAILED: Agent encountered an unexpected error\n - EXECUTION_TERMINATED: Platform stopped the agent (stall, budget, or force-kill)\n - EXECUTION_CANCELLED: User gracefully stopped the agent\n\n Non-Terminal States:\n - EXECUTION_WAITING_FOR_APPROVAL: Awaiting user approval for tool\n - EXECUTION_PAUSED: Temporarily paused, can be resumed",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ExecutionPhase",
+      "values": [
+        {
+          "name": "EXECUTION_PENDING",
+          "number": 1,
+          "description": "Execution is queued and waiting for a worker to start processing."
+        },
+        {
+          "name": "EXECUTION_IN_PROGRESS",
+          "number": 2,
+          "description": "Execution is actively running — the agent is processing and producing output."
+        },
+        {
+          "name": "EXECUTION_COMPLETED",
+          "number": 3,
+          "description": "Execution finished successfully and the agent produced a final response."
+        },
+        {
+          "name": "EXECUTION_FAILED",
+          "number": 4,
+          "description": "Execution encountered an unexpected error and could not finish."
+        },
+        {
+          "name": "EXECUTION_CANCELLED",
+          "number": 5,
+          "description": "Execution was gracefully stopped by the user before it finished."
+        },
+        {
+          "name": "EXECUTION_TERMINATED",
+          "number": 8,
+          "description": "Execution was stopped by the platform.\n\n Unlike CANCELLED (user-initiated graceful stop) and FAILED (unexpected\n error), TERMINATED means the platform intentionally stopped this\n execution — either via automated safety mechanisms or user-initiated\n force-kill.\n\n Terminal state — execution will not change phases again.\n\n When this phase is reached:\n - completed_at timestamp is set\n - error field contains the termination reason\n\n Trigger paths:\n - Internal (activity-level): stall timeout (agent unresponsive),\n   tool-call budget exhausted (GraphRecursionError). LangGraph\n   checkpoint is valid; the user can continue via follow-up message.\n - External (Terminate RPC): user or system force-kills the Temporal\n   workflow. LangGraph checkpoint may be incomplete.\n\n Use Cases:\n - Agent stalled — no events for the configured timeout\n - Agent exhausted its tool-call budget (recursion limit)\n - Force-stop stuck agents that don't respond to cancellation\n - Kill agents consuming excessive resources\n\n Terminated vs Cancelled vs Failed:\n - Terminated: Platform stopped it (automated or force-kill)\n - Cancelled: User gracefully stopped it (checkpoint saved)\n - Failed: Something broke unexpectedly (exception, crash)\n\n @since Agent Execution Lifecycle"
+        },
+        {
+          "name": "EXECUTION_WAITING_FOR_APPROVAL",
+          "number": 6,
+          "description": "Blocked on tool approval (HITL Phase 1).\n\n The agent has encountered a tool that requires user approval before execution.\n When in this phase:\n - status.pending_approval contains details about the tool awaiting approval\n - User must call SubmitApproval RPC to continue\n\n This is NOT a terminal state - execution resumes after approval decision:\n - APPROVE: Tool executes, phase returns to EXECUTION_IN_PROGRESS\n - SKIP: Tool returns skip message, phase returns to EXECUTION_IN_PROGRESS\n - REJECT: Execution fails, phase transitions to EXECUTION_FAILED\n\n UI should show distinct treatment for this phase (e.g., approval dialog)."
+        },
+        {
+          "name": "EXECUTION_PAUSED",
+          "number": 7,
+          "description": "Execution was paused by user and can be resumed.\n\n The execution was temporarily stopped at a checkpoint and can continue\n from where it left off. Unlike CANCELLED, the execution is not terminal.\n\n Pause flow:\n EXECUTION_IN_PROGRESS → EXECUTION_PAUSED\n\n Resume flow:\n EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n\n NOT a terminal state - execution can be resumed.\n\n When this phase is reached:\n - Running activities are gracefully cancelled\n - LangGraph checkpoints are saved (thread_id preserved)\n - No completed_at timestamp (execution is not finished)\n\n Resume behavior:\n - Activity is re-invoked with same thread_id\n - LangGraph loads from checkpoint automatically\n - Execution continues from where it was paused\n\n @since Gap A3 (Pause/Resume Propagation)"
+        }
+      ]
+    },
+    {
+      "name": "AgentExecutionSummaryTimeWindow",
+      "description": "Controls the time range for agent execution summary queries.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummaryTimeWindow",
+      "values": [
+        {
+          "name": "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_24H",
+          "number": 1,
+          "description": ""
+        },
+        {
+          "name": "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_7D",
+          "number": 2,
+          "description": ""
+        },
+        {
+          "name": "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_30D",
+          "number": 3,
+          "description": ""
+        },
+        {
+          "name": "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_ALL_TIME",
+          "number": 4,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "MessageType",
+      "description": "MessageType defines the type of message in the conversation.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.MessageType",
+      "values": [
+        {
+          "name": "MESSAGE_HUMAN",
+          "number": 1,
+          "description": "A message sent by the user to the agent."
+        },
+        {
+          "name": "MESSAGE_AI",
+          "number": 2,
+          "description": "A response generated by the AI agent."
+        },
+        {
+          "name": "MESSAGE_TOOL",
+          "number": 3,
+          "description": "The result returned by a tool after execution."
+        },
+        {
+          "name": "MESSAGE_SYSTEM",
+          "number": 4,
+          "description": "A system-generated message injected by the platform (e.g., budget warnings, summarization notices)."
+        },
+        {
+          "name": "MESSAGE_THINKING",
+          "number": 5,
+          "description": "Reasoning/thinking content from the model.\n\n Emitted by models with extended thinking enabled (e.g., Claude with\n thinking, Cursor's thinking events). Contains the model's internal\n reasoning that is distinct from the final assistant response.\n\n Rendered distinctly from assistant text in the UI (e.g., collapsible\n thinking block with subdued styling)."
+        }
+      ]
+    },
+    {
+      "name": "ExecutionArtifactKind",
+      "description": "ExecutionArtifactKind defines the type of artifact published by an agent.\n\n When an agent publishes a file, it's stored as-is.\n When an agent publishes a directory, it's archived as a ZIP file.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind",
+      "values": [
+        {
+          "name": "EXECUTION_ARTIFACT_KIND_FILE",
+          "number": 1,
+          "description": "A single file published by the agent."
+        },
+        {
+          "name": "EXECUTION_ARTIFACT_KIND_DIRECTORY",
+          "number": 2,
+          "description": "A directory published by the agent, archived as a ZIP file for download."
+        }
+      ]
+    },
+    {
+      "name": "SubAgentStatus",
+      "description": "SubAgentStatus defines the status of a sub-agent execution.\n\n Status Transitions:\n\n Normal flow:\n SUB_AGENT_PENDING → SUB_AGENT_IN_PROGRESS → SUB_AGENT_COMPLETED\n\n Failure flow:\n SUB_AGENT_IN_PROGRESS → SUB_AGENT_FAILED\n\n Cancellation flow (parent cancelled while sub-agent active):\n SUB_AGENT_IN_PROGRESS → SUB_AGENT_CANCELLED\n\n Terminal States:\n - SUB_AGENT_COMPLETED: Sub-agent finished successfully\n - SUB_AGENT_FAILED: Sub-agent encountered an error\n - SUB_AGENT_CANCELLED: Parent execution was cancelled while sub-agent was active",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.SubAgentStatus",
+      "values": [
+        {
+          "name": "SUB_AGENT_PENDING",
+          "number": 1,
+          "description": "Sub-agent invocation is queued and waiting to start."
+        },
+        {
+          "name": "SUB_AGENT_IN_PROGRESS",
+          "number": 2,
+          "description": "Sub-agent is actively executing its delegated task."
+        },
+        {
+          "name": "SUB_AGENT_COMPLETED",
+          "number": 3,
+          "description": "Sub-agent finished its task successfully and returned a result."
+        },
+        {
+          "name": "SUB_AGENT_FAILED",
+          "number": 4,
+          "description": "Sub-agent encountered an error and could not complete its task."
+        },
+        {
+          "name": "SUB_AGENT_CANCELLED",
+          "number": 5,
+          "description": "Parent execution was cancelled while this sub-agent was active.\n\n When a parent execution is cancelled (via user action or system timeout),\n all active sub-agents transition to this terminal state. This prevents\n sub-agents from remaining in IN_PROGRESS indefinitely in persisted status.\n\n When this status is reached:\n - completed_at timestamp is set\n - error field contains: \"Cancelled: parent execution was cancelled\"\n\n @since Sub-Agent Execution Streamline"
+        }
+      ]
+    },
+    {
+      "name": "SummarizationSource",
+      "description": "SummarizationSource identifies what triggered a context summarization event.\n\n Context summarization can be triggered at two points during execution:\n - At graph start, when resuming a conversation that already exceeds the threshold\n - Mid-execution, when accumulated tool responses push context past the threshold\n\n This distinction enables the CLI to render appropriate notifications and\n allows monitoring to track compaction frequency by trigger type.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.SummarizationSource",
+      "values": [
+        {
+          "name": "graph_start",
+          "number": 1,
+          "description": "Summarization triggered at the start of processing, when resuming a conversation that already exceeds the token threshold."
+        },
+        {
+          "name": "mid_execution",
+          "number": 2,
+          "description": "Summarization triggered mid-execution, when accumulated tool responses push context past the token threshold."
+        }
+      ]
+    },
+    {
+      "name": "TodoStatus",
+      "description": "TodoStatus defines the status of a todo item.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.TodoStatus",
+      "values": [
+        {
+          "name": "TODO_PENDING",
+          "number": 1,
+          "description": "Task has not been started yet."
+        },
+        {
+          "name": "TODO_IN_PROGRESS",
+          "number": 2,
+          "description": "Task is currently being worked on by the agent."
+        },
+        {
+          "name": "TODO_COMPLETED",
+          "number": 3,
+          "description": "Task was completed successfully."
+        },
+        {
+          "name": "TODO_CANCELLED",
+          "number": 4,
+          "description": "Task was cancelled and is no longer needed."
+        }
+      ]
+    },
+    {
+      "name": "ToolCallStatus",
+      "description": "ToolCallStatus defines the status of a tool call.\n\n Status Transitions:\n\n Normal flow (no approval required):\n TOOL_CALL_PENDING → TOOL_CALL_RUNNING → TOOL_CALL_COMPLETED\n\n Failure flow:\n TOOL_CALL_PENDING → TOOL_CALL_RUNNING → TOOL_CALL_FAILED\n\n Approval flow (HITL):\n TOOL_CALL_PENDING → TOOL_CALL_WAITING_APPROVAL → TOOL_CALL_RUNNING → TOOL_CALL_COMPLETED\n                                                ↘ TOOL_CALL_SKIPPED (if user skips)\n\n Terminal States:\n - TOOL_CALL_COMPLETED: Tool executed successfully\n - TOOL_CALL_FAILED: Tool execution failed\n - TOOL_CALL_SKIPPED: User chose to skip this tool (HITL)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ToolCallStatus",
+      "values": [
+        {
+          "name": "TOOL_CALL_PENDING",
+          "number": 1,
+          "description": "Tool call is queued and waiting to execute."
+        },
+        {
+          "name": "TOOL_CALL_RUNNING",
+          "number": 2,
+          "description": "Tool is currently executing."
+        },
+        {
+          "name": "TOOL_CALL_COMPLETED",
+          "number": 3,
+          "description": "Tool executed successfully and returned a result."
+        },
+        {
+          "name": "TOOL_CALL_FAILED",
+          "number": 4,
+          "description": "Tool execution failed with an error."
+        },
+        {
+          "name": "TOOL_CALL_WAITING_APPROVAL",
+          "number": 5,
+          "description": "Blocked on user approval (HITL Phase 1).\n\n The tool requires user consent before execution. This status is set when:\n - Tool has requires_approval=true (from approval policy chain)\n - AgentExecutionSpec.auto_approve_all is false\n\n While in this status:\n - ToolCall.approval_message contains the approval prompt\n - ToolCall.approval_requested_at is set\n - ExecutionPhase is EXECUTION_WAITING_FOR_APPROVAL\n\n Transitions:\n - APPROVE → TOOL_CALL_RUNNING → TOOL_CALL_COMPLETED/FAILED\n - SKIP → TOOL_CALL_SKIPPED\n - REJECT → Execution fails (tool remains in WAITING_APPROVAL)"
+        },
+        {
+          "name": "TOOL_CALL_SKIPPED",
+          "number": 6,
+          "description": "User skipped this tool (HITL Phase 1).\n\n Terminal state indicating the user chose not to execute this tool.\n When a tool is skipped:\n - The LLM receives a message: \"Tool '{name}' was skipped by user\"\n - Execution continues without this tool's result\n - The LLM can adapt its plan accordingly\n\n This is a terminal state - the tool will not be retried.\n Unlike FAILED, SKIPPED is an intentional user decision, not an error."
+        }
+      ]
+    },
+    {
+      "name": "ToolCallStreamingSource",
+      "description": "ToolCallStreamingSource identifies what is currently being streamed on a\n tool call.\n\n Input streaming and output streaming are independent, universal capabilities\n of any tool — not categories of tools:\n\n - INPUT: The LLM is generating the tool's arguments. For tools where the\n   argument content is interesting to the user (file content being written,\n   thought text), tokens stream to the UI as they are produced.\n\n - OUTPUT: The tool is executing and producing output progressively. For\n   tools where the output is interesting (shell commands, long-running\n   processes), output chunks stream to the UI as they arrive.\n\n Any tool can have either, both, or neither. This enum tells consumers\n which streaming phase is active so they render correctly without\n client-side heuristics.\n\n Lifecycle:\n   Early tool call creation → streaming_source = INPUT\n   on_tool_start (reconcile) → streaming_source = UNSPECIFIED\n   tool_progress event      → streaming_source = OUTPUT\n   on_tool_end              → streaming_source = UNSPECIFIED",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource",
+      "values": [
+        {
+          "name": "TOOL_CALL_STREAMING_SOURCE_INPUT",
+          "number": 1,
+          "description": "The LLM is generating the tool's arguments. result contains partial\n content extracted from the in-progress argument JSON (e.g., file content\n for a write tool, thought text for a think tool)."
+        },
+        {
+          "name": "TOOL_CALL_STREAMING_SOURCE_OUTPUT",
+          "number": 2,
+          "description": "The tool is executing and producing output progressively. result\n contains accumulated output chunks (e.g., shell command stdout)."
+        }
+      ]
+    },
+    {
+      "name": "WorkspaceWriteBackPhase",
+      "description": "WorkspaceWriteBackPhase tracks the progress of a single workspace\n write-back through its lifecycle steps.\n\n The phases are ordered: COMMITTED -\u003e PUSHED -\u003e PR_CREATED.\n FAILED can be reached from any step.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackPhase",
+      "values": [
+        {
+          "name": "WORKSPACE_WRITE_BACK_COMMITTED",
+          "number": 1,
+          "description": "Changes were committed to a new branch in the sandbox."
+        },
+        {
+          "name": "WORKSPACE_WRITE_BACK_PUSHED",
+          "number": 2,
+          "description": "The branch was pushed to the remote repository."
+        },
+        {
+          "name": "WORKSPACE_WRITE_BACK_PR_CREATED",
+          "number": 3,
+          "description": "A pull request was created on the remote repository."
+        },
+        {
+          "name": "WORKSPACE_WRITE_BACK_FAILED",
+          "number": 4,
+          "description": "The write-back failed at some step. Check the error field."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only members of the owning organization can access.\n This is the default for most resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "AgentExecution represents a single agent execution instance (conversational).\n Follows the standard pattern: spec contains user inputs, status contains execution results.",
+  "statusType": {
+    "name": "AgentExecutionStatus",
+    "description": "AgentExecutionStatus contains all execution results and state.\n Everything populated during or after execution goes here, not in spec.",
+    "protoType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus",
+    "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/api.proto",
+    "fields": [
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.)",
+        "required": false
+      },
+      {
+        "name": "Messages",
+        "jsonName": "messages",
+        "protoField": "messages",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "AgentMessage"
+          }
+        },
+        "description": "Sequential stream of execution events: AI messages, tool calls, and system notifications.\n Ordered chronologically to reconstruct the complete execution flow.\n Each message captures what happened during execution (agent responses, tool invocations, progress updates).",
+        "required": false
+      },
+      {
+        "name": "Phase",
+        "jsonName": "phase",
+        "protoField": "phase",
+        "type": {
+          "kind": "string",
+          "enumType": "ai.stigmer.agentic.agentexecution.v1.ExecutionPhase",
+          "enumValues": [
+            "EXECUTION_PENDING",
+            "EXECUTION_IN_PROGRESS",
+            "EXECUTION_COMPLETED",
+            "EXECUTION_FAILED",
+            "EXECUTION_CANCELLED",
+            "EXECUTION_TERMINATED",
+            "EXECUTION_WAITING_FOR_APPROVAL",
+            "EXECUTION_PAUSED"
+          ]
+        },
+        "description": "Current execution lifecycle phase.\n Tracks the execution state from creation (PENDING) through active processing (IN_PROGRESS)\n to terminal states (COMPLETED/FAILED/CANCELLED).",
+        "required": false
+      },
+      {
+        "name": "SubAgentExecutions",
+        "jsonName": "subAgentExecutions",
+        "protoField": "sub_agent_executions",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "SubAgentExecution"
+          }
+        },
+        "description": "Sub-agent executions invoked during this execution.\n Tracks when the main agent delegates work to specialized sub-agents.\n Ordered chronologically by invocation time.",
+        "required": false
+      },
+      {
+        "name": "Error",
+        "jsonName": "error",
+        "protoField": "error",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Error message if execution failed.\n Only populated when phase == EXECUTION_FAILED.",
+        "required": false
+      },
+      {
+        "name": "StartedAt",
+        "jsonName": "startedAt",
+        "protoField": "started_at",
+        "type": {
+          "kind": "string"
+        },
+        "description": "ISO 8601 timestamp when execution started.\n Example: \"2025-01-10T10:30:00Z\"",
+        "required": false
+      },
+      {
+        "name": "CompletedAt",
+        "jsonName": "completedAt",
+        "protoField": "completed_at",
+        "type": {
+          "kind": "string"
+        },
+        "description": "ISO 8601 timestamp when execution completed, failed, or was cancelled.\n Only populated for terminal states.",
+        "required": false
+      },
+      {
+        "name": "Todos",
+        "jsonName": "todos",
+        "protoField": "todos",
+        "type": {
+          "kind": "map",
+          "keyType": {
+            "kind": "string"
+          },
+          "valueType": {
+            "kind": "message",
+            "messageType": "TodoItem"
+          }
+        },
+        "description": "Todo list tracking multi-step tasks and progress for this execution.\n Updated via write_todos tool (if TodoListMiddleware is enabled).\n Each execution maintains its own snapshot of todos at execution time.\n Key: todo item ID, Value: todo item details",
+        "required": false
+      },
+      {
+        "name": "CallbackToken",
+        "jsonName": "callbackToken",
+        "protoField": "callback_token",
+        "type": {
+          "kind": "bytes"
+        },
+        "description": "Callback token for notifying a parent workflow when this execution completes.\n\n Present when this execution was triggered by a workflow. Empty when the\n execution runs independently (chat, API call).\n\n @internal\n\n When this AgentExecution is triggered from a Temporal activity, the\n calling activity passes its task token here. The agent-runner completes\n the external activity when the execution finishes.\n\n Token Handshake Pattern:\n 1. External activity extracts token and stores in AgentExecution.status\n 2. Activity returns activity.ErrResultPending (paused, thread freed)\n 3. Agent executes (seconds to minutes)\n 4. On completion: agent-runner completes external activity via token\n\n Why in Status (not Spec):\n - System-generated by Temporal, not user-provided\n - Runtime state, not configuration\n - Ephemeral, only relevant during execution\n\n References:\n - WorkflowExecution.spec.callback_token (field 7) - Same pattern\n - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md",
+        "required": false
+      },
+      {
+        "name": "ResolvedContext",
+        "jsonName": "resolvedContext",
+        "protoField": "resolved_context",
+        "type": {
+          "kind": "message",
+          "messageType": "ResolvedExecutionContext"
+        },
+        "description": "Resolved execution context showing what resources the agent had access to.\n Populated once before streaming begins, after all resources are resolved.\n Immutable after initial population - represents the \"snapshot\" of resolved state.",
+        "required": false
+      },
+      {
+        "name": "PendingApprovals",
+        "jsonName": "pendingApprovals",
+        "protoField": "pending_approvals",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "PendingApproval"
+          }
+        },
+        "description": "Active pending approval requests for this execution.\n\n Contains one entry per tool call that requires user approval before\n it can proceed. Sub-agent approvals are included with from_sub_agent\n set to true. Empty when no approvals are pending.\n\n @internal\n\n Computed server-side by the Go/Java UpdateStatus handlers on every write.\n The handler scans messages[].tool_calls and\n sub_agent_executions[].messages[].tool_calls, collecting entries where\n status == WAITING_APPROVAL \u0026\u0026 requires_approval == true, and projects\n them into PendingApproval entries.\n\n Because this field is recomputed (not merged), it is always consistent\n with the authoritative tool call state embedded in messages. No lifecycle\n state machine, no merge logic, no forward-only enforcement needed.\n\n Lifecycle:\n 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message\n 2. UpdateStatus handler recomputes this field, entry appears\n 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL\n 4. User submits decisions via SubmitApproval RPC (one per tool call)\n 5. Agent resumes, ToolCall.status advances, next recompute drops the entry",
+        "required": false
+      },
+      {
+        "name": "ContextInfo",
+        "jsonName": "contextInfo",
+        "protoField": "context_info",
+        "type": {
+          "kind": "message",
+          "messageType": "ContextInfo"
+        },
+        "description": "Context window utilization and summarization tracking.\n\n Provides visibility into how the agent is using its context window and\n any summarization events that occurred during execution.\n\n Populated when context management is active (not disabled via config).\n Updated progressively during streaming as token counts change.\n\n Use cases:\n - **Monitoring**: Track context utilization across executions\n - **Debugging**: Understand why an execution hit context limits\n - **Cost optimization**: Identify executions with excessive summarization\n - **UX**: Show users their context window health\n\n @since Phase 3 (Context Summarization Architecture)",
+        "required": false
+      },
+      {
+        "name": "Artifacts",
+        "jsonName": "artifacts",
+        "protoField": "artifacts",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "ExecutionArtifact"
+          }
+        },
+        "description": "Files/directories published by the agent for download.\n\n When an agent creates artifacts (e.g., generated code, reports, skills),\n it can call the publish_artifact tool to make them downloadable.\n Each artifact includes a pre-signed URL for direct download.\n\n Artifacts are stored in R2 and URLs expire after a configured period.\n Use the execution download endpoint to refresh expired URLs.\n\n Ordered by creation time (oldest first).\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)",
+        "required": false
+      },
+      {
+        "name": "WorkspaceWriteBacks",
+        "jsonName": "workspaceWriteBacks",
+        "protoField": "workspace_write_backs",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "WorkspaceWriteBack"
+          }
+        },
+        "description": "Git write-back outcomes for workspace entries that had changes.\n\n One entry per git-backed workspace entry where the agent modified\n files and write_back_mode was enabled on the GitRepoSource. Omitted\n for workspace entries with no changes, non-git sources, or disabled\n write-back mode.\n\n Populated during post-execution processing. Each entry tracks the\n write-back lifecycle (committed -\u003e pushed -\u003e PR created) and carries\n the PR URL for UI display.\n\n @since Platform-Owned Git Write-Back",
+        "required": false
+      },
+      {
+        "name": "SetupProgress",
+        "jsonName": "setupProgress",
+        "protoField": "setup_progress",
+        "type": {
+          "kind": "message",
+          "messageType": "SetupProgress"
+        },
+        "description": "Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.\n Populated progressively as the worker completes setup steps (sandbox init,\n workspace provisioning, skill loading, MCP server connection, etc.).\n Only meaningful while phase == EXECUTION_PENDING. Cleared by the server\n when phase transitions away from PENDING.",
+        "required": false
+      },
+      {
+        "name": "RunnerId",
+        "jsonName": "runnerId",
+        "protoField": "runner_id",
+        "type": {
+          "kind": "string"
+        },
+        "description": "ID of the Runner that executed this execution.\n\n Set once when the execution is dispatched to a runner; immutable after.\n For cloud executions, this references the system-managed ephemeral runner\n that was auto-created for this execution. For local executions, this\n references the user-created persistent runner selected via the session.\n\n Used for observability: \"which runner handled this work?\"",
+        "required": false
+      },
+      {
+        "name": "RunnerUsage",
+        "jsonName": "runnerUsage",
+        "protoField": "runner_usage",
+        "type": {
+          "kind": "message",
+          "messageType": "RunnerUsageSummary"
+        },
+        "description": "Runner-reported usage summary, updated progressively during streaming.",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "AgentMessage",
+      "description": "Represents a single message in the agent conversation.\n Used to track the full conversation flow including user messages,\n AI responses, and tool execution details.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.AgentMessage",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/message.proto",
+      "fields": [
+        {
+          "name": "Type",
+          "jsonName": "type",
+          "protoField": "type",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.MessageType",
+            "enumValues": [
+              "MESSAGE_HUMAN",
+              "MESSAGE_AI",
+              "MESSAGE_TOOL",
+              "MESSAGE_SYSTEM",
+              "MESSAGE_THINKING"
+            ]
+          },
+          "description": "Type of message (human, ai, tool, system).",
+          "required": false
+        },
+        {
+          "name": "Content",
+          "jsonName": "content",
+          "protoField": "content",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The text content of the message.",
+          "required": false
+        },
+        {
+          "name": "Timestamp",
+          "jsonName": "timestamp",
+          "protoField": "timestamp",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the message was created.",
+          "required": false
+        },
+        {
+          "name": "ToolCalls",
+          "jsonName": "toolCalls",
+          "protoField": "tool_calls",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ToolCall"
+            }
+          },
+          "description": "Tool calls associated with this message (if type == ai and tools were invoked).",
+          "required": false
+        },
+        {
+          "name": "Metadata",
+          "jsonName": "metadata",
+          "protoField": "metadata",
+          "type": {
+            "kind": "struct"
+          },
+          "description": "Optional message metadata.",
+          "required": false
+        },
+        {
+          "name": "IsStreaming",
+          "jsonName": "isStreaming",
+          "protoField": "is_streaming",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "True while the AI is actively generating this message, false when complete.\n Enables UI to show typing indicator during streaming and final content when done.\n Default (false) indicates either a non-AI message or a completed AI message.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ContextInfo",
+      "description": "ContextInfo provides visibility into context window utilization.\n\n This message enables monitoring, debugging, and optimization of context\n usage during agent executions. It tracks both the current state and\n historical summarization events.\n\n ## Real-Time Updates\n\n Fields are updated progressively during execution:\n - current_token_count: Updated after each LLM call\n - utilization_percent: Recalculated when token count changes\n - summarization_events: Appended when summarization occurs\n\n ## Configuration Visibility\n\n The message also surfaces the effective configuration:\n - What thresholds are in effect (model defaults or custom overrides)\n - Whether summarization is enabled\n - The model's context window limit\n\n ## Use Cases\n\n - **Dashboard**: Show context health indicator (green/yellow/red based on utilization)\n - **Alerts**: Notify when utilization consistently exceeds thresholds\n - **Analytics**: Track summarization frequency across agent fleet\n - **Debugging**: Understand context-related failures\n\n @since Phase 3 (Context Summarization Architecture)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ContextInfo",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/context.proto",
+      "fields": [
+        {
+          "name": "CurrentTokenCount",
+          "jsonName": "currentTokenCount",
+          "protoField": "current_token_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Current token count in the context window.\n\n This is the most recent token count, updated after each LLM call\n or summarization event. Represents the total tokens in the\n conversation (system prompt + messages + tool results).\n\n Updated progressively during streaming for real-time visibility.",
+          "required": false
+        },
+        {
+          "name": "ContextWindowLimit",
+          "jsonName": "contextWindowLimit",
+          "protoField": "context_window_limit",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Model's maximum context window size in tokens.\n\n Retrieved from Model Registry for the configured model.\n Example values:\n - claude-sonnet-4.5: 200,000\n - gpt-4o: 128,000\n - gpt-4-turbo: 128,000\n\n Used to calculate utilization_percent.",
+          "required": false
+        },
+        {
+          "name": "SummarizationTriggerThreshold",
+          "jsonName": "summarizationTriggerThreshold",
+          "protoField": "summarization_trigger_threshold",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Token threshold that triggers summarization.\n\n When current_token_count exceeds this value, summarization is triggered\n to reduce context size. This is either the model default from Model\n Registry or a custom override from ContextManagementConfig.\n\n Typically set to ~90% of context_window_limit.",
+          "required": false
+        },
+        {
+          "name": "SummarizationTargetTokens",
+          "jsonName": "summarizationTargetTokens",
+          "protoField": "summarization_target_tokens",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Target token count after summarization.\n\n Summarization aims to reduce context to approximately this size.\n This is either the model default from Model Registry or a custom\n override from ContextManagementConfig.\n\n Typically set to ~80% of context_window_limit.",
+          "required": false
+        },
+        {
+          "name": "SummarizationEnabled",
+          "jsonName": "summarizationEnabled",
+          "protoField": "summarization_enabled",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether summarization is enabled for this execution.\n\n false if ContextManagementConfig.disable_summarization was true.\n true otherwise (default).\n\n When false, no summarization events will occur regardless of\n token count. The execution may fail if context exceeds limits.",
+          "required": false
+        },
+        {
+          "name": "SummarizationEvents",
+          "jsonName": "summarizationEvents",
+          "protoField": "summarization_events",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "SummarizationEvent"
+            }
+          },
+          "description": "Summarization events that occurred during this execution.\n\n Ordered chronologically (oldest first).\n Empty if no summarization was triggered during execution.\n\n Multiple events indicate a very long-running conversation that\n required multiple rounds of summarization.",
+          "required": false
+        },
+        {
+          "name": "UtilizationPercent",
+          "jsonName": "utilizationPercent",
+          "protoField": "utilization_percent",
+          "type": {
+            "kind": "float"
+          },
+          "description": "Context utilization as a percentage (0-100).\n\n Calculated as: (current_token_count / context_window_limit) * 100\n\n Use for health indicators:\n - 0-70%: Green (healthy)\n - 70-90%: Yellow (approaching threshold)\n - 90-100%: Red (at or above trigger threshold)\n\n Updated progressively during streaming.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ExecutionArtifact",
+      "description": "ExecutionArtifact represents a file or directory published by an agent.\n\n When an agent creates artifacts that users should download, it calls\n the publish_artifact tool. This generates a downloadable artifact stored\n in R2 with a time-limited signed URL.\n\n ## Storage\n\n Artifacts are stored in R2 under: artifacts/{execution_id}/{filename}\n Download URLs are pre-signed and expire after a configured period.\n\n ## Directory Handling\n\n Directories are automatically archived as ZIP files before storage.\n The kind field indicates DIRECTORY so clients know to extract after download.\n\n @since Artifact Lifecycle (Attachments \u0026 Artifacts)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/artifact.proto",
+      "fields": [
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Display name for this artifact.\n Example: \"generated-skill\", \"analysis-report\"",
+          "required": false
+        },
+        {
+          "name": "SandboxPath",
+          "jsonName": "sandboxPath",
+          "protoField": "sandbox_path",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Original path in sandbox where the artifact was created.\n Example: \"/workspace/my-skill\", \"/tmp/report.pdf\"",
+          "required": false
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind",
+            "enumValues": [
+              "EXECUTION_ARTIFACT_KIND_FILE",
+              "EXECUTION_ARTIFACT_KIND_DIRECTORY"
+            ]
+          },
+          "description": "Type of artifact: file or directory.",
+          "required": false
+        },
+        {
+          "name": "SizeBytes",
+          "jsonName": "sizeBytes",
+          "protoField": "size_bytes",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Total size in bytes.\n For directories, this is the ZIP file size.",
+          "required": false
+        },
+        {
+          "name": "StorageKey",
+          "jsonName": "storageKey",
+          "protoField": "storage_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Storage location in R2.\n Format: \"artifacts/{execution_id}/{filename}\"",
+          "required": false
+        },
+        {
+          "name": "DownloadUrl",
+          "jsonName": "downloadUrl",
+          "protoField": "download_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Pre-signed URL for downloading the artifact.\n Expires after a configured period (default: 7 days).\n Clients can call the refresh endpoint to get a new URL if expired.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the artifact was created.\n Example: \"2026-02-13T10:30:00Z\"",
+          "required": false
+        },
+        {
+          "name": "ExpiresAt",
+          "jsonName": "expiresAt",
+          "protoField": "expires_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the download URL expires.\n Example: \"2026-02-20T10:30:00Z\"",
+          "required": false
+        },
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Relative file paths within a directory artifact's archive.\n\n Populated at creation time by the agent runner when archiving a\n directory. Empty for FILE artifacts and for older DIRECTORY\n artifacts created before this field was added.\n\n Clients use this for instant skill package detection (check for\n \"SKILL.md\") and for rendering file listings without additional RPCs.\n\n Paths use forward slashes and are relative to the archive root.\n Directory entries are excluded — only regular files are listed.\n Examples: [\"SKILL.md\", \"scripts/init_skill.py\", \"references/workflows.md\"]",
+          "required": false
+        },
+        {
+          "name": "ContentHash",
+          "jsonName": "contentHash",
+          "protoField": "content_hash",
+          "type": {
+            "kind": "string"
+          },
+          "description": "SHA-256 hex digest of the uploaded artifact bytes.\n\n Used as a cache-invalidation signal by UI clients: when the same file\n is overwritten (e.g., written then edited in the same execution), the\n storage_key remains stable but the content_hash changes. Clients\n include this value in their fetch-effect dependencies so that content\n is re-fetched whenever the underlying bytes change.\n\n Empty for older artifacts created before this field was added.\n Example: \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "McpServerResolutionStatus",
+      "description": "McpServerResolutionStatus captures the resolution outcome for a single MCP server.\n Provides richer information than a simple boolean for better debugging and visibility.\n\n ## Resolution vs Connection\n\n This tracks whether the MCP server definition was successfully loaded and configured,\n NOT whether the runtime connection succeeded. Resolution includes:\n - Looking up the McpServer resource by reference\n - Transforming the server config (resolving env var placeholders)\n - Determining which tools to enable\n\n Runtime connection (WebSocket/stdio) happens later and is not tracked here.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.McpServerResolutionStatus",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/context.proto",
+      "fields": [
+        {
+          "name": "Resolved",
+          "jsonName": "resolved",
+          "protoField": "resolved",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether the MCP server was successfully resolved and configured.\n true: Server found, config transformed, ready for runtime connection\n false: Resolution failed (server not found, missing env var, invalid config)",
+          "required": false
+        },
+        {
+          "name": "Message",
+          "jsonName": "message",
+          "protoField": "message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable status message explaining the resolution outcome.\n For success: \"Configured successfully\"\n For failure: Describes what went wrong\n Examples:\n   - \"Configured successfully\"\n   - \"Server not found\"\n   - \"Missing required environment variable: GITHUB_TOKEN\"\n   - \"Invalid server configuration: missing command\"",
+          "required": false
+        },
+        {
+          "name": "EnabledToolCount",
+          "jsonName": "enabledToolCount",
+          "protoField": "enabled_tool_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Number of tools enabled from this MCP server.\n Reflects the intersection of server's available tools and enabled_tools config.\n 0 if resolution failed, server has no tools, or all tools disabled.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PendingApproval",
+      "description": "A pending approval request for a tool call that requires user consent before execution.\n\n Each entry represents one tool call waiting for a user decision (approve, skip,\n or reject). Sub-agent approvals are included with from_sub_agent set to true\n and sub_agent_name identifying the origin.\n\n @internal\n\n Computed server-side by the UpdateStatus handlers on every write. The handler\n scans messages[].tool_calls and sub_agent_executions[].messages[].tool_calls,\n collecting entries where status == WAITING_APPROVAL \u0026\u0026 requires_approval == true.\n Because the list is recomputed rather than merged, it is always consistent\n with the authoritative tool call state embedded in messages.\n\n Lifecycle:\n 1. Tool with requires_approval=true is about to execute\n 2. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message\n 3. Server recomputes pending_approvals, entry appears\n 4. User calls SubmitApproval RPC with their decision\n 5. Agent resumes, ToolCall.status advances, next recompute drops the entry",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.PendingApproval",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/approval.proto",
+      "fields": [
+        {
+          "name": "ToolCallId",
+          "jsonName": "toolCallId",
+          "protoField": "tool_call_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the tool call waiting for approval.\n Use this when calling SubmitApproval to identify which tool call to resume.\n Format: Tool call ID from the agent runtime (e.g., \"call_abc123\")",
+          "required": false
+        },
+        {
+          "name": "ToolName",
+          "jsonName": "toolName",
+          "protoField": "tool_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Name of the tool requiring approval.\n Matches ToolCall.name for correlation.\n Example: \"delete_repository\", \"send_email\", \"execute_sql\"",
+          "required": false
+        },
+        {
+          "name": "Message",
+          "jsonName": "message",
+          "protoField": "message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable approval message for display.\n Copied from ToolCall.approval_message for UI convenience.\n Contains resolved placeholders (e.g., \"Delete repo: my-repo\")",
+          "required": false
+        },
+        {
+          "name": "ArgsPreview",
+          "jsonName": "argsPreview",
+          "protoField": "args_preview",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Sanitized preview of tool arguments for informed decision-making.\n Sensitive values (passwords, tokens) are redacted.\n Displayed as formatted JSON or key-value pairs in UI.\n\n Example:\n   {\n     \"repository\": \"acme/important-repo\",\n     \"force\": true,\n     \"reason\": \"cleanup\"\n   }",
+          "required": false
+        },
+        {
+          "name": "RequestedAt",
+          "jsonName": "requestedAt",
+          "protoField": "requested_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the approval was requested.\n Enables UI to show waiting duration: \"Waiting for 2 minutes\"\n Example: \"2026-01-30T15:30:00Z\"",
+          "required": false
+        },
+        {
+          "name": "FromSubAgent",
+          "jsonName": "fromSubAgent",
+          "protoField": "from_sub_agent",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "True if this approval originates from a sub-agent.\n Enables differentiated UI treatment:\n   - false: \"Agent needs approval to...\"\n   - true: \"Sub-agent 'name' needs approval to...\"",
+          "required": false
+        },
+        {
+          "name": "SubAgentName",
+          "jsonName": "subAgentName",
+          "protoField": "sub_agent_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Name of the sub-agent if from_sub_agent is true.\n Example: \"code-reviewer\", \"researcher\", \"debugger\"\n Empty if from_sub_agent is false.",
+          "required": false
+        },
+        {
+          "name": "McpServerSlug",
+          "jsonName": "mcpServerSlug",
+          "protoField": "mcp_server_slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Slug of the MCP server that provides this tool.\n Copied from ToolCall.mcp_server_slug for UI convenience.\n Empty for built-in sandbox tools (read, write, shell, etc.).\n\n Enables the approval card to classify MCP tools and render\n structured argument previews (scalar grids, humanized names)\n instead of falling back to raw JSON.\n\n Examples: \"planton\", \"github\", \"slack\"",
+          "required": false
+        },
+        {
+          "name": "SubAgentSubject",
+          "jsonName": "subAgentSubject",
+          "protoField": "sub_agent_subject",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Concise subject/description of the sub-agent's task (3-10 words).\n Copied from SubAgentExecution.subject when from_sub_agent is true.\n Enables UI to show a meaningful label like \"Explore CLI rendering code\"\n instead of the generic agent type name.\n Empty when from_sub_agent is false or subject is not available.",
+          "required": false
+        },
+        {
+          "name": "AgentRationale",
+          "jsonName": "agentRationale",
+          "protoField": "agent_rationale",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Why the agent wanted to execute this tool.\n\n Extracted from the last assistant message before the tool call.\n Gives the reinvocation agent context for the original intent, enabling\n it to decide whether the action still makes sense.\n\n Example: \"Need to install the missing dependency to fix the build\"\n Empty when rationale extraction was not possible.",
+          "required": false
+        },
+        {
+          "name": "BranchAtDeny",
+          "jsonName": "branchAtDeny",
+          "protoField": "branch_at_deny",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Git branch name at the time the tool was denied.\n\n Diagnostic metadata only — the reinvocation agent inspects the actual\n current workspace state rather than relying on this value. Included\n in the HITL continuation prompt as a reference point for the agent\n to detect whether workspace state has drifted.\n\n Example: \"feature/add-auth\"\n Empty when the workspace is not git-backed.",
+          "required": false
+        },
+        {
+          "name": "HeadShaAtDeny",
+          "jsonName": "headShaAtDeny",
+          "protoField": "head_sha_at_deny",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Git HEAD SHA at the time the tool was denied.\n\n Diagnostic metadata only — same purpose as branch_at_deny. Allows\n the reinvocation agent to compare against current HEAD to understand\n whether commits have landed since the tool was proposed.\n\n Example: \"a1b2c3d4e5f6...\"\n Empty when the workspace is not git-backed.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ResolvedExecutionContext",
+      "description": "ResolvedExecutionContext captures the resolved configuration state at execution time.\n Populated once after all resources are resolved, before the agent begins processing.\n\n ## Purpose\n\n Provides visibility into what the agent actually had access to during execution:\n - Which environment variables were available (keys only, not values for security)\n - Which MCP servers were configured and their resolution status\n - Which skills were injected into the agent's context\n\n This enables:\n - **Debugging**: Understanding what environment/tools were available when investigating failures\n - **Auditing**: Tracking what resources each execution consumed\n - **Security review**: Verifying which secrets (by key name only) were exposed\n - **UX transparency**: Showing users what their agent can access\n\n ## Timing\n\n Populated in execute_graphton.py after Steps 3-5 complete (skills, env vars, MCP servers)\n but before the streaming loop begins. This represents the \"snapshot\" of resolved state.\n Once set, this field is immutable for the remainder of the execution.\n\n ## Security Considerations\n\n - Environment values are NEVER included (only keys)\n - MCP server credentials are not exposed\n - This is safe to include in status responses to clients",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/context.proto",
+      "fields": [
+        {
+          "name": "EnvironmentKeys",
+          "jsonName": "environmentKeys",
+          "protoField": "environment_keys",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Environment variable keys available to the agent (NOT values for security).\n Represents the merged result of: template env_spec + instance environment_refs + runtime_env.\n Keys are sorted alphabetically for consistent ordering and deterministic comparison.\n Examples: [\"API_KEY\", \"DATABASE_URL\", \"LOG_LEVEL\"]",
+          "required": false
+        },
+        {
+          "name": "McpServers",
+          "jsonName": "mcpServers",
+          "protoField": "mcp_servers",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "message",
+              "messageType": "McpServerResolutionStatus"
+            }
+          },
+          "description": "MCP servers referenced by the agent and their resolution status.\n Key: MCP server slug (e.g., \"github-mcp\", \"slack-mcp\")\n Value: Resolution status including success/failure and diagnostic information\n\n Note: This tracks configuration resolution, not runtime connection status.\n A server showing resolved=true means it was found and transformed successfully;\n actual WebSocket/stdio connection happens later in the Graphton runtime.",
+          "required": false
+        },
+        {
+          "name": "SkillNames",
+          "jsonName": "skillNames",
+          "protoField": "skill_names",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Names of skills injected into the agent's system prompt.\n Each skill's SKILL.md content is appended to the instructions.\n Sorted alphabetically for consistent ordering and deterministic comparison.\n Examples: [\"code-review\", \"docker-expert\", \"kubernetes-operator\"]",
+          "required": false
+        },
+        {
+          "name": "ExcludedSkillNames",
+          "jsonName": "excludedSkillNames",
+          "protoField": "excluded_skill_names",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Skills that were available but excluded from the system prompt because\n they were not relevant to the current execution context.\n Enables visibility into the filtering decision for debugging and tuning.\n Sorted alphabetically for consistent ordering and deterministic comparison.\n\n When smart context filtering is active, this captures skills that were\n configured on the agent but scored below the relevance threshold for the\n current user message. Empty when all skills are included (no filtering).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RunnerUsageSummary",
+      "description": "Accumulated token usage from runner-observed turn-ended events.\n Carried on AgentExecutionStatus.runner_usage for real-time streaming UX.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.RunnerUsageSummary",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/usage.proto",
+      "fields": [
+        {
+          "name": "InputTokens",
+          "jsonName": "inputTokens",
+          "protoField": "input_tokens",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Accumulated input tokens across all turns.",
+          "required": false
+        },
+        {
+          "name": "OutputTokens",
+          "jsonName": "outputTokens",
+          "protoField": "output_tokens",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Accumulated output tokens across all turns.",
+          "required": false
+        },
+        {
+          "name": "CacheReadTokens",
+          "jsonName": "cacheReadTokens",
+          "protoField": "cache_read_tokens",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Accumulated cache-read tokens across all turns.",
+          "required": false
+        },
+        {
+          "name": "CacheWriteTokens",
+          "jsonName": "cacheWriteTokens",
+          "protoField": "cache_write_tokens",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Accumulated cache-write tokens across all turns.",
+          "required": false
+        },
+        {
+          "name": "TotalTokens",
+          "jsonName": "totalTokens",
+          "protoField": "total_tokens",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Sum of all token buckets.",
+          "required": false
+        },
+        {
+          "name": "TurnCount",
+          "jsonName": "turnCount",
+          "protoField": "turn_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Number of completed turns observed.",
+          "required": false
+        },
+        {
+          "name": "EstimatedCostUsd",
+          "jsonName": "estimatedCostUsd",
+          "protoField": "estimated_cost_usd",
+          "type": {
+            "kind": "double"
+          },
+          "description": "Estimated cost in USD computed from runner-side rate card.\n Labeled \"Estimated\" in the UI — not provider-verified.",
+          "required": false
+        },
+        {
+          "name": "Model",
+          "jsonName": "model",
+          "protoField": "model",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Model identifier observed during streaming (from RunResult or assistant events).",
+          "required": false
+        },
+        {
+          "name": "ObservedAt",
+          "jsonName": "observedAt",
+          "protoField": "observed_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp of the last turn-ended event observed.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SetupProgress",
+      "description": "Setup progress reported during the EXECUTION_PENDING phase.\n\n @internal\n Designed as a sub-message (rather than a bare string) so future fields\n (completed_phases, total_phases, phase_index) can be added without\n deprecation or breaking changes.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.SetupProgress",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/api.proto",
+      "fields": [
+        {
+          "name": "CurrentPhase",
+          "jsonName": "currentPhase",
+          "protoField": "current_phase",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable label for the current setup phase.\n Examples: \"Initializing sandbox…\", \"Setting up workspace…\", \"Loading skills…\"\n Empty when setup phase reporting has not started or is complete.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SubAgentExecution",
+      "description": "Represents a sub-agent invocation within an execution.\n When the main agent delegates work to a specialized sub-agent, this message\n tracks the complete lifecycle of that delegation including input, output, and timing.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.SubAgentExecution",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/subagent.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier for this sub-agent execution.\n Matches the tool call ID from the LangGraph \"task\" tool invocation.",
+          "required": false
+        },
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Name of the sub-agent being invoked.\n Examples: \"code_editor\", \"researcher\", \"debugger\"\n Extracted from tool call args.subagent_type field.",
+          "required": false
+        },
+        {
+          "name": "Input",
+          "jsonName": "input",
+          "protoField": "input",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Task/instruction given to the sub-agent.\n This is the input prompt that tells the sub-agent what to do.",
+          "required": false
+        },
+        {
+          "name": "Output",
+          "jsonName": "output",
+          "protoField": "output",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Result returned by the sub-agent when complete.\n Only populated when status == SUB_AGENT_COMPLETED.",
+          "required": false
+        },
+        {
+          "name": "Status",
+          "jsonName": "status",
+          "protoField": "status",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.SubAgentStatus",
+            "enumValues": [
+              "SUB_AGENT_PENDING",
+              "SUB_AGENT_IN_PROGRESS",
+              "SUB_AGENT_COMPLETED",
+              "SUB_AGENT_FAILED",
+              "SUB_AGENT_CANCELLED"
+            ]
+          },
+          "description": "Current lifecycle status of the sub-agent execution.",
+          "required": false
+        },
+        {
+          "name": "StartedAt",
+          "jsonName": "startedAt",
+          "protoField": "started_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the sub-agent was invoked.\n Example: \"2025-11-22T10:30:00Z\"",
+          "required": false
+        },
+        {
+          "name": "CompletedAt",
+          "jsonName": "completedAt",
+          "protoField": "completed_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the sub-agent completed or failed.\n Only populated for terminal states (completed/failed).",
+          "required": false
+        },
+        {
+          "name": "Error",
+          "jsonName": "error",
+          "protoField": "error",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Error message if status == SUB_AGENT_FAILED.\n Contains the failure reason for debugging and user display.",
+          "required": false
+        },
+        {
+          "name": "Metadata",
+          "jsonName": "metadata",
+          "protoField": "metadata",
+          "type": {
+            "kind": "struct"
+          },
+          "description": "Optional sub-agent execution metadata.",
+          "required": false
+        },
+        {
+          "name": "Messages",
+          "jsonName": "messages",
+          "protoField": "messages",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "AgentMessage"
+            }
+          },
+          "description": "Messages generated by this sub-agent.\n Captures AI responses and tool results within the sub-agent context.\n Tool calls are embedded in AI messages via AgentMessage.tool_calls.\n Ordered chronologically like AgentExecutionStatus.messages.",
+          "required": false
+        },
+        {
+          "name": "Subject",
+          "jsonName": "subject",
+          "protoField": "subject",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Concise, human-readable summary of the sub-agent's task (3-10 words).\n Populated directly from the task tool's `description` argument — the short\n label the invoking LLM provides when calling the \"task\" tool. No server-side\n LLM generation; available instantly when the sub-agent starts.\n Used as the primary display label in collapsed and expanded UI views.\n Examples: \"Explore CLI rendering code\", \"Fix auth middleware tests\"",
+          "required": false
+        },
+        {
+          "name": "Todos",
+          "jsonName": "todos",
+          "protoField": "todos",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "message",
+              "messageType": "TodoItem"
+            }
+          },
+          "description": "Todo list tracking multi-step tasks and progress for this sub-agent.\n Updated via write_todos tool when called within a sub-agent context.\n Snapshot replacement semantics: each update carries the full list.\n Key: todo item ID, Value: todo item details",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SummarizationEvent",
+      "description": "SummarizationEvent records a single summarization occurrence during execution.\n\n Each time the context window approaches the model's limit and summarization\n is triggered, an event is recorded with before/after metrics.\n\n ## Purpose\n\n - **Debugging**: Understand when and why summarization occurred\n - **Monitoring**: Track summarization frequency and effectiveness\n - **Cost analysis**: Measure compression ratios and summarization costs\n - **Performance**: Track summarization latency\n\n ## Event Timing\n\n Events are recorded immediately after successful summarization, capturing:\n - Token counts before and after (to measure compression)\n - Message counts before and after (to understand conversation reduction)\n - Duration in milliseconds (to track performance)\n - Model used (to understand cost implications)\n\n @since Phase 3 (Context Summarization Architecture)",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.SummarizationEvent",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/context.proto",
+      "fields": [
+        {
+          "name": "Timestamp",
+          "jsonName": "timestamp",
+          "protoField": "timestamp",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when summarization occurred.\n Example: \"2026-01-31T14:30:00.123Z\"",
+          "required": false
+        },
+        {
+          "name": "TokensBefore",
+          "jsonName": "tokensBefore",
+          "protoField": "tokens_before",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Token count before summarization.\n This was the token count that exceeded the trigger threshold.",
+          "required": false
+        },
+        {
+          "name": "TokensAfter",
+          "jsonName": "tokensAfter",
+          "protoField": "tokens_after",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Token count after summarization.\n Should be approximately at or below the target_tokens threshold.",
+          "required": false
+        },
+        {
+          "name": "CompressionRatio",
+          "jsonName": "compressionRatio",
+          "protoField": "compression_ratio",
+          "type": {
+            "kind": "float"
+          },
+          "description": "Compression ratio achieved (0.0 to 1.0).\n\n Calculated as: 1 - (tokens_after / tokens_before)\n Example: 0.6 means 60% reduction in tokens (from 100K to 40K).\n\n Higher values indicate more aggressive compression.\n Typical values range from 0.3 to 0.7 depending on conversation content.",
+          "required": false
+        },
+        {
+          "name": "DurationMs",
+          "jsonName": "durationMs",
+          "protoField": "duration_ms",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Time taken to perform summarization in milliseconds.\n\n Includes the LLM call to the summarization model, message processing,\n and summary injection. Does not include token counting.\n\n Typical values: 1000-5000ms depending on context size and model.",
+          "required": false
+        },
+        {
+          "name": "SummarizationModel",
+          "jsonName": "summarizationModel",
+          "protoField": "summarization_model",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Model used for summarization (economy-tier model).\n\n Summarization uses cost-effective models to minimize expense:\n - For Anthropic: claude-haiku-4\n - For OpenAI: gpt-4o-mini\n - For Ollama: local model\n\n Example: \"claude-haiku-4\", \"gpt-4o-mini\"",
+          "required": false
+        },
+        {
+          "name": "MessagesBefore",
+          "jsonName": "messagesBefore",
+          "protoField": "messages_before",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Number of messages in conversation before summarization.\n Provides insight into conversation length that triggered summarization.",
+          "required": false
+        },
+        {
+          "name": "MessagesAfter",
+          "jsonName": "messagesAfter",
+          "protoField": "messages_after",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Number of messages in conversation after summarization.\n Typically reduced significantly as historical messages are collapsed.",
+          "required": false
+        },
+        {
+          "name": "Source",
+          "jsonName": "source",
+          "protoField": "source",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.SummarizationSource",
+            "enumValues": [
+              "graph_start",
+              "mid_execution"
+            ]
+          },
+          "description": "What triggered this summarization event.\n\n Enables the CLI to distinguish between:\n - graph_start: compaction at the beginning of a new invocation\n - mid_execution: compaction triggered by accumulated tool responses",
+          "required": false
+        },
+        {
+          "name": "SummarizationInputTokens",
+          "jsonName": "summarizationInputTokens",
+          "protoField": "summarization_input_tokens",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Input tokens consumed by the summarization LLM call.\n This is the context sent to the summarization model for compression.",
+          "required": false
+        },
+        {
+          "name": "SummarizationOutputTokens",
+          "jsonName": "summarizationOutputTokens",
+          "protoField": "summarization_output_tokens",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Output tokens generated by the summarization model (the summary).",
+          "required": false
+        },
+        {
+          "name": "SummarizationCostUsd",
+          "jsonName": "summarizationCostUsd",
+          "protoField": "summarization_cost_usd",
+          "type": {
+            "kind": "double"
+          },
+          "description": "Cost in USD of this summarization call.\n Computed using the summarization model's pricing rates at execution time.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "TodoItem",
+      "description": "Represents a single item in the agent's todo list.\n Used by the write_todos tool to track multi-step tasks and progress.\n\n Shared by both AgentExecutionStatus (main agent) and SubAgentExecution\n (sub-agent), so it lives in its own file to avoid circular imports.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.TodoItem",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/todo.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier for this todo item.",
+          "required": false
+        },
+        {
+          "name": "Content",
+          "jsonName": "content",
+          "protoField": "content",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Description of the task to be completed.",
+          "required": false
+        },
+        {
+          "name": "Status",
+          "jsonName": "status",
+          "protoField": "status",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.TodoStatus",
+            "enumValues": [
+              "TODO_PENDING",
+              "TODO_IN_PROGRESS",
+              "TODO_COMPLETED",
+              "TODO_CANCELLED"
+            ]
+          },
+          "description": "Current status of the todo item.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the todo was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the todo was last updated.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ToolCall",
+      "description": "Represents a tool call made by the agent during execution.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ToolCall",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/message.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier for this tool call.",
+          "required": false
+        },
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Name of the tool being called.",
+          "required": false
+        },
+        {
+          "name": "Args",
+          "jsonName": "args",
+          "protoField": "args",
+          "type": {
+            "kind": "struct"
+          },
+          "description": "Arguments passed to the tool (JSON structure).",
+          "required": false
+        },
+        {
+          "name": "Result",
+          "jsonName": "result",
+          "protoField": "result",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Result returned by the tool (optional, populated after execution).",
+          "required": false
+        },
+        {
+          "name": "Status",
+          "jsonName": "status",
+          "protoField": "status",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ToolCallStatus",
+            "enumValues": [
+              "TOOL_CALL_PENDING",
+              "TOOL_CALL_RUNNING",
+              "TOOL_CALL_COMPLETED",
+              "TOOL_CALL_FAILED",
+              "TOOL_CALL_WAITING_APPROVAL",
+              "TOOL_CALL_SKIPPED"
+            ]
+          },
+          "description": "Status of the tool call execution.",
+          "required": false
+        },
+        {
+          "name": "StartedAt",
+          "jsonName": "startedAt",
+          "protoField": "started_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the tool call started.",
+          "required": false
+        },
+        {
+          "name": "CompletedAt",
+          "jsonName": "completedAt",
+          "protoField": "completed_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when the tool call completed or failed.",
+          "required": false
+        },
+        {
+          "name": "Error",
+          "jsonName": "error",
+          "protoField": "error",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Error message if status == TOOL_CALL_FAILED.",
+          "required": false
+        },
+        {
+          "name": "RequiresApproval",
+          "jsonName": "requiresApproval",
+          "protoField": "requires_approval",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "True if this tool requires approval before execution.\n Determined at runtime by merging:\n   1. McpServerStatus.tool_approvals (system-generated defaults)\n   2. McpServerSpec.pinned_tool_approvals (manual overrides)\n   3. McpServerUsage.tool_approval_overrides (agent-specific)\n   4. AgentExecutionSpec.auto_approve_all (runtime bypass)\n\n When true and status == TOOL_CALL_WAITING_APPROVAL, the tool is paused\n awaiting user decision via SubmitApproval RPC.",
+          "required": false
+        },
+        {
+          "name": "ApprovalMessage",
+          "jsonName": "approvalMessage",
+          "protoField": "approval_message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable message explaining what approval is being requested.\n Populated from ToolApprovalPolicy.message with argument placeholders resolved.\n\n Examples:\n   - \"Delete repository: my-important-repo\"\n   - \"Force push to branch: main\"\n   - \"Send email to: customer@example.com\"\n\n If no custom message configured, defaults to: \"Execute tool: {tool_name}\"",
+          "required": false
+        },
+        {
+          "name": "ApprovalRequestedAt",
+          "jsonName": "approvalRequestedAt",
+          "protoField": "approval_requested_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when approval was requested.\n Set when status transitions to TOOL_CALL_WAITING_APPROVAL.\n Used for tracking approval latency and potential timeout logic.\n Example: \"2026-01-30T15:30:00Z\"",
+          "required": false
+        },
+        {
+          "name": "ApprovalDecidedAt",
+          "jsonName": "approvalDecidedAt",
+          "protoField": "approval_decided_at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ISO 8601 timestamp when approval decision was made.\n Set when user submits APPROVE, SKIP, or REJECT via SubmitApproval.\n Example: \"2026-01-30T15:32:15Z\"",
+          "required": false
+        },
+        {
+          "name": "ApprovedBy",
+          "jsonName": "approvedBy",
+          "protoField": "approved_by",
+          "type": {
+            "kind": "string"
+          },
+          "description": "User ID of who made the approval decision.\n Extracted from authentication context when SubmitApproval is called.\n Important for audit trails and accountability.\n Example: \"usr_abc123xyz\"",
+          "required": false
+        },
+        {
+          "name": "ApprovalAction",
+          "jsonName": "approvalAction",
+          "protoField": "approval_action",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ApprovalAction",
+            "enumValues": [
+              "APPROVAL_ACTION_APPROVE",
+              "APPROVAL_ACTION_SKIP",
+              "APPROVAL_ACTION_REJECT"
+            ]
+          },
+          "description": "The action taken by the user.\n Only populated after approval decision is made (approval_decided_at is set).\n Determines how the tool execution proceeds:\n   - APPROVE: Tool executes normally\n   - SKIP: Tool returns skip message, execution continues\n   - REJECT: Execution fails with rejection error",
+          "required": false
+        },
+        {
+          "name": "IsStreaming",
+          "jsonName": "isStreaming",
+          "protoField": "is_streaming",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "True while the tool is actively producing content, false when complete.\n Enables UI to show live output during long-running tool executions or\n a typewriter effect during input generation.\n\n When true, `result` contains partial content accumulated so far.\n When false (default), `result` contains the final complete output.\n Consumers always read `result` — this flag only signals whether\n more content is expected.",
+          "required": false
+        },
+        {
+          "name": "StreamingSource",
+          "jsonName": "streamingSource",
+          "protoField": "streaming_source",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource",
+            "enumValues": [
+              "TOOL_CALL_STREAMING_SOURCE_INPUT",
+              "TOOL_CALL_STREAMING_SOURCE_OUTPUT"
+            ]
+          },
+          "description": "Identifies what is currently being streamed.\n Only meaningful when is_streaming is true; reset to UNSPECIFIED when\n streaming ends.\n\n INPUT:  result contains partial content extracted from the in-progress\n         argument JSON (e.g., file content for a write tool).\n OUTPUT: result contains accumulated output chunks from tool execution\n         (e.g., shell command stdout).\n\n Consumers use this to choose the correct rendering mode — typewriter\n for input streaming, live terminal output for output streaming.",
+          "required": false
+        },
+        {
+          "name": "McpServerSlug",
+          "jsonName": "mcpServerSlug",
+          "protoField": "mcp_server_slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Slug of the MCP server that provides this tool.\n Empty for built-in sandbox tools.\n Populated by the worker using the mcp_tools_config reverse lookup.\n\n Examples: \"planton\", \"github\", \"slack\"\n\n Used by CLI/UI to render a qualified tool name (e.g., \"planton/search\")\n so users can distinguish tools with the same name from different servers.",
+          "required": false
+        },
+        {
+          "name": "ArgsPreview",
+          "jsonName": "argsPreview",
+          "protoField": "args_preview",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Sanitized preview of tool arguments for UI display.\n Sensitive values (passwords, tokens, keys) are redacted.\n Populated at tool call creation time by the agent-runner.\n Used by the server-side ComputePendingApprovals projection\n and by CLI/UI for inline argument visibility.\n\n Example: '{\"repository\": \"acme/repo\", \"force\": true}'",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "WorkspaceWriteBack",
+      "description": "WorkspaceWriteBack captures the outcome of the platform-owned git\n write-back workflow for a single workspace entry.\n\n One entry is created per git-backed workspace entry that had uncommitted\n changes when the execution reached a terminal phase. Not populated for\n LocalPathSource workspace entries or git workspaces with no detected\n changes.\n\n The write-back progresses through phases: committed -\u003e pushed -\u003e\n pr_created. If any step fails, the phase is set to FAILED with the\n error message, and processing continues to the next workspace entry.\n One failed write-back does not block others.\n\n @since Platform-Owned Git Write-Back",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/writeback.proto",
+      "fields": [
+        {
+          "name": "WorkspaceEntryName",
+          "jsonName": "workspaceEntryName",
+          "protoField": "workspace_entry_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Name of the workspace entry this write-back corresponds to.\n Links to SessionSpec.workspace_entries[].name.\n Example: \"my-app\", \"frontend\"",
+          "required": false
+        },
+        {
+          "name": "BranchName",
+          "jsonName": "branchName",
+          "protoField": "branch_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Branch created for the agent's changes.\n Format: \"stigmer/{short_execution_id}\"\n Example: \"stigmer/a1b2c3d4\"",
+          "required": false
+        },
+        {
+          "name": "BaseBranch",
+          "jsonName": "baseBranch",
+          "protoField": "base_branch",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Base branch the PR targets (the branch that was originally cloned).\n Example: \"main\", \"develop\"",
+          "required": false
+        },
+        {
+          "name": "CommitSha",
+          "jsonName": "commitSha",
+          "protoField": "commit_sha",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Full commit SHA of the agent's changes on the branch.\n Example: \"e3b0c44298fc1c149afbf4c8996fb924\"",
+          "required": false
+        },
+        {
+          "name": "PullRequestUrl",
+          "jsonName": "pullRequestUrl",
+          "protoField": "pull_request_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "GitHub pull request URL.\n Empty when write-back mode is not PR-based or PR creation failed.\n Example: \"https://github.com/acme/my-app/pull/42\"",
+          "required": false
+        },
+        {
+          "name": "PullRequestNumber",
+          "jsonName": "pullRequestNumber",
+          "protoField": "pull_request_number",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "GitHub pull request number.\n 0 when no PR was created.",
+          "required": false
+        },
+        {
+          "name": "DiffSummary",
+          "jsonName": "diffSummary",
+          "protoField": "diff_summary",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable summary of changes from `git diff --stat`.\n Example: \"3 files changed, 42 insertions(+), 7 deletions(-)\"",
+          "required": false
+        },
+        {
+          "name": "Phase",
+          "jsonName": "phase",
+          "protoField": "phase",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackPhase",
+            "enumValues": [
+              "WORKSPACE_WRITE_BACK_COMMITTED",
+              "WORKSPACE_WRITE_BACK_PUSHED",
+              "WORKSPACE_WRITE_BACK_PR_CREATED",
+              "WORKSPACE_WRITE_BACK_FAILED"
+            ]
+          },
+          "description": "Current phase of the write-back workflow.",
+          "required": false
+        },
+        {
+          "name": "Error",
+          "jsonName": "error",
+          "protoField": "error",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Error message if the write-back failed at any step.\n Empty on success.",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

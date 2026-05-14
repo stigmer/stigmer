@@ -1,0 +1,105 @@
+{
+  "name": "HumanInputTaskConfig",
+  "kind": "HUMAN_INPUT",
+  "description": "HumanInputTaskConfig defines the configuration for human_input tasks that\n pause workflow execution to collect typed input or approval from a human\n reviewer, then resume based on the reviewer's response.\n\n @internal\n Use human_input when a workflow needs human judgment before proceeding:\n approvals before API calls, sign-off before publishing, confirmation\n before customer-impacting actions, or structured data collection from\n a human operator.\n\n This is a workflow-level approval gate — distinct from agent-level HITL\n (tool approval inside an agent session). Workflow-level gates are visible\n in the execution viewer as explicit tasks with input/output/timing, and\n they can route to different branches based on the reviewer's decision.\n\n Runtime implementation (T13) will use Temporal signals for workflow\n resumption. The proto definition is intentionally runtime-agnostic.\n\n The reviewer's response (selected outcome + form data) becomes the task\n output, accessible via export:\n   {\n     \"outcome\": \"approve\",\n     \"form_data\": { \u003cvalidated form response if form_schema is set\u003e },\n     \"reviewer\": \"\u003cuser who responded\u003e\",\n     \"responded_at\": \"\u003cISO 8601 timestamp\u003e\"\n   }\n\n YAML Example (approval gate with custom outcomes):\n   - manager_approval:\n       human_input:\n         prompt: \"Customer-impacting incident classified as ${ $context.triage.severity }. Approve escalation?\"\n         form_schema:\n           type: object\n           properties:\n             notes:\n               type: string\n               description: \"Optional notes for the engineering team\"\n             priority_override:\n               type: string\n               enum: [P1, P2, P3]\n         outcomes:\n           - name: approve\n             label: \"Approve Escalation\"\n           - name: deny\n             label: \"Reject — Not Customer-Impacting\"\n             then: re_classify\n           - name: needs_revision\n             label: \"Needs More Info\"\n             then: gather_more_context\n         approvers:\n           - \"team:engineering-leads\"\n         timeout: 86400\n         on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE\n         notification_channels:\n           - \"slack:#incident-approvals\"\n       export:\n         as: \"${ . }\"\n\n YAML Example (simple binary approval, no form):\n   - confirm_publish:\n       human_input:\n         prompt: \"Ready to publish ${ $context.document.title } to production?\"\n         approvers:\n           - \"role:content-admin\"\n         timeout: 3600\n         on_timeout: HUMAN_INPUT_TIMEOUT_FAIL\n       export:\n         as: \"${ . }\"",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/human_input.proto",
+  "discriminatorValue": "human_input",
+  "fields": [
+    {
+      "name": "Prompt",
+      "jsonName": "prompt",
+      "protoField": "prompt",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Message shown to the reviewer explaining what needs approval or input.\n Supports ${ } expression interpolation for injecting workflow context.\n Example: \"Approve escalation for ticket ${ $context.ticket.id }?\"",
+      "required": true,
+      "isExpression": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
+    },
+    {
+      "name": "FormSchema",
+      "jsonName": "formSchema",
+      "protoField": "form_schema",
+      "type": {
+        "kind": "struct"
+      },
+      "description": "JSON Schema defining the input form rendered to the reviewer.\n\n When set, the approval UI renders a typed form based on this schema.\n The reviewer's form response is validated against the schema before\n the task completes, and the validated data appears in the task output\n under the \"form_data\" key.\n\n When not set, the reviewer sees only the outcome buttons (approve/deny\n or custom outcomes) without a data entry form.\n\n Uses the same google.protobuf.Struct + JSON Schema pattern as\n AgentCallOutputContract.schema and LlmCallTaskConfig.response_schema.",
+      "required": false
+    },
+    {
+      "name": "Outcomes",
+      "jsonName": "outcomes",
+      "protoField": "outcomes",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "HumanInputOutcome"
+        }
+      },
+      "description": "Named outcomes that the reviewer can select.\n\n Each outcome represents a decision the reviewer can make, with optional\n routing to a different downstream task. This enables rich branching\n beyond binary approve/deny.\n\n When empty, the task defaults to binary behavior:\n   - \"approve\": task completes, workflow continues to next task\n   - \"deny\": task fails (enters try_catch or EXECUTION_FAILED)\n\n When custom outcomes are defined, the first outcome is used as the\n default for HUMAN_INPUT_TIMEOUT_APPROVE, and the last outcome is used\n as the default for HUMAN_INPUT_TIMEOUT_DENY.",
+      "required": false
+    },
+    {
+      "name": "Approvers",
+      "jsonName": "approvers",
+      "protoField": "approvers",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Approver identifiers — who is allowed to respond to this task.\n\n Supports user IDs, team slugs, and role names. Format examples:\n   - \"user:jane@acme.com\" — specific user\n   - \"team:engineering-leads\" — any member of the team\n   - \"role:content-admin\" — any user with the role\n\n When empty, any authenticated user can respond.\n Resolution of these identifiers is a runtime concern (T13).",
+      "required": false
+    },
+    {
+      "name": "Timeout",
+      "jsonName": "timeout",
+      "protoField": "timeout",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Timeout in seconds before the on_timeout policy applies.\n Default: 0 (no timeout — the task waits indefinitely).\n Max: 2592000 (30 days).\n\n A timeout of 0 means the workflow will wait until a human responds.\n For production workflows, setting a timeout with an appropriate\n on_timeout policy is strongly recommended.",
+      "required": false,
+      "validation": {
+        "max": 2592000
+      }
+    },
+    {
+      "name": "OnTimeout",
+      "jsonName": "onTimeout",
+      "protoField": "on_timeout",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.workflow.v1.tasks.HumanInputTimeoutPolicy",
+        "enumValues": [
+          "HUMAN_INPUT_TIMEOUT_FAIL",
+          "HUMAN_INPUT_TIMEOUT_APPROVE",
+          "HUMAN_INPUT_TIMEOUT_DENY",
+          "HUMAN_INPUT_TIMEOUT_ESCALATE"
+        ]
+      },
+      "description": "Policy applied when the timeout expires without a response.\n Only meaningful when timeout \u003e 0; ignored when timeout is 0.\n Default: HUMAN_INPUT_TIMEOUT_FAIL (task fails with timeout error).",
+      "required": false
+    },
+    {
+      "name": "NotificationChannels",
+      "jsonName": "notificationChannels",
+      "protoField": "notification_channels",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Channel identifiers for sending approval request notifications.\n\n When the task starts, the runtime sends notifications through these\n channels to alert potential approvers. Format examples:\n   - \"slack:#approvals\" — Slack channel\n   - \"email:ops@acme.com\" — email address\n   - \"teams:#incident-response\" — Microsoft Teams channel\n\n The format and routing of notifications is a runtime concern (T13).\n The proto carries the identifiers; the runtime resolves them to\n actual notification providers configured in the workflow instance's\n environment.",
+      "required": false
+    }
+  ]
+}

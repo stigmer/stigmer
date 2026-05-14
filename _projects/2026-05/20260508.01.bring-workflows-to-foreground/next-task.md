@@ -19,10 +19,58 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-14 — Cost Data Pipeline COMPLETE (real cost/token data flows from runner through backends to dashboard)
-**Current Task**: Cost Data Pipeline COMPLETE
+**Last Session**: 2026-05-14 — Unified Platform Dashboard COMPLETE (dashboard now shows both agent and workflow executions)
+**Current Task**: Unified Platform Dashboard COMPLETE
 **Phase**: Phase 2 — Visual Builder — COMPLETE (all deferred items cleared)
 **Next Task**: T16 (Natural Language to Workflow — Phase 3)
+
+## Session Progress (2026-05-14, Unified Platform Dashboard)
+
+### Unified Platform Dashboard — COMPLETE
+
+Transformed the workflow-only dashboard into a unified platform dashboard that
+shows operational metrics from both agent and workflow execution domains.
+Full vertical slice: proto API, Go+Java backends, React SDK module, console
+integration with DD-016 parity.
+
+#### Architectural Decisions
+- **AD-DASH-001**: No platform-wide summary RPC — client-side composition preserves bounded contexts
+- **AD-DASH-002**: Parallel `getExecutionSummary` on agent execution domain (mirrors workflow pattern)
+- **AD-DASH-003**: Execution counts safe to add (agent and workflow executions are distinct resources)
+- **AD-DASH-004**: SDK-first, headless-first for new dashboard module
+- **AD-DASH-005**: Cost from billing source of truth (`getOrgUsageReport`), not agent+workflow sum — prevents double-counting when workflows delegate to agents
+
+#### Phase 1: Proto + Backend
+- Added `AgentExecutionSummary`, `GetAgentExecutionSummaryRequest`, `AgentFailureRank`, `AgentExecutionSummaryTimeWindow` to `agentexecution/v1/io.proto`
+- Added `getExecutionSummary` RPC to `AgentExecutionQueryController`
+- Codegen across Go, Java, TS, Python stubs
+- **Go handler**: `get_execution_summary.go` — SQLite aggregation (active count, phase counts, avg duration, top failing agents)
+- **Java handler**: `AgentExecutionGetExecutionSummaryHandler.java` — MongoDB aggregation (same metrics, IAM-scoped)
+
+#### Phase 2: SDK Dashboard Module (`sdk/react/src/dashboard/`)
+- `types.ts` — `DashboardSummary`, `DashboardFailedRun` interfaces
+- `useAgentExecutionSummary.ts` — data hook calling agent `getExecutionSummary`
+- `useDashboardSummary.ts` — composition hook merging agent + workflow + org usage
+- `useDashboardFailedRuns.ts` — composition hook merging failed executions from both domains
+- `DashboardKPICards.tsx` — unified KPI cards (Active, Completed, Failed, Total Cost) with breakdown tooltips
+- `DashboardFailedRuns.tsx` — merged failed runs list with type badges
+- `OperationalDashboard.tsx` — composed top-level widget (KPIs + approvals + failures)
+- `index.ts` — barrel exports; `sdk/react/src/index.ts` updated
+- Manual patch: `sdk/typescript/src/gen/agentexecution.ts` — added `getExecutionSummary` method (codegen gap workaround)
+
+#### Phase 3: Console Integration (DD-016 parity)
+- **Web**: `DashboardPage.tsx` — replaced `WorkflowDashboard` with `OperationalDashboard`, uses `useOrg()` for both slug+id
+- **Desktop**: `DashboardPage.tsx` — identical changes with `useNavigate`
+- Updated description: "Operational overview across your organization"
+- Workflow-specific charts (`CostByWorkflowChart`, `ExecutionTrendChart`) retained below dashboard
+
+#### Known Gaps
+- `proto2schema` codegen does not auto-pick up new `getExecutionSummary` RPC — temporary manual patch on generated SDK client
+- Usage page unification (showing workflow data alongside agent data) deferred — separate task
+
+#### Verification
+- Zero linter errors on all modified files
+- DD-016 parity confirmed: web and desktop dashboard pages are structurally identical
 
 ## Session Progress (2026-05-14, Cost Data Pipeline)
 
@@ -718,15 +766,21 @@ Structured Agent Output Model
 - Phase 2 (Visual Builder) COMPLETE — T15 all 5 batches complete
 - Workflow execution → session navigation fix COMPLETE (2026-05-14) — `useResolveAgentExecutionSession` hook resolves aex_* to session_id
 - Desktop now has full workflow parity with web (list, detail, editor, run, executions, dashboard, visual canvas)
-- Dashboard aggregation RPCs (`getExecutionSummary`, `listPendingApprovals`) implemented in both Go and Java
-- SDK dashboard components exported from `@stigmer/react`: `WorkflowDashboard`, `ExecutionSummaryWidget`, `PendingApprovalsWidget`, `FailedRunsWidget`
+- **Unified Platform Dashboard COMPLETE** (2026-05-14) — dashboard shows both agent + workflow execution metrics
+  - `getExecutionSummary` RPC on both workflow and agent execution domains (Go + Java backends)
+  - SDK `sdk/react/src/dashboard/` module: `useDashboardSummary`, `useAgentExecutionSummary`, `useDashboardFailedRuns`, `DashboardKPICards`, `DashboardFailedRuns`, `OperationalDashboard`
+  - Total cost from `getOrgUsageReport` (billing SoT, AD-DASH-005 — no double-counting)
+  - Console pages use `OperationalDashboard` + workflow-specific charts below
 - Cost data pipeline COMPLETE — real cost/tokens flow from runner → status → getExecutionSummary → dashboard charts
-- Dashboard now at `/dashboard` route (top-level, sidebar nav item)
+- Dashboard at `/dashboard` route (top-level, sidebar nav item)
 - Workflow list page cleaned up to match Agent list page pattern (no dashboard widgets)
-- Search indexing for workflows in backend unverified — `list()` may return empty
-- `CheckBudgetWarnings()` (T05) still standalone — NOT wired into `ValidateWorkflow()` yet
-- `getDownloadUrl` still UNIMPLEMENTED (artifact store)
-- OSS stigmer-server updateStatus handler does NOT yet persist events (separate task from Java/Cloud parity)
+- **Open tech debt:**
+  - `proto2schema` codegen gap — `getExecutionSummary` on agent execution manually patched in generated SDK client
+  - Usage page unification (show workflow data alongside agent data) — deferred
+  - Search indexing for workflows in backend unverified — `list()` may return empty
+  - `CheckBudgetWarnings()` (T05) still standalone — NOT wired into `ValidateWorkflow()` yet
+  - `getDownloadUrl` still UNIMPLEMENTED (artifact store)
+  - OSS stigmer-server updateStatus handler does NOT yet persist events (separate task from Java/Cloud parity)
 
 ## Essential Files — T15 Batch 2 (Canvas Node Authoring)
 - **Graph commands (new)**: `sdk/react/src/workflow/graph-commands.ts`

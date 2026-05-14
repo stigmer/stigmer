@@ -1,0 +1,283 @@
+{
+  "resource": "apikey",
+  "package": "ai.stigmer.iam.apikey.v1",
+  "goImportPath": "apikeyv1",
+  "services": [
+    {
+      "name": "ApiKeyCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/iam/apikey/v1/command.proto",
+      "methods": [
+        {
+          "name": "Create",
+          "inputType": "ApiKey",
+          "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
+          "outputType": "ApiKey",
+          "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
+          "description": "Create an API key for the authenticated user.\n\n The raw key value is included in the response and is never returned again.\n Store it securely before discarding the response.\n\n @internal\n Any authenticated user can create API keys, so authorization is skipped."
+        },
+        {
+          "name": "Update",
+          "inputType": "ApiKey",
+          "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
+          "outputType": "ApiKey",
+          "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
+          "description": "Update an existing API key.\n\n @internal\n Authorization: Requires can_edit permission on the API key resource."
+        },
+        {
+          "name": "Delete",
+          "inputType": "ApiKeyId",
+          "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKeyId",
+          "outputType": "ApiKey",
+          "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
+          "description": "Delete an API key.\n\n @internal\n Authorization: Requires can_delete permission on the API key resource."
+        }
+      ]
+    },
+    {
+      "name": "ApiKeyQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/iam/apikey/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "ApiKeyId",
+          "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKeyId",
+          "outputType": "ApiKey",
+          "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
+          "description": "Get an API key by its unique identifier."
+        },
+        {
+          "name": "GetByKeyHash",
+          "inputType": "ApiKeyHash",
+          "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKeyHash",
+          "outputType": "ApiKey",
+          "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
+          "description": "Get an API key by its hashed key value.\n\n @internal\n Authorization is handled in the handler after loading the resource\n (input doesn't contain API key ID, so proto-level auth cannot work)."
+        },
+        {
+          "name": "FindAll",
+          "inputType": "Empty",
+          "inputFullType": "google.protobuf.Empty",
+          "outputType": "ApiKeys",
+          "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKeys",
+          "description": "List all API keys belonging to the authenticated user.\n\n Returns only the keys owned by the identity account in the auth header.\n\n @internal\n Scoped to the caller's own keys, so authorization is skipped."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "ApiKeyHash",
+      "description": "ApiKeyHash identifies an API key by its hashed key value.",
+      "protoType": "ai.stigmer.iam.apikey.v1.ApiKeyHash",
+      "protoFile": "apis/ai/stigmer/iam/apikey/v1/io.proto",
+      "fields": [
+        {
+          "name": "Value",
+          "jsonName": "value",
+          "protoField": "value",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Hash of the raw API key.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "ApiKeys",
+      "description": "ApiKeys contains a list of API key resources.",
+      "protoType": "ai.stigmer.iam.apikey.v1.ApiKeys",
+      "protoFile": "apis/ai/stigmer/iam/apikey/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ApiKey"
+            }
+          },
+          "description": "API key entries.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only members of the owning organization can access.\n This is the default for most resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "ApiKey provides programmatic access to the Stigmer API on behalf of an identity account.\n\n Each API key is scoped to a single identity account (user or machine) and\n can optionally be configured to expire.\n\n @internal\n The raw key value is returned only once in the create response. Only the\n hash and fingerprint are persisted.",
+  "statusType": {
+    "name": "ApiKeyStatus",
+    "description": "ApiKeyStatus contains system-managed state for an API key.",
+    "protoType": "ai.stigmer.iam.apikey.v1.ApiKeyStatus",
+    "protoFile": "apis/ai/stigmer/iam/apikey/v1/api.proto",
+    "fields": [
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.).",
+        "required": false
+      },
+      {
+        "name": "LastUsedAt",
+        "jsonName": "lastUsedAt",
+        "protoField": "last_used_at",
+        "type": {
+          "kind": "timestamp"
+        },
+        "description": "Timestamp of the most recent API call made with this key.",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

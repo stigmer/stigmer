@@ -1,0 +1,157 @@
+{
+  "name": "IdentityProviderSpec",
+  "kind": "IDENTITY_PROVIDER_SPEC",
+  "description": "IdentityProviderSpec defines the configuration for an external identity provider.\n\n An IdentityProvider represents an external platform's trust relationship with Stigmer.\n It is owned by an organization (e.g., \"planton\") and configures how Stigmer validates\n tokens from that platform. When a user authenticates with a JWT issued by this provider,\n Stigmer validates the token signature against the configured JWKS and resolves the\n user's federated identity account by the JWT's sub claim and this provider's reference.\n\n Three provisioning modes control how federated accounts are created:\n\n   1. Manual (default): The platform explicitly creates federated accounts\n      via CreateFederatedAccount and manages IAM policies. No accounts are\n      created automatically.\n\n   2. JIT (Just-In-Time): When auto_provision_accounts is true, Stigmer\n      creates an IdentityAccount from JWT claims on first authentication.\n      Authorization is controlled independently via auto_grant_on_org and\n      auto_grant_role. For multi-tenant platforms, tenant_org_claim maps\n      a JWT claim to a platform-managed organization for automatic role grants.\n\n   3. SSO: When is_sso_provider is true, Stigmer auto-provisions accounts\n      and grants viewer on the organization. This mode also enables the OIDC\n      browser login flow via oidc_client_id.\n\n The spec contains only public validation configuration — no secrets are stored.\n For OIDC-based integrators (e.g., Auth0), the jwks_uri and userinfo_endpoint\n point to the OIDC provider's standard endpoints.\n\n Example YAML (platform delegation):\n   apiVersion: iam.stigmer.ai/v1\n   kind: IdentityProvider\n   metadata:\n     name: Planton\n     slug: planton\n     org: planton\n   spec:\n     display_name: \"Planton\"\n     jwks_uri: \"https://planton-prod.us.auth0.com/.well-known/jwks.json\"\n     allowed_issuers: [\"https://planton-prod.us.auth0.com/\"]\n     expected_audience: \"https://api.planton.ai/\"\n     userinfo_endpoint: \"https://planton-prod.us.auth0.com/userinfo\"\n\n Example YAML (JIT provisioning, single-org):\n   apiVersion: iam.stigmer.ai/v1\n   kind: IdentityProvider\n   metadata:\n     name: Acme Platform\n     slug: acme-platform\n     org: acme\n   spec:\n     display_name: \"Acme Platform\"\n     jwks_uri: \"https://auth.acme.com/.well-known/jwks.json\"\n     allowed_issuers: [\"https://auth.acme.com/\"]\n     expected_audience: \"stigmer-api\"\n     userinfo_endpoint: \"https://auth.acme.com/userinfo\"\n     auto_provision_accounts: true\n     auto_grant_on_org: true\n\n Example YAML (JIT provisioning, multi-tenant):\n   apiVersion: iam.stigmer.ai/v1\n   kind: IdentityProvider\n   metadata:\n     name: SaaS Platform\n     slug: saas-platform\n     org: saas-co\n   spec:\n     display_name: \"SaaS Platform\"\n     jwks_uri: \"https://auth.saas.co/.well-known/jwks.json\"\n     allowed_issuers: [\"https://auth.saas.co/\"]\n     expected_audience: \"stigmer-api\"\n     userinfo_endpoint: \"https://auth.saas.co/userinfo\"\n     auto_provision_accounts: true\n     auto_grant_on_org: true\n     auto_grant_role: member\n     tenant_org_claim: \"org_id\"\n\n Example YAML (self-managed SSO):\n   apiVersion: iam.stigmer.ai/v1\n   kind: IdentityProvider\n   metadata:\n     name: Acme Corp Okta\n     slug: acme-okta\n     org: acme\n   spec:\n     display_name: \"Acme Corp Okta\"\n     jwks_uri: \"https://acme.okta.com/oauth2/default/v1/keys\"\n     allowed_issuers: [\"https://acme.okta.com/oauth2/default\"]\n     expected_audience: \"stigmer-api\"\n     is_sso_provider: true\n     oidc_client_id: \"0oa1bcdef2ghijk3lmno\"",
+  "protoType": "ai.stigmer.iam.identityprovider.v1.IdentityProviderSpec",
+  "protoFile": "apis/ai/stigmer/iam/identityprovider/v1/spec.proto",
+  "fields": [
+    {
+      "name": "DisplayName",
+      "jsonName": "displayName",
+      "protoField": "display_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable display name for this identity provider.\n Used in UI and audit logs to identify the integrating platform.",
+      "required": false,
+      "validation": {
+        "maxLength": 200
+      }
+    },
+    {
+      "name": "JwksUri",
+      "jsonName": "jwksUri",
+      "protoField": "jwks_uri",
+      "type": {
+        "kind": "string"
+      },
+      "description": "JWKS endpoint URL for validating tokens presented during token exchange.\n For OIDC-based integrators, this points to the provider's standard JWKS endpoint\n (e.g., Auth0's /.well-known/jwks.json). Stigmer fetches and caches signing keys\n from this URL for JWT signature verification.\n\n This is the standard \"jwks_uri\" metadata field defined in\n OpenID Connect Discovery 1.0 (Section 3) and RFC 7517 (JSON Web Key Set).",
+      "required": false,
+      "validation": {
+        "maxLength": 2048
+      }
+    },
+    {
+      "name": "AllowedIssuers",
+      "jsonName": "allowedIssuers",
+      "protoField": "allowed_issuers",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "JWT issuer values that Stigmer will accept from this platform.\n Each JWT's `iss` claim must match one of these values.\n For Auth0-based integrators, this is the Auth0 tenant URL\n (e.g., \"https://planton-prod.us.auth0.com/\").\n Supports multiple values for key rotation or multi-environment scenarios.",
+      "required": false
+    },
+    {
+      "name": "ExpectedAudience",
+      "jsonName": "expectedAudience",
+      "protoField": "expected_audience",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Expected JWT audience value.\n Every JWT from this platform must include this as the `aud` claim.\n For Auth0-based integrators, this is the API identifier configured in Auth0\n (e.g., \"https://api.planton.ai/\").\n Prevents tokens intended for other services from being accepted by Stigmer.",
+      "required": false,
+      "validation": {
+        "maxLength": 200
+      }
+    },
+    {
+      "name": "RateLimitBudget",
+      "jsonName": "rateLimitBudget",
+      "protoField": "rate_limit_budget",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Shared rate limit budget across all organizations managed via this identity provider.\n Expressed as requests per minute. 0 means no limit.",
+      "required": false
+    },
+    {
+      "name": "UserinfoEndpoint",
+      "jsonName": "userinfoEndpoint",
+      "protoField": "userinfo_endpoint",
+      "type": {
+        "kind": "string"
+      },
+      "description": "OIDC UserInfo endpoint URL for fetching user profile data during token exchange.\n Stigmer calls this endpoint with the platform's access token (as a Bearer token)\n to retrieve the user's email, name, and picture for the federated identity account.\n Profile data is updated on every token exchange to keep it fresh.\n\n This is the standard \"userinfo_endpoint\" metadata field defined in\n OpenID Connect Discovery 1.0 (Section 3). The endpoint itself is specified in\n OpenID Connect Core 1.0 (Section 5.3).\n\n For Auth0-based integrators: https://{tenant}.auth0.com/userinfo",
+      "required": false,
+      "validation": {
+        "maxLength": 2048
+      }
+    },
+    {
+      "name": "IsSsoProvider",
+      "jsonName": "isSsoProvider",
+      "protoField": "is_sso_provider",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether this identity provider serves as the SSO login provider for its\n owning organization.\n\n When true, the Stigmer web app offers a \"Sign in with [display_name]\"\n option on the organization's login page and initiates the OIDC\n Authorization Code flow with PKCE using the configured oidc_client_id.\n\n On first login, SSO users are auto-provisioned: Stigmer creates a\n federated identity account from the JWT's OIDC claims and grants the\n viewer role on the organization. Org admins can upgrade viewers to\n members when ready.\n\n Constraints:\n - At most one IdentityProvider per organization can be the SSO provider.\n - An IdP used for platform-managed organization delegation cannot also\n   serve as an SSO provider (different trust models).",
+      "required": false
+    },
+    {
+      "name": "OidcClientId",
+      "jsonName": "oidcClientId",
+      "protoField": "oidc_client_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "OIDC client identifier for browser-based SSO login.\n\n This is the client_id registered with the external IdP (e.g., Okta,\n Azure AD) for Stigmer's web application. The web app uses this to\n build the OIDC Authorization Code request with PKCE.\n\n No client_secret is stored — the web app is a public client using PKCE\n (Proof Key for Code Exchange), which is the recommended approach for\n SPAs per OAuth 2.0 for Browser-Based Apps (RFC draft).\n\n Required when is_sso_provider is true; must be empty otherwise.",
+      "required": false,
+      "validation": {
+        "maxLength": 256
+      }
+    },
+    {
+      "name": "AutoProvisionAccounts",
+      "jsonName": "autoProvisionAccounts",
+      "protoField": "auto_provision_accounts",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether to automatically create a federated identity account when a valid\n JWT arrives but no account exists for the token's sub claim.\n\n This controls identity provisioning — establishing that Stigmer recognizes\n this user — and is independent of what access the user receives. An\n auto-provisioned account has no organization access by default; authorization\n is controlled separately by auto_grant_on_org.\n\n When false (default), the platform must explicitly create federated accounts\n via the CreateFederatedAccount API before users can authenticate. This gives\n platforms full control over which of their users can access Stigmer resources.\n\n When true, Stigmer creates the IdentityAccount automatically on first\n authentication, using profile data from the JWT claims and the\n userinfo_endpoint (if configured). Subsequent authentications refresh\n the profile data.\n\n This field is independent of is_sso_provider. SSO providers always\n auto-provision accounts regardless of this setting. For non-SSO identity\n providers (platform delegation), this field enables JIT provisioning\n without requiring the OIDC browser flow.",
+      "required": false
+    },
+    {
+      "name": "AutoGrantOnOrg",
+      "jsonName": "autoGrantOnOrg",
+      "protoField": "auto_grant_on_org",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether to automatically grant a role on an organization when an account\n is auto-provisioned.\n\n This controls authorization — determining what access an auto-provisioned\n user receives — and is separate from the identity provisioning decision\n controlled by auto_provision_accounts.\n\n When false (default), auto-provisioned accounts receive no organization\n access. The platform must create IAM policies to grant access to specific\n organizations. This is the appropriate setting for multi-tenant platforms\n where users should only access their tenant organization, not the\n platform's root organization.\n\n When true, Stigmer grants auto_grant_role (default: viewer) on the IdP's\n owning organization immediately after account creation. This is the\n appropriate setting for single-organization platforms where all\n authenticated users should have access to the same organization.\n\n When tenant_org_claim is also set, the role grant targets the resolved\n tenant organization instead of the IdP's owning organization.\n\n Requires auto_provision_accounts to be true.",
+      "required": false
+    },
+    {
+      "name": "AutoGrantRole",
+      "jsonName": "autoGrantRole",
+      "protoField": "auto_grant_role",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.iam.v1.IamRole",
+        "enumValues": [
+          "owner",
+          "admin",
+          "member",
+          "viewer"
+        ]
+      },
+      "description": "The role to grant when auto_grant_on_org is true.\n\n Defaults to viewer when unspecified (iam_role_unspecified). The owner role\n is not permitted — organization ownership must be assigned explicitly.\n\n This field is only meaningful when auto_grant_on_org is true. When\n auto_grant_on_org is false, this field is ignored regardless of its value.\n\n Common configurations:\n   - viewer (default): Users can browse resources but cannot modify them.\n     Org admins upgrade to member or admin when ready.\n   - member: Users can immediately create and modify resources.\n     Appropriate when all authenticated users are trusted collaborators.",
+      "required": false
+    },
+    {
+      "name": "TenantOrgClaim",
+      "jsonName": "tenantOrgClaim",
+      "protoField": "tenant_org_claim",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Name of the JWT claim that identifies the tenant organization for\n multi-tenant provisioning.\n\n When set, Stigmer extracts this claim from the JWT payload and resolves\n it to a platform-managed organization. The resolution algorithm:\n\n   1. Read the claim value from the JWT (e.g., claim \"org_id\" yields\n      value \"tenant-123\").\n   2. Look up the platform-managed organization where\n      identity_provider_ref matches this IdP and external_org_id matches\n      the claim value.\n   3. If auto_grant_on_org is true, grant auto_grant_role on the resolved\n      organization instead of the IdP's owning organization.\n\n This enables fully automated multi-tenant provisioning: a platform JWT\n with a tenant claim works end-to-end without any backend provisioning\n steps. The platform only needs to pre-create the tenant organizations\n with their external_org_id mappings.\n\n Requires auto_provision_accounts to be true. The claim name is\n case-sensitive and must match the JWT payload key exactly.\n\n If the JWT does not contain this claim, or the claim value does not\n resolve to a known platform-managed organization, the authentication\n request is rejected with a descriptive error.",
+      "required": false,
+      "validation": {
+        "maxLength": 256
+      }
+    }
+  ]
+}

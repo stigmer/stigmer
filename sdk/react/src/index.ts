@@ -1223,3 +1223,27 @@ export type {
   CostByWorkflowChartProps,
   ExecutionTrendChartProps,
 } from "./workflow";
+
+// ─── Dashboard (Unified Platform) ──────────────────────────────────────────
+export {
+  // Types
+  type DashboardSummary,
+  type DashboardFailedRun,
+  // Data Hooks
+  useAgentExecutionSummary,
+  AgentExecutionSummaryTimeWindow,
+  type UseAgentExecutionSummaryOptions,
+  type UseAgentExecutionSummaryReturn,
+  useDashboardSummary,
+  type UseDashboardSummaryOptions,
+  type UseDashboardSummaryReturn,
+  useDashboardFailedRuns,
+  type UseDashboardFailedRunsReturn,
+  // Styled Components
+  DashboardKPICards,
+  type DashboardKPICardsProps,
+  DashboardFailedRuns,
+  type DashboardFailedRunsProps,
+  OperationalDashboard,
+  type OperationalDashboardProps,
+} from "./dashboard";
