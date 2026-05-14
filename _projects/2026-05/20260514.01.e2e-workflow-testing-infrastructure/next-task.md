@@ -68,10 +68,31 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: T01 Architecture Spike — COMPLETE
-**Status**: In Progress (spike done, moving to T03)
+**Current Task**: OpenFGA Authorization Bypass — COMPLETE
+**Status**: In Progress (auth + authz bypass done, moving to T03)
 
-## Session Progress (2026-05-14)
+## Session Progress (2026-05-14, Session 2)
+
+### Accomplished
+- Resolved OpenFGA authorization blocker — the last gap preventing real gRPC operations
+- Created `TestIamPolicyGrpcRepo` — permit-all `IamPolicyGrpcRepo` implementation for test mode
+- Made `IamPolicyGrpcRepoImpl` conditional on `stigmer.security.mode=production` (matchIfMissing=true)
+- Verified VendorOAuthReconciler is safe (vendor credentials not configured in test mode → FGA write path never reached)
+- All 62 Bazel unit tests pass, all 3 integration tests pass
+- Smoke test now returns `NotFound` for non-existent workflow (previously returned `INTERNAL` from OpenFGA)
+
+### Key Decisions Made
+- **Replace repo, not handlers**: `IamPolicyGrpcRepo` is the single bottleneck — replacing the impl covers all 50+ handlers without modifying any
+- **MongoDB-backed list operations**: `listAuthorizedResourceIds` queries MongoDB for all document IDs of the resource kind (collection name = `ApiResourceKind.name()` by convention), so list handlers work correctly
+- **No OpenFGA Testcontainer needed**: Permit-all bypass is standard for testing services with IAM; OpenFGA can be added later for IAM-specific tests
+
+### Files Changed
+
+**stigmer-cloud**:
+- `IamPolicyGrpcRepoImpl.java` — added `@ConditionalOnProperty` (production-only)
+- `TestIamPolicyGrpcRepo.java` — NEW: permit-all IamPolicyGrpcRepo for test mode
+
+## Session Progress (2026-05-14, Session 1)
 
 ### Accomplished
 - Completed full architecture spike (S1-S8) for E2E testing infrastructure
@@ -109,15 +130,15 @@ When starting a new session:
 - `IntegrationTestSecurityConfig.java` — NEW: permit-all security + synthetic test caller identity
 
 ## Next Steps
-1. **Resolve OpenFGA authorization** — handler pipeline authorization steps call OpenFGA (returns INTERNAL). Options: OpenFGA Testcontainer, conditional authorization, or no-op guard
-2. **T03: Test Harness Core** — complete the full harness with fixture deployer, assertion helpers, trace bundle output
-3. **T05: First real smoke test** — apply a workflow via gRPC, trigger execution, assert COMPLETED
+1. **T03: Test Harness Core** — complete the full harness with fixture deployer, assertion helpers, trace bundle output
+2. **T05: First real smoke test** — apply a workflow via gRPC, trigger execution, assert COMPLETED
+3. **T02: Delete Legacy E2E Tests** — remove `test/e2e/` (76 files) and clean up Makefile/CI references
 
 ## Context for Resume
-- The spike proved the full path works: Go test harness → Testcontainers → Java service → gRPC → handler
-- The remaining gap is OpenFGA authorization — the handler authorization step calls OpenFGA which isn't configured in test mode
-- All Bazel builds succeed in stigmer-cloud with the auth changes
-- All Go tests pass in stigmer/test/integration
+- Both authentication AND authorization are now bypassed in test mode — the full handler pipeline works
+- The smoke test proves it: workflow Get returns `NotFound` (correct) instead of `INTERNAL` (OpenFGA failure)
+- All Bazel builds succeed, all 62 unit tests pass, all 3 integration tests pass
+- The Go test harness in `test/integration/` is ready for fixture deployer and assertion helpers
 
 ## Quick Commands
 
