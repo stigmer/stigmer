@@ -1,0 +1,54 @@
+{
+  "name": "WorkflowBudget",
+  "description": "WorkflowBudget declares cost, token, and duration limits for a workflow execution.\n\n All cost fields use micro-USD (int64): 1 USD = 1,000,000 micros.\n This matches the billing domain convention (CostStamp.provider_cost_micros,\n CreditLedgerEntry.amount_micros, ExecutionReservation.reserved_micros).\n\n The runtime checks accumulated costs between task boundaries. Per-task\n limits (on LlmCallTaskConfig and AgentExecutionConfig) are checked first;\n then the remaining workflow budget is verified before the next task starts.\n\n Example YAML:\n   budget:\n     max_cost_micros: 5000000    # $5.00 per run\n     max_total_tokens: 500000\n     max_duration_seconds: 3600   # 1 hour\n     on_exceeded: budget_exceeded_terminate",
+  "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowBudget",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/spec.proto",
+  "fields": [
+    {
+      "name": "MaxCostMicros",
+      "jsonName": "maxCostMicros",
+      "protoField": "max_cost_micros",
+      "type": {
+        "kind": "int64"
+      },
+      "description": "Maximum total cost for this workflow execution in micro-USD.\n 1 USD = 1,000,000 micros. Example: 2000000 = $2.00.\n When exceeded, the on_exceeded policy is applied.\n Optional — when 0, no cost limit is enforced.",
+      "required": false
+    },
+    {
+      "name": "MaxTotalTokens",
+      "jsonName": "maxTotalTokens",
+      "protoField": "max_total_tokens",
+      "type": {
+        "kind": "int64"
+      },
+      "description": "Maximum total tokens (input + output) across all LLM/agent tasks.\n Optional — when 0, no token limit is enforced.",
+      "required": false
+    },
+    {
+      "name": "MaxDurationSeconds",
+      "jsonName": "maxDurationSeconds",
+      "protoField": "max_duration_seconds",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Maximum wall-clock duration for the entire workflow execution in seconds.\n Optional — when 0, no duration limit is enforced (Temporal's own\n workflow execution timeout still applies).",
+      "required": false
+    },
+    {
+      "name": "OnExceeded",
+      "jsonName": "onExceeded",
+      "protoField": "on_exceeded",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy",
+        "enumValues": [
+          "budget_exceeded_terminate",
+          "budget_exceeded_human_review",
+          "budget_exceeded_warn"
+        ]
+      },
+      "description": "Policy when any budget limit is exceeded.",
+      "required": false
+    }
+  ]
+}

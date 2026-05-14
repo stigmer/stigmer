@@ -11,6 +11,7 @@ import { LibraryBreadcrumbProvider } from "@stigmer/react";
 import { AgentDetailPageInner } from "@/domain/library/agents/AgentDetailPage";
 import { SkillDetailPageInner } from "@/domain/library/skills/SkillDetailPage";
 import { McpServerDetailPageInner } from "@/domain/library/mcp-servers/McpServerDetailPage";
+import { WorkflowDetailPageInner } from "@/domain/workflow/WorkflowDetailPage";
 
 export default function LibraryLayout({
   children,
@@ -56,5 +57,7 @@ function LibraryDetailContent({ detail }: { detail: ActiveDetail }) {
       return <SkillDetailPageInner org={detail.org} slug={detail.slug} />;
     case "mcp-servers":
       return <McpServerDetailPageInner org={detail.org} slug={detail.slug} />;
+    case "workflows":
+      return <WorkflowDetailPageInner org={detail.org} slug={detail.slug} />;
   }
 }

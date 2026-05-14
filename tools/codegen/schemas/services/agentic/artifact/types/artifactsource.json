@@ -1,0 +1,38 @@
+{
+  "name": "ArtifactSource",
+  "description": "ArtifactSource identifies the execution context that produced an artifact.\n\n @internal\n Exactly one of workflow_execution_id or agent_execution_id should be set,\n identifying the producer. task_name is set when the artifact was produced\n by a specific task within a workflow execution.\n\n @since T07 (Artifact Store)",
+  "protoType": "ai.stigmer.agentic.artifact.v1.ArtifactSource",
+  "protoFile": "apis/ai/stigmer/agentic/artifact/v1/spec.proto",
+  "fields": [
+    {
+      "name": "WorkflowExecutionId",
+      "jsonName": "workflowExecutionId",
+      "protoField": "workflow_execution_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "WorkflowExecution that produced this artifact.\n Format: \"wex_{unique-suffix}\"\n Set when the artifact is produced during workflow execution.",
+      "required": false
+    },
+    {
+      "name": "AgentExecutionId",
+      "jsonName": "agentExecutionId",
+      "protoField": "agent_execution_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "AgentExecution that produced this artifact.\n Format: \"aex_{unique-suffix}\"\n Set when the artifact is produced during agent execution\n (either standalone or as a child of a workflow).",
+      "required": false
+    },
+    {
+      "name": "TaskName",
+      "jsonName": "taskName",
+      "protoField": "task_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Name of the task that produced this artifact.\n Matches WorkflowTask.task_name in the execution status.\n Empty for execution-level artifacts (e.g., final workflow output).",
+      "required": false
+    }
+  ]
+}

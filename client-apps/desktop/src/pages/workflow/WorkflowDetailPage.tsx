@@ -50,7 +50,7 @@ export default function WorkflowDetailPage() {
   const handleRunSuccess = useCallback(
     (executionId: string) => {
       toast.success("Workflow execution started");
-      navigate(`/workflows/executions/${executionId}`);
+      navigate(`/executions/${executionId}`);
     },
     [navigate],
   );
@@ -90,7 +90,7 @@ export default function WorkflowDetailPage() {
     if (confirmed) {
       try {
         await deleteResource();
-        navigate("/workflows");
+        navigate("/library/workflows");
       } catch {
         // error toast handled by useDeleteResource
       }
@@ -160,7 +160,7 @@ export default function WorkflowDetailPage() {
         primaryAction={primaryAction}
         actions={actions}
         additionalTabs={additionalTabs}
-        onExecutionClick={(id) => navigate(`/workflows/executions/${id}`)}
+        onExecutionClick={(id) => navigate(`/executions/${id}`)}
       />
       <ConfirmDialog
         state={confirmState}

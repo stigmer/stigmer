@@ -1,9 +1,13 @@
-import { WorkflowExecutionDetailPage } from "@/domain/workflow/WorkflowExecutionDetailPage";
+import { redirect } from "next/navigation";
 
-export default function ExecutionDetailRoute({
+export async function generateStaticParams() {
+  return [{ id: "__placeholder__" }];
+}
+
+export default function ExecutionDetailRedirect({
   params,
 }: {
   params: { id: string };
 }) {
-  return <WorkflowExecutionDetailPage executionId={params.id} />;
+  redirect(`/executions/${params.id}`);
 }

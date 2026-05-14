@@ -1,0 +1,78 @@
+{
+  "name": "WorkflowSpec",
+  "kind": "WORKFLOW_SPEC",
+  "description": "WorkflowSpec defines the configurable properties of a workflow.\n\n @internal\n Follows the \"kind + Struct\" pattern from CloudResource (Planton).\n This replaces the old `synthesized_yaml` field with structured proto definitions.\n Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,\n providing maximum flexibility and extensibility.\n The overview.md file provides the SDK-facing description and example YAML.",
+  "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowSpec",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable description for UI and marketplace display.",
+      "required": false
+    },
+    {
+      "name": "Document",
+      "jsonName": "document",
+      "protoField": "document",
+      "type": {
+        "kind": "message",
+        "messageType": "WorkflowDocument"
+      },
+      "description": "Workflow document metadata including DSL version, namespace, name, and version.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Tasks",
+      "jsonName": "tasks",
+      "protoField": "tasks",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "WorkflowTask"
+        }
+      },
+      "description": "Ordered list of tasks that make up this workflow.\n Tasks execute sequentially unless fork/parallel is used.",
+      "required": false,
+      "validation": {
+        "minItems": 1
+      }
+    },
+    {
+      "name": "Env",
+      "jsonName": "env",
+      "protoField": "env",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "message",
+          "messageType": "EnvVarDeclaration"
+        }
+      },
+      "description": "Environment variable declarations for this workflow.\n Keys are variable names; values describe their metadata and optionality.",
+      "required": false
+    },
+    {
+      "name": "Budget",
+      "jsonName": "budget",
+      "protoField": "budget",
+      "type": {
+        "kind": "message",
+        "messageType": "WorkflowBudget"
+      },
+      "description": "Budget limits for this workflow execution.\n When set, the runtime (T13) enforces cost, token, and duration limits\n across all tasks. The existing org-level billing reservation system\n (AuthorizeExecution / ExecutionBillingSignal) remains the safety net\n for overall credit exhaustion; workflow budgets prevent individual\n workflows from consuming more than intended.\n Optional — when not set, no workflow-level budget is enforced.",
+      "required": false
+    }
+  ]
+}

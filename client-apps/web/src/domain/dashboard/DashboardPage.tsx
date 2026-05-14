@@ -3,26 +3,33 @@
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  WorkflowDashboard,
+  useOrg,
+  OperationalDashboard,
   CostByWorkflowChart,
   ExecutionTrendChart,
   useWorkflowDashboardSummary,
-  useActiveOrgSlug,
+  type DashboardFailedRun,
 } from "@stigmer/react";
 
 export function DashboardPage() {
-  const org = useActiveOrgSlug();
+  const { activeOrg } = useOrg();
+  const org = activeOrg?.metadata?.slug ?? "";
+  const orgId = activeOrg?.metadata?.id;
   const router = useRouter();
 
-  const { summary, isLoading: summaryLoading } =
-    useWorkflowDashboardSummary({
-      org,
-      refetchInterval: 60_000,
-    });
+  const { summary: workflowSummary, isLoading: workflowSummaryLoading } =
+    useWorkflowDashboardSummary({ org, refetchInterval: 60_000 });
 
-  const handleExecutionNav = useCallback(
+  const handleApprovalClick = useCallback(
     (executionId: string) => {
       router.push(`/executions/${executionId}`);
+    },
+    [router],
+  );
+
+  const handleFailedRunClick = useCallback(
+    (id: string, _type: DashboardFailedRun["type"]) => {
+      router.push(`/executions/${id}`);
     },
     [router],
   );
@@ -32,28 +39,29 @@ export function DashboardPage() {
       <div className="mb-8">
         <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Operational overview of workflow executions across your organization.
+          Operational overview across your organization.
         </p>
       </div>
 
-      <WorkflowDashboard
+      <OperationalDashboard
         org={org}
-        onApprovalClick={handleExecutionNav}
-        onFailedRunClick={handleExecutionNav}
+        orgId={orgId}
+        onApprovalClick={handleApprovalClick}
+        onFailedRunClick={handleFailedRunClick}
         className="mb-8"
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-lg border border-border bg-card p-4">
           <CostByWorkflowChart
-            breakdowns={summary?.costByWorkflow ?? []}
-            isLoading={summaryLoading}
+            breakdowns={workflowSummary?.costByWorkflow ?? []}
+            isLoading={workflowSummaryLoading}
           />
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
           <ExecutionTrendChart
-            summary={summary ?? null}
-            isLoading={summaryLoading}
+            summary={workflowSummary ?? null}
+            isLoading={workflowSummaryLoading}
           />
         </div>
       </div>

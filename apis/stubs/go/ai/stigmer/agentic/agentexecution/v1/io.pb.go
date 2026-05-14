@@ -10,6 +10,7 @@ import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -21,6 +22,62 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+// Controls the time range for agent execution summary queries.
+type AgentExecutionSummaryTimeWindow int32
+
+const (
+	AgentExecutionSummaryTimeWindow_AGENT_EXECUTION_SUMMARY_TIME_WINDOW_UNSPECIFIED AgentExecutionSummaryTimeWindow = 0
+	AgentExecutionSummaryTimeWindow_AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_24H    AgentExecutionSummaryTimeWindow = 1
+	AgentExecutionSummaryTimeWindow_AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_7D     AgentExecutionSummaryTimeWindow = 2
+	AgentExecutionSummaryTimeWindow_AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_30D    AgentExecutionSummaryTimeWindow = 3
+	AgentExecutionSummaryTimeWindow_AGENT_EXECUTION_SUMMARY_TIME_WINDOW_ALL_TIME    AgentExecutionSummaryTimeWindow = 4
+)
+
+// Enum value maps for AgentExecutionSummaryTimeWindow.
+var (
+	AgentExecutionSummaryTimeWindow_name = map[int32]string{
+		0: "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_UNSPECIFIED",
+		1: "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_24H",
+		2: "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_7D",
+		3: "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_30D",
+		4: "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_ALL_TIME",
+	}
+	AgentExecutionSummaryTimeWindow_value = map[string]int32{
+		"AGENT_EXECUTION_SUMMARY_TIME_WINDOW_UNSPECIFIED": 0,
+		"AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_24H":    1,
+		"AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_7D":     2,
+		"AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_30D":    3,
+		"AGENT_EXECUTION_SUMMARY_TIME_WINDOW_ALL_TIME":    4,
+	}
+)
+
+func (x AgentExecutionSummaryTimeWindow) Enum() *AgentExecutionSummaryTimeWindow {
+	p := new(AgentExecutionSummaryTimeWindow)
+	*p = x
+	return p
+}
+
+func (x AgentExecutionSummaryTimeWindow) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AgentExecutionSummaryTimeWindow) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_enumTypes[0].Descriptor()
+}
+
+func (AgentExecutionSummaryTimeWindow) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_io_proto_enumTypes[0]
+}
+
+func (x AgentExecutionSummaryTimeWindow) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AgentExecutionSummaryTimeWindow.Descriptor instead.
+func (AgentExecutionSummaryTimeWindow) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{0}
+}
 
 // AgentExecutionId wraps an agent execution identifier.
 type AgentExecutionId struct {
@@ -2800,11 +2857,227 @@ func (x *HarnessCostSummary) GetExecutionCount() int32 {
 	return 0
 }
 
+// GetAgentExecutionSummaryRequest fetches aggregated execution statistics
+// for an organization's agent executions.
+//
+// @since Unified Platform Dashboard
+type GetAgentExecutionSummaryRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization slug to scope the summary.
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// Time window for aggregation.
+	//
+	// Defaults to LAST_7D when unspecified.
+	TimeWindow    AgentExecutionSummaryTimeWindow `protobuf:"varint,2,opt,name=time_window,json=timeWindow,proto3,enum=ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummaryTimeWindow" json:"time_window,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAgentExecutionSummaryRequest) Reset() {
+	*x = GetAgentExecutionSummaryRequest{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAgentExecutionSummaryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAgentExecutionSummaryRequest) ProtoMessage() {}
+
+func (x *GetAgentExecutionSummaryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAgentExecutionSummaryRequest.ProtoReflect.Descriptor instead.
+func (*GetAgentExecutionSummaryRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *GetAgentExecutionSummaryRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *GetAgentExecutionSummaryRequest) GetTimeWindow() AgentExecutionSummaryTimeWindow {
+	if x != nil {
+		return x.TimeWindow
+	}
+	return AgentExecutionSummaryTimeWindow_AGENT_EXECUTION_SUMMARY_TIME_WINDOW_UNSPECIFIED
+}
+
+// AgentExecutionSummary contains aggregated operational statistics for agent
+// executions. Designed for the platform dashboard's unified health view.
+//
+// Cost is intentionally omitted. The dashboard sources cost from
+// getOrgUsageReport (billing source of truth) to prevent double-counting
+// when workflows delegate to agents. See AD-DASH-005.
+//
+// @since Unified Platform Dashboard
+type AgentExecutionSummary struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Number of executions currently in a non-terminal phase
+	// (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).
+	ActiveCount int32 `protobuf:"varint,1,opt,name=active_count,json=activeCount,proto3" json:"active_count,omitempty"`
+	// Execution counts broken down by ExecutionPhase enum value.
+	//
+	// Keys are ExecutionPhase enum values (as int32).
+	// Only phases with at least one execution are included.
+	PhaseCounts map[int32]int32 `protobuf:"bytes,2,rep,name=phase_counts,json=phaseCounts,proto3" json:"phase_counts,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	// Mean execution duration (from started_at to completed_at) for completed
+	// executions in the time window.
+	//
+	// Zero when no completed executions exist.
+	AvgDuration *durationpb.Duration `protobuf:"bytes,3,opt,name=avg_duration,json=avgDuration,proto3" json:"avg_duration,omitempty"`
+	// Agents with the highest failure count in the time window, ranked descending.
+	//
+	// Capped at 10 entries.
+	TopFailingAgents []*AgentFailureRank `protobuf:"bytes,4,rep,name=top_failing_agents,json=topFailingAgents,proto3" json:"top_failing_agents,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *AgentExecutionSummary) Reset() {
+	*x = AgentExecutionSummary{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgentExecutionSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentExecutionSummary) ProtoMessage() {}
+
+func (x *AgentExecutionSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentExecutionSummary.ProtoReflect.Descriptor instead.
+func (*AgentExecutionSummary) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *AgentExecutionSummary) GetActiveCount() int32 {
+	if x != nil {
+		return x.ActiveCount
+	}
+	return 0
+}
+
+func (x *AgentExecutionSummary) GetPhaseCounts() map[int32]int32 {
+	if x != nil {
+		return x.PhaseCounts
+	}
+	return nil
+}
+
+func (x *AgentExecutionSummary) GetAvgDuration() *durationpb.Duration {
+	if x != nil {
+		return x.AvgDuration
+	}
+	return nil
+}
+
+func (x *AgentExecutionSummary) GetTopFailingAgents() []*AgentFailureRank {
+	if x != nil {
+		return x.TopFailingAgents
+	}
+	return nil
+}
+
+// AgentFailureRank represents an agent and its failure count within
+// a time window.
+//
+// @since Unified Platform Dashboard
+type AgentFailureRank struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Agent slug (org/name format).
+	AgentSlug string `protobuf:"bytes,1,opt,name=agent_slug,json=agentSlug,proto3" json:"agent_slug,omitempty"`
+	// Human-readable agent name for display.
+	AgentName string `protobuf:"bytes,2,opt,name=agent_name,json=agentName,proto3" json:"agent_name,omitempty"`
+	// Number of failed executions in the time window.
+	FailureCount  int32 `protobuf:"varint,3,opt,name=failure_count,json=failureCount,proto3" json:"failure_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AgentFailureRank) Reset() {
+	*x = AgentFailureRank{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgentFailureRank) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentFailureRank) ProtoMessage() {}
+
+func (x *AgentFailureRank) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentFailureRank.ProtoReflect.Descriptor instead.
+func (*AgentFailureRank) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *AgentFailureRank) GetAgentSlug() string {
+	if x != nil {
+		return x.AgentSlug
+	}
+	return ""
+}
+
+func (x *AgentFailureRank) GetAgentName() string {
+	if x != nil {
+		return x.AgentName
+	}
+	return ""
+}
+
+func (x *AgentFailureRank) GetFailureCount() int32 {
+	if x != nil {
+		return x.FailureCount
+	}
+	return 0
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/agentic/agentexecution/v1/io.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a\x1bbuf/validate/validate.proto\"0\n" +
+	"-ai/stigmer/agentic/agentexecution/v1/io.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1egoogle/protobuf/duration.proto\"0\n" +
 	"\x10AgentExecutionId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\")\n" +
 	"\tSessionId\x12\x1c\n" +
@@ -2972,7 +3245,31 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\x14billable_cost_micros\x18\x02 \x01(\x03R\x12billableCostMicros\x12\x1d\n" +
 	"\n" +
 	"call_count\x18\x03 \x01(\x05R\tcallCount\x12'\n" +
-	"\x0fexecution_count\x18\x04 \x01(\x05R\x0eexecutionCountB\xc8\x02\n" +
+	"\x0fexecution_count\x18\x04 \x01(\x05R\x0eexecutionCount\"\xa4\x01\n" +
+	"\x1fGetAgentExecutionSummaryRequest\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12f\n" +
+	"\vtime_window\x18\x02 \x01(\x0e2E.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummaryTimeWindowR\n" +
+	"timeWindow\"\x8f\x03\n" +
+	"\x15AgentExecutionSummary\x12!\n" +
+	"\factive_count\x18\x01 \x01(\x05R\vactiveCount\x12o\n" +
+	"\fphase_counts\x18\x02 \x03(\v2L.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary.PhaseCountsEntryR\vphaseCounts\x12<\n" +
+	"\favg_duration\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\vavgDuration\x12d\n" +
+	"\x12top_failing_agents\x18\x04 \x03(\v26.ai.stigmer.agentic.agentexecution.v1.AgentFailureRankR\x10topFailingAgents\x1a>\n" +
+	"\x10PhaseCountsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\x05R\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"u\n" +
+	"\x10AgentFailureRank\x12\x1d\n" +
+	"\n" +
+	"agent_slug\x18\x01 \x01(\tR\tagentSlug\x12\x1d\n" +
+	"\n" +
+	"agent_name\x18\x02 \x01(\tR\tagentName\x12#\n" +
+	"\rfailure_count\x18\x03 \x01(\x05R\ffailureCount*\x9d\x02\n" +
+	"\x1fAgentExecutionSummaryTimeWindow\x123\n" +
+	"/AGENT_EXECUTION_SUMMARY_TIME_WINDOW_UNSPECIFIED\x10\x00\x120\n" +
+	",AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_24H\x10\x01\x12/\n" +
+	"+AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_7D\x10\x02\x120\n" +
+	",AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_30D\x10\x03\x120\n" +
+	",AGENT_EXECUTION_SUMMARY_TIME_WINDOW_ALL_TIME\x10\x04B\xc8\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\aIoProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -2987,74 +3284,85 @@ func file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
+var file_ai_stigmer_agentic_agentexecution_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
 var file_ai_stigmer_agentic_agentexecution_v1_io_proto_goTypes = []any{
-	(*AgentExecutionId)(nil),                    // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionId
-	(*SessionId)(nil),                           // 1: ai.stigmer.agentic.agentexecution.v1.SessionId
-	(*AgentExecutionList)(nil),                  // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionList
-	(*ListAgentExecutionsRequest)(nil),          // 3: ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest
-	(*ListAgentExecutionsBySessionRequest)(nil), // 4: ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest
-	(*AgentExecutionUpdateStatusInput)(nil),     // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput
-	(*UpdateStatusResponse)(nil),                // 6: ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse
-	(*SubmitApprovalInput)(nil),                 // 7: ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput
-	(*ApprovalDecisionList)(nil),                // 8: ai.stigmer.agentic.agentexecution.v1.ApprovalDecisionList
-	(*CancelAgentExecutionInput)(nil),           // 9: ai.stigmer.agentic.agentexecution.v1.CancelAgentExecutionInput
-	(*TerminateAgentExecutionInput)(nil),        // 10: ai.stigmer.agentic.agentexecution.v1.TerminateAgentExecutionInput
-	(*RecoverAgentExecutionInput)(nil),          // 11: ai.stigmer.agentic.agentexecution.v1.RecoverAgentExecutionInput
-	(*PauseAgentExecutionInput)(nil),            // 12: ai.stigmer.agentic.agentexecution.v1.PauseAgentExecutionInput
-	(*ResumeAgentExecutionInput)(nil),           // 13: ai.stigmer.agentic.agentexecution.v1.ResumeAgentExecutionInput
-	(*UploadAttachmentRequest)(nil),             // 14: ai.stigmer.agentic.agentexecution.v1.UploadAttachmentRequest
-	(*UploadAttachmentResponse)(nil),            // 15: ai.stigmer.agentic.agentexecution.v1.UploadAttachmentResponse
-	(*GetArtifactDownloadUrlRequest)(nil),       // 16: ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest
-	(*GetArtifactDownloadUrlResponse)(nil),      // 17: ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse
-	(*GetArtifactContentRequest)(nil),           // 18: ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest
-	(*GetArtifactContentResponse)(nil),          // 19: ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse
-	(*GetExecutionUsageReportInput)(nil),        // 20: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput
-	(*GetExecutionUsageReportOutput)(nil),       // 21: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput
-	(*GetSessionUsageReportInput)(nil),          // 22: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput
-	(*GetSessionUsageReportOutput)(nil),         // 23: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput
-	(*GetAgentUsageReportInput)(nil),            // 24: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput
-	(*GetAgentUsageReportOutput)(nil),           // 25: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput
-	(*GetOrgUsageReportInput)(nil),              // 26: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput
-	(*GetOrgUsageReportOutput)(nil),             // 27: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput
-	(*ExecutionUsageSummary)(nil),               // 28: ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary
-	(*SessionUsageSummary)(nil),                 // 29: ai.stigmer.agentic.agentexecution.v1.SessionUsageSummary
-	(*AgentUsageSummary)(nil),                   // 30: ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary
-	(*DailyCostEntry)(nil),                      // 31: ai.stigmer.agentic.agentexecution.v1.DailyCostEntry
-	(*HarnessCostSummary)(nil),                  // 32: ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary
-	(*AgentExecution)(nil),                      // 33: ai.stigmer.agentic.agentexecution.v1.AgentExecution
-	(ExecutionPhase)(0),                         // 34: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	(*AgentExecutionStatus)(nil),                // 35: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
-	(ExecutionControlSignal)(0),                 // 36: ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
-	(ApprovalAction)(0),                         // 37: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(*UsageReportAggregate)(nil),                // 38: ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
-	(*ModelUsage)(nil),                          // 39: ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	(AgentExecutionSummaryTimeWindow)(0),        // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummaryTimeWindow
+	(*AgentExecutionId)(nil),                    // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecutionId
+	(*SessionId)(nil),                           // 2: ai.stigmer.agentic.agentexecution.v1.SessionId
+	(*AgentExecutionList)(nil),                  // 3: ai.stigmer.agentic.agentexecution.v1.AgentExecutionList
+	(*ListAgentExecutionsRequest)(nil),          // 4: ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest
+	(*ListAgentExecutionsBySessionRequest)(nil), // 5: ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest
+	(*AgentExecutionUpdateStatusInput)(nil),     // 6: ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput
+	(*UpdateStatusResponse)(nil),                // 7: ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse
+	(*SubmitApprovalInput)(nil),                 // 8: ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput
+	(*ApprovalDecisionList)(nil),                // 9: ai.stigmer.agentic.agentexecution.v1.ApprovalDecisionList
+	(*CancelAgentExecutionInput)(nil),           // 10: ai.stigmer.agentic.agentexecution.v1.CancelAgentExecutionInput
+	(*TerminateAgentExecutionInput)(nil),        // 11: ai.stigmer.agentic.agentexecution.v1.TerminateAgentExecutionInput
+	(*RecoverAgentExecutionInput)(nil),          // 12: ai.stigmer.agentic.agentexecution.v1.RecoverAgentExecutionInput
+	(*PauseAgentExecutionInput)(nil),            // 13: ai.stigmer.agentic.agentexecution.v1.PauseAgentExecutionInput
+	(*ResumeAgentExecutionInput)(nil),           // 14: ai.stigmer.agentic.agentexecution.v1.ResumeAgentExecutionInput
+	(*UploadAttachmentRequest)(nil),             // 15: ai.stigmer.agentic.agentexecution.v1.UploadAttachmentRequest
+	(*UploadAttachmentResponse)(nil),            // 16: ai.stigmer.agentic.agentexecution.v1.UploadAttachmentResponse
+	(*GetArtifactDownloadUrlRequest)(nil),       // 17: ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest
+	(*GetArtifactDownloadUrlResponse)(nil),      // 18: ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse
+	(*GetArtifactContentRequest)(nil),           // 19: ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest
+	(*GetArtifactContentResponse)(nil),          // 20: ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse
+	(*GetExecutionUsageReportInput)(nil),        // 21: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportInput
+	(*GetExecutionUsageReportOutput)(nil),       // 22: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput
+	(*GetSessionUsageReportInput)(nil),          // 23: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput
+	(*GetSessionUsageReportOutput)(nil),         // 24: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput
+	(*GetAgentUsageReportInput)(nil),            // 25: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput
+	(*GetAgentUsageReportOutput)(nil),           // 26: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput
+	(*GetOrgUsageReportInput)(nil),              // 27: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput
+	(*GetOrgUsageReportOutput)(nil),             // 28: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput
+	(*ExecutionUsageSummary)(nil),               // 29: ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary
+	(*SessionUsageSummary)(nil),                 // 30: ai.stigmer.agentic.agentexecution.v1.SessionUsageSummary
+	(*AgentUsageSummary)(nil),                   // 31: ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary
+	(*DailyCostEntry)(nil),                      // 32: ai.stigmer.agentic.agentexecution.v1.DailyCostEntry
+	(*HarnessCostSummary)(nil),                  // 33: ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary
+	(*GetAgentExecutionSummaryRequest)(nil),     // 34: ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest
+	(*AgentExecutionSummary)(nil),               // 35: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary
+	(*AgentFailureRank)(nil),                    // 36: ai.stigmer.agentic.agentexecution.v1.AgentFailureRank
+	nil,                                         // 37: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary.PhaseCountsEntry
+	(*AgentExecution)(nil),                      // 38: ai.stigmer.agentic.agentexecution.v1.AgentExecution
+	(ExecutionPhase)(0),                         // 39: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	(*AgentExecutionStatus)(nil),                // 40: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
+	(ExecutionControlSignal)(0),                 // 41: ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
+	(ApprovalAction)(0),                         // 42: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(*UsageReportAggregate)(nil),                // 43: ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
+	(*ModelUsage)(nil),                          // 44: ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	(*durationpb.Duration)(nil),                 // 45: google.protobuf.Duration
 }
 var file_ai_stigmer_agentic_agentexecution_v1_io_proto_depIdxs = []int32{
-	33, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionList.entries:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
-	34, // 1: ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	35, // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
-	36, // 3: ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse.signal:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
-	37, // 4: ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	7,  // 5: ai.stigmer.agentic.agentexecution.v1.ApprovalDecisionList.decisions:type_name -> ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput
-	38, // 6: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput.aggregate:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
-	39, // 7: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
-	38, // 8: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
-	28, // 9: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.executions:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary
-	39, // 10: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
-	38, // 11: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
-	39, // 12: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
-	29, // 13: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.sessions:type_name -> ai.stigmer.agentic.agentexecution.v1.SessionUsageSummary
-	39, // 14: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
-	30, // 15: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.top_agents_by_cost:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary
-	31, // 16: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.daily_costs:type_name -> ai.stigmer.agentic.agentexecution.v1.DailyCostEntry
-	32, // 17: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.harness_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary
-	34, // 18: ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	19, // [19:19] is the sub-list for method output_type
-	19, // [19:19] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	38, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionList.entries:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecution
+	39, // 1: ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	40, // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput.status:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus
+	41, // 3: ai.stigmer.agentic.agentexecution.v1.UpdateStatusResponse.signal:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionControlSignal
+	42, // 4: ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	8,  // 5: ai.stigmer.agentic.agentexecution.v1.ApprovalDecisionList.decisions:type_name -> ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput
+	43, // 6: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput.aggregate:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
+	44, // 7: ai.stigmer.agentic.agentexecution.v1.GetExecutionUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	43, // 8: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
+	29, // 9: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.executions:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary
+	44, // 10: ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	43, // 11: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
+	44, // 12: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	30, // 13: ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.sessions:type_name -> ai.stigmer.agentic.agentexecution.v1.SessionUsageSummary
+	44, // 14: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	31, // 15: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.top_agents_by_cost:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentUsageSummary
+	32, // 16: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.daily_costs:type_name -> ai.stigmer.agentic.agentexecution.v1.DailyCostEntry
+	33, // 17: ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.harness_breakdown:type_name -> ai.stigmer.agentic.agentexecution.v1.HarnessCostSummary
+	39, // 18: ai.stigmer.agentic.agentexecution.v1.ExecutionUsageSummary.phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	0,  // 19: ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest.time_window:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummaryTimeWindow
+	37, // 20: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary.phase_counts:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary.PhaseCountsEntry
+	45, // 21: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary.avg_duration:type_name -> google.protobuf.Duration
+	36, // 22: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary.top_failing_agents:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentFailureRank
+	23, // [23:23] is the sub-list for method output_type
+	23, // [23:23] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_io_proto_init() }
@@ -3070,13 +3378,14 @@ func file_ai_stigmer_agentic_agentexecution_v1_io_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   33,
+			NumEnums:      1,
+			NumMessages:   37,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_agentic_agentexecution_v1_io_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_agentic_agentexecution_v1_io_proto_depIdxs,
+		EnumInfos:         file_ai_stigmer_agentic_agentexecution_v1_io_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_agentic_agentexecution_v1_io_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_agentic_agentexecution_v1_io_proto = out.File

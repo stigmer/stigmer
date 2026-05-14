@@ -1,0 +1,27 @@
+{
+  "name": "SwitchTaskConfig",
+  "kind": "SWITCH",
+  "description": "SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally.\n\n @internal\n YAML Example:\n   - taskName:\n       switch:\n         - case1:\n             when: ${ $context.value \u003e 5 }\n             then: highValueTask\n         - defaultCase:\n             then: unknownTask\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 3",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.SwitchTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/switch.proto",
+  "discriminatorValue": "switch_case",
+  "fields": [
+    {
+      "name": "Cases",
+      "jsonName": "cases",
+      "protoField": "cases",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "SwitchCase"
+        }
+      },
+      "description": "List of switch cases (at least one required).\n Cases are evaluated in order. First matching case executes.\n If no \"when\" is specified, the case acts as default.",
+      "required": false,
+      "validation": {
+        "minItems": 1
+      }
+    }
+  ]
+}

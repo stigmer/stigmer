@@ -60,6 +60,16 @@ class WorkflowExecutionQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubscribeEventsRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_event__pb2.WorkflowExecutionEvent.FromString,
                 _registered_method=True)
+        self.getExecutionSummary = channel.unary_unary(
+                '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/getExecutionSummary',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.GetExecutionSummaryRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.ExecutionSummary.FromString,
+                _registered_method=True)
+        self.listPendingApprovals = channel.unary_unary(
+                '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/listPendingApprovals',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.ListPendingApprovalsRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.PendingApprovalsList.FromString,
+                _registered_method=True)
 
 
 class WorkflowExecutionQueryControllerServicer(object):
@@ -540,6 +550,67 @@ class WorkflowExecutionQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getExecutionSummary(self, request, context):
+        """Get aggregated execution statistics for an organization's workflows.
+
+        Returns counts by phase, total cost, average duration, top failing
+        workflows, and per-workflow cost breakdown — scoped to a configurable
+        time window (24h, 7d, 30d, all-time).
+
+        @internal
+        Authorization:
+        Custom authorization — user must have organization-level access.
+        Results are scoped to the user's organization.
+
+        Use Cases:
+
+        1. Dashboard Overview:
+        - Display KPI cards: active runs, completed, failed, total cost
+        - Time window selector toggles between 24h / 7d / 30d views
+
+        2. Cost Monitoring:
+        - Show per-workflow cost breakdown to identify expensive workflows
+        - Track cost trends across time windows
+
+        3. Reliability Monitoring:
+        - Surface top failing workflows for investigation
+        - Track failure rates across the organization
+
+        @since T14 (Dashboard Integration)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def listPendingApprovals(self, request, context):
+        """List workflow executions with pending human_input tasks awaiting reviewer decisions.
+
+        Returns a paginated list of executions where at least one human_input
+        task is actively waiting for a response. Each entry includes the
+        execution context, task details, requester, and timeout information.
+
+        @internal
+        Authorization:
+        Custom authorization — user must have organization-level access.
+        Results are scoped to the user's organization.
+
+        Use Cases:
+
+        1. Pending Approvals Dashboard Widget:
+        - Display a list of items requiring human attention
+        - Show time waiting and timeout countdown
+        - Link to execution viewer for review action
+
+        2. Approval Queue:
+        - Reviewers see all pending approvals in one view
+        - Sorted by urgency (closest to timeout first)
+
+        @since T14 (Dashboard Integration)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_WorkflowExecutionQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -572,6 +643,16 @@ def add_WorkflowExecutionQueryControllerServicer_to_server(servicer, server):
                     servicer.subscribeEvents,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubscribeEventsRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_event__pb2.WorkflowExecutionEvent.SerializeToString,
+            ),
+            'getExecutionSummary': grpc.unary_unary_rpc_method_handler(
+                    servicer.getExecutionSummary,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.GetExecutionSummaryRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.ExecutionSummary.SerializeToString,
+            ),
+            'listPendingApprovals': grpc.unary_unary_rpc_method_handler(
+                    servicer.listPendingApprovals,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.ListPendingApprovalsRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.PendingApprovalsList.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -750,6 +831,60 @@ class WorkflowExecutionQueryController(object):
             '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/subscribeEvents',
             ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.SubscribeEventsRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_event__pb2.WorkflowExecutionEvent.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getExecutionSummary(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/getExecutionSummary',
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.GetExecutionSummaryRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.ExecutionSummary.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def listPendingApprovals(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController/listPendingApprovals',
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.ListPendingApprovalsRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflowexecution_dot_v1_dot_io__pb2.PendingApprovalsList.FromString,
             options,
             channel_credentials,
             insecure,

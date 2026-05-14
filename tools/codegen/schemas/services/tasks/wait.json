@@ -1,0 +1,33 @@
+{
+  "name": "WaitTaskConfig",
+  "kind": "WAIT",
+  "description": "WaitTaskConfig defines the configuration for wait tasks that pause workflow execution.\n\n Supports both relative durations and absolute timestamps.\n\n @internal\n Implemented via Temporal timers.\n\n YAML Examples:\n\n   Relative duration:\n   - waitForApproval:\n       wait:\n         duration:\n           days: 7\n\n   Absolute timestamp:\n   - waitUntilMarketOpen:\n       wait:\n         until: \"2026-03-02T09:30:00Z\"\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 8",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.WaitTaskConfig",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/wait.proto",
+  "discriminatorValue": "wait",
+  "fields": [
+    {
+      "name": "Duration",
+      "jsonName": "duration",
+      "protoField": "duration",
+      "type": {
+        "kind": "message",
+        "messageType": "Duration"
+      },
+      "description": "Relative duration to wait from now.\n\n Use this when you want to wait for a specific amount of time\n regardless of when the workflow reaches this task.\n\n Example: { days: 7 } = wait 1 week from now",
+      "required": false,
+      "oneofGroup": "wait_type"
+    },
+    {
+      "name": "Until",
+      "jsonName": "until",
+      "protoField": "until",
+      "type": {
+        "kind": "timestamp"
+      },
+      "description": "Absolute timestamp to wait until.\n\n Use this when you want to wait until a specific point in time.\n If the timestamp is in the past, the task completes immediately.\n\n Example: \"2026-03-01T09:00:00Z\" = wait until March 1st, 2026 at 9am UTC",
+      "required": false,
+      "oneofGroup": "wait_type"
+    }
+  ]
+}

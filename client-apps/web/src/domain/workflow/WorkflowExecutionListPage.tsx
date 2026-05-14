@@ -73,12 +73,12 @@ export function WorkflowExecutionListPage() {
                     className="cursor-pointer transition-colors hover:bg-muted/30"
                     onClick={() => {
                       if (exec.metadata?.id) {
-                        router.push(`/workflows/executions/${exec.metadata.id}`);
+                        router.push(`/executions/${exec.metadata.id}`);
                       }
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && exec.metadata?.id) {
-                        router.push(`/workflows/executions/${exec.metadata.id}`);
+                        router.push(`/executions/${exec.metadata.id}`);
                       }
                     }}
                   >

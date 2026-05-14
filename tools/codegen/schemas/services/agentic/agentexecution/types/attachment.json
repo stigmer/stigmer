@@ -1,0 +1,74 @@
+{
+  "name": "Attachment",
+  "description": "Attachment represents a file attached to an agent execution.\n\n All files must be pre-uploaded via the uploadAttachment RPC and referenced\n by storage_key. This ensures consistent behavior regardless of file size.\n\n ## Usage Flow\n\n 1. Client calls uploadAttachment RPC with file content\n 2. Server returns a storage_key\n 3. Client creates execution with Attachment containing that storage_key\n 4. Agent-runner downloads file from storage and injects into sandbox\n\n ## Mount Path\n\n The mount_path determines where the file appears in the sandbox.\n If not specified, defaults to /inputs/{filename}\n\n Examples:\n   - mount_path: \"/inputs/config.yaml\" -\u003e file at /inputs/config.yaml\n   - mount_path: \"/workspace/data/\" -\u003e directory extracted at /workspace/data/\n\n @since Artifact Lifecycle (Attachments \u0026 Outputs)",
+  "protoType": "ai.stigmer.agentic.agentexecution.v1.Attachment",
+  "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Filename",
+      "jsonName": "filename",
+      "protoField": "filename",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Original filename for display and default mount path derivation.\n Example: \"config.yaml\", \"input-data.zip\"",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "StorageKey",
+      "jsonName": "storageKey",
+      "protoField": "storage_key",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Reference to pre-uploaded file in artifact store (required).\n Obtained by calling uploadAttachment RPC before creating the execution.\n Format: \"attachments/{ulid}/{filename}\"",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "MountPath",
+      "jsonName": "mountPath",
+      "protoField": "mount_path",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Path in sandbox where file will be placed.\n Defaults to \"/inputs/{filename}\" if not specified.\n Example: \"/workspace/input.yaml\", \"/inputs/data/\"",
+      "required": false
+    },
+    {
+      "name": "ContentType",
+      "jsonName": "contentType",
+      "protoField": "content_type",
+      "type": {
+        "kind": "string"
+      },
+      "description": "MIME type for content negotiation (optional).\n Example: \"application/yaml\", \"text/plain\", \"application/zip\"",
+      "required": false
+    },
+    {
+      "name": "Extract",
+      "jsonName": "extract",
+      "protoField": "extract",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "When true, the attachment is a zip archive that should be extracted\n at mount_path rather than written as a single file.\n Set automatically by the CLI when a directory is attached.",
+      "required": false
+    },
+    {
+      "name": "LocalPath",
+      "jsonName": "localPath",
+      "protoField": "local_path",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Absolute filesystem path to the original file on the CLI host (optional).\n\n When set and the runner is in local mode, the file is read directly\n from this path instead of downloading from artifact storage via\n storage_key.  This eliminates the storage round-trip for local\n executions.\n\n Ignored when the runner is not in local mode (cloud runners use\n storage_key exclusively).\n\n The CLI sets this unconditionally to the resolved absolute path of\n the attached file.  storage_key remains required -- the upload still\n happens for execution history and replay support.",
+      "required": false
+    }
+  ]
+}

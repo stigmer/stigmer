@@ -1,0 +1,327 @@
+{
+  "resource": "executioncontext",
+  "package": "ai.stigmer.agentic.executioncontext.v1",
+  "goImportPath": "executioncontextv1",
+  "services": [
+    {
+      "name": "ExecutionContextCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/executioncontext/v1/command.proto",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "ExecutionContext",
+          "inputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
+          "outputType": "ExecutionContext",
+          "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
+          "description": "Create or update an ExecutionContext.\n\n @internal\n The authorization and state-operation are determined depending on whether the execution context\n is going to be created or updated which is determined as part of the request execution."
+        },
+        {
+          "name": "Create",
+          "inputType": "ExecutionContext",
+          "inputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
+          "outputType": "ExecutionContext",
+          "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
+          "description": "Create a new ExecutionContext for an execution.\n\n @internal\n Called by execution pipeline on behalf of the user.\n Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution."
+        },
+        {
+          "name": "Delete",
+          "inputType": "ApiResourceDeleteInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
+          "outputType": "ExecutionContext",
+          "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
+          "description": "Delete an ExecutionContext.\n\n @internal\n Called when execution completes. Handler-level derived auth: checks can_edit\n on parent agent_execution or workflow_execution."
+        }
+      ]
+    },
+    {
+      "name": "ExecutionContextQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/executioncontext/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "ExecutionContextId",
+          "inputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContextId",
+          "outputType": "ExecutionContext",
+          "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
+          "description": "Get an ExecutionContext by ID.\n\n @internal\n Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "ExecutionContext",
+          "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
+          "description": "Get an ExecutionContext by reference (slug-based lookup).\n\n @internal\n Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution."
+        },
+        {
+          "name": "GetByExecutionId",
+          "inputType": "ExecutionContextExecutionIdInput",
+          "inputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput",
+          "outputType": "ExecutionContext",
+          "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
+          "description": "Get the ExecutionContext for a given execution ID.\n\n @internal\n Primary lookup method used by runners to retrieve the merged environment\n variables during workflow/agent execution. The returned context contains\n decrypted secrets for runner consumption.\n Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource.\n\n When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens,\n starts with a letter, 1-63 characters). Example: \"stigmer\", \"acme-corp\".\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form).\n\n Use empty org for same-org references (the common case).\n Use explicit org for cross-org references (e.g., marketplace resources).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "iam_policy",
+              "identity_account",
+              "api_key",
+              "invitation",
+              "identity_provider",
+              "oauth_app",
+              "platform_client",
+              "organization",
+              "platform",
+              "agent",
+              "agent_execution",
+              "session",
+              "skill",
+              "mcp_server",
+              "agent_instance",
+              "runner",
+              "workflow",
+              "workflow_instance",
+              "workflow_execution",
+              "environment",
+              "artifact",
+              "execution_context",
+              "project"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., \"web-search\", \"code-reviewer\").\n Length: 1-63 characters.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Version of the resource (optional, only applicable to versioned resources like Skills).\n Supports three formats:\n 1. Empty/unset → Resolves to \"latest\" (most recent version)\n 2. Tag name → Resolves to version with this tag (e.g., \"stable\", \"v1.0\")\n 3. Exact hash → Immutable reference to specific version (e.g., \"abc123...\")\n\n Default behavior: Empty means \"latest\" (current version).\n This field is ignored for non-versioned resources.\n\n Examples:\n - version: \"\"           → Use latest version\n - version: \"latest\"     → Use latest version (explicit)\n - version: \"stable\"     → Use version tagged as \"stable\"\n - version: \"v1.0\"       → Use version tagged as \"v1.0\"\n - version: \"abc123...\"  → Use exact version with this hash (immutable)",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ExecutionContextExecutionIdInput",
+      "description": "Input for looking up an ExecutionContext by its parent execution ID.\n\n @internal\n Primary lookup method used by runners to retrieve merged environment\n variables during execution.",
+      "protoType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput",
+      "protoFile": "apis/ai/stigmer/agentic/executioncontext/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "AgentExecution or WorkflowExecution ID to look up.\n\n @internal\n Must match the execution_id field in ExecutionContextSpec.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "Role-based access control policy for granting permissions on resources."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "External identity provider for federated authentication."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "platform_client",
+          "number": 23,
+          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "Top-level tenant that owns and manages resources."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "agent_execution",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "mcp_server",
+          "number": 44,
+          "description": "External tool server connected via the Model Context Protocol."
+        },
+        {
+          "name": "agent_instance",
+          "number": 45,
+          "description": "Configured deployment of an agent with environment-specific overrides."
+        },
+        {
+          "name": "runner",
+          "number": 46,
+          "description": "Process that executes work, either user-created or system-managed."
+        },
+        {
+          "name": "workflow",
+          "number": 50,
+          "description": "Multi-step orchestration defining how agents collaborate on a task."
+        },
+        {
+          "name": "workflow_instance",
+          "number": 51,
+          "description": "Configured deployment of a workflow with environment-specific bindings."
+        },
+        {
+          "name": "workflow_execution",
+          "number": 52,
+          "description": "Single run of a workflow instance, tracking step progress and outcomes."
+        },
+        {
+          "name": "environment",
+          "number": 53,
+          "description": "Named set of variables and secrets for agent and workflow execution."
+        },
+        {
+          "name": "artifact",
+          "number": 55,
+          "description": "Persisted blob produced during workflow or agent execution."
+        },
+        {
+          "name": "execution_context",
+          "number": 54,
+          "description": "User-owned runtime context for managing execution state."
+        },
+        {
+          "name": "project",
+          "number": 60,
+          "description": "Aggregate root grouping related resources for lifecycle management."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only members of the owning organization can access.\n This is the default for most resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "Ephemeral runtime configuration and secrets scoped to a single execution.\n\n @internal\n Created by the execution engine at start, deleted when execution completes.\n Used for B2B scenarios where secrets are injected at runtime."
+}

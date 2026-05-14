@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetEventLogRequest, GetEventLogResponse, ListWorkflowExecutionsByWorkflowRequest, ListWorkflowExecutionsRequest, SubscribeEventsRequest, SubscribeWorkflowExecutionRequest, WorkflowExecutionId, WorkflowExecutionList } from "./io_pbjs";
+import { ExecutionSummary, GetEventLogRequest, GetEventLogResponse, GetExecutionSummaryRequest, ListPendingApprovalsRequest, ListWorkflowExecutionsByWorkflowRequest, ListWorkflowExecutionsRequest, PendingApprovalsList, SubscribeEventsRequest, SubscribeWorkflowExecutionRequest, WorkflowExecutionId, WorkflowExecutionList } from "./io_pbjs";
 import { WorkflowExecution } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { WorkflowExecutionEvent } from "./event_pbjs";
@@ -513,6 +513,75 @@ export const WorkflowExecutionQueryController = {
       I: SubscribeEventsRequest,
       O: WorkflowExecutionEvent,
       kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * Get aggregated execution statistics for an organization's workflows.
+     *
+     * Returns counts by phase, total cost, average duration, top failing
+     * workflows, and per-workflow cost breakdown — scoped to a configurable
+     * time window (24h, 7d, 30d, all-time).
+     *
+     * @internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     *
+     * Use Cases:
+     *
+     * 1. Dashboard Overview:
+     *    - Display KPI cards: active runs, completed, failed, total cost
+     *    - Time window selector toggles between 24h / 7d / 30d views
+     *
+     * 2. Cost Monitoring:
+     *    - Show per-workflow cost breakdown to identify expensive workflows
+     *    - Track cost trends across time windows
+     *
+     * 3. Reliability Monitoring:
+     *    - Surface top failing workflows for investigation
+     *    - Track failure rates across the organization
+     *
+     * @since T14 (Dashboard Integration)
+     *
+     * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.getExecutionSummary
+     */
+    getExecutionSummary: {
+      name: "getExecutionSummary",
+      I: GetExecutionSummaryRequest,
+      O: ExecutionSummary,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List workflow executions with pending human_input tasks awaiting reviewer decisions.
+     *
+     * Returns a paginated list of executions where at least one human_input
+     * task is actively waiting for a response. Each entry includes the
+     * execution context, task details, requester, and timeout information.
+     *
+     * @internal
+     * Authorization:
+     * Custom authorization — user must have organization-level access.
+     * Results are scoped to the user's organization.
+     *
+     * Use Cases:
+     *
+     * 1. Pending Approvals Dashboard Widget:
+     *    - Display a list of items requiring human attention
+     *    - Show time waiting and timeout countdown
+     *    - Link to execution viewer for review action
+     *
+     * 2. Approval Queue:
+     *    - Reviewers see all pending approvals in one view
+     *    - Sorted by urgency (closest to timeout first)
+     *
+     * @since T14 (Dashboard Integration)
+     *
+     * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.listPendingApprovals
+     */
+    listPendingApprovals: {
+      name: "listPendingApprovals",
+      I: ListPendingApprovalsRequest,
+      O: PendingApprovalsList,
+      kind: MethodKind.Unary,
     },
   }
 } as const;

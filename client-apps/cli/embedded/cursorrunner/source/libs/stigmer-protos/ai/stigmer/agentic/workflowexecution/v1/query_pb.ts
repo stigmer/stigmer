@@ -8,7 +8,7 @@ import type { WorkflowExecutionSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_workflowexecution_v1_api } from "./api_pb.js";
 import type { WorkflowExecutionEventSchema } from "./event_pb.js";
 import { file_ai_stigmer_agentic_workflowexecution_v1_event } from "./event_pb.js";
-import type { GetEventLogRequestSchema, GetEventLogResponseSchema, ListWorkflowExecutionsByWorkflowRequestSchema, ListWorkflowExecutionsRequestSchema, SubscribeEventsRequestSchema, SubscribeWorkflowExecutionRequestSchema, WorkflowExecutionIdSchema, WorkflowExecutionListSchema } from "./io_pb.js";
+import type { ExecutionSummarySchema, GetEventLogRequestSchema, GetEventLogResponseSchema, GetExecutionSummaryRequestSchema, ListPendingApprovalsRequestSchema, ListWorkflowExecutionsByWorkflowRequestSchema, ListWorkflowExecutionsRequestSchema, PendingApprovalsListSchema, SubscribeEventsRequestSchema, SubscribeWorkflowExecutionRequestSchema, WorkflowExecutionIdSchema, WorkflowExecutionListSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_workflowexecution_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/workflowexecution/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_workflowexecution_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvcXVlcnkucHJvdG8SJ2FpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MTLBCQogV29ya2Zsb3dFeGVjdXRpb25RdWVyeUNvbnRyb2xsZXISuAEKA2dldBI8LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V4ZWN1dGlvbklkGjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uIjfCuBgzCAEQNCIFdmFsdWUqJnVuYXV0aG9yaXplZCB0byBnZXQgd29ya2Zsb3cgZXhlY3V0aW9uEpQBCgRsaXN0EkYuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkxpc3RXb3JrZmxvd0V4ZWN1dGlvbnNSZXF1ZXN0Gj4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uTGlzdCIE0LgYARKoAQoObGlzdEJ5V29ya2Zsb3cSUC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuTGlzdFdvcmtmbG93RXhlY3V0aW9uc0J5V29ya2Zsb3dSZXF1ZXN0Gj4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uTGlzdCIE0LgYARLcAQoJc3Vic2NyaWJlEkouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLlN1YnNjcmliZVdvcmtmbG93RXhlY3V0aW9uUmVxdWVzdBo6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V4ZWN1dGlvbiJFwrgYQQgBEDQiDGV4ZWN1dGlvbl9pZCotdW5hdXRob3JpemVkIHRvIGdldCB3b3JrZmxvdyBleGVjdXRpb24gc3RyZWFtMAES0gEKC2dldEV2ZW50TG9nEjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkdldEV2ZW50TG9nUmVxdWVzdBo8LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5HZXRFdmVudExvZ1Jlc3BvbnNlIkjCuBhECAEQNCIMZXhlY3V0aW9uX2lkKjB1bmF1dGhvcml6ZWQgdG8gZ2V0IHdvcmtmbG93IGV4ZWN1dGlvbiBldmVudCBsb2cS5QEKD3N1YnNjcmliZUV2ZW50cxI/LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5TdWJzY3JpYmVFdmVudHNSZXF1ZXN0Gj8uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uRXZlbnQiTsK4GEoIARA0IgxleGVjdXRpb25faWQqNnVuYXV0aG9yaXplZCB0byBzdWJzY3JpYmUgdG8gd29ya2Zsb3cgZXhlY3V0aW9uIGV2ZW50czABGgSg/ys0YgZwcm90bzM", [file_ai_stigmer_agentic_workflowexecution_v1_api, file_ai_stigmer_agentic_workflowexecution_v1_event, file_ai_stigmer_agentic_workflowexecution_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvcXVlcnkucHJvdG8SJ2FpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MTKDDAogV29ya2Zsb3dFeGVjdXRpb25RdWVyeUNvbnRyb2xsZXISuAEKA2dldBI8LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V4ZWN1dGlvbklkGjouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uIjfCuBgzCAEQNCIFdmFsdWUqJnVuYXV0aG9yaXplZCB0byBnZXQgd29ya2Zsb3cgZXhlY3V0aW9uEpQBCgRsaXN0EkYuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkxpc3RXb3JrZmxvd0V4ZWN1dGlvbnNSZXF1ZXN0Gj4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uTGlzdCIE0LgYARKoAQoObGlzdEJ5V29ya2Zsb3cSUC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuTGlzdFdvcmtmbG93RXhlY3V0aW9uc0J5V29ya2Zsb3dSZXF1ZXN0Gj4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uTGlzdCIE0LgYARLcAQoJc3Vic2NyaWJlEkouYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLlN1YnNjcmliZVdvcmtmbG93RXhlY3V0aW9uUmVxdWVzdBo6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V4ZWN1dGlvbiJFwrgYQQgBEDQiDGV4ZWN1dGlvbl9pZCotdW5hdXRob3JpemVkIHRvIGdldCB3b3JrZmxvdyBleGVjdXRpb24gc3RyZWFtMAES0gEKC2dldEV2ZW50TG9nEjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkdldEV2ZW50TG9nUmVxdWVzdBo8LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5HZXRFdmVudExvZ1Jlc3BvbnNlIkjCuBhECAEQNCIMZXhlY3V0aW9uX2lkKjB1bmF1dGhvcml6ZWQgdG8gZ2V0IHdvcmtmbG93IGV4ZWN1dGlvbiBldmVudCBsb2cS5QEKD3N1YnNjcmliZUV2ZW50cxI/LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5TdWJzY3JpYmVFdmVudHNSZXF1ZXN0Gj8uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uRXZlbnQiTsK4GEoIARA0IgxleGVjdXRpb25faWQqNnVuYXV0aG9yaXplZCB0byBzdWJzY3JpYmUgdG8gd29ya2Zsb3cgZXhlY3V0aW9uIGV2ZW50czABEpsBChNnZXRFeGVjdXRpb25TdW1tYXJ5EkMuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkdldEV4ZWN1dGlvblN1bW1hcnlSZXF1ZXN0GjkuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblN1bW1hcnkiBNC4GAESoQEKFGxpc3RQZW5kaW5nQXBwcm92YWxzEkQuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkxpc3RQZW5kaW5nQXBwcm92YWxzUmVxdWVzdBo9LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5QZW5kaW5nQXBwcm92YWxzTGlzdCIE0LgYARoEoP8rNGIGcHJvdG8z", [file_ai_stigmer_agentic_workflowexecution_v1_api, file_ai_stigmer_agentic_workflowexecution_v1_event, file_ai_stigmer_agentic_workflowexecution_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * WorkflowExecutionQueryController handles read operations (Get, List, Subscribe) for WorkflowExecution resources.
@@ -516,6 +516,73 @@ export const WorkflowExecutionQueryController: GenService<{
     methodKind: "server_streaming";
     input: typeof SubscribeEventsRequestSchema;
     output: typeof WorkflowExecutionEventSchema;
+  },
+  /**
+   * Get aggregated execution statistics for an organization's workflows.
+   *
+   * Returns counts by phase, total cost, average duration, top failing
+   * workflows, and per-workflow cost breakdown — scoped to a configurable
+   * time window (24h, 7d, 30d, all-time).
+   *
+   * @internal
+   * Authorization:
+   * Custom authorization — user must have organization-level access.
+   * Results are scoped to the user's organization.
+   *
+   * Use Cases:
+   *
+   * 1. Dashboard Overview:
+   *    - Display KPI cards: active runs, completed, failed, total cost
+   *    - Time window selector toggles between 24h / 7d / 30d views
+   *
+   * 2. Cost Monitoring:
+   *    - Show per-workflow cost breakdown to identify expensive workflows
+   *    - Track cost trends across time windows
+   *
+   * 3. Reliability Monitoring:
+   *    - Surface top failing workflows for investigation
+   *    - Track failure rates across the organization
+   *
+   * @since T14 (Dashboard Integration)
+   *
+   * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.getExecutionSummary
+   */
+  getExecutionSummary: {
+    methodKind: "unary";
+    input: typeof GetExecutionSummaryRequestSchema;
+    output: typeof ExecutionSummarySchema;
+  },
+  /**
+   * List workflow executions with pending human_input tasks awaiting reviewer decisions.
+   *
+   * Returns a paginated list of executions where at least one human_input
+   * task is actively waiting for a response. Each entry includes the
+   * execution context, task details, requester, and timeout information.
+   *
+   * @internal
+   * Authorization:
+   * Custom authorization — user must have organization-level access.
+   * Results are scoped to the user's organization.
+   *
+   * Use Cases:
+   *
+   * 1. Pending Approvals Dashboard Widget:
+   *    - Display a list of items requiring human attention
+   *    - Show time waiting and timeout countdown
+   *    - Link to execution viewer for review action
+   *
+   * 2. Approval Queue:
+   *    - Reviewers see all pending approvals in one view
+   *    - Sorted by urgency (closest to timeout first)
+   *
+   * @since T14 (Dashboard Integration)
+   *
+   * @generated from rpc ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionQueryController.listPendingApprovals
+   */
+  listPendingApprovals: {
+    methodKind: "unary";
+    input: typeof ListPendingApprovalsRequestSchema;
+    output: typeof PendingApprovalsListSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_workflowexecution_v1_query, 0);

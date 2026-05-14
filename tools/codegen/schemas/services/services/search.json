@@ -1,0 +1,334 @@
+{
+  "resource": "search",
+  "package": "ai.stigmer.search.v1",
+  "goImportPath": "searchv1",
+  "services": [
+    {
+      "name": "SearchService",
+      "role": "query",
+      "protoFile": "ai/stigmer/search/v1/query.proto",
+      "methods": [
+        {
+          "name": "Search",
+          "inputType": "SearchRequest",
+          "inputFullType": "ai.stigmer.search.v1.SearchRequest",
+          "outputType": "SearchResponse",
+          "outputFullType": "ai.stigmer.search.v1.SearchResponse",
+          "description": "Search resources across one or more kinds.\n\n This is the unified entry point for list, search, and discover operations.\n The behavior is determined by the combination of request parameters:\n\n | Operation  | kinds   | query | org    | Behavior                               |\n |------------|---------|-------|--------|----------------------------------------|\n | List       | [X]     | \"\"    | \"acme\" | All X in org, sorted by created_at     |\n | List All   | [X]     | \"\"    | \"\"     | All accessible X, sorted by created_at |\n | Search     | [X]     | \"...\" | \"\"     | Search X by query, sorted by relevance |\n | Search Org | [X]     | \"...\" | \"acme\" | Search X in org, sorted by relevance   |\n | Discover   | []      | \"...\" | \"\"     | Search all kinds, sorted by relevance  |\n\n Sort Order:\n - With query: Results sorted by relevance score (descending)\n - Without query: Results sorted by created_at (descending, newer first)\n\n Pagination:\n Use page.num (1-indexed) and page.size to paginate results.\n Response includes total_count and total_pages for pagination controls.\n\n @internal\n Authorization: Returns only resources the caller has can_view permission on.\n The handler queries FGA per kind to get authorized IDs, then applies filters."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "SearchRequest",
+      "description": "SearchRequest specifies criteria for searching API resources.\n\n This single request type supports three use cases:\n - List: Return all accessible resources of specified kind(s)\n - Search: Find resources matching a text query\n - Discover: Search across all resource kinds\n\n @internal\n Examples:\n   List agents in org:         {kinds: [agent], org: \"acme\", query: \"\"}\n   Search agents by text:      {kinds: [agent], query: \"code review\"}\n   Discover all:               {kinds: [], query: \"kubernetes\"}\n   Search multiple kinds:      {kinds: [agent, skill], query: \"security\", org: \"acme\"}",
+      "protoType": "ai.stigmer.search.v1.SearchRequest",
+      "protoFile": "apis/ai/stigmer/search/v1/io.proto",
+      "fields": [
+        {
+          "name": "Kinds",
+          "jsonName": "kinds",
+          "protoField": "kinds",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string",
+              "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+              "enumValues": [
+                "api_resource_version",
+                "iam_policy",
+                "identity_account",
+                "api_key",
+                "invitation",
+                "identity_provider",
+                "oauth_app",
+                "platform_client",
+                "organization",
+                "platform",
+                "agent",
+                "agent_execution",
+                "session",
+                "skill",
+                "mcp_server",
+                "agent_instance",
+                "runner",
+                "workflow",
+                "workflow_instance",
+                "workflow_execution",
+                "environment",
+                "artifact",
+                "execution_context",
+                "project"
+              ]
+            }
+          },
+          "description": "Resource kinds to search.\n\n Behavior:\n - Empty: Search all searchable kinds (discover mode)\n   Searchable kinds: agent, skill, mcp_server, workflow\n - Single kind: Search only that resource type\n - Multiple kinds: Search specified types\n\n @internal\n Invalid kinds are silently ignored (allows forward compatibility).",
+          "required": false
+        },
+        {
+          "name": "Query",
+          "jsonName": "query",
+          "protoField": "query",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Text query for full-text search.\n\n Searches across: name, description, tags.\n\n Behavior:\n - Empty: Return all accessible resources (list mode)\n   Results sorted by created_at descending (newer first)\n - Non-empty: Full-text search with relevance ranking\n   Results sorted by relevance score descending\n\n Query syntax: Plain text (no special operators).\n Maximum length: 500 characters.",
+          "required": false,
+          "validation": {
+            "maxLength": 500
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization to scope the search.\n\n Format: lowercase alphanumeric with hyphens (e.g., \"acme\", \"stigmer\").\n\n Behavior:\n - Empty: Search all organizations the caller has access to\n - Non-empty: Search only within the specified organization\n\n @internal\n Caller must have access to at least one resource in the org.",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*$"
+          }
+        },
+        {
+          "name": "ExcludePublic",
+          "jsonName": "excludePublic",
+          "protoField": "exclude_public",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Exclude public/platform resources from results.\n\n Default: false (include public resources).\n\n When true: Only return resources from organizations the caller\n is a member of. Excludes platform-provided public resources\n like \"stigmer/web-search\".\n\n Useful when users want to see only their own resources.",
+          "required": false
+        },
+        {
+          "name": "Page",
+          "jsonName": "page",
+          "protoField": "page",
+          "type": {
+            "kind": "message",
+            "messageType": "PageInfo"
+          },
+          "description": "Pagination parameters.\n\n - num: Page number (1-indexed). Default: 1\n - size: Items per page. Default: 20, Maximum: 100\n\n If not provided, defaults to page 1 with 20 items.",
+          "required": false
+        },
+        {
+          "name": "CrossOrgPublic",
+          "jsonName": "crossOrgPublic",
+          "protoField": "cross_org_public",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Include public resources from organizations other than the org filter.\n\n Only meaningful when org is non-empty. When true, the result set includes:\n 1. All authorized resources from the specified org (any visibility)\n 2. All authorized public resources from other orgs\n\n Use case: \"All\" scope in library views — shows the user's org resources\n plus marketplace/public resources from other organizations.\n\n Default: false (only resources matching the org filter are returned).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SearchResponse",
+      "description": "SearchResponse contains paginated search results with metadata.\n\n The response includes:\n - Matching resources as SearchResult summaries\n - Counts per kind for filtering\n - Pagination metadata",
+      "protoType": "ai.stigmer.search.v1.SearchResponse",
+      "protoFile": "apis/ai/stigmer/search/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "SearchResult"
+            }
+          },
+          "description": "Search results for the current page.\n\n Ordering:\n - With query: Sorted by relevance score (descending)\n - Without query: Sorted by created_at (descending, newer first)\n\n Each result is a summary, not the full resource.\n To get the full resource, call the get method for that resource kind.",
+          "required": false
+        },
+        {
+          "name": "CountsByKind",
+          "jsonName": "countsByKind",
+          "protoField": "counts_by_kind",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "int32"
+            }
+          },
+          "description": "Count of results per resource kind.\n\n Keys are ApiResourceKind enum names as strings (e.g., \"agent\", \"skill\").\n Values are the total count of matching resources for that kind\n (not just the current page).\n\n Useful for rendering UI tabs or filter badges showing counts.\n Example: {\"agent\": 5, \"skill\": 12, \"mcp_server\": 3, \"workflow\": 2}",
+          "required": false
+        },
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total count of matching resources across all kinds.\n\n This is the sum of all counts_by_kind values.\n Used for displaying \"Showing X of Y results\".",
+          "required": false
+        },
+        {
+          "name": "TotalPages",
+          "jsonName": "totalPages",
+          "protoField": "total_pages",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of pages based on current page size.\n\n Calculated as: ceil(total_count / page.size)\n Used for pagination controls.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "Role-based access control policy for granting permissions on resources."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "External identity provider for federated authentication."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "platform_client",
+          "number": 23,
+          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "Top-level tenant that owns and manages resources."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "agent_execution",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "mcp_server",
+          "number": 44,
+          "description": "External tool server connected via the Model Context Protocol."
+        },
+        {
+          "name": "agent_instance",
+          "number": 45,
+          "description": "Configured deployment of an agent with environment-specific overrides."
+        },
+        {
+          "name": "runner",
+          "number": 46,
+          "description": "Process that executes work, either user-created or system-managed."
+        },
+        {
+          "name": "workflow",
+          "number": 50,
+          "description": "Multi-step orchestration defining how agents collaborate on a task."
+        },
+        {
+          "name": "workflow_instance",
+          "number": 51,
+          "description": "Configured deployment of a workflow with environment-specific bindings."
+        },
+        {
+          "name": "workflow_execution",
+          "number": 52,
+          "description": "Single run of a workflow instance, tracking step progress and outcomes."
+        },
+        {
+          "name": "environment",
+          "number": 53,
+          "description": "Named set of variables and secrets for agent and workflow execution."
+        },
+        {
+          "name": "artifact",
+          "number": 55,
+          "description": "Persisted blob produced during workflow or agent execution."
+        },
+        {
+          "name": "execution_context",
+          "number": 54,
+          "description": "User-owned runtime context for managing execution state."
+        },
+        {
+          "name": "project",
+          "number": 60,
+          "description": "Aggregate root grouping related resources for lifecycle management."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only members of the owning organization can access.\n This is the default for most resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "name": "ToolApprovalPolicy",
+  "description": "ToolApprovalPolicy defines approval requirements for a specific tool.\n\n @internal\n The message field supports {{args.field}} placeholders that are resolved\n at runtime using the actual tool arguments. This enables contextual\n approval messages that help users make informed decisions.\n\n Placeholder syntax:\n   {{args.field_name}} - Replaced with the tool argument value\n   {{tool_name}} - Replaced with the tool name (always available)\n\n If a placeholder references a missing argument, it's replaced with \"\u003cunknown\u003e\".\n\n Policy chain (lowest to highest priority):\n 1. McpServerStatus.tool_approvals - System-generated defaults\n 2. McpServerSpec.pinned_tool_approvals - Manual overrides\n 3. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization\n 4. AgentExecution.auto_approve_all - Runtime bypass",
+  "protoType": "ai.stigmer.agentic.mcpserver.v1.ToolApprovalPolicy",
+  "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/spec.proto",
+  "fields": [
+    {
+      "name": "ToolName",
+      "jsonName": "toolName",
+      "protoField": "tool_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Name of the tool (must match tools/list from MCP server exactly).\n Case-sensitive matching against tool names reported by the MCP server.\n Example: \"delete_repository\", \"send_email\", \"execute_sql\"",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "Message",
+      "jsonName": "message",
+      "protoField": "message",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable message shown to user when approval is requested.\n Supports {{args.field}} placeholders for dynamic content.\n\n If empty, a default message is generated: \"Execute tool: {tool_name}\"\n\n Guidelines for effective messages:\n   - Be specific about what will happen\n   - Include the most important argument values using placeholders\n   - Keep under 100 characters for UI display\n   - Use action verbs: \"Delete\", \"Send\", \"Execute\", \"Create\"",
+      "required": false
+    }
+  ]
+}

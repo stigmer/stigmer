@@ -1,0 +1,887 @@
+{
+  "resource": "skill",
+  "package": "ai.stigmer.agentic.skill.v1",
+  "goImportPath": "skillv1",
+  "services": [
+    {
+      "name": "SkillCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/skill/v1/command.proto",
+      "methods": [
+        {
+          "name": "Push",
+          "inputType": "PushSkillRequest",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.PushSkillRequest",
+          "outputType": "Skill",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
+          "description": "Push a skill artifact.\n Creates a skill if it does not exist, or creates a new version of an\n existing skill. The artifact must contain a SKILL.md file.\n\n @internal\n Authorization:\n - Organization-scoped skills: Caller must have can_create_skill permission in the organization\n - Platform-scoped skills: Caller must be a platform operator\n\n The backend will:\n 1. Normalize the name to a slug\n 2. Find or create the skill resource\n 3. Extract SKILL.md from the artifact\n 4. Calculate SHA256 hash (version identifier)\n 5. Store the artifact (deduplicated by hash)\n 6. Update skill spec and status\n 7. Archive the previous version (if updating)"
+        },
+        {
+          "name": "PushFromExecutionArtifact",
+          "inputType": "PushSkillFromExecutionArtifactRequest",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest",
+          "outputType": "Skill",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
+          "description": "Push a skill from an execution artifact already in storage.\n Use this when an agent execution has already produced a skill artifact\n and you want to publish it without downloading and re-uploading the ZIP.\n\n @internal\n Server-side equivalent of push() — reads the ZIP directly from artifact\n storage instead of receiving bytes from the client. This eliminates\n CORS concerns for SDK consumers.\n\n Authorization:\n - Requires can_view on the referenced execution (to read the artifact)\n - Requires can_create_skill in the target organization (to push the skill)"
+        },
+        {
+          "name": "UpdateVisibility",
+          "inputType": "UpdateVisibilityInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+          "outputType": "Skill",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
+          "description": "Update the visibility of an existing skill.\n Only modifies metadata.visibility, leaving spec, status, and other\n metadata fields untouched. Use this to make a skill publicly accessible\n or to revoke public access.\n\n @internal\n Authorization: Requires can_edit permission on the skill resource."
+        },
+        {
+          "name": "Delete",
+          "inputType": "SkillId",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.SkillId",
+          "outputType": "Skill",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
+          "description": "Delete a skill and all its versions.\n\n @internal\n Removes the skill from the main collection but preserves audit history."
+        }
+      ]
+    },
+    {
+      "name": "SkillQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/skill/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "SkillId",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.SkillId",
+          "outputType": "Skill",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
+          "description": "Get a single skill by ID."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "Skill",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
+          "description": "Get a skill by API resource reference with version support.\n\n Version resolution (via ApiResourceReference.version field):\n - Empty/\"latest\" → Returns the current version\n - Tag name (e.g., \"stable\", \"v1.0\") → Resolves to the version with this tag\n - SHA256 hash (64 hex chars) → Returns the exact immutable version\n\n @internal\n Authorization is handled in the handler after resolving the reference to a skill ID.\n (Input doesn't contain skill ID, so proto-level auth cannot work)"
+        },
+        {
+          "name": "GetArtifact",
+          "inputType": "GetArtifactRequest",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.GetArtifactRequest",
+          "outputType": "GetArtifactResponse",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.GetArtifactResponse",
+          "description": "Download skill artifact from storage by its storage key.\n Returns the ZIP file containing SKILL.md and implementation files.\n\n @internal\n Used by the agent-runner to download and extract skill artifacts into the\n sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the\n storage key itself acts as a capability token."
+        },
+        {
+          "name": "ListVersions",
+          "inputType": "ListSkillVersionsInput",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.ListSkillVersionsInput",
+          "outputType": "ListSkillVersionsResponse",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse",
+          "description": "List version history for a skill.\n\n Returns all historical versions ordered by push time (newest first).\n Each entry includes the version hash, push timestamp, actor, tag,\n git provenance, and artifact storage key for historical artifact access.\n\n @internal\n Authorization is handled in the handler after resolving the skill.\n (Input uses org+slug, not skill ID, so proto-level auth cannot work)"
+        }
+      ]
+    }
+  ],
+  "listVia": "SearchService",
+  "methodTypes": [
+    {
+      "name": "PushSkillRequest",
+      "description": "PushSkillRequest contains the skill artifact and metadata for upload.\n Creates a skill if it does not exist, or creates a new version of an\n existing skill.\n\n @internal\n The skill name and description are extracted by the backend from the SKILL.md\n YAML frontmatter within the artifact. The CLI validates the format but does not\n send these fields — backend is the single source of truth for parsing.",
+      "protoType": "ai.stigmer.agentic.skill.v1.PushSkillRequest",
+      "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns this skill.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Artifact",
+          "jsonName": "artifact",
+          "protoField": "artifact",
+          "type": {
+            "kind": "bytes"
+          },
+          "description": "Skill artifact as a ZIP file (binary content).\n The ZIP must contain:\n - SKILL.md (required): Interface definition and documentation with YAML frontmatter\n   - name: Skill identifier (required in frontmatter, kebab-case)\n   - description: Human-readable description (optional but recommended)\n - Tool executables/scripts (optional)\n - Additional files referenced in SKILL.md",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Tag",
+          "jsonName": "tag",
+          "protoField": "tag",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional tag to associate with this version.\n If provided, this tag will point to the new version.\n If empty/not provided, the version will only be accessible via its hash.\n Examples: \"stable\", \"v1.0\", \"latest\"",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^[a-zA-Z0-9._-]+$"
+          }
+        },
+        {
+          "name": "GitProvenance",
+          "jsonName": "gitProvenance",
+          "protoField": "git_provenance",
+          "type": {
+            "kind": "message",
+            "messageType": "GitProvenance"
+          },
+          "description": "Git provenance for this skill version.\n Absent when pushed from a non-git directory.\n\n @internal\n Populated by CLI during push:\n - For local pushes: auto-detected if directory is within a git repository\n - For git pushes: resolved from user-provided URL/ref\n Stored in SkillStatus.git_provenance for traceability.",
+          "required": false
+        },
+        {
+          "name": "Message",
+          "jsonName": "message",
+          "protoField": "message",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional human-readable message describing what changed in this version.\n Stored in metadata.version.message for version history display.\n Analogous to a git commit message. If empty, the version timeline falls\n back to displaying git_provenance.commit message when available.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "PushSkillFromExecutionArtifactRequest",
+      "description": "PushSkillFromExecutionArtifactRequest publishes a skill from an execution\n artifact already in storage, without downloading and re-uploading the ZIP.\n\n @internal\n Server-side push flow: reads the ZIP directly from artifact storage and\n delegates to the standard push logic.\n\n Authorization:\n - Requires can_view on the agent execution (to read the artifact)\n - Requires can_create_skill in the target organization (to push the skill)\n\n Security:\n The storage_key is validated to start with \"artifacts/{execution_id}/\"\n to prevent access to other executions' artifacts.",
+      "protoType": "ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest",
+      "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that will own the skill.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent execution that produced the artifact (e.g., \"aex_abc123xyz456\").\n\n @internal\n Used for authorization (can_view check) and storage_key validation.\n Format: \"aex_{ulid}\".",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "StorageKey",
+          "jsonName": "storageKey",
+          "protoField": "storage_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Storage key of the directory artifact (ZIP) to push as a skill.\n Obtain this from ExecutionArtifact.storage_key in the execution status.\n\n @internal\n Must start with \"artifacts/{execution_id}/\" for security.\n Format: \"artifacts/{execution_id}/{filename}.zip\".",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Tag",
+          "jsonName": "tag",
+          "protoField": "tag",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional version tag (same semantics as PushSkillRequest.tag).\n Examples: \"stable\", \"v1.0\", \"latest\"",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^[a-zA-Z0-9._-]+$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "UpdateVisibilityInput",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to toggle between\n PRIVATE and PUBLIC visibility. Each controller's updateVisibility RPC\n accepts this shared input and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode:\n - PRIVATE → PUBLIC: creates resource#viewer@identity_account:* tuple\n - PUBLIC → PRIVATE: deletes the wildcard viewer tuple",
+      "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the resource whose visibility is being updated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Visibility",
+          "jsonName": "visibility",
+          "protoField": "visibility",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+            "enumValues": [
+              "visibility_private",
+              "visibility_public"
+            ]
+          },
+          "description": "The new visibility setting for the resource.\n Must be either visibility_private or visibility_public.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource.\n\n When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens,\n starts with a letter, 1-63 characters). Example: \"stigmer\", \"acme-corp\".\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form).\n\n Use empty org for same-org references (the common case).\n Use explicit org for cross-org references (e.g., marketplace resources).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "iam_policy",
+              "identity_account",
+              "api_key",
+              "invitation",
+              "identity_provider",
+              "oauth_app",
+              "platform_client",
+              "organization",
+              "platform",
+              "agent",
+              "agent_execution",
+              "session",
+              "skill",
+              "mcp_server",
+              "agent_instance",
+              "runner",
+              "workflow",
+              "workflow_instance",
+              "workflow_execution",
+              "environment",
+              "artifact",
+              "execution_context",
+              "project"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., \"web-search\", \"code-reviewer\").\n Length: 1-63 characters.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Version of the resource (optional, only applicable to versioned resources like Skills).\n Supports three formats:\n 1. Empty/unset → Resolves to \"latest\" (most recent version)\n 2. Tag name → Resolves to version with this tag (e.g., \"stable\", \"v1.0\")\n 3. Exact hash → Immutable reference to specific version (e.g., \"abc123...\")\n\n Default behavior: Empty means \"latest\" (current version).\n This field is ignored for non-versioned resources.\n\n Examples:\n - version: \"\"           → Use latest version\n - version: \"latest\"     → Use latest version (explicit)\n - version: \"stable\"     → Use version tagged as \"stable\"\n - version: \"v1.0\"       → Use version tagged as \"v1.0\"\n - version: \"abc123...\"  → Use exact version with this hash (immutable)",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetArtifactRequest",
+      "description": "GetArtifactRequest requests download of a skill artifact by storage key.",
+      "protoType": "ai.stigmer.agentic.skill.v1.GetArtifactRequest",
+      "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
+      "fields": [
+        {
+          "name": "ArtifactStorageKey",
+          "jsonName": "artifactStorageKey",
+          "protoField": "artifact_storage_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The artifact storage key from skill.status.artifact_storage_key.\n\n @internal\n Identifies the location of the ZIP file in storage (R2/S3).",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetArtifactResponse",
+      "description": "GetArtifactResponse contains the skill artifact content.",
+      "protoType": "ai.stigmer.agentic.skill.v1.GetArtifactResponse",
+      "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
+      "fields": [
+        {
+          "name": "Artifact",
+          "jsonName": "artifact",
+          "protoField": "artifact",
+          "type": {
+            "kind": "bytes"
+          },
+          "description": "The skill artifact as a ZIP file (binary content).\n Contains SKILL.md and implementation files.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListSkillVersionsInput",
+      "description": "ListSkillVersionsInput requests the version history for a skill.\n\n Returns all historical versions of the skill ordered by push time\n (newest first). Used by the Console and SDK to render version\n timelines and enable version comparison.",
+      "protoType": "ai.stigmer.agentic.skill.v1.ListSkillVersionsInput",
+      "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the skill.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Skill slug (unique within the organization).",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Opaque token for cursor-based pagination.\n Empty string or omitted for the first page.",
+          "required": false
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of versions to return per page.\n Server may return fewer. Default is 50.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListSkillVersionsResponse",
+      "description": "ListSkillVersionsResponse contains a page of skill version history.",
+      "protoType": "ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse",
+      "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
+      "fields": [
+        {
+          "name": "Versions",
+          "jsonName": "versions",
+          "protoField": "versions",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "SkillVersionEntry"
+            }
+          },
+          "description": "Ordered list of versions (newest first).",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token for fetching the next page. Empty when no more pages exist.",
+          "required": false
+        },
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of versions across all pages.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only members of the owning organization can access.\n This is the default for most resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "Role-based access control policy for granting permissions on resources."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "External identity provider for federated authentication."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "platform_client",
+          "number": 23,
+          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "Top-level tenant that owns and manages resources."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "agent_execution",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "mcp_server",
+          "number": 44,
+          "description": "External tool server connected via the Model Context Protocol."
+        },
+        {
+          "name": "agent_instance",
+          "number": 45,
+          "description": "Configured deployment of an agent with environment-specific overrides."
+        },
+        {
+          "name": "runner",
+          "number": 46,
+          "description": "Process that executes work, either user-created or system-managed."
+        },
+        {
+          "name": "workflow",
+          "number": 50,
+          "description": "Multi-step orchestration defining how agents collaborate on a task."
+        },
+        {
+          "name": "workflow_instance",
+          "number": 51,
+          "description": "Configured deployment of a workflow with environment-specific bindings."
+        },
+        {
+          "name": "workflow_execution",
+          "number": 52,
+          "description": "Single run of a workflow instance, tracking step progress and outcomes."
+        },
+        {
+          "name": "environment",
+          "number": 53,
+          "description": "Named set of variables and secrets for agent and workflow execution."
+        },
+        {
+          "name": "artifact",
+          "number": 55,
+          "description": "Persisted blob produced during workflow or agent execution."
+        },
+        {
+          "name": "execution_context",
+          "number": 54,
+          "description": "User-owned runtime context for managing execution state."
+        },
+        {
+          "name": "project",
+          "number": 60,
+          "description": "Aggregate root grouping related resources for lifecycle management."
+        }
+      ]
+    },
+    {
+      "name": "SkillState",
+      "description": "SkillState represents the lifecycle state of a skill.",
+      "protoType": "ai.stigmer.agentic.skill.v1.SkillState",
+      "values": [
+        {
+          "name": "SKILL_STATE_UPLOADING",
+          "number": 1,
+          "description": "Skill artifact is being uploaded to storage."
+        },
+        {
+          "name": "SKILL_STATE_READY",
+          "number": 2,
+          "description": "Skill is ready to be used by agents."
+        },
+        {
+          "name": "SKILL_STATE_FAILED",
+          "number": 3,
+          "description": "Skill upload or processing failed."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "Skill represents a versioned, reusable unit of agent capability.\n Skills contain tools, scripts, and documentation that agents can use.\n Each skill version is immutably identified by a content hash.",
+  "statusType": {
+    "name": "SkillStatus",
+    "description": "SkillStatus represents the system-managed state of a skill.",
+    "protoType": "ai.stigmer.agentic.skill.v1.SkillStatus",
+    "protoFile": "apis/ai/stigmer/agentic/skill/v1/status.proto",
+    "fields": [
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information tracking creation and modification.\n\n @internal\n Field 99 follows Stigmer convention for audit placement.",
+        "required": false
+      },
+      {
+        "name": "VersionHash",
+        "jsonName": "versionHash",
+        "protoField": "version_hash",
+        "type": {
+          "kind": "string"
+        },
+        "description": "SHA256 hash of the skill artifact, used as the immutable version identifier.\n\n @internal\n Calculated by the system from the uploaded artifact ZIP.",
+        "required": false,
+        "validation": {
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      {
+        "name": "ArtifactStorageKey",
+        "jsonName": "artifactStorageKey",
+        "protoField": "artifact_storage_key",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Storage key for the skill artifact.\n\n @internal\n Format varies based on storage backend:\n - Local: \"\u003chash\u003e.zip\"\n - Cloud: \"skills/\u003cslug\u003e_\u003chash\u003e.zip\"\n Determined by the system based on storage configuration.",
+        "required": false
+      },
+      {
+        "name": "State",
+        "jsonName": "state",
+        "protoField": "state",
+        "type": {
+          "kind": "string",
+          "enumType": "ai.stigmer.agentic.skill.v1.SkillState",
+          "enumValues": [
+            "SKILL_STATE_UPLOADING",
+            "SKILL_STATE_READY",
+            "SKILL_STATE_FAILED"
+          ]
+        },
+        "description": "Current lifecycle state of the skill.",
+        "required": false
+      },
+      {
+        "name": "GitProvenance",
+        "jsonName": "gitProvenance",
+        "protoField": "git_provenance",
+        "type": {
+          "kind": "message",
+          "messageType": "GitProvenance"
+        },
+        "description": "Git provenance tracking where the skill artifacts originated from.\n Absent when pushed from a non-git directory.\n\n @internal\n Populated by CLI during push; provides traceability and enables\n \"view on GitHub\" links and reproducible deployments.",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GitProvenance",
+      "description": "GitProvenance tracks the git origin of skill artifacts.\n\n @internal\n System-detected metadata, not user-specified configuration.\n Populated by CLI during push based on:\n - Local push: auto-detected from directory's git context\n - Git push: resolved from user-provided URL/ref",
+      "protoType": "ai.stigmer.agentic.skill.v1.GitProvenance",
+      "protoFile": "apis/ai/stigmer/agentic/skill/v1/status.proto",
+      "fields": [
+        {
+          "name": "RemoteUrl",
+          "jsonName": "remoteUrl",
+          "protoField": "remote_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Git remote URL (e.g., \"https://github.com/stigmer/stigmer.git\").\n\n @internal\n For local push: detected \"origin\" remote URL.\n For git push: the user-provided repository URL.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Ref",
+          "jsonName": "ref",
+          "protoField": "ref",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Original git reference such as a branch or tag name (e.g., \"main\", \"v1.0.0\").\n\n @internal\n For local push: detected branch name or empty if detached HEAD.\n For git push: the user-provided ref.\n Preserves user intent for display while commit provides immutability.",
+          "required": false
+        },
+        {
+          "name": "Commit",
+          "jsonName": "commit",
+          "protoField": "commit",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resolved commit SHA for exact reproducibility.\n\n @internal\n Always populated. Full 40-character SHA.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Subdir",
+          "jsonName": "subdir",
+          "protoField": "subdir",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Subdirectory path relative to repo root.\n Empty if skill is at repo root.\n Example: \"skills/calculator\"",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

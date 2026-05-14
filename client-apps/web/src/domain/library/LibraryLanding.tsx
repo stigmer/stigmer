@@ -3,7 +3,7 @@
 import { type MouseEvent, useCallback, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bot, Plus, Sparkles, Server } from "lucide-react";
+import { Bot, Plus, Sparkles, Server, Workflow } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import { getDraftSessionUrl } from "@/domain/session/draft-session";
@@ -13,6 +13,7 @@ import {
   useAgentCount,
   useSkillCount,
   useMcpServerCount,
+  useWorkflowCount,
   ResourceCountCard,
   useActiveOrgSlug,
 } from "@stigmer/react";
@@ -27,6 +28,12 @@ const RESOURCE_CARDS = [
     label: "Agents",
     href: "/library/agents",
     icon: <Bot className="size-5" aria-hidden="true" />,
+  },
+  {
+    key: "workflows",
+    label: "Workflows",
+    href: "/library/workflows",
+    icon: <Workflow className="size-5" aria-hidden="true" />,
   },
   {
     key: "skills",
@@ -66,14 +73,16 @@ const ADD_MENU_ITEMS: readonly {
 
 function useResourceCounts(org: string | null) {
   const agentScope = readPersistedScope("agents");
+  const workflowScope = readPersistedScope("workflows");
   const skillScope = readPersistedScope("skills");
   const mcpScope = readPersistedScope("mcp-servers");
 
   const agents = useAgentCount(org, { scope: agentScope });
+  const workflows = useWorkflowCount(org, { scope: workflowScope });
   const skills = useSkillCount(org, { scope: skillScope });
   const mcpServers = useMcpServerCount(org, { scope: mcpScope });
 
-  return { agents, skills, "mcp-servers": mcpServers } as const;
+  return { agents, workflows, skills, "mcp-servers": mcpServers } as const;
 }
 
 export function LibraryLanding() {
@@ -95,10 +104,10 @@ export function LibraryLanding() {
     <>
       <h1 className="text-foreground mb-1 text-xl font-semibold">Library</h1>
       <p className="text-muted-foreground mb-8 text-sm">
-        Browse and manage your agents, skills, and MCP servers.
+        Browse and manage your agents, workflows, skills, and MCP servers.
       </p>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {RESOURCE_CARDS.map((card) => {
           const { count, isLoading } = counts[card.key];
 

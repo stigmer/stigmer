@@ -2216,16 +2216,16 @@ __metadata:
 
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=3a2760&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=714b14&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:2.12.0"
-  checksum: 10c0/00c3c4a010088fdf133168c0d8028ea47eb6b0fa96f627ae9eff0a18b453c3f19a0bf9b00e05fc752423cdb38b2e20f1e53859d714958ca6c1c84d03b1c7aa5a
+  checksum: 10c0/29f6ac2b1baef88f7fef523df2531649a19b04bf8c105b1181f01349df5f5a95fdb69c9a2bec4ffa0315a6b41d0292863848ee4b9b1ee5a4bd790fadf7b21950
   languageName: node
   linkType: hard
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=06f709&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=13ac65&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@dagrejs/dagre": "npm:^1.1.4"
     "@stigmer/theme": "npm:*"
@@ -2249,6 +2249,7 @@ __metadata:
     "@stigmer/protos": "*"
     "@stigmer/sdk": "*"
     "@tanstack/react-table": ^8.20.0
+    "@xyflow/react": ^12.0.0
     lucide-react: ">=0.400.0"
     react: ^19.0.0
     react-dom: ^19.0.0
@@ -2272,9 +2273,11 @@ __metadata:
       optional: true
     "@tanstack/react-table":
       optional: true
+    "@xyflow/react":
+      optional: true
     react-virtuoso:
       optional: true
-  checksum: 10c0/b384f40431f67e9f0f0e35aae40697a3db16eaf0eaca54af1371353eed59ac95efc49133741239f523d46ba1dbedb60d4116e316a93d07513497c83125972568
+  checksum: 10c0/98913713ad819de67da0691a5009f95ac317605caabb365b55ef0c52d042e761a1d73d81c96a7a777f5a566f879023dfe51de9cc5673bd3616f2eefeb832d0a7
   languageName: node
   linkType: hard
 
