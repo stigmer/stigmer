@@ -68,8 +68,46 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: T04 JUnit XML + Service Log Bundle Output — COMPLETE
-**Status**: Ready for next task (T06)
+**Current Task**: T06 CI Workflow — COMPLETE
+**Status**: Ready for next task
+
+## Session Progress (2026-05-14, Session 7 — T06 CI Workflow)
+
+### Accomplished
+- **Created `.github/workflows/ci.integration-offline.yaml`** — two-job CI workflow for integration tests
+- **Job 1 (Build Service JAR)**: Checks out stigmer-cloud (private repo), builds fat JAR with Bazel, uploads as workflow artifact
+- **Job 2 (Integration Tests)**: Downloads JAR, sets up Go/Java 21/Temporal CLI/gotestsum, runs `make test-integration`, publishes JUnit XML report
+- **Cross-repo auth**: Created fine-grained PAT (`STIGMER_CLOUD_TOKEN`) with read-only access to `stigmer/stigmer-cloud`, stored as GitHub Actions secret
+- **Caching strategy**: `bazel-contrib/setup-bazel@0.19.0` with disk cache + repository cache, plus BuildBuddy remote cache from `.bazelrc`
+- **Silent-skip guard**: Asserts JUnit XML contains non-zero test count when tests pass (catches `os.Exit(0)` with no tests)
+- **Test reporting**: `dorny/test-reporter@v3` renders per-test pass/fail annotations on PRs
+- **Path-filtered triggers**: Only runs on backend/test/apis/go.work/Makefile changes + weekly schedule + manual dispatch
+
+### Key Findings
+- `stigmer-cloud` is a private repo — default `GITHUB_TOKEN` cannot check it out; needed a fine-grained PAT
+- Deploy keys are disabled for `stigmer-cloud` (org-level policy)
+- BuildBuddy remote cache is configured under `common` in `.bazelrc` with `--noremote_upload_local_results` — CI gets read-only cache hits for free
+- `temporalio/setup-temporal@v0` is the official GitHub Action for Temporal CLI installation (cleaner than `go install`)
+- `dorny/test-reporter` is at v3 (Node 24, March 2026)
+
+### Decisions Made
+- **Build from source** for the cloud JAR (over published artifacts or image extraction) — self-contained, always tests against latest `main`, replaceable seam via job isolation
+- **Path-filtered triggers** (over run-on-all-PRs) — integration tests are expensive; skip for docs/web/CLI-only changes
+- **Fine-grained PAT** for cross-repo access (over GitHub App or deploy key) — deploy keys disabled, GitHub App requires web UI setup
+- **30-day retention** for test result artifacts; **1-day retention** for ephemeral JAR artifact
+
+### Files Changed
+
+**stigmer (OSS)** — new (1 file):
+- `.github/workflows/ci.integration-offline.yaml` — CI workflow for offline integration tests
+
+**GitHub Actions Secrets** — new (1 secret):
+- `STIGMER_CLOUD_TOKEN` — fine-grained PAT for `stigmer/stigmer-cloud` read-only checkout
+
+## Next Steps
+1. **Verify CI in practice**: Push to a PR branch and observe the workflow run end-to-end
+2. **Monitor Bazel build times**: If cold builds exceed 5 min, consider enabling BuildBuddy remote cache write or pre-building the JAR
+3. **Future: Publish JAR from stigmer-cloud CI**: Replace Job 1 with a download step when cloud publishes standalone JAR artifacts
 
 ## Session Progress (2026-05-14, Session 6 — T04 JUnit XML Output)
 
@@ -261,7 +299,9 @@ When starting a new session:
 - `IntegrationTestSecurityConfig.java` — NEW: permit-all security + synthetic test caller identity
 
 ## Next Steps (Bottom)
-1. **T06: CI Workflow** — create `.github/workflows/ci.integration-offline.yaml` (consumes `make test-integration` output)
+1. **Verify CI in practice** — push to a PR branch and observe the workflow run end-to-end
+2. **Monitor Bazel build times** — if cold builds exceed 5 min, consider enabling BuildBuddy remote cache write
+3. **Future: Publish JAR from stigmer-cloud CI** — replace Job 1 with a download step
 
 ## Context for Resume
 - All 9 integration tests pass (4 top-level + subtests): infra (3 sub-tests), service health, smoke gRPC, workflow lifecycle
