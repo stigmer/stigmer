@@ -586,4 +586,56 @@ public interface WorkflowExecutionStatusOrBuilder extends
    */
   ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApprovalOrBuilder getPendingApprovalsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
+   *
+   * &#64;internal
+   * Updated by the workflow-runner alongside each status update. Reflects the
+   * budget tracker's accumulated cost at the time of the last status write.
+   * Used by getExecutionSummary for fast aggregation without scanning events.
+   *
+   * Consistent with WorkflowBudget.max_cost_micros and the billing domain's
+   * micro-USD convention (CostStamp.provider_cost_micros, etc.).
+   *
+   * &#64;since Cost Data Pipeline
+   * </pre>
+   *
+   * <code>int64 total_cost_micros = 10 [json_name = "totalCostMicros"];</code>
+   * @return The totalCostMicros.
+   */
+  long getTotalCostMicros();
+
+  /**
+   * <pre>
+   * Cumulative input tokens consumed across all LLM and agent tasks.
+   *
+   * &#64;internal
+   * Input tokens represent prompt/context tokens sent to the model.
+   * Updated alongside total_cost_micros from the budget tracker.
+   *
+   * &#64;since Cost Data Pipeline
+   * </pre>
+   *
+   * <code>int64 total_input_tokens = 11 [json_name = "totalInputTokens"];</code>
+   * @return The totalInputTokens.
+   */
+  long getTotalInputTokens();
+
+  /**
+   * <pre>
+   * Cumulative output tokens consumed across all LLM and agent tasks.
+   *
+   * &#64;internal
+   * Output tokens represent completion/generation tokens returned by the model.
+   * Updated alongside total_cost_micros from the budget tracker.
+   *
+   * &#64;since Cost Data Pipeline
+   * </pre>
+   *
+   * <code>int64 total_output_tokens = 12 [json_name = "totalOutputTokens"];</code>
+   * @return The totalOutputTokens.
+   */
+  long getTotalOutputTokens();
 }

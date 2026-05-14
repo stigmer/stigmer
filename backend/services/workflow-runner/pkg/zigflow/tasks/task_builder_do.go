@@ -378,14 +378,15 @@ func (t *DoTaskBuilder) iterateTasks(
 		}
 
 		durationMs := workflow.Now(ctx).Sub(taskStartTime).Milliseconds()
-		costMicros, tokens := extractCostFromOutput(state.Output)
+		cost := extractCostFromOutput(state.Output)
+		totalTokens := cost.InputTokens + cost.OutputTokens
 
 		if t.opts.Emitter != nil {
-			t.bufferEvent(t.opts.Emitter.TaskCompleted(workflow.Now(ctx), task.Name, taskKind, durationMs, costMicros, tokens, nil))
+			t.bufferEvent(t.opts.Emitter.TaskCompleted(workflow.Now(ctx), task.Name, taskKind, durationMs, cost.CostMicros, totalTokens, nil))
 		}
 
 		if t.opts.BudgetTracker != nil {
-			t.opts.BudgetTracker.Record(costMicros, tokens)
+			t.opts.BudgetTracker.Record(cost.CostMicros, cost.InputTokens, cost.OutputTokens)
 			if err := t.checkBudget(ctx, task.Name); err != nil {
 				t.flushEvents(ctx)
 				return err
@@ -644,40 +645,61 @@ func (t *DoTaskBuilder) flushEvents(ctx workflow.Context) {
 	}
 }
 
+// taskCostInfo holds cost and token metadata extracted from a task's output.
+type taskCostInfo struct {
+	CostMicros   int64
+	InputTokens  int64
+	OutputTokens int64
+}
+
 // extractCostFromOutput reads cost/token metadata from the task output using
-// the __stigmer_cost_micros / __stigmer_tokens convention (same pattern as
-// __stigmer_branch_override).
-func extractCostFromOutput(output any) (costMicros, tokens int64) {
+// the __stigmer_cost_micros / __stigmer_input_tokens / __stigmer_output_tokens
+// convention (same pattern as __stigmer_branch_override). Strips the metadata
+// keys so downstream consumers never see them.
+func extractCostFromOutput(output any) taskCostInfo {
 	outputMap, ok := output.(map[string]any)
 	if !ok {
-		return 0, 0
+		return taskCostInfo{}
 	}
 
+	info := taskCostInfo{}
+
 	if v, exists := outputMap["__stigmer_cost_micros"]; exists {
-		switch n := v.(type) {
-		case float64:
-			costMicros = int64(n)
-		case int64:
-			costMicros = n
-		case int:
-			costMicros = int64(n)
-		}
+		info.CostMicros = toInt64(v)
 		delete(outputMap, "__stigmer_cost_micros")
 	}
 
+	if v, exists := outputMap["__stigmer_input_tokens"]; exists {
+		info.InputTokens = toInt64(v)
+		delete(outputMap, "__stigmer_input_tokens")
+	}
+
+	if v, exists := outputMap["__stigmer_output_tokens"]; exists {
+		info.OutputTokens = toInt64(v)
+		delete(outputMap, "__stigmer_output_tokens")
+	}
+
+	// Backward compatibility: if only __stigmer_tokens exists (older emitters),
+	// attribute it all to output tokens.
 	if v, exists := outputMap["__stigmer_tokens"]; exists {
-		switch n := v.(type) {
-		case float64:
-			tokens = int64(n)
-		case int64:
-			tokens = n
-		case int:
-			tokens = int64(n)
-		}
+		info.OutputTokens += toInt64(v)
 		delete(outputMap, "__stigmer_tokens")
 	}
 
-	return costMicros, tokens
+	return info
+}
+
+func toInt64(v any) int64 {
+	switch n := v.(type) {
+	case float64:
+		return int64(n)
+	case int64:
+		return n
+	case int:
+		return int64(n)
+	default:
+		return 0
+	}
 }
 
 // ── Budget enforcement ──────────────────────────────────────────────────
@@ -703,7 +725,7 @@ func (t *DoTaskBuilder) checkBudget(ctx workflow.Context, taskName string) error
 		t.bufferEvent(emitter.BudgetCheckpoint(
 			now, taskName,
 			tracker.CostMicros, tracker.CostRemaining(),
-			tracker.TotalTokens, tracker.TokensRemaining(),
+			tracker.TotalTokens(), tracker.TokensRemaining(),
 			result.Exceeded, policy,
 		))
 	}

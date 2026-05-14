@@ -18,11 +18,19 @@ const BAR_COLORS = [
   "var(--stgm-color-muted-foreground, var(--color-muted-foreground))",
 ];
 
+function formatCost(usd: number): string {
+  if (usd >= 1) return `$${usd.toFixed(2)}`;
+  if (usd >= 0.01) return `$${usd.toFixed(3)}`;
+  if (usd > 0) return `<$0.01`;
+  return "$0.00";
+}
+
 /**
- * Horizontal bar chart showing execution counts by workflow.
+ * Horizontal bar chart showing cost by workflow.
  *
- * Uses pure CSS for rendering — no recharts dependency needed for
- * this simple visualization. Falls back gracefully when data is empty.
+ * Sorted by total cost (descending). Each bar shows the workflow name,
+ * formatted dollar cost, and execution count as a secondary label.
+ * Uses pure CSS for rendering -- no recharts dependency needed.
  */
 export const CostByWorkflowChart = memo(function CostByWorkflowChart({
   breakdowns,
@@ -32,13 +40,13 @@ export const CostByWorkflowChart = memo(function CostByWorkflowChart({
   const sorted = useMemo(
     () =>
       [...breakdowns]
-        .sort((a, b) => b.executionCount - a.executionCount)
+        .sort((a, b) => b.totalCostUsd - a.totalCostUsd)
         .slice(0, 8),
     [breakdowns],
   );
 
-  const maxCount = useMemo(
-    () => Math.max(1, ...sorted.map((b) => b.executionCount)),
+  const maxCost = useMemo(
+    () => Math.max(Number.MIN_VALUE, ...sorted.map((b) => b.totalCostUsd)),
     [sorted],
   );
 
@@ -63,10 +71,10 @@ export const CostByWorkflowChart = memo(function CostByWorkflowChart({
     return (
       <div className={cn("space-y-3", className)}>
         <h3 className="text-sm font-semibold text-foreground">
-          Executions by Workflow
+          Cost by Workflow
         </h3>
         <p className="py-6 text-center text-xs text-muted-foreground">
-          No execution data available
+          No cost data available
         </p>
       </div>
     );
@@ -75,11 +83,11 @@ export const CostByWorkflowChart = memo(function CostByWorkflowChart({
   return (
     <div className={cn("space-y-3", className)}>
       <h3 className="text-sm font-semibold text-foreground">
-        Executions by Workflow
+        Cost by Workflow
       </h3>
-      <div className="space-y-2.5" role="list" aria-label="Executions by workflow">
+      <div className="space-y-2.5" role="list" aria-label="Cost by workflow">
         {sorted.map((breakdown, i) => {
-          const pct = (breakdown.executionCount / maxCount) * 100;
+          const pct = maxCost > 0 ? (breakdown.totalCostUsd / maxCost) * 100 : 0;
           const color = BAR_COLORS[i % BAR_COLORS.length];
 
           return (
@@ -88,8 +96,13 @@ export const CostByWorkflowChart = memo(function CostByWorkflowChart({
                 <span className="truncate text-xs font-medium text-foreground">
                   {breakdown.workflowName || breakdown.workflowSlug}
                 </span>
-                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                  {breakdown.executionCount}
+                <span className="flex shrink-0 items-baseline gap-2">
+                  <span className="text-xs font-medium tabular-nums text-foreground">
+                    {formatCost(breakdown.totalCostUsd)}
+                  </span>
+                  <span className="text-xs tabular-nums text-muted-foreground">
+                    {breakdown.executionCount} runs
+                  </span>
                 </span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-muted">

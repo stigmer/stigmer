@@ -19,10 +19,48 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-14 — Dashboard separation COMPLETE (operational metrics moved to dedicated /dashboard page)
-**Current Task**: Dashboard separation COMPLETE
+**Last Session**: 2026-05-14 — Cost Data Pipeline COMPLETE (real cost/token data flows from runner through backends to dashboard)
+**Current Task**: Cost Data Pipeline COMPLETE
 **Phase**: Phase 2 — Visual Builder — COMPLETE (all deferred items cleared)
 **Next Task**: T16 (Natural Language to Workflow — Phase 3)
+
+## Session Progress (2026-05-14, Cost Data Pipeline)
+
+### Cost Data Pipeline — COMPLETE
+
+Wired real cost and token data from the Go workflow-runner through both backend
+control planes (Go OSS + Java Cloud) into the SDK dashboard components. Dashboard
+charts now show actual execution cost and token usage instead of empty/zero values.
+Proto changes + codegen across 6 languages, 3 Go service changes, 2 Java handler
+changes, 1 SDK component update.
+
+#### Proto Changes
+- `WorkflowExecutionStatus`: added `total_cost_micros` (10), `total_input_tokens` (11), `total_output_tokens` (12)
+- `WorkflowTask`: added `cost_micros` (12), `input_tokens` (13), `output_tokens` (14)
+- Codegen regenerated across Go, Java, TS, Python, Dart stubs in both repos
+
+#### Go Workflow Runner
+- `budget.Tracker`: split `TotalTokens` into `InputTokens` + `OutputTokens`, `TotalTokens()` method for combined total
+- `extractCostFromOutput`: reads `__stigmer_input_tokens` / `__stigmer_output_tokens` separately
+- `buildLlmOutput`: emits split token counts from OpenAI/Anthropic responses
+- `temporal_workflow.go`: updated `TotalTokens` field access to method call
+
+#### Backend Persistence (Both Editions)
+- Go OSS `update_status_impl.go`: merges `TotalCostMicros`, `TotalInputTokens`, `TotalOutputTokens`
+- Java Cloud `WorkflowExecutionUpdateStatusHandler.java`: same three-field merge
+
+#### Aggregation Handlers (Both Editions)
+- Go OSS `get_execution_summary.go`: accumulates cost/tokens from executions, populates `WorkflowCostSummary` and `WorkflowCostBreakdown.TotalCostUsd`
+- Java Cloud `GetExecutionSummaryHandler.java`: identical logic, sorts `costByWorkflow` by cost descending
+
+#### SDK/UI
+- `CostByWorkflowChart.tsx`: sorts by `totalCostUsd`, shows formatted dollar amounts, title "Cost by Workflow"
+- `ExecutionSummaryWidget`: already shows `totalCost.totalCostUsd` — no change needed
+
+#### Verification
+- `tsc --noEmit` — clean: sdk/react, sdk/typescript, client-apps/web, client-apps/desktop
+- `go build` + `go vet` — clean: stigmer-server, workflow-runner
+- Zero linter errors on all modified files
 
 ## Session Progress (2026-05-14, Dashboard Separation)
 
@@ -673,7 +711,6 @@ Structured Agent Output Model
 
 ## Next Steps
 1. **T16: Natural Language to Workflow** (Phase 3) — prompt-to-workflow generation
-2. **Cost data pipeline** — wire budget/cost fields in OSS store + Cloud handler so dashboard charts show real data
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
@@ -683,7 +720,7 @@ Structured Agent Output Model
 - Desktop now has full workflow parity with web (list, detail, editor, run, executions, dashboard, visual canvas)
 - Dashboard aggregation RPCs (`getExecutionSummary`, `listPendingApprovals`) implemented in both Go and Java
 - SDK dashboard components exported from `@stigmer/react`: `WorkflowDashboard`, `ExecutionSummaryWidget`, `PendingApprovalsWidget`, `FailedRunsWidget`
-- Cost data in dashboard currently empty for OSS (budget fields not populated in store) — will populate once cost tracking is wired
+- Cost data pipeline COMPLETE — real cost/tokens flow from runner → status → getExecutionSummary → dashboard charts
 - Dashboard now at `/dashboard` route (top-level, sidebar nav item)
 - Workflow list page cleaned up to match Agent list page pattern (no dashboard widgets)
 - Search indexing for workflows in backend unverified — `list()` may return empty

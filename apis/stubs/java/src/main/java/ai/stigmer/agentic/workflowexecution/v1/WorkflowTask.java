@@ -758,6 +758,68 @@ private static final long serialVersionUID = 0L;
     return artifactIds_.getByteString(index);
   }
 
+  public static final int COST_MICROS_FIELD_NUMBER = 12;
+  private long costMicros_ = 0L;
+  /**
+   * <pre>
+   * Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
+   *
+   * &#64;internal
+   * Non-zero for cost-incurring task kinds (llm_call, agent_call).
+   * Zero for non-LLM tasks (transform, validate, emit_event, etc.).
+   * Set by the workflow-runner when the task completes.
+   *
+   * &#64;since Cost Data Pipeline
+   * </pre>
+   *
+   * <code>int64 cost_micros = 12 [json_name = "costMicros"];</code>
+   * @return The costMicros.
+   */
+  @java.lang.Override
+  public long getCostMicros() {
+    return costMicros_;
+  }
+
+  public static final int INPUT_TOKENS_FIELD_NUMBER = 13;
+  private long inputTokens_ = 0L;
+  /**
+   * <pre>
+   * Input (prompt/context) tokens consumed by this task.
+   *
+   * &#64;internal
+   * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+   *
+   * &#64;since Cost Data Pipeline
+   * </pre>
+   *
+   * <code>int64 input_tokens = 13 [json_name = "inputTokens"];</code>
+   * @return The inputTokens.
+   */
+  @java.lang.Override
+  public long getInputTokens() {
+    return inputTokens_;
+  }
+
+  public static final int OUTPUT_TOKENS_FIELD_NUMBER = 14;
+  private long outputTokens_ = 0L;
+  /**
+   * <pre>
+   * Output (completion/generation) tokens produced by this task.
+   *
+   * &#64;internal
+   * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+   *
+   * &#64;since Cost Data Pipeline
+   * </pre>
+   *
+   * <code>int64 output_tokens = 14 [json_name = "outputTokens"];</code>
+   * @return The outputTokens.
+   */
+  @java.lang.Override
+  public long getOutputTokens() {
+    return outputTokens_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -804,6 +866,15 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < artifactIds_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 11, artifactIds_.getRaw(i));
+    }
+    if (costMicros_ != 0L) {
+      output.writeInt64(12, costMicros_);
+    }
+    if (inputTokens_ != 0L) {
+      output.writeInt64(13, inputTokens_);
+    }
+    if (outputTokens_ != 0L) {
+      output.writeInt64(14, outputTokens_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -857,6 +928,18 @@ private static final long serialVersionUID = 0L;
       size += dataSize;
       size += 1 * getArtifactIdsList().size();
     }
+    if (costMicros_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(12, costMicros_);
+    }
+    if (inputTokens_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(13, inputTokens_);
+    }
+    if (outputTokens_ != 0L) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt64Size(14, outputTokens_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -901,6 +984,12 @@ private static final long serialVersionUID = 0L;
     }
     if (!getArtifactIdsList()
         .equals(other.getArtifactIdsList())) return false;
+    if (getCostMicros()
+        != other.getCostMicros()) return false;
+    if (getInputTokens()
+        != other.getInputTokens()) return false;
+    if (getOutputTokens()
+        != other.getOutputTokens()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -942,6 +1031,15 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + ARTIFACT_IDS_FIELD_NUMBER;
       hash = (53 * hash) + getArtifactIdsList().hashCode();
     }
+    hash = (37 * hash) + COST_MICROS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getCostMicros());
+    hash = (37 * hash) + INPUT_TOKENS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getInputTokens());
+    hash = (37 * hash) + OUTPUT_TOKENS_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getOutputTokens());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1123,6 +1221,9 @@ private static final long serialVersionUID = 0L;
       }
       artifactIds_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
+      costMicros_ = 0L;
+      inputTokens_ = 0L;
+      outputTokens_ = 0L;
       return this;
     }
 
@@ -1200,6 +1301,15 @@ private static final long serialVersionUID = 0L;
         artifactIds_.makeImmutable();
         result.artifactIds_ = artifactIds_;
       }
+      if (((from_bitField0_ & 0x00000800) != 0)) {
+        result.costMicros_ = costMicros_;
+      }
+      if (((from_bitField0_ & 0x00001000) != 0)) {
+        result.inputTokens_ = inputTokens_;
+      }
+      if (((from_bitField0_ & 0x00002000) != 0)) {
+        result.outputTokens_ = outputTokens_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1264,6 +1374,15 @@ private static final long serialVersionUID = 0L;
           artifactIds_.addAll(other.artifactIds_);
         }
         onChanged();
+      }
+      if (other.getCostMicros() != 0L) {
+        setCostMicros(other.getCostMicros());
+      }
+      if (other.getInputTokens() != 0L) {
+        setInputTokens(other.getInputTokens());
+      }
+      if (other.getOutputTokens() != 0L) {
+        setOutputTokens(other.getOutputTokens());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1352,6 +1471,21 @@ private static final long serialVersionUID = 0L;
               artifactIds_.add(input.readStringRequireUtf8());
               break;
             } // case 90
+            case 96: {
+              costMicros_ = input.readInt64();
+              bitField0_ |= 0x00000800;
+              break;
+            } // case 96
+            case 104: {
+              inputTokens_ = input.readInt64();
+              bitField0_ |= 0x00001000;
+              break;
+            } // case 104
+            case 112: {
+              outputTokens_ = input.readInt64();
+              bitField0_ |= 0x00002000;
+              break;
+            } // case 112
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3175,6 +3309,189 @@ private static final long serialVersionUID = 0L;
       ensureArtifactIdsIsMutable();
       artifactIds_.add(value);
       bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+
+    private long costMicros_ ;
+    /**
+     * <pre>
+     * Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
+     *
+     * &#64;internal
+     * Non-zero for cost-incurring task kinds (llm_call, agent_call).
+     * Zero for non-LLM tasks (transform, validate, emit_event, etc.).
+     * Set by the workflow-runner when the task completes.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 cost_micros = 12 [json_name = "costMicros"];</code>
+     * @return The costMicros.
+     */
+    @java.lang.Override
+    public long getCostMicros() {
+      return costMicros_;
+    }
+    /**
+     * <pre>
+     * Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
+     *
+     * &#64;internal
+     * Non-zero for cost-incurring task kinds (llm_call, agent_call).
+     * Zero for non-LLM tasks (transform, validate, emit_event, etc.).
+     * Set by the workflow-runner when the task completes.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 cost_micros = 12 [json_name = "costMicros"];</code>
+     * @param value The costMicros to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCostMicros(long value) {
+
+      costMicros_ = value;
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
+     *
+     * &#64;internal
+     * Non-zero for cost-incurring task kinds (llm_call, agent_call).
+     * Zero for non-LLM tasks (transform, validate, emit_event, etc.).
+     * Set by the workflow-runner when the task completes.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 cost_micros = 12 [json_name = "costMicros"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearCostMicros() {
+      bitField0_ = (bitField0_ & ~0x00000800);
+      costMicros_ = 0L;
+      onChanged();
+      return this;
+    }
+
+    private long inputTokens_ ;
+    /**
+     * <pre>
+     * Input (prompt/context) tokens consumed by this task.
+     *
+     * &#64;internal
+     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 input_tokens = 13 [json_name = "inputTokens"];</code>
+     * @return The inputTokens.
+     */
+    @java.lang.Override
+    public long getInputTokens() {
+      return inputTokens_;
+    }
+    /**
+     * <pre>
+     * Input (prompt/context) tokens consumed by this task.
+     *
+     * &#64;internal
+     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 input_tokens = 13 [json_name = "inputTokens"];</code>
+     * @param value The inputTokens to set.
+     * @return This builder for chaining.
+     */
+    public Builder setInputTokens(long value) {
+
+      inputTokens_ = value;
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Input (prompt/context) tokens consumed by this task.
+     *
+     * &#64;internal
+     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 input_tokens = 13 [json_name = "inputTokens"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearInputTokens() {
+      bitField0_ = (bitField0_ & ~0x00001000);
+      inputTokens_ = 0L;
+      onChanged();
+      return this;
+    }
+
+    private long outputTokens_ ;
+    /**
+     * <pre>
+     * Output (completion/generation) tokens produced by this task.
+     *
+     * &#64;internal
+     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 output_tokens = 14 [json_name = "outputTokens"];</code>
+     * @return The outputTokens.
+     */
+    @java.lang.Override
+    public long getOutputTokens() {
+      return outputTokens_;
+    }
+    /**
+     * <pre>
+     * Output (completion/generation) tokens produced by this task.
+     *
+     * &#64;internal
+     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 output_tokens = 14 [json_name = "outputTokens"];</code>
+     * @param value The outputTokens to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOutputTokens(long value) {
+
+      outputTokens_ = value;
+      bitField0_ |= 0x00002000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Output (completion/generation) tokens produced by this task.
+     *
+     * &#64;internal
+     * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+     *
+     * &#64;since Cost Data Pipeline
+     * </pre>
+     *
+     * <code>int64 output_tokens = 14 [json_name = "outputTokens"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOutputTokens() {
+      bitField0_ = (bitField0_ & ~0x00002000);
+      outputTokens_ = 0L;
       onChanged();
       return this;
     }

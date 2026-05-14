@@ -497,4 +497,51 @@ public interface WorkflowTaskOrBuilder extends
    */
   com.google.protobuf.ByteString
       getArtifactIdsBytes(int index);
+
+  /**
+   * <pre>
+   * Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
+   *
+   * &#64;internal
+   * Non-zero for cost-incurring task kinds (llm_call, agent_call).
+   * Zero for non-LLM tasks (transform, validate, emit_event, etc.).
+   * Set by the workflow-runner when the task completes.
+   *
+   * &#64;since Cost Data Pipeline
+   * </pre>
+   *
+   * <code>int64 cost_micros = 12 [json_name = "costMicros"];</code>
+   * @return The costMicros.
+   */
+  long getCostMicros();
+
+  /**
+   * <pre>
+   * Input (prompt/context) tokens consumed by this task.
+   *
+   * &#64;internal
+   * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+   *
+   * &#64;since Cost Data Pipeline
+   * </pre>
+   *
+   * <code>int64 input_tokens = 13 [json_name = "inputTokens"];</code>
+   * @return The inputTokens.
+   */
+  long getInputTokens();
+
+  /**
+   * <pre>
+   * Output (completion/generation) tokens produced by this task.
+   *
+   * &#64;internal
+   * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+   *
+   * &#64;since Cost Data Pipeline
+   * </pre>
+   *
+   * <code>int64 output_tokens = 14 [json_name = "outputTokens"];</code>
+   * @return The outputTokens.
+   */
+  long getOutputTokens();
 }
