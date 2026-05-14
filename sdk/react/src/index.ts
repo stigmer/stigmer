@@ -128,6 +128,19 @@ export type {
   SearchResultGroup,
 } from "./session";
 
+// Activity — unified recent activity (sessions + workflow executions)
+export {
+  useRecentActivity,
+  groupRecentActivityByTime,
+} from "./activity";
+export type {
+  RecentActivityType,
+  RecentActivityEntry,
+  RecentActivityGroup,
+  UseRecentActivityOptions,
+  UseRecentActivityReturn,
+} from "./activity";
+
 // Execution — behavior hooks, styled components, and utilities (AgentExecution aggregate)
 export {
   isTerminalPhase,
@@ -1130,6 +1143,7 @@ export {
   TaskConfigForm,
   BranchConditionBuilder,
   ApprovalFormBuilder,
+  useResolveAgentExecutionSession,
 } from "./workflow";
 export type {
   TaskKindDescriptor,
@@ -1203,4 +1217,5 @@ export type {
   TaskConfigFormProps,
   BranchConditionBuilderProps,
   ApprovalFormBuilderProps,
+  UseResolveAgentExecutionSessionReturn,
 } from "./workflow";

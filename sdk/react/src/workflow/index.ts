@@ -286,3 +286,9 @@ export {
   ApprovalFormBuilder,
   type ApprovalFormBuilderProps,
 } from "./ApprovalFormBuilder";
+
+// Navigation resolution hook
+export {
+  useResolveAgentExecutionSession,
+  type UseResolveAgentExecutionSessionReturn,
+} from "./useResolveAgentExecutionSession";
