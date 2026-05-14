@@ -275,7 +275,7 @@ func flushLifecycleEvents(ctx workflow.Context, executionID string, evts ...*wfe
 		},
 	})
 
-	input, encErr := tasks.NewFlushEventsInput(executionID, evts)
+	input, encErr := tasks.NewFlushEventsInput(executionID, evts, nil)
 	if encErr != nil {
 		logger := workflow.GetLogger(ctx)
 		logger.Warn("Failed to encode lifecycle events (non-critical)",

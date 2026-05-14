@@ -79,6 +79,7 @@ type DoTaskBuilder struct {
 	builder[*model.DoTask]
 	opts        DoTaskOpts
 	eventBuffer []*wfexecv1.WorkflowExecutionEvent
+	taskMap     map[string]*wfexecv1.WorkflowTask
 }
 
 type workflowFunc struct {
@@ -605,15 +606,85 @@ func (t *DoTaskBuilder) shouldSkip(taskID string, task workflowFunc, state *util
 
 // bufferEvent appends an event to the pending buffer. No-op if emitter is nil.
 func (t *DoTaskBuilder) bufferEvent(ev *wfexecv1.WorkflowExecutionEvent) {
-	if ev != nil {
-		t.eventBuffer = append(t.eventBuffer, ev)
+	if ev == nil {
+		return
+	}
+	t.eventBuffer = append(t.eventBuffer, ev)
+	t.updateTaskFromEvent(ev)
+}
+
+// updateTaskFromEvent keeps the task status snapshot in sync with emitted events.
+func (t *DoTaskBuilder) updateTaskFromEvent(ev *wfexecv1.WorkflowExecutionEvent) {
+	name := ev.GetTaskName()
+	if name == "" {
+		return
+	}
+	if t.taskMap == nil {
+		t.taskMap = make(map[string]*wfexecv1.WorkflowTask)
+	}
+
+	task, exists := t.taskMap[name]
+	if !exists {
+		task = &wfexecv1.WorkflowTask{
+			TaskId:   name,
+			TaskName: name,
+		}
+		t.taskMap[name] = task
+	}
+
+	switch ev.GetEventType() {
+	case wfexecv1.WorkflowEventType_task_started:
+		task.Status = wfexecv1.WorkflowTaskStatus_WORKFLOW_TASK_IN_PROGRESS
+		if p := ev.GetTaskStarted(); p != nil {
+			task.TaskType = kindToTaskType(p.GetTaskKind())
+		}
+	case wfexecv1.WorkflowEventType_task_completed:
+		task.Status = wfexecv1.WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED
+	case wfexecv1.WorkflowEventType_task_failed:
+		task.Status = wfexecv1.WorkflowTaskStatus_WORKFLOW_TASK_FAILED
+		if p := ev.GetTaskFailed(); p != nil {
+			task.Error = p.GetError()
+		}
+	case wfexecv1.WorkflowEventType_task_skipped:
+		task.Status = wfexecv1.WorkflowTaskStatus_WORKFLOW_TASK_SKIPPED
 	}
 }
 
-// flushEvents sends all buffered events to the backend via a Temporal activity.
-// Clears the buffer after a successful flush. Errors are logged but do not fail
-// the workflow — event delivery is best-effort; the status snapshot is the
-// authoritative state.
+// taskStatusSnapshot returns the current cumulative task status list.
+func (t *DoTaskBuilder) taskStatusSnapshot() []*wfexecv1.WorkflowTask {
+	if len(t.taskMap) == 0 {
+		return nil
+	}
+	out := make([]*wfexecv1.WorkflowTask, 0, len(t.taskMap))
+	for _, task := range t.taskMap {
+		out = append(out, task)
+	}
+	return out
+}
+
+func kindToTaskType(kind workflowv1.WorkflowTaskKind) wfexecv1.WorkflowTaskType {
+	switch kind {
+	case workflowv1.WorkflowTaskKind_agent_call:
+		return wfexecv1.WorkflowTaskType_WORKFLOW_TASK_AGENT_INVOCATION
+	case workflowv1.WorkflowTaskKind_http_call, workflowv1.WorkflowTaskKind_grpc_call:
+		return wfexecv1.WorkflowTaskType_WORKFLOW_TASK_API_CALL
+	case workflowv1.WorkflowTaskKind_switch_case:
+		return wfexecv1.WorkflowTaskType_WORKFLOW_TASK_CONDITIONAL
+	case workflowv1.WorkflowTaskKind_fork:
+		return wfexecv1.WorkflowTaskType_WORKFLOW_TASK_PARALLEL
+	case workflowv1.WorkflowTaskKind_transform:
+		return wfexecv1.WorkflowTaskType_WORKFLOW_TASK_TRANSFORM
+	case workflowv1.WorkflowTaskKind_human_input:
+		return wfexecv1.WorkflowTaskType_WORKFLOW_TASK_APPROVAL
+	default:
+		return wfexecv1.WorkflowTaskType_WORKFLOW_TASK_CUSTOM
+	}
+}
+
+// flushEvents sends all buffered events and the current task status snapshot
+// to the backend via a Temporal activity. Clears the event buffer after flush.
+// Errors are logged but do not fail the workflow — event delivery is
+// best-effort; the status snapshot sent alongside is the authoritative state.
 func (t *DoTaskBuilder) flushEvents(ctx workflow.Context) {
 	if len(t.eventBuffer) == 0 || t.opts.ExecutionID == "" {
 		return
@@ -631,9 +702,13 @@ func (t *DoTaskBuilder) flushEvents(ctx workflow.Context) {
 		},
 	})
 
-	input := &FlushEventsInput{
-		ExecutionID: t.opts.ExecutionID,
-		Events:      batch,
+	input, encErr := NewFlushEventsInput(t.opts.ExecutionID, batch, t.taskStatusSnapshot())
+	if encErr != nil {
+		logger.Warn("Failed to encode events (non-critical)",
+			"execution_id", t.opts.ExecutionID,
+			"event_count", len(batch),
+			"error", encErr)
+		return
 	}
 
 	err := workflow.ExecuteActivity(flushCtx, FlushEventsActivity, input).Get(ctx, nil)

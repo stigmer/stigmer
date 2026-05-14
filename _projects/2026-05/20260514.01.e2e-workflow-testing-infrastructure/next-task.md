@@ -68,8 +68,47 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: T03 Test Harness Core — COMPLETE
-**Status**: In Progress (T03+T05 code complete, ready for runtime validation)
+**Current Task**: Runtime Validation — COMPLETE (all 4 integration tests pass)
+**Status**: Ready for next task (T04 or T02)
+
+## Session Progress (2026-05-14, Session 4 — Runtime Validation)
+
+### Accomplished
+- **All 4 integration tests pass end-to-end**: infra, service, smoke, workflow lifecycle
+- Fixed 6 runtime bugs discovered during incremental validation of the full pipeline
+- Full pipeline validated: Go test → Testcontainers → Java fat JAR → Temporal → Go workflow-runner → zigflow execution → gRPC callbacks → assertion
+
+### Bugs Fixed (6 total)
+
+1. **Missing `IdentityAccount` seed data**: Java service's `RequestPipeline` tried to resolve actor info for `test-identity-account-id` from MongoDB but nothing existed. Created `IntegrationTestDataSeeder.java` (stigmer-cloud) to seed a minimal IdentityAccount on startup when `stigmer.security.mode=test`.
+
+2. **Protobuf `version` field type mismatch**: The seeder initially set `metadata.version` to integer `1`, but the proto defines it as a nested `ApiResourceMetadataVersion` message. Removed the field (optional, not needed for test).
+
+3. **Temporal workflow deadlock (Java)**: `InvokeWorkflowExecutionWorkflowImpl` used `Workflow.newDetachedCancellationScope(...).run()` for the pause monitor, which blocked the main workflow thread before `activityScope.run()` could execute. Fixed by using `Async.procedure()` for concurrent execution.
+
+4. **Polyglot serialization mismatch (Java→Go)**: Java `InvokeWorkflowExecutionWorkflowInput` was serialized with camelCase (`executionId`) but Go struct expected snake_case (`execution_id`). Added `@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)` to the Java record.
+
+5. **Protobuf `oneof` deserialization failure**: `FlushEventsActivity` used `[]*WorkflowExecutionEvent` in a plain Go struct, which Temporal's default JSON converter couldn't round-trip (oneof fields are Go interfaces). Rewrote to pre-serialize events with `protojson` as `[][]byte`.
+
+6. **Missing task status for inline tasks**: The `ProgressReportingInterceptor` only tracked Temporal activities, not inline tasks like `set_vars`. Also, it was reporting `FlushEventsActivity` as a user-facing task. Fixed by: (a) adding `FlushEventsActivity` to the interceptor skip list, (b) adding a `taskMap` to `DoTaskBuilder` that accumulates `WorkflowTask` entries from events, (c) including the task status snapshot in every `FlushEventsActivity` call.
+
+### Key Decisions Made
+- **protojson encoding for Temporal boundary**: Protobuf messages with `oneof` fields must be serialized with `protojson` before crossing Temporal's data converter boundary; `encoding/json` cannot handle Go interface types
+- **Task status via event-driven snapshot**: The `DoTaskBuilder` maintains a cumulative task status map derived from emitted events, sent alongside each event flush — this fills the gap for inline tasks that the interceptor can't see
+- **IntegrationTestDataSeeder pattern**: Conditional `@PostConstruct` seeder that runs only in test mode — clean pattern for bootstrapping test data without polluting production paths
+
+### Files Changed
+
+**stigmer (OSS)** — modified (4 files):
+- `backend/services/workflow-runner/pkg/executor/temporal_workflow.go` — updated `flushLifecycleEvents` for new `NewFlushEventsInput` signature
+- `backend/services/workflow-runner/pkg/interceptors/progress_interceptor.go` — added `FlushEventsActivity` to skip list
+- `backend/services/workflow-runner/pkg/zigflow/tasks/flush_events_activity.go` — rewrote with protojson encoding + task status snapshots
+- `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_do.go` — added task status tracking via `taskMap` + `kindToTaskType` mapper
+
+**stigmer-cloud** — modified/new (3 files):
+- `InvokeWorkflowExecutionWorkflowImpl.java` — fixed Async.procedure deadlock
+- `InvokeWorkflowExecutionWorkflowInput.java` — added @JsonNaming for snake_case serialization
+- `IntegrationTestDataSeeder.java` — NEW: seeds test IdentityAccount in test mode
 
 ## Session Progress (2026-05-14, Session 3)
 
@@ -168,24 +207,23 @@ When starting a new session:
 - `IntegrationTestSecurityConfig.java` — NEW: permit-all security + synthetic test caller identity
 
 ## Next Steps
-1. **Runtime validation** — build the fat JAR and run `go test -tags=integration -v -timeout=5m ./...` to validate the full pipeline
-2. **Org bootstrap** — if the runtime test reveals org-creation issues, add org bootstrap to fixture deployer
-3. **T04: JUnit XML + Trace Bundle Output** — wire gotestsum, collect service logs on failure
-4. **T02: Delete Legacy E2E Tests** — remove `test/e2e/` (76 files) and clean up Makefile/CI references
-5. **T06: CI Workflow** — create `.github/workflows/ci.integration-offline.yaml`
+1. **T04: JUnit XML + Trace Bundle Output** — wire gotestsum, collect service logs on failure
+2. **T02: Delete Legacy E2E Tests** — remove `test/e2e/` (76 files) and clean up Makefile/CI references
+3. **T06: CI Workflow** — create `.github/workflows/ci.integration-offline.yaml`
 
 ## Context for Resume
-- T03 code is complete — fixture deployer, assertion helpers, workflow-runner supervisor, and the first E2E test all compile
-- The code has NOT been runtime-tested yet — need to build the fat JAR and run the integration tests
-- The `DeployAndExecute` convenience method uses `spec.workflow_id` (auto-resolves to default instance) — no explicit WorkflowInstance creation needed for simple tests
-- The workflow-runner is started as a child process via `go build` from `backend/services/workflow-runner/`
-- Org bootstrap question remains empirical — discovered at first `apply()` call runtime
-- Runner startup is non-blocking (no port to wait on — it's a Temporal worker that polls)
+- All 4 integration tests pass: infra (3 sub-tests), service health, smoke gRPC, workflow lifecycle
+- The full pipeline is validated: Go test harness → Testcontainers → Java fat JAR → Temporal → Go workflow-runner → zigflow engine → gRPC callbacks → assertions
+- Six pre-existing bugs in the production codebase were found and fixed during runtime validation
+- The stigmer-cloud changes (3 files) need to be committed separately in that repo
+- Fat JAR path: `/Users/suresh/scm/github.com/stigmer/stigmer-cloud/bazel-bin/backend/services/stigmer-service/stigmer_service_fatjar.jar`
+- Test command: `STIGMER_SERVICE_JAR=<jar_path> go test -v -tags integration -timeout 300s ./test/integration/`
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T03" - Build the full test harness
+- "Continue with T04" - Wire JUnit XML output
+- "Continue with T02" - Delete legacy E2E tests
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
