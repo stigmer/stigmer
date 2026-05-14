@@ -16,20 +16,30 @@ type JavaService struct {
 	GRPCPort string
 	HTTPPort string
 	logFile  *os.File
+	logPath  string
 	logger   *slog.Logger
+}
+
+// LogPath returns the path to the service log file.
+func (s *JavaService) LogPath() string {
+	return s.logPath
 }
 
 // ServiceConfig holds the addresses of infrastructure that the Java
 // service needs to connect to.
 type ServiceConfig struct {
-	JarPath          string
-	MongoHost        string
-	MongoPort        string
-	RedisHost        string
-	RedisPort        string
-	TemporalAddress  string
-	GRPCPort         string
-	HTTPPort         string
+	JarPath         string
+	MongoHost       string
+	MongoPort       string
+	RedisHost       string
+	RedisPort       string
+	TemporalAddress string
+	GRPCPort        string
+	HTTPPort        string
+
+	// LogDir is the directory for the service log file.
+	// If empty, a temporary directory is used.
+	LogDir string
 }
 
 // StartJavaService launches the stigmer-service fat JAR as a child process
@@ -53,9 +63,13 @@ func StartJavaService(ctx context.Context, cfg ServiceConfig, logger *slog.Logge
 		cfg.HTTPPort = fmt.Sprintf("%d", p)
 	}
 
-	logDir, err := os.MkdirTemp("", "stigmer-integration-test-*")
-	if err != nil {
-		return nil, fmt.Errorf("create log dir: %w", err)
+	logDir := cfg.LogDir
+	if logDir == "" {
+		var mkErr error
+		logDir, mkErr = os.MkdirTemp("", "stigmer-integration-test-*")
+		if mkErr != nil {
+			return nil, fmt.Errorf("create log dir: %w", mkErr)
+		}
 	}
 	logPath := filepath.Join(logDir, "stigmer-service.log")
 	logFile, err := os.Create(logPath)
@@ -114,6 +128,7 @@ func StartJavaService(ctx context.Context, cfg ServiceConfig, logger *slog.Logge
 		GRPCPort: cfg.GRPCPort,
 		HTTPPort: cfg.HTTPPort,
 		logFile:  logFile,
+		logPath:  logPath,
 		logger:   logger,
 	}, nil
 }

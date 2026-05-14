@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"sync"
 )
 
@@ -17,7 +18,8 @@ type TestHarness struct {
 	Service        *JavaService
 	WorkflowRunner *WorkflowRunner
 
-	logger *slog.Logger
+	outputDir string
+	logger    *slog.Logger
 }
 
 type Config struct {
@@ -29,19 +31,55 @@ type Config struct {
 	// StigmerCloudRoot is the path to the stigmer-cloud repo root.
 	// Defaults to ../../../../stigmer-cloud relative to this module.
 	StigmerCloudRoot string
+
+	// OutputDir is the directory for test artifacts (service logs, etc.).
+	// Defaults to ".test-output" relative to the working directory.
+	// Can be overridden via the INTEGRATION_TEST_OUTPUT_DIR env var.
+	OutputDir string
 }
 
 func DefaultConfig() Config {
-	return Config{}
+	outputDir := os.Getenv("INTEGRATION_TEST_OUTPUT_DIR")
+	if outputDir == "" {
+		outputDir = ".test-output"
+	}
+	return Config{OutputDir: outputDir}
+}
+
+// LogDir returns the directory where service logs are written.
+func (h *TestHarness) LogDir() string {
+	return filepath.Join(h.outputDir, "logs")
+}
+
+// LogPaths returns the file paths of all service logs that exist on disk.
+func (h *TestHarness) LogPaths() []string {
+	var paths []string
+	if h.Service != nil && h.Service.LogPath() != "" {
+		paths = append(paths, h.Service.LogPath())
+	}
+	if h.WorkflowRunner != nil && h.WorkflowRunner.LogPath() != "" {
+		paths = append(paths, h.WorkflowRunner.LogPath())
+	}
+	return paths
 }
 
 // Start brings up all infrastructure and services in the correct order.
 // Call Stop in a defer to clean up.
 func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	h := &TestHarness{logger: logger}
 
-	logger.Info("starting test infrastructure")
+	outputDir := cfg.OutputDir
+	if outputDir == "" {
+		outputDir = ".test-output"
+	}
+	logDir := filepath.Join(outputDir, "logs")
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
+		return nil, fmt.Errorf("create log output directory %s: %w", logDir, err)
+	}
+
+	h := &TestHarness{outputDir: outputDir, logger: logger}
+
+	logger.Info("starting test infrastructure", "output_dir", outputDir)
 
 	var mongoErr, redisErr, temporalErr error
 	var wg sync.WaitGroup

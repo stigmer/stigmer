@@ -217,6 +217,25 @@ test: ## Run all unit tests
 	@echo "testing  $(CURSOR_RUNNER_DIR)"
 	@cd $(CURSOR_RUNNER_DIR) && npm test
 
+# ─── Integration Test ─────────────────────────
+
+INTEGRATION_OUTPUT_DIR ?= test/integration/.test-output
+
+.PHONY: test-integration
+test-integration: ## Run integration tests with JUnit XML and JSON output
+	@command -v gotestsum >/dev/null 2>&1 || { \
+		echo "error: gotestsum not found"; \
+		echo "  install: go install gotest.tools/gotestsum@latest"; \
+		exit 1; \
+	}
+	@mkdir -p $(INTEGRATION_OUTPUT_DIR)
+	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(INTEGRATION_OUTPUT_DIR)) gotestsum \
+		--junitfile $(INTEGRATION_OUTPUT_DIR)/junit.xml \
+		--junitfile-testsuite-name short \
+		--jsonfile $(INTEGRATION_OUTPUT_DIR)/test-output.json \
+		--format testname \
+		-- -tags integration -timeout 300s -count=1 ./test/integration/
+
 # ─── Tidy ────────────────────────────────────
 
 .PHONY: tidy

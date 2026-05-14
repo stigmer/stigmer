@@ -32,15 +32,19 @@ func TestMain(m *testing.M) {
 		os.Exit(0)
 	}
 
+	cfg := harness.DefaultConfig()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
 	var err error
-	testHarness, err = harness.Start(ctx, harness.DefaultConfig())
+	testHarness, err = harness.Start(ctx, cfg)
 	if err != nil {
 		suiteLogger.Error("failed to start test infrastructure", "error", err)
 		os.Exit(1)
 	}
+
+	logDir := testHarness.LogDir()
 
 	svc, err := harness.StartJavaService(ctx, harness.ServiceConfig{
 		JarPath:         jarPath,
@@ -49,6 +53,7 @@ func TestMain(m *testing.M) {
 		RedisHost:       testHarness.Redis.Host,
 		RedisPort:       testHarness.Redis.Port,
 		TemporalAddress: testHarness.Temporal.Address(),
+		LogDir:          logDir,
 	}, suiteLogger)
 	if err != nil {
 		suiteLogger.Error("failed to start java service", "error", err)
@@ -70,6 +75,7 @@ func TestMain(m *testing.M) {
 	runner, err := harness.StartWorkflowRunner(ctx, harness.WorkflowRunnerConfig{
 		StigmerServiceAddress: svc.GRPCAddress(),
 		TemporalAddress:       testHarness.Temporal.Address(),
+		LogDir:                logDir,
 	}, suiteLogger)
 	if err != nil {
 		suiteLogger.Warn("workflow-runner failed to start — execution tests will be skipped", "error", err)
@@ -82,6 +88,7 @@ func TestMain(m *testing.M) {
 		"mongo", fmt.Sprintf("%s:%s", testHarness.Mongo.Host, testHarness.Mongo.Port),
 		"temporal", testHarness.Temporal.Address(),
 		"workflow_runner", runner != nil,
+		"log_dir", logDir,
 	)
 
 	code := m.Run()
