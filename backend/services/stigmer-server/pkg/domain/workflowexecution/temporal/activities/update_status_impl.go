@@ -111,6 +111,17 @@ func (a *UpdateWorkflowExecutionStatusActivityImpl) UpdateExecutionStatus(
 		updated.Status.CompletedAt = statusUpdates.CompletedAt
 	}
 
+	// Cost/token aggregates: monotonically increasing, always take the latest value
+	if statusUpdates.TotalCostMicros > 0 {
+		updated.Status.TotalCostMicros = statusUpdates.TotalCostMicros
+	}
+	if statusUpdates.TotalInputTokens > 0 {
+		updated.Status.TotalInputTokens = statusUpdates.TotalInputTokens
+	}
+	if statusUpdates.TotalOutputTokens > 0 {
+		updated.Status.TotalOutputTokens = statusUpdates.TotalOutputTokens
+	}
+
 	// Update audit timestamp (status was modified)
 	if updated.Status.Audit == nil {
 		updated.Status.Audit = &apiresourcev1.ApiResourceAudit{}

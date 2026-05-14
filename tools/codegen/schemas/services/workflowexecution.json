@@ -2052,6 +2052,36 @@
         },
         "description": "Pending approvals from child agent tool executions.\n\n @internal\n Populated when workflow tasks invoke agents that enter\n EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval\n requests at the workflow level for UI visibility.\n\n Full-Replace Protocol:\n The workflow-runner always sends the complete set of pending approvals\n via UpdateStatus. The server replaces the stored list unconditionally:\n - Non-empty list: child agent(s) need approval\n - Empty list: all approvals resolved, clear the field\n\n Parallel Agents:\n When multiple child agents run in parallel, entries from different children\n accumulate in this list. Each entry's child_agent_execution_id distinguishes\n the source.",
         "required": false
+      },
+      {
+        "name": "TotalCostMicros",
+        "jsonName": "totalCostMicros",
+        "protoField": "total_cost_micros",
+        "type": {
+          "kind": "int64"
+        },
+        "description": "Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).\n\n @internal\n Updated by the workflow-runner alongside each status update. Reflects the\n budget tracker's accumulated cost at the time of the last status write.\n Used by getExecutionSummary for fast aggregation without scanning events.\n\n Consistent with WorkflowBudget.max_cost_micros and the billing domain's\n micro-USD convention (CostStamp.provider_cost_micros, etc.).\n\n @since Cost Data Pipeline",
+        "required": false
+      },
+      {
+        "name": "TotalInputTokens",
+        "jsonName": "totalInputTokens",
+        "protoField": "total_input_tokens",
+        "type": {
+          "kind": "int64"
+        },
+        "description": "Cumulative input tokens consumed across all LLM and agent tasks.\n\n @internal\n Input tokens represent prompt/context tokens sent to the model.\n Updated alongside total_cost_micros from the budget tracker.\n\n @since Cost Data Pipeline",
+        "required": false
+      },
+      {
+        "name": "TotalOutputTokens",
+        "jsonName": "totalOutputTokens",
+        "protoField": "total_output_tokens",
+        "type": {
+          "kind": "int64"
+        },
+        "description": "Cumulative output tokens consumed across all LLM and agent tasks.\n\n @internal\n Output tokens represent completion/generation tokens returned by the model.\n Updated alongside total_cost_micros from the budget tracker.\n\n @since Cost Data Pipeline",
+        "required": false
       }
     ]
   },
@@ -2467,6 +2497,36 @@
             }
           },
           "description": "Artifact IDs produced by this task.\n\n @internal\n Populated when the task's output (or portions of it) is auto-promoted\n to the artifact store because it exceeds the size threshold (256KB),\n or when the workflow author explicitly declares artifact persistence.\n\n Each entry is an Artifact ID (format: \"art_{unique-suffix}\") that can\n be resolved via the Artifact.get() and Artifact.getDownloadUrl() RPCs.\n\n When artifact_ids is non-empty, the task's output field contains\n artifact references ({\"_artifact_ref\": \"art_xxx\", ...}) instead of\n the original inline data. Consumers (execution viewer, SDK hooks)\n detect these references and resolve them via the Artifact APIs.\n\n @since T07 (Artifact Store)",
+          "required": false
+        },
+        {
+          "name": "CostMicros",
+          "jsonName": "costMicros",
+          "protoField": "cost_micros",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).\n\n @internal\n Non-zero for cost-incurring task kinds (llm_call, agent_call).\n Zero for non-LLM tasks (transform, validate, emit_event, etc.).\n Set by the workflow-runner when the task completes.\n\n @since Cost Data Pipeline",
+          "required": false
+        },
+        {
+          "name": "InputTokens",
+          "jsonName": "inputTokens",
+          "protoField": "input_tokens",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Input (prompt/context) tokens consumed by this task.\n\n @internal\n Non-zero for LLM-backed tasks. Zero for non-LLM tasks.\n\n @since Cost Data Pipeline",
+          "required": false
+        },
+        {
+          "name": "OutputTokens",
+          "jsonName": "outputTokens",
+          "protoField": "output_tokens",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Output (completion/generation) tokens produced by this task.\n\n @internal\n Non-zero for LLM-backed tasks. Zero for non-LLM tasks.\n\n @since Cost Data Pipeline",
           "required": false
         }
       ]

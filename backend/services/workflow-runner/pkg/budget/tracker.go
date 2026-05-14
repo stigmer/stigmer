@@ -62,8 +62,9 @@ type Tracker struct {
 	budget    *workflowv1.WorkflowBudget
 	startedAt time.Time
 
-	CostMicros  int64
-	TotalTokens int64
+	CostMicros   int64
+	InputTokens  int64
+	OutputTokens int64
 }
 
 // NewTracker creates a tracker bound to the given budget.
@@ -76,9 +77,15 @@ func NewTracker(budget *workflowv1.WorkflowBudget, startedAt time.Time) *Tracker
 }
 
 // Record adds cost and token usage from a completed task.
-func (t *Tracker) Record(costMicros, tokens int64) {
+func (t *Tracker) Record(costMicros, inputTokens, outputTokens int64) {
 	t.CostMicros += costMicros
-	t.TotalTokens += tokens
+	t.InputTokens += inputTokens
+	t.OutputTokens += outputTokens
+}
+
+// TotalTokens returns the combined input + output token count.
+func (t *Tracker) TotalTokens() int64 {
+	return t.InputTokens + t.OutputTokens
 }
 
 // Check evaluates accumulated usage against the budget limits.
@@ -112,15 +119,16 @@ func (t *Tracker) Check(now time.Time) CheckResult {
 	}
 
 	if limit := t.budget.GetMaxTotalTokens(); limit > 0 {
-		pct := float64(t.TotalTokens) / float64(limit)
+		total := t.TotalTokens()
+		pct := float64(total) / float64(limit)
 		if pct > highestPct {
 			highestPct = pct
 		}
-		if t.TotalTokens > limit {
+		if total > limit {
 			return CheckResult{
 				Exceeded:        true,
 				ExceededLimit:   LimitTokens,
-				ExceededMessage: fmt.Sprintf("token budget exceeded: %d/%d tokens", t.TotalTokens, limit),
+				ExceededMessage: fmt.Sprintf("token budget exceeded: %d/%d tokens", total, limit),
 				Policy:          policy,
 				WarningPct:      pct,
 			}
@@ -168,7 +176,7 @@ func (t *Tracker) TokensRemaining() int64 {
 	if t.budget == nil || t.budget.GetMaxTotalTokens() == 0 {
 		return -1
 	}
-	rem := t.budget.GetMaxTotalTokens() - t.TotalTokens
+	rem := t.budget.GetMaxTotalTokens() - t.TotalTokens()
 	if rem < 0 {
 		return 0
 	}

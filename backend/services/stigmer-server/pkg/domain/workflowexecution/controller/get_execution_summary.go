@@ -33,6 +33,11 @@ func (c *WorkflowExecutionController) GetExecutionSummary(
 	failureCounts := make(map[string]int32)  // workflow slug → failure count
 	workflowNames := make(map[string]string) // workflow slug → name
 	execByWorkflow := make(map[string]int32) // workflow slug → execution count
+	costByWorkflow := make(map[string]float64) // workflow slug → total cost USD
+
+	var totalCostMicros int64
+	var totalInputTokens int64
+	var totalOutputTokens int64
 
 	for _, d := range data {
 		exec := &workflowexecutionv1.WorkflowExecution{}
@@ -55,11 +60,17 @@ func (c *WorkflowExecutionController) GetExecutionSummary(
 		slug := extractWorkflowSlug(exec)
 		if slug != "" {
 			execByWorkflow[slug]++
-		}
-		if slug != "" {
 			if name := exec.GetMetadata().GetName(); name != "" {
 				workflowNames[slug] = name
 			}
+		}
+
+		execCost := exec.GetStatus().GetTotalCostMicros()
+		totalCostMicros += execCost
+		totalInputTokens += exec.GetStatus().GetTotalInputTokens()
+		totalOutputTokens += exec.GetStatus().GetTotalOutputTokens()
+		if slug != "" && execCost > 0 {
+			costByWorkflow[slug] += float64(execCost) / 1_000_000.0
 		}
 
 		if phase == workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED {
@@ -76,7 +87,11 @@ func (c *WorkflowExecutionController) GetExecutionSummary(
 	summary := &workflowexecutionv1.ExecutionSummary{
 		ActiveCount: activeCount,
 		PhaseCounts: phaseCounts,
-		TotalCost:   &workflowexecutionv1.WorkflowCostSummary{},
+		TotalCost: &workflowexecutionv1.WorkflowCostSummary{
+			TotalCostUsd:      float64(totalCostMicros) / 1_000_000.0,
+			TotalInputTokens:  totalInputTokens,
+			TotalOutputTokens: totalOutputTokens,
+		},
 	}
 
 	if len(completedDurations) > 0 {
@@ -89,7 +104,7 @@ func (c *WorkflowExecutionController) GetExecutionSummary(
 	}
 
 	summary.TopFailingWorkflows = buildFailureRanks(failureCounts, workflowNames, 10)
-	summary.CostByWorkflow = buildCostBreakdown(nil, execByWorkflow, workflowNames, 10)
+	summary.CostByWorkflow = buildCostBreakdown(costByWorkflow, execByWorkflow, workflowNames, 10)
 
 	return summary, nil
 }

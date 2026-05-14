@@ -198,7 +198,7 @@ func ExecuteServerlessWorkflow(ctx workflow.Context, input *types.TemporalWorkfl
 	durationMs := workflow.Now(ctx).Sub(executionStartTime).Milliseconds()
 	completedEvent := emitter.ExecutionCompleted(
 		workflow.Now(ctx), durationMs,
-		tracker.CostMicros, tracker.TotalTokens,
+		tracker.CostMicros, tracker.TotalTokens(),
 		nil,
 	)
 	flushLifecycleEvents(ctx, input.WorkflowExecutionID, completedEvent)
@@ -208,7 +208,7 @@ func ExecuteServerlessWorkflow(ctx workflow.Context, input *types.TemporalWorkfl
 		"workflow_name", workflowDef.Document.Name,
 		"duration_ms", durationMs,
 		"cost_micros", tracker.CostMicros,
-		"total_tokens", tracker.TotalTokens)
+		"total_tokens", tracker.TotalTokens())
 
 	// Phase 4: Apply Claim Check to large results if enabled
 	finalResult := result

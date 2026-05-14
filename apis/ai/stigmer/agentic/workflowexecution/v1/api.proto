@@ -292,6 +292,37 @@ message WorkflowExecutionStatus {
   // accumulate in this list. Each entry's child_agent_execution_id distinguishes
   // the source.
   repeated WorkflowPendingApproval pending_approvals = 9;
+
+  // Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
+  //
+  // @internal
+  // Updated by the workflow-runner alongside each status update. Reflects the
+  // budget tracker's accumulated cost at the time of the last status write.
+  // Used by getExecutionSummary for fast aggregation without scanning events.
+  //
+  // Consistent with WorkflowBudget.max_cost_micros and the billing domain's
+  // micro-USD convention (CostStamp.provider_cost_micros, etc.).
+  //
+  // @since Cost Data Pipeline
+  int64 total_cost_micros = 10;
+
+  // Cumulative input tokens consumed across all LLM and agent tasks.
+  //
+  // @internal
+  // Input tokens represent prompt/context tokens sent to the model.
+  // Updated alongside total_cost_micros from the budget tracker.
+  //
+  // @since Cost Data Pipeline
+  int64 total_input_tokens = 11;
+
+  // Cumulative output tokens consumed across all LLM and agent tasks.
+  //
+  // @internal
+  // Output tokens represent completion/generation tokens returned by the model.
+  // Updated alongside total_cost_micros from the budget tracker.
+  //
+  // @since Cost Data Pipeline
+  int64 total_output_tokens = 12;
 }
 
 // WorkflowPendingApproval pairs approval details with routing information for workflow-level forwarding.
@@ -451,4 +482,30 @@ message WorkflowTask {
   //
   // @since T07 (Artifact Store)
   repeated string artifact_ids = 11;
+
+  // Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
+  //
+  // @internal
+  // Non-zero for cost-incurring task kinds (llm_call, agent_call).
+  // Zero for non-LLM tasks (transform, validate, emit_event, etc.).
+  // Set by the workflow-runner when the task completes.
+  //
+  // @since Cost Data Pipeline
+  int64 cost_micros = 12;
+
+  // Input (prompt/context) tokens consumed by this task.
+  //
+  // @internal
+  // Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+  //
+  // @since Cost Data Pipeline
+  int64 input_tokens = 13;
+
+  // Output (completion/generation) tokens produced by this task.
+  //
+  // @internal
+  // Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+  //
+  // @since Cost Data Pipeline
+  int64 output_tokens = 14;
 }
