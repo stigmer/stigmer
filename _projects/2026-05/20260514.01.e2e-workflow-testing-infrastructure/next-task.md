@@ -68,8 +68,36 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: Runtime Validation — COMPLETE (all 4 integration tests pass)
-**Status**: Ready for next task (T04 or T02)
+**Current Task**: T02 Delete Legacy E2E Tests — COMPLETE
+**Status**: Ready for next task (T04 or T06)
+
+## Session Progress (2026-05-14, Session 5 — T02 Legacy E2E Deletion)
+
+### Accomplished
+- **Deleted `test/e2e/` entirely**: 140 files, ~23,000 lines of dead code removed
+- Removed `./test/e2e` from `go.work`
+- Ran `go work sync` + `go mod tidy` — all 10 workspace modules build cleanly
+- Verified: no Makefile, CI, docs, or production code references to `test/e2e`
+- Committed: `44a980134` on `feat/bring-workflows-to-foreground`
+
+### Key Findings
+- The legacy suite had **140** files on disk (not 76 as originally estimated) — the `.gitignore` excluded `testdata/examples/` from git tracking but they were present on disk
+- No build system or CI wiring existed for the legacy suite — `GO_MODULES` in the Makefile never included it, and no GitHub Actions workflow referenced it
+- The only live reference outside the suite was `go.work`
+- Historical artifacts (`_changelog/`, `_projects/`) left untouched as documentation record
+
+### Files Changed
+
+**stigmer (OSS)** — deleted:
+- `test/e2e/` — entire directory tree (140 files)
+
+**stigmer (OSS)** — modified:
+- `go.work` — removed `./test/e2e` workspace member
+- Various `go.mod`/`go.sum` across workspace modules — `go work sync` + `go mod tidy` cleanup
+
+## Next Steps
+1. **T04: JUnit XML + Trace Bundle Output** — wire gotestsum, collect service logs on failure
+2. **T06: CI Workflow** — create `.github/workflows/ci.integration-offline.yaml`
 
 ## Session Progress (2026-05-14, Session 4 — Runtime Validation)
 
@@ -206,10 +234,9 @@ When starting a new session:
 - `GrpcRequestContextBuilderInterceptor.java` — added context-already-set skip
 - `IntegrationTestSecurityConfig.java` — NEW: permit-all security + synthetic test caller identity
 
-## Next Steps
+## Next Steps (Bottom)
 1. **T04: JUnit XML + Trace Bundle Output** — wire gotestsum, collect service logs on failure
-2. **T02: Delete Legacy E2E Tests** — remove `test/e2e/` (76 files) and clean up Makefile/CI references
-3. **T06: CI Workflow** — create `.github/workflows/ci.integration-offline.yaml`
+2. **T06: CI Workflow** — create `.github/workflows/ci.integration-offline.yaml`
 
 ## Context for Resume
 - All 4 integration tests pass: infra (3 sub-tests), service health, smoke gRPC, workflow lifecycle
