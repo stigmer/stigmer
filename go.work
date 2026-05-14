@@ -10,5 +10,6 @@ use (
 	./sdk/go
 	./seedpack
 	./test/e2e
+	./test/integration
 	./tools
 )
