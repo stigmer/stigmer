@@ -30,7 +30,7 @@ const McpServerDetailPage = lazy(() => import("./pages/library/McpServerDetailPa
 const AgentNewPage = lazy(() => import("./pages/library/AgentNewPage"));
 const SkillNewPage = lazy(() => import("./pages/library/SkillNewPage"));
 const McpServerNewPage = lazy(() => import("./pages/library/McpServerNewPage"));
-const WorkflowLayout = lazy(() => import("./pages/workflow/WorkflowLayout"));
+const DashboardPage = lazy(() => import("./pages/dashboard/DashboardPage"));
 const WorkflowListPage = lazy(() => import("./pages/workflow/WorkflowListPage"));
 const WorkflowDetailPage = lazy(() => import("./pages/workflow/WorkflowDetailPage"));
 const WorkflowExecutionListPage = lazy(() => import("./pages/workflow/WorkflowExecutionListPage"));
@@ -68,6 +68,14 @@ const routes: RouteObject[] = [
         element: (
           <LazyPage>
             <SessionPage />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "dashboard",
+        element: (
+          <LazyPage>
+            <DashboardPage />
           </LazyPage>
         ),
       },
@@ -159,18 +167,8 @@ const routes: RouteObject[] = [
               </LazyPage>
             ),
           },
-        ],
-      },
-      {
-        path: "workflows",
-        element: (
-          <LazyPage>
-            <WorkflowLayout />
-          </LazyPage>
-        ),
-        children: [
           {
-            index: true,
+            path: "workflows",
             element: (
               <LazyPage>
                 <WorkflowListPage />
@@ -178,7 +176,7 @@ const routes: RouteObject[] = [
             ),
           },
           {
-            path: ":org/:slug",
+            path: "workflows/:org/:slug",
             element: (
               <LazyPage>
                 <WorkflowDetailPage />
@@ -186,22 +184,26 @@ const routes: RouteObject[] = [
             ),
           },
           {
-            path: "executions",
+            path: "workflows/executions",
             element: (
               <LazyPage>
                 <WorkflowExecutionListPage />
               </LazyPage>
             ),
           },
-          {
-            path: "executions/:id",
-            element: (
-              <LazyPage>
-                <WorkflowExecutionDetailPage />
-              </LazyPage>
-            ),
-          },
         ],
+      },
+      {
+        path: "executions/:id",
+        element: (
+          <LazyPage>
+            <WorkflowExecutionDetailPage />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "workflows",
+        element: <Navigate to="/library/workflows" replace />,
       },
       {
         path: "runners",

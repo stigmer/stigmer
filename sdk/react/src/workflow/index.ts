@@ -287,6 +287,17 @@ export {
   type ApprovalFormBuilderProps,
 } from "./ApprovalFormBuilder";
 
+// Dashboard chart components
+export {
+  CostByWorkflowChart,
+  type CostByWorkflowChartProps,
+} from "./CostByWorkflowChart";
+
+export {
+  ExecutionTrendChart,
+  type ExecutionTrendChartProps,
+} from "./ExecutionTrendChart";
+
 // Navigation resolution hook
 export {
   useResolveAgentExecutionSession,

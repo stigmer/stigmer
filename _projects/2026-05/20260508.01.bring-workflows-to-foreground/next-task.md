@@ -19,10 +19,54 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-14 — Routing fix COMPLETE (workflow execution → session navigation)
-**Current Task**: Routing fix COMPLETE
+**Last Session**: 2026-05-14 — Dashboard separation COMPLETE (operational metrics moved to dedicated /dashboard page)
+**Current Task**: Dashboard separation COMPLETE
 **Phase**: Phase 2 — Visual Builder — COMPLETE (all deferred items cleared)
-**Next Task**: T16 (Natural Language to Workflow — Phase 3) or chart visualizations
+**Next Task**: T16 (Natural Language to Workflow — Phase 3)
+
+## Session Progress (2026-05-14, Dashboard Separation)
+
+### Workflow Dashboard Separation — COMPLETE
+
+Separated operational metrics from the Workflow List Page into a dedicated
+top-level Dashboard page. The Workflow List Page now matches the AgentListPage
+pattern (blueprint management only). Dashboard page includes execution KPIs,
+pending approvals, failed runs, and two new chart widgets. 5 new files, 8 modified.
+
+#### New Dashboard Page (/dashboard)
+- **Web**: `client-apps/web/src/app/dashboard/page.tsx` + `client-apps/web/src/domain/dashboard/DashboardPage.tsx`
+- **Desktop**: `client-apps/desktop/src/pages/dashboard/DashboardPage.tsx` + route in `routes.tsx`
+- Composes existing `WorkflowDashboard` (execution stats, pending approvals, failed runs)
+  with two new chart components in a responsive grid layout
+
+#### New SDK Chart Components (2)
+- **`CostByWorkflowChart`** — Horizontal bar chart showing execution counts by workflow,
+  pure CSS rendering with `--stgm-*` token theming, sorted by count
+- **`ExecutionTrendChart`** — Phase distribution chart with stacked horizontal bar
+  and legend from `ExecutionSummary.phaseCounts`
+- Both use `--stgm-*` CSS custom properties, no hardcoded colors
+
+#### Sidebar Updates (DD-016 parity)
+- Added "Dashboard" nav item with `LayoutDashboard` icon in both web and desktop sidebars
+- Positioned between "New Session" and "Library"
+
+#### Workflow List Page Cleanup
+- Removed `WorkflowDashboard` from both web and desktop `WorkflowListPage`
+- Now matches `AgentListPage` pattern: header + `ResourceWorkbench` only
+- Removed unused `useRouter`/`handleExecutionNav` from web version
+
+#### SDK Package Changes
+- Added `recharts` as optional peer dep (same pattern as `@xyflow/react`)
+- Exported `CostByWorkflowChart`, `ExecutionTrendChart` + types from barrel files
+
+#### Tech Debt Findings
+- `useExportResource` already supports Workflow — JSDoc was stale, no code change needed
+- `CheckBudgetWarnings()` does not exist in the codebase — planned but unimplemented
+- Cost data pipeline requires changes in both OSS + Cloud backends — deferred to dedicated task
+
+#### Verification
+- `tsc --noEmit` — clean: sdk/react, client-apps/web, client-apps/desktop
+- Zero linter errors on all new/modified files
 
 ## Session Progress (2026-05-14, Routing Fix)
 
@@ -629,7 +673,7 @@ Structured Agent Output Model
 
 ## Next Steps
 1. **T16: Natural Language to Workflow** (Phase 3) — prompt-to-workflow generation
-2. **Chart visualizations** — add recharts/visx for Cost by Workflow chart (deferred from T14)
+2. **Cost data pipeline** — wire budget/cost fields in OSS store + Cloud handler so dashboard charts show real data
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
@@ -640,7 +684,8 @@ Structured Agent Output Model
 - Dashboard aggregation RPCs (`getExecutionSummary`, `listPendingApprovals`) implemented in both Go and Java
 - SDK dashboard components exported from `@stigmer/react`: `WorkflowDashboard`, `ExecutionSummaryWidget`, `PendingApprovalsWidget`, `FailedRunsWidget`
 - Cost data in dashboard currently empty for OSS (budget fields not populated in store) — will populate once cost tracking is wired
-- `useExportResource` only supports Agent and McpServer — workflow YAML export deferred
+- Dashboard now at `/dashboard` route (top-level, sidebar nav item)
+- Workflow list page cleaned up to match Agent list page pattern (no dashboard widgets)
 - Search indexing for workflows in backend unverified — `list()` may return empty
 - `CheckBudgetWarnings()` (T05) still standalone — NOT wired into `ValidateWorkflow()` yet
 - `getDownloadUrl` still UNIMPLEMENTED (artifact store)

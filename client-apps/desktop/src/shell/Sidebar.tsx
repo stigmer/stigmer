@@ -2,20 +2,20 @@ import { useCallback, useEffect, useMemo } from "react";
 import { NavLink, useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   Plus,
+  LayoutDashboard,
   Library,
-  Workflow,
   Server,
   MessageSquare,
+  Workflow,
   PanelLeft,
 } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import {
   OrgSwitcher,
-  useSessionSearch,
-  groupSearchResultsByTime,
-  resolvedSubject,
+  useRecentActivity,
+  groupRecentActivityByTime,
 } from "@stigmer/react";
-import type { SearchResultGroup } from "@stigmer/react";
+import type { RecentActivityGroup } from "@stigmer/react";
 import { ScrollArea } from "../ui/scroll-area";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
@@ -33,7 +33,7 @@ export function Sidebar() {
   const isSessionZone =
     location.pathname === "/" || location.pathname.startsWith("/sessions/");
 
-  const { sessions, isLoading, error, refetch, hasMore, loadMore } = useSessionSearch();
+  const { entries, isLoading, error, refetch } = useRecentActivity();
 
   useEffect(() => {
     refetch();
@@ -48,16 +48,16 @@ export function Sidebar() {
   }, [activeSessionId, refetch]);
 
   const groups = useMemo(
-    () => groupSearchResultsByTime(sessions),
-    [sessions],
+    () => groupRecentActivityByTime(entries),
+    [entries],
   );
 
   const handleOrgChanged = useCallback(() => {
     navigate("/");
   }, [navigate]);
 
+  const isDashboardActive = !isSessionZone && location.pathname.startsWith("/dashboard");
   const isLibraryActive = !isSessionZone && location.pathname.startsWith("/library");
-  const isWorkflowsActive = !isSessionZone && location.pathname.startsWith("/workflows");
   const isRunnersActive = !isSessionZone && location.pathname.startsWith("/runners");
 
   return (
@@ -98,6 +98,22 @@ export function Sidebar() {
         </button>
       </div>
 
+      {/* Dashboard */}
+      <div className="flex-none px-3 py-1">
+        <NavLink
+          to="/dashboard"
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
+            isDashboardActive
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          )}
+        >
+          <LayoutDashboard className="size-4 shrink-0" />
+          Dashboard
+        </NavLink>
+      </div>
+
       {/* Library */}
       <div className="flex-none px-3 py-1">
         <NavLink
@@ -111,22 +127,6 @@ export function Sidebar() {
         >
           <Library className="size-4 shrink-0" />
           Library
-        </NavLink>
-      </div>
-
-      {/* Workflows */}
-      <div className="flex-none px-3 py-1">
-        <NavLink
-          to="/workflows"
-          className={cn(
-            "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
-            isWorkflowsActive
-              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-          )}
-        >
-          <Workflow className="size-4 shrink-0" />
-          Workflows
         </NavLink>
       </div>
 
@@ -162,12 +162,11 @@ export function Sidebar() {
         ) : groups.length === 0 ? (
           <RecentsEmptyState />
         ) : (
-          <SessionGroupList
+          <ActivityGroupList
             groups={groups}
             activeSessionId={activeSessionId}
-            onNavigate={(id) => navigate(`/sessions/${id}`)}
-            hasMore={hasMore}
-            onLoadMore={loadMore}
+            activePath={location.pathname}
+            onNavigate={navigate}
           />
         )}
       </ScrollArea>
@@ -184,63 +183,57 @@ export function Sidebar() {
 // Session recents
 // ---------------------------------------------------------------------------
 
-function SessionGroupList({
+function ActivityGroupList({
   groups,
   activeSessionId,
+  activePath,
   onNavigate,
-  hasMore,
-  onLoadMore,
 }: {
-  groups: readonly SearchResultGroup[];
+  groups: readonly RecentActivityGroup[];
   activeSessionId: string | null;
-  onNavigate: (id: string) => void;
-  hasMore: boolean;
-  onLoadMore: () => void;
+  activePath: string;
+  onNavigate: (path: string) => void;
 }) {
   return (
-      <div className="space-y-4">
-        {groups.map((group) => (
-          <div key={group.label}>
-            <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-wider text-sidebar-muted-foreground">
-              {group.label}
-            </p>
-            <ul className="space-y-0.5" role="list">
-              {group.entries.map((entry) => {
-                const id = entry.id;
-                if (!id) return null;
-                const subject =
-                  resolvedSubject(entry.description) ?? "Untitled session";
-                const isActive = id === activeSessionId;
-                return (
-                  <li key={id}>
-                    <button
-                      onClick={() => onNavigate(id)}
-                      aria-current={isActive ? "page" : undefined}
-                      className={cn(
-                        "w-full line-clamp-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors",
-                        isActive
-                          ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                      )}
-                    >
-                      {subject}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-        {hasMore && (
-          <button
-            type="button"
-            onClick={onLoadMore}
-            className="w-full rounded-md px-2 py-1.5 text-center text-xs text-sidebar-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          >
-            Load more sessions
-          </button>
-        )}
-      </div>
+    <div className="space-y-4">
+      {groups.map((group) => (
+        <div key={group.label}>
+          <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-wider text-sidebar-muted-foreground">
+            {group.label}
+          </p>
+          <ul className="space-y-0.5" role="list">
+            {group.entries.map((entry) => {
+              const isSession = entry.type === "session";
+              const isActive = isSession
+                ? entry.id === activeSessionId
+                : activePath === `/executions/${entry.id}`;
+              const targetPath = isSession
+                ? `/sessions/${entry.id}`
+                : `/executions/${entry.id}`;
+              const TypeIcon = isSession ? MessageSquare : Workflow;
+
+              return (
+                <li key={entry.id}>
+                  <button
+                    onClick={() => onNavigate(targetPath)}
+                    aria-current={isActive ? "page" : undefined}
+                    className={cn(
+                      "flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors",
+                      isActive
+                        ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    )}
+                  >
+                    <TypeIcon className="mt-0.5 size-3 shrink-0 opacity-50" aria-hidden="true" />
+                    <span className="line-clamp-2">{entry.subject}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -273,7 +266,7 @@ function RecentsEmptyState() {
   return (
     <div className="flex flex-col items-center gap-2 py-8 text-center">
       <MessageSquare className="size-8 text-sidebar-muted-foreground" />
-      <p className="text-xs text-sidebar-muted-foreground">No recent sessions</p>
+      <p className="text-xs text-sidebar-muted-foreground">No recent activity</p>
     </div>
   );
 }

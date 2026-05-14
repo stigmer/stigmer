@@ -8,7 +8,6 @@ import {
 import {
   ResourceWorkbench,
   ActionMenu,
-  WorkflowDashboard,
   useStigmer,
   useActiveOrgSlug,
   useConfirmAction,
@@ -96,13 +95,6 @@ export default function WorkflowListPage() {
     [stigmer],
   );
 
-  const handleExecutionNav = useCallback(
-    (executionId: string) => {
-      navigate(`/workflows/executions/${executionId}`);
-    },
-    [navigate],
-  );
-
   return (
     <>
       <div className="mb-6">
@@ -111,13 +103,6 @@ export default function WorkflowListPage() {
           Browse and manage multi-step orchestration workflows.
         </p>
       </div>
-
-      <WorkflowDashboard
-        org={org}
-        onApprovalClick={handleExecutionNav}
-        onFailedRunClick={handleExecutionNav}
-        className="mb-8"
-      />
 
       <ResourceWorkbench
         key={listVersion}
@@ -134,7 +119,7 @@ export default function WorkflowListPage() {
         emptyTitle="No workflows yet"
         emptyDescription="Workflows define multi-step orchestration for agents. Create one via the CLI or API."
         onItemClick={(item) =>
-          navigate(`/workflows/${item.org}/${item.slug}`)
+          navigate(`/library/workflows/${item.org}/${item.slug}`)
         }
         renderItemAction={(item) => (
           <div onClick={(e) => e.stopPropagation()}>
@@ -148,7 +133,7 @@ export default function WorkflowListPage() {
                 <ActionMenu.Item
                   icon={<ExternalLink className="size-4" />}
                   onSelect={() =>
-                    navigate(`/workflows/${item.org}/${item.slug}`)
+                    navigate(`/library/workflows/${item.org}/${item.slug}`)
                   }
                 >
                   View details

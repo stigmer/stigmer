@@ -3,10 +3,10 @@
 import { type MouseEvent, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plus, Library, Workflow, Server, MessageSquare, PanelLeft } from "lucide-react";
+import { Plus, LayoutDashboard, Library, Server, MessageSquare, Workflow, PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
-import { useSessionList, groupSessionsByTime, resolvedSubject } from "@stigmer/react";
-import type { SessionGroup } from "@stigmer/react";
+import { useRecentActivity, groupRecentActivityByTime } from "@stigmer/react";
+import type { RecentActivityGroup, RecentActivityEntry } from "@stigmer/react";
 import { Button } from "@/domain/_shared/ui/button";
 import { ScrollArea } from "@/domain/_shared/ui/scroll-area";
 import { Separator } from "@/domain/_shared/ui/separator";
@@ -29,12 +29,12 @@ function isPlainClick(e: MouseEvent): boolean {
 export function Sidebar() {
   const sidebar = useSidebarOpen();
   const pathname = usePathname();
-  const { sessions, isLoading, error, refetch } = useSessionList();
+  const { entries, isLoading, error, refetch } = useRecentActivity();
   const { activeSessionId, isSessionZone, navigateToSession, navigateToHome } =
     useSessionNavigation();
 
+  const isDashboardActive = !isSessionZone && pathname.startsWith("/dashboard");
   const isLibraryActive = !isSessionZone && pathname.startsWith("/library");
-  const isWorkflowsActive = !isSessionZone && pathname.startsWith("/workflows");
   const isRunnersActive = !isSessionZone && pathname.startsWith("/runners");
 
   useEffect(() => {
@@ -54,8 +54,8 @@ export function Sidebar() {
   }, [activeSessionId, refetch]);
 
   const groups = useMemo(
-    () => groupSessionsByTime(sessions),
-    [sessions],
+    () => groupRecentActivityByTime(entries),
+    [entries],
   );
 
   const handleNewSession = useCallback(
@@ -104,6 +104,23 @@ export function Sidebar() {
         </Link>
       </div>
 
+      {/* Dashboard */}
+      <div className="flex-none px-3 py-1">
+        <Link
+          href="/dashboard"
+          aria-current={isDashboardActive ? "page" : undefined}
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
+            isDashboardActive
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          )}
+        >
+          <LayoutDashboard className="size-4 shrink-0" />
+          Dashboard
+        </Link>
+      </div>
+
       {/* Library */}
       <div className="flex-none px-3 py-1">
         <Link
@@ -118,23 +135,6 @@ export function Sidebar() {
         >
           <Library className="size-4 shrink-0" />
           Library
-        </Link>
-      </div>
-
-      {/* Workflows */}
-      <div className="flex-none px-3 py-1">
-        <Link
-          href="/workflows"
-          aria-current={isWorkflowsActive ? "page" : undefined}
-          className={cn(
-            "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
-            isWorkflowsActive
-              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-          )}
-        >
-          <Workflow className="size-4 shrink-0" />
-          Workflows
         </Link>
       </div>
 
@@ -172,10 +172,11 @@ export function Sidebar() {
           ) : groups.length === 0 ? (
             <RecentsEmptyState />
           ) : (
-            <SessionGroupList
+            <ActivityGroupList
               groups={groups}
               activeSessionId={activeSessionId}
-              onNavigate={navigateToSession}
+              activePath={pathname}
+              onNavigateSession={navigateToSession}
             />
           )}
         </div>
@@ -189,14 +190,16 @@ export function Sidebar() {
   );
 }
 
-function SessionGroupList({
+function ActivityGroupList({
   groups,
   activeSessionId,
-  onNavigate,
+  activePath,
+  onNavigateSession,
 }: {
-  groups: readonly SessionGroup[];
+  groups: readonly RecentActivityGroup[];
   activeSessionId: string | null;
-  onNavigate: (id: string) => void;
+  activePath: string;
+  onNavigateSession: (id: string) => void;
 }) {
   return (
     <TooltipProvider>
@@ -207,51 +210,76 @@ function SessionGroupList({
               {group.label}
             </p>
             <ul className="space-y-0.5" role="list">
-              {group.sessions.map((session) => {
-                const id = session.metadata?.id;
-                if (!id) return null;
-                const subject =
-                  resolvedSubject(session.spec?.subject) ?? "Untitled session";
-                const isActive = id === activeSessionId;
-                return (
-                  <li key={id}>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <a
-                            href={`/sessions/${id}`}
-                            onClick={(e: MouseEvent) => {
-                              if (isPlainClick(e)) {
-                                e.preventDefault();
-                                onNavigate(id);
-                              }
-                            }}
-                            aria-current={
-                              isActive ? "page" : undefined
-                            }
-                            className={cn(
-                              "line-clamp-2 rounded-lg px-2 py-1.5 text-sm transition-colors",
-                              isActive
-                                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                            )}
-                          />
-                        }
-                      >
-                        {subject}
-                      </TooltipTrigger>
-                      <TooltipContent side="right" sideOffset={12}>
-                        {subject}
-                      </TooltipContent>
-                    </Tooltip>
-                  </li>
-                );
-              })}
+              {group.entries.map((entry) => (
+                <ActivityEntry
+                  key={entry.id}
+                  entry={entry}
+                  activeSessionId={activeSessionId}
+                  activePath={activePath}
+                  onNavigateSession={onNavigateSession}
+                />
+              ))}
             </ul>
           </div>
         ))}
       </div>
     </TooltipProvider>
+  );
+}
+
+function ActivityEntry({
+  entry,
+  activeSessionId,
+  activePath,
+  onNavigateSession,
+}: {
+  entry: RecentActivityEntry;
+  activeSessionId: string | null;
+  activePath: string;
+  onNavigateSession: (id: string) => void;
+}) {
+  const isSession = entry.type === "session";
+  const isActive = isSession
+    ? entry.id === activeSessionId
+    : activePath === `/executions/${entry.id}`;
+  const href = isSession ? `/sessions/${entry.id}` : `/executions/${entry.id}`;
+  const TypeIcon = isSession ? MessageSquare : Workflow;
+
+  return (
+    <li>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <a
+              href={href}
+              onClick={(e: MouseEvent) => {
+                if (isPlainClick(e)) {
+                  e.preventDefault();
+                  if (isSession) {
+                    onNavigateSession(entry.id);
+                  } else {
+                    window.location.href = href;
+                  }
+                }
+              }}
+              aria-current={isActive ? "page" : undefined}
+              className={cn(
+                "flex items-start gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors",
+                isActive
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              )}
+            />
+          }
+        >
+          <TypeIcon className="mt-0.5 size-3 shrink-0 opacity-50" aria-hidden="true" />
+          <span className="line-clamp-2">{entry.subject}</span>
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={12}>
+          {entry.subject}
+        </TooltipContent>
+      </Tooltip>
+    </li>
   );
 }
 
@@ -284,7 +312,7 @@ function RecentsEmptyState() {
   return (
     <div className="flex flex-col items-center gap-2 py-8 text-center">
       <MessageSquare className="text-sidebar-muted-foreground size-8" />
-      <p className="text-sidebar-muted-foreground text-xs">No recent sessions</p>
+      <p className="text-sidebar-muted-foreground text-xs">No recent activity</p>
     </div>
   );
 }
