@@ -1,5 +1,0 @@
-name: multi-agent-orchestrator
-runtime: go
-main: main.go
-version: 0.1.0
-description: Multi-agent project with MCP server and workflow for dependency ordering tests
