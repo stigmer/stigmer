@@ -265,6 +265,7 @@ func shouldSkipProgressReporting(activityType string) bool {
 		"UpdateWorkflowExecutionStatus", // Failure recovery
 		"OffloadActivity",               // Claim check internal
 		"RetrieveActivity",              // Claim check internal
+		"FlushEventsActivity",           // Event flush — sends its own gRPC updates
 	}
 
 	for _, internal := range internalActivities {
