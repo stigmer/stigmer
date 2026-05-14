@@ -68,8 +68,35 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: T02 Delete Legacy E2E Tests — COMPLETE
-**Status**: Ready for next task (T04 or T06)
+**Current Task**: T04 JUnit XML + Service Log Bundle Output — COMPLETE
+**Status**: Ready for next task (T06)
+
+## Session Progress (2026-05-14, Session 6 — T04 JUnit XML Output)
+
+### Accomplished
+- **Wired gotestsum** via `make test-integration` target producing JUnit XML + JSON event logs
+- **Deterministic service log paths**: Java service and workflow-runner logs now write to `.test-output/logs/` instead of random temp dirs
+- Added `OutputDir` to harness `Config` with `INTEGRATION_TEST_OUTPUT_DIR` env var override
+- Added `LogPath()` to `JavaService` and `WorkflowRunner`, `LogDir()`/`LogPaths()` to `TestHarness`
+- Used `$(abspath ...)` in Makefile to resolve CWD mismatch between Make (repo root) and Go test binary (package dir)
+- Validated end-to-end: all 9 tests pass, output directory populated correctly
+- Committed: `d6425a577` on `feat/bring-workflows-to-foreground`
+
+### Key Findings
+- Go test binaries run with CWD set to the package directory (`test/integration/`), not the repo root — relative paths in env vars need absolute resolution
+- `gotestsum` is not a Go library dependency — it wraps `go test -json` externally, keeping the test module clean
+
+### Files Changed
+
+**stigmer (OSS)** — modified (5 files):
+- `Makefile` — added `test-integration` target with gotestsum
+- `test/integration/harness/harness.go` — OutputDir config, LogDir/LogPaths methods
+- `test/integration/harness/service.go` — LogDir field, LogPath method
+- `test/integration/harness/workflow_runner.go` — LogDir field, LogPath method
+- `test/integration/suite_test.go` — wire OutputDir/LogDir through
+
+**stigmer (OSS)** — new (1 file):
+- `test/integration/.gitignore` — ignore `.test-output/`
 
 ## Session Progress (2026-05-14, Session 5 — T02 Legacy E2E Deletion)
 
@@ -96,8 +123,7 @@ When starting a new session:
 - Various `go.mod`/`go.sum` across workspace modules — `go work sync` + `go mod tidy` cleanup
 
 ## Next Steps
-1. **T04: JUnit XML + Trace Bundle Output** — wire gotestsum, collect service logs on failure
-2. **T06: CI Workflow** — create `.github/workflows/ci.integration-offline.yaml`
+1. **T06: CI Workflow** — create `.github/workflows/ci.integration-offline.yaml` (consumes `make test-integration` output)
 
 ## Session Progress (2026-05-14, Session 4 — Runtime Validation)
 
@@ -235,22 +261,21 @@ When starting a new session:
 - `IntegrationTestSecurityConfig.java` — NEW: permit-all security + synthetic test caller identity
 
 ## Next Steps (Bottom)
-1. **T04: JUnit XML + Trace Bundle Output** — wire gotestsum, collect service logs on failure
-2. **T06: CI Workflow** — create `.github/workflows/ci.integration-offline.yaml`
+1. **T06: CI Workflow** — create `.github/workflows/ci.integration-offline.yaml` (consumes `make test-integration` output)
 
 ## Context for Resume
-- All 4 integration tests pass: infra (3 sub-tests), service health, smoke gRPC, workflow lifecycle
+- All 9 integration tests pass (4 top-level + subtests): infra (3 sub-tests), service health, smoke gRPC, workflow lifecycle
 - The full pipeline is validated: Go test harness → Testcontainers → Java fat JAR → Temporal → Go workflow-runner → zigflow engine → gRPC callbacks → assertions
+- T04 complete: `make test-integration` produces JUnit XML + service logs in `.test-output/`
 - Six pre-existing bugs in the production codebase were found and fixed during runtime validation
 - The stigmer-cloud changes (3 files) need to be committed separately in that repo
 - Fat JAR path: `/Users/suresh/scm/github.com/stigmer/stigmer-cloud/bazel-bin/backend/services/stigmer-service/stigmer_service_fatjar.jar`
-- Test command: `STIGMER_SERVICE_JAR=<jar_path> go test -v -tags integration -timeout 300s ./test/integration/`
+- Test command: `make test-integration` (or `STIGMER_SERVICE_JAR=<jar_path> make test-integration`)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T04" - Wire JUnit XML output
-- "Continue with T02" - Delete legacy E2E tests
+- "Continue with T06" - Create CI workflow
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
