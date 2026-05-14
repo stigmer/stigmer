@@ -19,10 +19,40 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-13 — T15 Batch 5 COMPLETE (Integration + Polish)
-**Current Task**: T15 COMPLETE — Phase 2 (Visual Builder) COMPLETE
-**Phase**: Phase 2 — Visual Builder — COMPLETE
-**Next Task**: T16 (Natural Language to Workflow — Phase 3) or chart visualizations or routing fix
+**Last Session**: 2026-05-14 — Routing fix COMPLETE (workflow execution → session navigation)
+**Current Task**: Routing fix COMPLETE
+**Phase**: Phase 2 — Visual Builder — COMPLETE (all deferred items cleared)
+**Next Task**: T16 (Natural Language to Workflow — Phase 3) or chart visualizations
+
+## Session Progress (2026-05-14, Routing Fix)
+
+### Workflow Execution → Session Navigation Fix — COMPLETE
+
+Fixed broken "View execution" drill-down from WorkflowExecutionViewer to
+the agent's parent session page. Created SDK resolution hook, wired into
+both web and desktop consoles. 1 new file, 5 modified.
+
+#### Root Cause
+- `onNavigateToAgentExecution` received `aex_*` (agent execution ID) but session
+  page requires `ses_*` (session ID). No code resolved the mapping.
+- Web navigated to `/sessions?execution=aex_...` (query param never consumed)
+- Desktop navigated to `/sessions/aex_...` (wrong ID type for `useSessionPageFlow`)
+
+#### Fix
+- **New SDK hook**: `useResolveAgentExecutionSession` — fetches AgentExecution,
+  extracts `spec.sessionId` (follows `useFetch` + `useStigmer` patterns)
+- **Web**: `navigateToSession(sessionId)` via `SessionNavigationProvider`
+- **Desktop**: `navigate(/sessions/${sessionId})` with resolved session ID
+- **Unified route** (`/executions/[id]`): resolves `aex_*` before navigating
+- **Loading UX**: floating pill indicator during ~200ms resolution
+
+#### Verification
+- `tsc --noEmit` — clean: sdk/react, sdk/typescript, client-apps/web, client-apps/desktop
+- `npm run lint` — 0 errors on all modified files (pre-existing warnings only)
+- DD-016 parity confirmed: identical resolution pattern in both client apps
+
+#### Commit
+- `4ad46f029` — `fix(sdk/react,web,desktop): resolve agent execution to session before navigation`
 
 ## Session Progress (2026-05-13, T15 Batch 5)
 
@@ -600,12 +630,12 @@ Structured Agent Output Model
 ## Next Steps
 1. **T16: Natural Language to Workflow** (Phase 3) — prompt-to-workflow generation
 2. **Chart visualizations** — add recharts/visx for Cost by Workflow chart (deferred from T14)
-3. **Workflow execution → session navigation fix** — web routing mismatch
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
 - Phase 1 (Foreground MVP) COMPLETE — T08, T09, T10, T11, T12, T13, T13b, Go wiring, T14 all complete
 - Phase 2 (Visual Builder) COMPLETE — T15 all 5 batches complete
+- Workflow execution → session navigation fix COMPLETE (2026-05-14) — `useResolveAgentExecutionSession` hook resolves aex_* to session_id
 - Desktop now has full workflow parity with web (list, detail, editor, run, executions, dashboard, visual canvas)
 - Dashboard aggregation RPCs (`getExecutionSummary`, `listPendingApprovals`) implemented in both Go and Java
 - SDK dashboard components exported from `@stigmer/react`: `WorkflowDashboard`, `ExecutionSummaryWidget`, `PendingApprovalsWidget`, `FailedRunsWidget`
