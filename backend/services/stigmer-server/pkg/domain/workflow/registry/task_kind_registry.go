@@ -10,6 +10,13 @@ import (
 //go:embed data/task-kind-registry.json
 var registryFS embed.FS
 
+// ReadEmbeddedRegistry returns the raw task-kind-registry.json bytes.
+// This is used by components that need the registry data at startup
+// (e.g., workflow generation prompt builder) without duplicating the embed.
+func ReadEmbeddedRegistry() ([]byte, error) {
+	return registryFS.ReadFile("data/task-kind-registry.json")
+}
+
 // Handler serves the task kind registry as a cacheable HTTP endpoint.
 //
 // The task kind registry is a build-time artifact generated from proto

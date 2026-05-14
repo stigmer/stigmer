@@ -46,4 +46,17 @@ service WorkflowCommandController {
     option (ai.stigmer.commons.rpc.config).field_path = "value";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete workflow";
   }
+
+  // Generate a workflow from a natural language description.
+  //
+  // Constructs a prompt with task kind metadata, example workflows, and the
+  // organization's available resources, then calls an LLM to produce valid
+  // workflow YAML. The output is validated server-side with up to 2 retries
+  // on validation failure before being returned to the caller.
+  rpc generateWorkflowFromPrompt(GenerateWorkflowFromPromptInput) returns (GenerateWorkflowFromPromptOutput) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_workflow;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to generate workflows in this organization";
+  }
 }

@@ -8,3 +8,49 @@ import "buf/validate/validate.proto";
 message WorkflowId {
   string value = 1 [(buf.validate.field).required = true];
 }
+
+// Input for generating a workflow from a natural language description.
+//
+// The server constructs a rich prompt containing task kind metadata, example
+// workflows, and available organization resources, then calls an LLM to
+// produce valid workflow YAML. The generated YAML is validated server-side
+// before being returned.
+message GenerateWorkflowFromPromptInput {
+  // Natural language description of the desired workflow.
+  // Should describe the goal, steps, and any specific task kinds or agents to use.
+  string prompt = 1 [(buf.validate.field).string.min_len = 10];
+
+  // Organization slug — used to resolve available agents, MCP servers, and
+  // skills that the generated workflow can reference.
+  string org = 2 [(buf.validate.field).required = true];
+
+  // Preferred model for generation (e.g., "claude-sonnet-4-6", "gpt-4o").
+  // When empty, the server selects a capable default model.
+  string model = 3;
+
+  // Hint about which task kinds the user wants in the workflow.
+  // Helps focus generation when the user knows they need specific capabilities
+  // (e.g., ["llm_call", "human_input"]). The server includes detailed metadata
+  // for hinted kinds in the prompt.
+  repeated string task_kind_hints = 4;
+}
+
+// Response from workflow generation.
+message GenerateWorkflowFromPromptOutput {
+  // Generated workflow YAML. Always structurally valid — the server validates
+  // and retries with error context before returning. May contain non-fatal
+  // warnings for issues that do not prevent the workflow from being saved.
+  string yaml = 1;
+
+  // Human-readable explanation of what was generated and why.
+  // Describes the workflow structure, task choices, and any assumptions made.
+  string explanation = 2;
+
+  // Validation warnings (non-fatal). Empty when the YAML is clean.
+  // Warnings describe issues that do not prevent saving but may affect
+  // execution (e.g., referencing an agent that does not exist in the org).
+  repeated string warnings = 3;
+
+  // The model that was used for generation.
+  string model_used = 4;
+}

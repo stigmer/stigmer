@@ -36,6 +36,11 @@ class WorkflowCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.WorkflowId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
                 _registered_method=True)
+        self.generateWorkflowFromPrompt = channel.unary_unary(
+                '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/generateWorkflowFromPrompt',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.GenerateWorkflowFromPromptInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.GenerateWorkflowFromPromptOutput.FromString,
+                _registered_method=True)
 
 
 class WorkflowCommandControllerServicer(object):
@@ -79,6 +84,18 @@ class WorkflowCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def generateWorkflowFromPrompt(self, request, context):
+        """Generate a workflow from a natural language description.
+
+        Constructs a prompt with task kind metadata, example workflows, and the
+        organization's available resources, then calls an LLM to produce valid
+        workflow YAML. The output is validated server-side with up to 2 retries
+        on validation failure before being returned to the caller.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_WorkflowCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -101,6 +118,11 @@ def add_WorkflowCommandControllerServicer_to_server(servicer, server):
                     servicer.delete,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.WorkflowId.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.SerializeToString,
+            ),
+            'generateWorkflowFromPrompt': grpc.unary_unary_rpc_method_handler(
+                    servicer.generateWorkflowFromPrompt,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.GenerateWorkflowFromPromptInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.GenerateWorkflowFromPromptOutput.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -212,6 +234,33 @@ class WorkflowCommandController(object):
             '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/delete',
             ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.WorkflowId.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def generateWorkflowFromPrompt(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/generateWorkflowFromPrompt',
+            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.GenerateWorkflowFromPromptInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.GenerateWorkflowFromPromptOutput.FromString,
             options,
             channel_credentials,
             insecure,

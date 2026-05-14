@@ -31,6 +31,16 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_workflow_v1_WorkflowId_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflow_v1_GenerateWorkflowFromPromptInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflow_v1_GenerateWorkflowFromPromptInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflow_v1_GenerateWorkflowFromPromptOutput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflow_v1_GenerateWorkflowFromPromptOutput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -43,12 +53,19 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n\'ai/stigmer/agentic/workflow/v1/io.prot" +
       "o\022\036ai.stigmer.agentic.workflow.v1\032\033buf/v" +
       "alidate/validate.proto\"*\n\nWorkflowId\022\034\n\005" +
-      "value\030\001 \001(\tB\006\272H\003\310\001\001R\005valueB\246\001B\007IoProtoP\001" +
-      "\242\002\004ASAW\252\002\036Ai.Stigmer.Agentic.Workflow.V1" +
-      "\312\002\036Ai\\Stigmer\\Agentic\\Workflow\\V1\342\002*Ai\\S" +
-      "tigmer\\Agentic\\Workflow\\V1\\GPBMetadata\352\002" +
-      "\"Ai::Stigmer::Agentic::Workflow::V1b\006pro" +
-      "to3"
+      "value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\232\001\n\037GenerateW" +
+      "orkflowFromPromptInput\022\037\n\006prompt\030\001 \001(\tB\007" +
+      "\272H\004r\002\020\nR\006prompt\022\030\n\003org\030\002 \001(\tB\006\272H\003\310\001\001R\003or" +
+      "g\022\024\n\005model\030\003 \001(\tR\005model\022&\n\017task_kind_hin" +
+      "ts\030\004 \003(\tR\rtaskKindHints\"\223\001\n GenerateWork" +
+      "flowFromPromptOutput\022\022\n\004yaml\030\001 \001(\tR\004yaml" +
+      "\022 \n\013explanation\030\002 \001(\tR\013explanation\022\032\n\010wa" +
+      "rnings\030\003 \003(\tR\010warnings\022\035\n\nmodel_used\030\004 \001" +
+      "(\tR\tmodelUsedB\246\001B\007IoProtoP\001\242\002\004ASAW\252\002\036Ai." +
+      "Stigmer.Agentic.Workflow.V1\312\002\036Ai\\Stigmer" +
+      "\\Agentic\\Workflow\\V1\342\002*Ai\\Stigmer\\Agenti" +
+      "c\\Workflow\\V1\\GPBMetadata\352\002\"Ai::Stigmer:" +
+      ":Agentic::Workflow::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -61,6 +78,18 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflow_v1_WorkflowId_descriptor,
         new java.lang.String[] { "Value", });
+    internal_static_ai_stigmer_agentic_workflow_v1_GenerateWorkflowFromPromptInput_descriptor =
+      getDescriptor().getMessageType(1);
+    internal_static_ai_stigmer_agentic_workflow_v1_GenerateWorkflowFromPromptInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflow_v1_GenerateWorkflowFromPromptInput_descriptor,
+        new java.lang.String[] { "Prompt", "Org", "Model", "TaskKindHints", });
+    internal_static_ai_stigmer_agentic_workflow_v1_GenerateWorkflowFromPromptOutput_descriptor =
+      getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_agentic_workflow_v1_GenerateWorkflowFromPromptOutput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflow_v1_GenerateWorkflowFromPromptOutput_descriptor,
+        new java.lang.String[] { "Yaml", "Explanation", "Warnings", "ModelUsed", });
     descriptor.resolveAllFeaturesImmutable();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

@@ -19,10 +19,68 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-14 — Unified Platform Dashboard COMPLETE (dashboard now shows both agent and workflow executions)
-**Current Task**: Unified Platform Dashboard COMPLETE
-**Phase**: Phase 2 — Visual Builder — COMPLETE (all deferred items cleared)
-**Next Task**: T16 (Natural Language to Workflow — Phase 3)
+**Last Session**: 2026-05-14 — T16 Batch 1 COMPLETE (prompt-to-workflow generation infrastructure)
+**Current Task**: T16 Batch 1 COMPLETE
+**Phase**: Phase 3 — AI-Assisted Creation — Batch 1 complete
+**Next Task**: T16 Batch 2 (Generation Dialog — SDK components + console integration)
+
+## Session Progress (2026-05-14, T16 Batch 1)
+
+### T16 Batch 1: Prompt-to-Workflow Generation Infrastructure — COMPLETE
+
+Built the full backend generation pipeline end-to-end: proto contract, Go + Java
+handlers, prompt construction, LLM client, YAML validation-in-the-loop, and SDK
+client method. After this batch, `generateWorkflowFromPrompt` RPC is callable
+from the SDK — no UI yet.
+
+#### Proto Contract
+- Added `GenerateWorkflowFromPromptInput` (prompt, org, model, task_kind_hints) and
+  `GenerateWorkflowFromPromptOutput` (yaml, explanation, warnings, model_used) to `io.proto`
+- Added `generateWorkflowFromPrompt` RPC to `command.proto` with
+  `can_create_workflow` permission on org
+- Codegen across Go, Java, TS, Python stubs (both repos)
+
+#### Go Backend (OSS — stigmer-server)
+- **`pkg/llmclient/client.go`** — Standalone HTTP LLM client (OpenAI + Anthropic),
+  environment-based API key resolution, non-streaming JSON parsing
+- **`pkg/llmclient/prompt.go`** — Prompt template builder: workflow structure rules,
+  task kind reference from embedded registry, org resource context (agents, MCP servers,
+  skills, workflows queried from store), 2 canonical example workflows, generation rules
+- **`pkg/domain/workflow/controller/generate_workflow.go`** — Handler: model resolution,
+  org context query, prompt construction, LLM call, YAML/explanation splitting,
+  structural YAML validation (parse + task kind checks), retry with error feedback
+  (max 2 retries), response assembly
+- **`workflow_controller.go`** — Extended with `llmClient` + `taskKindRegistry` deps + setters
+- **`task_kind_registry.go`** — Added `ReadEmbeddedRegistry()` for reuse
+- **`server.go`** — Wired LLM client + registry into controller at startup
+
+#### Java Backend (Cloud — stigmer-service)
+- **`WorkflowPromptBuilder.java`** — Mirrors Go prompt.go; classpath task-kind-registry,
+  MongoDB org queries (AgentRepo, McpServerRepo, SkillRepo, WorkflowRepo findByOrg),
+  identical prompt structure
+- **`WorkflowYamlValidator.java`** — SnakeYAML structural validation + task kind checks;
+  splitYamlAndExplanation, extractYaml, formatValidationErrorsForRetry utilities
+- **`WorkflowGenerateFromPromptHandler.java`** — CustomOperationHandlerV2 pipeline;
+  validates input, resolves model via LlmProxyConfig, calls LlmCallService.chatCompletion(),
+  validates + retries, returns result
+- **`BUILD.bazel`** — Added `@maven//:org_yaml_snakeyaml` dependency
+
+#### SDK TypeScript
+- Added `generateFromPrompt()` method to `WorkflowClient` with `GenerateFromPromptInput`
+  and `GenerateFromPromptResult` types, exported from barrel
+
+#### Architectural Decisions
+- AD-T16-001: Server-side generation (prompt templates on server, not in client)
+- AD-T16-002: Server-side prompt templates (iterate without frontend changes)
+- AD-T16-003: Generate YAML (not proto) — natural authoring format
+- AD-T16-004: Separate LLM client for stigmer-server (not workflow-runner's pkg/llm/)
+- AD-T16-005: Validation-in-the-loop (server validates, feeds errors back to LLM, max 2 retries)
+
+#### Verification
+- `buf lint` — clean
+- `go build ./... && go vet ./...` — clean (stigmer-server)
+- `bazelw build //backend/services/stigmer-service/...` — clean (85 targets)
+- `tsc --noEmit` — clean (sdk/typescript)
 
 ## Session Progress (2026-05-14, Unified Platform Dashboard)
 
@@ -758,22 +816,25 @@ New Task Types — llm_call, transform, human_input, validate, emit_event, notif
 Structured Agent Output Model
 
 ## Next Steps
-1. **T16: Natural Language to Workflow** (Phase 3) — prompt-to-workflow generation
+1. **T16 Batch 2: Generation Dialog** — SDK `useGenerateWorkflow` hook + `WorkflowGenerateDialog` component + console integration
+2. **T16 Batch 3: Refine Workflow** — `refineWorkflowFromFeedback` RPC + chat-style iteration loop
+3. **T16 Batch 4: Diagnose Workflow** — `diagnoseWorkflow` RPC + error analysis + repair suggestions
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
 - Phase 1 (Foreground MVP) COMPLETE — T08, T09, T10, T11, T12, T13, T13b, Go wiring, T14 all complete
 - Phase 2 (Visual Builder) COMPLETE — T15 all 5 batches complete
-- Workflow execution → session navigation fix COMPLETE (2026-05-14) — `useResolveAgentExecutionSession` hook resolves aex_* to session_id
-- Desktop now has full workflow parity with web (list, detail, editor, run, executions, dashboard, visual canvas)
-- **Unified Platform Dashboard COMPLETE** (2026-05-14) — dashboard shows both agent + workflow execution metrics
-  - `getExecutionSummary` RPC on both workflow and agent execution domains (Go + Java backends)
-  - SDK `sdk/react/src/dashboard/` module: `useDashboardSummary`, `useAgentExecutionSummary`, `useDashboardFailedRuns`, `DashboardKPICards`, `DashboardFailedRuns`, `OperationalDashboard`
-  - Total cost from `getOrgUsageReport` (billing SoT, AD-DASH-005 — no double-counting)
-  - Console pages use `OperationalDashboard` + workflow-specific charts below
-- Cost data pipeline COMPLETE — real cost/tokens flow from runner → status → getExecutionSummary → dashboard charts
-- Dashboard at `/dashboard` route (top-level, sidebar nav item)
-- Workflow list page cleaned up to match Agent list page pattern (no dashboard widgets)
+- **Phase 3 Batch 1 COMPLETE** — `generateWorkflowFromPrompt` RPC end-to-end (proto + Go + Java + SDK)
+  - Go: `pkg/llmclient/` (client.go, prompt.go) + `generate_workflow.go` handler
+  - Java: `generation/WorkflowPromptBuilder.java`, `WorkflowYamlValidator.java`, `WorkflowGenerateFromPromptHandler.java`
+  - SDK: `WorkflowClient.generateFromPrompt()` method callable
+  - Prompt templates are server-side (iterate without deploying frontend)
+  - Validation-in-the-loop: YAML parse + task kind check + max 2 LLM retries
+  - Org context injected: agents, MCP servers, skills, existing workflows
+  - Task kind registry embedded in both editions
+- Workflow execution → session navigation fix COMPLETE (2026-05-14)
+- Unified Platform Dashboard COMPLETE (2026-05-14)
+- Cost data pipeline COMPLETE
 - **Open tech debt:**
   - `proto2schema` codegen gap — `getExecutionSummary` on agent execution manually patched in generated SDK client
   - Usage page unification (show workflow data alongside agent data) — deferred

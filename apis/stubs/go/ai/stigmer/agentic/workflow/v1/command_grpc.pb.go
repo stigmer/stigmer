@@ -19,10 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	WorkflowCommandController_Apply_FullMethodName  = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/apply"
-	WorkflowCommandController_Create_FullMethodName = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create"
-	WorkflowCommandController_Update_FullMethodName = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/update"
-	WorkflowCommandController_Delete_FullMethodName = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/delete"
+	WorkflowCommandController_Apply_FullMethodName                      = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/apply"
+	WorkflowCommandController_Create_FullMethodName                     = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/create"
+	WorkflowCommandController_Update_FullMethodName                     = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/update"
+	WorkflowCommandController_Delete_FullMethodName                     = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/delete"
+	WorkflowCommandController_GenerateWorkflowFromPrompt_FullMethodName = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/generateWorkflowFromPrompt"
 )
 
 // WorkflowCommandControllerClient is the client API for WorkflowCommandController service.
@@ -48,6 +49,13 @@ type WorkflowCommandControllerClient interface {
 	Update(ctx context.Context, in *Workflow, opts ...grpc.CallOption) (*Workflow, error)
 	// Delete a workflow.
 	Delete(ctx context.Context, in *WorkflowId, opts ...grpc.CallOption) (*Workflow, error)
+	// Generate a workflow from a natural language description.
+	//
+	// Constructs a prompt with task kind metadata, example workflows, and the
+	// organization's available resources, then calls an LLM to produce valid
+	// workflow YAML. The output is validated server-side with up to 2 retries
+	// on validation failure before being returned to the caller.
+	GenerateWorkflowFromPrompt(ctx context.Context, in *GenerateWorkflowFromPromptInput, opts ...grpc.CallOption) (*GenerateWorkflowFromPromptOutput, error)
 }
 
 type workflowCommandControllerClient struct {
@@ -98,6 +106,16 @@ func (c *workflowCommandControllerClient) Delete(ctx context.Context, in *Workfl
 	return out, nil
 }
 
+func (c *workflowCommandControllerClient) GenerateWorkflowFromPrompt(ctx context.Context, in *GenerateWorkflowFromPromptInput, opts ...grpc.CallOption) (*GenerateWorkflowFromPromptOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GenerateWorkflowFromPromptOutput)
+	err := c.cc.Invoke(ctx, WorkflowCommandController_GenerateWorkflowFromPrompt_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WorkflowCommandControllerServer is the server API for WorkflowCommandController service.
 // All implementations should embed UnimplementedWorkflowCommandControllerServer
 // for forward compatibility.
@@ -121,6 +139,13 @@ type WorkflowCommandControllerServer interface {
 	Update(context.Context, *Workflow) (*Workflow, error)
 	// Delete a workflow.
 	Delete(context.Context, *WorkflowId) (*Workflow, error)
+	// Generate a workflow from a natural language description.
+	//
+	// Constructs a prompt with task kind metadata, example workflows, and the
+	// organization's available resources, then calls an LLM to produce valid
+	// workflow YAML. The output is validated server-side with up to 2 retries
+	// on validation failure before being returned to the caller.
+	GenerateWorkflowFromPrompt(context.Context, *GenerateWorkflowFromPromptInput) (*GenerateWorkflowFromPromptOutput, error)
 }
 
 // UnimplementedWorkflowCommandControllerServer should be embedded to have
@@ -141,6 +166,9 @@ func (UnimplementedWorkflowCommandControllerServer) Update(context.Context, *Wor
 }
 func (UnimplementedWorkflowCommandControllerServer) Delete(context.Context, *WorkflowId) (*Workflow, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedWorkflowCommandControllerServer) GenerateWorkflowFromPrompt(context.Context, *GenerateWorkflowFromPromptInput) (*GenerateWorkflowFromPromptOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GenerateWorkflowFromPrompt not implemented")
 }
 func (UnimplementedWorkflowCommandControllerServer) testEmbeddedByValue() {}
 
@@ -234,6 +262,24 @@ func _WorkflowCommandController_Delete_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkflowCommandController_GenerateWorkflowFromPrompt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GenerateWorkflowFromPromptInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowCommandControllerServer).GenerateWorkflowFromPrompt(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowCommandController_GenerateWorkflowFromPrompt_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowCommandControllerServer).GenerateWorkflowFromPrompt(ctx, req.(*GenerateWorkflowFromPromptInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WorkflowCommandController_ServiceDesc is the grpc.ServiceDesc for WorkflowCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -256,6 +302,10 @@ var WorkflowCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "delete",
 			Handler:    _WorkflowCommandController_Delete_Handler,
+		},
+		{
+			MethodName: "generateWorkflowFromPrompt",
+			Handler:    _WorkflowCommandController_GenerateWorkflowFromPrompt_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

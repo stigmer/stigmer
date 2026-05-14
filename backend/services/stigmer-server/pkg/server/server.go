@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/rs/zerolog"
@@ -78,6 +79,7 @@ import (
 	searchhandler "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/handler"
 	searchstore "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/store"
 	taskkindregistry "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/registry"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/llmclient"
 )
 
 // Run starts the Stigmer server (extracted from main for BusyBox pattern)
@@ -300,6 +302,16 @@ func Run() error {
 
 	// Create and register Workflow controller (with validator if Temporal available)
 	workflowController := workflowcontroller.NewWorkflowController(store, nil, workflowValidator)
+
+	// Wire LLM generation dependencies (optional — generation RPCs gracefully
+	// degrade to FailedPrecondition when no API key is configured).
+	workflowController.SetLLMClient(llmclient.NewClient(120 * time.Second))
+	if registryData, err := taskkindregistry.ReadEmbeddedRegistry(); err == nil {
+		workflowController.SetTaskKindRegistry(registryData)
+	} else {
+		log.Warn().Err(err).Msg("Task kind registry not available — workflow generation disabled")
+	}
+
 	workflowv1.RegisterWorkflowCommandControllerServer(grpcServer, workflowController)
 	workflowv1.RegisterWorkflowQueryControllerServer(grpcServer, workflowController)
 

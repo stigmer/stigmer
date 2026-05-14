@@ -139,6 +139,37 @@ public final class WorkflowCommandControllerGrpc {
     return getDeleteMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput,
+      ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput> getGenerateWorkflowFromPromptMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "generateWorkflowFromPrompt",
+      requestType = ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput.class,
+      responseType = ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput,
+      ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput> getGenerateWorkflowFromPromptMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput, ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput> getGenerateWorkflowFromPromptMethod;
+    if ((getGenerateWorkflowFromPromptMethod = WorkflowCommandControllerGrpc.getGenerateWorkflowFromPromptMethod) == null) {
+      synchronized (WorkflowCommandControllerGrpc.class) {
+        if ((getGenerateWorkflowFromPromptMethod = WorkflowCommandControllerGrpc.getGenerateWorkflowFromPromptMethod) == null) {
+          WorkflowCommandControllerGrpc.getGenerateWorkflowFromPromptMethod = getGenerateWorkflowFromPromptMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput, ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "generateWorkflowFromPrompt"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowCommandControllerMethodDescriptorSupplier("generateWorkflowFromPrompt"))
+              .build();
+        }
+      }
+    }
+    return getGenerateWorkflowFromPromptMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -251,6 +282,20 @@ public final class WorkflowCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDeleteMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Generate a workflow from a natural language description.
+     * Constructs a prompt with task kind metadata, example workflows, and the
+     * organization's available resources, then calls an LLM to produce valid
+     * workflow YAML. The output is validated server-side with up to 2 retries
+     * on validation failure before being returned to the caller.
+     * </pre>
+     */
+    default void generateWorkflowFromPrompt(ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGenerateWorkflowFromPromptMethod(), responseObserver);
+    }
   }
 
   /**
@@ -336,6 +381,21 @@ public final class WorkflowCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getDeleteMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Generate a workflow from a natural language description.
+     * Constructs a prompt with task kind metadata, example workflows, and the
+     * organization's available resources, then calls an LLM to produce valid
+     * workflow YAML. The output is validated server-side with up to 2 retries
+     * on validation failure before being returned to the caller.
+     * </pre>
+     */
+    public void generateWorkflowFromPrompt(ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGenerateWorkflowFromPromptMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -403,6 +463,20 @@ public final class WorkflowCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Generate a workflow from a natural language description.
+     * Constructs a prompt with task kind metadata, example workflows, and the
+     * organization's available resources, then calls an LLM to produce valid
+     * workflow YAML. The output is validated server-side with up to 2 retries
+     * on validation failure before being returned to the caller.
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput generateWorkflowFromPrompt(ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGenerateWorkflowFromPromptMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -469,6 +543,20 @@ public final class WorkflowCommandControllerGrpc {
     public ai.stigmer.agentic.workflow.v1.Workflow delete(ai.stigmer.agentic.workflow.v1.WorkflowId request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Generate a workflow from a natural language description.
+     * Constructs a prompt with task kind metadata, example workflows, and the
+     * organization's available resources, then calls an LLM to produce valid
+     * workflow YAML. The output is validated server-side with up to 2 retries
+     * on validation failure before being returned to the caller.
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput generateWorkflowFromPrompt(ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGenerateWorkflowFromPromptMethod(), getCallOptions(), request);
     }
   }
 
@@ -541,12 +629,28 @@ public final class WorkflowCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getDeleteMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Generate a workflow from a natural language description.
+     * Constructs a prompt with task kind metadata, example workflows, and the
+     * organization's available resources, then calls an LLM to produce valid
+     * workflow YAML. The output is validated server-side with up to 2 retries
+     * on validation failure before being returned to the caller.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput> generateWorkflowFromPrompt(
+        ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGenerateWorkflowFromPromptMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_APPLY = 0;
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_DELETE = 3;
+  private static final int METHODID_GENERATE_WORKFLOW_FROM_PROMPT = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -580,6 +684,10 @@ public final class WorkflowCommandControllerGrpc {
         case METHODID_DELETE:
           serviceImpl.delete((ai.stigmer.agentic.workflow.v1.WorkflowId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow>) responseObserver);
+          break;
+        case METHODID_GENERATE_WORKFLOW_FROM_PROMPT:
+          serviceImpl.generateWorkflowFromPrompt((ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -627,6 +735,13 @@ public final class WorkflowCommandControllerGrpc {
               ai.stigmer.agentic.workflow.v1.WorkflowId,
               ai.stigmer.agentic.workflow.v1.Workflow>(
                 service, METHODID_DELETE)))
+        .addMethod(
+          getGenerateWorkflowFromPromptMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput,
+              ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput>(
+                service, METHODID_GENERATE_WORKFLOW_FROM_PROMPT)))
         .build();
   }
 
@@ -679,6 +794,7 @@ public final class WorkflowCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getDeleteMethod())
+              .addMethod(getGenerateWorkflowFromPromptMethod())
               .build();
         }
       }

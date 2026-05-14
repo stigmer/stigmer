@@ -5,7 +5,7 @@
 
 import { Workflow } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { WorkflowId } from "./io_pbjs";
+import { GenerateWorkflowFromPromptInput, GenerateWorkflowFromPromptOutput, WorkflowId } from "./io_pbjs";
 
 /**
  * WorkflowCommandController handles write operations for workflows.
@@ -66,6 +66,22 @@ export const WorkflowCommandController = {
       name: "delete",
       I: WorkflowId,
       O: Workflow,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Generate a workflow from a natural language description.
+     *
+     * Constructs a prompt with task kind metadata, example workflows, and the
+     * organization's available resources, then calls an LLM to produce valid
+     * workflow YAML. The output is validated server-side with up to 2 retries
+     * on validation failure before being returned to the caller.
+     *
+     * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.generateWorkflowFromPrompt
+     */
+    generateWorkflowFromPrompt: {
+      name: "generateWorkflowFromPrompt",
+      I: GenerateWorkflowFromPromptInput,
+      O: GenerateWorkflowFromPromptOutput,
       kind: MethodKind.Unary,
     },
   }

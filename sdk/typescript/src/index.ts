@@ -174,6 +174,8 @@ export {
   type WorkflowTaskInput,
   type ExportInput,
   type FlowControlInput,
+  type GenerateFromPromptInput,
+  type GenerateFromPromptResult,
 } from "./gen/workflow";
 export {
   WorkflowExecutionClient,
