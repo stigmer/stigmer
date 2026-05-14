@@ -11,10 +11,11 @@ import (
 // TestHarness orchestrates all infrastructure and services needed for
 // integration tests against the Stigmer Cloud Java service.
 type TestHarness struct {
-	Mongo    *MongoContainer
-	Redis    *RedisContainer
-	Temporal *TemporalDevServer
-	Service  *JavaService
+	Mongo          *MongoContainer
+	Redis          *RedisContainer
+	Temporal       *TemporalDevServer
+	Service        *JavaService
+	WorkflowRunner *WorkflowRunner
 
 	logger *slog.Logger
 }
@@ -95,6 +96,12 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 // Stop tears down all services and infrastructure in reverse order.
 func (h *TestHarness) Stop(ctx context.Context) {
 	h.logger.Info("stopping test infrastructure")
+
+	if h.WorkflowRunner != nil {
+		if err := h.WorkflowRunner.Stop(); err != nil {
+			h.logger.Error("failed to stop workflow-runner", "error", err)
+		}
+	}
 
 	if h.Service != nil {
 		if err := h.Service.Stop(); err != nil {
