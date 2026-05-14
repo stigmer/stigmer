@@ -9,7 +9,12 @@ import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/envi
 import { WorkflowSchema, type Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { WorkflowTaskKind, BudgetExceededPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { WorkflowIdSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
+import {
+  WorkflowIdSchema,
+  GenerateWorkflowFromPromptInputSchema,
+  type GenerateWorkflowFromPromptInput,
+  type GenerateWorkflowFromPromptOutput,
+} from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { WorkflowSpecSchema, WorkflowDocumentSchema, ExportSchema, FlowControlSchema, WorkflowTaskSchema, WorkflowBudgetSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
 import { GetTaskKindRegistryRequestSchema, GetTaskKindRegistryResponseSchema, type GetTaskKindRegistryRequest, type GetTaskKindRegistryResponse } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/task_kind_descriptor_pb";
@@ -74,6 +79,25 @@ export class WorkflowClient {
   async getTaskKindRegistry(input: GetTaskKindRegistryRequest): Promise<GetTaskKindRegistryResponse> {
     try {
       return await this.taskKindRegistryQuery.getTaskKindRegistry(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async generateFromPrompt(input: GenerateFromPromptInput): Promise<GenerateFromPromptResult> {
+    try {
+      const resp = await this.command.generateWorkflowFromPrompt(
+        create(GenerateWorkflowFromPromptInputSchema, stripUndefined({
+          prompt: input.prompt,
+          org: input.org,
+          model: input.model,
+          taskKindHints: input.taskKindHints,
+        })),
+      );
+      return {
+        yaml: resp.yaml,
+        explanation: resp.explanation,
+        warnings: [...resp.warnings],
+        modelUsed: resp.modelUsed,
+      };
     } catch (e) { throw wrapError(e); }
   }
 
@@ -150,6 +174,30 @@ export interface WorkflowBudgetInput {
   maxTotalTokens?: bigint;
   maxDurationSeconds?: number;
   onExceeded?: BudgetExceededPolicy;
+}
+
+/** Input for generating a workflow from a natural language description. */
+export interface GenerateFromPromptInput {
+  /** Natural language description of the desired workflow. */
+  prompt: string;
+  /** Organization slug for resource context. */
+  org: string;
+  /** Optional preferred LLM model (e.g. "gpt-4o", "claude-sonnet-4-6"). */
+  model?: string;
+  /** Optional task kind hints to guide generation. */
+  taskKindHints?: string[];
+}
+
+/** Result of workflow generation from a prompt. */
+export interface GenerateFromPromptResult {
+  /** The generated workflow YAML. */
+  yaml: string;
+  /** Explanation of what was generated and why. */
+  explanation: string;
+  /** Validation warnings (non-fatal). */
+  warnings: string[];
+  /** The LLM model that was used. */
+  modelUsed: string;
 }
 
 function buildWorkflowDocumentProto(input: WorkflowDocumentInput) {

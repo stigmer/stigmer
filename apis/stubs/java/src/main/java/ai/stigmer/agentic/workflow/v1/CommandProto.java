@@ -41,7 +41,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\032\'ai/stigmer/agentic/workflow/v1/io.prot" +
       "o\0328ai/stigmer/commons/apiresource/rpc_se" +
       "rvice_options.proto\032+ai/stigmer/commons/" +
-      "rpc/method_options.proto2\325\004\n\031WorkflowCom" +
+      "rpc/method_options.proto2\277\006\n\031WorkflowCom" +
       "mandController\022[\n\005apply\022(.ai.stigmer.age" +
       "ntic.workflow.v1.Workflow\032(.ai.stigmer.a" +
       "gentic.workflow.v1.Workflow\022\252\001\n\006create\022(" +
@@ -56,12 +56,17 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "te\022*.ai.stigmer.agentic.workflow.v1.Work" +
       "flowId\032(.ai.stigmer.agentic.workflow.v1." +
       "Workflow\"0\302\270\030,\010\003\0202\"\005value*\037unauthorized " +
-      "to delete workflow\032\004\240\377+2B\253\001B\014CommandProt" +
-      "oP\001\242\002\004ASAW\252\002\036Ai.Stigmer.Agentic.Workflow" +
-      ".V1\312\002\036Ai\\Stigmer\\Agentic\\Workflow\\V1\342\002*A" +
-      "i\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadat" +
-      "a\352\002\"Ai::Stigmer::Agentic::Workflow::V1b\006" +
-      "proto3"
+      "to delete workflow\022\347\001\n\032generateWorkflowF" +
+      "romPrompt\022?.ai.stigmer.agentic.workflow." +
+      "v1.GenerateWorkflowFromPromptInput\032@.ai." +
+      "stigmer.agentic.workflow.v1.GenerateWork" +
+      "flowFromPromptOutput\"F\302\270\030B\010\007\020\036\"\003org*7una" +
+      "uthorized to generate workflows in this " +
+      "organization\032\004\240\377+2B\253\001B\014CommandProtoP\001\242\002\004" +
+      "ASAW\252\002\036Ai.Stigmer.Agentic.Workflow.V1\312\002\036" +
+      "Ai\\Stigmer\\Agentic\\Workflow\\V1\342\002*Ai\\Stig" +
+      "mer\\Agentic\\Workflow\\V1\\GPBMetadata\352\002\"Ai" +
+      "::Stigmer::Agentic::Workflow::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

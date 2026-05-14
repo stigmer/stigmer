@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { WorkflowSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_api } from "./api_pb.js";
-import type { WorkflowIdSchema } from "./io_pb.js";
+import type { GenerateWorkflowFromPromptInputSchema, GenerateWorkflowFromPromptOutputSchema, WorkflowIdSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/workflow/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxMtUEChlXb3JrZmxvd0NvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93GiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93EqoBCgZjcmVhdGUSKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3caKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciTMK4GEgIBxAeIgxtZXRhZGF0YS5vcmcqNHVuYXV0aG9yaXplZCB0byBjcmVhdGUgd29ya2Zsb3cgaW4gdGhpcyBvcmdhbml6YXRpb24SlAEKBnVwZGF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyI2wrgYMggCEDIiC21ldGFkYXRhLmlkKh91bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93EpABCgZkZWxldGUSKi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dJZBooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyIwwrgYLAgDEDIiBXZhbHVlKh91bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHdvcmtmbG93GgSg/ysyYgZwcm90bzM", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxMr8GChlXb3JrZmxvd0NvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93GiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93EqoBCgZjcmVhdGUSKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3caKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciTMK4GEgIBxAeIgxtZXRhZGF0YS5vcmcqNHVuYXV0aG9yaXplZCB0byBjcmVhdGUgd29ya2Zsb3cgaW4gdGhpcyBvcmdhbml6YXRpb24SlAEKBnVwZGF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyI2wrgYMggCEDIiC21ldGFkYXRhLmlkKh91bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93EpABCgZkZWxldGUSKi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dJZBooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyIwwrgYLAgDEDIiBXZhbHVlKh91bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHdvcmtmbG93EucBChpnZW5lcmF0ZVdvcmtmbG93RnJvbVByb21wdBI/LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5HZW5lcmF0ZVdvcmtmbG93RnJvbVByb21wdElucHV0GkAuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLkdlbmVyYXRlV29ya2Zsb3dGcm9tUHJvbXB0T3V0cHV0IkbCuBhCCAcQHiIDb3JnKjd1bmF1dGhvcml6ZWQgdG8gZ2VuZXJhdGUgd29ya2Zsb3dzIGluIHRoaXMgb3JnYW5pemF0aW9uGgSg/ysyYgZwcm90bzM", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * WorkflowCommandController handles write operations for workflows.
@@ -71,6 +71,21 @@ export const WorkflowCommandController: GenService<{
     methodKind: "unary";
     input: typeof WorkflowIdSchema;
     output: typeof WorkflowSchema;
+  },
+  /**
+   * Generate a workflow from a natural language description.
+   *
+   * Constructs a prompt with task kind metadata, example workflows, and the
+   * organization's available resources, then calls an LLM to produce valid
+   * workflow YAML. The output is validated server-side with up to 2 retries
+   * on validation failure before being returned to the caller.
+   *
+   * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.generateWorkflowFromPrompt
+   */
+  generateWorkflowFromPrompt: {
+    methodKind: "unary";
+    input: typeof GenerateWorkflowFromPromptInputSchema;
+    output: typeof GenerateWorkflowFromPromptOutputSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_workflow_v1_command, 0);
