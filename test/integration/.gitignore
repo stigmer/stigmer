@@ -1,0 +1,2 @@
+# Integration test output artifacts (JUnit XML, JSON logs, service logs)
+.test-output/

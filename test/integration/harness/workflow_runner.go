@@ -14,7 +14,13 @@ import (
 type WorkflowRunner struct {
 	cmd     *exec.Cmd
 	logFile *os.File
+	logPath string
 	logger  *slog.Logger
+}
+
+// LogPath returns the path to the workflow-runner log file.
+func (r *WorkflowRunner) LogPath() string {
+	return r.logPath
 }
 
 // WorkflowRunnerConfig holds configuration for starting the workflow runner.
@@ -29,6 +35,10 @@ type WorkflowRunnerConfig struct {
 
 	// TemporalAddress is the Temporal server address.
 	TemporalAddress string
+
+	// LogDir is the directory for the runner log file.
+	// If empty, a temporary directory is used.
+	LogDir string
 }
 
 // StartWorkflowRunner builds (if needed) and starts the workflow-runner binary.
@@ -46,9 +56,13 @@ func StartWorkflowRunner(ctx context.Context, cfg WorkflowRunnerConfig, logger *
 		}
 	}
 
-	logDir, err := os.MkdirTemp("", "stigmer-workflow-runner-*")
-	if err != nil {
-		return nil, fmt.Errorf("create log dir: %w", err)
+	logDir := cfg.LogDir
+	if logDir == "" {
+		var mkErr error
+		logDir, mkErr = os.MkdirTemp("", "stigmer-workflow-runner-*")
+		if mkErr != nil {
+			return nil, fmt.Errorf("create log dir: %w", mkErr)
+		}
 	}
 	logPath := filepath.Join(logDir, "workflow-runner.log")
 	logFile, err := os.Create(logPath)
@@ -96,6 +110,7 @@ func StartWorkflowRunner(ctx context.Context, cfg WorkflowRunnerConfig, logger *
 	return &WorkflowRunner{
 		cmd:     cmd,
 		logFile: logFile,
+		logPath: logPath,
 		logger:  logger,
 	}, nil
 }
