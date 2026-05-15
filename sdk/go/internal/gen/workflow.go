@@ -52,6 +52,11 @@ func (w *WorkflowClient) Delete(ctx context.Context, id string) (*workflowv1.Wor
 	return resp, wrapErr(err)
 }
 
+func (w *WorkflowClient) ValidateSpec(ctx context.Context, input *WorkflowInput) (*workflowv1.ServerlessWorkflowValidation, error) {
+	resp, err := w.command.ValidateSpec(ctx, input.toProto())
+	return resp, wrapErr(err)
+}
+
 func (w *WorkflowClient) Get(ctx context.Context, id string) (*workflowv1.Workflow, error) {
 	resp, err := w.query.Get(ctx, &workflowv1.WorkflowId{Value: id})
 	return resp, wrapErr(err)

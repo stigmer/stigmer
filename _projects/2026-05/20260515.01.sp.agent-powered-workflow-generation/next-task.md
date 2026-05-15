@@ -101,8 +101,31 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-15 10:05
-**Current Task**: T01 — Batch 1A complete, ready for Batch 1B or 2
+**Current Task**: T01 — Batch 2 complete (MCP tools + seedpack agent)
 **Status**: In Progress
+
+## Session Progress (May 15, 2026 — Session 2)
+
+### Completed: Batch 2 — Workflow Architect MCP Tools + Seedpack Agent
+- Added `validateSpec` RPC to `WorkflowCommandController` proto (Workflow → ServerlessWorkflowValidation)
+- Implemented Go handler in stigmer-server (thin 2-step pipeline reusing existing Temporal validation)
+- Implemented Java handler in stigmer-cloud (`WorkflowValidateSpecHandler` with `CustomOperationHandlerV2`)
+- Added 5 new MCP tools to `mcp-server-stigmer` (total: 11 → 16):
+  - `get_task_kind_registry` — full 19-kind registry with schemas
+  - `get_task_kind` — single task kind descriptor by name
+  - `validate_workflow_yaml` — YAML → proto → `validateSpec` RPC
+  - `get_workflow_execution` — execution status for diagnosis
+  - `get_workflow_execution_events` — event log for deep diagnosis
+- Created `seedpack/agents/workflow-architect.yaml` system agent with Generate/Refine/Diagnose modes
+- Fixed pre-existing seedpack test filename mismatch
+- Codegen: `make codegen` (OSS) + `make protos` (Cloud) + SDK codegen + MCP server stubs
+- Verification: buf lint, go build, go vet, go test — all clean
+
+### Key Decisions
+- **Server-side validation via Temporal** — `validate_workflow_yaml` calls `validateSpec` RPC which reuses the same Temporal validation pipeline as create/update (single source of truth)
+- **YAML-to-proto parsing in MCP server** — YAML → map → JSON → protojson with task kind enum mapping (19-entry lookup table)
+- **No new proto for task kind registry** — tool calls existing `TaskKindRegistryQueryController.getTaskKindRegistry()` gRPC RPC
+- **Agent follows seedpack pattern** — same `stigmer.ai/system: "true"` label, `mcp-server-stigmer` reference, `enabled_tools` subset
 
 ## Session Progress (May 15, 2026 — Session 1)
 
@@ -121,18 +144,19 @@ When starting a new session:
 
 ## Next Steps
 
-1. Review T01 plan for Batch 1B (new agent-powered proto API design) or Batch 2 (agent implementation)
-2. Design the new `WorkflowArchitect` agent session proto surface
-3. Implement the Python agent-runner integration with Cursor harness
+1. **Batch 3: SDK + Frontend — Generate** — Build `useWorkflowArchitect` hook, `WorkflowArchitectDialog`, console integration
+2. **Batch 4: SDK + Frontend — Refine** — Agent conversation panel in editor sidebar
+3. **Batch 5: SDK + Frontend — Diagnose** — Agent diagnosis view in execution viewer
 
 ## Context for Resume
 
-- All LLM-related workflow code has been removed — the codebase is clean
-- The `WorkflowCommandController` gRPC service now only has CRUD RPCs: `apply`, `create`, `update`, `delete`
-- The task kind registry HTTP endpoint is preserved (line ~567-574 in `server.go`)
-- Pre-existing Bazel/Gazelle issue exists (missing `test/integration` BUILD file) — unrelated to this work
-- Checkpoint: `checkpoints/2026-05-15-session-1.md`
-- Changelog: `_changelog/2026-05/2026-05-15-103720-remove-direct-llm-workflow-generation.md`
+- Batch 1A (teardown) and Batch 2 (MCP tools + agent) are complete
+- The `WorkflowCommandController` now has: `apply`, `create`, `update`, `delete`, **`validateSpec`**
+- The MCP server has 16 tools (5 new workflow-specific ones)
+- The `workflow-architect` seedpack agent exists with Generate/Refine/Diagnose system prompt
+- The agent references `mcp-server-stigmer` with 10 `enabled_tools` (5 existing + 5 new)
+- Pre-existing Bazel/Gazelle issue exists (missing `test/integration` BUILD file) — unrelated
+- Changelog: `_changelog/2026-05/2026-05-15-115202-workflow-architect-mcp-tools-and-seedpack-agent.md`
 
 ## Quick Resume
 
