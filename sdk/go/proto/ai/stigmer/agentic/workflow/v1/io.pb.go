@@ -67,6 +67,330 @@ func (x *WorkflowId) GetValue() string {
 	return ""
 }
 
+// Input for generating a workflow from a natural language description.
+//
+// The server constructs a rich prompt containing task kind metadata, example
+// workflows, and available organization resources, then calls an LLM to
+// produce valid workflow YAML. The generated YAML is validated server-side
+// before being returned.
+type GenerateWorkflowFromPromptInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Natural language description of the desired workflow.
+	// Should describe the goal, steps, and any specific task kinds or agents to use.
+	Prompt string `protobuf:"bytes,1,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	// Organization slug — used to resolve available agents, MCP servers, and
+	// skills that the generated workflow can reference.
+	Org string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
+	// Preferred model for generation (e.g., "claude-sonnet-4-6", "gpt-4o").
+	// When empty, the server selects a capable default model.
+	Model string `protobuf:"bytes,3,opt,name=model,proto3" json:"model,omitempty"`
+	// Hint about which task kinds the user wants in the workflow.
+	// Helps focus generation when the user knows they need specific capabilities
+	// (e.g., ["llm_call", "human_input"]). The server includes detailed metadata
+	// for hinted kinds in the prompt.
+	TaskKindHints []string `protobuf:"bytes,4,rep,name=task_kind_hints,json=taskKindHints,proto3" json:"task_kind_hints,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateWorkflowFromPromptInput) Reset() {
+	*x = GenerateWorkflowFromPromptInput{}
+	mi := &file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateWorkflowFromPromptInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateWorkflowFromPromptInput) ProtoMessage() {}
+
+func (x *GenerateWorkflowFromPromptInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateWorkflowFromPromptInput.ProtoReflect.Descriptor instead.
+func (*GenerateWorkflowFromPromptInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflow_v1_io_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *GenerateWorkflowFromPromptInput) GetPrompt() string {
+	if x != nil {
+		return x.Prompt
+	}
+	return ""
+}
+
+func (x *GenerateWorkflowFromPromptInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *GenerateWorkflowFromPromptInput) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *GenerateWorkflowFromPromptInput) GetTaskKindHints() []string {
+	if x != nil {
+		return x.TaskKindHints
+	}
+	return nil
+}
+
+// Response from workflow generation.
+type GenerateWorkflowFromPromptOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Generated workflow YAML. Always structurally valid — the server validates
+	// and retries with error context before returning. May contain non-fatal
+	// warnings for issues that do not prevent the workflow from being saved.
+	Yaml string `protobuf:"bytes,1,opt,name=yaml,proto3" json:"yaml,omitempty"`
+	// Human-readable explanation of what was generated and why.
+	// Describes the workflow structure, task choices, and any assumptions made.
+	Explanation string `protobuf:"bytes,2,opt,name=explanation,proto3" json:"explanation,omitempty"`
+	// Validation warnings (non-fatal). Empty when the YAML is clean.
+	// Warnings describe issues that do not prevent saving but may affect
+	// execution (e.g., referencing an agent that does not exist in the org).
+	Warnings []string `protobuf:"bytes,3,rep,name=warnings,proto3" json:"warnings,omitempty"`
+	// The model that was used for generation.
+	ModelUsed     string `protobuf:"bytes,4,opt,name=model_used,json=modelUsed,proto3" json:"model_used,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateWorkflowFromPromptOutput) Reset() {
+	*x = GenerateWorkflowFromPromptOutput{}
+	mi := &file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateWorkflowFromPromptOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateWorkflowFromPromptOutput) ProtoMessage() {}
+
+func (x *GenerateWorkflowFromPromptOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateWorkflowFromPromptOutput.ProtoReflect.Descriptor instead.
+func (*GenerateWorkflowFromPromptOutput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflow_v1_io_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GenerateWorkflowFromPromptOutput) GetYaml() string {
+	if x != nil {
+		return x.Yaml
+	}
+	return ""
+}
+
+func (x *GenerateWorkflowFromPromptOutput) GetExplanation() string {
+	if x != nil {
+		return x.Explanation
+	}
+	return ""
+}
+
+func (x *GenerateWorkflowFromPromptOutput) GetWarnings() []string {
+	if x != nil {
+		return x.Warnings
+	}
+	return nil
+}
+
+func (x *GenerateWorkflowFromPromptOutput) GetModelUsed() string {
+	if x != nil {
+		return x.ModelUsed
+	}
+	return ""
+}
+
+// Input for refining an existing workflow with a natural language instruction.
+//
+// The server receives the current workflow YAML and a change instruction,
+// constructs a prompt with the YAML, task kind metadata, and org resources,
+// then calls an LLM to produce the updated YAML. The output is validated
+// server-side with up to 2 retries before being returned.
+//
+// This is a stateless operation — each call sends only the current YAML and
+// the new instruction. Conversation history is not maintained server-side;
+// the current YAML already embodies all prior refinements.
+type RefineWorkflowInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The current workflow YAML to modify.
+	CurrentYaml string `protobuf:"bytes,1,opt,name=current_yaml,json=currentYaml,proto3" json:"current_yaml,omitempty"`
+	// Natural language instruction describing the desired change.
+	// Examples: "add a human approval before the notification step",
+	// "change the timeout to 5 minutes", "remove the transform task".
+	Instruction string `protobuf:"bytes,2,opt,name=instruction,proto3" json:"instruction,omitempty"`
+	// Organization slug — used to resolve available agents, MCP servers,
+	// and skills that the refined workflow may reference.
+	Org string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
+	// Preferred model for refinement (e.g., "claude-sonnet-4-6", "gpt-4o").
+	// When empty, the server selects a capable default model.
+	Model         string `protobuf:"bytes,4,opt,name=model,proto3" json:"model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefineWorkflowInput) Reset() {
+	*x = RefineWorkflowInput{}
+	mi := &file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefineWorkflowInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefineWorkflowInput) ProtoMessage() {}
+
+func (x *RefineWorkflowInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefineWorkflowInput.ProtoReflect.Descriptor instead.
+func (*RefineWorkflowInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflow_v1_io_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *RefineWorkflowInput) GetCurrentYaml() string {
+	if x != nil {
+		return x.CurrentYaml
+	}
+	return ""
+}
+
+func (x *RefineWorkflowInput) GetInstruction() string {
+	if x != nil {
+		return x.Instruction
+	}
+	return ""
+}
+
+func (x *RefineWorkflowInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *RefineWorkflowInput) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+// Response from workflow refinement.
+type RefineWorkflowOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Updated workflow YAML incorporating the requested changes.
+	// Always structurally valid — the server validates and retries with
+	// error context before returning.
+	Yaml string `protobuf:"bytes,1,opt,name=yaml,proto3" json:"yaml,omitempty"`
+	// Human-readable explanation of what was changed and why.
+	// Focused on the specific modifications made, not the entire workflow.
+	Explanation string `protobuf:"bytes,2,opt,name=explanation,proto3" json:"explanation,omitempty"`
+	// Validation warnings (non-fatal). Empty when the YAML is clean.
+	Warnings []string `protobuf:"bytes,3,rep,name=warnings,proto3" json:"warnings,omitempty"`
+	// The model that was used for refinement.
+	ModelUsed     string `protobuf:"bytes,4,opt,name=model_used,json=modelUsed,proto3" json:"model_used,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefineWorkflowOutput) Reset() {
+	*x = RefineWorkflowOutput{}
+	mi := &file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefineWorkflowOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefineWorkflowOutput) ProtoMessage() {}
+
+func (x *RefineWorkflowOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefineWorkflowOutput.ProtoReflect.Descriptor instead.
+func (*RefineWorkflowOutput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflow_v1_io_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *RefineWorkflowOutput) GetYaml() string {
+	if x != nil {
+		return x.Yaml
+	}
+	return ""
+}
+
+func (x *RefineWorkflowOutput) GetExplanation() string {
+	if x != nil {
+		return x.Explanation
+	}
+	return ""
+}
+
+func (x *RefineWorkflowOutput) GetWarnings() []string {
+	if x != nil {
+		return x.Warnings
+	}
+	return nil
+}
+
+func (x *RefineWorkflowOutput) GetModelUsed() string {
+	if x != nil {
+		return x.ModelUsed
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_workflow_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_io_proto_rawDesc = "" +
@@ -74,7 +398,30 @@ const file_ai_stigmer_agentic_workflow_v1_io_proto_rawDesc = "" +
 	"'ai/stigmer/agentic/workflow/v1/io.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a\x1bbuf/validate/validate.proto\"*\n" +
 	"\n" +
 	"WorkflowId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05valueB\x9d\x02\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x9a\x01\n" +
+	"\x1fGenerateWorkflowFromPromptInput\x12\x1f\n" +
+	"\x06prompt\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\n" +
+	"R\x06prompt\x12\x18\n" +
+	"\x03org\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x14\n" +
+	"\x05model\x18\x03 \x01(\tR\x05model\x12&\n" +
+	"\x0ftask_kind_hints\x18\x04 \x03(\tR\rtaskKindHints\"\x93\x01\n" +
+	" GenerateWorkflowFromPromptOutput\x12\x12\n" +
+	"\x04yaml\x18\x01 \x01(\tR\x04yaml\x12 \n" +
+	"\vexplanation\x18\x02 \x01(\tR\vexplanation\x12\x1a\n" +
+	"\bwarnings\x18\x03 \x03(\tR\bwarnings\x12\x1d\n" +
+	"\n" +
+	"model_used\x18\x04 \x01(\tR\tmodelUsed\"\x9c\x01\n" +
+	"\x13RefineWorkflowInput\x12*\n" +
+	"\fcurrent_yaml\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vcurrentYaml\x12)\n" +
+	"\vinstruction\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x05R\vinstruction\x12\x18\n" +
+	"\x03org\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x14\n" +
+	"\x05model\x18\x04 \x01(\tR\x05model\"\x87\x01\n" +
+	"\x14RefineWorkflowOutput\x12\x12\n" +
+	"\x04yaml\x18\x01 \x01(\tR\x04yaml\x12 \n" +
+	"\vexplanation\x18\x02 \x01(\tR\vexplanation\x12\x1a\n" +
+	"\bwarnings\x18\x03 \x03(\tR\bwarnings\x12\x1d\n" +
+	"\n" +
+	"model_used\x18\x04 \x01(\tR\tmodelUsedB\x9d\x02\n" +
 	"\"com.ai.stigmer.agentic.workflow.v1B\aIoProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var (
@@ -89,9 +436,13 @@ func file_ai_stigmer_agentic_workflow_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_workflow_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_ai_stigmer_agentic_workflow_v1_io_proto_goTypes = []any{
-	(*WorkflowId)(nil), // 0: ai.stigmer.agentic.workflow.v1.WorkflowId
+	(*WorkflowId)(nil),                       // 0: ai.stigmer.agentic.workflow.v1.WorkflowId
+	(*GenerateWorkflowFromPromptInput)(nil),  // 1: ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput
+	(*GenerateWorkflowFromPromptOutput)(nil), // 2: ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput
+	(*RefineWorkflowInput)(nil),              // 3: ai.stigmer.agentic.workflow.v1.RefineWorkflowInput
+	(*RefineWorkflowOutput)(nil),             // 4: ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput
 }
 var file_ai_stigmer_agentic_workflow_v1_io_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -112,7 +463,7 @@ func file_ai_stigmer_agentic_workflow_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflow_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_workflow_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

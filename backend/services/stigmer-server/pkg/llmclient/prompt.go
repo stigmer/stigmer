@@ -357,6 +357,74 @@ spec:
     max_total_tokens: 100000
     on_exceeded: budget_exceeded_warn`
 
+// BuildRefinementPrompt constructs the system and user prompts for iterative
+// workflow refinement. Unlike generation, the user already has a workflow YAML
+// and wants to make a targeted change described by a natural language instruction.
+//
+// The system prompt includes:
+//   - Workflow YAML structure rules (same as generation — LLM needs these to validate its output)
+//   - Task kind reference (in case the user asks to add new tasks)
+//   - Organization context (agents, MCP servers, skills)
+//   - Refinement-specific rules emphasizing minimal, targeted changes
+//
+// The user prompt contains the current workflow YAML followed by the instruction.
+func BuildRefinementPrompt(
+	currentYAML string,
+	instruction string,
+	taskKinds []TaskKindSummary,
+	orgCtx OrgContext,
+) (systemPrompt, userPrompt string) {
+	var sys strings.Builder
+
+	sys.WriteString(refinementSystemPromptHeader)
+	sys.WriteString("\n\n")
+	writeWorkflowStructure(&sys)
+	sys.WriteString("\n\n")
+	writeTaskKindReference(&sys, taskKinds, nil)
+	sys.WriteString("\n\n")
+	writeOrgContext(&sys, orgCtx)
+	sys.WriteString("\n\n")
+	writeRefinementRules(&sys)
+
+	var usr strings.Builder
+	usr.WriteString("## Current Workflow\n\n```yaml\n")
+	usr.WriteString(currentYAML)
+	usr.WriteString("\n```\n\n")
+	usr.WriteString("## Instruction\n\n")
+	usr.WriteString(instruction)
+
+	return sys.String(), usr.String()
+}
+
+const refinementSystemPromptHeader = `You are a workflow editor for the Stigmer platform. You receive an existing workflow YAML and a natural language instruction describing what to change.
+
+Your job is to apply the requested change with surgical precision — modify only what the instruction asks for, and leave everything else untouched.
+
+You MUST respond with exactly two sections:
+1. A YAML code block containing the complete updated workflow YAML
+2. A plain-text explanation focused on what you changed and why
+
+Format your response as:
+` + "```yaml" + `
+<complete updated workflow YAML>
+` + "```" + `
+<explanation of what changed>`
+
+func writeRefinementRules(sb *strings.Builder) {
+	sb.WriteString(`## Refinement Rules
+
+1. Only modify what the instruction asks for — do NOT reorganize, rename, or restructure unrelated parts
+2. Preserve all existing task names, ordering, and configuration unless the instruction explicitly asks to change them
+3. The output must be the COMPLETE updated workflow YAML, not a partial diff
+4. Maintain the same apiVersion, kind, metadata structure, and spec.document fields unless the instruction targets them
+5. When adding new tasks, place them at a logical position in the task flow and use snake_case names
+6. When removing tasks, update any "then:" references that pointed to the removed task
+7. Keep all existing export, then, and flow control references valid
+8. Your explanation should describe ONLY what you changed — not what the entire workflow does
+9. Be concise in your explanation: "Added a human_input task before send_notification with a 24-hour timeout" is better than a paragraph
+10. If the instruction is ambiguous, make the most reasonable interpretation and note your assumption in the explanation`)
+}
+
 func writeGenerationRules(sb *strings.Builder) {
 	sb.WriteString(`## Rules
 

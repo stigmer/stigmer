@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { WorkflowSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_api } from "./api_pb.js";
-import type { GenerateWorkflowFromPromptInputSchema, GenerateWorkflowFromPromptOutputSchema, WorkflowIdSchema } from "./io_pb.js";
+import type { GenerateWorkflowFromPromptInputSchema, GenerateWorkflowFromPromptOutputSchema, RefineWorkflowInputSchema, RefineWorkflowOutputSchema, WorkflowIdSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/workflow/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxMr8GChlXb3JrZmxvd0NvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93GiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93EqoBCgZjcmVhdGUSKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3caKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciTMK4GEgIBxAeIgxtZXRhZGF0YS5vcmcqNHVuYXV0aG9yaXplZCB0byBjcmVhdGUgd29ya2Zsb3cgaW4gdGhpcyBvcmdhbml6YXRpb24SlAEKBnVwZGF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyI2wrgYMggCEDIiC21ldGFkYXRhLmlkKh91bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93EpABCgZkZWxldGUSKi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dJZBooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyIwwrgYLAgDEDIiBXZhbHVlKh91bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHdvcmtmbG93EucBChpnZW5lcmF0ZVdvcmtmbG93RnJvbVByb21wdBI/LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5HZW5lcmF0ZVdvcmtmbG93RnJvbVByb21wdElucHV0GkAuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLkdlbmVyYXRlV29ya2Zsb3dGcm9tUHJvbXB0T3V0cHV0IkbCuBhCCAcQHiIDb3JnKjd1bmF1dGhvcml6ZWQgdG8gZ2VuZXJhdGUgd29ya2Zsb3dzIGluIHRoaXMgb3JnYW5pemF0aW9uGgSg/ysyYgZwcm90bzM", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxMoMIChlXb3JrZmxvd0NvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93GiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93EqoBCgZjcmVhdGUSKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3caKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciTMK4GEgIBxAeIgxtZXRhZGF0YS5vcmcqNHVuYXV0aG9yaXplZCB0byBjcmVhdGUgd29ya2Zsb3cgaW4gdGhpcyBvcmdhbml6YXRpb24SlAEKBnVwZGF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyI2wrgYMggCEDIiC21ldGFkYXRhLmlkKh91bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93EpABCgZkZWxldGUSKi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dJZBooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyIwwrgYLAgDEDIiBXZhbHVlKh91bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHdvcmtmbG93EucBChpnZW5lcmF0ZVdvcmtmbG93RnJvbVByb21wdBI/LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5HZW5lcmF0ZVdvcmtmbG93RnJvbVByb21wdElucHV0GkAuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLkdlbmVyYXRlV29ya2Zsb3dGcm9tUHJvbXB0T3V0cHV0IkbCuBhCCAcQHiIDb3JnKjd1bmF1dGhvcml6ZWQgdG8gZ2VuZXJhdGUgd29ya2Zsb3dzIGluIHRoaXMgb3JnYW5pemF0aW9uEsEBCg5yZWZpbmVXb3JrZmxvdxIzLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5SZWZpbmVXb3JrZmxvd0lucHV0GjQuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLlJlZmluZVdvcmtmbG93T3V0cHV0IkTCuBhACAcQHiIDb3JnKjV1bmF1dGhvcml6ZWQgdG8gcmVmaW5lIHdvcmtmbG93cyBpbiB0aGlzIG9yZ2FuaXphdGlvbhoEoP8rMmIGcHJvdG8z", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * WorkflowCommandController handles write operations for workflows.
@@ -86,6 +86,20 @@ export const WorkflowCommandController: GenService<{
     methodKind: "unary";
     input: typeof GenerateWorkflowFromPromptInputSchema;
     output: typeof GenerateWorkflowFromPromptOutputSchema;
+  },
+  /**
+   * Refine an existing workflow with a natural language instruction.
+   *
+   * Receives the current workflow YAML and a change instruction, constructs
+   * a prompt emphasizing minimal targeted changes, calls an LLM to produce
+   * updated YAML, and validates the output with up to 2 retries on failure.
+   *
+   * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.refineWorkflow
+   */
+  refineWorkflow: {
+    methodKind: "unary";
+    input: typeof RefineWorkflowInputSchema;
+    output: typeof RefineWorkflowOutputSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_workflow_v1_command, 0);

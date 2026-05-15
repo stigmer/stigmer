@@ -19,10 +19,73 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-15 — T16 Batch 2 COMPLETE (generation dialog — SDK components + console integration)
-**Current Task**: T16 Batch 2 COMPLETE
-**Phase**: Phase 3 — AI-Assisted Creation — Batch 2 complete
-**Next Task**: T16 Batch 3 (Refine Workflow — chat-style iteration)
+**Last Session**: 2026-05-15 — T16 Batch 3 COMPLETE (refine workflow — chat-style iteration)
+**Current Task**: T16 Batch 3 COMPLETE
+**Phase**: Phase 3 — AI-Assisted Creation — Batch 3 complete
+**Next Task**: T16 Batch 4 (Diagnose Workflow — error analysis + repair suggestions)
+
+## Session Progress (2026-05-15, T16 Batch 3)
+
+### T16 Batch 3: Refine Workflow — Chat-Style Iteration — COMPLETE
+
+Built the complete iterative workflow refinement experience: proto contract, Go + Java
+backend handlers with refinement-specific prompts, SDK client method, React behavior
+hook, line-based diff utility, UI panel, and editor integration.
+
+#### Proto Contract
+- Added `RefineWorkflowInput` (current_yaml, instruction, org, model) and
+  `RefineWorkflowOutput` (yaml, explanation, warnings, model_used) to `io.proto`
+- Added `refineWorkflow` RPC to `command.proto` with `can_create_workflow` permission
+- Codegen across Go, Java, TS, Python stubs (both repos)
+
+#### Go Backend (OSS — stigmer-server)
+- **`pkg/llmclient/prompt.go`** — Added `BuildRefinementPrompt()` with refinement-specific
+  system prompt: instructs LLM to make minimal targeted changes, provide concise
+  change-focused explanations, preserve structure and naming
+- **`pkg/domain/workflow/controller/refine_workflow.go`** — New handler mirroring
+  `generate_workflow.go`: model resolution, org context, LLM call, YAML validation-in-the-loop
+  with max 2 retries, response assembly
+
+#### Java Backend (Cloud — stigmer-service)
+- **`WorkflowPromptBuilder.java`** — Added `buildRefinementPrompt()` mirroring Go logic
+- **`WorkflowRefineHandler.java`** — New handler mirroring `WorkflowGenerateFromPromptHandler`
+  with `RequestPipelineV2`, `LlmCallService`, validation retries
+
+#### SDK TypeScript
+- Added `refine()` method to `WorkflowClient` with `RefineWorkflowClientInput` and
+  `RefineWorkflowResult` types, exported from barrel
+
+#### SDK React
+- **`useRefineWorkflowFlow.ts`** — Behavior hook managing refinement lifecycle:
+  `isRefining`, `result`, `error`, `history` (client-side conversation tracking),
+  `refine()`, `reset()`, `clearHistory()` methods
+- **`workflow-yaml-diff.ts`** — Self-contained Myers diff algorithm for line-based YAML
+  comparison, producing `DiffLine[]` with added/removed/unchanged classification.
+  No external dependency (DD-012 license compliance)
+- **`WorkflowRefinePanel.tsx`** — Side panel with instruction input, scrollable conversation
+  history, diff preview (DiffPreview sub-component), explanation, warnings, Accept/Discard
+  action buttons. All `--stgm-*` tokens, zero Console dependencies
+
+#### Editor Integration
+- "Refine with AI" toggle button in `WorkflowEditorView` toolbar
+- Code mode: refine panel replaces topology graph (avoids cramped three-pane)
+- Visual mode: refine panel as collapsible sidebar, canvas shrinks to accommodate
+
+#### Barrel Exports
+- `sdk/react/src/workflow/index.ts` — hook, types, panel, diff utility
+- `sdk/react/src/index.ts` — top-level re-exports (diff types aliased as `WorkflowDiffLine`/`WorkflowDiffLineType` to avoid collision with `agentexecution` `DiffLine`)
+
+#### Architectural Decisions
+- AD-T16-B3-001: Stateless refinement — only current_yaml + instruction sent to server;
+  conversation history maintained client-side only (reduces token cost, simplifies backend)
+- AD-T16-B3-002: Self-contained Myers diff (no external dependency for SDK license compliance)
+- AD-T16-B3-003: Refinement prompt emphasizes minimal changes and change-focused explanations
+- AD-T16-B3-004: Panel replaces graph in code mode, acts as sidebar in visual mode
+
+#### Verification
+- `buf lint` — clean
+- `go build` + `go vet` — clean (stigmer-server)
+- `tsc --noEmit` — clean (sdk/typescript, sdk/react — only pre-existing codegen gap)
 
 ## Session Progress (2026-05-15, T16 Batch 2)
 
@@ -854,8 +917,8 @@ New Task Types — llm_call, transform, human_input, validate, emit_event, notif
 Structured Agent Output Model
 
 ## Next Steps
-1. **T16 Batch 3: Refine Workflow** — `refineWorkflowFromFeedback` RPC + chat-style iteration UI in editor toolbar
-2. **T16 Batch 4: Diagnose Workflow** — `diagnoseWorkflow` RPC + error analysis + repair suggestions
+1. **T16 Batch 4: Diagnose Workflow** — `diagnoseWorkflow` RPC + error analysis + repair suggestions
+2. **Phase 4: Advanced Agentic Orchestration (T17)** — plan_and_execute, handoff, eval, batch, cache, code_execution, memory
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
@@ -874,6 +937,13 @@ Structured Agent Output Model
   - Two-phase dialog: prompt input -> result preview -> create workflow
   - "Generate" button on WorkflowListPage (both web + desktop, DD-016 parity)
   - Creates workflow via `parseWorkflowYaml()` + `workflow.apply()`, navigates to detail
+- **Phase 3 Batch 3 COMPLETE** — Iterative refinement (refineWorkflow)
+  - `refineWorkflow` RPC: stateless (current_yaml + instruction), server-side prompt
+  - Go handler (`refine_workflow.go`) + Java handler (`WorkflowRefineHandler.java`)
+  - Refinement-specific prompts emphasizing minimal targeted changes
+  - SDK: `WorkflowClient.refine()` + `useRefineWorkflowFlow` hook
+  - React: `WorkflowRefinePanel` + `workflow-yaml-diff.ts` (Myers diff, no deps)
+  - Editor integration: toolbar toggle, replaces graph in code mode, sidebar in visual mode
 - Workflow execution → session navigation fix COMPLETE (2026-05-14)
 - Unified Platform Dashboard COMPLETE (2026-05-14)
 - Cost data pipeline COMPLETE

@@ -54,3 +54,49 @@ message GenerateWorkflowFromPromptOutput {
   // The model that was used for generation.
   string model_used = 4;
 }
+
+// Input for refining an existing workflow with a natural language instruction.
+//
+// The server receives the current workflow YAML and a change instruction,
+// constructs a prompt with the YAML, task kind metadata, and org resources,
+// then calls an LLM to produce the updated YAML. The output is validated
+// server-side with up to 2 retries before being returned.
+//
+// This is a stateless operation — each call sends only the current YAML and
+// the new instruction. Conversation history is not maintained server-side;
+// the current YAML already embodies all prior refinements.
+message RefineWorkflowInput {
+  // The current workflow YAML to modify.
+  string current_yaml = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Natural language instruction describing the desired change.
+  // Examples: "add a human approval before the notification step",
+  // "change the timeout to 5 minutes", "remove the transform task".
+  string instruction = 2 [(buf.validate.field).string.min_len = 5];
+
+  // Organization slug — used to resolve available agents, MCP servers,
+  // and skills that the refined workflow may reference.
+  string org = 3 [(buf.validate.field).required = true];
+
+  // Preferred model for refinement (e.g., "claude-sonnet-4-6", "gpt-4o").
+  // When empty, the server selects a capable default model.
+  string model = 4;
+}
+
+// Response from workflow refinement.
+message RefineWorkflowOutput {
+  // Updated workflow YAML incorporating the requested changes.
+  // Always structurally valid — the server validates and retries with
+  // error context before returning.
+  string yaml = 1;
+
+  // Human-readable explanation of what was changed and why.
+  // Focused on the specific modifications made, not the entire workflow.
+  string explanation = 2;
+
+  // Validation warnings (non-fatal). Empty when the YAML is clean.
+  repeated string warnings = 3;
+
+  // The model that was used for refinement.
+  string model_used = 4;
+}

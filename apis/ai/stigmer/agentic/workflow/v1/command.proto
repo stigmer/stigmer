@@ -59,4 +59,16 @@ service WorkflowCommandController {
     option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to generate workflows in this organization";
   }
+
+  // Refine an existing workflow with a natural language instruction.
+  //
+  // Receives the current workflow YAML and a change instruction, constructs
+  // a prompt emphasizing minimal targeted changes, calls an LLM to produce
+  // updated YAML, and validates the output with up to 2 retries on failure.
+  rpc refineWorkflow(RefineWorkflowInput) returns (RefineWorkflowOutput) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_workflow;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to refine workflows in this organization";
+  }
 }

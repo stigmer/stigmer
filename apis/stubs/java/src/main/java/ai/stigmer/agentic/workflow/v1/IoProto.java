@@ -41,6 +41,16 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_workflow_v1_GenerateWorkflowFromPromptOutput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflow_v1_RefineWorkflowInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflow_v1_RefineWorkflowInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_workflow_v1_RefineWorkflowOutput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_workflow_v1_RefineWorkflowOutput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -61,11 +71,19 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "flowFromPromptOutput\022\022\n\004yaml\030\001 \001(\tR\004yaml" +
       "\022 \n\013explanation\030\002 \001(\tR\013explanation\022\032\n\010wa" +
       "rnings\030\003 \003(\tR\010warnings\022\035\n\nmodel_used\030\004 \001" +
-      "(\tR\tmodelUsedB\246\001B\007IoProtoP\001\242\002\004ASAW\252\002\036Ai." +
-      "Stigmer.Agentic.Workflow.V1\312\002\036Ai\\Stigmer" +
-      "\\Agentic\\Workflow\\V1\342\002*Ai\\Stigmer\\Agenti" +
-      "c\\Workflow\\V1\\GPBMetadata\352\002\"Ai::Stigmer:" +
-      ":Agentic::Workflow::V1b\006proto3"
+      "(\tR\tmodelUsed\"\234\001\n\023RefineWorkflowInput\022*\n" +
+      "\014current_yaml\030\001 \001(\tB\007\272H\004r\002\020\001R\013currentYam" +
+      "l\022)\n\013instruction\030\002 \001(\tB\007\272H\004r\002\020\005R\013instruc" +
+      "tion\022\030\n\003org\030\003 \001(\tB\006\272H\003\310\001\001R\003org\022\024\n\005model\030" +
+      "\004 \001(\tR\005model\"\207\001\n\024RefineWorkflowOutput\022\022\n" +
+      "\004yaml\030\001 \001(\tR\004yaml\022 \n\013explanation\030\002 \001(\tR\013" +
+      "explanation\022\032\n\010warnings\030\003 \003(\tR\010warnings\022" +
+      "\035\n\nmodel_used\030\004 \001(\tR\tmodelUsedB\246\001B\007IoPro" +
+      "toP\001\242\002\004ASAW\252\002\036Ai.Stigmer.Agentic.Workflo" +
+      "w.V1\312\002\036Ai\\Stigmer\\Agentic\\Workflow\\V1\342\002*" +
+      "Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetada" +
+      "ta\352\002\"Ai::Stigmer::Agentic::Workflow::V1b" +
+      "\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -89,6 +107,18 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflow_v1_GenerateWorkflowFromPromptOutput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflow_v1_GenerateWorkflowFromPromptOutput_descriptor,
+        new java.lang.String[] { "Yaml", "Explanation", "Warnings", "ModelUsed", });
+    internal_static_ai_stigmer_agentic_workflow_v1_RefineWorkflowInput_descriptor =
+      getDescriptor().getMessageType(3);
+    internal_static_ai_stigmer_agentic_workflow_v1_RefineWorkflowInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflow_v1_RefineWorkflowInput_descriptor,
+        new java.lang.String[] { "CurrentYaml", "Instruction", "Org", "Model", });
+    internal_static_ai_stigmer_agentic_workflow_v1_RefineWorkflowOutput_descriptor =
+      getDescriptor().getMessageType(4);
+    internal_static_ai_stigmer_agentic_workflow_v1_RefineWorkflowOutput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_workflow_v1_RefineWorkflowOutput_descriptor,
         new java.lang.String[] { "Yaml", "Explanation", "Warnings", "ModelUsed", });
     descriptor.resolveAllFeaturesImmutable();
     build.buf.validate.ValidateProto.getDescriptor();

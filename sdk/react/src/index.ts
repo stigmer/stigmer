@@ -1148,6 +1148,9 @@ export {
   ExecutionTrendChart,
   useGenerateWorkflowFlow,
   WorkflowGenerateDialog,
+  useRefineWorkflowFlow,
+  WorkflowRefinePanel,
+  computeUnifiedDiff,
 } from "./workflow";
 export type {
   TaskKindDescriptor,
@@ -1228,6 +1231,13 @@ export type {
   UseGenerateWorkflowFlowReturn,
   GenerateWorkflowResult,
   WorkflowGenerateDialogProps,
+  UseRefineWorkflowFlowOptions,
+  UseRefineWorkflowFlowReturn,
+  RefineWorkflowFlowResult,
+  RefinementHistoryEntry,
+  WorkflowRefinePanelProps,
+  DiffLine as WorkflowDiffLine,
+  DiffLineType as WorkflowDiffLineType,
 } from "./workflow";
 
 // ─── Dashboard (Unified Platform) ──────────────────────────────────────────

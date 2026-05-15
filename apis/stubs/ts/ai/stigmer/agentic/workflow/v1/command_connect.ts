@@ -5,7 +5,7 @@
 
 import { Workflow } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { GenerateWorkflowFromPromptInput, GenerateWorkflowFromPromptOutput, WorkflowId } from "./io_pbjs";
+import { GenerateWorkflowFromPromptInput, GenerateWorkflowFromPromptOutput, RefineWorkflowInput, RefineWorkflowOutput, WorkflowId } from "./io_pbjs";
 
 /**
  * WorkflowCommandController handles write operations for workflows.
@@ -82,6 +82,21 @@ export const WorkflowCommandController = {
       name: "generateWorkflowFromPrompt",
       I: GenerateWorkflowFromPromptInput,
       O: GenerateWorkflowFromPromptOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Refine an existing workflow with a natural language instruction.
+     *
+     * Receives the current workflow YAML and a change instruction, constructs
+     * a prompt emphasizing minimal targeted changes, calls an LLM to produce
+     * updated YAML, and validates the output with up to 2 retries on failure.
+     *
+     * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.refineWorkflow
+     */
+    refineWorkflow: {
+      name: "refineWorkflow",
+      I: RefineWorkflowInput,
+      O: RefineWorkflowOutput,
       kind: MethodKind.Unary,
     },
   }

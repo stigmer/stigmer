@@ -31,7 +31,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflowexecution/v1/api.proto.
  */
 export const file_ai_stigmer_agentic_workflowexecution_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvYXBpLnByb3RvEidhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEi3QIKEVdvcmtmbG93RXhlY3V0aW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiYKBGtpbmQYAiABKAlCGLpIFXITChFXb3JrZmxvd0V4ZWN1dGlvbhJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESTAoEc3BlYxgEIAEoCzI+LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V4ZWN1dGlvblNwZWMSUAoGc3RhdHVzGAUgASgLMkAuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uU3RhdHVzIs8DChdXb3JrZmxvd0V4ZWN1dGlvblN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0ElAKBXBoYXNlGAEgASgOMjcuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblBoYXNlQgi6SAWCAQIQARJECgV0YXNrcxgCIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd1Rhc2sSJwoGb3V0cHV0GAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBINCgVlcnJvchgEIAEoCRISCgpzdGFydGVkX2F0GAUgASgJEhQKDGNvbXBsZXRlZF9hdBgGIAEoCRIcChR0ZW1wb3JhbF93b3JrZmxvd19pZBgHIAEoCRJbChFwZW5kaW5nX2FwcHJvdmFscxgJIAMoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd1BlbmRpbmdBcHByb3ZhbCKEAQoXV29ya2Zsb3dQZW5kaW5nQXBwcm92YWwSRwoIYXBwcm92YWwYASABKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUGVuZGluZ0FwcHJvdmFsEiAKGGNoaWxkX2FnZW50X2V4ZWN1dGlvbl9pZBgCIAEoCSKsAwoMV29ya2Zsb3dUYXNrEg8KB3Rhc2tfaWQYASABKAkSEQoJdGFza19uYW1lGAIgASgJElYKCXRhc2tfdHlwZRgDIAEoDjI5LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd1Rhc2tUeXBlQgi6SAWCAQIQARImCgVpbnB1dBgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSJwoGb3V0cHV0GAUgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBJVCgZzdGF0dXMYBiABKA4yOy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dUYXNrU3RhdHVzQgi6SAWCAQIQARISCgpzdGFydGVkX2F0GAcgASgJEhQKDGNvbXBsZXRlZF9hdBgIIAEoCRINCgVlcnJvchgJIAEoCRIpCghtZXRhZGF0YRgKIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFAoMYXJ0aWZhY3RfaWRzGAsgAygJYgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_approval, file_ai_stigmer_agentic_workflowexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_spec, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvYXBpLnByb3RvEidhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEi3QIKEVdvcmtmbG93RXhlY3V0aW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiYKBGtpbmQYAiABKAlCGLpIFXITChFXb3JrZmxvd0V4ZWN1dGlvbhJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESTAoEc3BlYxgEIAEoCzI+LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V4ZWN1dGlvblNwZWMSUAoGc3RhdHVzGAUgASgLMkAuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uU3RhdHVzIqMEChdXb3JrZmxvd0V4ZWN1dGlvblN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0ElAKBXBoYXNlGAEgASgOMjcuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblBoYXNlQgi6SAWCAQIQARJECgV0YXNrcxgCIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd1Rhc2sSJwoGb3V0cHV0GAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBINCgVlcnJvchgEIAEoCRISCgpzdGFydGVkX2F0GAUgASgJEhQKDGNvbXBsZXRlZF9hdBgGIAEoCRIcChR0ZW1wb3JhbF93b3JrZmxvd19pZBgHIAEoCRJbChFwZW5kaW5nX2FwcHJvdmFscxgJIAMoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd1BlbmRpbmdBcHByb3ZhbBIZChF0b3RhbF9jb3N0X21pY3JvcxgKIAEoAxIaChJ0b3RhbF9pbnB1dF90b2tlbnMYCyABKAMSGwoTdG90YWxfb3V0cHV0X3Rva2VucxgMIAEoAyKEAQoXV29ya2Zsb3dQZW5kaW5nQXBwcm92YWwSRwoIYXBwcm92YWwYASABKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUGVuZGluZ0FwcHJvdmFsEiAKGGNoaWxkX2FnZW50X2V4ZWN1dGlvbl9pZBgCIAEoCSLuAwoMV29ya2Zsb3dUYXNrEg8KB3Rhc2tfaWQYASABKAkSEQoJdGFza19uYW1lGAIgASgJElYKCXRhc2tfdHlwZRgDIAEoDjI5LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd1Rhc2tUeXBlQgi6SAWCAQIQARImCgVpbnB1dBgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSJwoGb3V0cHV0GAUgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBJVCgZzdGF0dXMYBiABKA4yOy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dUYXNrU3RhdHVzQgi6SAWCAQIQARISCgpzdGFydGVkX2F0GAcgASgJEhQKDGNvbXBsZXRlZF9hdBgIIAEoCRINCgVlcnJvchgJIAEoCRIpCghtZXRhZGF0YRgKIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFAoMYXJ0aWZhY3RfaWRzGAsgAygJEhMKC2Nvc3RfbWljcm9zGAwgASgDEhQKDGlucHV0X3Rva2VucxgNIAEoAxIVCg1vdXRwdXRfdG9rZW5zGA4gASgDYgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_approval, file_ai_stigmer_agentic_workflowexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_spec, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * WorkflowExecution represents a single runtime invocation of a WorkflowInstance.
@@ -378,6 +378,49 @@ export type WorkflowExecutionStatus = Message<"ai.stigmer.agentic.workflowexecut
    * @generated from field: repeated ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9;
    */
   pendingApprovals: WorkflowPendingApproval[];
+
+  /**
+   * Cumulative cost across all tasks in micro-USD (1 USD = 1,000,000 micros).
+   *
+   * @internal
+   * Updated by the workflow-runner alongside each status update. Reflects the
+   * budget tracker's accumulated cost at the time of the last status write.
+   * Used by getExecutionSummary for fast aggregation without scanning events.
+   *
+   * Consistent with WorkflowBudget.max_cost_micros and the billing domain's
+   * micro-USD convention (CostStamp.provider_cost_micros, etc.).
+   *
+   * @since Cost Data Pipeline
+   *
+   * @generated from field: int64 total_cost_micros = 10;
+   */
+  totalCostMicros: bigint;
+
+  /**
+   * Cumulative input tokens consumed across all LLM and agent tasks.
+   *
+   * @internal
+   * Input tokens represent prompt/context tokens sent to the model.
+   * Updated alongside total_cost_micros from the budget tracker.
+   *
+   * @since Cost Data Pipeline
+   *
+   * @generated from field: int64 total_input_tokens = 11;
+   */
+  totalInputTokens: bigint;
+
+  /**
+   * Cumulative output tokens consumed across all LLM and agent tasks.
+   *
+   * @internal
+   * Output tokens represent completion/generation tokens returned by the model.
+   * Updated alongside total_cost_micros from the budget tracker.
+   *
+   * @since Cost Data Pipeline
+   *
+   * @generated from field: int64 total_output_tokens = 12;
+   */
+  totalOutputTokens: bigint;
 };
 
 /**
@@ -611,6 +654,44 @@ export type WorkflowTask = Message<"ai.stigmer.agentic.workflowexecution.v1.Work
    * @generated from field: repeated string artifact_ids = 11;
    */
   artifactIds: string[];
+
+  /**
+   * Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros).
+   *
+   * @internal
+   * Non-zero for cost-incurring task kinds (llm_call, agent_call).
+   * Zero for non-LLM tasks (transform, validate, emit_event, etc.).
+   * Set by the workflow-runner when the task completes.
+   *
+   * @since Cost Data Pipeline
+   *
+   * @generated from field: int64 cost_micros = 12;
+   */
+  costMicros: bigint;
+
+  /**
+   * Input (prompt/context) tokens consumed by this task.
+   *
+   * @internal
+   * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+   *
+   * @since Cost Data Pipeline
+   *
+   * @generated from field: int64 input_tokens = 13;
+   */
+  inputTokens: bigint;
+
+  /**
+   * Output (completion/generation) tokens produced by this task.
+   *
+   * @internal
+   * Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
+   *
+   * @since Cost Data Pipeline
+   *
+   * @generated from field: int64 output_tokens = 14;
+   */
+  outputTokens: bigint;
 };
 
 /**

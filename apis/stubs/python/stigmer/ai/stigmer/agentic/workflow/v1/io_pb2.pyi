@@ -36,3 +36,27 @@ class GenerateWorkflowFromPromptOutput(_message.Message):
     warnings: _containers.RepeatedScalarFieldContainer[str]
     model_used: str
     def __init__(self, yaml: _Optional[str] = ..., explanation: _Optional[str] = ..., warnings: _Optional[_Iterable[str]] = ..., model_used: _Optional[str] = ...) -> None: ...
+
+class RefineWorkflowInput(_message.Message):
+    __slots__ = ("current_yaml", "instruction", "org", "model")
+    CURRENT_YAML_FIELD_NUMBER: _ClassVar[int]
+    INSTRUCTION_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    MODEL_FIELD_NUMBER: _ClassVar[int]
+    current_yaml: str
+    instruction: str
+    org: str
+    model: str
+    def __init__(self, current_yaml: _Optional[str] = ..., instruction: _Optional[str] = ..., org: _Optional[str] = ..., model: _Optional[str] = ...) -> None: ...
+
+class RefineWorkflowOutput(_message.Message):
+    __slots__ = ("yaml", "explanation", "warnings", "model_used")
+    YAML_FIELD_NUMBER: _ClassVar[int]
+    EXPLANATION_FIELD_NUMBER: _ClassVar[int]
+    WARNINGS_FIELD_NUMBER: _ClassVar[int]
+    MODEL_USED_FIELD_NUMBER: _ClassVar[int]
+    yaml: str
+    explanation: str
+    warnings: _containers.RepeatedScalarFieldContainer[str]
+    model_used: str
+    def __init__(self, yaml: _Optional[str] = ..., explanation: _Optional[str] = ..., warnings: _Optional[_Iterable[str]] = ..., model_used: _Optional[str] = ...) -> None: ...

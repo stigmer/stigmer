@@ -312,6 +312,28 @@ export {
   type WorkflowGenerateDialogProps,
 } from "./WorkflowGenerateDialog";
 
+// T16: Refine workflow — behavior hook
+export {
+  useRefineWorkflowFlow,
+  type UseRefineWorkflowFlowOptions,
+  type UseRefineWorkflowFlowReturn,
+  type RefineWorkflowFlowResult,
+  type RefinementHistoryEntry,
+} from "./useRefineWorkflowFlow";
+
+// T16: Refine workflow — styled component
+export {
+  WorkflowRefinePanel,
+  type WorkflowRefinePanelProps,
+} from "./WorkflowRefinePanel";
+
+// T16: Refine workflow — diff utility
+export {
+  computeUnifiedDiff,
+  type DiffLine,
+  type DiffLineType,
+} from "./workflow-yaml-diff";
+
 // Navigation resolution hook
 export {
   useResolveAgentExecutionSession,

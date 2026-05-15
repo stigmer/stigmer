@@ -170,6 +170,37 @@ public final class WorkflowCommandControllerGrpc {
     return getGenerateWorkflowFromPromptMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.RefineWorkflowInput,
+      ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput> getRefineWorkflowMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "refineWorkflow",
+      requestType = ai.stigmer.agentic.workflow.v1.RefineWorkflowInput.class,
+      responseType = ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.RefineWorkflowInput,
+      ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput> getRefineWorkflowMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.RefineWorkflowInput, ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput> getRefineWorkflowMethod;
+    if ((getRefineWorkflowMethod = WorkflowCommandControllerGrpc.getRefineWorkflowMethod) == null) {
+      synchronized (WorkflowCommandControllerGrpc.class) {
+        if ((getRefineWorkflowMethod = WorkflowCommandControllerGrpc.getRefineWorkflowMethod) == null) {
+          WorkflowCommandControllerGrpc.getRefineWorkflowMethod = getRefineWorkflowMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflow.v1.RefineWorkflowInput, ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "refineWorkflow"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflow.v1.RefineWorkflowInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowCommandControllerMethodDescriptorSupplier("refineWorkflow"))
+              .build();
+        }
+      }
+    }
+    return getRefineWorkflowMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -296,6 +327,19 @@ public final class WorkflowCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGenerateWorkflowFromPromptMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Refine an existing workflow with a natural language instruction.
+     * Receives the current workflow YAML and a change instruction, constructs
+     * a prompt emphasizing minimal targeted changes, calls an LLM to produce
+     * updated YAML, and validates the output with up to 2 retries on failure.
+     * </pre>
+     */
+    default void refineWorkflow(ai.stigmer.agentic.workflow.v1.RefineWorkflowInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRefineWorkflowMethod(), responseObserver);
+    }
   }
 
   /**
@@ -396,6 +440,20 @@ public final class WorkflowCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGenerateWorkflowFromPromptMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Refine an existing workflow with a natural language instruction.
+     * Receives the current workflow YAML and a change instruction, constructs
+     * a prompt emphasizing minimal targeted changes, calls an LLM to produce
+     * updated YAML, and validates the output with up to 2 retries on failure.
+     * </pre>
+     */
+    public void refineWorkflow(ai.stigmer.agentic.workflow.v1.RefineWorkflowInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getRefineWorkflowMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -477,6 +535,19 @@ public final class WorkflowCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGenerateWorkflowFromPromptMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Refine an existing workflow with a natural language instruction.
+     * Receives the current workflow YAML and a change instruction, constructs
+     * a prompt emphasizing minimal targeted changes, calls an LLM to produce
+     * updated YAML, and validates the output with up to 2 retries on failure.
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput refineWorkflow(ai.stigmer.agentic.workflow.v1.RefineWorkflowInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getRefineWorkflowMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -557,6 +628,19 @@ public final class WorkflowCommandControllerGrpc {
     public ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput generateWorkflowFromPrompt(ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGenerateWorkflowFromPromptMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Refine an existing workflow with a natural language instruction.
+     * Receives the current workflow YAML and a change instruction, constructs
+     * a prompt emphasizing minimal targeted changes, calls an LLM to produce
+     * updated YAML, and validates the output with up to 2 retries on failure.
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput refineWorkflow(ai.stigmer.agentic.workflow.v1.RefineWorkflowInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getRefineWorkflowMethod(), getCallOptions(), request);
     }
   }
 
@@ -644,6 +728,20 @@ public final class WorkflowCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGenerateWorkflowFromPromptMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Refine an existing workflow with a natural language instruction.
+     * Receives the current workflow YAML and a change instruction, constructs
+     * a prompt emphasizing minimal targeted changes, calls an LLM to produce
+     * updated YAML, and validates the output with up to 2 retries on failure.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput> refineWorkflow(
+        ai.stigmer.agentic.workflow.v1.RefineWorkflowInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getRefineWorkflowMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_APPLY = 0;
@@ -651,6 +749,7 @@ public final class WorkflowCommandControllerGrpc {
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_DELETE = 3;
   private static final int METHODID_GENERATE_WORKFLOW_FROM_PROMPT = 4;
+  private static final int METHODID_REFINE_WORKFLOW = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -688,6 +787,10 @@ public final class WorkflowCommandControllerGrpc {
         case METHODID_GENERATE_WORKFLOW_FROM_PROMPT:
           serviceImpl.generateWorkflowFromPrompt((ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput>) responseObserver);
+          break;
+        case METHODID_REFINE_WORKFLOW:
+          serviceImpl.refineWorkflow((ai.stigmer.agentic.workflow.v1.RefineWorkflowInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -742,6 +845,13 @@ public final class WorkflowCommandControllerGrpc {
               ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput,
               ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput>(
                 service, METHODID_GENERATE_WORKFLOW_FROM_PROMPT)))
+        .addMethod(
+          getRefineWorkflowMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.workflow.v1.RefineWorkflowInput,
+              ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput>(
+                service, METHODID_REFINE_WORKFLOW)))
         .build();
   }
 
@@ -795,6 +905,7 @@ public final class WorkflowCommandControllerGrpc {
               .addMethod(getUpdateMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getGenerateWorkflowFromPromptMethod())
+              .addMethod(getRefineWorkflowMethod())
               .build();
         }
       }
