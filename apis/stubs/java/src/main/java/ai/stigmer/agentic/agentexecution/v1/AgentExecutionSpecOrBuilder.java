@@ -600,48 +600,4 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    */
   com.google.protobuf.ByteString
       getWorkspaceFileRefsBytes(int index);
-
-  /**
-   * <pre>
-   * Preferred runner ID for activity routing (optional).
-   *
-   * When set, the platform routes this execution's activities to the specified
-   * runner instead of provisioning a new one. The runner must exist and be in
-   * READY or BUSY phase; otherwise the request fails with FAILED_PRECONDITION.
-   *
-   * Primary use case: workflow-runner co-location. When a workflow's call:agent
-   * task creates an AgentExecution, it passes its own runner ID here so the
-   * agent executes in the same Daytona sandbox — avoiding cold-start latency
-   * and reusing the co-located agent-runner process.
-   *
-   * When empty, normal dispatch/provision applies (session-bound runner,
-   * ephemeral provisioning, or global queue fallback).
-   * </pre>
-   *
-   * <code>string preferred_runner_id = 11 [json_name = "preferredRunnerId"];</code>
-   * @return The preferredRunnerId.
-   */
-  java.lang.String getPreferredRunnerId();
-  /**
-   * <pre>
-   * Preferred runner ID for activity routing (optional).
-   *
-   * When set, the platform routes this execution's activities to the specified
-   * runner instead of provisioning a new one. The runner must exist and be in
-   * READY or BUSY phase; otherwise the request fails with FAILED_PRECONDITION.
-   *
-   * Primary use case: workflow-runner co-location. When a workflow's call:agent
-   * task creates an AgentExecution, it passes its own runner ID here so the
-   * agent executes in the same Daytona sandbox — avoiding cold-start latency
-   * and reusing the co-located agent-runner process.
-   *
-   * When empty, normal dispatch/provision applies (session-bound runner,
-   * ephemeral provisioning, or global queue fallback).
-   * </pre>
-   *
-   * <code>string preferred_runner_id = 11 [json_name = "preferredRunnerId"];</code>
-   * @return The bytes for preferredRunnerId.
-   */
-  com.google.protobuf.ByteString
-      getPreferredRunnerIdBytes();
 }

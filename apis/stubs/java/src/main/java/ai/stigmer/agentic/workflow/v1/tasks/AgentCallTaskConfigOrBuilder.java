@@ -248,4 +248,59 @@ java.lang.String defaultValue);
    * <code>.ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6 [json_name = "output"];</code>
    */
   ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContractOrBuilder getOutputOrBuilder();
+
+  /**
+   * <pre>
+   * Execution harness for the agent invocation.
+   *
+   * Determines which execution engine processes the agent call:
+   * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+   * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+   *
+   * The workflow-runner creates a Session with this harness before creating
+   * the AgentExecution. The harness is a session-level concern — it determines
+   * tool availability, state management, model access, and billing tier.
+   *
+   * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+   *
+   * YAML Example:
+   * - code_review:
+   * call: agent
+   * with:
+   * agent: "code-reviewer"
+   * harness: cursor
+   * message: "Review this PR"
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 7 [json_name = "harness"];</code>
+   * @return The enum numeric value on the wire for harness.
+   */
+  int getHarnessValue();
+  /**
+   * <pre>
+   * Execution harness for the agent invocation.
+   *
+   * Determines which execution engine processes the agent call:
+   * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+   * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+   *
+   * The workflow-runner creates a Session with this harness before creating
+   * the AgentExecution. The harness is a session-level concern — it determines
+   * tool availability, state management, model access, and billing tier.
+   *
+   * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+   *
+   * YAML Example:
+   * - code_review:
+   * call: agent
+   * with:
+   * agent: "code-reviewer"
+   * harness: cursor
+   * message: "Review this PR"
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 7 [json_name = "harness"];</code>
+   * @return The harness.
+   */
+  ai.stigmer.agentic.session.v1.Harness getHarness();
 }

@@ -27,6 +27,7 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	workflowtasks "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	workflowexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
@@ -166,17 +167,37 @@ func (a *CallAgentActivities) CallAgentActivity(
 		return nil, fmt.Errorf("organization ID not available in workflow execution context")
 	}
 
-	// Resolve agent org/slug to actual agent ID (OBO context for user-facing read)
-	agentId, err := a.resolveAgent(authCtx, resolvedConfig.Agent, orgId)
+	// Resolve agent org/slug to full agent object (OBO context for user-facing read)
+	agent, err := a.resolveAgent(authCtx, resolvedConfig.Agent, orgId)
 	if err != nil {
 		logger.Error("Failed to resolve agent", "agent", resolvedConfig.Agent, "org", orgId, "error", err)
 		return nil, fmt.Errorf("agent '%s' not found in org '%s': %w", resolvedConfig.Agent, orgId, err)
 	}
-	logger.Debug("Agent resolved", "agent", resolvedConfig.Agent, "org", orgId, "agent_id", agentId)
+	agentId := agent.Metadata.Id
+	defaultInstanceId := ""
+	if agent.Status != nil {
+		defaultInstanceId = agent.Status.DefaultInstanceId
+	}
+	logger.Debug("Agent resolved", "agent", resolvedConfig.Agent, "org", orgId,
+		"agent_id", agentId, "default_instance_id", defaultInstanceId)
 
-	// **STEP 3: Create Agent Execution** (with callback token and parent workflow ID)
-	// Uses authenticated context so the create call is attributed to the invoking user
-	execution, err := a.createAgentExecution(authCtx, agentId, orgId, resolvedConfig, taskToken, parentWorkflowId)
+	// **STEP 3: Create Session** (unified with frontend two-step pattern)
+	// Session owns harness, runner affinity, and workspace config.
+	session, err := a.createSession(authCtx, orgId, defaultInstanceId,
+		resolvedConfig.Harness, os.Getenv("STIGMER_RUNNER_ID"),
+		resolvedConfig.Agent)
+	if err != nil {
+		logger.Error("❌ Failed to create session for agent call", "error", err)
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+	logger.Info("Session created for agent call",
+		"session_id", session.Metadata.Id,
+		"harness", resolvedConfig.Harness,
+		"runner_id", os.Getenv("STIGMER_RUNNER_ID"))
+
+	// **STEP 4: Create Agent Execution** (with session_id from step 3)
+	execution, err := a.createAgentExecution(authCtx, agentId, orgId, resolvedConfig,
+		taskToken, parentWorkflowId, session.Metadata.Id)
 	if err != nil {
 		logger.Error("❌ Failed to create agent execution", "error", err)
 		return nil, fmt.Errorf("failed to create agent execution: %w", err)
@@ -184,6 +205,7 @@ func (a *CallAgentActivities) CallAgentActivity(
 	executionId := execution.Metadata.Id
 	logger.Info("✅ Agent execution created with callback token and parent workflow context",
 		"execution_id", executionId,
+		"session_id", session.Metadata.Id,
 		"token_preview", tokenPreview,
 		"parent_workflow_id", parentWorkflowId)
 
@@ -221,6 +243,7 @@ func (a *CallAgentActivities) resolveRuntimePlaceholders(
 		Org:     config.Org,
 		Message: config.Message,
 		Config:  config.Config,
+		Harness: config.Harness,
 		Env:     make(map[string]string),
 	}
 
@@ -245,17 +268,15 @@ func (a *CallAgentActivities) resolveRuntimePlaceholders(
 	return resolvedConfig, nil
 }
 
-// resolveAgent resolves an agent slug to an agent ID using the Agent query service.
-// Uses ApiResourceReference to query by org and slug.
+// resolveAgent resolves an agent slug to the full Agent object using the Agent query service.
+// Returns the complete agent including status (needed for default_instance_id).
 func (a *CallAgentActivities) resolveAgent(
 	ctx context.Context,
 	slug string,
 	orgId string,
-) (string, error) {
+) (*agentv1.Agent, error) {
 	logger := activity.GetLogger(ctx)
 
-	// Build the ApiResourceReference
-	// This tells the backend: "Find agent with this slug in this org"
 	reference := &apiresource.ApiResourceReference{
 		Org:  orgId,
 		Kind: apiresourcekind.ApiResourceKind_agent,
@@ -266,52 +287,47 @@ func (a *CallAgentActivities) resolveAgent(
 		"slug", slug,
 		"org", orgId)
 
-	// Get gRPC client
 	client, err := getAgentQueryClient()
 	if err != nil {
-		return "", fmt.Errorf("failed to create agent query client: %w", err)
+		return nil, fmt.Errorf("failed to create agent query client: %w", err)
 	}
 
-	// Query agent by reference
 	agent, err := client.GetByReference(ctx, reference)
 	if err != nil {
-		return "", fmt.Errorf("getByReference failed: %w", err)
+		return nil, fmt.Errorf("getByReference failed: %w", err)
 	}
 
-	return agent.Metadata.Id, nil
+	return agent, nil
 }
 
 // createAgentExecution creates a new agent execution through the AgentExecution command service.
-// The callbackToken enables async activity completion pattern.
-// The parentWorkflowId enables events-based approval notification (Phase 5.1).
+// The session must be created before calling this (two-step pattern matching frontend flow).
 func (a *CallAgentActivities) createAgentExecution(
 	ctx context.Context,
 	agentId string,
 	orgId string,
 	config *workflowtasks.AgentCallTaskConfig,
 	callbackToken []byte,
-	parentWorkflowId string, // Phase 5.1: For events-based approval notification
+	parentWorkflowId string,
+	sessionId string,
 ) (*agentexecv1.AgentExecution, error) {
 	logger := activity.GetLogger(ctx)
 
-	// Convert env map to ExecutionValue format
-	// ExecutionValue has {value: string, is_secret: bool}
-	// We mark all env vars as non-secrets since actual secrets are already resolved
 	runtimeEnv := make(map[string]*executioncontextv1.ExecutionValue)
 	for key, value := range config.Env {
 		runtimeEnv[key] = &executioncontextv1.ExecutionValue{
 			Value:    value,
-			IsSecret: false, // Secrets already resolved by this point
+			IsSecret: false,
 		}
 	}
 
 	spec := &agentexecv1.AgentExecutionSpec{
-		AgentId:           agentId,
-		Message:           config.Message,
-		RuntimeEnv:        runtimeEnv,
-		CallbackToken:     callbackToken,
-		ParentWorkflowId:  parentWorkflowId,
-		PreferredRunnerId: os.Getenv("STIGMER_RUNNER_ID"),
+		SessionId:        sessionId,
+		AgentId:          agentId,
+		Message:          config.Message,
+		RuntimeEnv:       runtimeEnv,
+		CallbackToken:    callbackToken,
+		ParentWorkflowId: parentWorkflowId,
 	}
 
 	// Add execution config if provided
@@ -353,6 +369,48 @@ func (a *CallAgentActivities) createAgentExecution(
 	}
 
 	return createdExecution, nil
+}
+
+// createSession creates a new session for an agent call, matching the frontend
+// two-step pattern. Session owns harness (execution engine) and runner affinity.
+func (a *CallAgentActivities) createSession(
+	ctx context.Context,
+	orgId string,
+	instanceId string,
+	harness sessionv1.Harness,
+	runnerId string,
+	agentSlug string,
+) (*sessionv1.Session, error) {
+	client, err := getSessionCommandClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get session command client: %w", err)
+	}
+
+	sessionName := fmt.Sprintf("wf-%s-%d", agentSlug, time.Now().Unix())
+	session := &sessionv1.Session{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Session",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: sessionName,
+			Org:  orgId,
+		},
+		Spec: &sessionv1.SessionSpec{
+			AgentInstanceId: instanceId,
+			Subject:         fmt.Sprintf("Workflow: %s", agentSlug),
+			Harness:         harness,
+		},
+	}
+
+	if runnerId != "" {
+		session.Spec.RunnerId = runnerId
+	}
+
+	created, err := client.Create(ctx, session)
+	if err != nil {
+		return nil, fmt.Errorf("create session failed: %w", err)
+	}
+
+	return created, nil
 }
 
 // waitForCompletion polls the agent execution status until it reaches a terminal state.
@@ -625,6 +683,9 @@ var (
 
 	agentExecCommandClientOnce sync.Once
 	agentExecCommandClient     agentexecv1.AgentExecutionCommandControllerClient
+
+	sessionCommandClientOnce sync.Once
+	sessionCommandClient     sessionv1.SessionCommandControllerClient
 )
 
 // initGrpcConnection initializes the shared gRPC connection.
@@ -694,7 +755,7 @@ func getAgentExecutionCommandClient() (agentexecv1.AgentExecutionCommandControll
 	agentExecCommandClientOnce.Do(func() {
 		conn, err := initGrpcConnection()
 		if err != nil {
-			return // Error stored in grpcConnErr
+			return
 		}
 		agentExecCommandClient = agentexecv1.NewAgentExecutionCommandControllerClient(conn)
 	})
@@ -704,4 +765,20 @@ func getAgentExecutionCommandClient() (agentexecv1.AgentExecutionCommandControll
 	}
 
 	return agentExecCommandClient, nil
+}
+
+func getSessionCommandClient() (sessionv1.SessionCommandControllerClient, error) {
+	sessionCommandClientOnce.Do(func() {
+		conn, err := initGrpcConnection()
+		if err != nil {
+			return
+		}
+		sessionCommandClient = sessionv1.NewSessionCommandControllerClient(conn)
+	})
+
+	if grpcConnErr != nil {
+		return nil, grpcConnErr
+	}
+
+	return sessionCommandClient, nil
 }
