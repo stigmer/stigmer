@@ -133,6 +133,10 @@ uv.lock
 .env
 .env_export
 
+# Integration test output
+.test-output/
+.test-output-providers/
+
 # Cursor
 _cursor/
 _aacursor/

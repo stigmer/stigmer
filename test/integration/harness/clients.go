@@ -1,6 +1,7 @@
 package harness
 
 import (
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	workflowinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1"
@@ -16,6 +17,7 @@ type Clients struct {
 	InstanceQuery    workflowinstancev1.WorkflowInstanceQueryControllerClient
 	ExecutionCommand workflowexecutionv1.WorkflowExecutionCommandControllerClient
 	ExecutionQuery   workflowexecutionv1.WorkflowExecutionQueryControllerClient
+	AgentCommand     agentv1.AgentCommandControllerClient
 }
 
 // NewClients creates all typed gRPC clients from a single connection.
@@ -27,5 +29,6 @@ func NewClients(conn grpc.ClientConnInterface) *Clients {
 		InstanceQuery:    workflowinstancev1.NewWorkflowInstanceQueryControllerClient(conn),
 		ExecutionCommand: workflowexecutionv1.NewWorkflowExecutionCommandControllerClient(conn),
 		ExecutionQuery:   workflowexecutionv1.NewWorkflowExecutionQueryControllerClient(conn),
+		AgentCommand:     agentv1.NewAgentCommandControllerClient(conn),
 	}
 }

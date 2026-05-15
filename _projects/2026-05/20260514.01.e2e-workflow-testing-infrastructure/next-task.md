@@ -68,8 +68,60 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: Listen converter implemented, E2E validated — Phase 2 complete
-**Status**: 25 tests green (23 existing + 2 listen); ready for Phase 3
+**Current Task**: T08 LLM provider tests + Workflow-Runner Proxy Integration complete
+**Status**: Phase 3 provider-backed tests implemented; proxy integration across both repos ready for cloud deployment
+
+## Session Progress (2026-05-15, Session 12 — T08 LLM Provider Tests + Workflow-Runner Proxy Integration)
+
+### Accomplished
+
+**Part 1: T08 LLM Provider Integration Tests (Anthropic)**
+- **Implemented `CallLlmTaskBuilder` and `CallLlmActivity`** — direct Go SDK integration for `llm_call` tasks using Anthropic (`go-anthropic/v2`) and OpenAI (`go-openai`) SDKs
+- **Created 3 LLM integration tests** — `TestWorkflowLlmCall_StructuredOutput` (JSON schema), `TestWorkflowLlmCall_SimplePrompt` (plain text), `TestWorkflowLlmCall_OpenAI_StructuredOutput` (skipped until billing resolved)
+- **Created 2 agent_call integration tests** — `TestWorkflowAgentCall_SimpleExecution` and `TestWorkflowAgentCall_StructuredOutput` exercising full agent pipeline through Python agent-runner
+- **Built agent-runner harness** (`harness/agent_runner.go`) — manages Python agent-runner as child process with env var setup for LLM provider, API key, proxy, Temporal, and Stigmer backend
+- **Added `AgentCommandControllerClient`** to test harness for creating/managing agents in tests
+- **Created CI workflow** (`.github/workflows/ci.integration-providers.yaml`) — manual-only dispatch for provider-backed tests with GitHub environment secrets
+- **Added `test-integration-providers` Makefile target** — runs provider-filtered tests with extended timeout
+
+**Part 2: Workflow-Runner Proxy Integration (Side-Channel Proxy)**
+- **Created `pkg/config/llm_config.go`** — dual-mode config struct mirroring agent-runner's `LLMConfig.load_from_env(proxy_active=...)` pattern; reads `STIGMER_PROXY_ENDPOINT` to determine proxy vs direct mode
+- **Refactored `CallLlmActivity`** for proxy mode — uses `proxyRoundTripper` to inject `Authorization: Bearer` and `X-Stigmer-Workflow-Execution-Id` headers; SDKs route through `{proxy}/v1/proxy/llm/{provider}/...` with `WithBaseURL`/custom `HTTPClient`
+- **Passed workflow execution ID** from `workflow.GetInfo(ctx).WorkflowExecution.ID` into the activity for billing metering
+- **Extended Java proxy authorization** (`ProxyAuthorizationService`) — new `X-Stigmer-Workflow-Execution-Id` header triggers FGA `can_edit` on `workflow_execution` resource kind
+- **Updated `ProxyScopeResult`** — added `workflowExecutionId` field and `effectiveExecutionId()` helper for billing
+- **Wired header through both controllers** (`LlmProxyController`, `CursorProxyController`) — pass new header to authorization, use effective execution ID for metering
+- **Extended billing handler** (`RecordLlmCallUsageHandler`) — fallback org resolution from `WorkflowExecution.metadata.org` when agent execution reservation lookup fails
+
+### Key Design Decision: Reuse `execution_id` Field
+Chose Option 1 from the plan (reuse `execution_id` in `RecordLlmCallUsageInput` for both agent and workflow execution IDs) to avoid proto changes and stub regeneration. The billing handler resolves org from either entity type via sequential lookup: `ExecutionReservation` → `AgentExecution` → `WorkflowExecution`.
+
+### Verification
+- Go: `go build`, `go vet`, `gofmt` all clean on workflow-runner and integration tests
+- Java: Bazel `//backend/services/stigmer-service:stigmer_service_lib` compiles cleanly
+- Integration tests compile with `-tags integration`
+
+### Files Changed
+
+**stigmer (OSS)** — new (4 files):
+- `backend/services/workflow-runner/pkg/config/llm_config.go` — dual-mode LLM proxy config
+- `.github/workflows/ci.integration-providers.yaml` — manual CI for provider tests
+- `test/integration/workflow_llm_call_test.go` — 3 LLM call integration tests
+- `test/integration/workflow_agent_call_test.go` — 2 agent call integration tests
+
+**stigmer (OSS)** — modified (4 files):
+- `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_call_llm.go` — pass workflow execution ID to activity
+- `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_call_llm_activities.go` — dual-mode proxy + direct, proxyRoundTripper
+- `test/integration/harness/clients.go` — added AgentCommandControllerClient
+- `.gitignore` — added test output directories
+- `Makefile` — added `test-integration-providers` target
+
+**stigmer-cloud** — modified (5 files):
+- `ProxyScopeResult.java` — added workflowExecutionId field, effectiveExecutionId()
+- `ProxyAuthorizationService.java` — workflow_execution FGA check
+- `LlmProxyController.java` — read + pass workflow execution ID header
+- `CursorProxyController.java` — same wiring + non-forwardable header
+- `RecordLlmCallUsageHandler.java` — fallback org resolution from WorkflowExecution
 
 ## Session Progress (2026-05-15, Session 11 — E2E Validation + Listen Converter)
 
@@ -437,20 +489,24 @@ User/API → Java Handler → SignalWithStart("relaySignal", [signalName, payloa
 
 ## Next Steps (Bottom)
 1. ~~**Resolve `cloud_ref` default**~~ — RESOLVED: `cloud_ref` can be passed at dispatch time
-2. **Phase 3**: Provider-backed canary tests (T13/T14 from plan) — requires API keys
+2. ~~**Phase 3**: Provider-backed canary tests~~ — RESOLVED: T08 LLM provider tests + proxy integration (Session 12)
 3. ~~**Fix Java signal routing**~~ — RESOLVED: `relaySignal` relay implemented (Session 10)
 4. ~~**Implement `listen` converter**~~ — RESOLVED: converter + 2 integration tests (Session 11)
 5. **Future: Publish JAR from stigmer-cloud CI** — replace Job 1 with a download step
 6. ~~**Run E2E validation**~~ — RESOLVED: 25 tests green including HITL + listen signal routing (Session 11)
+7. **Run LLM provider tests manually** — `ANTHROPIC_API_KEY=<key> make test-integration-providers` (validates proxy integration in OSS mode)
+8. **Deploy proxy changes to cloud** — merge stigmer-cloud changes, rebuild JAR, test proxy mode end-to-end
 
 ## Context for Resume
-- All 25 integration tests pass: infra (3), service health, smoke gRPC, lifecycle, control flow, data (2), error handling (3), HITL (3), HTTP (2), listen (2), pipeline (3)
-- Full signal pipeline validated end-to-end: gRPC API → Java handler → relaySignal → inner Go workflow → zigflow task completion
-- Phase 2 is complete — all offline task families covered including listen tasks
-- Phase 3 (provider-backed canaries) is the next milestone — requires API keys
+- All 25 offline integration tests pass: infra (3), service health, smoke gRPC, lifecycle, control flow, data (2), error handling (3), HITL (3), HTTP (2), listen (2), pipeline (3)
+- Workflow-runner now supports dual-mode LLM calls: direct SDK (OSS) or Stigmer proxy (cloud)
+- Java proxy extended with `X-Stigmer-Workflow-Execution-Id` header for workflow-runner billing
+- Billing handler falls back to WorkflowExecution for org resolution when agent execution lookup fails
+- Provider-backed tests (llm_call, agent_call) written but require `ANTHROPIC_API_KEY` to run
 - JAR must be rebuilt after stigmer-cloud changes: `./bazelw build //backend/services/stigmer-service:stigmer_service_fatjar`
 - Fat JAR path: `/Users/suresh/scm/github.com/stigmer/stigmer-cloud/bazel-bin/backend/services/stigmer-service/stigmer_service_fatjar.jar`
-- Test command: `STIGMER_SERVICE_JAR=<jar_path> make test-integration`
+- Test command (offline): `STIGMER_SERVICE_JAR=<jar_path> make test-integration`
+- Test command (providers): `STIGMER_SERVICE_JAR=<jar_path> ANTHROPIC_API_KEY=<key> make test-integration-providers`
 
 ## Quick Commands
 

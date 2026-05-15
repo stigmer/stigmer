@@ -71,12 +71,16 @@ func (t *CallLlmTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 			return nil, fmt.Errorf("error evaluating llm task expressions: %w", err)
 		}
 
+		workflowExecutionId := workflow.GetInfo(ctx).WorkflowExecution.ID
+
 		logger.Info("Executing llm call activity",
 			"model", t.llmConfig.Model,
-			"task", t.GetTaskName())
+			"task", t.GetTaskName(),
+			"workflow_execution_id", workflowExecutionId)
 
 		var res any
-		future := workflow.ExecuteActivity(ctx, (*CallLlmActivities).CallLlmActivity, t.llmConfig)
+		future := workflow.ExecuteActivity(ctx, (*CallLlmActivities).CallLlmActivity,
+			t.llmConfig, workflowExecutionId)
 		if err := future.Get(ctx, &res); err != nil {
 			logger.Error("LLM call activity failed", "error", err)
 			return nil, fmt.Errorf("llm call activity failed: %w", err)

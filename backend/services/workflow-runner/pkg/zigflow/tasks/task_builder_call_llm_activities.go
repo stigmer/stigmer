@@ -20,14 +20,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/liushuangls/go-anthropic/v2"
 	openai "github.com/sashabaranov/go-openai"
 	workflowtasks "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
+	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/config"
 	"go.temporal.io/sdk/activity"
+)
+
+const (
+	headerWorkflowExecutionId = "X-Stigmer-Workflow-Execution-Id"
 )
 
 func init() {
@@ -36,17 +41,36 @@ func init() {
 
 type CallLlmActivities struct{}
 
-// CallLlmActivity makes a direct LLM API call without agent overhead.
-// Determines the provider from the model name, calls the appropriate SDK,
-// and returns the result with usage metadata.
+// CallLlmActivity makes an LLM API call supporting both proxy and direct modes.
+//
+// In proxy mode (STIGMER_PROXY_ENDPOINT is set):
+//   - Routes through the Stigmer Side-Channel Proxy
+//   - Uses STIGMER_TOKEN for authentication
+//   - Sends X-Stigmer-Workflow-Execution-Id for billing/metering
+//   - Platform-owned API keys are injected by the proxy server-side
+//
+// In direct mode (OSS, no proxy):
+//   - Calls provider APIs directly using ANTHROPIC_API_KEY / OPENAI_API_KEY
+//   - No billing headers (standalone deployment)
 func (a *CallLlmActivities) CallLlmActivity(
 	ctx context.Context,
 	cfg *workflowtasks.LlmCallTaskConfig,
+	workflowExecutionId string,
 ) (any, error) {
 	logger := activity.GetLogger(ctx)
-	logger.Info("Starting LLM call activity", "model", cfg.Model)
 
+	llmCfg := config.LoadLlmConfig()
 	provider := resolveProvider(cfg.Model)
+
+	if err := llmCfg.ValidateForProvider(provider); err != nil {
+		return nil, err
+	}
+
+	logger.Info("Starting LLM call activity",
+		"model", cfg.Model,
+		"provider", provider,
+		"proxy_active", llmCfg.ProxyActive,
+		"workflow_execution_id", workflowExecutionId)
 
 	timeout := 60 * time.Second
 	if cfg.Timeout > 0 {
@@ -60,11 +84,13 @@ func (a *CallLlmActivities) CallLlmActivity(
 
 	switch provider {
 	case "anthropic":
-		result, err = callAnthropic(callCtx, cfg)
+		result, err = callAnthropic(callCtx, cfg, llmCfg, workflowExecutionId)
 	case "openai":
-		result, err = callOpenAI(callCtx, cfg)
+		result, err = callOpenAI(callCtx, cfg, llmCfg, workflowExecutionId)
 	default:
-		return nil, fmt.Errorf("unsupported LLM provider for model %q: could not determine provider (expected claude-* or gpt-*)", cfg.Model)
+		return nil, fmt.Errorf(
+			"unsupported LLM provider for model %q: could not determine provider (expected claude-* or gpt-*)",
+			cfg.Model)
 	}
 
 	if err != nil {
@@ -78,6 +104,7 @@ func (a *CallLlmActivities) CallLlmActivity(
 	logger.Info("LLM call completed",
 		"model", cfg.Model,
 		"provider", provider,
+		"proxy_active", llmCfg.ProxyActive,
 		"input_tokens", result["input_tokens"],
 		"output_tokens", result["output_tokens"])
 
@@ -95,13 +122,43 @@ func resolveProvider(model string) string {
 	return ""
 }
 
-func callAnthropic(ctx context.Context, cfg *workflowtasks.LlmCallTaskConfig) (map[string]any, error) {
-	apiKey := os.Getenv("ANTHROPIC_API_KEY")
-	if apiKey == "" {
-		return nil, fmt.Errorf("ANTHROPIC_API_KEY environment variable is required for model %q", cfg.Model)
+// proxyRoundTripper injects the Stigmer billing/auth headers into every HTTP
+// request, then delegates to the underlying transport.
+type proxyRoundTripper struct {
+	base                http.RoundTripper
+	authToken           string
+	workflowExecutionId string
+}
+
+func (t *proxyRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Set("Authorization", "Bearer "+t.authToken)
+	if t.workflowExecutionId != "" {
+		req.Header.Set(headerWorkflowExecutionId, t.workflowExecutionId)
+	}
+	return t.base.RoundTrip(req)
+}
+
+func callAnthropic(
+	ctx context.Context,
+	cfg *workflowtasks.LlmCallTaskConfig,
+	llmCfg *config.LlmProxyConfig,
+	workflowExecutionId string,
+) (map[string]any, error) {
+	var opts []anthropic.ClientOption
+
+	if llmCfg.ProxyActive {
+		opts = append(opts, anthropic.WithBaseURL(llmCfg.ResolveAnthropicBaseURL()))
+		opts = append(opts, anthropic.WithHTTPClient(&http.Client{
+			Transport: &proxyRoundTripper{
+				base:                http.DefaultTransport,
+				authToken:           llmCfg.AuthToken,
+				workflowExecutionId: workflowExecutionId,
+			},
+		}))
 	}
 
-	client := anthropic.NewClient(apiKey)
+	apiKey := llmCfg.ResolveAnthropicAPIKey()
+	client := anthropic.NewClient(apiKey, opts...)
 
 	messages := []anthropic.Message{
 		{
@@ -166,13 +223,28 @@ func callAnthropic(ctx context.Context, cfg *workflowtasks.LlmCallTaskConfig) (m
 	return result, nil
 }
 
-func callOpenAI(ctx context.Context, cfg *workflowtasks.LlmCallTaskConfig) (map[string]any, error) {
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		return nil, fmt.Errorf("OPENAI_API_KEY environment variable is required for model %q", cfg.Model)
-	}
+func callOpenAI(
+	ctx context.Context,
+	cfg *workflowtasks.LlmCallTaskConfig,
+	llmCfg *config.LlmProxyConfig,
+	workflowExecutionId string,
+) (map[string]any, error) {
+	var client *openai.Client
 
-	client := openai.NewClient(apiKey)
+	if llmCfg.ProxyActive {
+		openaiCfg := openai.DefaultConfig(llmCfg.ResolveOpenAIAPIKey())
+		openaiCfg.BaseURL = llmCfg.ResolveOpenAIBaseURL()
+		openaiCfg.HTTPClient = &http.Client{
+			Transport: &proxyRoundTripper{
+				base:                http.DefaultTransport,
+				authToken:           llmCfg.AuthToken,
+				workflowExecutionId: workflowExecutionId,
+			},
+		}
+		client = openai.NewClientWithConfig(openaiCfg)
+	} else {
+		client = openai.NewClient(llmCfg.ResolveOpenAIAPIKey())
+	}
 
 	messages := []openai.ChatCompletionMessage{}
 
