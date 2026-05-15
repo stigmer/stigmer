@@ -177,13 +177,25 @@ func (c *Converter) convertTask(task *workflowv1.WorkflowTask) (map[string]inter
 		yamlTask[task.Name] = c.convertSwitchTask(typedProto.(*tasksv1.SwitchTaskConfig))
 
 	case workflowv1.WorkflowTaskKind_for_each:
-		yamlTask[task.Name] = c.convertForTask(typedProto.(*tasksv1.ForTaskConfig))
+		result, err := c.convertForTask(typedProto.(*tasksv1.ForTaskConfig))
+		if err != nil {
+			return nil, fmt.Errorf("task '%s': %w", task.Name, err)
+		}
+		yamlTask[task.Name] = result
 
 	case workflowv1.WorkflowTaskKind_fork:
-		yamlTask[task.Name] = c.convertForkTask(typedProto.(*tasksv1.ForkTaskConfig))
+		result, err := c.convertForkTask(typedProto.(*tasksv1.ForkTaskConfig))
+		if err != nil {
+			return nil, fmt.Errorf("task '%s': %w", task.Name, err)
+		}
+		yamlTask[task.Name] = result
 
 	case workflowv1.WorkflowTaskKind_try_catch:
-		yamlTask[task.Name] = c.convertTryTask(typedProto.(*tasksv1.TryTaskConfig))
+		result, err := c.convertTryTask(typedProto.(*tasksv1.TryTaskConfig))
+		if err != nil {
+			return nil, fmt.Errorf("task '%s': %w", task.Name, err)
+		}
+		yamlTask[task.Name] = result
 
 	case workflowv1.WorkflowTaskKind_listen:
 		yamlTask[task.Name] = c.convertListenTask(typedProto.(*tasksv1.ListenTaskConfig))

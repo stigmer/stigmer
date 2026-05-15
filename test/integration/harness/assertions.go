@@ -153,6 +153,15 @@ func AssertPhase(t *testing.T, exec *workflowexecutionv1.WorkflowExecution, expe
 		"expected phase %s, got %s", expected.String(), exec.GetStatus().GetPhase().String())
 }
 
+// AssertAllTaskStatuses asserts multiple task statuses in a single call.
+// Useful for multi-step workflows where you want to verify the status of every task.
+func AssertAllTaskStatuses(t *testing.T, exec *workflowexecutionv1.WorkflowExecution, expected map[string]workflowexecutionv1.WorkflowTaskStatus) {
+	t.Helper()
+	for taskName, expectedStatus := range expected {
+		AssertTaskStatus(t, exec, taskName, expectedStatus)
+	}
+}
+
 func isTerminalPhase(phase workflowexecutionv1.ExecutionPhase) bool {
 	switch phase {
 	case workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,

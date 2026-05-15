@@ -68,8 +68,51 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: T06 CI Workflow — COMPLETE
-**Status**: Ready for next task
+**Current Task**: Phase 2 (T07–T12) — COMPLETE
+**Status**: Ready for Phase 3 or commit/push
+
+## Session Progress (2026-05-15, Session 8 — Phase 2: Workflow Task Family & HITL Testing)
+
+### Accomplished
+- **Expanded test suite from 9 to 23 tests** — full zigflow task family coverage
+- **T07**: Verified all 9 existing tests pass locally via `make test-integration`
+- **T08**: Control flow (`switch_case`) and data tasks (`set_vars` chaining, `transform` with JQ)
+- **T09**: Error handling (`try_catch`, `raise_error`, invalid config)
+- **T10**: HTTP call with mock server (success + 500 error)
+- **T11**: HITL approval flow (`wait` timer, `human_input` approve + reject via Temporal signals)
+- **T12**: Multi-task pipeline (linear with switch routing, concurrent isolation, cleanup verification)
+- **Fixed 5 production bugs** in converter and execution engine
+- **Discovered signal routing gap** in Java service (documented, tests bypass via direct Temporal SDK)
+
+### Key Findings
+- Java service sends signals to outer `InvokeWorkflowExecution` workflow, but `human_input` listener is in inner `ExecuteServerlessWorkflow` — no relay mechanism exists
+- `convertListenTask` is a stub — `listen + sendSignal` tests require converter implementation first
+- `ExecutionOutput` is consistently `nil` — output propagation may need investigation
+
+### Files Changed
+
+**stigmer (OSS)** — new (7 test files, 1 harness file):
+- `test/integration/workflow_control_flow_test.go`
+- `test/integration/workflow_data_test.go`
+- `test/integration/workflow_error_handling_test.go`
+- `test/integration/workflow_http_test.go`
+- `test/integration/workflow_hitl_test.go`
+- `test/integration/workflow_pipeline_test.go`
+- `test/integration/harness/mock_http.go`
+
+**stigmer (OSS)** — modified (6 files):
+- `backend/services/workflow-runner/pkg/converter/task_converters.go` — switch/raise/nested converters
+- `backend/services/workflow-runner/pkg/converter/proto_to_yaml.go` — error return handling
+- `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_do.go` — pre-execution event flush
+- `test/integration/harness/assertions.go` — AssertAllTaskStatuses
+- `test/integration/go.mod` + `go.sum` — added Temporal SDK
+
+## Next Steps
+1. **Commit & push** — all Phase 2 work on `feat/bring-workflows-to-foreground`
+2. **Verify CI in practice** — push to PR and observe workflow run
+3. **Phase 3**: Provider-backed canary tests (LLM, agent, cursor-runner) — requires API keys
+4. **Fix Java signal routing** — add relay in `InvokeWorkflowExecutionWorkflowImpl`
+5. **Implement `listen` converter** — enable signal-based tests
 
 ## Session Progress (2026-05-14, Session 7 — T06 CI Workflow)
 
