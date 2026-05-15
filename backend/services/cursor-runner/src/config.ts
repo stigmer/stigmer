@@ -54,6 +54,7 @@ export interface Config {
   readonly maxConcurrentActivities: number;
   readonly idleTimeoutSeconds: number | null;
   readonly cloudModeEnabled: boolean;
+  readonly runnerId: string | null;
 }
 
 export function loadConfig(): Config {
@@ -98,6 +99,8 @@ export function loadConfig(): Config {
   const idleTimeoutRaw = process.env.STIGMER_IDLE_TIMEOUT_SECONDS;
   const idleTimeoutSeconds = idleTimeoutRaw ? parseInt(idleTimeoutRaw, 10) : null;
 
+  const runnerId = process.env.STIGMER_RUNNER_ID ?? null;
+
   return {
     taskQueue,
     temporalAddress,
@@ -111,6 +114,7 @@ export function loadConfig(): Config {
     maxConcurrentActivities,
     idleTimeoutSeconds,
     cloudModeEnabled: process.env.STIGMER_CURSOR_CLOUD_MODE_ENABLED === "true",
+    runnerId,
   };
 }
 

@@ -216,4 +216,164 @@ public interface RunnerStatusOrBuilder extends
    * <code>.ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 8 [json_name = "connectionInfo"];</code>
    */
   ai.stigmer.agentic.runner.v1.RunnerConnectionInfoOrBuilder getConnectionInfoOrBuilder();
+
+  /**
+   * <pre>
+   * Per-process execution counts in a multi-process sandbox.
+   *
+   * In cloud mode, a single Runner resource hosts three co-located processes
+   * (agent, cursor, workflow), each reporting its own execution count via
+   * heartbeats with distinct process_type values. This map tracks the last
+   * reported count for each process type.
+   *
+   * The aggregate current_executions field (above) is derived from the sum
+   * of all values in this map. The runner is considered idle when every
+   * value is zero.
+   *
+   * Keys: "agent", "cursor", "workflow".
+   * Empty for single-process local runners (backward compatible).
+   * </pre>
+   *
+   * <code>map&lt;string, int32&gt; process_executions = 9 [json_name = "processExecutions"];</code>
+   */
+  int getProcessExecutionsCount();
+  /**
+   * <pre>
+   * Per-process execution counts in a multi-process sandbox.
+   *
+   * In cloud mode, a single Runner resource hosts three co-located processes
+   * (agent, cursor, workflow), each reporting its own execution count via
+   * heartbeats with distinct process_type values. This map tracks the last
+   * reported count for each process type.
+   *
+   * The aggregate current_executions field (above) is derived from the sum
+   * of all values in this map. The runner is considered idle when every
+   * value is zero.
+   *
+   * Keys: "agent", "cursor", "workflow".
+   * Empty for single-process local runners (backward compatible).
+   * </pre>
+   *
+   * <code>map&lt;string, int32&gt; process_executions = 9 [json_name = "processExecutions"];</code>
+   */
+  boolean containsProcessExecutions(
+      java.lang.String key);
+  /**
+   * Use {@link #getProcessExecutionsMap()} instead.
+   */
+  @java.lang.Deprecated
+  java.util.Map<java.lang.String, java.lang.Integer>
+  getProcessExecutions();
+  /**
+   * <pre>
+   * Per-process execution counts in a multi-process sandbox.
+   *
+   * In cloud mode, a single Runner resource hosts three co-located processes
+   * (agent, cursor, workflow), each reporting its own execution count via
+   * heartbeats with distinct process_type values. This map tracks the last
+   * reported count for each process type.
+   *
+   * The aggregate current_executions field (above) is derived from the sum
+   * of all values in this map. The runner is considered idle when every
+   * value is zero.
+   *
+   * Keys: "agent", "cursor", "workflow".
+   * Empty for single-process local runners (backward compatible).
+   * </pre>
+   *
+   * <code>map&lt;string, int32&gt; process_executions = 9 [json_name = "processExecutions"];</code>
+   */
+  java.util.Map<java.lang.String, java.lang.Integer>
+  getProcessExecutionsMap();
+  /**
+   * <pre>
+   * Per-process execution counts in a multi-process sandbox.
+   *
+   * In cloud mode, a single Runner resource hosts three co-located processes
+   * (agent, cursor, workflow), each reporting its own execution count via
+   * heartbeats with distinct process_type values. This map tracks the last
+   * reported count for each process type.
+   *
+   * The aggregate current_executions field (above) is derived from the sum
+   * of all values in this map. The runner is considered idle when every
+   * value is zero.
+   *
+   * Keys: "agent", "cursor", "workflow".
+   * Empty for single-process local runners (backward compatible).
+   * </pre>
+   *
+   * <code>map&lt;string, int32&gt; process_executions = 9 [json_name = "processExecutions"];</code>
+   */
+  int getProcessExecutionsOrDefault(
+      java.lang.String key,
+      int defaultValue);
+  /**
+   * <pre>
+   * Per-process execution counts in a multi-process sandbox.
+   *
+   * In cloud mode, a single Runner resource hosts three co-located processes
+   * (agent, cursor, workflow), each reporting its own execution count via
+   * heartbeats with distinct process_type values. This map tracks the last
+   * reported count for each process type.
+   *
+   * The aggregate current_executions field (above) is derived from the sum
+   * of all values in this map. The runner is considered idle when every
+   * value is zero.
+   *
+   * Keys: "agent", "cursor", "workflow".
+   * Empty for single-process local runners (backward compatible).
+   * </pre>
+   *
+   * <code>map&lt;string, int32&gt; process_executions = 9 [json_name = "processExecutions"];</code>
+   */
+  int getProcessExecutionsOrThrow(
+      java.lang.String key);
+
+  /**
+   * <pre>
+   * Timestamp when all processes in this runner last became idle
+   * (every value in process_executions is zero and no streams are active).
+   *
+   * Set by the server when the aggregate transitions from busy to idle.
+   * Cleared when any process reports activity. Used by server-side idle
+   * detection to trigger deprovisioning after a configurable timeout.
+   *
+   * Empty while any process has active executions.
+   * </pre>
+   *
+   * <code>.google.protobuf.Timestamp idle_since = 10 [json_name = "idleSince"];</code>
+   * @return Whether the idleSince field is set.
+   */
+  boolean hasIdleSince();
+  /**
+   * <pre>
+   * Timestamp when all processes in this runner last became idle
+   * (every value in process_executions is zero and no streams are active).
+   *
+   * Set by the server when the aggregate transitions from busy to idle.
+   * Cleared when any process reports activity. Used by server-side idle
+   * detection to trigger deprovisioning after a configurable timeout.
+   *
+   * Empty while any process has active executions.
+   * </pre>
+   *
+   * <code>.google.protobuf.Timestamp idle_since = 10 [json_name = "idleSince"];</code>
+   * @return The idleSince.
+   */
+  com.google.protobuf.Timestamp getIdleSince();
+  /**
+   * <pre>
+   * Timestamp when all processes in this runner last became idle
+   * (every value in process_executions is zero and no streams are active).
+   *
+   * Set by the server when the aggregate transitions from busy to idle.
+   * Cleared when any process reports activity. Used by server-side idle
+   * detection to trigger deprovisioning after a configurable timeout.
+   *
+   * Empty while any process has active executions.
+   * </pre>
+   *
+   * <code>.google.protobuf.Timestamp idle_since = 10 [json_name = "idleSince"];</code>
+   */
+  com.google.protobuf.TimestampOrBuilder getIdleSinceOrBuilder();
 }

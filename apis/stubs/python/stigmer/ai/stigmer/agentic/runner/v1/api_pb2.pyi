@@ -6,6 +6,7 @@ from ai.stigmer.commons.apiresource import metadata_pb2 as _metadata_pb2
 from ai.stigmer.commons.apiresource import status_pb2 as _status_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
+from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Mapping as _Mapping
@@ -28,7 +29,14 @@ class Runner(_message.Message):
     def __init__(self, api_version: _Optional[str] = ..., kind: _Optional[str] = ..., metadata: _Optional[_Union[_metadata_pb2.ApiResourceMetadata, _Mapping]] = ..., spec: _Optional[_Union[_spec_pb2.RunnerSpec, _Mapping]] = ..., status: _Optional[_Union[RunnerStatus, _Mapping]] = ...) -> None: ...
 
 class RunnerStatus(_message.Message):
-    __slots__ = ("audit", "phase", "task_queue", "last_heartbeat_at", "started_at", "stopped_at", "current_executions", "connection_info")
+    __slots__ = ("audit", "phase", "task_queue", "last_heartbeat_at", "started_at", "stopped_at", "current_executions", "connection_info", "process_executions", "idle_since")
+    class ProcessExecutionsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: int
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[int] = ...) -> None: ...
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     PHASE_FIELD_NUMBER: _ClassVar[int]
     TASK_QUEUE_FIELD_NUMBER: _ClassVar[int]
@@ -37,6 +45,8 @@ class RunnerStatus(_message.Message):
     STOPPED_AT_FIELD_NUMBER: _ClassVar[int]
     CURRENT_EXECUTIONS_FIELD_NUMBER: _ClassVar[int]
     CONNECTION_INFO_FIELD_NUMBER: _ClassVar[int]
+    PROCESS_EXECUTIONS_FIELD_NUMBER: _ClassVar[int]
+    IDLE_SINCE_FIELD_NUMBER: _ClassVar[int]
     audit: _status_pb2.ApiResourceAudit
     phase: _enum_pb2.RunnerPhase
     task_queue: str
@@ -45,7 +55,9 @@ class RunnerStatus(_message.Message):
     stopped_at: _timestamp_pb2.Timestamp
     current_executions: int
     connection_info: RunnerConnectionInfo
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., phase: _Optional[_Union[_enum_pb2.RunnerPhase, str]] = ..., task_queue: _Optional[str] = ..., last_heartbeat_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., started_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., stopped_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., current_executions: _Optional[int] = ..., connection_info: _Optional[_Union[RunnerConnectionInfo, _Mapping]] = ...) -> None: ...
+    process_executions: _containers.ScalarMap[str, int]
+    idle_since: _timestamp_pb2.Timestamp
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., phase: _Optional[_Union[_enum_pb2.RunnerPhase, str]] = ..., task_queue: _Optional[str] = ..., last_heartbeat_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., started_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., stopped_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., current_executions: _Optional[int] = ..., connection_info: _Optional[_Union[RunnerConnectionInfo, _Mapping]] = ..., process_executions: _Optional[_Mapping[str, int]] = ..., idle_since: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class RunnerConnectionInfo(_message.Message):
     __slots__ = ("hostname", "os", "arch", "runner_version", "machine_id")
