@@ -96,18 +96,21 @@ func TestAgentExecution_Usage_ExecutionReport(t *testing.T) {
 			require.NotNil(t, report, "report should not be nil")
 
 			agg := report.GetAggregate()
-			if agg != nil {
-				t.Logf("execution usage: input=%d, output=%d, calls=%d, billable=%d, provider=%d",
-					agg.GetInputTokens(), agg.GetOutputTokens(),
-					agg.GetLlmCallCount(), agg.GetBillableCostMicros(),
-					agg.GetProviderCostMicros())
+			require.NotNil(t, agg, "aggregate usage should be populated")
 
-				// With proxy enabled, these should be non-zero
-				assert.GreaterOrEqual(t, agg.GetInputTokens(), int64(0),
-					"input_tokens should be non-negative")
-				assert.GreaterOrEqual(t, agg.GetOutputTokens(), int64(0),
-					"output_tokens should be non-negative")
-			}
+			t.Logf("execution usage: input=%d, output=%d, calls=%d, billable=%d, provider=%d",
+				agg.GetInputTokens(), agg.GetOutputTokens(),
+				agg.GetLlmCallCount(), agg.GetBillableCostMicros(),
+				agg.GetProviderCostMicros())
+
+			assert.Greater(t, agg.GetInputTokens(), int64(0),
+				"input_tokens should be non-zero (proxy-reported)")
+			assert.Greater(t, agg.GetOutputTokens(), int64(0),
+				"output_tokens should be non-zero (proxy-reported)")
+			assert.Greater(t, agg.GetLlmCallCount(), int32(0),
+				"llm_call_count should be non-zero (proxy-reported)")
+			assert.Greater(t, agg.GetBillableCostMicros(), int64(0),
+				"billable_cost_micros should be non-zero (proxy-reported)")
 
 			t.Logf("model_breakdown count: %d", len(report.GetModelBreakdown()))
 		})
@@ -165,13 +168,17 @@ func TestAgentExecution_Usage_SessionReport(t *testing.T) {
 			assert.GreaterOrEqual(t, len(executions), 2,
 				"per-execution breakdown should have at least 2 entries")
 
-			if report.GetTotalUsage() != nil {
-				t.Logf("session total: input=%d, output=%d, calls=%d, billable=%d",
-					report.GetTotalUsage().GetInputTokens(),
-					report.GetTotalUsage().GetOutputTokens(),
-					report.GetTotalUsage().GetLlmCallCount(),
-					report.GetTotalUsage().GetBillableCostMicros())
-			}
+			totalUsage := report.GetTotalUsage()
+			require.NotNil(t, totalUsage, "total_usage should be populated")
+
+			t.Logf("session total: input=%d, output=%d, calls=%d, billable=%d",
+				totalUsage.GetInputTokens(), totalUsage.GetOutputTokens(),
+				totalUsage.GetLlmCallCount(), totalUsage.GetBillableCostMicros())
+
+			assert.Greater(t, totalUsage.GetInputTokens(), int64(0),
+				"session total input_tokens should be non-zero (proxy-reported)")
+			assert.Greater(t, totalUsage.GetBillableCostMicros(), int64(0),
+				"session total billable_cost_micros should be non-zero (proxy-reported)")
 		})
 	}
 }
@@ -218,6 +225,8 @@ func TestAgentExecution_Usage_OrgReport(t *testing.T) {
 
 			assert.GreaterOrEqual(t, report.GetTotalExecutions(), int32(1),
 				"org should have at least 1 execution today")
+			assert.Greater(t, report.GetTotalBillableCostMicros(), int64(0),
+				"org total billable_cost_micros should be non-zero (proxy-reported)")
 
 			t.Logf("org report: executions=%d, agents=%d, sessions=%d, billable=%d",
 				report.GetTotalExecutions(), report.GetTotalAgents(),

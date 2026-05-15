@@ -68,8 +68,31 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: Agent execution test fixes complete — all 5 broken tests fixed, billing + usage coverage added, proxy routing enabled
-**Status**: 64 total tests (28 workflow + 36 agent execution), all designed-for-green
+**Current Task**: Full cloud-path proxy routing for both harnesses, strengthened billing/usage assertions
+**Status**: 64 total tests (28 workflow + 36 agent execution), all designed-for-green. Both native and cursor harnesses now route through their respective proxies.
+
+## Session Progress (2026-05-15, Session 18 — LLM Proxy Test Coverage: Full Cloud-Path Integration)
+
+### Accomplished
+
+- **Routed cursor-runner through Cursor proxy**: Added `ProxyEndpoint` to `CursorRunnerConfig`, `CursorAPIKey` to `ServiceConfig`. When `STIGMER_PROXY_ENDPOINT` is set, the cursor-runner's `fetch-interceptor.ts` rewrites Cursor SDK HTTP calls to go through `CursorProxyController`. The proxy injects `STIGMER_PROXY_CURSOR_API_KEY` server-side and records per-call usage via `ProxyUsageReporter`.
+- **Mirrors the agent-runner proxy pattern exactly**: Both runners are now environment-driven (proxy when `STIGMER_PROXY_ENDPOINT` is set, direct fallback when not).
+- **Added `STIGMER_PROXY_REQUIRE_SCOPE_HEADER=false`** to Java service test env — prevents 403s from missing FGA scope headers during runner startup/metadata calls.
+- **Strengthened billing assertions**: `CreditDebit` uses strict `Less` (credits must decrease). `LedgerAuditTrail` now asserts `usageDebitCount > 0` (proxy metering signature).
+- **Strengthened usage assertions**: `ExecutionReport` requires non-zero `input_tokens`, `output_tokens`, `llm_call_count`, `billable_cost_micros`. `SessionReport` requires non-zero `billable_cost_micros`. `OrgReport` requires non-zero `total_billable_cost_micros`.
+- **Created `AssertProxyMetered` helper** in `harness/billing_helpers.go` — one-liner to verify proxy metering produced `usage_debit` ledger entries for a given execution.
+
+### Files Changed (5 modified, 1 new)
+
+**Modified**: `harness/service.go`, `harness/cursor_runner.go`, `suite_test.go`, `agent_execution_09_billing_test.go`, `agent_execution_10_usage_test.go`
+**New**: `harness/billing_helpers.go`
+
+### Next Steps
+
+1. Run `make test-integration-agent` with both `ANTHROPIC_API_KEY` and `CURSOR_API_KEY` to validate full proxy routing
+2. Verify cursor proxy metering produces real `LlmCallUsageRecord` entries
+3. Consider tightening `STIGMER_PROXY_REQUIRE_SCOPE_HEADER=true` in a follow-up after verifying basic proxy flow works
+4. Deferred tests for follow-up: ApprovalPolicyChain, Recover, EnvVarResolution, SubAgent_McpAccess, Skill_SessionLevel, Skill_Deduplication, Config_MaxCostCap
 
 ## Session Progress (2026-05-15, Session 17 — Agent Execution Test Fixes + Billing & Usage Coverage)
 

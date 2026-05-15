@@ -50,6 +50,8 @@ func TestMain(m *testing.M) {
 
 	anthropicKey := os.Getenv("ANTHROPIC_API_KEY")
 
+	cursorKey := os.Getenv("CURSOR_API_KEY")
+
 	svc, err := harness.StartJavaService(ctx, harness.ServiceConfig{
 		JarPath:         jarPath,
 		MongoHost:       testHarness.Mongo.Host,
@@ -58,6 +60,7 @@ func TestMain(m *testing.M) {
 		RedisPort:       testHarness.Redis.Port,
 		TemporalAddress: testHarness.Temporal.Address(),
 		AnthropicAPIKey: anthropicKey,
+		CursorAPIKey:    cursorKey,
 		LogDir:          logDir,
 	}, suiteLogger)
 	if err != nil {
@@ -121,13 +124,13 @@ func TestMain(m *testing.M) {
 	}
 
 	// Start cursor-runner only when a Cursor API key is available.
-	cursorKey := os.Getenv("CURSOR_API_KEY")
 	if cursorKey != "" && runner != nil {
 		cursorRunner, cursorErr := harness.StartCursorRunner(ctx, harness.CursorRunnerConfig{
 			StigmerServiceAddress: svc.GRPCAddress(),
 			TemporalAddress:       testHarness.Temporal.Address(),
 			LogDir:                logDir,
 			CursorAPIKey:          cursorKey,
+			ProxyEndpoint:         svc.HTTPAddress(),
 		}, suiteLogger)
 		if cursorErr != nil {
 			suiteLogger.Warn("cursor-runner failed to start — cursor_call tests will be skipped", "error", cursorErr)
