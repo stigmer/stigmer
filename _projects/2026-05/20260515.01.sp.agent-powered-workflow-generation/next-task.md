@@ -101,8 +101,44 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-15 10:05
-**Current Task**: T01 — Batch 3 complete (SDK + Frontend — Generate)
+**Current Task**: T01 — Batch 4 complete (SDK + Frontend — Refine)
 **Status**: In Progress
+
+## Session Progress (May 15, 2026 — Session 4)
+
+### Completed: Batch 4 — SDK + Frontend — Refine (WorkflowRefinePanel)
+- Rewrote `useRefineWorkflowFlow` from stub to agent-powered behavior hook
+  - Lazy session creation, multi-turn execution within a single Session
+  - Smart YAML delivery: captured at send-time via ref, only included when changed (`lastSentYamlRef`)
+  - YAML extraction via `extractWorkflowYaml()`, YAML-absence detects clarifying questions
+  - Phase model: `idle | starting | streaming | complete | ready | error`
+  - Referentially stable returns (DD-010), framework-agnostic (DD-004)
+- Rewrote `WorkflowRefinePanel` from spinner/history layout to conversational UI
+  - `MessageThread` for all turns (completed executions + active stream)
+  - `ResultStrip` with diff preview and accept/discard (appears when YAML extracted)
+  - Composer pinned to bottom, enabled in idle/ready/complete/error phases
+  - Empty state, starting indicator, streaming status in header
+- Updated barrel exports: removed `RefineWorkflowFlowResult`, `RefinementHistoryEntry`; added `RefinePhase`
+- Updated root `sdk/react/src/index.ts` re-exports to match
+- `WorkflowEditorView` required zero changes (props contract preserved, AD-B4-004)
+- Both client-app detail pages unchanged (DD-016 parity confirmed)
+- Verification: `tsc --noEmit` clean across all 4 packages; lint passes (pre-existing errors only in untouched files)
+- Commit: `d6d606384` — `feat(sdk): replace workflow refine stub with agent-powered refinement flow`
+
+### Key Decisions
+- **AD-B4-001: Separate hook** — dedicated `useRefineWorkflowFlow`, not shared with generate (different lifecycle)
+- **AD-B4-002: Session-per-panel-instance** — no generation session reuse (simpler, standalone-capable)
+- **AD-B4-003: Conversational UI with MessageThread** — replaces spinner+history layout
+- **AD-B4-004: Props interface preservation** — `WorkflowRefinePanelProps` unchanged, zero `WorkflowEditorView` changes
+- **RD-2: YAML captured at send-time** — ref-based, not reactive; only included when changed
+- **RD-3: YAML-absence = clarifying question** — no special detection, phase transitions to `ready`
+- **RD-4: Inline YAML for V1** — attachment-based delivery tracked as future optimization for large workflows
+
+### Files Changed
+- `sdk/react/src/workflow/useRefineWorkflowFlow.ts` — **Rewrite** (72 → 261 lines)
+- `sdk/react/src/workflow/WorkflowRefinePanel.tsx` — **Rewrite** (387 → 310 lines)
+- `sdk/react/src/workflow/index.ts` — **Update** exports
+- `sdk/react/src/index.ts` — **Update** re-exports
 
 ## Session Progress (May 15, 2026 — Session 3)
 
@@ -174,20 +210,22 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Batch 4: SDK + Frontend — Refine** — Replace stubbed `useRefineWorkflowFlow` with agent-powered refinement; build agent conversation panel in editor sidebar; reuse the session created during generation for conversational context
-2. **Batch 5: SDK + Frontend — Diagnose** — Replace stubbed `useDiagnoseExecution` with agent-powered diagnosis; build agent diagnosis view in execution viewer
-3. **End-to-end testing** — Seed `workflow-architect` agent, test the full generate flow with a running Stigmer instance
+1. **Batch 5: SDK + Frontend — Diagnose** — Replace stubbed `useDiagnoseExecution` with agent-powered diagnosis; build agent diagnosis view in execution viewer (`WorkflowRepairCard`)
+2. **End-to-end testing** — Seed `workflow-architect` agent, test the full generate + refine + diagnose flows with a running Stigmer instance
+3. **Future: Large YAML attachment** — For workflows > 300 lines, use `useAttachments` + `uploadAttachment()` to deliver YAML as a file instead of inlining in message context
 
 ## Context for Resume
 
-- Batches 1A (teardown), 2 (MCP tools + agent), and **3 (SDK + Frontend — Generate)** are complete
+- Batches 1A (teardown), 2 (MCP tools + agent), **3 (SDK + Frontend — Generate)**, and **4 (SDK + Frontend — Refine)** are complete
 - The `WorkflowArchitectDialog` is wired in both web and desktop consoles
+- The `WorkflowRefinePanel` is wired inside `WorkflowEditorView` — opens in the right 40% pane via the toolbar "Refine" button
 - `useWorkflowArchitectFlow` composes `useCreateSession` → `useCreateAgentExecution` → `useExecutionStream` → `extractWorkflowYaml` → `workflow.apply()`
-- `useRefineWorkflowFlow` and `useDiagnoseExecution` are **stubbed** with runtime errors — Batch 4/5 will replace them
+- `useRefineWorkflowFlow` composes the same infrastructure but with multi-turn session management and smart YAML delivery
+- `useDiagnoseExecution` is still **stubbed** with runtime errors — Batch 5 will replace it
 - TS proto stubs and TS SDK are regenerated and clean — `validateSpec` added, LLM methods removed
 - Codegen import bug exists: `serverless/io_pb` → `serverless/validation_pb` fix is manual in `sdk/typescript/src/gen/workflow.ts` — will be overwritten on next codegen run (needs codegen tool fix)
 - Pre-existing Bazel/Gazelle issue blocks `make -C apis build` — use `make -C apis ts-stubs` directly
-- Changelog: `_changelog/2026-05/2026-05-15-122724-workflow-architect-generate-dialog.md`
+- Changelog: `_changelog/2026-05/2026-05-15-132017-workflow-architect-refine-panel.md`
 
 ## Quick Resume
 
