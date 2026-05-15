@@ -83,11 +83,29 @@ func TestMain(m *testing.M) {
 		testHarness.WorkflowRunner = runner
 	}
 
+	// Start agent-runner only when an LLM API key is available.
+	// This keeps the default offline suite unaffected.
+	anthropicKey := os.Getenv("ANTHROPIC_API_KEY")
+	if anthropicKey != "" && runner != nil {
+		agentRunner, agentErr := harness.StartAgentRunner(ctx, harness.AgentRunnerConfig{
+			StigmerServiceAddress: svc.GRPCAddress(),
+			TemporalAddress:       testHarness.Temporal.Address(),
+			LogDir:                logDir,
+			AnthropicAPIKey:       anthropicKey,
+		}, suiteLogger)
+		if agentErr != nil {
+			suiteLogger.Warn("agent-runner failed to start — agent_call tests will be skipped", "error", agentErr)
+		} else {
+			testHarness.AgentRunner = agentRunner
+		}
+	}
+
 	suiteLogger.Info("suite infrastructure ready",
 		"grpc_address", svc.GRPCAddress(),
 		"mongo", fmt.Sprintf("%s:%s", testHarness.Mongo.Host, testHarness.Mongo.Port),
 		"temporal", testHarness.Temporal.Address(),
 		"workflow_runner", runner != nil,
+		"agent_runner", testHarness.AgentRunner != nil,
 		"log_dir", logDir,
 	)
 

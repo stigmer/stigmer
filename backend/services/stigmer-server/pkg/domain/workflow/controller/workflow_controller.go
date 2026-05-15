@@ -5,7 +5,6 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/temporal"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/llmclient"
 )
 
 // WorkflowController implements WorkflowCommandController and WorkflowQueryController
@@ -15,8 +14,6 @@ type WorkflowController struct {
 	store                  store.Store
 	workflowInstanceClient *workflowinstance.Client
 	validator              *temporal.ServerlessWorkflowValidator
-	llmClient              *llmclient.Client
-	taskKindRegistry       []byte
 }
 
 // NewWorkflowController creates a new WorkflowController
@@ -39,16 +36,4 @@ func (c *WorkflowController) SetWorkflowInstanceClient(client *workflowinstance.
 // or when the Temporal client is reconnected
 func (c *WorkflowController) SetValidator(validator *temporal.ServerlessWorkflowValidator) {
 	c.validator = validator
-}
-
-// SetLLMClient sets the LLM client used by generation handlers.
-// This is optional — generation RPCs return FailedPrecondition if not configured.
-func (c *WorkflowController) SetLLMClient(client *llmclient.Client) {
-	c.llmClient = client
-}
-
-// SetTaskKindRegistry sets the raw JSON of the task-kind-registry used
-// for prompt construction and YAML validation in generation handlers.
-func (c *WorkflowController) SetTaskKindRegistry(registryJSON []byte) {
-	c.taskKindRegistry = registryJSON
 }

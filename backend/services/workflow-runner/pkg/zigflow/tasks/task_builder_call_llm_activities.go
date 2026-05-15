@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 Leftbin/Stigmer
+ * Copyright 2025 - 2026 Zigflow authors <https://github.com/stigmer/stigmer/backend/services/workflow-runner/graphs/contributors>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
+	"github.com/liushuangls/go-anthropic/v2"
+	openai "github.com/sashabaranov/go-openai"
 	workflowtasks "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
-	"github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/llm"
 	"go.temporal.io/sdk/activity"
 )
 
@@ -31,183 +34,207 @@ func init() {
 	activitiesRegistry = append(activitiesRegistry, &CallLlmActivities{})
 }
 
-// CallLlmActivities implements the Temporal activity for llm_call tasks.
 type CallLlmActivities struct{}
 
-// CallLlmActivity executes a direct LLM API call with optional structured
-// output validation and retry logic.
-//
-// API keys are resolved JIT from runtimeEnv to prevent secret leakage
-// into Temporal workflow history.
+// CallLlmActivity makes a direct LLM API call without agent overhead.
+// Determines the provider from the model name, calls the appropriate SDK,
+// and returns the result with usage metadata.
 func (a *CallLlmActivities) CallLlmActivity(
 	ctx context.Context,
-	config *workflowtasks.LlmCallTaskConfig,
-	input any,
-	runtimeEnv map[string]any,
+	cfg *workflowtasks.LlmCallTaskConfig,
 ) (any, error) {
 	logger := activity.GetLogger(ctx)
+	logger.Info("Starting LLM call activity", "model", cfg.Model)
 
-	providerName, apiModelID, err := llm.ResolveProvider(config.Model)
-	if err != nil {
-		return nil, err
-	}
-
-	apiKey, err := resolveAPIKey(providerName, runtimeEnv)
-	if err != nil {
-		return nil, err
-	}
-
-	provider, err := llm.NewProvider(providerName, apiKey)
-	if err != nil {
-		return nil, err
-	}
-
-	var responseSchema json.RawMessage
-	if config.ResponseSchema != nil && len(config.ResponseSchema.AsMap()) > 0 {
-		responseSchema, _ = json.Marshal(config.ResponseSchema.AsMap())
-	}
+	provider := resolveProvider(cfg.Model)
 
 	timeout := 60 * time.Second
-	if config.Timeout > 0 {
-		timeout = time.Duration(config.Timeout) * time.Second
+	if cfg.Timeout > 0 {
+		timeout = time.Duration(cfg.Timeout) * time.Second
+	}
+	callCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	var result map[string]any
+	var err error
+
+	switch provider {
+	case "anthropic":
+		result, err = callAnthropic(callCtx, cfg)
+	case "openai":
+		result, err = callOpenAI(callCtx, cfg)
+	default:
+		return nil, fmt.Errorf("unsupported LLM provider for model %q: could not determine provider (expected claude-* or gpt-*)", cfg.Model)
 	}
 
-	req := llm.Request{
-		Model:          apiModelID,
-		SystemPrompt:   config.SystemPrompt,
-		Prompt:         config.Prompt,
-		Temperature:    config.Temperature,
-		MaxTokens:      config.MaxTokens,
-		ResponseSchema: responseSchema,
+	if err != nil {
+		logger.Error("LLM call failed", "model", cfg.Model, "provider", provider, "error", err)
+		return nil, fmt.Errorf("llm call failed (%s/%s): %w", provider, cfg.Model, err)
 	}
 
-	maxAttempts := int32(1)
-	if config.OnInvalid == workflowtasks.OnInvalidOutputPolicy_ON_INVALID_RETRY && config.MaxRetries > 0 {
-		maxAttempts = config.MaxRetries + 1
-	}
+	result["model"] = cfg.Model
+	result["provider"] = provider
 
-	var lastResp *llm.Response
-	var validationErr error
+	logger.Info("LLM call completed",
+		"model", cfg.Model,
+		"provider", provider,
+		"input_tokens", result["input_tokens"],
+		"output_tokens", result["output_tokens"])
 
-	for attempt := int32(1); attempt <= maxAttempts; attempt++ {
-		callCtx, cancel := context.WithTimeout(ctx, timeout)
-		resp, err := provider.Call(callCtx, req)
-		cancel()
-
-		if err != nil {
-			return nil, fmt.Errorf("LLM call failed (attempt %d/%d): %w", attempt, maxAttempts, err)
-		}
-
-		lastResp = resp
-
-		if len(responseSchema) == 0 {
-			break
-		}
-
-		if resp.Structured != nil {
-			schemaMap := config.ResponseSchema.AsMap()
-			_, schemaErr := validateJSONSchema(schemaMap, resp.Structured)
-			if schemaErr == nil {
-				validationErr = nil
-				break
-			}
-			validationErr = schemaErr
-		} else {
-			validationErr = fmt.Errorf("LLM did not return valid JSON for structured output")
-		}
-
-		if attempt < maxAttempts {
-			logger.Warn("LLM output failed schema validation, retrying",
-				"attempt", attempt,
-				"error", validationErr)
-			req.Prompt = fmt.Sprintf(
-				"%s\n\nYour previous response failed validation: %s\nPlease correct your response to match the expected JSON schema.",
-				config.Prompt, validationErr)
-		}
-	}
-
-	if validationErr != nil {
-		switch config.OnInvalid {
-		case workflowtasks.OnInvalidOutputPolicy_ON_INVALID_FALLBACK:
-			if config.FallbackTask != "" {
-				output := buildLlmOutput(lastResp)
-				output["__stigmer_branch_override"] = config.FallbackTask
-				output["validation_error"] = validationErr.Error()
-				return output, nil
-			}
-			return nil, fmt.Errorf("LLM output schema validation failed (no fallback_task set): %w", validationErr)
-
-		case workflowtasks.OnInvalidOutputPolicy_ON_INVALID_RETRY:
-			if config.FallbackTask != "" {
-				output := buildLlmOutput(lastResp)
-				output["__stigmer_branch_override"] = config.FallbackTask
-				output["validation_error"] = validationErr.Error()
-				return output, nil
-			}
-			return nil, fmt.Errorf("LLM output schema validation failed after %d attempts: %w", maxAttempts, validationErr)
-
-		default:
-			return nil, fmt.Errorf("LLM output schema validation failed: %w", validationErr)
-		}
-	}
-
-	return buildLlmOutput(lastResp), nil
+	return result, nil
 }
 
-func buildLlmOutput(resp *llm.Response) map[string]any {
-	output := map[string]any{
-		"content": resp.Content,
-		"usage": map[string]any{
-			"prompt_tokens":     resp.PromptTokens,
-			"completion_tokens": resp.CompletionTokens,
-			"total_tokens":      resp.TotalTokens,
-			"cost_micros":       resp.CostMicros,
+func resolveProvider(model string) string {
+	m := strings.ToLower(model)
+	if strings.HasPrefix(m, "claude") {
+		return "anthropic"
+	}
+	if strings.HasPrefix(m, "gpt") || strings.HasPrefix(m, "o1") || strings.HasPrefix(m, "o3") || strings.HasPrefix(m, "o4") {
+		return "openai"
+	}
+	return ""
+}
+
+func callAnthropic(ctx context.Context, cfg *workflowtasks.LlmCallTaskConfig) (map[string]any, error) {
+	apiKey := os.Getenv("ANTHROPIC_API_KEY")
+	if apiKey == "" {
+		return nil, fmt.Errorf("ANTHROPIC_API_KEY environment variable is required for model %q", cfg.Model)
+	}
+
+	client := anthropic.NewClient(apiKey)
+
+	messages := []anthropic.Message{
+		{
+			Role:    anthropic.RoleUser,
+			Content: []anthropic.MessageContent{anthropic.NewTextMessageContent(cfg.Prompt)},
 		},
-		"__stigmer_cost_micros":    resp.CostMicros,
-		"__stigmer_input_tokens":  int64(resp.PromptTokens),
-		"__stigmer_output_tokens": int64(resp.CompletionTokens),
 	}
 
-	if resp.Structured != nil {
-		var parsed any
-		if json.Unmarshal(resp.Structured, &parsed) == nil {
-			output["structured"] = parsed
+	maxTokens := 1024
+	if cfg.MaxTokens > 0 {
+		maxTokens = int(cfg.MaxTokens)
+	}
+
+	req := anthropic.MessagesRequest{
+		Model:     anthropic.Model(cfg.Model),
+		Messages:  messages,
+		MaxTokens: maxTokens,
+	}
+
+	if cfg.SystemPrompt != "" {
+		req.System = cfg.SystemPrompt
+	}
+
+	if cfg.Temperature > 0 {
+		temp := float32(cfg.Temperature)
+		req.Temperature = &temp
+	}
+
+	wantJSON := cfg.ResponseSchema != nil && len(cfg.ResponseSchema.AsMap()) > 0
+
+	resp, err := client.CreateMessages(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("anthropic API error: %w", err)
+	}
+
+	var textContent string
+	for _, block := range resp.Content {
+		if block.Type == anthropic.MessagesContentTypeText {
+			if block.Text != nil {
+				textContent = *block.Text
+			}
 		}
 	}
 
-	return output
+	result := map[string]any{
+		"input_tokens":  resp.Usage.InputTokens,
+		"output_tokens": resp.Usage.OutputTokens,
+	}
+
+	if wantJSON {
+		var parsed any
+		if err := json.Unmarshal([]byte(textContent), &parsed); err != nil {
+			result["result"] = textContent
+			result["parse_error"] = err.Error()
+		} else {
+			result["result"] = parsed
+		}
+	} else {
+		result["result"] = textContent
+	}
+
+	return result, nil
 }
 
-// resolveAPIKey extracts the LLM provider's API key from the runtime environment.
-// Convention: OPENAI_API_KEY for OpenAI, ANTHROPIC_API_KEY for Anthropic.
-func resolveAPIKey(providerName string, runtimeEnv map[string]any) (string, error) {
-	keyNames := map[string]string{
-		"openai":    "OPENAI_API_KEY",
-		"anthropic": "ANTHROPIC_API_KEY",
+func callOpenAI(ctx context.Context, cfg *workflowtasks.LlmCallTaskConfig) (map[string]any, error) {
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" {
+		return nil, fmt.Errorf("OPENAI_API_KEY environment variable is required for model %q", cfg.Model)
 	}
 
-	envKey, ok := keyNames[providerName]
-	if !ok {
-		return "", fmt.Errorf("no API key convention for provider '%s'", providerName)
+	client := openai.NewClient(apiKey)
+
+	messages := []openai.ChatCompletionMessage{}
+
+	if cfg.SystemPrompt != "" {
+		messages = append(messages, openai.ChatCompletionMessage{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: cfg.SystemPrompt,
+		})
 	}
 
-	if runtimeEnv == nil {
-		return "", fmt.Errorf("%s not found in runtime environment (env is nil)", envKey)
+	messages = append(messages, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleUser,
+		Content: cfg.Prompt,
+	})
+
+	req := openai.ChatCompletionRequest{
+		Model:    cfg.Model,
+		Messages: messages,
 	}
 
-	val, exists := runtimeEnv[envKey]
-	if !exists {
-		return "", fmt.Errorf("%s not found in runtime environment", envKey)
+	if cfg.MaxTokens > 0 {
+		req.MaxTokens = int(cfg.MaxTokens)
 	}
 
-	if valueMap, ok := val.(map[string]interface{}); ok {
-		if v, ok := valueMap["value"].(string); ok {
-			return v, nil
+	if cfg.Temperature > 0 {
+		req.Temperature = cfg.Temperature
+	}
+
+	wantJSON := cfg.ResponseSchema != nil && len(cfg.ResponseSchema.AsMap()) > 0
+	if wantJSON {
+		req.ResponseFormat = &openai.ChatCompletionResponseFormat{
+			Type: openai.ChatCompletionResponseFormatTypeJSONObject,
 		}
 	}
-	if s, ok := val.(string); ok {
-		return s, nil
+
+	resp, err := client.CreateChatCompletion(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("openai API error: %w", err)
 	}
 
-	return "", fmt.Errorf("%s has invalid format in runtime environment", envKey)
+	if len(resp.Choices) == 0 {
+		return nil, fmt.Errorf("openai returned zero choices")
+	}
+
+	textContent := resp.Choices[0].Message.Content
+
+	result := map[string]any{
+		"input_tokens":  resp.Usage.PromptTokens,
+		"output_tokens": resp.Usage.CompletionTokens,
+	}
+
+	if wantJSON {
+		var parsed any
+		if err := json.Unmarshal([]byte(textContent), &parsed); err != nil {
+			result["result"] = textContent
+			result["parse_error"] = err.Error()
+		} else {
+			result["result"] = parsed
+		}
+	} else {
+		result["result"] = textContent
+	}
+
+	return result, nil
 }
