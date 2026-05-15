@@ -1146,6 +1146,8 @@ export {
   useResolveAgentExecutionSession,
   CostByWorkflowChart,
   ExecutionTrendChart,
+  useGenerateWorkflowFlow,
+  WorkflowGenerateDialog,
 } from "./workflow";
 export type {
   TaskKindDescriptor,
@@ -1222,6 +1224,10 @@ export type {
   UseResolveAgentExecutionSessionReturn,
   CostByWorkflowChartProps,
   ExecutionTrendChartProps,
+  UseGenerateWorkflowFlowOptions,
+  UseGenerateWorkflowFlowReturn,
+  GenerateWorkflowResult,
+  WorkflowGenerateDialogProps,
 } from "./workflow";
 
 // ─── Dashboard (Unified Platform) ──────────────────────────────────────────

@@ -298,6 +298,20 @@ export {
   type ExecutionTrendChartProps,
 } from "./ExecutionTrendChart";
 
+// T16: Generate workflow — behavior hook
+export {
+  useGenerateWorkflowFlow,
+  type UseGenerateWorkflowFlowOptions,
+  type UseGenerateWorkflowFlowReturn,
+  type GenerateWorkflowResult,
+} from "./useGenerateWorkflowFlow";
+
+// T16: Generate workflow — styled component
+export {
+  WorkflowGenerateDialog,
+  type WorkflowGenerateDialogProps,
+} from "./WorkflowGenerateDialog";
+
 // Navigation resolution hook
 export {
   useResolveAgentExecutionSession,
