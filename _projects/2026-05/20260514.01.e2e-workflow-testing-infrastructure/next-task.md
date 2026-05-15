@@ -68,8 +68,31 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: Cursor-runner integration test harness + unified agent call path
-**Status**: T09/T10 implementation complete — proto changes, two-step agent call, cursor-runner harness built
+**Current Task**: All integration tests green — offline and provider suites validated
+**Status**: 33 offline + 6 provider tests green (1 skipped — no OpenAI key)
+
+## Session Progress (2026-05-15, Session 15 — Provider Suite Validation + Two Bug Fixes)
+
+### Accomplished
+
+- **Ran full offline integration suite**: 33 tests — 26 passed, 7 skipped, 0 failures (71s)
+- **Ran provider-backed integration suite**: 7 tests — 6 passed, 1 skipped (OpenAI), 0 failures (78s)
+- **Fixed harness enum normalization in validation path** (`unmarshal.go`): `protojson.Unmarshal` requires full enum names (`HARNESS_CURSOR`) but users write shorthand (`cursor`). The normalization existed in the workflow-runner's `parseConfig` (execution path) but was missing in `UnmarshalTaskConfig` (validation path, called by Java service's `validateSpec`). Added `normalizeEnumShorthands()` to translate before deserialization.
+- **Fixed cursor-runner startup crash** (`cursor_runner.go`): The harness ran `node dist/main.js` but `@stigmer/protos` exports raw `.ts` files in dev mode (`"exports": { "./*": "./*.ts" }`), which Node.js can't import. Switched to running `tsx src/main.ts` directly, matching the package's `start` script. Removed the now-unnecessary `ensureCursorRunnerBuilt` function and `build-cursor-runner` Makefile prerequisite.
+- **Both cursor tests passing for the first time**: `TestWorkflowCursorCall_FileCanary` (25.7s) and `TestWorkflowCursorCall_StructuredOutput` (13.5s) exercise the full cursor pipeline end-to-end
+
+### Root Cause Analysis
+
+**Bug 1 — Enum validation mismatch**: The workflow validation pipeline flows: test → Java service `Apply` → `validateSpec` RPC → Go `UnmarshalTaskConfig` → `protojson.Unmarshal`. The `protojson` parser requires canonical proto enum names, but the test (and user-facing YAML) uses friendly shorthand `"cursor"`. The execution path in `task_builder_call_agent.go:parseConfig()` already had normalization, but the validation path in `unmarshal.go` did not.
+
+**Bug 2 — Node.js TypeScript import**: The `@stigmer/protos` package.json exports `"./*": "./*.ts"` for dev mode. When `tsc` compiles cursor-runner to `dist/`, the output JS still imports from `@stigmer/protos`, which resolves to `.ts` files at runtime. Node.js v23 cannot load `.ts` files without a loader. Using `tsx` (TypeScript eXecute) handles this transparently.
+
+### Files Changed
+
+**stigmer (OSS)** — modified (3 files):
+- `backend/services/workflow-runner/pkg/validation/unmarshal.go` — added `normalizeEnumShorthands()` for agent_call harness field
+- `test/integration/harness/cursor_runner.go` — switched to `tsx src/main.ts`, removed `ensureCursorRunnerBuilt`
+- `Makefile` — removed `build-cursor-runner` prerequisite from `test-integration-providers`
 
 ## Session Progress (2026-05-15, Session 14 — Cursor Runner Harness + Unified Agent Call)
 
@@ -581,18 +604,21 @@ User/API → Java Handler → SignalWithStart("relaySignal", [signalName, payloa
 
 ## Next Steps (Bottom)
 1. ~~**Resolve `cloud_ref` default**~~ — RESOLVED: `cloud_ref` can be passed at dispatch time
-2. ~~**Phase 3**: Provider-backed canary tests~~ — RESOLVED: All 5 provider tests green (Session 13)
+2. ~~**Phase 3**: Provider-backed canary tests~~ — RESOLVED: All 6 provider tests green (Session 13 + 15)
 3. ~~**Fix Java signal routing**~~ — RESOLVED: `relaySignal` relay implemented (Session 10)
 4. ~~**Implement `listen` converter**~~ — RESOLVED: converter + 2 integration tests (Session 11)
 5. **Future: Publish JAR from stigmer-cloud CI** — replace Job 1 with a download step
-6. ~~**Run E2E validation**~~ — RESOLVED: 25 offline + 5 provider tests green (Session 11 + 13)
+6. ~~**Run E2E validation**~~ — RESOLVED: 26 offline + 6 provider tests green (Session 11 + 13 + 15)
 7. ~~**Run LLM provider tests**~~ — RESOLVED: `make test-integration-providers` works zero-friction (Session 13)
-8. **Deploy proxy changes to cloud** — merge stigmer-cloud changes, rebuild JAR, test proxy mode end-to-end
-9. **Add OpenAI key** to Planton secret groups + auto-fetch in Makefile (enables the 1 skipped test)
+8. ~~**Fix cursor-runner startup + enum validation**~~ — RESOLVED: tsx runner + normalizeEnumShorthands (Session 15)
+9. **Deploy proxy changes to cloud** — merge stigmer-cloud changes, rebuild JAR, test proxy mode end-to-end
+10. **Add OpenAI key** to Planton secret groups + auto-fetch in Makefile (enables the 1 skipped test)
 
 ## Context for Resume
-- All 25 offline integration tests pass: infra (3), service health, smoke gRPC, lifecycle, control flow, data (2), error handling (3), HITL (3), HTTP (2), listen (2), pipeline (3)
-- All 5 provider-backed tests pass: llm_call (2), agent_call (2), openai (1 skipped — no key)
+- All 26 offline integration tests pass: infra (3), service health, smoke gRPC, lifecycle, control flow, data (2), error handling (3), HITL (3), HTTP (2), listen (2), pipeline (3), sandbox colocation (1)
+- All 6 provider-backed tests pass: llm_call (2), agent_call (2), cursor_call (2), openai (1 skipped — no key)
+- Cursor-runner harness uses `tsx src/main.ts` (not `node dist/main.js`) because `@stigmer/protos` exports raw `.ts` in dev mode
+- `UnmarshalTaskConfig` now normalizes harness enum shorthands (`"cursor"` → `"HARNESS_CURSOR"`) before protojson deserialization
 - Workflow-runner now supports dual-mode LLM calls: direct SDK (OSS) or Stigmer proxy (cloud)
 - Java proxy extended with `X-Stigmer-Workflow-Execution-Id` header for workflow-runner billing
 - Billing handler falls back to WorkflowExecution for org resolution when agent execution lookup fails
