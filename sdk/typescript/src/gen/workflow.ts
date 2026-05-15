@@ -12,11 +12,11 @@ import { WorkflowTaskKind, BudgetExceededPolicy } from "@stigmer/protos/ai/stigm
 import {
   WorkflowIdSchema,
   GenerateWorkflowFromPromptInputSchema,
-  type GenerateWorkflowFromPromptInput,
   type GenerateWorkflowFromPromptOutput,
   RefineWorkflowInputSchema,
-  type RefineWorkflowInput,
   type RefineWorkflowOutput,
+  DiagnoseWorkflowExecutionInputSchema,
+  type DiagnoseWorkflowExecutionOutput,
 } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { WorkflowSpecSchema, WorkflowDocumentSchema, ExportSchema, FlowControlSchema, WorkflowTaskSchema, WorkflowBudgetSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
@@ -67,24 +67,6 @@ export class WorkflowClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async get(id: string): Promise<Workflow> {
-    try {
-      return await this.query.get(create(WorkflowIdSchema, { value: id }));
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async getByReference(ref: ResourceRef): Promise<Workflow> {
-    try {
-      return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.workflow }));
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async getTaskKindRegistry(input: GetTaskKindRegistryRequest): Promise<GetTaskKindRegistryResponse> {
-    try {
-      return await this.taskKindRegistryQuery.getTaskKindRegistry(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
   async generateFromPrompt(input: GenerateFromPromptInput): Promise<GenerateFromPromptResult> {
     try {
       const resp = await this.command.generateWorkflowFromPrompt(
@@ -120,6 +102,43 @@ export class WorkflowClient {
         warnings: [...resp.warnings],
         modelUsed: resp.modelUsed,
       };
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async diagnoseExecution(input: DiagnoseExecutionInput): Promise<DiagnoseExecutionResult> {
+    try {
+      const resp = await this.command.diagnoseWorkflowExecution(
+        create(DiagnoseWorkflowExecutionInputSchema, stripUndefined({
+          executionId: input.executionId,
+          org: input.org,
+          model: input.model,
+        })),
+      );
+      return {
+        diagnosis: resp.diagnosis,
+        suggestedYaml: resp.suggestedYaml,
+        fixExplanation: resp.fixExplanation,
+        warnings: [...resp.warnings],
+        modelUsed: resp.modelUsed,
+      };
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async get(id: string): Promise<Workflow> {
+    try {
+      return await this.query.get(create(WorkflowIdSchema, { value: id }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getByReference(ref: ResourceRef): Promise<Workflow> {
+    try {
+      return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.workflow }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getTaskKindRegistry(input: GetTaskKindRegistryRequest): Promise<GetTaskKindRegistryResponse> {
+    try {
+      return await this.taskKindRegistryQuery.getTaskKindRegistry(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -241,6 +260,30 @@ export interface RefineWorkflowResult {
   /** Explanation of what was changed and why. */
   explanation: string;
   /** Validation warnings (non-fatal). */
+  warnings: string[];
+  /** The LLM model that was used. */
+  modelUsed: string;
+}
+
+/** Input for diagnosing a failed workflow execution. */
+export interface DiagnoseExecutionInput {
+  /** ID of the failed workflow execution to diagnose. */
+  executionId: string;
+  /** Organization slug for authorization and resource context. */
+  org: string;
+  /** Optional preferred LLM model. */
+  model?: string;
+}
+
+/** Result of workflow execution diagnosis. */
+export interface DiagnoseExecutionResult {
+  /** Root-cause analysis of the failure. Always populated. */
+  diagnosis: string;
+  /** Corrected workflow YAML (empty for runtime errors). */
+  suggestedYaml: string;
+  /** Explanation of YAML changes (empty when suggestedYaml is empty). */
+  fixExplanation: string;
+  /** Validation warnings on the suggested YAML. */
   warnings: string[];
   /** The LLM model that was used. */
   modelUsed: string;

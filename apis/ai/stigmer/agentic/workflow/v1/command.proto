@@ -71,4 +71,18 @@ service WorkflowCommandController {
     option (ai.stigmer.commons.rpc.config).field_path = "org";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to refine workflows in this organization";
   }
+
+  // Diagnose a failed workflow execution using AI.
+  //
+  // Loads the execution's status (phase, error, per-task statuses) and the
+  // parent workflow YAML, constructs a diagnostic prompt, and calls an LLM
+  // to produce a root-cause analysis. When the failure is caused by a
+  // definition error, the response includes a suggested YAML fix that is
+  // validated with up to 2 retries.
+  rpc diagnoseWorkflowExecution(DiagnoseWorkflowExecutionInput) returns (DiagnoseWorkflowExecutionOutput) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_workflow;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to diagnose workflow executions in this organization";
+  }
 }

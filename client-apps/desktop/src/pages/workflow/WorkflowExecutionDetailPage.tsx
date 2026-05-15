@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { WorkflowExecutionViewer, useResolveAgentExecutionSession } from "@stigmer/react";
 
 export default function WorkflowExecutionDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const org = searchParams.get("org") ?? undefined;
   const navigate = useNavigate();
   const [pendingAgentExecutionId, setPendingAgentExecutionId] = useState<string | null>(null);
 
@@ -36,6 +38,7 @@ export default function WorkflowExecutionDetailPage() {
       )}
       <WorkflowExecutionViewer
         executionId={id}
+        org={org}
         onNavigateToAgentExecution={handleNavigateToAgentExecution}
       />
     </div>

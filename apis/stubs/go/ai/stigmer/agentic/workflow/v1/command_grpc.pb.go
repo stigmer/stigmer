@@ -25,6 +25,7 @@ const (
 	WorkflowCommandController_Delete_FullMethodName                     = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/delete"
 	WorkflowCommandController_GenerateWorkflowFromPrompt_FullMethodName = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/generateWorkflowFromPrompt"
 	WorkflowCommandController_RefineWorkflow_FullMethodName             = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/refineWorkflow"
+	WorkflowCommandController_DiagnoseWorkflowExecution_FullMethodName  = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/diagnoseWorkflowExecution"
 )
 
 // WorkflowCommandControllerClient is the client API for WorkflowCommandController service.
@@ -63,6 +64,14 @@ type WorkflowCommandControllerClient interface {
 	// a prompt emphasizing minimal targeted changes, calls an LLM to produce
 	// updated YAML, and validates the output with up to 2 retries on failure.
 	RefineWorkflow(ctx context.Context, in *RefineWorkflowInput, opts ...grpc.CallOption) (*RefineWorkflowOutput, error)
+	// Diagnose a failed workflow execution using AI.
+	//
+	// Loads the execution's status (phase, error, per-task statuses) and the
+	// parent workflow YAML, constructs a diagnostic prompt, and calls an LLM
+	// to produce a root-cause analysis. When the failure is caused by a
+	// definition error, the response includes a suggested YAML fix that is
+	// validated with up to 2 retries.
+	DiagnoseWorkflowExecution(ctx context.Context, in *DiagnoseWorkflowExecutionInput, opts ...grpc.CallOption) (*DiagnoseWorkflowExecutionOutput, error)
 }
 
 type workflowCommandControllerClient struct {
@@ -133,6 +142,16 @@ func (c *workflowCommandControllerClient) RefineWorkflow(ctx context.Context, in
 	return out, nil
 }
 
+func (c *workflowCommandControllerClient) DiagnoseWorkflowExecution(ctx context.Context, in *DiagnoseWorkflowExecutionInput, opts ...grpc.CallOption) (*DiagnoseWorkflowExecutionOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DiagnoseWorkflowExecutionOutput)
+	err := c.cc.Invoke(ctx, WorkflowCommandController_DiagnoseWorkflowExecution_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WorkflowCommandControllerServer is the server API for WorkflowCommandController service.
 // All implementations should embed UnimplementedWorkflowCommandControllerServer
 // for forward compatibility.
@@ -169,6 +188,14 @@ type WorkflowCommandControllerServer interface {
 	// a prompt emphasizing minimal targeted changes, calls an LLM to produce
 	// updated YAML, and validates the output with up to 2 retries on failure.
 	RefineWorkflow(context.Context, *RefineWorkflowInput) (*RefineWorkflowOutput, error)
+	// Diagnose a failed workflow execution using AI.
+	//
+	// Loads the execution's status (phase, error, per-task statuses) and the
+	// parent workflow YAML, constructs a diagnostic prompt, and calls an LLM
+	// to produce a root-cause analysis. When the failure is caused by a
+	// definition error, the response includes a suggested YAML fix that is
+	// validated with up to 2 retries.
+	DiagnoseWorkflowExecution(context.Context, *DiagnoseWorkflowExecutionInput) (*DiagnoseWorkflowExecutionOutput, error)
 }
 
 // UnimplementedWorkflowCommandControllerServer should be embedded to have
@@ -195,6 +222,9 @@ func (UnimplementedWorkflowCommandControllerServer) GenerateWorkflowFromPrompt(c
 }
 func (UnimplementedWorkflowCommandControllerServer) RefineWorkflow(context.Context, *RefineWorkflowInput) (*RefineWorkflowOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RefineWorkflow not implemented")
+}
+func (UnimplementedWorkflowCommandControllerServer) DiagnoseWorkflowExecution(context.Context, *DiagnoseWorkflowExecutionInput) (*DiagnoseWorkflowExecutionOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DiagnoseWorkflowExecution not implemented")
 }
 func (UnimplementedWorkflowCommandControllerServer) testEmbeddedByValue() {}
 
@@ -324,6 +354,24 @@ func _WorkflowCommandController_RefineWorkflow_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkflowCommandController_DiagnoseWorkflowExecution_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DiagnoseWorkflowExecutionInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowCommandControllerServer).DiagnoseWorkflowExecution(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowCommandController_DiagnoseWorkflowExecution_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowCommandControllerServer).DiagnoseWorkflowExecution(ctx, req.(*DiagnoseWorkflowExecutionInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WorkflowCommandController_ServiceDesc is the grpc.ServiceDesc for WorkflowCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -354,6 +402,10 @@ var WorkflowCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "refineWorkflow",
 			Handler:    _WorkflowCommandController_RefineWorkflow_Handler,
+		},
+		{
+			MethodName: "diagnoseWorkflowExecution",
+			Handler:    _WorkflowCommandController_DiagnoseWorkflowExecution_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

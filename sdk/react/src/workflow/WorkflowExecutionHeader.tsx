@@ -14,6 +14,10 @@ export interface WorkflowExecutionHeaderProps {
   readonly streamState: WorkflowEventStreamState;
   readonly costSummary: DerivedCostSummary;
   readonly actions: UseWorkflowExecutionActionsReturn;
+  /** Called when the user clicks "Diagnose with AI" on a failed execution. */
+  readonly onDiagnose?: () => void;
+  /** Whether the diagnosis panel is currently active. */
+  readonly isDiagnosing?: boolean;
   readonly className?: string;
 }
 
@@ -36,6 +40,8 @@ export const WorkflowExecutionHeader = memo(function WorkflowExecutionHeader({
   streamState,
   costSummary,
   actions,
+  onDiagnose,
+  isDiagnosing,
   className,
 }: WorkflowExecutionHeaderProps) {
   const phase = execution.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
@@ -120,11 +126,20 @@ export const WorkflowExecutionHeader = memo(function WorkflowExecutionHeader({
         )}
 
         {isFailed && (
-          <ActionButton
-            label="Recover"
-            onClick={() => actions.recover()}
-            disabled={actions.isSubmitting}
-          />
+          <>
+            {onDiagnose && (
+              <ActionButton
+                label={isDiagnosing ? "Diagnosing…" : "Diagnose"}
+                onClick={onDiagnose}
+                disabled={actions.isSubmitting || !!isDiagnosing}
+              />
+            )}
+            <ActionButton
+              label="Recover"
+              onClick={() => actions.recover()}
+              disabled={actions.isSubmitting}
+            />
+          </>
         )}
       </div>
     </header>

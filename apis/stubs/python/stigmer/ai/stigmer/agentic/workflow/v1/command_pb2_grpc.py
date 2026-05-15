@@ -46,6 +46,11 @@ class WorkflowCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.RefineWorkflowInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.RefineWorkflowOutput.FromString,
                 _registered_method=True)
+        self.diagnoseWorkflowExecution = channel.unary_unary(
+                '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/diagnoseWorkflowExecution',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.DiagnoseWorkflowExecutionInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.DiagnoseWorkflowExecutionOutput.FromString,
+                _registered_method=True)
 
 
 class WorkflowCommandControllerServicer(object):
@@ -112,6 +117,19 @@ class WorkflowCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def diagnoseWorkflowExecution(self, request, context):
+        """Diagnose a failed workflow execution using AI.
+
+        Loads the execution's status (phase, error, per-task statuses) and the
+        parent workflow YAML, constructs a diagnostic prompt, and calls an LLM
+        to produce a root-cause analysis. When the failure is caused by a
+        definition error, the response includes a suggested YAML fix that is
+        validated with up to 2 retries.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_WorkflowCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -144,6 +162,11 @@ def add_WorkflowCommandControllerServicer_to_server(servicer, server):
                     servicer.refineWorkflow,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.RefineWorkflowInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.RefineWorkflowOutput.SerializeToString,
+            ),
+            'diagnoseWorkflowExecution': grpc.unary_unary_rpc_method_handler(
+                    servicer.diagnoseWorkflowExecution,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.DiagnoseWorkflowExecutionInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.DiagnoseWorkflowExecutionOutput.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -309,6 +332,33 @@ class WorkflowCommandController(object):
             '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/refineWorkflow',
             ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.RefineWorkflowInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.RefineWorkflowOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def diagnoseWorkflowExecution(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/diagnoseWorkflowExecution',
+            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.DiagnoseWorkflowExecutionInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.DiagnoseWorkflowExecutionOutput.FromString,
             options,
             channel_credentials,
             insecure,

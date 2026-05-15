@@ -41,7 +41,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\032\'ai/stigmer/agentic/workflow/v1/io.prot" +
       "o\0328ai/stigmer/commons/apiresource/rpc_se" +
       "rvice_options.proto\032+ai/stigmer/commons/" +
-      "rpc/method_options.proto2\203\010\n\031WorkflowCom" +
+      "rpc/method_options.proto2\364\t\n\031WorkflowCom" +
       "mandController\022[\n\005apply\022(.ai.stigmer.age" +
       "ntic.workflow.v1.Workflow\032(.ai.stigmer.a" +
       "gentic.workflow.v1.Workflow\022\252\001\n\006create\022(" +
@@ -67,11 +67,17 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "nput\0324.ai.stigmer.agentic.workflow.v1.Re" +
       "fineWorkflowOutput\"D\302\270\030@\010\007\020\036\"\003org*5unaut" +
       "horized to refine workflows in this orga" +
-      "nization\032\004\240\377+2B\253\001B\014CommandProtoP\001\242\002\004ASAW" +
-      "\252\002\036Ai.Stigmer.Agentic.Workflow.V1\312\002\036Ai\\S" +
-      "tigmer\\Agentic\\Workflow\\V1\342\002*Ai\\Stigmer\\" +
-      "Agentic\\Workflow\\V1\\GPBMetadata\352\002\"Ai::St" +
-      "igmer::Agentic::Workflow::V1b\006proto3"
+      "nization\022\356\001\n\031diagnoseWorkflowExecution\022>" +
+      ".ai.stigmer.agentic.workflow.v1.Diagnose" +
+      "WorkflowExecutionInput\032?.ai.stigmer.agen" +
+      "tic.workflow.v1.DiagnoseWorkflowExecutio" +
+      "nOutput\"P\302\270\030L\010\007\020\036\"\003org*Aunauthorized to " +
+      "diagnose workflow executions in this org" +
+      "anization\032\004\240\377+2B\253\001B\014CommandProtoP\001\242\002\004ASA" +
+      "W\252\002\036Ai.Stigmer.Agentic.Workflow.V1\312\002\036Ai\\" +
+      "Stigmer\\Agentic\\Workflow\\V1\342\002*Ai\\Stigmer" +
+      "\\Agentic\\Workflow\\V1\\GPBMetadata\352\002\"Ai::S" +
+      "tigmer::Agentic::Workflow::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

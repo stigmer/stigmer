@@ -391,6 +391,171 @@ func (x *RefineWorkflowOutput) GetModelUsed() string {
 	return ""
 }
 
+// Input for diagnosing a failed workflow execution.
+//
+// The server loads the execution's status data (phase, error, per-task
+// statuses) and the parent workflow YAML, then asks an LLM to produce a
+// root-cause analysis and, when the failure is caused by a definition
+// error, a suggested YAML fix.
+type DiagnoseWorkflowExecutionInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ID of the failed workflow execution to diagnose.
+	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	// Organization slug — used for authorization and resource context.
+	Org string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
+	// Preferred model for diagnosis (e.g., "claude-sonnet-4-6", "gpt-4o").
+	// When empty, the server selects a capable default model.
+	Model         string `protobuf:"bytes,3,opt,name=model,proto3" json:"model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DiagnoseWorkflowExecutionInput) Reset() {
+	*x = DiagnoseWorkflowExecutionInput{}
+	mi := &file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiagnoseWorkflowExecutionInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiagnoseWorkflowExecutionInput) ProtoMessage() {}
+
+func (x *DiagnoseWorkflowExecutionInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiagnoseWorkflowExecutionInput.ProtoReflect.Descriptor instead.
+func (*DiagnoseWorkflowExecutionInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflow_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *DiagnoseWorkflowExecutionInput) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *DiagnoseWorkflowExecutionInput) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *DiagnoseWorkflowExecutionInput) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+// Response from workflow execution diagnosis.
+//
+// Two categories of failures produce different response shapes:
+//   - Definition errors (wrong config, invalid expressions): `diagnosis`
+//     explains the root cause, `suggested_yaml` contains the corrected YAML,
+//     and `fix_explanation` describes what was changed.
+//   - Runtime errors (transient failures, missing env vars, budget exhaustion):
+//     `diagnosis` explains the root cause and suggests remediation steps.
+//     `suggested_yaml` and `fix_explanation` are empty.
+type DiagnoseWorkflowExecutionOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Human-readable root-cause analysis of the failure.
+	// Always populated — describes what went wrong and why.
+	Diagnosis string `protobuf:"bytes,1,opt,name=diagnosis,proto3" json:"diagnosis,omitempty"`
+	// Corrected workflow YAML when the failure is a definition error.
+	// Empty when the failure is a runtime error that cannot be fixed
+	// by changing the workflow definition.
+	SuggestedYaml string `protobuf:"bytes,2,opt,name=suggested_yaml,json=suggestedYaml,proto3" json:"suggested_yaml,omitempty"`
+	// Explanation of what was changed in the suggested YAML.
+	// Empty when suggested_yaml is empty.
+	FixExplanation string `protobuf:"bytes,3,opt,name=fix_explanation,json=fixExplanation,proto3" json:"fix_explanation,omitempty"`
+	// Validation warnings on the suggested YAML (non-fatal).
+	// Empty when suggested_yaml is empty or clean.
+	Warnings []string `protobuf:"bytes,4,rep,name=warnings,proto3" json:"warnings,omitempty"`
+	// The model that was used for diagnosis.
+	ModelUsed     string `protobuf:"bytes,5,opt,name=model_used,json=modelUsed,proto3" json:"model_used,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DiagnoseWorkflowExecutionOutput) Reset() {
+	*x = DiagnoseWorkflowExecutionOutput{}
+	mi := &file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiagnoseWorkflowExecutionOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiagnoseWorkflowExecutionOutput) ProtoMessage() {}
+
+func (x *DiagnoseWorkflowExecutionOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiagnoseWorkflowExecutionOutput.ProtoReflect.Descriptor instead.
+func (*DiagnoseWorkflowExecutionOutput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflow_v1_io_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *DiagnoseWorkflowExecutionOutput) GetDiagnosis() string {
+	if x != nil {
+		return x.Diagnosis
+	}
+	return ""
+}
+
+func (x *DiagnoseWorkflowExecutionOutput) GetSuggestedYaml() string {
+	if x != nil {
+		return x.SuggestedYaml
+	}
+	return ""
+}
+
+func (x *DiagnoseWorkflowExecutionOutput) GetFixExplanation() string {
+	if x != nil {
+		return x.FixExplanation
+	}
+	return ""
+}
+
+func (x *DiagnoseWorkflowExecutionOutput) GetWarnings() []string {
+	if x != nil {
+		return x.Warnings
+	}
+	return nil
+}
+
+func (x *DiagnoseWorkflowExecutionOutput) GetModelUsed() string {
+	if x != nil {
+		return x.ModelUsed
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_workflow_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_io_proto_rawDesc = "" +
@@ -421,7 +586,18 @@ const file_ai_stigmer_agentic_workflow_v1_io_proto_rawDesc = "" +
 	"\vexplanation\x18\x02 \x01(\tR\vexplanation\x12\x1a\n" +
 	"\bwarnings\x18\x03 \x03(\tR\bwarnings\x12\x1d\n" +
 	"\n" +
-	"model_used\x18\x04 \x01(\tR\tmodelUsedB\x9d\x02\n" +
+	"model_used\x18\x04 \x01(\tR\tmodelUsed\"{\n" +
+	"\x1eDiagnoseWorkflowExecutionInput\x12)\n" +
+	"\fexecution_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexecutionId\x12\x18\n" +
+	"\x03org\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x14\n" +
+	"\x05model\x18\x03 \x01(\tR\x05model\"\xca\x01\n" +
+	"\x1fDiagnoseWorkflowExecutionOutput\x12\x1c\n" +
+	"\tdiagnosis\x18\x01 \x01(\tR\tdiagnosis\x12%\n" +
+	"\x0esuggested_yaml\x18\x02 \x01(\tR\rsuggestedYaml\x12'\n" +
+	"\x0ffix_explanation\x18\x03 \x01(\tR\x0efixExplanation\x12\x1a\n" +
+	"\bwarnings\x18\x04 \x03(\tR\bwarnings\x12\x1d\n" +
+	"\n" +
+	"model_used\x18\x05 \x01(\tR\tmodelUsedB\x9d\x02\n" +
 	"\"com.ai.stigmer.agentic.workflow.v1B\aIoProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var (
@@ -436,13 +612,15 @@ func file_ai_stigmer_agentic_workflow_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_workflow_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_agentic_workflow_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_agentic_workflow_v1_io_proto_goTypes = []any{
 	(*WorkflowId)(nil),                       // 0: ai.stigmer.agentic.workflow.v1.WorkflowId
 	(*GenerateWorkflowFromPromptInput)(nil),  // 1: ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput
 	(*GenerateWorkflowFromPromptOutput)(nil), // 2: ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput
 	(*RefineWorkflowInput)(nil),              // 3: ai.stigmer.agentic.workflow.v1.RefineWorkflowInput
 	(*RefineWorkflowOutput)(nil),             // 4: ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput
+	(*DiagnoseWorkflowExecutionInput)(nil),   // 5: ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput
+	(*DiagnoseWorkflowExecutionOutput)(nil),  // 6: ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput
 }
 var file_ai_stigmer_agentic_workflow_v1_io_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -463,7 +641,7 @@ func file_ai_stigmer_agentic_workflow_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflow_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_workflow_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

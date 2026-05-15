@@ -444,3 +444,217 @@ func writeGenerationRules(sb *strings.Builder) {
 14. When using switch_case, every case must have a "then" pointing to a valid task or "end"
 15. When using human_input, always set a reasonable timeout_seconds`)
 }
+
+// ExecutionFailureContext contains the failure data extracted from a
+// WorkflowExecution for use in the diagnostic prompt.
+type ExecutionFailureContext struct {
+	ExecutionID string
+	Phase       string
+	Error       string
+	Tasks       []TaskFailureContext
+}
+
+// TaskFailureContext contains per-task failure data for the diagnostic prompt.
+type TaskFailureContext struct {
+	Name     string
+	Kind     string
+	Phase    string
+	Error    string
+	Duration string
+}
+
+// DiagnosticResult holds the parsed sections from a diagnostic LLM response.
+type DiagnosticResult struct {
+	Diagnosis      string
+	SuggestedYAML  string
+	FixExplanation string
+}
+
+// BuildDiagnosticPrompt constructs the system and user prompts for diagnosing
+// a failed workflow execution. The LLM receives the workflow YAML, execution
+// failure data (phase, error, per-task statuses), and task kind metadata so it
+// can determine the root cause and suggest a fix when appropriate.
+//
+// The response format distinguishes definition errors (fixable via YAML) from
+// runtime errors (require operational remediation, not YAML changes).
+func BuildDiagnosticPrompt(
+	workflowYAML string,
+	failure ExecutionFailureContext,
+	taskKinds []TaskKindSummary,
+) (systemPrompt, userPrompt string) {
+	var sys strings.Builder
+
+	sys.WriteString(diagnosticSystemPromptHeader)
+	sys.WriteString("\n\n")
+	writeWorkflowStructure(&sys)
+	sys.WriteString("\n\n")
+	writeFailingTaskKindReference(&sys, taskKinds, failure.Tasks)
+	sys.WriteString("\n\n")
+	writeDiagnosticRules(&sys)
+
+	var usr strings.Builder
+	usr.WriteString("## Workflow Definition\n\n```yaml\n")
+	usr.WriteString(workflowYAML)
+	usr.WriteString("\n```\n\n")
+	writeExecutionFailureContext(&usr, failure)
+
+	return sys.String(), usr.String()
+}
+
+const diagnosticSystemPromptHeader = `You are a workflow diagnostician for the Stigmer platform. You receive a failed workflow execution's error data alongside the workflow YAML definition, and your job is to determine the root cause and suggest a fix when possible.
+
+Failures fall into two categories:
+
+1. **Definition errors** — the workflow YAML itself is wrong (bad config, missing fields, invalid expressions, wrong task kind usage, unreachable tasks). For these, provide a corrected YAML.
+2. **Runtime errors** — transient failures, missing environment variables, budget exhaustion, external service timeouts, bad input data. For these, explain the cause and suggest operational remediation. Do NOT suggest YAML changes.
+
+You MUST respond in exactly this format:
+
+## Diagnosis
+<root cause analysis — what went wrong and why>
+
+(If and ONLY if the failure is a definition error, also include:)
+
+` + "```yaml" + `
+<complete corrected workflow YAML>
+` + "```" + `
+
+## Fix
+<explanation of what was changed in the YAML and why it fixes the problem>
+
+If the failure is a runtime error, omit the YAML block and the "## Fix" section entirely.`
+
+func writeFailingTaskKindReference(sb *strings.Builder, kinds []TaskKindSummary, failedTasks []TaskFailureContext) {
+	failingKinds := make(map[string]bool)
+	for _, t := range failedTasks {
+		if t.Kind != "" {
+			failingKinds[t.Kind] = true
+		}
+	}
+
+	if len(failingKinds) == 0 {
+		return
+	}
+
+	sb.WriteString("## Task Kind Reference (for failing tasks)\n\n")
+	for _, k := range kinds {
+		if !failingKinds[k.Kind] {
+			continue
+		}
+		fmt.Fprintf(sb, "**%s** (`%s`): %s\n", k.DisplayName, k.Kind, k.Description)
+		if len(k.YAMLExamples) > 0 {
+			sb.WriteString("Example:\n```yaml\n")
+			sb.WriteString(strings.TrimSpace(k.YAMLExamples[0]))
+			sb.WriteString("\n```\n")
+		}
+		sb.WriteString("\n")
+	}
+}
+
+func writeExecutionFailureContext(sb *strings.Builder, ctx ExecutionFailureContext) {
+	sb.WriteString("## Execution Failure\n\n")
+	fmt.Fprintf(sb, "- **Execution ID**: %s\n", ctx.ExecutionID)
+	fmt.Fprintf(sb, "- **Phase**: %s\n", ctx.Phase)
+	if ctx.Error != "" {
+		fmt.Fprintf(sb, "- **Error**: %s\n", ctx.Error)
+	}
+
+	if len(ctx.Tasks) > 0 {
+		sb.WriteString("\n### Task Statuses\n\n")
+		for _, t := range ctx.Tasks {
+			fmt.Fprintf(sb, "- **%s** (kind: `%s`, phase: %s", t.Name, t.Kind, t.Phase)
+			if t.Duration != "" {
+				fmt.Fprintf(sb, ", duration: %s", t.Duration)
+			}
+			sb.WriteString(")")
+			if t.Error != "" {
+				fmt.Fprintf(sb, "\n  Error: %s", t.Error)
+			}
+			sb.WriteString("\n")
+		}
+	}
+}
+
+func writeDiagnosticRules(sb *strings.Builder) {
+	sb.WriteString(`## Diagnostic Rules
+
+1. Focus on the FIRST task that failed — cascading failures downstream are a consequence, not the root cause
+2. Compare the failing task's configuration against its task kind reference — look for missing required fields, wrong types, or invalid expressions
+3. Check for invalid "then:" references pointing to nonexistent tasks
+4. Check for expression syntax errors in "${...}" references (wrong field paths, missing context data)
+5. If the error mentions environment variables, budget, timeouts, or external services, it is a runtime error — do NOT suggest YAML changes
+6. If suggesting a YAML fix, output the COMPLETE corrected workflow YAML, not a partial diff
+7. Preserve all unrelated tasks exactly as they are — only change what is necessary to fix the error
+8. Be specific in your diagnosis — quote the exact error message and the exact YAML field that caused it
+9. Keep your diagnosis concise — 2-4 sentences for the root cause, not a paragraph
+10. If you are uncertain whether the fix is correct, note your uncertainty in the diagnosis`)
+}
+
+// SplitDiagnosticResponse parses an LLM response in the diagnostic format
+// into its constituent sections: diagnosis, optional YAML, and optional fix
+// explanation.
+func SplitDiagnosticResponse(content string) DiagnosticResult {
+	content = strings.TrimSpace(content)
+	result := DiagnosticResult{}
+
+	diagIdx := strings.Index(content, "## Diagnosis")
+	fixIdx := strings.Index(content, "## Fix")
+
+	if diagIdx < 0 {
+		result.Diagnosis = content
+		return result
+	}
+
+	diagStart := diagIdx + len("## Diagnosis")
+	var diagSection string
+	if fixIdx > diagStart {
+		diagSection = content[diagStart:fixIdx]
+	} else {
+		diagSection = content[diagStart:]
+	}
+
+	yaml, remaining := extractYAMLBlock(diagSection)
+	result.Diagnosis = strings.TrimSpace(remaining)
+	result.SuggestedYAML = yaml
+
+	if fixIdx >= 0 {
+		fixStart := fixIdx + len("## Fix")
+		result.FixExplanation = strings.TrimSpace(content[fixStart:])
+	}
+
+	return result
+}
+
+// extractYAMLBlock finds and extracts a ```yaml ... ``` block from text,
+// returning the YAML content and the text with the block removed.
+func extractYAMLBlock(text string) (yaml, remaining string) {
+	lines := strings.Split(text, "\n")
+	yamlStart := -1
+	yamlEnd := -1
+
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if yamlStart == -1 && strings.HasPrefix(trimmed, "```") {
+			yamlStart = i
+			continue
+		}
+		if yamlStart >= 0 && yamlEnd == -1 && trimmed == "```" {
+			yamlEnd = i
+			break
+		}
+	}
+
+	if yamlStart >= 0 && yamlEnd > yamlStart {
+		yamlLines := lines[yamlStart+1 : yamlEnd]
+		yaml = strings.TrimSpace(strings.Join(yamlLines, "\n"))
+		before := strings.Join(lines[:yamlStart], "\n")
+		after := ""
+		if yamlEnd+1 < len(lines) {
+			after = strings.Join(lines[yamlEnd+1:], "\n")
+		}
+		remaining = strings.TrimSpace(before + "\n" + after)
+		return yaml, remaining
+	}
+
+	return "", strings.TrimSpace(text)
+}

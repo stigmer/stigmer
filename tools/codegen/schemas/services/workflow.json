@@ -55,6 +55,14 @@
           "outputType": "RefineWorkflowOutput",
           "outputFullType": "ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput",
           "description": "Refine an existing workflow with a natural language instruction.\n\n Receives the current workflow YAML and a change instruction, constructs\n a prompt emphasizing minimal targeted changes, calls an LLM to produce\n updated YAML, and validates the output with up to 2 retries on failure."
+        },
+        {
+          "name": "DiagnoseWorkflowExecution",
+          "inputType": "DiagnoseWorkflowExecutionInput",
+          "inputFullType": "ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput",
+          "outputType": "DiagnoseWorkflowExecutionOutput",
+          "outputFullType": "ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput",
+          "description": "Diagnose a failed workflow execution using AI.\n\n Loads the execution's status (phase, error, per-task statuses) and the\n parent workflow YAML, constructs a diagnostic prompt, and calls an LLM\n to produce a root-cause analysis. When the failure is caused by a\n definition error, the response includes a suggested YAML fix that is\n validated with up to 2 retries."
         }
       ]
     },
@@ -311,6 +319,111 @@
             "kind": "string"
           },
           "description": "The model that was used for refinement.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "DiagnoseWorkflowExecutionInput",
+      "description": "Input for diagnosing a failed workflow execution.\n\n The server loads the execution's status data (phase, error, per-task\n statuses) and the parent workflow YAML, then asks an LLM to produce a\n root-cause analysis and, when the failure is caused by a definition\n error, a suggested YAML fix.",
+      "protoType": "ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput",
+      "protoFile": "apis/ai/stigmer/agentic/workflow/v1/io.proto",
+      "fields": [
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the failed workflow execution to diagnose.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug — used for authorization and resource context.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Model",
+          "jsonName": "model",
+          "protoField": "model",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Preferred model for diagnosis (e.g., \"claude-sonnet-4-6\", \"gpt-4o\").\n When empty, the server selects a capable default model.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "DiagnoseWorkflowExecutionOutput",
+      "description": "Response from workflow execution diagnosis.\n\n Two categories of failures produce different response shapes:\n - Definition errors (wrong config, invalid expressions): `diagnosis`\n   explains the root cause, `suggested_yaml` contains the corrected YAML,\n   and `fix_explanation` describes what was changed.\n - Runtime errors (transient failures, missing env vars, budget exhaustion):\n   `diagnosis` explains the root cause and suggests remediation steps.\n   `suggested_yaml` and `fix_explanation` are empty.",
+      "protoType": "ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput",
+      "protoFile": "apis/ai/stigmer/agentic/workflow/v1/io.proto",
+      "fields": [
+        {
+          "name": "Diagnosis",
+          "jsonName": "diagnosis",
+          "protoField": "diagnosis",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable root-cause analysis of the failure.\n Always populated — describes what went wrong and why.",
+          "required": false
+        },
+        {
+          "name": "SuggestedYaml",
+          "jsonName": "suggestedYaml",
+          "protoField": "suggested_yaml",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Corrected workflow YAML when the failure is a definition error.\n Empty when the failure is a runtime error that cannot be fixed\n by changing the workflow definition.",
+          "required": false
+        },
+        {
+          "name": "FixExplanation",
+          "jsonName": "fixExplanation",
+          "protoField": "fix_explanation",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Explanation of what was changed in the suggested YAML.\n Empty when suggested_yaml is empty.",
+          "required": false
+        },
+        {
+          "name": "Warnings",
+          "jsonName": "warnings",
+          "protoField": "warnings",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Validation warnings on the suggested YAML (non-fatal).\n Empty when suggested_yaml is empty or clean.",
+          "required": false
+        },
+        {
+          "name": "ModelUsed",
+          "jsonName": "modelUsed",
+          "protoField": "model_used",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The model that was used for diagnosis.",
           "required": false
         }
       ]

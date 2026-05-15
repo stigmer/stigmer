@@ -5,7 +5,7 @@
 
 import { Workflow } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { GenerateWorkflowFromPromptInput, GenerateWorkflowFromPromptOutput, RefineWorkflowInput, RefineWorkflowOutput, WorkflowId } from "./io_pbjs";
+import { DiagnoseWorkflowExecutionInput, DiagnoseWorkflowExecutionOutput, GenerateWorkflowFromPromptInput, GenerateWorkflowFromPromptOutput, RefineWorkflowInput, RefineWorkflowOutput, WorkflowId } from "./io_pbjs";
 
 /**
  * WorkflowCommandController handles write operations for workflows.
@@ -97,6 +97,23 @@ export const WorkflowCommandController = {
       name: "refineWorkflow",
       I: RefineWorkflowInput,
       O: RefineWorkflowOutput,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Diagnose a failed workflow execution using AI.
+     *
+     * Loads the execution's status (phase, error, per-task statuses) and the
+     * parent workflow YAML, constructs a diagnostic prompt, and calls an LLM
+     * to produce a root-cause analysis. When the failure is caused by a
+     * definition error, the response includes a suggested YAML fix that is
+     * validated with up to 2 retries.
+     *
+     * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.diagnoseWorkflowExecution
+     */
+    diagnoseWorkflowExecution: {
+      name: "diagnoseWorkflowExecution",
+      I: DiagnoseWorkflowExecutionInput,
+      O: DiagnoseWorkflowExecutionOutput,
       kind: MethodKind.Unary,
     },
   }

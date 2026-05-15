@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MSIjCgpXb3JrZmxvd0lkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEidwofR2VuZXJhdGVXb3JrZmxvd0Zyb21Qcm9tcHRJbnB1dBIXCgZwcm9tcHQYASABKAlCB7pIBHICEAoSEwoDb3JnGAIgASgJQga6SAPIAQESDQoFbW9kZWwYAyABKAkSFwoPdGFza19raW5kX2hpbnRzGAQgAygJImsKIEdlbmVyYXRlV29ya2Zsb3dGcm9tUHJvbXB0T3V0cHV0EgwKBHlhbWwYASABKAkSEwoLZXhwbGFuYXRpb24YAiABKAkSEAoId2FybmluZ3MYAyADKAkSEgoKbW9kZWxfdXNlZBgEIAEoCSJ2ChNSZWZpbmVXb3JrZmxvd0lucHV0Eh0KDGN1cnJlbnRfeWFtbBgBIAEoCUIHukgEcgIQARIcCgtpbnN0cnVjdGlvbhgCIAEoCUIHukgEcgIQBRITCgNvcmcYAyABKAlCBrpIA8gBARINCgVtb2RlbBgEIAEoCSJfChRSZWZpbmVXb3JrZmxvd091dHB1dBIMCgR5YW1sGAEgASgJEhMKC2V4cGxhbmF0aW9uGAIgASgJEhAKCHdhcm5pbmdzGAMgAygJEhIKCm1vZGVsX3VzZWQYBCABKAliBnByb3RvMw", [file_buf_validate_validate]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MSIjCgpXb3JrZmxvd0lkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEidwofR2VuZXJhdGVXb3JrZmxvd0Zyb21Qcm9tcHRJbnB1dBIXCgZwcm9tcHQYASABKAlCB7pIBHICEAoSEwoDb3JnGAIgASgJQga6SAPIAQESDQoFbW9kZWwYAyABKAkSFwoPdGFza19raW5kX2hpbnRzGAQgAygJImsKIEdlbmVyYXRlV29ya2Zsb3dGcm9tUHJvbXB0T3V0cHV0EgwKBHlhbWwYASABKAkSEwoLZXhwbGFuYXRpb24YAiABKAkSEAoId2FybmluZ3MYAyADKAkSEgoKbW9kZWxfdXNlZBgEIAEoCSJ2ChNSZWZpbmVXb3JrZmxvd0lucHV0Eh0KDGN1cnJlbnRfeWFtbBgBIAEoCUIHukgEcgIQARIcCgtpbnN0cnVjdGlvbhgCIAEoCUIHukgEcgIQBRITCgNvcmcYAyABKAlCBrpIA8gBARINCgVtb2RlbBgEIAEoCSJfChRSZWZpbmVXb3JrZmxvd091dHB1dBIMCgR5YW1sGAEgASgJEhMKC2V4cGxhbmF0aW9uGAIgASgJEhAKCHdhcm5pbmdzGAMgAygJEhIKCm1vZGVsX3VzZWQYBCABKAkiYgoeRGlhZ25vc2VXb3JrZmxvd0V4ZWN1dGlvbklucHV0EhwKDGV4ZWN1dGlvbl9pZBgBIAEoCUIGukgDyAEBEhMKA29yZxgCIAEoCUIGukgDyAEBEg0KBW1vZGVsGAMgASgJIosBCh9EaWFnbm9zZVdvcmtmbG93RXhlY3V0aW9uT3V0cHV0EhEKCWRpYWdub3NpcxgBIAEoCRIWCg5zdWdnZXN0ZWRfeWFtbBgCIAEoCRIXCg9maXhfZXhwbGFuYXRpb24YAyABKAkSEAoId2FybmluZ3MYBCADKAkSEgoKbW9kZWxfdXNlZBgFIAEoCWIGcHJvdG8z", [file_buf_validate_validate]);
 
 /**
  * WorkflowId wraps a workflow identifier.
@@ -231,4 +231,107 @@ export type RefineWorkflowOutput = Message<"ai.stigmer.agentic.workflow.v1.Refin
  */
 export const RefineWorkflowOutputSchema: GenMessage<RefineWorkflowOutput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflow_v1_io, 4);
+
+/**
+ * Input for diagnosing a failed workflow execution.
+ *
+ * The server loads the execution's status data (phase, error, per-task
+ * statuses) and the parent workflow YAML, then asks an LLM to produce a
+ * root-cause analysis and, when the failure is caused by a definition
+ * error, a suggested YAML fix.
+ *
+ * @generated from message ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput
+ */
+export type DiagnoseWorkflowExecutionInput = Message<"ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput"> & {
+  /**
+   * ID of the failed workflow execution to diagnose.
+   *
+   * @generated from field: string execution_id = 1;
+   */
+  executionId: string;
+
+  /**
+   * Organization slug — used for authorization and resource context.
+   *
+   * @generated from field: string org = 2;
+   */
+  org: string;
+
+  /**
+   * Preferred model for diagnosis (e.g., "claude-sonnet-4-6", "gpt-4o").
+   * When empty, the server selects a capable default model.
+   *
+   * @generated from field: string model = 3;
+   */
+  model: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput.
+ * Use `create(DiagnoseWorkflowExecutionInputSchema)` to create a new message.
+ */
+export const DiagnoseWorkflowExecutionInputSchema: GenMessage<DiagnoseWorkflowExecutionInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflow_v1_io, 5);
+
+/**
+ * Response from workflow execution diagnosis.
+ *
+ * Two categories of failures produce different response shapes:
+ * - Definition errors (wrong config, invalid expressions): `diagnosis`
+ *   explains the root cause, `suggested_yaml` contains the corrected YAML,
+ *   and `fix_explanation` describes what was changed.
+ * - Runtime errors (transient failures, missing env vars, budget exhaustion):
+ *   `diagnosis` explains the root cause and suggests remediation steps.
+ *   `suggested_yaml` and `fix_explanation` are empty.
+ *
+ * @generated from message ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput
+ */
+export type DiagnoseWorkflowExecutionOutput = Message<"ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput"> & {
+  /**
+   * Human-readable root-cause analysis of the failure.
+   * Always populated — describes what went wrong and why.
+   *
+   * @generated from field: string diagnosis = 1;
+   */
+  diagnosis: string;
+
+  /**
+   * Corrected workflow YAML when the failure is a definition error.
+   * Empty when the failure is a runtime error that cannot be fixed
+   * by changing the workflow definition.
+   *
+   * @generated from field: string suggested_yaml = 2;
+   */
+  suggestedYaml: string;
+
+  /**
+   * Explanation of what was changed in the suggested YAML.
+   * Empty when suggested_yaml is empty.
+   *
+   * @generated from field: string fix_explanation = 3;
+   */
+  fixExplanation: string;
+
+  /**
+   * Validation warnings on the suggested YAML (non-fatal).
+   * Empty when suggested_yaml is empty or clean.
+   *
+   * @generated from field: repeated string warnings = 4;
+   */
+  warnings: string[];
+
+  /**
+   * The model that was used for diagnosis.
+   *
+   * @generated from field: string model_used = 5;
+   */
+  modelUsed: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput.
+ * Use `create(DiagnoseWorkflowExecutionOutputSchema)` to create a new message.
+ */
+export const DiagnoseWorkflowExecutionOutputSchema: GenMessage<DiagnoseWorkflowExecutionOutput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflow_v1_io, 6);
 

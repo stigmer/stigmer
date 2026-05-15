@@ -62,6 +62,11 @@ func (w *WorkflowClient) RefineWorkflow(ctx context.Context, input *workflowv1.R
 	return resp, wrapErr(err)
 }
 
+func (w *WorkflowClient) DiagnoseWorkflowExecution(ctx context.Context, input *workflowv1.DiagnoseWorkflowExecutionInput) (*workflowv1.DiagnoseWorkflowExecutionOutput, error) {
+	resp, err := w.command.DiagnoseWorkflowExecution(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (w *WorkflowClient) Get(ctx context.Context, id string) (*workflowv1.Workflow, error) {
 	resp, err := w.query.Get(ctx, &workflowv1.WorkflowId{Value: id})
 	return resp, wrapErr(err)

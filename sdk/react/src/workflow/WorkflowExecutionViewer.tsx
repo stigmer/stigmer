@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, type ReactNode } from "react";
+import { memo, useCallback, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { useWorkflowExecution } from "./useWorkflowExecution";
 import { useWorkflowExecutionEventStream } from "./useWorkflowExecutionEventStream";
@@ -11,17 +11,26 @@ import { WorkflowExecutionTimeline } from "./WorkflowExecutionTimeline";
 import { WorkflowExecutionTaskPanel } from "./WorkflowExecutionTaskPanel";
 import { WorkflowExecutionCostPanel } from "./WorkflowExecutionCostPanel";
 import { WorkflowExecutionArtifactPanel } from "./WorkflowExecutionArtifactPanel";
+import { WorkflowRepairCard } from "./WorkflowRepairCard";
 
 /** Props for {@link WorkflowExecutionViewer}. */
 export interface WorkflowExecutionViewerProps {
   /** ID of the workflow execution to display. */
   readonly executionId: string;
+  /** Organization slug — needed for AI diagnosis authorization. */
+  readonly org?: string;
   /**
    * Callback when the user clicks a link to a child agent execution.
    * Receives the AgentExecution ID. The host application is responsible
    * for navigation — this keeps the component routing-agnostic (DD-004).
    */
   readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
+  /**
+   * Callback when the user clicks "Apply Fix" in the repair card.
+   * Receives the suggested YAML and the workflow slug. The host
+   * application handles navigation to the workflow editor (DD-004).
+   */
+  readonly onNavigateToWorkflowEditor?: (yaml: string, workflowSlug: string) => void;
   /** Additional action elements to render in the header. */
   readonly additionalActions?: ReactNode;
   /** Additional CSS class names for the root container. */
@@ -49,7 +58,9 @@ export interface WorkflowExecutionViewerProps {
  */
 export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   executionId,
+  org,
   onNavigateToAgentExecution,
+  onNavigateToWorkflowEditor,
   additionalActions,
   className,
 }: WorkflowExecutionViewerProps) {
@@ -82,6 +93,25 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   const actions = useWorkflowExecutionActions(executionId);
 
   const [selectedTaskName, setSelectedTaskName] = useState<string | null>(null);
+  const [showDiagnosis, setShowDiagnosis] = useState(false);
+
+  const handleDiagnose = useCallback(() => {
+    setShowDiagnosis(true);
+  }, []);
+
+  const handleCloseDiagnosis = useCallback(() => {
+    setShowDiagnosis(false);
+  }, []);
+
+  const handleApplyFix = useCallback(
+    (yaml: string) => {
+      if (onNavigateToWorkflowEditor) {
+        const slug = execution?.metadata?.slug ?? execution?.metadata?.name ?? "";
+        onNavigateToWorkflowEditor(yaml, slug);
+      }
+    },
+    [onNavigateToWorkflowEditor, execution],
+  );
 
   // Loading state
   if (isLoadingExecution) {
@@ -124,6 +154,8 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         streamState={streamState}
         costSummary={costSummary}
         actions={actions}
+        onDiagnose={org ? handleDiagnose : undefined}
+        isDiagnosing={showDiagnosis}
       />
 
       {/* Stream error banner */}
@@ -165,6 +197,17 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
           {artifacts.length > 0 && (
             <div className="border-t border-border">
               <WorkflowExecutionArtifactPanel artifacts={artifacts} />
+            </div>
+          )}
+
+          {showDiagnosis && org && (
+            <div className="border-t border-border">
+              <WorkflowRepairCard
+                executionId={executionId}
+                org={org}
+                onApplyFix={onNavigateToWorkflowEditor ? handleApplyFix : undefined}
+                onClose={handleCloseDiagnosis}
+              />
             </div>
           )}
 

@@ -1151,6 +1151,8 @@ export {
   useRefineWorkflowFlow,
   WorkflowRefinePanel,
   computeUnifiedDiff,
+  useDiagnoseExecution,
+  WorkflowRepairCard,
 } from "./workflow";
 export type {
   TaskKindDescriptor,
@@ -1238,6 +1240,10 @@ export type {
   WorkflowRefinePanelProps,
   DiffLine as WorkflowDiffLine,
   DiffLineType as WorkflowDiffLineType,
+  UseDiagnoseExecutionOptions,
+  UseDiagnoseExecutionReturn,
+  DiagnoseExecutionFlowResult,
+  WorkflowRepairCardProps,
 } from "./workflow";
 
 // ─── Dashboard (Unified Platform) ──────────────────────────────────────────
