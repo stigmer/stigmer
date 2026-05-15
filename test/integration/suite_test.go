@@ -18,9 +18,10 @@ import (
 )
 
 var (
-	testHarness *harness.TestHarness
-	grpcConn    *grpc.ClientConn
-	suiteLogger *slog.Logger
+	testHarness        *harness.TestHarness
+	grpcConn           *grpc.ClientConn
+	suiteLogger        *slog.Logger
+	mcpTestServerBinary string
 )
 
 func TestMain(m *testing.M) {
@@ -88,6 +89,15 @@ func TestMain(m *testing.M) {
 	// pass the billing authorization gate in InvokeAgentExecutionWorkflow.
 	if err := provisionTestBillingAccount(ctx, grpcConn); err != nil {
 		suiteLogger.Warn("failed to provision test billing account — agent_call tests may fail", "error", err)
+	}
+
+	// Build the test MCP server binary for HITL and MCP integration tests.
+	mcpBinary, mcpErr := harness.BuildTestMcpServer(cfg.OutputDir)
+	if mcpErr != nil {
+		suiteLogger.Warn("failed to build test MCP server — MCP/HITL tests will be skipped", "error", mcpErr)
+	} else {
+		mcpTestServerBinary = mcpBinary
+		suiteLogger.Info("built test MCP server", "path", mcpBinary)
 	}
 
 	// Start agent-runner only when an LLM API key is available.
