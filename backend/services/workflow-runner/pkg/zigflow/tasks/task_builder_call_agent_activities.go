@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -303,15 +304,13 @@ func (a *CallAgentActivities) createAgentExecution(
 		}
 	}
 
-	// Build execution spec with callback token and parent workflow ID
-	// - CallbackToken: enables async activity completion pattern
-	// - ParentWorkflowId: enables events-based approval notification (Phase 5.1)
 	spec := &agentexecv1.AgentExecutionSpec{
-		AgentId:          agentId,
-		Message:          config.Message,
-		RuntimeEnv:       runtimeEnv,
-		CallbackToken:    callbackToken,    // For async completion
-		ParentWorkflowId: parentWorkflowId, // For approval signal (Phase 5.1)
+		AgentId:            agentId,
+		Message:            config.Message,
+		RuntimeEnv:         runtimeEnv,
+		CallbackToken:      callbackToken,
+		ParentWorkflowId:   parentWorkflowId,
+		PreferredRunnerId:  os.Getenv("STIGMER_RUNNER_ID"),
 	}
 
 	// Add execution config if provided

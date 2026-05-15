@@ -20,7 +20,14 @@ on:
       - 'backend/services/cursor-runner/package.json'
       - 'backend/services/cursor-runner/package-lock.json'
       - 'backend/services/cursor-runner/tsconfig*.json'
+      - 'backend/services/workflow-runner/cmd/**'
+      - 'backend/services/workflow-runner/main.go'
+      - 'backend/services/workflow-runner/pkg/**'
+      - 'backend/services/workflow-runner/worker/**'
+      - 'backend/services/workflow-runner/go.mod'
+      - 'backend/services/workflow-runner/go.sum'
       - 'backend/libs/model-registry.json'
+      - 'apis/stubs/go/**'
       - 'apis/stubs/ts/**'
   workflow_dispatch:
 

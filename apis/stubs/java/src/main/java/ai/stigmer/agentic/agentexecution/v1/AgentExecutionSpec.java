@@ -41,6 +41,7 @@ private static final long serialVersionUID = 0L;
     attachments_ = java.util.Collections.emptyList();
     workspaceFileRefs_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
+    preferredRunnerId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -860,6 +861,77 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     return workspaceFileRefs_.getByteString(index);
   }
 
+  public static final int PREFERRED_RUNNER_ID_FIELD_NUMBER = 11;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object preferredRunnerId_ = "";
+  /**
+   * <pre>
+   * Preferred runner ID for activity routing (optional).
+   *
+   * When set, the platform routes this execution's activities to the specified
+   * runner instead of provisioning a new one. The runner must exist and be in
+   * READY or BUSY phase; otherwise the request fails with FAILED_PRECONDITION.
+   *
+   * Primary use case: workflow-runner co-location. When a workflow's call:agent
+   * task creates an AgentExecution, it passes its own runner ID here so the
+   * agent executes in the same Daytona sandbox — avoiding cold-start latency
+   * and reusing the co-located agent-runner process.
+   *
+   * When empty, normal dispatch/provision applies (session-bound runner,
+   * ephemeral provisioning, or global queue fallback).
+   * </pre>
+   *
+   * <code>string preferred_runner_id = 11 [json_name = "preferredRunnerId"];</code>
+   * @return The preferredRunnerId.
+   */
+  @java.lang.Override
+  public java.lang.String getPreferredRunnerId() {
+    java.lang.Object ref = preferredRunnerId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      preferredRunnerId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Preferred runner ID for activity routing (optional).
+   *
+   * When set, the platform routes this execution's activities to the specified
+   * runner instead of provisioning a new one. The runner must exist and be in
+   * READY or BUSY phase; otherwise the request fails with FAILED_PRECONDITION.
+   *
+   * Primary use case: workflow-runner co-location. When a workflow's call:agent
+   * task creates an AgentExecution, it passes its own runner ID here so the
+   * agent executes in the same Daytona sandbox — avoiding cold-start latency
+   * and reusing the co-located agent-runner process.
+   *
+   * When empty, normal dispatch/provision applies (session-bound runner,
+   * ephemeral provisioning, or global queue fallback).
+   * </pre>
+   *
+   * <code>string preferred_runner_id = 11 [json_name = "preferredRunnerId"];</code>
+   * @return The bytes for preferredRunnerId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPreferredRunnerIdBytes() {
+    java.lang.Object ref = preferredRunnerId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      preferredRunnerId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -906,6 +978,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     for (int i = 0; i < workspaceFileRefs_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 10, workspaceFileRefs_.getRaw(i));
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(preferredRunnerId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 11, preferredRunnerId_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -967,6 +1042,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       size += dataSize;
       size += 1 * getWorkspaceFileRefsList().size();
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(preferredRunnerId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(11, preferredRunnerId_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1005,6 +1083,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         .equals(other.getAttachmentsList())) return false;
     if (!getWorkspaceFileRefsList()
         .equals(other.getWorkspaceFileRefsList())) return false;
+    if (!getPreferredRunnerId()
+        .equals(other.getPreferredRunnerId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1045,6 +1125,8 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       hash = (37 * hash) + WORKSPACE_FILE_REFS_FIELD_NUMBER;
       hash = (53 * hash) + getWorkspaceFileRefsList().hashCode();
     }
+    hash = (37 * hash) + PREFERRED_RUNNER_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getPreferredRunnerId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1231,6 +1313,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       bitField0_ = (bitField0_ & ~0x00000100);
       workspaceFileRefs_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
+      preferredRunnerId_ = "";
       return this;
     }
 
@@ -1308,6 +1391,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (((from_bitField0_ & 0x00000200) != 0)) {
         workspaceFileRefs_.makeImmutable();
         result.workspaceFileRefs_ = workspaceFileRefs_;
+      }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.preferredRunnerId_ = preferredRunnerId_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1390,6 +1476,11 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
           ensureWorkspaceFileRefsIsMutable();
           workspaceFileRefs_.addAll(other.workspaceFileRefs_);
         }
+        onChanged();
+      }
+      if (!other.getPreferredRunnerId().isEmpty()) {
+        preferredRunnerId_ = other.preferredRunnerId_;
+        bitField0_ |= 0x00000400;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -1482,6 +1573,11 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
               workspaceFileRefs_.add(input.readStringRequireUtf8());
               break;
             } // case 82
+            case 90: {
+              preferredRunnerId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 90
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3638,6 +3734,158 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.add(value);
       bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object preferredRunnerId_ = "";
+    /**
+     * <pre>
+     * Preferred runner ID for activity routing (optional).
+     *
+     * When set, the platform routes this execution's activities to the specified
+     * runner instead of provisioning a new one. The runner must exist and be in
+     * READY or BUSY phase; otherwise the request fails with FAILED_PRECONDITION.
+     *
+     * Primary use case: workflow-runner co-location. When a workflow's call:agent
+     * task creates an AgentExecution, it passes its own runner ID here so the
+     * agent executes in the same Daytona sandbox — avoiding cold-start latency
+     * and reusing the co-located agent-runner process.
+     *
+     * When empty, normal dispatch/provision applies (session-bound runner,
+     * ephemeral provisioning, or global queue fallback).
+     * </pre>
+     *
+     * <code>string preferred_runner_id = 11 [json_name = "preferredRunnerId"];</code>
+     * @return The preferredRunnerId.
+     */
+    public java.lang.String getPreferredRunnerId() {
+      java.lang.Object ref = preferredRunnerId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        preferredRunnerId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Preferred runner ID for activity routing (optional).
+     *
+     * When set, the platform routes this execution's activities to the specified
+     * runner instead of provisioning a new one. The runner must exist and be in
+     * READY or BUSY phase; otherwise the request fails with FAILED_PRECONDITION.
+     *
+     * Primary use case: workflow-runner co-location. When a workflow's call:agent
+     * task creates an AgentExecution, it passes its own runner ID here so the
+     * agent executes in the same Daytona sandbox — avoiding cold-start latency
+     * and reusing the co-located agent-runner process.
+     *
+     * When empty, normal dispatch/provision applies (session-bound runner,
+     * ephemeral provisioning, or global queue fallback).
+     * </pre>
+     *
+     * <code>string preferred_runner_id = 11 [json_name = "preferredRunnerId"];</code>
+     * @return The bytes for preferredRunnerId.
+     */
+    public com.google.protobuf.ByteString
+        getPreferredRunnerIdBytes() {
+      java.lang.Object ref = preferredRunnerId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        preferredRunnerId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Preferred runner ID for activity routing (optional).
+     *
+     * When set, the platform routes this execution's activities to the specified
+     * runner instead of provisioning a new one. The runner must exist and be in
+     * READY or BUSY phase; otherwise the request fails with FAILED_PRECONDITION.
+     *
+     * Primary use case: workflow-runner co-location. When a workflow's call:agent
+     * task creates an AgentExecution, it passes its own runner ID here so the
+     * agent executes in the same Daytona sandbox — avoiding cold-start latency
+     * and reusing the co-located agent-runner process.
+     *
+     * When empty, normal dispatch/provision applies (session-bound runner,
+     * ephemeral provisioning, or global queue fallback).
+     * </pre>
+     *
+     * <code>string preferred_runner_id = 11 [json_name = "preferredRunnerId"];</code>
+     * @param value The preferredRunnerId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPreferredRunnerId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      preferredRunnerId_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Preferred runner ID for activity routing (optional).
+     *
+     * When set, the platform routes this execution's activities to the specified
+     * runner instead of provisioning a new one. The runner must exist and be in
+     * READY or BUSY phase; otherwise the request fails with FAILED_PRECONDITION.
+     *
+     * Primary use case: workflow-runner co-location. When a workflow's call:agent
+     * task creates an AgentExecution, it passes its own runner ID here so the
+     * agent executes in the same Daytona sandbox — avoiding cold-start latency
+     * and reusing the co-located agent-runner process.
+     *
+     * When empty, normal dispatch/provision applies (session-bound runner,
+     * ephemeral provisioning, or global queue fallback).
+     * </pre>
+     *
+     * <code>string preferred_runner_id = 11 [json_name = "preferredRunnerId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPreferredRunnerId() {
+      preferredRunnerId_ = getDefaultInstance().getPreferredRunnerId();
+      bitField0_ = (bitField0_ & ~0x00000400);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Preferred runner ID for activity routing (optional).
+     *
+     * When set, the platform routes this execution's activities to the specified
+     * runner instead of provisioning a new one. The runner must exist and be in
+     * READY or BUSY phase; otherwise the request fails with FAILED_PRECONDITION.
+     *
+     * Primary use case: workflow-runner co-location. When a workflow's call:agent
+     * task creates an AgentExecution, it passes its own runner ID here so the
+     * agent executes in the same Daytona sandbox — avoiding cold-start latency
+     * and reusing the co-located agent-runner process.
+     *
+     * When empty, normal dispatch/provision applies (session-bound runner,
+     * ephemeral provisioning, or global queue fallback).
+     * </pre>
+     *
+     * <code>string preferred_runner_id = 11 [json_name = "preferredRunnerId"];</code>
+     * @param value The bytes for preferredRunnerId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPreferredRunnerIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      preferredRunnerId_ = value;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
