@@ -39,6 +39,15 @@ type WorkflowRunnerConfig struct {
 	// LogDir is the directory for the runner log file.
 	// If empty, a temporary directory is used.
 	LogDir string
+
+	// TaskQueue sets STIGMER_TASK_QUEUE (sandbox mode). When empty, the
+	// workflow-runner uses hardcoded OSS defaults.
+	TaskQueue string
+
+	// RunnerID sets STIGMER_RUNNER_ID. When set alongside TaskQueue, the
+	// workflow-runner operates in sandbox mode and passes this ID as
+	// preferred_runner_id to agent executions.
+	RunnerID string
 }
 
 // StartWorkflowRunner builds (if needed) and starts the workflow-runner binary.
@@ -182,14 +191,18 @@ func buildRunnerEnv(cfg WorkflowRunnerConfig) []string {
 		fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", cfg.TemporalAddress),
 		"TEMPORAL_NAMESPACE=default",
 
-		"TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE=workflow_execution_runner",
-		"TEMPORAL_ZIGFLOW_EXECUTION_TASK_QUEUE=zigflow_execution",
-		"TEMPORAL_WORKFLOW_VALIDATION_RUNNER_TASK_QUEUE=workflow_validation_runner",
-
 		"LOG_LEVEL=info",
 		"ENV=local",
 
 		"CLAIMCHECK_ENABLED=false",
 	)
+
+	if cfg.TaskQueue != "" {
+		env = append(env, fmt.Sprintf("STIGMER_TASK_QUEUE=%s", cfg.TaskQueue))
+	}
+	if cfg.RunnerID != "" {
+		env = append(env, fmt.Sprintf("STIGMER_RUNNER_ID=%s", cfg.RunnerID))
+	}
+
 	return env
 }
