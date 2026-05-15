@@ -68,8 +68,76 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: Phase 2 (T07–T12) — COMPLETE
-**Status**: Ready for Phase 3 or commit/push
+**Current Task**: Signal routing fix implemented — ready for E2E validation
+**Status**: Java relay + test updates complete; CI green for Phase 2; ready for Phase 3
+
+## Session Progress (2026-05-15, Session 10 — Java Signal Routing Fix)
+
+### Accomplished
+- **Fixed Java signal routing for HITL and listen tasks** — the production blocker where signals sent via the gRPC API were silently dropped by the outer Java workflow
+- **Added `relaySignal` `@SignalMethod`** to `InvokeWorkflowExecutionWorkflow` interface — generic signal forwarding from outer to inner workflow
+- **Implemented relay logic** in `InvokeWorkflowExecutionWorkflowImpl` — stores `executionId` as instance field, uses `Workflow.newUntypedExternalWorkflowStub("workflow-exec-{id}")` to forward signals to the inner Go workflow
+- **Updated `InvokeWorkflowExecutionWorkflowCreator.signalWithStart()`** — now routes through `relaySignal` so the outer workflow forwards to the inner workflow where signal channels live
+- **Updated HITL integration tests** — removed direct Temporal SDK signal bypass, now uses `clients.ExecutionCommand.SubmitWorkflowTaskApproval()` gRPC API to exercise the full signal routing path
+- **Removed `temporalclient` and `fmt` imports** from test file (no longer needed)
+
+### Design Decision: No `Workflow.getVersion()` Needed
+The plan suggested using `Workflow.getVersion()` for backward compatibility. After careful analysis:
+- Adding a new `@SignalMethod` is additive — no existing event history replay is affected
+- The `relaySignal` signal was never sent by old code, so it's never in any old event history
+- Storing `executionId` as an instance field doesn't change command sequences
+- Unnecessary versioning would add dead code complexity
+
+### Key Architecture (Signal Flow After Fix)
+```
+User/API → Java Handler → SignalWithStart("relaySignal", [signalName, payload])
+  → Outer Java Workflow (InvokeWorkflowExecution)
+    → relaySignal() → Workflow.newUntypedExternalWorkflowStub("workflow-exec-{id}")
+      → SignalExternalWorkflow(signalName, payload)
+        → Inner Go Workflow (ExecuteServerlessWorkflow) → signal channel receives
+```
+
+### Files Changed
+
+**stigmer-cloud** — modified (3 files):
+- `InvokeWorkflowExecutionWorkflow.java` — added `relaySignal(String, Object)` `@SignalMethod`
+- `InvokeWorkflowExecutionWorkflowImpl.java` — implemented relay logic, added `executionId` field, updated Javadoc
+- `InvokeWorkflowExecutionWorkflowCreator.java` — `signalWithStart()` now routes through `relaySignal`
+
+**stigmer-cloud** — Javadoc updates (2 files):
+- `WorkflowExecutionSubmitWorkflowTaskApprovalHandler.java` — documented relay routing
+- `WorkflowExecutionSendSignalHandler.java` — documented relay routing
+
+**stigmer (OSS)** — modified (1 file):
+- `test/integration/workflow_hitl_test.go` — replaced direct Temporal signaling with gRPC API calls
+
+## Session Progress (2026-05-15, Session 9 — CI Verification)
+
+### Accomplished
+- **Pushed `feat/bring-workflows-to-foreground` branch** to both `stigmer` and `stigmer-cloud` repos
+- **Created draft PR** — https://github.com/stigmer/stigmer/pull/149
+- **CI pipeline validated end-to-end** — `ci.integration-offline.yaml` runs successfully
+  - Build Service JAR (Bazel): ~2m44s
+  - Integration Tests (23 tests): ~2m38s
+  - Total pipeline: ~5m30s
+- **Diagnosed first CI failure** — `stigmer-cloud` test-mode security bypass was not on `main`; CI was checking out `main` by default
+- **Fixed via `cloud_ref` input** — manual dispatch with `cloud_ref=feat/bring-workflows-to-foreground` succeeded
+
+### Key Finding
+- The CI workflow defaults `cloud_ref` to `main`. Until the stigmer-cloud test-mode changes are merged to `main`, PR-triggered runs will fail. Options:
+  1. Merge stigmer-cloud feature branch to `main` first
+  2. Temporarily hardcode the feature branch ref in the workflow
+  3. Accept that PR runs require manual dispatch with `cloud_ref` until merge
+
+### CI Run
+- **Successful run**: https://github.com/stigmer/stigmer/actions/runs/25899168687
+- **Failed run** (missing test-mode bypass): https://github.com/stigmer/stigmer/actions/runs/25898570315
+
+## Next Steps
+1. ~~**Resolve `cloud_ref` default**~~ — RESOLVED: `cloud_ref` can be passed at dispatch time, tests pass
+2. **Phase 3**: Provider-backed canary tests (LLM, agent, cursor-runner) — requires API keys
+3. ~~**Fix Java signal routing**~~ — RESOLVED: `relaySignal` implemented (Session 10)
+4. **Implement `listen` converter** — enable signal-based tests
 
 ## Session Progress (2026-05-15, Session 8 — Phase 2: Workflow Task Family & HITL Testing)
 
@@ -85,7 +153,7 @@ When starting a new session:
 - **Discovered signal routing gap** in Java service (documented, tests bypass via direct Temporal SDK)
 
 ### Key Findings
-- Java service sends signals to outer `InvokeWorkflowExecution` workflow, but `human_input` listener is in inner `ExecuteServerlessWorkflow` — no relay mechanism exists
+- ~~Java service sends signals to outer `InvokeWorkflowExecution` workflow, but `human_input` listener is in inner `ExecuteServerlessWorkflow` — no relay mechanism exists~~ **FIXED in Session 10**: `relaySignal` method added to outer workflow, tests updated to use gRPC API
 - `convertListenTask` is a stub — `listen + sendSignal` tests require converter implementation first
 - `ExecutionOutput` is consistently `nil` — output propagation may need investigation
 
@@ -342,9 +410,12 @@ When starting a new session:
 - `IntegrationTestSecurityConfig.java` — NEW: permit-all security + synthetic test caller identity
 
 ## Next Steps (Bottom)
-1. **Verify CI in practice** — push to a PR branch and observe the workflow run end-to-end
-2. **Monitor Bazel build times** — if cold builds exceed 5 min, consider enabling BuildBuddy remote cache write
-3. **Future: Publish JAR from stigmer-cloud CI** — replace Job 1 with a download step
+1. ~~**Resolve `cloud_ref` default**~~ — RESOLVED: `cloud_ref` can be passed at dispatch time
+2. **Phase 3**: Provider-backed canary tests (T13/T14 from plan) — requires API keys
+3. ~~**Fix Java signal routing**~~ — RESOLVED: `relaySignal` relay implemented (Session 10)
+4. **Implement `listen` converter** — enable signal-based tests
+5. **Future: Publish JAR from stigmer-cloud CI** — replace Job 1 with a download step
+6. **Run E2E validation** — `make test-integration` to verify HITL tests pass through gRPC API path
 
 ## Context for Resume
 - All 9 integration tests pass (4 top-level + subtests): infra (3 sub-tests), service health, smoke gRPC, workflow lifecycle

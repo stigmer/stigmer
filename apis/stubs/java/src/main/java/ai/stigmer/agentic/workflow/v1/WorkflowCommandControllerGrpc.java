@@ -201,6 +201,37 @@ public final class WorkflowCommandControllerGrpc {
     return getRefineWorkflowMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput,
+      ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput> getDiagnoseWorkflowExecutionMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "diagnoseWorkflowExecution",
+      requestType = ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput.class,
+      responseType = ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput,
+      ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput> getDiagnoseWorkflowExecutionMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput, ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput> getDiagnoseWorkflowExecutionMethod;
+    if ((getDiagnoseWorkflowExecutionMethod = WorkflowCommandControllerGrpc.getDiagnoseWorkflowExecutionMethod) == null) {
+      synchronized (WorkflowCommandControllerGrpc.class) {
+        if ((getDiagnoseWorkflowExecutionMethod = WorkflowCommandControllerGrpc.getDiagnoseWorkflowExecutionMethod) == null) {
+          WorkflowCommandControllerGrpc.getDiagnoseWorkflowExecutionMethod = getDiagnoseWorkflowExecutionMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput, ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "diagnoseWorkflowExecution"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowCommandControllerMethodDescriptorSupplier("diagnoseWorkflowExecution"))
+              .build();
+        }
+      }
+    }
+    return getDiagnoseWorkflowExecutionMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -340,6 +371,21 @@ public final class WorkflowCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRefineWorkflowMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Diagnose a failed workflow execution using AI.
+     * Loads the execution's status (phase, error, per-task statuses) and the
+     * parent workflow YAML, constructs a diagnostic prompt, and calls an LLM
+     * to produce a root-cause analysis. When the failure is caused by a
+     * definition error, the response includes a suggested YAML fix that is
+     * validated with up to 2 retries.
+     * </pre>
+     */
+    default void diagnoseWorkflowExecution(ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDiagnoseWorkflowExecutionMethod(), responseObserver);
+    }
   }
 
   /**
@@ -454,6 +500,22 @@ public final class WorkflowCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getRefineWorkflowMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Diagnose a failed workflow execution using AI.
+     * Loads the execution's status (phase, error, per-task statuses) and the
+     * parent workflow YAML, constructs a diagnostic prompt, and calls an LLM
+     * to produce a root-cause analysis. When the failure is caused by a
+     * definition error, the response includes a suggested YAML fix that is
+     * validated with up to 2 retries.
+     * </pre>
+     */
+    public void diagnoseWorkflowExecution(ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getDiagnoseWorkflowExecutionMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -548,6 +610,21 @@ public final class WorkflowCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getRefineWorkflowMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Diagnose a failed workflow execution using AI.
+     * Loads the execution's status (phase, error, per-task statuses) and the
+     * parent workflow YAML, constructs a diagnostic prompt, and calls an LLM
+     * to produce a root-cause analysis. When the failure is caused by a
+     * definition error, the response includes a suggested YAML fix that is
+     * validated with up to 2 retries.
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput diagnoseWorkflowExecution(ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getDiagnoseWorkflowExecutionMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -641,6 +718,21 @@ public final class WorkflowCommandControllerGrpc {
     public ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput refineWorkflow(ai.stigmer.agentic.workflow.v1.RefineWorkflowInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getRefineWorkflowMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Diagnose a failed workflow execution using AI.
+     * Loads the execution's status (phase, error, per-task statuses) and the
+     * parent workflow YAML, constructs a diagnostic prompt, and calls an LLM
+     * to produce a root-cause analysis. When the failure is caused by a
+     * definition error, the response includes a suggested YAML fix that is
+     * validated with up to 2 retries.
+     * </pre>
+     */
+    public ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput diagnoseWorkflowExecution(ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getDiagnoseWorkflowExecutionMethod(), getCallOptions(), request);
     }
   }
 
@@ -742,6 +834,22 @@ public final class WorkflowCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getRefineWorkflowMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Diagnose a failed workflow execution using AI.
+     * Loads the execution's status (phase, error, per-task statuses) and the
+     * parent workflow YAML, constructs a diagnostic prompt, and calls an LLM
+     * to produce a root-cause analysis. When the failure is caused by a
+     * definition error, the response includes a suggested YAML fix that is
+     * validated with up to 2 retries.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput> diagnoseWorkflowExecution(
+        ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getDiagnoseWorkflowExecutionMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_APPLY = 0;
@@ -750,6 +858,7 @@ public final class WorkflowCommandControllerGrpc {
   private static final int METHODID_DELETE = 3;
   private static final int METHODID_GENERATE_WORKFLOW_FROM_PROMPT = 4;
   private static final int METHODID_REFINE_WORKFLOW = 5;
+  private static final int METHODID_DIAGNOSE_WORKFLOW_EXECUTION = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -791,6 +900,10 @@ public final class WorkflowCommandControllerGrpc {
         case METHODID_REFINE_WORKFLOW:
           serviceImpl.refineWorkflow((ai.stigmer.agentic.workflow.v1.RefineWorkflowInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput>) responseObserver);
+          break;
+        case METHODID_DIAGNOSE_WORKFLOW_EXECUTION:
+          serviceImpl.diagnoseWorkflowExecution((ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -852,6 +965,13 @@ public final class WorkflowCommandControllerGrpc {
               ai.stigmer.agentic.workflow.v1.RefineWorkflowInput,
               ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput>(
                 service, METHODID_REFINE_WORKFLOW)))
+        .addMethod(
+          getDiagnoseWorkflowExecutionMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput,
+              ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput>(
+                service, METHODID_DIAGNOSE_WORKFLOW_EXECUTION)))
         .build();
   }
 
@@ -906,6 +1026,7 @@ public final class WorkflowCommandControllerGrpc {
               .addMethod(getDeleteMethod())
               .addMethod(getGenerateWorkflowFromPromptMethod())
               .addMethod(getRefineWorkflowMethod())
+              .addMethod(getDiagnoseWorkflowExecutionMethod())
               .build();
         }
       }

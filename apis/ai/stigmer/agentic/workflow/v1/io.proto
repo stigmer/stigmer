@@ -100,3 +100,52 @@ message RefineWorkflowOutput {
   // The model that was used for refinement.
   string model_used = 4;
 }
+
+// Input for diagnosing a failed workflow execution.
+//
+// The server loads the execution's status data (phase, error, per-task
+// statuses) and the parent workflow YAML, then asks an LLM to produce a
+// root-cause analysis and, when the failure is caused by a definition
+// error, a suggested YAML fix.
+message DiagnoseWorkflowExecutionInput {
+  // ID of the failed workflow execution to diagnose.
+  string execution_id = 1 [(buf.validate.field).required = true];
+
+  // Organization slug — used for authorization and resource context.
+  string org = 2 [(buf.validate.field).required = true];
+
+  // Preferred model for diagnosis (e.g., "claude-sonnet-4-6", "gpt-4o").
+  // When empty, the server selects a capable default model.
+  string model = 3;
+}
+
+// Response from workflow execution diagnosis.
+//
+// Two categories of failures produce different response shapes:
+// - Definition errors (wrong config, invalid expressions): `diagnosis`
+//   explains the root cause, `suggested_yaml` contains the corrected YAML,
+//   and `fix_explanation` describes what was changed.
+// - Runtime errors (transient failures, missing env vars, budget exhaustion):
+//   `diagnosis` explains the root cause and suggests remediation steps.
+//   `suggested_yaml` and `fix_explanation` are empty.
+message DiagnoseWorkflowExecutionOutput {
+  // Human-readable root-cause analysis of the failure.
+  // Always populated — describes what went wrong and why.
+  string diagnosis = 1;
+
+  // Corrected workflow YAML when the failure is a definition error.
+  // Empty when the failure is a runtime error that cannot be fixed
+  // by changing the workflow definition.
+  string suggested_yaml = 2;
+
+  // Explanation of what was changed in the suggested YAML.
+  // Empty when suggested_yaml is empty.
+  string fix_explanation = 3;
+
+  // Validation warnings on the suggested YAML (non-fatal).
+  // Empty when suggested_yaml is empty or clean.
+  repeated string warnings = 4;
+
+  // The model that was used for diagnosis.
+  string model_used = 5;
+}

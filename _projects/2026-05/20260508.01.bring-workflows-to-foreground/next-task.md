@@ -19,10 +19,74 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-15 — T16 Batch 3 COMPLETE (refine workflow — chat-style iteration)
-**Current Task**: T16 Batch 3 COMPLETE
-**Phase**: Phase 3 — AI-Assisted Creation — Batch 3 complete
-**Next Task**: T16 Batch 4 (Diagnose Workflow — error analysis + repair suggestions)
+**Last Session**: 2026-05-15 — T16 Batch 4 COMPLETE (diagnose execution — AI repair assistant)
+**Current Task**: T16 Batch 4 COMPLETE
+**Phase**: Phase 3 — AI-Assisted Creation — ALL BATCHES COMPLETE
+**Next Task**: Phase 4: Advanced Agentic Orchestration (T17) — plan_and_execute, handoff, eval, batch, cache, code_execution, memory
+
+## Session Progress (2026-05-15, T16 Batch 4)
+
+### T16 Batch 4: Workflow Repair Assistant (Diagnose Failed Executions) — COMPLETE
+
+Built the complete "Diagnose with AI" feature for failed workflow executions: proto
+contract, Go + Java backend handlers with diagnostic prompts, SDK client method,
+React behavior hook, styled repair card, and console integration.
+
+#### Proto Contract
+- Added `DiagnoseWorkflowExecutionInput` (execution_id, org, model) and
+  `DiagnoseWorkflowExecutionOutput` (diagnosis, suggested_yaml, fix_explanation, warnings, model_used) to `io.proto`
+- Added `diagnoseWorkflowExecution` RPC to `command.proto` with `can_create_workflow` permission
+- Codegen across Go, Java, TS, Python stubs (both repos)
+
+#### Go Backend (OSS — stigmer-server)
+- **`pkg/llmclient/prompt.go`** — Added `BuildDiagnosticPrompt()` with failure-focused
+  system prompt: execution failure context (phase, error, per-task statuses), task kind
+  metadata for failing kinds, instructions distinguishing definition vs runtime errors.
+  Added `SplitDiagnosticResponse()` for structured response parsing.
+- **`pkg/domain/workflow/controller/diagnose_execution.go`** — New handler: model resolution,
+  execution loading, workflow resolution (workflow_id or workflow_instance_id), proto-to-YAML
+  serialization (protojson → yaml), diagnostic prompt construction, LLM call, response
+  parsing, suggested YAML validation with max 2 retries
+
+#### Java Backend (Cloud — stigmer-service)
+- **`WorkflowPromptBuilder.java`** — Added `buildDiagnosticPrompt()` mirroring Go logic
+- **`WorkflowDiagnoseExecutionHandler.java`** — New handler mirroring `WorkflowGenerateFromPromptHandler`
+  with `RequestPipelineV2`, `LlmCallService`, YAML validation retries
+
+#### SDK TypeScript
+- Added `diagnoseExecution()` method to `WorkflowClient` with `DiagnoseExecutionInput`
+  and `DiagnoseExecutionResult` types, exported from barrel
+
+#### SDK React
+- **`useDiagnoseExecution.ts`** — Behavior hook managing diagnosis lifecycle:
+  `isDiagnosing`, `result`, `error`, `diagnose()`, `reset()` methods. `useMemo`-wrapped return (DD-010)
+- **`WorkflowRepairCard.tsx`** — Card with diagnosis text, conditional diff preview
+  (reuses `computeUnifiedDiff`), warnings banner, "Apply Fix" button.
+  Loading/error states. All `--stgm-*` tokens, zero Console dependencies (DD-004)
+
+#### Viewer Integration
+- "Diagnose" button in `WorkflowExecutionHeader` (failed executions only, alongside "Recover")
+- `WorkflowRepairCard` in `WorkflowExecutionViewer` sidebar when diagnosis active
+- `onNavigateToWorkflowEditor` callback prop for Apply Fix navigation
+
+#### Console Integration (DD-016 parity)
+- Web: `WorkflowExecutionDetailPage` passes `org` to viewer
+- Desktop: extracts `org` from URL search params, passes to viewer
+
+#### Barrel Exports
+- `sdk/react/src/workflow/index.ts` — hook, types, component
+- `sdk/react/src/index.ts` — top-level re-exports
+
+#### Architectural Decisions
+- AD-T16-B4-001: Diagnosis from execution status data (not event log) — works in both OSS and Cloud
+- AD-T16-B4-002: Not all failures need YAML fixes — definition vs runtime error categorization
+- AD-T16-B4-003: RPC on WorkflowCommandController (consistent with generate/refine)
+- AD-T16-B4-004: Navigation via callback prop (DD-004: zero framework deps in SDK)
+
+#### Verification
+- `buf lint` — clean
+- `go build` + `go vet` — clean (stigmer-server)
+- `tsc --noEmit` — clean (sdk/typescript, sdk/react, client-apps/web, client-apps/desktop)
 
 ## Session Progress (2026-05-15, T16 Batch 3)
 
@@ -917,8 +981,8 @@ New Task Types — llm_call, transform, human_input, validate, emit_event, notif
 Structured Agent Output Model
 
 ## Next Steps
-1. **T16 Batch 4: Diagnose Workflow** — `diagnoseWorkflow` RPC + error analysis + repair suggestions
-2. **Phase 4: Advanced Agentic Orchestration (T17)** — plan_and_execute, handoff, eval, batch, cache, code_execution, memory
+1. **Phase 4: Advanced Agentic Orchestration (T17)** — plan_and_execute, handoff, eval, batch, cache, code_execution, memory
+2. **Open tech debt items** (see below)
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
@@ -944,6 +1008,14 @@ Structured Agent Output Model
   - SDK: `WorkflowClient.refine()` + `useRefineWorkflowFlow` hook
   - React: `WorkflowRefinePanel` + `workflow-yaml-diff.ts` (Myers diff, no deps)
   - Editor integration: toolbar toggle, replaces graph in code mode, sidebar in visual mode
+- **Phase 3 Batch 4 COMPLETE** — Diagnose execution (repair assistant)
+  - `diagnoseWorkflowExecution` RPC: loads execution + workflow, builds diagnostic prompt
+  - Go handler (`diagnose_execution.go`) + Java handler (`WorkflowDiagnoseExecutionHandler.java`)
+  - Diagnostic prompts with failure context, task kind metadata, definition vs runtime distinction
+  - SDK: `WorkflowClient.diagnoseExecution()` + `useDiagnoseExecution` hook
+  - React: `WorkflowRepairCard` with diff preview, Apply Fix action
+  - Viewer integration: "Diagnose" button in header, repair card in sidebar
+  - Console: web + desktop wire `org` and `onNavigateToWorkflowEditor`
 - Workflow execution → session navigation fix COMPLETE (2026-05-14)
 - Unified Platform Dashboard COMPLETE (2026-05-14)
 - Cost data pipeline COMPLETE
@@ -1029,7 +1101,7 @@ When starting a new session:
 - **Phase 0**: Harden Workflow Core (T02-T07) — COMPLETE
 - **Phase 1**: Foreground MVP (T08-T14) — COMPLETE
 - **Phase 2**: Visual Builder (T15) — COMPLETE — canvas editor, drag-and-drop, YAML round-trip
-- **Phase 3**: AI-Assisted Creation (T16) — NL-to-workflow, chat-to-workflow, repair assistant
+- **Phase 3**: AI-Assisted Creation (T16) — COMPLETE — generate, refine, diagnose
 - **Phase 4**: Advanced Agentic Orchestration (T17) — plan_and_execute, handoff, eval, batch, cache, code_execution, memory
 
 ## Quick Commands

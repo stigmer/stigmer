@@ -60,3 +60,27 @@ class RefineWorkflowOutput(_message.Message):
     warnings: _containers.RepeatedScalarFieldContainer[str]
     model_used: str
     def __init__(self, yaml: _Optional[str] = ..., explanation: _Optional[str] = ..., warnings: _Optional[_Iterable[str]] = ..., model_used: _Optional[str] = ...) -> None: ...
+
+class DiagnoseWorkflowExecutionInput(_message.Message):
+    __slots__ = ("execution_id", "org", "model")
+    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    MODEL_FIELD_NUMBER: _ClassVar[int]
+    execution_id: str
+    org: str
+    model: str
+    def __init__(self, execution_id: _Optional[str] = ..., org: _Optional[str] = ..., model: _Optional[str] = ...) -> None: ...
+
+class DiagnoseWorkflowExecutionOutput(_message.Message):
+    __slots__ = ("diagnosis", "suggested_yaml", "fix_explanation", "warnings", "model_used")
+    DIAGNOSIS_FIELD_NUMBER: _ClassVar[int]
+    SUGGESTED_YAML_FIELD_NUMBER: _ClassVar[int]
+    FIX_EXPLANATION_FIELD_NUMBER: _ClassVar[int]
+    WARNINGS_FIELD_NUMBER: _ClassVar[int]
+    MODEL_USED_FIELD_NUMBER: _ClassVar[int]
+    diagnosis: str
+    suggested_yaml: str
+    fix_explanation: str
+    warnings: _containers.RepeatedScalarFieldContainer[str]
+    model_used: str
+    def __init__(self, diagnosis: _Optional[str] = ..., suggested_yaml: _Optional[str] = ..., fix_explanation: _Optional[str] = ..., warnings: _Optional[_Iterable[str]] = ..., model_used: _Optional[str] = ...) -> None: ...

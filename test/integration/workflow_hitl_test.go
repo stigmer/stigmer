@@ -4,7 +4,6 @@ package integration
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/require"
-	temporalclient "go.temporal.io/sdk/client"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -99,18 +97,13 @@ func TestWorkflowHITL_WaitTask(t *testing.T) {
 }
 
 // TestWorkflowHITL_HumanInputApproval verifies the full human-in-the-loop
-// approval flow using Temporal signals:
+// approval flow through the production API path:
 //
 //  1. Deploy workflow with a human_input task
 //  2. Execute and wait for the task to block (execution stays RUNNING)
-//  3. Send approval signal directly to the inner ExecuteServerlessWorkflow
+//  3. Submit approval via gRPC submitWorkflowTaskApproval
+//     (Java handler → outer workflow relaySignal → inner Go workflow)
 //  4. Verify execution reaches COMPLETED
-//
-// NOTE: The signal is sent directly to the inner Temporal workflow
-// (workflow-exec-{executionID}) because the Java service currently sends
-// signals to the outer InvokeWorkflowExecution workflow, which lacks a
-// relay mechanism to forward them. This test validates the Go runner's
-// signal handling end-to-end; the Java service routing is tracked separately.
 func TestWorkflowHITL_HumanInputApproval(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
 	if testHarness.WorkflowRunner == nil {
@@ -181,24 +174,17 @@ func TestWorkflowHITL_HumanInputApproval(t *testing.T) {
 	// Wait for the workflow to start and reach the human_input gate.
 	time.Sleep(3 * time.Second)
 
-	// Send the approval signal directly to the inner ExecuteServerlessWorkflow.
-	// The inner workflow ID follows the pattern: workflow-exec-{executionID}
-	temporalAddr := testHarness.Temporal.Address()
-	tc, err := temporalclient.Dial(temporalclient.Options{HostPort: temporalAddr})
-	require.NoError(t, err, "should connect to Temporal dev server")
-	defer tc.Close()
-
-	innerWorkflowID := fmt.Sprintf("workflow-exec-%s", executionID)
-	signalName := "human_input_awaitApproval"
-	signalPayload := map[string]any{
-		"outcome":      "approve",
-		"reviewer":     "integration-test",
-		"responded_at": time.Now().UTC().Format(time.RFC3339),
-	}
-
-	t.Logf("sending signal %q to inner workflow %s", signalName, innerWorkflowID)
-	err = tc.SignalWorkflow(ctx, innerWorkflowID, "", signalName, signalPayload)
-	require.NoError(t, err, "signal delivery should succeed")
+	// Submit approval through the gRPC API — exercises the full signal routing:
+	// Java handler → outer workflow relaySignal → inner Go workflow signal channel
+	t.Logf("submitting approval via gRPC API for task 'awaitApproval' on execution %s", executionID)
+	_, err = clients.ExecutionCommand.SubmitWorkflowTaskApproval(ctx,
+		&workflowexecutionv1.SubmitWorkflowTaskApprovalInput{
+			ExecutionId: executionID,
+			TaskName:    "awaitApproval",
+			Outcome:     "approve",
+			Reviewer:    "integration-test",
+		})
+	require.NoError(t, err, "gRPC submitWorkflowTaskApproval should succeed")
 
 	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
 	result, err := waiter.WaitForPhase(ctx, executionID,
@@ -211,12 +197,13 @@ func TestWorkflowHITL_HumanInputApproval(t *testing.T) {
 		"afterApproval": workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED,
 	})
 
-	t.Logf("human_input approval flow completed: signal delivered directly, workflow resumed")
+	t.Logf("human_input approval flow completed via gRPC API path")
 }
 
 // TestWorkflowHITL_HumanInputRejection verifies that a human_input task
-// handles denial correctly. When outcomes are defined, a "reject" outcome
-// should still complete the task (the outcome is data, not a failure).
+// handles denial correctly through the production API path. When outcomes are
+// defined, a "reject" outcome should still complete the task (the outcome is
+// data, not a failure).
 func TestWorkflowHITL_HumanInputRejection(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
 	if testHarness.WorkflowRunner == nil {
@@ -286,25 +273,20 @@ func TestWorkflowHITL_HumanInputRejection(t *testing.T) {
 
 	time.Sleep(3 * time.Second)
 
-	temporalAddr := testHarness.Temporal.Address()
-	tc, err := temporalclient.Dial(temporalclient.Options{HostPort: temporalAddr})
-	require.NoError(t, err, "should connect to Temporal dev server")
-	defer tc.Close()
-
-	innerWorkflowID := fmt.Sprintf("workflow-exec-%s", executionID)
-	signalName := "human_input_awaitReview"
-	signalPayload := map[string]any{
-		"outcome":      "reject",
-		"reviewer":     "integration-test",
-		"responded_at": time.Now().UTC().Format(time.RFC3339),
-	}
-
-	t.Logf("sending rejection signal %q to inner workflow %s", signalName, innerWorkflowID)
-	err = tc.SignalWorkflow(ctx, innerWorkflowID, "", signalName, signalPayload)
-	require.NoError(t, err, "signal delivery should succeed")
+	// Submit rejection through the gRPC API — exercises the full signal routing:
+	// Java handler → outer workflow relaySignal → inner Go workflow signal channel
+	t.Logf("submitting rejection via gRPC API for task 'awaitReview' on execution %s", executionID)
+	_, err = clients.ExecutionCommand.SubmitWorkflowTaskApproval(ctx,
+		&workflowexecutionv1.SubmitWorkflowTaskApprovalInput{
+			ExecutionId: executionID,
+			TaskName:    "awaitReview",
+			Outcome:     "reject",
+			Reviewer:    "integration-test",
+		})
+	require.NoError(t, err, "gRPC submitWorkflowTaskApproval should succeed")
 
 	// When outcomes are explicitly defined (approve/reject), a "reject" outcome
-	// completes the task normally -- the outcome is informational data.
+	// completes the task normally — the outcome is informational data.
 	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
 	result, err := waiter.WaitForPhase(ctx, executionID,
 		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, 90*time.Second)
@@ -316,5 +298,5 @@ func TestWorkflowHITL_HumanInputRejection(t *testing.T) {
 		"afterReview": workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED,
 	})
 
-	t.Logf("human_input rejection flow completed: reject outcome treated as data, not failure")
+	t.Logf("human_input rejection flow completed via gRPC API: reject outcome treated as data, not failure")
 }

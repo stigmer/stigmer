@@ -6,6 +6,7 @@ import { useSessionNavigation } from "@/domain/session/session-navigation";
 
 interface WorkflowExecutionDetailPageProps {
   readonly executionId: string;
+  readonly org?: string;
 }
 
 /**
@@ -20,6 +21,7 @@ interface WorkflowExecutionDetailPageProps {
  */
 export function WorkflowExecutionDetailPage({
   executionId,
+  org,
 }: WorkflowExecutionDetailPageProps) {
   const { navigateToSession } = useSessionNavigation();
   const [pendingAgentExecutionId, setPendingAgentExecutionId] = useState<string | null>(null);
@@ -51,6 +53,7 @@ export function WorkflowExecutionDetailPage({
       )}
       <WorkflowExecutionViewer
         executionId={executionId}
+        org={org}
         onNavigateToAgentExecution={handleNavigateToAgentExecution}
       />
     </div>

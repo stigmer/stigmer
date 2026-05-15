@@ -178,6 +178,8 @@ export {
   type GenerateFromPromptResult,
   type RefineWorkflowClientInput,
   type RefineWorkflowResult,
+  type DiagnoseExecutionInput,
+  type DiagnoseExecutionResult,
 } from "./gen/workflow";
 export {
   WorkflowExecutionClient,
