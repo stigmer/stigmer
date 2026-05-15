@@ -298,19 +298,25 @@ export {
   type ExecutionTrendChartProps,
 } from "./ExecutionTrendChart";
 
-// T16: Generate workflow — behavior hook
+// Workflow Architect — YAML extraction utility
 export {
-  useGenerateWorkflowFlow,
-  type UseGenerateWorkflowFlowOptions,
-  type UseGenerateWorkflowFlowReturn,
-  type GenerateWorkflowResult,
-} from "./useGenerateWorkflowFlow";
+  extractWorkflowYaml,
+  type ExtractedWorkflowYaml,
+} from "./extract-workflow-yaml";
 
-// T16: Generate workflow — styled component
+// Workflow Architect — behavior hook (replaces T16 generateWorkflowFromPrompt)
 export {
-  WorkflowGenerateDialog,
-  type WorkflowGenerateDialogProps,
-} from "./WorkflowGenerateDialog";
+  useWorkflowArchitectFlow,
+  type ArchitectPhase,
+  type UseWorkflowArchitectFlowOptions,
+  type UseWorkflowArchitectFlowReturn,
+} from "./useWorkflowArchitectFlow";
+
+// Workflow Architect — styled component (replaces T16 WorkflowGenerateDialog)
+export {
+  WorkflowArchitectDialog,
+  type WorkflowArchitectDialogProps,
+} from "./WorkflowArchitectDialog";
 
 // T16: Refine workflow — behavior hook
 export {

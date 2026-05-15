@@ -101,8 +101,38 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-15 10:05
-**Current Task**: T01 — Batch 2 complete (MCP tools + seedpack agent)
+**Current Task**: T01 — Batch 3 complete (SDK + Frontend — Generate)
 **Status**: In Progress
+
+## Session Progress (May 15, 2026 — Session 3)
+
+### Completed: Batch 3 — SDK + Frontend — Generate (WorkflowArchitectDialog)
+- Regenerated TS proto stubs (`make -C apis ts-stubs`) — removed deleted LLM RPCs, added `validateSpec`
+- Regenerated TS SDK client (`make -C sdk/typescript codegen`) — `WorkflowClient` updated
+- Fixed codegen import bug: `serverless/io_pb` → `serverless/validation_pb` for `ServerlessWorkflowValidation`
+- Cleaned stale type exports from `@stigmer/sdk` barrel (`GenerateFromPromptInput`, `RefineWorkflowClientInput`, `DiagnoseExecutionInput`, etc.)
+- Stubbed `useRefineWorkflowFlow` and `useDiagnoseExecution` with descriptive runtime errors (Batch 4/5 placeholders)
+- Created `extract-workflow-yaml.ts` — pure utility extracting last YAML fenced block from `AgentExecution` messages
+- Created `useWorkflowArchitectFlow` — behavior hook composing `useCreateSession` + `useCreateAgentExecution` + `useExecutionStream`/`ConversationStore` + YAML extraction + `workflow.apply()`
+- Created `WorkflowArchitectDialog` — three-phase styled component (Input → Streaming with `MessageThread` → Result with YAML preview)
+- Updated barrel exports in `workflow/index.ts` and root `index.ts`
+- Wired `WorkflowArchitectDialog` in both web and desktop `WorkflowListPage` (DD-016 parity)
+- Deleted `useGenerateWorkflowFlow.ts` (7KB) and `WorkflowGenerateDialog.tsx` (16KB)
+- Verification: `tsc --noEmit` passes clean across all 4 packages (sdk/typescript, sdk/react, client-apps/web, client-apps/desktop)
+
+### Key Decisions
+- **Dialog with embedded streaming** — kept the dialog UX (user stays on workflow list) instead of navigating to a full session page; agent messages stream inside the dialog via `MessageThread`
+- **Reuse full streaming infra** — `useExecutionStream` + `ConversationStore` + `StreamController` (DD-009) — no custom streaming
+- **Convention-based YAML extraction** — scan last AI message for fenced ````yaml` block; `null` if not found (surfaces as extraction-failed state)
+- **Session persists for refinement** — generate creates a real Session so Batch 4 can reuse it for conversational context
+- **Batch 4/5 stubs, not deletions** — stubbed hooks with runtime errors to keep barrel exports stable; will be replaced in Batches 4-5
+- **Drop-in prop replacement** — `WorkflowArchitectDialogProps` matches `WorkflowGenerateDialogProps` exactly, making console wiring a one-line import swap
+
+### Surprises Discovered
+- TS SDK codegen had not been run after Batch 1A proto teardown — `sdk/typescript/src/gen/workflow.ts` still had `generateFromPrompt`, `refine`, `diagnoseExecution`
+- TS proto stubs (`apis/stubs/ts`) were also stale — needed `make -C apis ts-stubs` before TS SDK codegen would produce correct output
+- Codegen import bug: generated `serverless/io_pb` import path but actual stub is `serverless/validation_pb` — manually fixed in generated file
+- Pre-existing Bazel/Gazelle issue blocks `make -C apis build` (Go stubs fail) — workaround: run `make -C apis ts-stubs` directly
 
 ## Session Progress (May 15, 2026 — Session 2)
 
@@ -144,19 +174,20 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Batch 3: SDK + Frontend — Generate** — Build `useWorkflowArchitect` hook, `WorkflowArchitectDialog`, console integration
-2. **Batch 4: SDK + Frontend — Refine** — Agent conversation panel in editor sidebar
-3. **Batch 5: SDK + Frontend — Diagnose** — Agent diagnosis view in execution viewer
+1. **Batch 4: SDK + Frontend — Refine** — Replace stubbed `useRefineWorkflowFlow` with agent-powered refinement; build agent conversation panel in editor sidebar; reuse the session created during generation for conversational context
+2. **Batch 5: SDK + Frontend — Diagnose** — Replace stubbed `useDiagnoseExecution` with agent-powered diagnosis; build agent diagnosis view in execution viewer
+3. **End-to-end testing** — Seed `workflow-architect` agent, test the full generate flow with a running Stigmer instance
 
 ## Context for Resume
 
-- Batch 1A (teardown) and Batch 2 (MCP tools + agent) are complete
-- The `WorkflowCommandController` now has: `apply`, `create`, `update`, `delete`, **`validateSpec`**
-- The MCP server has 16 tools (5 new workflow-specific ones)
-- The `workflow-architect` seedpack agent exists with Generate/Refine/Diagnose system prompt
-- The agent references `mcp-server-stigmer` with 10 `enabled_tools` (5 existing + 5 new)
-- Pre-existing Bazel/Gazelle issue exists (missing `test/integration` BUILD file) — unrelated
-- Changelog: `_changelog/2026-05/2026-05-15-115202-workflow-architect-mcp-tools-and-seedpack-agent.md`
+- Batches 1A (teardown), 2 (MCP tools + agent), and **3 (SDK + Frontend — Generate)** are complete
+- The `WorkflowArchitectDialog` is wired in both web and desktop consoles
+- `useWorkflowArchitectFlow` composes `useCreateSession` → `useCreateAgentExecution` → `useExecutionStream` → `extractWorkflowYaml` → `workflow.apply()`
+- `useRefineWorkflowFlow` and `useDiagnoseExecution` are **stubbed** with runtime errors — Batch 4/5 will replace them
+- TS proto stubs and TS SDK are regenerated and clean — `validateSpec` added, LLM methods removed
+- Codegen import bug exists: `serverless/io_pb` → `serverless/validation_pb` fix is manual in `sdk/typescript/src/gen/workflow.ts` — will be overwritten on next codegen run (needs codegen tool fix)
+- Pre-existing Bazel/Gazelle issue blocks `make -C apis build` — use `make -C apis ts-stubs` directly
+- Changelog: `_changelog/2026-05/2026-05-15-122724-workflow-architect-generate-dialog.md`
 
 ## Quick Resume
 
