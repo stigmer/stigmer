@@ -64,9 +64,9 @@ func TestAgentExecution_Billing_CreditDebit(t *testing.T) {
 				balanceAfter.GetTotalMicros())
 
 			// With proxy enabled, per-call usage_debit entries consume credits.
-			// Total balance should decrease by the actual LLM cost.
-			assert.LessOrEqual(t, balanceAfter.GetTotalMicros(), balanceBefore.GetTotalMicros(),
-				"total balance should not increase after execution")
+			// Total balance must strictly decrease by the actual LLM cost.
+			assert.Less(t, balanceAfter.GetTotalMicros(), balanceBefore.GetTotalMicros(),
+				"total balance should decrease after proxied execution (usage_debit entries consume credits)")
 		})
 	}
 }
@@ -109,6 +109,7 @@ func TestAgentExecution_Billing_LedgerAuditTrail(t *testing.T) {
 			require.NotEmpty(t, ledger.GetEntries(), "ledger should have entries")
 
 			var hasReservationHold, hasReservationRelease bool
+			var usageDebitCount int
 			for _, entry := range ledger.GetEntries() {
 				src := entry.GetSource()
 				if src == nil || src.GetExecutionId() != executionID {
@@ -133,6 +134,7 @@ func TestAgentExecution_Billing_LedgerAuditTrail(t *testing.T) {
 						entry.GetAmountMicros(), entry.GetEntryId())
 
 				case billingv1.LedgerEntryType_usage_debit:
+					usageDebitCount++
 					t.Logf("found usage_debit: amount=%d, seq=%d, entry=%s",
 						entry.GetAmountMicros(), src.GetLlmCallSequence(), entry.GetEntryId())
 				}
@@ -140,6 +142,8 @@ func TestAgentExecution_Billing_LedgerAuditTrail(t *testing.T) {
 
 			assert.True(t, hasReservationHold, "ledger should contain a reservation_hold entry for this execution")
 			assert.True(t, hasReservationRelease, "ledger should contain a reservation_release entry for this execution")
+			assert.Greater(t, usageDebitCount, 0,
+				"ledger should contain at least one usage_debit entry (proxy metering)")
 		})
 	}
 }

@@ -42,6 +42,11 @@ type ServiceConfig struct {
 	// LLM calls to Anthropic and record per-call usage for billing.
 	AnthropicAPIKey string
 
+	// CursorAPIKey is passed to the Java service as the Cursor proxy's
+	// upstream API key. When set, the CursorProxyController can forward
+	// cursor-runner requests to Cursor's API and record per-call usage.
+	CursorAPIKey string
+
 	// LogDir is the directory for the service log file.
 	// If empty, a temporary directory is used.
 	LogDir string
@@ -221,11 +226,22 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		"STIGMER_BILLING_RECONCILIATION_ENABLED=false",
 		"STIGMER_BILLING_RESERVATION_EXPIRY_ENABLED=false",
 		"STIGMER_RUNNER_LAUNCHER_TYPE=noop",
+
+		// Allow proxy requests without FGA scope headers. Test security
+		// mode has no real FGA setup, and runners may issue metadata
+		// requests (e.g. /v1/models) before execution scope is set.
+		"STIGMER_PROXY_REQUIRE_SCOPE_HEADER=false",
 	)
 
 	if cfg.AnthropicAPIKey != "" {
 		env = append(env,
 			fmt.Sprintf("STIGMER_PROXY_ANTHROPIC_API_KEY=%s", cfg.AnthropicAPIKey),
+		)
+	}
+
+	if cfg.CursorAPIKey != "" {
+		env = append(env,
+			fmt.Sprintf("STIGMER_PROXY_CURSOR_API_KEY=%s", cfg.CursorAPIKey),
 		)
 	}
 

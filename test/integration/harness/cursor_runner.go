@@ -42,7 +42,15 @@ type CursorRunnerConfig struct {
 	LogDir string
 
 	// CursorAPIKey is the Cursor SDK API key.
+	// Used as a fallback when ProxyEndpoint is not set.
 	CursorAPIKey string
+
+	// ProxyEndpoint is the HTTP address of the Java service's built-in
+	// Cursor proxy (e.g. "http://127.0.0.1:8080"). When set, the runner's
+	// fetch interceptor rewrites Cursor SDK requests to route through
+	// the proxy. The proxy injects the API key server-side and records
+	// per-call usage for billing.
+	ProxyEndpoint string
 
 	// WorkspaceDir is the directory the Cursor agent will use as its workspace.
 	// If empty, a temporary directory is created.
@@ -187,12 +195,23 @@ func buildCursorRunnerEnv(cfg CursorRunnerConfig, workspaceDir string) []string 
 
 		"MODE=local",
 
-		fmt.Sprintf("CURSOR_API_KEY=%s", cfg.CursorAPIKey),
-
 		fmt.Sprintf("WORKSPACE_ROOT_DIR=%s", workspaceDir),
 
 		"LOG_LEVEL=INFO",
 	)
+
+	if cfg.ProxyEndpoint != "" {
+		// Route Cursor SDK calls through the Java service's Cursor proxy.
+		// The fetch interceptor (proxy/fetch-interceptor.ts) rewrites
+		// outbound requests and the proxy injects the API key server-side.
+		env = append(env,
+			fmt.Sprintf("STIGMER_PROXY_ENDPOINT=%s", cfg.ProxyEndpoint),
+			"STIGMER_TOKEN=test-integration-key",
+		)
+	} else if cfg.CursorAPIKey != "" {
+		// Fallback: call Cursor directly (no billing records)
+		env = append(env, fmt.Sprintf("CURSOR_API_KEY=%s", cfg.CursorAPIKey))
+	}
 
 	return env
 }
