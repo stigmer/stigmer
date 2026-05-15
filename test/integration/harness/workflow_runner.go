@@ -45,8 +45,8 @@ type WorkflowRunnerConfig struct {
 	TaskQueue string
 
 	// RunnerID sets STIGMER_RUNNER_ID. When set alongside TaskQueue, the
-	// workflow-runner operates in sandbox mode and passes this ID as
-	// preferred_runner_id to agent executions.
+	// workflow-runner operates in sandbox mode and sets this as runner_id
+	// on sessions created for agent calls (colocation).
 	RunnerID string
 }
 

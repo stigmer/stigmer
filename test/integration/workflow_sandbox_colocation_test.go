@@ -9,6 +9,7 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/test/integration/harness"
@@ -16,15 +17,14 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// TestSandboxColocation_PreferredRunnerID verifies that when the workflow-
-// runner operates in sandbox mode (STIGMER_RUNNER_ID set), agent executions
-// created by call:agent tasks carry the preferred_runner_id. This test does
-// NOT require an actual agent-runner -- it validates the spec-level routing
-// hint that the Go workflow-runner injects.
+// TestSandboxColocation_SessionRunnerID verifies that when the workflow-runner
+// operates in sandbox mode (STIGMER_RUNNER_ID set), the session created for
+// call:agent tasks carries the runner_id. The two-step pattern (create session,
+// then create execution) ensures runner affinity lives on the session aggregate.
 //
 // Requires: Java service, Temporal, workflow-runner with STIGMER_RUNNER_ID.
 // Does NOT require: agent-runner or any LLM API key.
-func TestSandboxColocation_PreferredRunnerID(t *testing.T) {
+func TestSandboxColocation_SessionRunnerID(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
 	if testHarness.WorkflowRunner == nil {
 		t.Skip("workflow-runner not available")
@@ -54,7 +54,7 @@ func TestSandboxColocation_PreferredRunnerID(t *testing.T) {
 			Org:  "test-org",
 		},
 		Spec: &workflowv1.WorkflowSpec{
-			Description: "Integration test: sandbox co-location via preferred_runner_id",
+			Description: "Integration test: sandbox co-location via session runner_id",
 			Document: &workflowv1.WorkflowDocument{
 				Dsl:       "1.0.0",
 				Namespace: "test-org",
@@ -77,28 +77,38 @@ func TestSandboxColocation_PreferredRunnerID(t *testing.T) {
 
 	t.Logf("workflow execution created: id=%s", execution.GetMetadata().GetId())
 
-	// The execution will likely fail (no agent-runner to handle the call:agent
-	// task), but the AgentExecution should have been created with
-	// preferred_runner_id set before the failure. Wait a bit for the
-	// call:agent activity to fire, then list agent executions.
+	// Wait for the call:agent activity to create the session and agent execution.
+	// The execution will likely fail (no agent-runner), but the session should
+	// exist with runner_id set.
 	time.Sleep(15 * time.Second)
 
 	agentExecs, err := clients.AgentExecutionQuery.List(ctx, &agentexecv1.ListAgentExecutionsRequest{})
 	if err != nil {
-		t.Logf("warning: could not list agent executions: %v (preferred_runner_id verification skipped)", err)
+		t.Logf("warning: could not list agent executions: %v (session verification skipped)", err)
 		return
 	}
 
 	for _, ae := range agentExecs.GetEntries() {
-		if ae.GetSpec().GetPreferredRunnerId() != "" {
-			t.Logf("found agent execution with preferred_runner_id=%s (id=%s)",
-				ae.GetSpec().GetPreferredRunnerId(),
-				ae.GetMetadata().GetId())
+		sessionId := ae.GetSpec().GetSessionId()
+		if sessionId == "" {
+			continue
+		}
+
+		session, err := clients.SessionQuery.Get(ctx, &sessionv1.SessionId{Value: sessionId})
+		if err != nil {
+			t.Logf("warning: could not get session %s: %v", sessionId, err)
+			continue
+		}
+
+		runnerId := session.GetSpec().GetRunnerId()
+		if runnerId != "" {
+			t.Logf("found session with runner_id=%s (session_id=%s, execution_id=%s)",
+				runnerId, sessionId, ae.GetMetadata().GetId())
 			return
 		}
 	}
 
-	t.Logf("no agent execution with preferred_runner_id found — " +
+	t.Logf("no session with runner_id found — " +
 		"this is expected when STIGMER_RUNNER_ID is not set on the workflow-runner")
 }
 

@@ -62,7 +62,7 @@ type Config struct {
 	SandboxMode bool
 
 	// RunnerID is the ephemeral runner's ID (STIGMER_RUNNER_ID).
-	// Empty in OSS/local mode. Used to pass preferred_runner_id to agent calls.
+	// Empty in OSS/local mode. Set as runner_id on sessions created for agent calls.
 	RunnerID string
 
 	MaxConcurrency int

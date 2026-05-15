@@ -257,7 +257,7 @@ test-integration: ensure-service-jar ## Run integration tests (offline, no API k
 PROVIDER_OUTPUT_DIR ?= test/integration/.test-output-providers
 
 .PHONY: test-integration-providers
-test-integration-providers: ensure-service-jar ## Run provider-backed integration tests (auto-fetches API keys from Planton)
+test-integration-providers: ensure-service-jar build-cursor-runner ## Run provider-backed integration tests (auto-fetches API keys from Planton)
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \
@@ -280,14 +280,21 @@ test-integration-providers: ensure-service-jar ## Run provider-backed integratio
 			exit 1; \
 		fi; \
 	fi; \
+	CURSOR_KEY=$${CURSOR_API_KEY:-}; \
+	if [ -z "$$CURSOR_KEY" ] && command -v planton >/dev/null 2>&1; then \
+		echo "Fetching CURSOR_API_KEY from Planton..."; \
+		CURSOR_KEY=$$(planton service secrets get-value --org stigmer --group cursor --name prod.api-key 2>&1 || true); \
+		if [ -n "$$CURSOR_KEY" ]; then echo "CURSOR_API_KEY fetched"; else echo "CURSOR_API_KEY not available — cursor tests will be skipped"; fi; \
+	fi; \
 	ANTHROPIC_API_KEY=$$ANTHROPIC_KEY \
+	CURSOR_API_KEY=$$CURSOR_KEY \
 	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
 	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(PROVIDER_OUTPUT_DIR)) gotestsum \
 		--junitfile $(PROVIDER_OUTPUT_DIR)/junit.xml \
 		--junitfile-testsuite-name short \
 		--jsonfile $(PROVIDER_OUTPUT_DIR)/test-output.json \
 		--format testname \
-		-- -tags integration -timeout 600s -count=1 -run 'TestWorkflow(LlmCall|AgentCall)' ./test/integration/
+		-- -tags integration -timeout 600s -count=1 -run 'TestWorkflow(LlmCall|AgentCall|CursorCall)' ./test/integration/
 
 # ─── Tidy ────────────────────────────────────
 

@@ -6,6 +6,8 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ContextManagementConfig } from "../../../agentexecution/v1/spec_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_spec } from "../../../agentexecution/v1/spec_pb.js";
+import type { Harness } from "../../../session/v1/enum_pb.js";
+import { file_ai_stigmer_agentic_session_v1_enum } from "../../../session/v1/enum_pb.js";
 import type { OnInvalidOutputPolicy } from "./common_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_tasks_common } from "./common_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../../commons/apiresource/field_options_pb.js";
@@ -17,7 +19,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/tasks/agent_call.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_tasks_agent_call: GenFile = /*@__PURE__*/
-  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvYWdlbnRfY2FsbC5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzIogDChNBZ2VudENhbGxUYXNrQ29uZmlnEhsKBWFnZW50GAEgASgJQgy6SAnIAQFyBBABGH8SCwoDb3JnGAIgASgJEh8KB21lc3NhZ2UYAyABKAlCDrpIB8gBAXICEAHYhSwBEk8KA2VudhgEIAMoCzJCLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5BZ2VudENhbGxUYXNrQ29uZmlnLkVudkVudHJ5EkoKBmNvbmZpZxgFIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5BZ2VudEV4ZWN1dGlvbkNvbmZpZxJNCgZvdXRwdXQYBiABKAsyPS5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuQWdlbnRDYWxsT3V0cHV0Q29udHJhY3QaKgoIRW52RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AToO6ossCmFnZW50X2NhbGwi0gEKF0FnZW50Q2FsbE91dHB1dENvbnRyYWN0Ei8KBnNjaGVtYRgBIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3RCBrpIA8gBARJPCgpvbl9pbnZhbGlkGAIgASgOMjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLk9uSW52YWxpZE91dHB1dFBvbGljeRIeCgttYXhfcmV0cmllcxgDIAEoBUIJukgGGgQYBSgBEhUKDWZhbGxiYWNrX3Rhc2sYBCABKAki3AEKFEFnZW50RXhlY3V0aW9uQ29uZmlnEg0KBW1vZGVsGAEgASgJEhsKB3RpbWVvdXQYAiABKAVCCrpIBxoFGJAcKAESJAoLdGVtcGVyYXR1cmUYAyABKAJCD7pIDAoKHQAAgD8tAAAAABJZChJjb250ZXh0X21hbmFnZW1lbnQYBCABKAsyPS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ29udGV4dE1hbmFnZW1lbnRDb25maWcSFwoPbWF4X2Nvc3RfbWljcm9zGAUgASgDYgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_spec, file_ai_stigmer_agentic_workflow_v1_tasks_common, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjVhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvYWdlbnRfY2FsbC5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzIsEDChNBZ2VudENhbGxUYXNrQ29uZmlnEhsKBWFnZW50GAEgASgJQgy6SAnIAQFyBBABGH8SCwoDb3JnGAIgASgJEh8KB21lc3NhZ2UYAyABKAlCDrpIB8gBAXICEAHYhSwBEk8KA2VudhgEIAMoCzJCLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5BZ2VudENhbGxUYXNrQ29uZmlnLkVudkVudHJ5EkoKBmNvbmZpZxgFIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5BZ2VudEV4ZWN1dGlvbkNvbmZpZxJNCgZvdXRwdXQYBiABKAsyPS5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuQWdlbnRDYWxsT3V0cHV0Q29udHJhY3QSNwoHaGFybmVzcxgHIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3MaKgoIRW52RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AToO6ossCmFnZW50X2NhbGwi0gEKF0FnZW50Q2FsbE91dHB1dENvbnRyYWN0Ei8KBnNjaGVtYRgBIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3RCBrpIA8gBARJPCgpvbl9pbnZhbGlkGAIgASgOMjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLk9uSW52YWxpZE91dHB1dFBvbGljeRIeCgttYXhfcmV0cmllcxgDIAEoBUIJukgGGgQYBSgBEhUKDWZhbGxiYWNrX3Rhc2sYBCABKAki3AEKFEFnZW50RXhlY3V0aW9uQ29uZmlnEg0KBW1vZGVsGAEgASgJEhsKB3RpbWVvdXQYAiABKAVCCrpIBxoFGJAcKAESJAoLdGVtcGVyYXR1cmUYAyABKAJCD7pIDAoKHQAAgD8tAAAAABJZChJjb250ZXh0X21hbmFnZW1lbnQYBCABKAsyPS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ29udGV4dE1hbmFnZW1lbnRDb25maWcSFwoPbWF4X2Nvc3RfbWljcm9zGAUgASgDYgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_spec, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_workflow_v1_tasks_common, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * AgentCallTaskConfig defines the configuration for agent_call tasks that invoke AI agents.
@@ -140,6 +142,31 @@ export type AgentCallTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks.
    * @generated from field: ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract output = 6;
    */
   output?: AgentCallOutputContract;
+
+  /**
+   * Execution harness for the agent invocation.
+   *
+   * Determines which execution engine processes the agent call:
+   * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+   * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+   *
+   * The workflow-runner creates a Session with this harness before creating
+   * the AgentExecution. The harness is a session-level concern — it determines
+   * tool availability, state management, model access, and billing tier.
+   *
+   * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+   *
+   * YAML Example:
+   *   - code_review:
+   *       call: agent
+   *       with:
+   *         agent: "code-reviewer"
+   *         harness: cursor
+   *         message: "Review this PR"
+   *
+   * @generated from field: ai.stigmer.agentic.session.v1.Harness harness = 7;
+   */
+  harness: Harness;
 };
 
 /**

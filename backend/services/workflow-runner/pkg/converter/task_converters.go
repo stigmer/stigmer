@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 )
@@ -589,6 +590,15 @@ func (c *Converter) convertAgentCallTask(cfg *tasksv1.AgentCallTaskConfig) map[s
 		}
 		if len(config) > 0 {
 			with["config"] = config
+		}
+	}
+
+	if cfg.Harness != sessionv1.Harness_HARNESS_UNSPECIFIED {
+		switch cfg.Harness {
+		case sessionv1.Harness_HARNESS_NATIVE:
+			with["harness"] = "native"
+		case sessionv1.Harness_HARNESS_CURSOR:
+			with["harness"] = "cursor"
 		}
 	}
 

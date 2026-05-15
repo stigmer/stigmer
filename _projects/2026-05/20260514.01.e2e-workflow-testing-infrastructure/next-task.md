@@ -68,8 +68,63 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: All provider tests green; zero-friction make targets complete
-**Status**: Phase 3 provider-backed tests fully passing; CI and local dev experience polished
+**Current Task**: Cursor-runner integration test harness + unified agent call path
+**Status**: T09/T10 implementation complete — proto changes, two-step agent call, cursor-runner harness built
+
+## Session Progress (2026-05-15, Session 14 — Cursor Runner Harness + Unified Agent Call)
+
+### Accomplished
+
+- **Unified workflow agent_call with frontend two-step pattern**: workflow-runner now creates a Session (with harness + runner_id) before creating AgentExecution — matching the frontend flow
+- **Added `harness` field to `AgentCallTaskConfig` proto**: workflows can now specify `harness: cursor` on agent_call tasks to route to cursor-runner
+- **Removed `preferred_runner_id` from `AgentExecutionSpec`**: runner affinity now lives exclusively on `Session.spec.runner_id` where it belongs
+- **Built cursor-runner Go test harness** (`harness/cursor_runner.go`): manages Node.js cursor-runner as child process with auto-build, workspace isolation, env wiring
+- **Wired cursor-runner into test suite**: gated on `CURSOR_API_KEY` env var, same pattern as agent-runner
+- **Wrote 2 cursor integration tests**: `TestWorkflowCursorCall_FileCanary` (workspace file assertion) and `TestWorkflowCursorCall_StructuredOutput`
+- **Rewrote sandbox colocation test**: `TestSandboxColocation_SessionRunnerID` now verifies `Session.spec.runner_id` instead of the removed `preferred_runner_id`
+- **Added harness normalization in `parseConfig`**: YAML `harness: cursor` → proto `HARNESS_CURSOR`
+- **Extended Makefile**: `test-integration-providers` auto-fetches `CURSOR_API_KEY` from Planton, builds cursor-runner
+- **Removed `resolvePreferredRunner`** from Java `RunnerDispatchService` (no callers remain)
+
+### Key Design Decision: Session-First Agent Calls
+
+The workflow `agent_call` path now follows the same two-step pattern as the frontend:
+1. Create Session (with harness, runner_id, agent_instance_id)
+2. Create AgentExecution (with session_id)
+
+This keeps session-level concerns on the session aggregate and stops `AgentExecutionSpec` from accumulating fields that aren't its responsibility.
+
+### Files Changed
+
+**stigmer (OSS)** — proto + codegen:
+- `apis/.../workflow/v1/tasks/agent_call.proto` — added `harness` field (field 7)
+- `apis/.../agentexecution/v1/spec.proto` — removed `preferred_runner_id` (field 11)
+- All generated stubs (Go, TS, Java, Python, Dart)
+
+**stigmer (OSS)** — workflow-runner:
+- `pkg/zigflow/tasks/task_builder_call_agent_activities.go` — two-step flow, session creation, session gRPC client
+- `pkg/zigflow/tasks/task_builder_call_agent.go` — harness normalization in parseConfig
+- `pkg/converter/task_converters.go` — harness field in agent_call converter
+- `worker/config/config.go` — updated RunnerID comment
+
+**stigmer (OSS)** — test infrastructure:
+- `test/integration/harness/cursor_runner.go` — NEW: CursorRunner harness
+- `test/integration/harness/harness.go` — CursorRunner field, Stop ordering, LogPaths
+- `test/integration/harness/clients.go` — SessionQueryControllerClient
+- `test/integration/harness/workflow_runner.go` — updated RunnerID comment
+- `test/integration/suite_test.go` — cursor-runner startup (CURSOR_API_KEY gated)
+- `test/integration/workflow_cursor_call_test.go` — NEW: 2 cursor tests
+- `test/integration/workflow_sandbox_colocation_test.go` — rewritten for Session.runner_id
+- `Makefile` — CURSOR_API_KEY fetch, build-cursor-runner prerequisite, CursorCall test pattern
+
+**stigmer-cloud** — Java:
+- `AgentExecutionCreateHandler.java` — removed preferred_runner_id dispatch branching
+- `RunnerDispatchService.java` — removed `resolvePreferredRunner` method
+- `WorkflowExecutionDispatchService.java` — updated stale comment
+
+### Risk: Agent Default Instance Resolution
+
+The workflow-runner resolves `Agent.status.default_instance_id` via the agent query response. If the agent is brand new and `CreateDefaultInstanceIfNeededStep` hasn't fired yet, `default_instance_id` may be empty. This would cause session creation to fail. Mitigation: the existing `AgentExecutionCreateHandler` pipeline runs `CreateDefaultInstanceIfNeededStep` before creating executions; the agent query should return the default instance after the first execution. For workflow agent_call, agents are typically pre-created.
 
 ## Session Progress (2026-05-15, Session 13 — Provider Tests Green + Zero-Friction Make)
 

@@ -218,21 +218,6 @@ message AgentExecutionSpec {
   //
   // @since Workspace-Aware File Referencing
   repeated string workspace_file_refs = 10;
-
-  // Preferred runner ID for activity routing (optional).
-  //
-  // When set, the platform routes this execution's activities to the specified
-  // runner instead of provisioning a new one. The runner must exist and be in
-  // READY or BUSY phase; otherwise the request fails with FAILED_PRECONDITION.
-  //
-  // Primary use case: workflow-runner co-location. When a workflow's call:agent
-  // task creates an AgentExecution, it passes its own runner ID here so the
-  // agent executes in the same Daytona sandbox — avoiding cold-start latency
-  // and reusing the co-located agent-runner process.
-  //
-  // When empty, normal dispatch/provision applies (session-bound runner,
-  // ephemeral provisioning, or global queue fallback).
-  string preferred_runner_id = 11;
 }
 
 // Configuration that can be applied at execution time.

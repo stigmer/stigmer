@@ -107,12 +107,29 @@ func TestMain(m *testing.M) {
 		}
 	}
 
+	// Start cursor-runner only when a Cursor API key is available.
+	cursorKey := os.Getenv("CURSOR_API_KEY")
+	if cursorKey != "" && runner != nil {
+		cursorRunner, cursorErr := harness.StartCursorRunner(ctx, harness.CursorRunnerConfig{
+			StigmerServiceAddress: svc.GRPCAddress(),
+			TemporalAddress:       testHarness.Temporal.Address(),
+			LogDir:                logDir,
+			CursorAPIKey:          cursorKey,
+		}, suiteLogger)
+		if cursorErr != nil {
+			suiteLogger.Warn("cursor-runner failed to start — cursor_call tests will be skipped", "error", cursorErr)
+		} else {
+			testHarness.CursorRunner = cursorRunner
+		}
+	}
+
 	suiteLogger.Info("suite infrastructure ready",
 		"grpc_address", svc.GRPCAddress(),
 		"mongo", fmt.Sprintf("%s:%s", testHarness.Mongo.Host, testHarness.Mongo.Port),
 		"temporal", testHarness.Temporal.Address(),
 		"workflow_runner", runner != nil,
 		"agent_runner", testHarness.AgentRunner != nil,
+		"cursor_runner", testHarness.CursorRunner != nil,
 		"log_dir", logDir,
 	)
 

@@ -85,6 +85,7 @@ private static final long serialVersionUID = 0L;
     agent_ = "";
     org_ = "";
     message_ = "";
+    harness_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -497,6 +498,68 @@ java.lang.String defaultValue) {
     return output_ == null ? ai.stigmer.agentic.workflow.v1.tasks.AgentCallOutputContract.getDefaultInstance() : output_;
   }
 
+  public static final int HARNESS_FIELD_NUMBER = 7;
+  private int harness_ = 0;
+  /**
+   * <pre>
+   * Execution harness for the agent invocation.
+   *
+   * Determines which execution engine processes the agent call:
+   * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+   * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+   *
+   * The workflow-runner creates a Session with this harness before creating
+   * the AgentExecution. The harness is a session-level concern — it determines
+   * tool availability, state management, model access, and billing tier.
+   *
+   * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+   *
+   * YAML Example:
+   * - code_review:
+   * call: agent
+   * with:
+   * agent: "code-reviewer"
+   * harness: cursor
+   * message: "Review this PR"
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 7 [json_name = "harness"];</code>
+   * @return The enum numeric value on the wire for harness.
+   */
+  @java.lang.Override public int getHarnessValue() {
+    return harness_;
+  }
+  /**
+   * <pre>
+   * Execution harness for the agent invocation.
+   *
+   * Determines which execution engine processes the agent call:
+   * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+   * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+   *
+   * The workflow-runner creates a Session with this harness before creating
+   * the AgentExecution. The harness is a session-level concern — it determines
+   * tool availability, state management, model access, and billing tier.
+   *
+   * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+   *
+   * YAML Example:
+   * - code_review:
+   * call: agent
+   * with:
+   * agent: "code-reviewer"
+   * harness: cursor
+   * message: "Review this PR"
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 7 [json_name = "harness"];</code>
+   * @return The harness.
+   */
+  @java.lang.Override public ai.stigmer.agentic.session.v1.Harness getHarness() {
+    ai.stigmer.agentic.session.v1.Harness result = ai.stigmer.agentic.session.v1.Harness.forNumber(harness_);
+    return result == null ? ai.stigmer.agentic.session.v1.Harness.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -531,6 +594,9 @@ java.lang.String defaultValue) {
     }
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(6, getOutput());
+    }
+    if (harness_ != ai.stigmer.agentic.session.v1.Harness.HARNESS_UNSPECIFIED.getNumber()) {
+      output.writeEnum(7, harness_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -568,6 +634,10 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(6, getOutput());
     }
+    if (harness_ != ai.stigmer.agentic.session.v1.Harness.HARNESS_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(7, harness_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -601,6 +671,7 @@ java.lang.String defaultValue) {
       if (!getOutput()
           .equals(other.getOutput())) return false;
     }
+    if (harness_ != other.harness_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -630,6 +701,8 @@ java.lang.String defaultValue) {
       hash = (37 * hash) + OUTPUT_FIELD_NUMBER;
       hash = (53 * hash) + getOutput().hashCode();
     }
+    hash = (37 * hash) + HARNESS_FIELD_NUMBER;
+    hash = (53 * hash) + harness_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -858,6 +931,7 @@ java.lang.String defaultValue) {
         outputBuilder_.dispose();
         outputBuilder_ = null;
       }
+      harness_ = 0;
       return this;
     }
 
@@ -917,6 +991,9 @@ java.lang.String defaultValue) {
             : outputBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.harness_ = harness_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -955,6 +1032,9 @@ java.lang.String defaultValue) {
       }
       if (other.hasOutput()) {
         mergeOutput(other.getOutput());
+      }
+      if (other.harness_ != 0) {
+        setHarnessValue(other.getHarnessValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1020,6 +1100,11 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000020;
               break;
             } // case 50
+            case 56: {
+              harness_ = input.readEnum();
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 56
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1952,6 +2037,168 @@ java.lang.String defaultValue) {
         output_ = null;
       }
       return outputBuilder_;
+    }
+
+    private int harness_ = 0;
+    /**
+     * <pre>
+     * Execution harness for the agent invocation.
+     *
+     * Determines which execution engine processes the agent call:
+     * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+     * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+     *
+     * The workflow-runner creates a Session with this harness before creating
+     * the AgentExecution. The harness is a session-level concern — it determines
+     * tool availability, state management, model access, and billing tier.
+     *
+     * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+     *
+     * YAML Example:
+     * - code_review:
+     * call: agent
+     * with:
+     * agent: "code-reviewer"
+     * harness: cursor
+     * message: "Review this PR"
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 7 [json_name = "harness"];</code>
+     * @return The enum numeric value on the wire for harness.
+     */
+    @java.lang.Override public int getHarnessValue() {
+      return harness_;
+    }
+    /**
+     * <pre>
+     * Execution harness for the agent invocation.
+     *
+     * Determines which execution engine processes the agent call:
+     * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+     * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+     *
+     * The workflow-runner creates a Session with this harness before creating
+     * the AgentExecution. The harness is a session-level concern — it determines
+     * tool availability, state management, model access, and billing tier.
+     *
+     * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+     *
+     * YAML Example:
+     * - code_review:
+     * call: agent
+     * with:
+     * agent: "code-reviewer"
+     * harness: cursor
+     * message: "Review this PR"
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 7 [json_name = "harness"];</code>
+     * @param value The enum numeric value on the wire for harness to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setHarnessValue(int value) {
+      harness_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Execution harness for the agent invocation.
+     *
+     * Determines which execution engine processes the agent call:
+     * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+     * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+     *
+     * The workflow-runner creates a Session with this harness before creating
+     * the AgentExecution. The harness is a session-level concern — it determines
+     * tool availability, state management, model access, and billing tier.
+     *
+     * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+     *
+     * YAML Example:
+     * - code_review:
+     * call: agent
+     * with:
+     * agent: "code-reviewer"
+     * harness: cursor
+     * message: "Review this PR"
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 7 [json_name = "harness"];</code>
+     * @return The harness.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.Harness getHarness() {
+      ai.stigmer.agentic.session.v1.Harness result = ai.stigmer.agentic.session.v1.Harness.forNumber(harness_);
+      return result == null ? ai.stigmer.agentic.session.v1.Harness.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Execution harness for the agent invocation.
+     *
+     * Determines which execution engine processes the agent call:
+     * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+     * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+     *
+     * The workflow-runner creates a Session with this harness before creating
+     * the AgentExecution. The harness is a session-level concern — it determines
+     * tool availability, state management, model access, and billing tier.
+     *
+     * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+     *
+     * YAML Example:
+     * - code_review:
+     * call: agent
+     * with:
+     * agent: "code-reviewer"
+     * harness: cursor
+     * message: "Review this PR"
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 7 [json_name = "harness"];</code>
+     * @param value The harness to set.
+     * @return This builder for chaining.
+     */
+    public Builder setHarness(ai.stigmer.agentic.session.v1.Harness value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000040;
+      harness_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Execution harness for the agent invocation.
+     *
+     * Determines which execution engine processes the agent call:
+     * - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+     * - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+     *
+     * The workflow-runner creates a Session with this harness before creating
+     * the AgentExecution. The harness is a session-level concern — it determines
+     * tool availability, state management, model access, and billing tier.
+     *
+     * When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+     *
+     * YAML Example:
+     * - code_review:
+     * call: agent
+     * with:
+     * agent: "code-reviewer"
+     * harness: cursor
+     * message: "Review this PR"
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 7 [json_name = "harness"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearHarness() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      harness_ = 0;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflow.v1.tasks.AgentCallTaskConfig)

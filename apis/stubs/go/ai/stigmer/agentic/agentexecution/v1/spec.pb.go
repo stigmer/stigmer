@@ -205,20 +205,6 @@ type AgentExecutionSpec struct {
 	//
 	// @since Workspace-Aware File Referencing
 	WorkspaceFileRefs []string `protobuf:"bytes,10,rep,name=workspace_file_refs,json=workspaceFileRefs,proto3" json:"workspace_file_refs,omitempty"`
-	// Preferred runner ID for activity routing (optional).
-	//
-	// When set, the platform routes this execution's activities to the specified
-	// runner instead of provisioning a new one. The runner must exist and be in
-	// READY or BUSY phase; otherwise the request fails with FAILED_PRECONDITION.
-	//
-	// Primary use case: workflow-runner co-location. When a workflow's call:agent
-	// task creates an AgentExecution, it passes its own runner ID here so the
-	// agent executes in the same Daytona sandbox — avoiding cold-start latency
-	// and reusing the co-located agent-runner process.
-	//
-	// When empty, normal dispatch/provision applies (session-bound runner,
-	// ephemeral provisioning, or global queue fallback).
-	PreferredRunnerId string `protobuf:"bytes,11,opt,name=preferred_runner_id,json=preferredRunnerId,proto3" json:"preferred_runner_id,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -321,13 +307,6 @@ func (x *AgentExecutionSpec) GetWorkspaceFileRefs() []string {
 		return x.WorkspaceFileRefs
 	}
 	return nil
-}
-
-func (x *AgentExecutionSpec) GetPreferredRunnerId() string {
-	if x != nil {
-		return x.PreferredRunnerId
-	}
-	return ""
 }
 
 // Configuration that can be applied at execution time.
@@ -746,7 +725,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_spec_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xe8\x05\n" +
+	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\"\xb8\x05\n" +
 	"\x12AgentExecutionSpec\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x19\n" +
@@ -760,8 +739,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x12parent_workflow_id\x18\b \x01(\tR\x10parentWorkflowId\x12R\n" +
 	"\vattachments\x18\t \x03(\v20.ai.stigmer.agentic.agentexecution.v1.AttachmentR\vattachments\x12.\n" +
 	"\x13workspace_file_refs\x18\n" +
-	" \x03(\tR\x11workspaceFileRefs\x12.\n" +
-	"\x13preferred_runner_id\x18\v \x01(\tR\x11preferredRunnerId\x1au\n" +
+	" \x03(\tR\x11workspaceFileRefs\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
 	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"\x9b\x02\n" +

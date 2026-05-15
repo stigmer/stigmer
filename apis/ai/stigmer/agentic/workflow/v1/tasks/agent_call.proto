@@ -3,6 +3,7 @@ syntax = "proto3";
 package ai.stigmer.agentic.workflow.v1.tasks;
 
 import "ai/stigmer/agentic/agentexecution/v1/spec.proto";
+import "ai/stigmer/agentic/session/v1/enum.proto";
 import "ai/stigmer/agentic/workflow/v1/tasks/common.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
@@ -111,6 +112,27 @@ message AgentCallTaskConfig {
   //
   // @since T02 (Structured Agent Output Model)
   AgentCallOutputContract output = 6;
+
+  // Execution harness for the agent invocation.
+  //
+  // Determines which execution engine processes the agent call:
+  // - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)
+  // - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)
+  //
+  // The workflow-runner creates a Session with this harness before creating
+  // the AgentExecution. The harness is a session-level concern — it determines
+  // tool availability, state management, model access, and billing tier.
+  //
+  // When unspecified, defaults to HARNESS_NATIVE for backward compatibility.
+  //
+  // YAML Example:
+  //   - code_review:
+  //       call: agent
+  //       with:
+  //         agent: "code-reviewer"
+  //         harness: cursor
+  //         message: "Review this PR"
+  ai.stigmer.agentic.session.v1.Harness harness = 7;
 }
 
 // AgentCallOutputContract defines the structured output contract for an agent_call task.

@@ -19,6 +19,7 @@ package tasks
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 	"github.com/serverlessworkflow/sdk-go/v3/model"
@@ -328,14 +329,26 @@ func getInvokerIdentityFromState(state *utils.State) string {
 // parseConfig unmarshals the CallFunction.With field into AgentCallTaskConfig.
 // The With field contains a JSON object matching the AgentCallTaskConfig proto.
 func (t *CallAgentTaskBuilder) parseConfig() error {
-	// Convert With (map[string]any) to JSON
-	withBytes, err := json.Marshal(t.task.With)
+	with := t.task.With
+
+	// Normalize harness shorthand: "native"/"cursor" → proto enum names.
+	// Workflow YAML uses human-friendly values; protojson expects full names.
+	if h, ok := with["harness"]; ok {
+		if hs, isStr := h.(string); isStr {
+			switch strings.ToLower(hs) {
+			case "native":
+				with["harness"] = "HARNESS_NATIVE"
+			case "cursor":
+				with["harness"] = "HARNESS_CURSOR"
+			}
+		}
+	}
+
+	withBytes, err := json.Marshal(with)
 	if err != nil {
 		return fmt.Errorf("failed to marshal task.With: %w", err)
 	}
 
-	// Unmarshal into AgentCallTaskConfig using protojson
-	// This properly handles string enum values (e.g., "organization", "platform")
 	t.agentConfig = &workflowtasks.AgentCallTaskConfig{}
 	if err := protojson.Unmarshal(withBytes, t.agentConfig); err != nil {
 		return fmt.Errorf("failed to unmarshal agent call config: %w", err)
