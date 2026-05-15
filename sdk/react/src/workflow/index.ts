@@ -318,22 +318,21 @@ export {
   type WorkflowArchitectDialogProps,
 } from "./WorkflowArchitectDialog";
 
-// T16: Refine workflow — behavior hook
+// Workflow Architect — refine behavior hook (replaces T16 refineWorkflow)
 export {
   useRefineWorkflowFlow,
+  type RefinePhase,
   type UseRefineWorkflowFlowOptions,
   type UseRefineWorkflowFlowReturn,
-  type RefineWorkflowFlowResult,
-  type RefinementHistoryEntry,
 } from "./useRefineWorkflowFlow";
 
-// T16: Refine workflow — styled component
+// Workflow Architect — refine styled component (replaces T16 WorkflowRefinePanel)
 export {
   WorkflowRefinePanel,
   type WorkflowRefinePanelProps,
 } from "./WorkflowRefinePanel";
 
-// T16: Refine workflow — diff utility
+// Workflow diff utility
 export {
   computeUnifiedDiff,
   type DiffLine,
