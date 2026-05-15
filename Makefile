@@ -257,7 +257,7 @@ test-integration: ensure-service-jar ## Run integration tests (offline, no API k
 PROVIDER_OUTPUT_DIR ?= test/integration/.test-output-providers
 
 .PHONY: test-integration-providers
-test-integration-providers: ensure-service-jar build-cursor-runner ## Run provider-backed integration tests (auto-fetches API keys from Planton)
+test-integration-providers: ensure-service-jar ## Run provider-backed integration tests (auto-fetches API keys from Planton)
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \

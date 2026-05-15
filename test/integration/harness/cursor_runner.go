@@ -61,20 +61,14 @@ func StartCursorRunner(ctx context.Context, cfg CursorRunnerConfig, logger *slog
 		return nil, fmt.Errorf("cursor-runner source directory not found")
 	}
 
-	nodeModules := filepath.Join(runnerDir, "node_modules")
-	if _, err := os.Stat(nodeModules); err != nil {
-		return nil, fmt.Errorf("cursor-runner node_modules not found at %s — run 'make setup'", nodeModules)
+	// Use tsx to run TypeScript source directly — the @stigmer/protos package
+	// exports raw .ts files (dev mode), which Node.js cannot import natively.
+	tsxBin := filepath.Join(runnerDir, "node_modules", ".bin", "tsx")
+	if _, err := os.Stat(tsxBin); err != nil {
+		return nil, fmt.Errorf("tsx not found at %s — run 'npm install' in cursor-runner", tsxBin)
 	}
 
-	distMain := filepath.Join(runnerDir, "dist", "main.js")
-	if err := ensureCursorRunnerBuilt(ctx, runnerDir, distMain, logger); err != nil {
-		return nil, err
-	}
-
-	nodeBin, err := exec.LookPath("node")
-	if err != nil {
-		return nil, fmt.Errorf("node not found on PATH: %w", err)
-	}
+	entrypoint := filepath.Join(runnerDir, "src", "main.ts")
 
 	workspaceDir := cfg.WorkspaceDir
 	if workspaceDir == "" {
@@ -100,14 +94,14 @@ func StartCursorRunner(ctx context.Context, cfg CursorRunnerConfig, logger *slog
 	}
 	logger.Info("cursor-runner log", "path", logPath)
 
-	cmd := exec.CommandContext(ctx, nodeBin, distMain)
+	cmd := exec.CommandContext(ctx, tsxBin, entrypoint)
 	cmd.Dir = runnerDir
 	cmd.Env = buildCursorRunnerEnv(cfg, workspaceDir)
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 
 	logger.Info("starting cursor-runner",
-		"node", nodeBin,
+		"tsx", tsxBin,
 		"dir", runnerDir,
 		"stigmer_endpoint", cfg.StigmerServiceAddress,
 		"temporal", cfg.TemporalAddress,
@@ -155,45 +149,6 @@ func (r *CursorRunner) Stop() error {
 		r.logFile.Close()
 	}
 	return err
-}
-
-// ensureCursorRunnerBuilt runs `npm run build` if dist/main.js is missing or
-// older than the src/ directory. This mirrors the workflow-runner harness's
-// auto-build pattern for zero-friction developer experience.
-func ensureCursorRunnerBuilt(ctx context.Context, runnerDir, distMain string, logger *slog.Logger) error {
-	needsBuild := false
-
-	distInfo, err := os.Stat(distMain)
-	if err != nil {
-		needsBuild = true
-	} else {
-		srcDir := filepath.Join(runnerDir, "src")
-		if srcInfo, srcErr := os.Stat(srcDir); srcErr == nil {
-			if srcInfo.ModTime().After(distInfo.ModTime()) {
-				needsBuild = true
-			}
-		}
-	}
-
-	if !needsBuild {
-		return nil
-	}
-
-	logger.Info("building cursor-runner (dist/main.js missing or stale)", "dir", runnerDir)
-
-	cmd := exec.CommandContext(ctx, "npm", "run", "build")
-	cmd.Dir = runnerDir
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("npm run build failed: %w\noutput: %s", err, string(output))
-	}
-
-	if _, err := os.Stat(distMain); err != nil {
-		return fmt.Errorf("dist/main.js not found after build — check tsconfig.build.json output path")
-	}
-
-	logger.Info("cursor-runner built successfully")
-	return nil
 }
 
 func findCursorRunnerDir() string {
