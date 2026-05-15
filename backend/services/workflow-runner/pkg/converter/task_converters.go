@@ -215,13 +215,46 @@ func (c *Converter) convertTryTask(cfg *tasksv1.TryTaskConfig) (map[string]inter
 	return result, nil
 }
 
-// convertListenTask converts ListenTaskConfig to YAML structure
-// Note: Listen tasks have a nested ListenTo structure
+// convertListenTask converts ListenTaskConfig to the CNCF Serverless Workflow
+// SDK's listen task YAML structure.
+//
+// The proto model uses a flat {mode, signals[]} representation. The CNCF SDK
+// model uses a discriminated union under listen.to with three keys:
+//
+//   - "one"  — single EventFilter (wait for exactly this one event)
+//   - "any"  — []EventFilter (complete when the first signal arrives)
+//   - "all"  — []EventFilter (wait for every signal to arrive)
+//
+// Proto mode mapping:
+//   - mode:"one" + 1 signal  → one: {with: {id, type}}
+//   - mode:"one" + N signals → any: [{with: ...}, ...]
+//   - mode:"all"             → all: [{with: ...}, ...]
 func (c *Converter) convertListenTask(cfg *tasksv1.ListenTaskConfig) map[string]interface{} {
-	// Note: cfg.To is *ListenTo - would need to be converted based on its structure
-	// For now, this is handled by the existing generic converter logic
+	to := make(map[string]interface{})
+
+	eventFilters := make([]map[string]interface{}, len(cfg.To.Signals))
+	for i, sig := range cfg.To.Signals {
+		eventFilters[i] = map[string]interface{}{
+			"with": map[string]interface{}{
+				"id":   sig.Id,
+				"type": sig.Type,
+			},
+		}
+	}
+
+	switch {
+	case cfg.To.Mode == "one" && len(eventFilters) == 1:
+		to["one"] = eventFilters[0]
+	case cfg.To.Mode == "one":
+		to["any"] = eventFilters
+	default:
+		to["all"] = eventFilters
+	}
+
 	return map[string]interface{}{
-		"listen": map[string]interface{}{},
+		"listen": map[string]interface{}{
+			"to": to,
+		},
 	}
 }
 
