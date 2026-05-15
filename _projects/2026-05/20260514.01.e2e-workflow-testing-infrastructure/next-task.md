@@ -68,8 +68,33 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: Signal routing fix implemented — ready for E2E validation
-**Status**: Java relay + test updates complete; CI green for Phase 2; ready for Phase 3
+**Current Task**: Listen converter implemented, E2E validated — Phase 2 complete
+**Status**: 25 tests green (23 existing + 2 listen); ready for Phase 3
+
+## Session Progress (2026-05-15, Session 11 — E2E Validation + Listen Converter)
+
+### Accomplished
+- **Validated Session 10 signal routing fix end-to-end** — all 23 tests pass with rebuilt JAR (initial run failed because JAR predated the `relaySignal` commit)
+- **Implemented `convertListenTask`** — replaced empty stub with proper proto-to-YAML converter mapping `ListenTaskConfig` to the CNCF Serverless Workflow SDK's discriminated union structure
+- **Added 2 listen integration tests** — `TestWorkflowListen_SignalUnblocks` (single signal, mode "one") and `TestWorkflowListen_AllMode` (two signals, both must arrive)
+- **Full signal pipeline validated** — listen tasks work end-to-end through: gRPC SendSignal → Java handler → relaySignal → inner Go workflow signal channel → zigflow listen task completes
+
+### Key Finding: JAR Build Timing
+The initial E2E run exposed that the fat JAR was built at 08:48 but the `relaySignal` commit was at 09:53. HITL tests timed out because the JAR didn't contain the relay method. Rebuilding the JAR resolved the issue — all 25 tests pass in ~57 seconds.
+
+### Converter Design: Proto Mode → Zigflow Strategy
+The proto uses a flat `{mode, signals[]}` representation while zigflow uses a discriminated union under `listen.to`:
+- `mode:"one"` + 1 signal → zigflow `one` (single EventFilter)
+- `mode:"one"` + N signals → zigflow `any` (complete on first arrival)
+- `mode:"all"` → zigflow `all` (wait for every signal)
+
+### Files Changed
+
+**stigmer (OSS)** — modified (1 file):
+- `backend/services/workflow-runner/pkg/converter/task_converters.go` — implemented `convertListenTask`
+
+**stigmer (OSS)** — new (1 file):
+- `test/integration/workflow_listen_test.go` — 2 listen integration tests (signal unblocks + all-mode)
 
 ## Session Progress (2026-05-15, Session 10 — Java Signal Routing Fix)
 
@@ -137,7 +162,8 @@ User/API → Java Handler → SignalWithStart("relaySignal", [signalName, payloa
 1. ~~**Resolve `cloud_ref` default**~~ — RESOLVED: `cloud_ref` can be passed at dispatch time, tests pass
 2. **Phase 3**: Provider-backed canary tests (LLM, agent, cursor-runner) — requires API keys
 3. ~~**Fix Java signal routing**~~ — RESOLVED: `relaySignal` implemented (Session 10)
-4. **Implement `listen` converter** — enable signal-based tests
+4. ~~**Implement `listen` converter**~~ — RESOLVED: converter + 2 integration tests (Session 11)
+5. ~~**Run E2E validation**~~ — RESOLVED: 25 tests green (Session 11)
 
 ## Session Progress (2026-05-15, Session 8 — Phase 2: Workflow Task Family & HITL Testing)
 
@@ -413,18 +439,18 @@ User/API → Java Handler → SignalWithStart("relaySignal", [signalName, payloa
 1. ~~**Resolve `cloud_ref` default**~~ — RESOLVED: `cloud_ref` can be passed at dispatch time
 2. **Phase 3**: Provider-backed canary tests (T13/T14 from plan) — requires API keys
 3. ~~**Fix Java signal routing**~~ — RESOLVED: `relaySignal` relay implemented (Session 10)
-4. **Implement `listen` converter** — enable signal-based tests
+4. ~~**Implement `listen` converter**~~ — RESOLVED: converter + 2 integration tests (Session 11)
 5. **Future: Publish JAR from stigmer-cloud CI** — replace Job 1 with a download step
-6. **Run E2E validation** — `make test-integration` to verify HITL tests pass through gRPC API path
+6. ~~**Run E2E validation**~~ — RESOLVED: 25 tests green including HITL + listen signal routing (Session 11)
 
 ## Context for Resume
-- All 9 integration tests pass (4 top-level + subtests): infra (3 sub-tests), service health, smoke gRPC, workflow lifecycle
-- The full pipeline is validated: Go test harness → Testcontainers → Java fat JAR → Temporal → Go workflow-runner → zigflow engine → gRPC callbacks → assertions
-- T04 complete: `make test-integration` produces JUnit XML + service logs in `.test-output/`
-- Six pre-existing bugs in the production codebase were found and fixed during runtime validation
-- The stigmer-cloud changes (3 files) need to be committed separately in that repo
+- All 25 integration tests pass: infra (3), service health, smoke gRPC, lifecycle, control flow, data (2), error handling (3), HITL (3), HTTP (2), listen (2), pipeline (3)
+- Full signal pipeline validated end-to-end: gRPC API → Java handler → relaySignal → inner Go workflow → zigflow task completion
+- Phase 2 is complete — all offline task families covered including listen tasks
+- Phase 3 (provider-backed canaries) is the next milestone — requires API keys
+- JAR must be rebuilt after stigmer-cloud changes: `./bazelw build //backend/services/stigmer-service:stigmer_service_fatjar`
 - Fat JAR path: `/Users/suresh/scm/github.com/stigmer/stigmer-cloud/bazel-bin/backend/services/stigmer-service/stigmer_service_fatjar.jar`
-- Test command: `make test-integration` (or `STIGMER_SERVICE_JAR=<jar_path> make test-integration`)
+- Test command: `STIGMER_SERVICE_JAR=<jar_path> make test-integration`
 
 ## Quick Commands
 
