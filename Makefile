@@ -218,83 +218,20 @@ test: ## Run all unit tests
 	@cd $(CURSOR_RUNNER_DIR) && npm test
 
 # ─── Integration Test ─────────────────────────
-
-STIGMER_CLOUD_ROOT ?= $(CURDIR)/../stigmer-cloud
-STIGMER_SERVICE_JAR ?= $(STIGMER_CLOUD_ROOT)/bazel-bin/backend/services/stigmer-service/stigmer_service_fatjar.jar
-
-INTEGRATION_OUTPUT_DIR ?= test/integration/.test-output
-
-.PHONY: ensure-service-jar
-ensure-service-jar: ## Build stigmer-cloud fat JAR if not already present
-	@if [ -f "$(STIGMER_SERVICE_JAR)" ]; then \
-		echo "stigmer-service JAR: $(STIGMER_SERVICE_JAR)"; \
-	elif [ -d "$(STIGMER_CLOUD_ROOT)" ]; then \
-		echo "Building stigmer-service fat JAR from $(STIGMER_CLOUD_ROOT)..."; \
-		cd "$(STIGMER_CLOUD_ROOT)" && bazel build //backend/services/stigmer-service:stigmer_service_fatjar; \
-	else \
-		echo "error: stigmer-cloud repo not found at $(STIGMER_CLOUD_ROOT)"; \
-		echo "  either: clone stigmer-cloud as a sibling directory"; \
-		echo "  or:     set STIGMER_SERVICE_JAR to an existing JAR path"; \
-		exit 1; \
-	fi
+# All integration test logic lives in test/integration/Makefile.
+# These are thin delegates that pass through env vars.
 
 .PHONY: test-integration
-test-integration: ensure-service-jar ## Run integration tests (offline, no API keys needed)
-	@command -v gotestsum >/dev/null 2>&1 || { \
-		echo "error: gotestsum not found"; \
-		echo "  install: go install gotest.tools/gotestsum@latest"; \
-		exit 1; \
-	}
-	@mkdir -p $(INTEGRATION_OUTPUT_DIR)
-	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
-	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(INTEGRATION_OUTPUT_DIR)) gotestsum \
-		--junitfile $(INTEGRATION_OUTPUT_DIR)/junit.xml \
-		--junitfile-testsuite-name short \
-		--jsonfile $(INTEGRATION_OUTPUT_DIR)/test-output.json \
-		--format testname \
-		-- -tags integration -timeout 300s -count=1 ./test/integration/
-
-PROVIDER_OUTPUT_DIR ?= test/integration/.test-output-providers
+test-integration: ## Run integration tests (offline, no API keys needed)
+	$(MAKE) -C test/integration test
 
 .PHONY: test-integration-providers
-test-integration-providers: ensure-service-jar ## Run provider-backed integration tests (auto-fetches API keys from Planton)
-	@command -v gotestsum >/dev/null 2>&1 || { \
-		echo "error: gotestsum not found"; \
-		echo "  install: go install gotest.tools/gotestsum@latest"; \
-		exit 1; \
-	}
-	@mkdir -p $(PROVIDER_OUTPUT_DIR)
-	@ANTHROPIC_KEY=$${ANTHROPIC_API_KEY:-}; \
-	if [ -z "$$ANTHROPIC_KEY" ]; then \
-		if command -v planton >/dev/null 2>&1; then \
-			echo "Fetching ANTHROPIC_API_KEY from Planton..."; \
-			ANTHROPIC_KEY=$$(planton service secrets get-value --org stigmer --group anthropic --name prod.api-key 2>&1); \
-			if [ -z "$$ANTHROPIC_KEY" ]; then \
-				echo "error: planton returned empty value for anthropic/prod.api-key"; \
-				exit 1; \
-			fi; \
-		else \
-			echo "error: ANTHROPIC_API_KEY not set and planton CLI not found"; \
-			echo "  either: export ANTHROPIC_API_KEY=<key>"; \
-			echo "  or:     install planton CLI (brew install plantonhq/tap/planton)"; \
-			exit 1; \
-		fi; \
-	fi; \
-	CURSOR_KEY=$${CURSOR_API_KEY:-}; \
-	if [ -z "$$CURSOR_KEY" ] && command -v planton >/dev/null 2>&1; then \
-		echo "Fetching CURSOR_API_KEY from Planton..."; \
-		CURSOR_KEY=$$(planton service secrets get-value --org stigmer --group cursor --name prod.api-key 2>&1 || true); \
-		if [ -n "$$CURSOR_KEY" ]; then echo "CURSOR_API_KEY fetched"; else echo "CURSOR_API_KEY not available — cursor tests will be skipped"; fi; \
-	fi; \
-	ANTHROPIC_API_KEY=$$ANTHROPIC_KEY \
-	CURSOR_API_KEY=$$CURSOR_KEY \
-	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
-	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(PROVIDER_OUTPUT_DIR)) gotestsum \
-		--junitfile $(PROVIDER_OUTPUT_DIR)/junit.xml \
-		--junitfile-testsuite-name short \
-		--jsonfile $(PROVIDER_OUTPUT_DIR)/test-output.json \
-		--format testname \
-		-- -tags integration -timeout 600s -count=1 -run 'TestWorkflow(LlmCall|AgentCall|CursorCall)' ./test/integration/
+test-integration-providers: ## Run provider-backed integration tests (auto-fetches API keys from Planton)
+	$(MAKE) -C test/integration test-providers
+
+.PHONY: test-integration-agent
+test-integration-agent: ## Run agent execution integration tests (auto-fetches API keys from Planton)
+	$(MAKE) -C test/integration test-agent
 
 # ─── Tidy ────────────────────────────────────
 

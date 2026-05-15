@@ -68,8 +68,59 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: All integration tests green — offline and provider suites validated
-**Status**: 33 offline + 6 provider tests green (1 skipped — no OpenAI key)
+**Current Task**: Agent execution integration test suite built — first run completed with 4 passes, fixes documented
+**Status**: 51 total tests (28 workflow + 23 agent execution), first provider run identified 5 fixes needed
+
+## Session Progress (2026-05-15, Session 16 — Agent Execution Integration Test Suite)
+
+### Accomplished
+
+- **Designed cross-harness test architecture**: Every agent execution test runs on both native (Graphton) and cursor harnesses via table-driven `t.Run` subtests — parity enforced by construction
+- **Built harness infrastructure** (4 new files): `HarnessConfig`, `AgentExecutionWaiter`, `CreateAgent` factory with functional options, MCP server helpers
+- **Built test MCP server** (`testdata/mcp-test-server/main.go`): Deterministic stdio server with echo/add/fail/slow tools
+- **Extended gRPC clients**: Added `AgentExecutionCommand`, `SessionCommand`, `McpServerCommand`, `McpServerQuery`, `SkillCommand`, `SkillQuery`
+- **Wrote 23 test functions** across 8 families: lifecycle, HITL (approve/skip/reject/auto-approve/wrong-phase), lifecycle control (cancel/terminate/pause-resume), MCP (stdio/failure/filter), skills, sub-agents, attachments, config
+- **Extracted integration Makefile**: Moved all integration targets from root Makefile (685→582 lines) into `test/integration/Makefile`
+- **Ran first provider test**: 4 subtests passed (Config_MaxToolRounds native+cursor, Config_ModelOverride cursor), identified 5 fixes needed
+- **Created T19 handoff document**: Complete inventory of fixes, missing billing/usage tests, and remaining plan items
+
+### Key Design Decision: Table-Driven Cross-Harness Subtests
+
+Every test iterates over `harness.Harnesses` (native + cursor) and runs `t.Run(h.Name, ...)`. Platform-level assertions (phases, approval states, lifecycle transitions) are identical. Runner-level assertions can have harness-conditional branches. If `TestFoo/native` passes but `TestFoo/cursor` fails, it's a real parity bug — visible as a distinct line in CI.
+
+### First Run Findings
+
+| Issue | Root Cause | Fix |
+|-------|-----------|-----|
+| Attachment upload fails | R2 storage dummy endpoint (localhost:19999) in test mode | Skip when R2 unavailable, or add MinIO Testcontainer |
+| HITL tests timeout (187s) | Agent doesn't reliably call MCP tool — missing `ConnectMcpServer` call | Add connect step + more deterministic prompts |
+| ModelOverride/native fails | Model name not valid for native runner | Use harness-appropriate model name |
+| Cascade failures after HITL | Java service exhausted after long HITL tests | Reorder tests (lightweight first), increase timeout |
+| Connection refused late | Test ordering — HITL runs before lifecycle | Prefix filenames for ordering |
+
+### Files Created (16 new)
+
+**Harness** (4): `harness_config.go`, `agent_execution_waiter.go`, `agent_factory.go`, `mcp_helpers.go`
+**Tests** (9): `agent_execution_{lifecycle,hitl,lifecycle_control,mcp,skills,subagent,attachments,config}_test.go`, `agent_execution_helpers_test.go`
+**MCP server** (1): `testdata/mcp-test-server/main.go`
+**Makefile** (1): `test/integration/Makefile`
+**Task doc** (1): `tasks/T19_agent_execution_test_fixes_and_gaps.md`
+
+### Files Modified (4)
+
+- `Makefile` — Replaced integration targets with thin delegates (685→582 lines)
+- `test/integration/harness/clients.go` — Added 6 new gRPC client pairs
+- `test/integration/suite_test.go` — Added `mcpTestServerBinary` global + MCP server build step
+- `test/integration/.gitignore` — Added output directories
+
+### Next Steps
+
+1. Fix the 5 broken tests (T19 Part 1)
+2. Implement billing/usage/cost tracking tests (T19 Part 2 — 12 tests)
+3. Implement remaining plan items (T19 Part 3 — 15 tests)
+4. Build HTTP+SSE test MCP server (T19 Part 4)
+
+See `tasks/T19_agent_execution_test_fixes_and_gaps.md` for the complete handoff document.
 
 ## Session Progress (2026-05-15, Session 15 — Provider Suite Validation + Two Bug Fixes)
 
