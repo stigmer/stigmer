@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { WorkflowExecutionViewer, useResolveAgentExecutionSession } from "@stigmer/react";
+import {
+  WorkflowExecutionViewer,
+  useResolveAgentExecutionSession,
+  useActiveOrgSlug,
+} from "@stigmer/react";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 
 interface WorkflowExecutionDetailPageProps {
@@ -16,14 +20,21 @@ interface WorkflowExecutionDetailPageProps {
  * that wires Console-specific concerns:
  * - `onNavigateToAgentExecution` → resolves aex_* to session ID, then
  *   navigates via SessionNavigationProvider
+ * - `onNavigateToWorkflowEditor` → navigates to workflow detail page
+ *   with the suggested YAML (for AI diagnosis "Apply Fix")
+ * - `org` → sourced from the active organization context so the
+ *   Diagnose button appears on failed executions
  *
  * The viewer component handles all data fetching, streaming, and rendering.
  */
 export function WorkflowExecutionDetailPage({
   executionId,
-  org,
+  org: orgProp,
 }: WorkflowExecutionDetailPageProps) {
   const { navigateToSession } = useSessionNavigation();
+  const activeOrg = useActiveOrgSlug();
+  const org = orgProp ?? activeOrg;
+
   const [pendingAgentExecutionId, setPendingAgentExecutionId] = useState<string | null>(null);
 
   const { sessionId, isLoading: isResolving } = useResolveAgentExecutionSession(pendingAgentExecutionId);
@@ -41,6 +52,14 @@ export function WorkflowExecutionDetailPage({
     [],
   );
 
+  const handleNavigateToWorkflowEditor = useCallback(
+    (_yaml: string, workflowSlug: string) => {
+      const targetOrg = org ?? "";
+      window.location.href = `/workflows/${targetOrg}/${workflowSlug}`;
+    },
+    [org],
+  );
+
   return (
     <div className="-mx-6 -my-8 flex h-[calc(100vh-var(--header-height,64px))] flex-col">
       {isResolving && (
@@ -55,6 +74,7 @@ export function WorkflowExecutionDetailPage({
         executionId={executionId}
         org={org}
         onNavigateToAgentExecution={handleNavigateToAgentExecution}
+        onNavigateToWorkflowEditor={handleNavigateToWorkflowEditor}
       />
     </div>
   );

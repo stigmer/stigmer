@@ -1152,7 +1152,7 @@ export {
   useRefineWorkflowFlow,
   WorkflowRefinePanel,
   computeUnifiedDiff,
-  useDiagnoseExecution,
+  useDiagnoseExecutionFlow,
   WorkflowRepairCard,
 } from "./workflow";
 export type {
@@ -1241,9 +1241,9 @@ export type {
   WorkflowRefinePanelProps,
   DiffLine as WorkflowDiffLine,
   DiffLineType as WorkflowDiffLineType,
-  UseDiagnoseExecutionOptions,
-  UseDiagnoseExecutionReturn,
-  DiagnoseExecutionFlowResult,
+  DiagnosePhase,
+  UseDiagnoseExecutionFlowOptions,
+  UseDiagnoseExecutionFlowReturn,
   WorkflowRepairCardProps,
 } from "./workflow";
 

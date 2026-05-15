@@ -24,6 +24,14 @@ export default function WorkflowExecutionDetailPage() {
     [],
   );
 
+  const handleNavigateToWorkflowEditor = useCallback(
+    (_yaml: string, workflowSlug: string) => {
+      const targetOrg = org ?? "";
+      navigate(`/workflows/${targetOrg}/${workflowSlug}`);
+    },
+    [navigate, org],
+  );
+
   if (!id) return null;
 
   return (
@@ -40,6 +48,7 @@ export default function WorkflowExecutionDetailPage() {
         executionId={id}
         org={org}
         onNavigateToAgentExecution={handleNavigateToAgentExecution}
+        onNavigateToWorkflowEditor={handleNavigateToWorkflowEditor}
       />
     </div>
   );

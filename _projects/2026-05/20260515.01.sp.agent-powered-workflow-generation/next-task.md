@@ -101,8 +101,48 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-15 10:05
-**Current Task**: T01 — Batch 4 complete (SDK + Frontend — Refine)
+**Current Task**: T01 — Batch 5 complete (SDK + Frontend — Diagnose)
 **Status**: In Progress
+
+## Session Progress (May 15, 2026 — Session 5)
+
+### Completed: Batch 5 — SDK + Frontend — Diagnose (WorkflowRepairCard)
+- Created `useDiagnoseExecutionFlow` behavior hook following the refine pattern
+  - Auto-starts on mount (AD-B5-002) — no intermediate "Diagnose with AI" state
+  - Multi-turn session: first turn creates Session, follow-ups reuse it (AD-B5-003)
+  - YAML extraction via `extractWorkflowYaml()` — presence = definition fix, absence = runtime error
+  - Phase model: `idle | starting | streaming | complete | ready | error`
+  - `diagnose()` + `sendFollowUp()` + `acceptFix()` + `discardFix()` + `reset()`
+  - Referentially stable returns (DD-010), framework-agnostic (DD-004)
+- Rewrote `WorkflowRepairCard` from single-shot loading card to conversational streaming panel
+  - `MessageThread` for all turns (completed + active execution)
+  - Result strip with diff preview and "Apply Fix" / "Discard" buttons
+  - Runtime error notice when no YAML fix is suggested
+  - Follow-up composer pinned to bottom
+  - Self-contained: calls `useDiagnoseExecutionFlow` internally (AD-B5-004)
+  - Props contract preserved (AD-B5-005)
+- Updated `WorkflowExecutionViewer` layout: aside expands to `w-[40%] min-w-[360px] max-w-[500px]` when diagnosis active (AD-B5-001)
+- Deleted stub `useDiagnoseExecution.ts`, updated barrel exports in `index.ts` and root `index.ts`
+- Wired `org` (via `useActiveOrgSlug()`) + `onNavigateToWorkflowEditor` in web `WorkflowExecutionDetailPage`
+- Wired `onNavigateToWorkflowEditor` in desktop `WorkflowExecutionDetailPage`
+- Verification: `tsc --noEmit` clean across all 4 packages; ESLint passes on all changed files
+
+### Key Decisions
+- **AD-B5-001: 40% split layout** — diagnosis panel replaces sidebar panels (not nested below)
+- **AD-B5-002: Auto-start** — agent begins immediately when panel opens (clear user intent)
+- **AD-B5-003: Multi-turn session** — same Session for follow-ups
+- **AD-B5-004: Self-contained card** — hook called internally, but also exported for headless use
+- **AD-B5-005: Props contract stable** — same interface as before, internal rewrite
+
+### Files Changed
+- `sdk/react/src/workflow/useDiagnoseExecutionFlow.ts` — **New** (256 lines)
+- `sdk/react/src/workflow/WorkflowRepairCard.tsx` — **Rewrite** (348 → 320 lines)
+- `sdk/react/src/workflow/WorkflowExecutionViewer.tsx` — **Modify** (layout conditional)
+- `sdk/react/src/workflow/useDiagnoseExecution.ts` — **Deleted**
+- `sdk/react/src/workflow/index.ts` — **Update** exports
+- `sdk/react/src/index.ts` — **Update** re-exports
+- `client-apps/web/src/domain/workflow/WorkflowExecutionDetailPage.tsx` — **Modify** (org + navigation)
+- `client-apps/desktop/src/pages/workflow/WorkflowExecutionDetailPage.tsx` — **Modify** (navigation)
 
 ## Session Progress (May 15, 2026 — Session 4)
 
@@ -210,22 +250,23 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Batch 5: SDK + Frontend — Diagnose** — Replace stubbed `useDiagnoseExecution` with agent-powered diagnosis; build agent diagnosis view in execution viewer (`WorkflowRepairCard`)
-2. **End-to-end testing** — Seed `workflow-architect` agent, test the full generate + refine + diagnose flows with a running Stigmer instance
-3. **Future: Large YAML attachment** — For workflows > 300 lines, use `useAttachments` + `uploadAttachment()` to deliver YAML as a file instead of inlining in message context
+1. **End-to-end testing** — Seed `workflow-architect` agent, test the full generate + refine + diagnose flows with a running Stigmer instance
+2. **Future: Large YAML attachment** — For workflows > 300 lines, use `useAttachments` + `uploadAttachment()` to deliver YAML as a file instead of inlining in message context
+3. **Future: Codegen tool fix** — Fix `serverless/io_pb` → `serverless/validation_pb` import path in TS SDK codegen
 
 ## Context for Resume
 
-- Batches 1A (teardown), 2 (MCP tools + agent), **3 (SDK + Frontend — Generate)**, and **4 (SDK + Frontend — Refine)** are complete
+- **All 5 batches complete**: 1A (teardown), 2 (MCP tools + agent), 3 (Generate), 4 (Refine), **5 (Diagnose)**
 - The `WorkflowArchitectDialog` is wired in both web and desktop consoles
 - The `WorkflowRefinePanel` is wired inside `WorkflowEditorView` — opens in the right 40% pane via the toolbar "Refine" button
-- `useWorkflowArchitectFlow` composes `useCreateSession` → `useCreateAgentExecution` → `useExecutionStream` → `extractWorkflowYaml` → `workflow.apply()`
-- `useRefineWorkflowFlow` composes the same infrastructure but with multi-turn session management and smart YAML delivery
-- `useDiagnoseExecution` is still **stubbed** with runtime errors — Batch 5 will replace it
+- The `WorkflowRepairCard` is wired inside `WorkflowExecutionViewer` — expands to 40% panel when diagnosis active
+- `useDiagnoseExecutionFlow` composes the same infrastructure as refine (session + execution + stream + extract)
+- Web console now sources `org` from `useActiveOrgSlug()` — diagnosis button appears on failed executions
+- Both consoles wire `onNavigateToWorkflowEditor` for the "Apply Fix" → editor navigation
 - TS proto stubs and TS SDK are regenerated and clean — `validateSpec` added, LLM methods removed
 - Codegen import bug exists: `serverless/io_pb` → `serverless/validation_pb` fix is manual in `sdk/typescript/src/gen/workflow.ts` — will be overwritten on next codegen run (needs codegen tool fix)
 - Pre-existing Bazel/Gazelle issue blocks `make -C apis build` — use `make -C apis ts-stubs` directly
-- Changelog: `_changelog/2026-05/2026-05-15-132017-workflow-architect-refine-panel.md`
+- Changelogs: `_changelog/2026-05/2026-05-15-132017-workflow-architect-refine-panel.md`, `_changelog/2026-05/2026-05-15-162734-agent-powered-workflow-diagnosis.md`
 
 ## Quick Resume
 

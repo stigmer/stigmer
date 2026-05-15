@@ -181,40 +181,48 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
           className="flex-1 border-r border-border"
         />
 
-        {/* Sidebar */}
-        <aside className="flex w-64 shrink-0 flex-col overflow-y-auto">
-          <WorkflowExecutionTaskPanel
-            taskStates={taskStates}
-            totalTasks={totalTasks}
-            selectedTaskName={selectedTaskName}
-            onSelectTask={setSelectedTaskName}
-          />
-
-          <div className="border-t border-border">
-            <WorkflowExecutionCostPanel costSummary={costSummary} />
-          </div>
-
-          {artifacts.length > 0 && (
-            <div className="border-t border-border">
-              <WorkflowExecutionArtifactPanel artifacts={artifacts} />
-            </div>
+        {/* Right panel — expands when diagnosis is active (AD-B5-001) */}
+        <aside
+          className={cn(
+            "flex shrink-0 flex-col overflow-hidden border-l border-border",
+            showDiagnosis
+              ? "w-[40%] min-w-[360px] max-w-[500px]"
+              : "w-64 overflow-y-auto",
           )}
-
-          {showDiagnosis && org && (
-            <div className="border-t border-border">
-              <WorkflowRepairCard
-                executionId={executionId}
-                org={org}
-                onApplyFix={onNavigateToWorkflowEditor ? handleApplyFix : undefined}
-                onClose={handleCloseDiagnosis}
+        >
+          {showDiagnosis && org ? (
+            <WorkflowRepairCard
+              executionId={executionId}
+              org={org}
+              onApplyFix={onNavigateToWorkflowEditor ? handleApplyFix : undefined}
+              onClose={handleCloseDiagnosis}
+              className="h-full"
+            />
+          ) : (
+            <>
+              <WorkflowExecutionTaskPanel
+                taskStates={taskStates}
+                totalTasks={totalTasks}
+                selectedTaskName={selectedTaskName}
+                onSelectTask={setSelectedTaskName}
               />
-            </div>
-          )}
 
-          {additionalActions && (
-            <div className="border-t border-border px-3 py-2">
-              {additionalActions}
-            </div>
+              <div className="border-t border-border">
+                <WorkflowExecutionCostPanel costSummary={costSummary} />
+              </div>
+
+              {artifacts.length > 0 && (
+                <div className="border-t border-border">
+                  <WorkflowExecutionArtifactPanel artifacts={artifacts} />
+                </div>
+              )}
+
+              {additionalActions && (
+                <div className="border-t border-border px-3 py-2">
+                  {additionalActions}
+                </div>
+              )}
+            </>
           )}
         </aside>
       </div>

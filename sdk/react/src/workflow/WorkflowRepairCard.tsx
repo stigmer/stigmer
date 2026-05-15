@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { useDiagnoseExecution, type DiagnoseExecutionFlowResult } from "./useDiagnoseExecution";
+import { useDiagnoseExecutionFlow, type DiagnosePhase } from "./useDiagnoseExecutionFlow";
+import { MessageThread } from "../execution/MessageThread";
 import { computeUnifiedDiff, type DiffLine } from "./workflow-yaml-diff";
 
 /** Props for {@link WorkflowRepairCard}. */
@@ -24,16 +25,24 @@ export interface WorkflowRepairCardProps {
   readonly className?: string;
 }
 
+const COMPOSER_ENABLED_PHASES: ReadonlySet<DiagnosePhase> = new Set([
+  "ready",
+  "complete",
+  "error",
+]);
+
 /**
- * Card component that displays AI-powered diagnosis of a failed workflow
- * execution. Renders inside the execution viewer's sidebar.
+ * Panel component that displays agent-powered diagnosis of a failed workflow
+ * execution. Designed for the execution viewer's right panel (AD-B5-001).
  *
  * Layout:
- * 1. Header — "AI Diagnosis" title with sparkles icon
- * 2. Diagnosis — root-cause analysis (always present)
- * 3. Fix section (conditional) — fix explanation, diff preview, Apply Fix button
- * 4. Loading state — spinner + "Analyzing execution..."
- * 5. Error state — error message with Try Again button
+ * 1. Header — "AI Diagnosis" title with sparkles icon + close button
+ * 2. Message area — `MessageThread` showing the agent conversation
+ * 3. Result strip (conditional) — fix explanation, diff preview, Apply Fix / Discard
+ * 4. Follow-up composer (pinned to bottom) — text input for additional questions
+ *
+ * Auto-starts diagnosis on mount (AD-B5-002). Supports multi-turn
+ * follow-up questions within the same session (AD-B5-003).
  *
  * Styled via `--stgm-*` design tokens. Zero console dependencies (DD-004).
  */
@@ -45,34 +54,75 @@ export function WorkflowRepairCard({
   onClose,
   className,
 }: WorkflowRepairCardProps) {
-  const flow = useDiagnoseExecution({
+  const [followUp, setFollowUp] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const flow = useDiagnoseExecutionFlow({
+    executionId,
     org,
+    currentWorkflowYaml,
+    autoStart: true,
     onError: () => {
       /* Error is displayed inline via flow.error */
     },
   });
 
-  const handleDiagnose = useCallback(() => {
-    flow.diagnose(executionId);
-  }, [flow, executionId]);
+  const composerEnabled = COMPOSER_ENABLED_PHASES.has(flow.phase);
+  const hasConversation =
+    flow.completedExecutions.length > 0 || flow.activeExecution !== null;
+
+  // ---------------------------------------------------------------------------
+  // Handlers
+  // ---------------------------------------------------------------------------
+
+  const handleSendFollowUp = useCallback(async () => {
+    const trimmed = followUp.trim();
+    if (trimmed.length < 5) return;
+
+    setFollowUp("");
+    await flow.sendFollowUp(trimmed);
+
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    });
+  }, [flow.sendFollowUp, followUp]);
 
   const handleApplyFix = useCallback(() => {
-    if (flow.result?.suggestedYaml && onApplyFix) {
-      onApplyFix(flow.result.suggestedYaml);
+    const yaml = flow.acceptFix();
+    if (yaml && onApplyFix) {
+      onApplyFix(yaml);
     }
-  }, [flow.result, onApplyFix]);
+  }, [flow.acceptFix, onApplyFix]);
 
-  const handleTryAgain = useCallback(() => {
+  const handleDiscard = useCallback(() => {
+    flow.discardFix();
+  }, [flow.discardFix]);
+
+  const handleRetry = useCallback(() => {
     flow.reset();
-    flow.diagnose(executionId);
-  }, [flow, executionId]);
+  }, [flow.reset]);
 
-  const showInitial = !flow.isDiagnosing && !flow.result && !flow.error;
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        handleSendFollowUp();
+      }
+    },
+    [handleSendFollowUp],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
 
   return (
     <div
       className={cn(
-        "flex flex-col border-l border-border bg-background",
+        "flex h-full flex-col bg-background",
         className,
       )}
       role="complementary"
@@ -82,7 +132,15 @@ export function WorkflowRepairCard({
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <div className="flex items-center gap-1.5">
           <SparklesIcon />
-          <h3 className="text-xs font-semibold text-foreground">AI Diagnosis</h3>
+          <h3 className="text-xs font-semibold text-foreground">
+            AI Diagnosis
+          </h3>
+          {flow.isStreaming && (
+            <span className="inline-flex items-center gap-1 text-[0.65rem] text-muted-foreground">
+              <SpinnerIcon size={10} />
+              Analyzing…
+            </span>
+          )}
         </div>
         {onClose && (
           <button
@@ -96,48 +154,41 @@ export function WorkflowRepairCard({
         )}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto">
-        {/* Initial state — prompt to diagnose */}
-        {showInitial && (
-          <div className="flex flex-col items-center justify-center gap-3 px-3 py-8">
-            <p className="text-center text-xs text-muted-foreground">
-              Analyze this failed execution to identify the root cause and get fix suggestions.
-            </p>
-            <button
-              type="button"
-              onClick={handleDiagnose}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                "bg-primary text-primary-foreground hover:bg-primary/90",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              )}
-            >
-              <SparklesIcon />
-              Diagnose with AI
-            </button>
-          </div>
-        )}
-
-        {/* Loading state */}
-        {flow.isDiagnosing && (
+      {/* Scrollable content area */}
+      <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        {/* Starting indicator */}
+        {flow.phase === "starting" && !hasConversation && (
           <div className="flex flex-col items-center justify-center gap-2 py-8">
             <SpinnerIcon />
-            <p className="text-xs text-muted-foreground">Analyzing execution…</p>
+            <p className="text-xs text-muted-foreground">
+              Starting Workflow Architect…
+            </p>
           </div>
         )}
 
-        {/* Error state */}
-        {flow.error && (
-          <div className="px-3 py-3">
-            <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive" role="alert">
+        {/* Agent conversation */}
+        {hasConversation && (
+          <MessageThread
+            executions={flow.completedExecutions}
+            activeStreamExecution={flow.activeExecution}
+            className="flex-1"
+          />
+        )}
+
+        {/* Error */}
+        {flow.error && flow.phase === "error" && (
+          <div className="mx-3 mt-3 space-y-2">
+            <div
+              className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive"
+              role="alert"
+            >
               {flow.error}
             </div>
             <button
               type="button"
-              onClick={handleTryAgain}
+              onClick={handleRetry}
               className={cn(
-                "mt-2 w-full rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                "w-full rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
                 "border border-input bg-background text-foreground",
                 "hover:bg-accent hover:text-accent-foreground",
               )}
@@ -146,112 +197,147 @@ export function WorkflowRepairCard({
             </button>
           </div>
         )}
-
-        {/* Result */}
-        {flow.result && (
-          <DiagnosisResultSection
-            result={flow.result}
-            currentWorkflowYaml={currentWorkflowYaml}
-            onApplyFix={onApplyFix ? handleApplyFix : undefined}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function DiagnosisResultSection({
-  result,
-  currentWorkflowYaml,
-  onApplyFix,
-}: {
-  readonly result: DiagnoseExecutionFlowResult;
-  readonly currentWorkflowYaml?: string;
-  readonly onApplyFix?: () => void;
-}) {
-  const hasFix = result.suggestedYaml.length > 0;
-
-  const diffLines = hasFix && currentWorkflowYaml
-    ? computeUnifiedDiff(currentWorkflowYaml, result.suggestedYaml)
-    : null;
-  const hasChanges = diffLines?.some((l) => l.type !== "equal") ?? false;
-
-  return (
-    <div className="px-3 py-3" aria-live="polite">
-      {/* Diagnosis */}
-      <div className="mb-3">
-        <h4 className="mb-1 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">
-          Root Cause
-        </h4>
-        <p className="whitespace-pre-wrap text-xs leading-relaxed text-foreground">
-          {result.diagnosis}
-        </p>
       </div>
 
-      {/* Fix section — only when the LLM suggests a YAML change */}
-      {hasFix && (
-        <>
-          {/* Fix explanation */}
-          <div className="mb-3">
-            <h4 className="mb-1 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">
-              Suggested Fix
-            </h4>
-            <p className="text-xs leading-relaxed text-foreground">
-              {result.fixExplanation}
-            </p>
-          </div>
-
-          {/* Warnings */}
-          {result.warnings.length > 0 && (
-            <div className="mb-3 rounded-md border border-warning/30 bg-warning/5 px-2.5 py-1.5">
-              <ul className="list-inside list-disc space-y-0.5 text-[0.7rem] text-warning">
-                {result.warnings.map((w, i) => (
-                  <li key={i}>{w}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Diff preview */}
-          {hasChanges && diffLines && (
-            <div className="mb-3">
-              <h4 className="mb-1 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">
-                Diff
-              </h4>
-              <DiffPreview lines={diffLines} />
-            </div>
-          )}
-
-          {/* Apply Fix button */}
-          {onApplyFix && (
-            <button
-              type="button"
-              onClick={onApplyFix}
-              className={cn(
-                "w-full rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                "bg-primary text-primary-foreground hover:bg-primary/90",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              )}
-            >
-              Apply Fix
-            </button>
-          )}
-        </>
+      {/* Result strip (diff + apply/discard) */}
+      {flow.phase === "complete" && flow.extractedYaml && (
+        <ResultStrip
+          extractedYaml={flow.extractedYaml}
+          explanation={flow.explanation}
+          beforeYaml={currentWorkflowYaml}
+          onApplyFix={onApplyFix ? handleApplyFix : undefined}
+          onDiscard={handleDiscard}
+        />
       )}
 
-      {/* Runtime error — no fix available */}
-      {!hasFix && (
-        <div className="rounded-md border border-border bg-muted/50 px-2.5 py-2 text-[0.7rem] text-muted-foreground">
-          This appears to be a runtime error. No workflow definition changes are needed —
-          check the error details above for remediation steps.
+      {/* Runtime error notice (no fix available) */}
+      {flow.phase === "ready" && !flow.extractedYaml && flow.completedExecutions.length > 0 && (
+        <div className="border-t border-border px-3 py-2">
+          <div className="rounded-md border border-border bg-muted/50 px-2.5 py-2 text-[0.7rem] text-muted-foreground">
+            No workflow definition changes are needed. Check the analysis above for remediation steps.
+          </div>
         </div>
       )}
+
+      {/* Follow-up composer (pinned to bottom) */}
+      <div className="border-t border-border p-3">
+        <textarea
+          value={followUp}
+          onChange={(e) => setFollowUp(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask a follow-up question..."
+          disabled={!composerEnabled}
+          rows={2}
+          className={cn(
+            "w-full resize-none rounded-md border border-input bg-background px-2.5 py-1.5 text-sm text-foreground",
+            "placeholder:text-muted-foreground",
+            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+            "disabled:pointer-events-none disabled:opacity-50",
+          )}
+        />
+        <div className="mt-2 flex items-center justify-between">
+          <p className="text-[0.65rem] text-muted-foreground">
+            {"\u2318"}+Enter to send
+          </p>
+          <button
+            type="button"
+            onClick={handleSendFollowUp}
+            disabled={!composerEnabled || followUp.trim().length < 5}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              "bg-primary text-primary-foreground hover:bg-primary/90",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "disabled:pointer-events-none disabled:opacity-40",
+            )}
+          >
+            Send
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Diff Preview (reused from WorkflowRefinePanel pattern)
+// Result Strip — diff preview with apply/discard actions
+// ---------------------------------------------------------------------------
+
+function ResultStrip({
+  extractedYaml,
+  explanation,
+  beforeYaml,
+  onApplyFix,
+  onDiscard,
+}: {
+  readonly extractedYaml: string;
+  readonly explanation: string | null;
+  readonly beforeYaml?: string;
+  readonly onApplyFix?: () => void;
+  readonly onDiscard: () => void;
+}) {
+  const diffLines = beforeYaml
+    ? computeUnifiedDiff(beforeYaml, extractedYaml)
+    : null;
+  const hasChanges = diffLines?.some((l) => l.type !== "equal") ?? false;
+
+  return (
+    <div className="border-t border-border px-3 py-3" aria-live="polite">
+      {/* Explanation */}
+      {explanation && (
+        <div className="mb-3">
+          <h4 className="mb-1 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">
+            Suggested Fix
+          </h4>
+          <p className="text-xs leading-relaxed text-foreground">
+            {explanation}
+          </p>
+        </div>
+      )}
+
+      {/* Diff preview */}
+      {hasChanges && diffLines && (
+        <div className="mb-3">
+          <h4 className="mb-1 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">
+            Diff
+          </h4>
+          <DiffPreview lines={diffLines} />
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex gap-2">
+        {onApplyFix && (
+          <button
+            type="button"
+            onClick={onApplyFix}
+            className={cn(
+              "flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              "bg-primary text-primary-foreground hover:bg-primary/90",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            )}
+          >
+            Apply Fix
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onDiscard}
+          className={cn(
+            "flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+            "border border-input bg-background text-foreground",
+            "hover:bg-accent hover:text-accent-foreground",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
+        >
+          Discard
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Diff Preview
 // ---------------------------------------------------------------------------
 
 function DiffPreview({ lines }: { readonly lines: readonly DiffLine[] }) {
@@ -328,11 +414,11 @@ function CloseIcon() {
   );
 }
 
-function SpinnerIcon() {
+function SpinnerIcon({ size = 14 }: { readonly size?: number }) {
   return (
     <svg
-      width="14"
-      height="14"
+      width={size}
+      height={size}
       viewBox="0 0 16 16"
       fill="none"
       stroke="currentColor"
