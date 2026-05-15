@@ -236,6 +236,23 @@ test-integration: ## Run integration tests with JUnit XML and JSON output
 		--format testname \
 		-- -tags integration -timeout 300s -count=1 ./test/integration/
 
+PROVIDER_OUTPUT_DIR ?= test/integration/.test-output-providers
+
+.PHONY: test-integration-providers
+test-integration-providers: ## Run provider-backed integration tests (needs API keys, manual only)
+	@command -v gotestsum >/dev/null 2>&1 || { \
+		echo "error: gotestsum not found"; \
+		echo "  install: go install gotest.tools/gotestsum@latest"; \
+		exit 1; \
+	}
+	@mkdir -p $(PROVIDER_OUTPUT_DIR)
+	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(PROVIDER_OUTPUT_DIR)) gotestsum \
+		--junitfile $(PROVIDER_OUTPUT_DIR)/junit.xml \
+		--junitfile-testsuite-name short \
+		--jsonfile $(PROVIDER_OUTPUT_DIR)/test-output.json \
+		--format testname \
+		-- -tags integration -timeout 600s -count=1 -run 'TestWorkflow(LlmCall|AgentCall)' ./test/integration/
+
 # ─── Tidy ────────────────────────────────────
 
 .PHONY: tidy

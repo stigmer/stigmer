@@ -1,0 +1,196 @@
+//go:build integration
+
+package integration
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/test/integration/harness"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/structpb"
+)
+
+// TestWorkflowAgentCall_SimpleExecution exercises the full agent_call pipeline:
+// workflow-runner → Java service → Python agent-runner (LangGraph).
+// Skipped when the agent-runner is not available (no API key or venv).
+func TestWorkflowAgentCall_SimpleExecution(t *testing.T) {
+	requireAgentCallPrereqs(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	deployer := harness.NewFixtureDeployer(clients, "agent-simple", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
+	agent := createTestAgent(t, ctx, clients, "test-simple-agent",
+		"You are a helpful assistant. When asked, respond briefly and directly.")
+
+	taskConfig, err := structpb.NewStruct(map[string]any{
+		"agent":   agent.GetMetadata().GetSlug(),
+		"org":     "test-org",
+		"message": "Reply with exactly: hello-from-agent",
+	})
+	require.NoError(t, err)
+
+	workflow := &workflowv1.Workflow{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Workflow",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "integration-test-agent-simple",
+			Org:  "test-org",
+		},
+		Spec: &workflowv1.WorkflowSpec{
+			Description: "Integration test: agent_call simple execution",
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:       "1.0.0",
+				Namespace: "test-org",
+				Name:      "integration-test-agent-simple",
+				Version:   "1.0.0",
+			},
+			Tasks: []*workflowv1.WorkflowTask{
+				{
+					Name:       "callAgent",
+					Kind:       workflowv1.WorkflowTaskKind_agent_call,
+					TaskConfig: taskConfig,
+				},
+			},
+		},
+	}
+
+	_, execution, err := deployer.DeployAndExecute(ctx, workflow, "agent simple test")
+	require.NoError(t, err)
+	require.NotEmpty(t, execution.GetMetadata().GetId())
+
+	t.Logf("execution created: id=%s", execution.GetMetadata().GetId())
+
+	// agent_call is async (callback token pattern) so allow more time
+	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
+	result, err := waiter.WaitForPhase(ctx, execution.GetMetadata().GetId(),
+		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+	require.NoError(t, err, "execution should reach COMPLETED phase")
+
+	harness.AssertPhase(t, result, workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED)
+	harness.AssertTaskStatus(t, result, "callAgent",
+		workflowexecutionv1.WorkflowTaskStatus_WORKFLOW_TASK_COMPLETED)
+
+	t.Logf("execution completed: id=%s, tasks=%d",
+		result.GetMetadata().GetId(),
+		len(result.GetStatus().GetTasks()))
+}
+
+// TestWorkflowAgentCall_StructuredOutput exercises agent_call with a message
+// requesting JSON classification. The agent's LLM response is expected to
+// contain structured data.
+func TestWorkflowAgentCall_StructuredOutput(t *testing.T) {
+	requireAgentCallPrereqs(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	deployer := harness.NewFixtureDeployer(clients, "agent-struct", suiteLogger)
+	defer deployer.Cleanup(ctx)
+
+	agent := createTestAgent(t, ctx, clients, "test-classify-agent",
+		"You are a sentiment classifier. When given text, respond with JSON: {\"sentiment\": \"positive\"} or {\"sentiment\": \"negative\"} or {\"sentiment\": \"neutral\"}")
+
+	taskConfig, err := structpb.NewStruct(map[string]any{
+		"agent":   agent.GetMetadata().GetSlug(),
+		"org":     "test-org",
+		"message": "Classify the sentiment of this text and respond with JSON: 'This product is fantastic!'",
+	})
+	require.NoError(t, err)
+
+	workflow := &workflowv1.Workflow{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Workflow",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "integration-test-agent-structured",
+			Org:  "test-org",
+		},
+		Spec: &workflowv1.WorkflowSpec{
+			Description: "Integration test: agent_call structured output",
+			Document: &workflowv1.WorkflowDocument{
+				Dsl:       "1.0.0",
+				Namespace: "test-org",
+				Name:      "integration-test-agent-structured",
+				Version:   "1.0.0",
+			},
+			Tasks: []*workflowv1.WorkflowTask{
+				{
+					Name:       "classifyAgent",
+					Kind:       workflowv1.WorkflowTaskKind_agent_call,
+					TaskConfig: taskConfig,
+				},
+			},
+		},
+	}
+
+	_, execution, err := deployer.DeployAndExecute(ctx, workflow, "agent structured test")
+	require.NoError(t, err)
+	require.NotEmpty(t, execution.GetMetadata().GetId())
+
+	waiter := harness.NewExecutionWaiter(clients.ExecutionQuery, suiteLogger)
+	result, err := waiter.WaitForPhase(ctx, execution.GetMetadata().GetId(),
+		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+	require.NoError(t, err, "execution should reach COMPLETED phase")
+
+	harness.AssertPhase(t, result, workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+	t.Logf("execution completed: id=%s", result.GetMetadata().GetId())
+}
+
+func requireAgentCallPrereqs(t *testing.T) {
+	t.Helper()
+	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+	if testHarness.WorkflowRunner == nil {
+		t.Skip("workflow-runner not available")
+	}
+	if testHarness.AgentRunner == nil {
+		t.Skip("agent-runner not available — skipping agent_call test")
+	}
+}
+
+func createTestAgent(t *testing.T, ctx context.Context, clients *harness.Clients, name, instructions string) *agentv1.Agent {
+	t.Helper()
+
+	agent := &agentv1.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Agent",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: name,
+			Org:  "test-org",
+		},
+		Spec: &agentv1.AgentSpec{
+			Description:  "Integration test agent: " + name,
+			Instructions: instructions,
+		},
+	}
+
+	created, err := clients.AgentCommand.Apply(ctx, agent)
+	require.NoError(t, err, "apply agent %q should succeed", name)
+	require.NotEmpty(t, created.GetMetadata().GetId(), "agent should have an ID")
+
+	t.Logf("created agent: name=%s, id=%s, slug=%s",
+		created.GetMetadata().GetName(),
+		created.GetMetadata().GetId(),
+		created.GetMetadata().GetSlug())
+
+	t.Cleanup(func() {
+		cleanCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		_, err := clients.AgentCommand.Delete(cleanCtx, &agentv1.AgentId{Value: created.GetMetadata().GetId()})
+		if err != nil {
+			t.Logf("warning: failed to clean up agent %s: %v", name, err)
+		}
+	})
+
+	return created
+}

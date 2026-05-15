@@ -1,0 +1,131 @@
+# =============================================================================
+# Integration Tests (Provider-Backed)
+# =============================================================================
+# LLM provider integration tests that make real API calls to Anthropic/OpenAI.
+# These are MANUAL-ONLY (workflow_dispatch) — never triggered by PR or push.
+#
+# Tests exercise two execution paths:
+#   - llm_call: direct LLM API calls via workflow-runner (cheap, ~$0.001/test)
+#   - agent_call: full pipeline through Java + Python agent-runner (~$0.01/test)
+#
+# Cost: under $0.05 per full run with claude-haiku-3-5.
+#
+# Secrets: ANTHROPIC_API_KEY from the "provider-integration" GitHub environment.
+# =============================================================================
+
+name: ci.integration-providers
+
+on:
+  workflow_dispatch:
+    inputs:
+      cloud_ref:
+        description: "stigmer-cloud git ref to build the service JAR from"
+        required: false
+        type: string
+        default: "main"
+
+concurrency:
+  group: integration-providers-${{ github.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  build-service-jar:
+    name: Build Service JAR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout stigmer-cloud
+        uses: actions/checkout@v4
+        with:
+          repository: stigmer/stigmer-cloud
+          ref: ${{ inputs.cloud_ref || 'main' }}
+          path: stigmer-cloud
+          token: ${{ secrets.STIGMER_CLOUD_TOKEN }}
+
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: integration-jar
+          repository-cache: true
+
+      - name: Build fat JAR
+        working-directory: stigmer-cloud
+        run: ./bazelw build //backend/services/stigmer-service:stigmer_service_fatjar
+
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: stigmer-service-jar
+          path: stigmer-cloud/bazel-bin/backend/services/stigmer-service/stigmer_service_fatjar.jar
+          retention-days: 1
+          if-no-files-found: error
+
+  integration-tests:
+    name: Provider Integration Tests
+    runs-on: ubuntu-latest
+    needs: build-service-jar
+    timeout-minutes: 15
+    environment: provider-integration
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download service JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: stigmer-service-jar
+          path: .artifacts
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Temporal CLI
+        uses: temporalio/setup-temporal@v0
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
+
+      - name: Install agent-runner dependencies
+        working-directory: backend/services/agent-runner
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -e ".[dev]"
+
+      - name: Run provider integration tests
+        env:
+          STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: make test-integration-providers
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-integration-results
+          path: test/integration/.test-output-providers/
+          retention-days: 30
+
+      - name: Publish test report
+        if: always() && hashFiles('test/integration/.test-output-providers/junit.xml') != ''
+        uses: dorny/test-reporter@v3
+        with:
+          name: Provider Integration Test Report
+          path: test/integration/.test-output-providers/junit.xml
+          reporter: java-junit
