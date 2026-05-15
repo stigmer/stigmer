@@ -63,22 +63,21 @@ type Client struct {
 	wg     sync.WaitGroup
 }
 
-// NewClient creates a heartbeat client from the worker config and an activity
-// counter. Returns nil when STIGMER_RUNNER_ID is not set (local/OSS mode).
-func NewClient(cfg *config.Config, counter *ActivityCounter) *Client {
-	if cfg.RunnerID == "" {
+// NewClient creates a heartbeat client. Returns nil when runnerID is empty
+// (local/OSS mode) or when stigmerCfg is nil.
+func NewClient(runnerID string, stigmerCfg *config.StigmerConfig, counter *ActivityCounter) *Client {
+	if runnerID == "" {
 		log.Info().Msg("Heartbeat client disabled (STIGMER_RUNNER_ID not set — local/OSS mode)")
 		return nil
 	}
 
-	stigmerCfg := cfg.StigmerConfig
 	if stigmerCfg == nil {
 		log.Warn().Msg("Heartbeat client disabled (no Stigmer backend config)")
 		return nil
 	}
 
 	return &Client{
-		runnerID: cfg.RunnerID,
+		runnerID: runnerID,
 		apiKey:   stigmerCfg.APIKey,
 		endpoint: stigmerCfg.Endpoint,
 		useTLS:   stigmerCfg.UseTLS,

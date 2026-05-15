@@ -83,15 +83,13 @@ func TestSandboxColocation_PreferredRunnerID(t *testing.T) {
 	// call:agent activity to fire, then list agent executions.
 	time.Sleep(15 * time.Second)
 
-	agentExecs, err := clients.AgentExecutionQuery.List(ctx, &agentexecv1.ListAgentExecutionsRequest{
-		Org: "test-org",
-	})
+	agentExecs, err := clients.AgentExecutionQuery.List(ctx, &agentexecv1.ListAgentExecutionsRequest{})
 	if err != nil {
 		t.Logf("warning: could not list agent executions: %v (preferred_runner_id verification skipped)", err)
 		return
 	}
 
-	for _, ae := range agentExecs.GetItems() {
+	for _, ae := range agentExecs.GetEntries() {
 		if ae.GetSpec().GetPreferredRunnerId() != "" {
 			t.Logf("found agent execution with preferred_runner_id=%s (id=%s)",
 				ae.GetSpec().GetPreferredRunnerId(),

@@ -72,11 +72,11 @@ type activityCounterInbound struct {
 	counter *ActivityCounter
 }
 
-func (a *activityCounterInbound) Execute(
+func (a *activityCounterInbound) ExecuteActivity(
 	ctx context.Context,
 	input *interceptor.ExecuteActivityInput,
 ) (any, error) {
 	a.counter.count.Add(1)
 	defer a.counter.count.Add(-1)
-	return a.Next.Execute(ctx, input)
+	return a.Next.ExecuteActivity(ctx, input)
 }
