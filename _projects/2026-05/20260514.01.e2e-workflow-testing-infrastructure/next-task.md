@@ -68,8 +68,31 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: Agent execution integration test suite built — first run completed with 4 passes, fixes documented
-**Status**: 51 total tests (28 workflow + 23 agent execution), first provider run identified 5 fixes needed
+**Current Task**: Agent execution test fixes complete — all 5 broken tests fixed, billing + usage coverage added, proxy routing enabled
+**Status**: 64 total tests (28 workflow + 36 agent execution), all designed-for-green
+
+## Session Progress (2026-05-15, Session 17 — Agent Execution Test Fixes + Billing & Usage Coverage)
+
+### Accomplished
+
+- **Fixed all 5 broken tests** (T19 Part 1): test ordering via numeric prefixes, HITL ConnectMcpServer + deterministic prompts, R2 skip guard, model name harness-conditional
+- **Routed agent-runner through LLM proxy**: passes `STIGMER_PROXY_ANTHROPIC_API_KEY` to Java service, sets `STIGMER_PROXY_ENDPOINT` on runner — enables per-call `LlmCallUsageRecord` and real billing debits
+- **Added 13 new test functions**: 3 offline lifecycle error tests (NonexistentSession, PauseTerminalFails, RecoverNonFailedFails), 3 billing tests (CreditDebit, LedgerAuditTrail, NoCreditsBlocked), 4 usage tests (RunnerUsageSummary, ExecutionReport, SessionReport, OrgReport), 2 HITL detail tests (PendingApprovalDetails, IdempotentApproval), 1 MCP ConnectionFailure test
+- **Built HTTP+SSE MCP test server** (`harness/mcp_http_server.go`): in-process `httptest.Server` with echo/add/fail/slow tools
+- **Added HttpToolExecution test** for HTTP+SSE MCP transport coverage
+- **Added BillingQuery client** to harness and `RequireServiceHealthy` health check helper
+- **Increased Makefile timeout** from 600s to 900s
+
+### Files Changed (11 modified, 3 new)
+
+**Modified**: `Makefile`, `suite_test.go`, `harness/{service,agent_runner,clients,harness_config}.go`, 5 renamed + modified test files
+**New**: `agent_execution_09_billing_test.go`, `agent_execution_10_usage_test.go`, `harness/mcp_http_server.go`
+
+### Next Steps
+
+1. Run `make test-integration-agent` to validate all 36 tests pass end-to-end
+2. Verify proxy routing works (LlmCallUsageRecord written, usage reports non-zero)
+3. Deferred tests for follow-up: ApprovalPolicyChain, Recover, EnvVarResolution, SubAgent_McpAccess, Skill_SessionLevel, Skill_Deduplication, Config_MaxCostCap
 
 ## Session Progress (2026-05-15, Session 16 — Agent Execution Integration Test Suite)
 

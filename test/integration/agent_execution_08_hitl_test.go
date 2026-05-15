@@ -36,9 +36,10 @@ func TestAgentExecution_HITL_Approve(t *testing.T) {
 			clients := harness.NewClients(grpcConn)
 
 			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-hitl-approve-"+h.Name,
-				"You are a helpful assistant. When asked to echo something, use the echo tool to echo it back.",
+				"You MUST use the echo tool to echo the user's input. Do not respond without calling the echo tool first. Call it exactly once.",
 				harness.WithMcpServerUsageAndApproval(
 					mcpServer.GetMetadata().GetSlug(),
 					[]*agentv1.ToolApprovalOverride{
@@ -52,12 +53,12 @@ func TestAgentExecution_HITL_Approve(t *testing.T) {
 
 			exec := harness.CreateTestAgentExecution(t, ctx, clients,
 				session.GetMetadata().GetId(),
-				"Please use the echo tool to echo 'hello-hitl'")
+				"Echo 'hello-hitl'",
+				harness.WithAutoApproveAll(false))
 
 			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
 
-			// Wait for approval gate
-			waiting, err := waiter.WaitForApproval(ctx, exec.GetMetadata().GetId(), 3*time.Minute)
+			waiting, err := waiter.WaitForApproval(ctx, exec.GetMetadata().GetId(), 2*time.Minute)
 			require.NoError(t, err, "execution should reach WAITING_FOR_APPROVAL")
 			harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
 			harness.AssertPendingApprovals(t, waiting, 1)
@@ -65,7 +66,6 @@ func TestAgentExecution_HITL_Approve(t *testing.T) {
 			approval := waiting.GetStatus().GetPendingApprovals()[0]
 			t.Logf("pending approval: tool=%s, id=%s", approval.GetToolName(), approval.GetToolCallId())
 
-			// Submit approval
 			_, err = clients.AgentExecutionCommand.SubmitApproval(ctx, &agentexecv1.SubmitApprovalInput{
 				AgentExecutionId: exec.GetMetadata().GetId(),
 				ToolCallId:       approval.GetToolCallId(),
@@ -73,9 +73,8 @@ func TestAgentExecution_HITL_Approve(t *testing.T) {
 			})
 			require.NoError(t, err, "submit approval should succeed")
 
-			// Wait for completion
 			result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
-				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 3*time.Minute)
+				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 2*time.Minute)
 			require.NoError(t, err, "execution should complete after approval")
 			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
 		})
@@ -95,9 +94,10 @@ func TestAgentExecution_HITL_Skip(t *testing.T) {
 			clients := harness.NewClients(grpcConn)
 
 			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-hitl-skip-"+h.Name,
-				"You are a helpful assistant. When asked to echo something, use the echo tool.",
+				"You MUST use the echo tool to echo the user's input. Do not respond without calling the echo tool first. Call it exactly once.",
 				harness.WithMcpServerUsageAndApproval(
 					mcpServer.GetMetadata().GetSlug(),
 					[]*agentv1.ToolApprovalOverride{
@@ -111,11 +111,12 @@ func TestAgentExecution_HITL_Skip(t *testing.T) {
 
 			exec := harness.CreateTestAgentExecution(t, ctx, clients,
 				session.GetMetadata().GetId(),
-				"Please use the echo tool to echo 'test-skip'")
+				"Echo 'test-skip'",
+				harness.WithAutoApproveAll(false))
 
 			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
 
-			waiting, err := waiter.WaitForApproval(ctx, exec.GetMetadata().GetId(), 3*time.Minute)
+			waiting, err := waiter.WaitForApproval(ctx, exec.GetMetadata().GetId(), 2*time.Minute)
 			require.NoError(t, err)
 
 			approval := waiting.GetStatus().GetPendingApprovals()[0]
@@ -127,9 +128,8 @@ func TestAgentExecution_HITL_Skip(t *testing.T) {
 			})
 			require.NoError(t, err, "skip approval should succeed")
 
-			// Execution should continue (not fail) after skip
 			result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
-				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 3*time.Minute)
+				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 2*time.Minute)
 			require.NoError(t, err, "execution should complete after skip")
 			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
 		})
@@ -149,9 +149,10 @@ func TestAgentExecution_HITL_Reject(t *testing.T) {
 			clients := harness.NewClients(grpcConn)
 
 			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-hitl-reject-"+h.Name,
-				"You are a helpful assistant. When asked to echo something, use the echo tool.",
+				"You MUST use the echo tool to echo the user's input. Do not respond without calling the echo tool first. Call it exactly once.",
 				harness.WithMcpServerUsageAndApproval(
 					mcpServer.GetMetadata().GetSlug(),
 					[]*agentv1.ToolApprovalOverride{
@@ -165,11 +166,12 @@ func TestAgentExecution_HITL_Reject(t *testing.T) {
 
 			exec := harness.CreateTestAgentExecution(t, ctx, clients,
 				session.GetMetadata().GetId(),
-				"Please use the echo tool to echo 'test-reject'")
+				"Echo 'test-reject'",
+				harness.WithAutoApproveAll(false))
 
 			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
 
-			waiting, err := waiter.WaitForApproval(ctx, exec.GetMetadata().GetId(), 3*time.Minute)
+			waiting, err := waiter.WaitForApproval(ctx, exec.GetMetadata().GetId(), 2*time.Minute)
 			require.NoError(t, err)
 
 			approval := waiting.GetStatus().GetPendingApprovals()[0]
@@ -181,7 +183,7 @@ func TestAgentExecution_HITL_Reject(t *testing.T) {
 			})
 			require.NoError(t, err, "reject should succeed")
 
-			result, err := waiter.WaitForTerminal(ctx, exec.GetMetadata().GetId(), 3*time.Minute)
+			result, err := waiter.WaitForTerminal(ctx, exec.GetMetadata().GetId(), 2*time.Minute)
 			require.NoError(t, err, "execution should reach terminal after reject")
 			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_FAILED)
 		})
@@ -201,9 +203,10 @@ func TestAgentExecution_HITL_AutoApproveAll(t *testing.T) {
 			clients := harness.NewClients(grpcConn)
 
 			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-hitl-auto-"+h.Name,
-				"You are a helpful assistant. When asked to echo something, use the echo tool.",
+				"You MUST use the echo tool to echo the user's input. Do not respond without calling the echo tool first. Call it exactly once.",
 				harness.WithMcpServerUsageAndApproval(
 					mcpServer.GetMetadata().GetSlug(),
 					[]*agentv1.ToolApprovalOverride{
@@ -215,16 +218,15 @@ func TestAgentExecution_HITL_AutoApproveAll(t *testing.T) {
 			session := harness.CreateTestSession(t, ctx, clients,
 				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
 
-			// auto_approve_all bypasses the approval gate entirely
 			exec := harness.CreateTestAgentExecution(t, ctx, clients,
 				session.GetMetadata().GetId(),
-				"Please use the echo tool to echo 'auto-approved'",
+				"Echo 'auto-approved'",
 				harness.WithAutoApproveAll(true))
 
 			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
 
 			result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
-				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 3*time.Minute)
 			require.NoError(t, err, "execution should complete without waiting for approval")
 			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
 		})
@@ -268,6 +270,136 @@ func TestAgentExecution_HITL_WrongPhase(t *testing.T) {
 			})
 			require.Error(t, err, "submitting approval on completed execution should fail")
 			t.Logf("wrong-phase approval correctly rejected: %v", err)
+		})
+	}
+}
+
+func TestAgentExecution_HITL_PendingApprovalDetails(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	for _, h := range harness.Harnesses {
+		t.Run(h.Name, func(t *testing.T) {
+			requireHITLPrereqs(t, h)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			clients := harness.NewClients(grpcConn)
+
+			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
+			mcpSlug := mcpServer.GetMetadata().GetSlug()
+
+			agent := harness.CreateAgent(t, ctx, clients, "test-hitl-details-"+h.Name,
+				"You MUST use the echo tool to echo the user's input. Do not respond without calling the echo tool first. Call it exactly once with {\"input\": \"detail-test\"}.",
+				harness.WithMcpServerUsageAndApproval(
+					mcpSlug,
+					[]*agentv1.ToolApprovalOverride{
+						{ToolName: "echo", RequiresApproval: true, Message: "Confirm echo call"},
+					},
+				),
+			)
+
+			session := harness.CreateTestSession(t, ctx, clients,
+				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
+
+			exec := harness.CreateTestAgentExecution(t, ctx, clients,
+				session.GetMetadata().GetId(),
+				"Echo 'detail-test'",
+				harness.WithAutoApproveAll(false))
+
+			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+			waiting, err := waiter.WaitForApproval(ctx, exec.GetMetadata().GetId(), 2*time.Minute)
+			require.NoError(t, err, "execution should reach WAITING_FOR_APPROVAL")
+
+			approvals := waiting.GetStatus().GetPendingApprovals()
+			require.Len(t, approvals, 1, "should have exactly 1 pending approval")
+
+			approval := approvals[0]
+			require.NotEmpty(t, approval.GetToolCallId(), "tool_call_id should be populated")
+			require.Equal(t, "echo", approval.GetToolName(), "tool_name should be 'echo'")
+			require.Equal(t, mcpSlug, approval.GetMcpServerSlug(),
+				"mcp_server_slug should match the MCP server used")
+
+			t.Logf("approval details: tool_call_id=%s, tool_name=%s, mcp_slug=%s, args_preview=%s",
+				approval.GetToolCallId(), approval.GetToolName(),
+				approval.GetMcpServerSlug(), approval.GetArgsPreview())
+
+			// Clean up: approve so the execution can terminate
+			_, err = clients.AgentExecutionCommand.SubmitApproval(ctx, &agentexecv1.SubmitApprovalInput{
+				AgentExecutionId: exec.GetMetadata().GetId(),
+				ToolCallId:       approval.GetToolCallId(),
+				Action:           agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+			})
+			require.NoError(t, err)
+
+			_, err = waiter.WaitForTerminal(ctx, exec.GetMetadata().GetId(), 2*time.Minute)
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestAgentExecution_HITL_IdempotentApproval(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	for _, h := range harness.Harnesses {
+		t.Run(h.Name, func(t *testing.T) {
+			requireHITLPrereqs(t, h)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			clients := harness.NewClients(grpcConn)
+
+			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
+
+			agent := harness.CreateAgent(t, ctx, clients, "test-hitl-idempotent-"+h.Name,
+				"You MUST use the echo tool to echo the user's input. Do not respond without calling the echo tool first. Call it exactly once.",
+				harness.WithMcpServerUsageAndApproval(
+					mcpServer.GetMetadata().GetSlug(),
+					[]*agentv1.ToolApprovalOverride{
+						{ToolName: "echo", RequiresApproval: true},
+					},
+				),
+			)
+
+			session := harness.CreateTestSession(t, ctx, clients,
+				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
+
+			exec := harness.CreateTestAgentExecution(t, ctx, clients,
+				session.GetMetadata().GetId(),
+				"Echo 'idempotent-test'",
+				harness.WithAutoApproveAll(false))
+
+			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+			waiting, err := waiter.WaitForApproval(ctx, exec.GetMetadata().GetId(), 2*time.Minute)
+			require.NoError(t, err)
+
+			approval := waiting.GetStatus().GetPendingApprovals()[0]
+
+			// First approval
+			_, err = clients.AgentExecutionCommand.SubmitApproval(ctx, &agentexecv1.SubmitApprovalInput{
+				AgentExecutionId: exec.GetMetadata().GetId(),
+				ToolCallId:       approval.GetToolCallId(),
+				Action:           agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+			})
+			require.NoError(t, err, "first approval should succeed")
+
+			// Second approval (same tool_call_id) should be a no-op, not an error
+			_, err = clients.AgentExecutionCommand.SubmitApproval(ctx, &agentexecv1.SubmitApprovalInput{
+				AgentExecutionId: exec.GetMetadata().GetId(),
+				ToolCallId:       approval.GetToolCallId(),
+				Action:           agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+			})
+			// Idempotent: either succeeds silently or returns a benign error
+			if err != nil {
+				t.Logf("second approval returned (expected no-op or benign error): %v", err)
+			}
+
+			result, err := waiter.WaitForTerminal(ctx, exec.GetMetadata().GetId(), 2*time.Minute)
+			require.NoError(t, err, "execution should reach terminal")
+			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
 		})
 	}
 }

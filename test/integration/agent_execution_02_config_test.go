@@ -82,12 +82,18 @@ func TestAgentExecution_Config_ModelOverride(t *testing.T) {
 			session := harness.CreateTestSession(t, ctx, clients,
 				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
 
-			// Override the model for this execution
+			// Each harness resolves model names differently.
+			// Native runner uses the Anthropic SDK directly; Cursor has its own registry.
+			modelName := "claude-sonnet-4-20250514"
+			if h.Name == "cursor" {
+				modelName = "claude-haiku-4-20250514"
+			}
+
 			exec := harness.CreateTestAgentExecution(t, ctx, clients,
 				session.GetMetadata().GetId(),
 				"Reply with exactly: hello",
 				harness.WithExecutionConfig(&agentexecv1.ExecutionConfig{
-					ModelName: "claude-haiku-4-20250514",
+					ModelName: modelName,
 				}),
 			)
 
@@ -97,7 +103,7 @@ func TestAgentExecution_Config_ModelOverride(t *testing.T) {
 			require.NoError(t, err, "execution should complete with overridden model")
 			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
 
-			t.Logf("model override test completed: id=%s", result.GetMetadata().GetId())
+			t.Logf("model override test completed: id=%s, model=%s", result.GetMetadata().GetId(), modelName)
 		})
 	}
 }

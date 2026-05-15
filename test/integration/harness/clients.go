@@ -25,9 +25,9 @@ type Clients struct {
 	ExecutionQuery   workflowexecutionv1.WorkflowExecutionQueryControllerClient
 
 	// Agent services
-	AgentCommand         agentv1.AgentCommandControllerClient
+	AgentCommand          agentv1.AgentCommandControllerClient
 	AgentExecutionCommand agentexecv1.AgentExecutionCommandControllerClient
-	AgentExecutionQuery  agentexecv1.AgentExecutionQueryControllerClient
+	AgentExecutionQuery   agentexecv1.AgentExecutionQueryControllerClient
 
 	// Session services
 	SessionCommand sessionv1.SessionCommandControllerClient
@@ -43,6 +43,7 @@ type Clients struct {
 
 	// Billing
 	BillingCommand billingv1.BillingCommandControllerClient
+	BillingQuery   billingv1.BillingQueryControllerClient
 }
 
 // NewClients creates all typed gRPC clients from a single connection.
@@ -55,9 +56,9 @@ func NewClients(conn grpc.ClientConnInterface) *Clients {
 		ExecutionCommand: workflowexecutionv1.NewWorkflowExecutionCommandControllerClient(conn),
 		ExecutionQuery:   workflowexecutionv1.NewWorkflowExecutionQueryControllerClient(conn),
 
-		AgentCommand:         agentv1.NewAgentCommandControllerClient(conn),
+		AgentCommand:          agentv1.NewAgentCommandControllerClient(conn),
 		AgentExecutionCommand: agentexecv1.NewAgentExecutionCommandControllerClient(conn),
-		AgentExecutionQuery:  agentexecv1.NewAgentExecutionQueryControllerClient(conn),
+		AgentExecutionQuery:   agentexecv1.NewAgentExecutionQueryControllerClient(conn),
 
 		SessionCommand: sessionv1.NewSessionCommandControllerClient(conn),
 		SessionQuery:   sessionv1.NewSessionQueryControllerClient(conn),
@@ -69,5 +70,6 @@ func NewClients(conn grpc.ClientConnInterface) *Clients {
 		SkillQuery:   skillv1.NewSkillQueryControllerClient(conn),
 
 		BillingCommand: billingv1.NewBillingCommandControllerClient(conn),
+		BillingQuery:   billingv1.NewBillingQueryControllerClient(conn),
 	}
 }

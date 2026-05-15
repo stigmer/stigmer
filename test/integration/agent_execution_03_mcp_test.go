@@ -140,3 +140,93 @@ func TestAgentExecution_MCP_EnabledToolsFilter(t *testing.T) {
 		})
 	}
 }
+
+func TestAgentExecution_MCP_ConnectionFailure(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	for _, h := range harness.Harnesses {
+		t.Run(h.Name, func(t *testing.T) {
+			h.Skip(t, testHarness)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			clients := harness.NewClients(grpcConn)
+
+			// Point to a nonexistent binary — the MCP server cannot start
+			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, "/nonexistent/mcp-server-binary")
+
+			agent := harness.CreateAgent(t, ctx, clients, "test-mcp-connfail-"+h.Name,
+				"You are a helpful assistant. Use the echo tool to echo 'test'.",
+				harness.WithMcpServerUsage(mcpServer.GetMetadata().GetSlug()),
+			)
+
+			session := harness.CreateTestSession(t, ctx, clients,
+				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
+
+			exec := harness.CreateTestAgentExecution(t, ctx, clients,
+				session.GetMetadata().GetId(),
+				"Use the echo tool to echo 'test'.",
+				harness.WithAutoApproveAll(true))
+
+			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+			result, err := waiter.WaitForTerminal(ctx, exec.GetMetadata().GetId(), 3*time.Minute)
+			require.NoError(t, err, "execution should reach a terminal phase")
+
+			phase := result.GetStatus().GetPhase()
+			t.Logf("MCP connection failure test: phase=%s, id=%s", phase.String(), exec.GetMetadata().GetId())
+
+			// The execution should handle the failure gracefully: either FAILED
+			// (MCP connection error) or COMPLETED (agent responded without the tool)
+			require.True(t,
+				phase == agentexecv1.ExecutionPhase_EXECUTION_FAILED ||
+					phase == agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
+				"expected FAILED or COMPLETED, got %s", phase.String())
+		})
+	}
+}
+
+func TestAgentExecution_MCP_HttpToolExecution(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	for _, h := range harness.Harnesses {
+		t.Run(h.Name, func(t *testing.T) {
+			h.Skip(t, testHarness)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			clients := harness.NewClients(grpcConn)
+
+			httpServer := harness.StartHTTPMcpServer(t)
+
+			mcpServer := harness.CreateHttpMcpServer(t, ctx, clients, httpServer.URL)
+
+			agent := harness.CreateAgent(t, ctx, clients, "test-mcp-http-"+h.Name,
+				"You are a helpful assistant with access to tools. When asked to echo something, use the echo tool.",
+				harness.WithMcpServerUsage(mcpServer.GetMetadata().GetSlug()),
+			)
+
+			session := harness.CreateTestSession(t, ctx, clients,
+				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
+
+			exec := harness.CreateTestAgentExecution(t, ctx, clients,
+				session.GetMetadata().GetId(),
+				"Please use the echo tool to echo 'hello-http-mcp'",
+				harness.WithAutoApproveAll(true))
+
+			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+			result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
+				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+			require.NoError(t, err, "execution should complete")
+			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+			harness.AssertHasToolCall(t, result, "echo")
+			harness.AssertToolCallMcpSlug(t, result, "echo", mcpServer.GetMetadata().GetSlug())
+
+			t.Logf("HTTP MCP test completed: id=%s, messages=%d",
+				result.GetMetadata().GetId(),
+				len(result.GetStatus().GetMessages()))
+		})
+	}
+}

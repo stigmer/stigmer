@@ -18,9 +18,9 @@ import (
 )
 
 var (
-	testHarness        *harness.TestHarness
-	grpcConn           *grpc.ClientConn
-	suiteLogger        *slog.Logger
+	testHarness         *harness.TestHarness
+	grpcConn            *grpc.ClientConn
+	suiteLogger         *slog.Logger
 	mcpTestServerBinary string
 )
 
@@ -48,6 +48,8 @@ func TestMain(m *testing.M) {
 
 	logDir := testHarness.LogDir()
 
+	anthropicKey := os.Getenv("ANTHROPIC_API_KEY")
+
 	svc, err := harness.StartJavaService(ctx, harness.ServiceConfig{
 		JarPath:         jarPath,
 		MongoHost:       testHarness.Mongo.Host,
@@ -55,6 +57,7 @@ func TestMain(m *testing.M) {
 		RedisHost:       testHarness.Redis.Host,
 		RedisPort:       testHarness.Redis.Port,
 		TemporalAddress: testHarness.Temporal.Address(),
+		AnthropicAPIKey: anthropicKey,
 		LogDir:          logDir,
 	}, suiteLogger)
 	if err != nil {
@@ -102,13 +105,13 @@ func TestMain(m *testing.M) {
 
 	// Start agent-runner only when an LLM API key is available.
 	// This keeps the default offline suite unaffected.
-	anthropicKey := os.Getenv("ANTHROPIC_API_KEY")
 	if anthropicKey != "" && runner != nil {
 		agentRunner, agentErr := harness.StartAgentRunner(ctx, harness.AgentRunnerConfig{
 			StigmerServiceAddress: svc.GRPCAddress(),
 			TemporalAddress:       testHarness.Temporal.Address(),
 			LogDir:                logDir,
 			AnthropicAPIKey:       anthropicKey,
+			ProxyEndpoint:         svc.HTTPAddress(),
 		}, suiteLogger)
 		if agentErr != nil {
 			suiteLogger.Warn("agent-runner failed to start — agent_call tests will be skipped", "error", agentErr)
