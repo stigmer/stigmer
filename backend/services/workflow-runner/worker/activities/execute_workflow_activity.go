@@ -360,9 +360,28 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 		"workflow_id", run.GetID(),
 		"run_id", run.GetRunID())
 
+	// Send periodic heartbeats while blocked on the child workflow.
+	// The Java-side HeartbeatTimeout is 2 minutes; we heartbeat every 30s.
+	heartbeatCtx, heartbeatCancel := context.WithCancel(ctx)
+	defer heartbeatCancel()
+
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-heartbeatCtx.Done():
+				return
+			case <-ticker.C:
+				activity.RecordHeartbeat(heartbeatCtx, fmt.Sprintf("waiting for workflow %s", executionID))
+			}
+		}
+	}()
+
 	// Wait for workflow to complete
 	var workflowOutput types.TemporalWorkflowOutput
 	err = run.Get(ctx, &workflowOutput)
+	heartbeatCancel()
 	if err != nil {
 		logger.Error("ExecuteServerlessWorkflow failed",
 			"execution_id", executionID,

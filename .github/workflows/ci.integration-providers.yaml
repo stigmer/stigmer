@@ -8,7 +8,7 @@
 #   - llm_call: direct LLM API calls via workflow-runner (cheap, ~$0.001/test)
 #   - agent_call: full pipeline through Java + Python agent-runner (~$0.01/test)
 #
-# Cost: under $0.05 per full run with claude-haiku-3-5.
+# Cost: under $0.10 per full run with claude-sonnet-4-20250514.
 #
 # Secrets: ANTHROPIC_API_KEY from the "provider-integration" GitHub environment.
 # =============================================================================

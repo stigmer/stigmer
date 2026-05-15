@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -42,12 +42,14 @@ func TestWorkflowLlmCall_StructuredOutput(t *testing.T) {
 	require.NoError(t, err)
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
-		"model":           "claude-haiku-3-5",
+		"model":           "claude-sonnet-4-20250514",
 		"system_prompt":   "You are a sentiment classifier. Respond ONLY with valid JSON matching the schema.",
 		"prompt":          "Classify the sentiment of: 'I absolutely love this product, it changed my life!'",
 		"response_schema": schema.AsMap(),
 		"temperature":     0.0,
 		"max_tokens":      float64(100),
+		"timeout":         float64(60),
+		"max_retries":     float64(1),
 	})
 	require.NoError(t, err)
 
@@ -109,9 +111,11 @@ func TestWorkflowLlmCall_SimplePrompt(t *testing.T) {
 	defer deployer.Cleanup(ctx)
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
-		"model":      "claude-haiku-3-5",
-		"prompt":     "Reply with exactly one word: HELLO",
-		"max_tokens": float64(10),
+		"model":       "claude-sonnet-4-20250514",
+		"prompt":      "Reply with exactly one word: HELLO",
+		"max_tokens":  float64(10),
+		"timeout":     float64(60),
+		"max_retries": float64(1),
 	})
 	require.NoError(t, err)
 
@@ -193,6 +197,8 @@ func TestWorkflowLlmCall_OpenAI_StructuredOutput(t *testing.T) {
 		"prompt":          "Classify the sentiment of: 'I absolutely love this product!'",
 		"response_schema": schema.AsMap(),
 		"max_tokens":      float64(100),
+		"timeout":         float64(60),
+		"max_retries":     float64(1),
 	})
 	require.NoError(t, err)
 

@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	billingv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/billing/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -83,6 +84,12 @@ func TestMain(m *testing.M) {
 		testHarness.WorkflowRunner = runner
 	}
 
+	// Provision a billing account for the test org so agent executions
+	// pass the billing authorization gate in InvokeAgentExecutionWorkflow.
+	if err := provisionTestBillingAccount(ctx, grpcConn); err != nil {
+		suiteLogger.Warn("failed to provision test billing account — agent_call tests may fail", "error", err)
+	}
+
 	// Start agent-runner only when an LLM API key is available.
 	// This keeps the default offline suite unaffected.
 	anthropicKey := os.Getenv("ANTHROPIC_API_KEY")
@@ -116,13 +123,41 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func provisionTestBillingAccount(ctx context.Context, conn *grpc.ClientConn) error {
+	billing := billingv1.NewBillingCommandControllerClient(conn)
+
+	// Create the billing account (idempotent).
+	_, err := billing.GetOrCreateBillingAccount(ctx, &billingv1.GetOrCreateBillingAccountInput{
+		OrgId: "test-org",
+	})
+	if err != nil {
+		return fmt.Errorf("getOrCreateBillingAccount: %w", err)
+	}
+
+	// Seed generous credits so agent executions don't hit the balance gate.
+	_, err = billing.AdjustCredits(ctx, &billingv1.AdjustCreditsInput{
+		OrgId:          "test-org",
+		AmountMicros:   100_000_000, // $100 in micro-USD
+		Reason:         "integration test seed",
+		IdempotencyKey: "integration-test-seed-credits",
+	})
+	if err != nil {
+		return fmt.Errorf("adjustCredits: %w", err)
+	}
+
+	return nil
+}
+
 func findServiceJar() string {
 	if jar := os.Getenv("STIGMER_SERVICE_JAR"); jar != "" {
 		return jar
 	}
 
+	// go test sets cwd to the package directory (test/integration/).
+	// stigmer-cloud is a sibling of the stigmer repo:
+	//   test/integration/ -> ../../ (repo root) -> ../ (org dir) -> stigmer-cloud/
 	candidates := []string{
-		"../../../../stigmer-cloud/bazel-bin/backend/services/stigmer-service/stigmer_service_fatjar.jar",
+		"../../../stigmer-cloud/bazel-bin/backend/services/stigmer-service/stigmer_service_fatjar.jar",
 	}
 	for _, c := range candidates {
 		abs, err := filepath.Abs(c)

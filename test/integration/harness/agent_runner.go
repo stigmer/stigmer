@@ -173,6 +173,10 @@ func buildAgentRunnerEnv(cfg AgentRunnerConfig, runnerDir string) []string {
 
 	srcPath := filepath.Join(runnerDir, "src")
 
+	// Use a temp directory for local artifact storage instead of /var/stigmer
+	// which requires root permissions on macOS.
+	artifactDir := filepath.Join(os.TempDir(), "stigmer-test-artifacts")
+
 	env = append(env,
 		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=%s", cfg.StigmerServiceAddress),
 		"STIGMER_API_KEY=test-integration-key",
@@ -185,10 +189,13 @@ func buildAgentRunnerEnv(cfg AgentRunnerConfig, runnerDir string) []string {
 
 		// LLM configuration — direct Anthropic, no proxy
 		"STIGMER_LLM_PROVIDER=anthropic",
-		"STIGMER_LLM_MODEL=claude-haiku-3-5",
+		"STIGMER_LLM_MODEL=claude-sonnet-4-20250514",
 
 		// Use memory checkpointer for test isolation
 		"STIGMER_CHECKPOINTER_TYPE=memory",
+
+		// Local artifact storage — use a temp path writable without root
+		fmt.Sprintf("LOCAL_ARTIFACT_PATH=%s", artifactDir),
 
 		// Ensure Python finds the src package
 		fmt.Sprintf("PYTHONPATH=%s", srcPath),

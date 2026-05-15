@@ -175,7 +175,7 @@ func NewZigflowWorker(cfg *config.Config) (*ZigflowWorker, error) {
 		log.Info().Msg("Validation worker skipped (sandbox mode — global K8s pod handles validation)")
 	}
 
-	hbClient := heartbeat.NewClient(cfg, activityCounter)
+	hbClient := heartbeat.NewClient(cfg.RunnerID, cfg.StigmerConfig, activityCounter)
 
 	return &ZigflowWorker{
 		temporalClient:             temporalClient,

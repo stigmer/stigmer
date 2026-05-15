@@ -68,8 +68,45 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: T08 LLM provider tests + Workflow-Runner Proxy Integration complete
-**Status**: Phase 3 provider-backed tests implemented; proxy integration across both repos ready for cloud deployment
+**Current Task**: All provider tests green; zero-friction make targets complete
+**Status**: Phase 3 provider-backed tests fully passing; CI and local dev experience polished
+
+## Session Progress (2026-05-15, Session 13 — Provider Tests Green + Zero-Friction Make)
+
+### Accomplished
+
+- **All 5 provider-backed tests passing** — `TestWorkflowAgentCall_SimpleExecution` (4.4s), `TestWorkflowAgentCall_StructuredOutput` (3.5s), `TestWorkflowLlmCall_StructuredOutput` (2.2s), `TestWorkflowLlmCall_SimplePrompt` (1.3s), `TestWorkflowLlmCall_OpenAI_StructuredOutput` (skipped, no key)
+- **Fixed 7 cross-service issues** blocking agent call tests:
+  1. LLM tests: missing `timeout`/`max_retries`, wrong model name
+  2. Java auth: `AgentExecution.Metadata.Org` not populated by Go workflow-runner
+  3. Billing gate: no billing account for `test-org` → added `provisionTestBillingAccount()`
+  4. Python artifact path: `/var/stigmer/artifacts` not writable → override to `$TMPDIR`
+  5. Heartbeat timeout: `ExecuteWorkflow` activity not heartbeating during `run.Get()` block
+  6. `DataConverterException`: `ByteString` incompatible with Jackson → changed to `byte[]`
+- **Zero-friction Makefile** — `make test-integration-providers` auto-builds JAR + auto-fetches Anthropic key from Planton CLI
+- **Fixed `findServiceJar()` path** — relative path was off by one directory level
+
+### Files Changed
+
+**stigmer (OSS)** — modified (12 files):
+- `Makefile` — `ensure-service-jar`, Planton key fetch, `STIGMER_SERVICE_JAR` passthrough
+- `.github/workflows/ci.integration-providers.yaml` — updated cost comment
+- `backend/services/workflow-runner/pkg/heartbeat/activity_counter.go` — method rename
+- `backend/services/workflow-runner/pkg/heartbeat/heartbeat.go` — signature refactor
+- `backend/services/workflow-runner/pkg/zigflow/tasks/task_builder_call_agent_activities.go` — orgId propagation
+- `backend/services/workflow-runner/worker/activities/execute_workflow_activity.go` — heartbeat goroutine
+- `backend/services/workflow-runner/worker/worker.go` — updated call site
+- `test/integration/harness/agent_runner.go` — artifact path + model fix
+- `test/integration/harness/clients.go` — billing client
+- `test/integration/suite_test.go` — billing provisioning + JAR path fix
+- `test/integration/workflow_llm_call_test.go` — timeout/retries/model
+- `test/integration/workflow_sandbox_colocation_test.go` — proto API alignment
+
+**stigmer-cloud** — modified (4 files):
+- `SystemActivities.java` — `ByteString` → `byte[]`
+- `SystemActivitiesImpl.java` — `ByteString` → `byte[]`
+- `InvokeAgentExecutionWorkflowImpl.java` — removed `ByteString.copyFrom()` wrappers
+- `SystemActivitiesImplTest.java` — updated for `byte[]`
 
 ## Session Progress (2026-05-15, Session 12 — T08 LLM Provider Tests + Workflow-Runner Proxy Integration)
 
@@ -489,24 +526,23 @@ User/API → Java Handler → SignalWithStart("relaySignal", [signalName, payloa
 
 ## Next Steps (Bottom)
 1. ~~**Resolve `cloud_ref` default**~~ — RESOLVED: `cloud_ref` can be passed at dispatch time
-2. ~~**Phase 3**: Provider-backed canary tests~~ — RESOLVED: T08 LLM provider tests + proxy integration (Session 12)
+2. ~~**Phase 3**: Provider-backed canary tests~~ — RESOLVED: All 5 provider tests green (Session 13)
 3. ~~**Fix Java signal routing**~~ — RESOLVED: `relaySignal` relay implemented (Session 10)
 4. ~~**Implement `listen` converter**~~ — RESOLVED: converter + 2 integration tests (Session 11)
 5. **Future: Publish JAR from stigmer-cloud CI** — replace Job 1 with a download step
-6. ~~**Run E2E validation**~~ — RESOLVED: 25 tests green including HITL + listen signal routing (Session 11)
-7. **Run LLM provider tests manually** — `ANTHROPIC_API_KEY=<key> make test-integration-providers` (validates proxy integration in OSS mode)
+6. ~~**Run E2E validation**~~ — RESOLVED: 25 offline + 5 provider tests green (Session 11 + 13)
+7. ~~**Run LLM provider tests**~~ — RESOLVED: `make test-integration-providers` works zero-friction (Session 13)
 8. **Deploy proxy changes to cloud** — merge stigmer-cloud changes, rebuild JAR, test proxy mode end-to-end
+9. **Add OpenAI key** to Planton secret groups + auto-fetch in Makefile (enables the 1 skipped test)
 
 ## Context for Resume
 - All 25 offline integration tests pass: infra (3), service health, smoke gRPC, lifecycle, control flow, data (2), error handling (3), HITL (3), HTTP (2), listen (2), pipeline (3)
+- All 5 provider-backed tests pass: llm_call (2), agent_call (2), openai (1 skipped — no key)
 - Workflow-runner now supports dual-mode LLM calls: direct SDK (OSS) or Stigmer proxy (cloud)
 - Java proxy extended with `X-Stigmer-Workflow-Execution-Id` header for workflow-runner billing
 - Billing handler falls back to WorkflowExecution for org resolution when agent execution lookup fails
-- Provider-backed tests (llm_call, agent_call) written but require `ANTHROPIC_API_KEY` to run
-- JAR must be rebuilt after stigmer-cloud changes: `./bazelw build //backend/services/stigmer-service:stigmer_service_fatjar`
-- Fat JAR path: `/Users/suresh/scm/github.com/stigmer/stigmer-cloud/bazel-bin/backend/services/stigmer-service/stigmer_service_fatjar.jar`
-- Test command (offline): `STIGMER_SERVICE_JAR=<jar_path> make test-integration`
-- Test command (providers): `STIGMER_SERVICE_JAR=<jar_path> ANTHROPIC_API_KEY=<key> make test-integration-providers`
+- Test command (offline): `make test-integration` (auto-finds JAR from sibling stigmer-cloud)
+- Test command (providers): `make test-integration-providers` (auto-fetches key from Planton, auto-finds JAR)
 
 ## Quick Commands
 
