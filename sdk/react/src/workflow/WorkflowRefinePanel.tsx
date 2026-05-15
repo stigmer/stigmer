@@ -2,11 +2,8 @@
 
 import { useCallback, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
-import {
-  useRefineWorkflowFlow,
-  type RefineWorkflowFlowResult,
-  type RefinementHistoryEntry,
-} from "./useRefineWorkflowFlow";
+import { useRefineWorkflowFlow, type RefinePhase } from "./useRefineWorkflowFlow";
+import { MessageThread } from "../execution/MessageThread";
 import { computeUnifiedDiff, type DiffLine } from "./workflow-yaml-diff";
 
 /** Props for {@link WorkflowRefinePanel}. */
@@ -23,18 +20,27 @@ export interface WorkflowRefinePanelProps {
   readonly className?: string;
 }
 
+const COMPOSER_ENABLED_PHASES: ReadonlySet<RefinePhase> = new Set([
+  "idle",
+  "ready",
+  "complete",
+  "error",
+]);
+
 /**
- * Side panel for iterative workflow refinement with AI.
+ * Side panel for agent-powered iterative workflow refinement.
  *
- * Renders inside the editor's right pane (replacing the topology graph in
- * code mode, or as a sidebar in visual mode). Layout from top to bottom:
+ * Renders inside the editor's right pane (replacing the topology graph
+ * in code mode, or as a sidebar in visual mode). Layout:
  *
  * 1. **Header** — title + close button
- * 2. **History** — previous instruction/explanation turns (scrollable)
- * 3. **Input** — textarea for the refinement instruction + submit button
- * 4. **Result** — explanation, diff preview, warnings, accept/discard actions
+ * 2. **MessageThread** — streaming agent conversation (all turns)
+ * 3. **Result strip** — diff preview + accept/discard (when YAML extracted)
+ * 4. **Composer** — textarea + send button (pinned to bottom)
  *
- * Styled via `--stgm-*` design tokens. Zero console dependencies (DD-004).
+ * Powered by the Workflow Architect system agent via
+ * {@link useRefineWorkflowFlow}. Styled via `--stgm-*` design tokens.
+ * Zero console dependencies (DD-004).
  */
 export function WorkflowRefinePanel({
   org,
@@ -48,39 +54,59 @@ export function WorkflowRefinePanel({
 
   const flow = useRefineWorkflowFlow({
     org,
+    currentYaml,
     onError: () => {
       /* Error is displayed inline via flow.error */
     },
   });
 
-  const handleRefine = useCallback(async () => {
-    await flow.refine(instruction, currentYaml);
+  const composerEnabled = COMPOSER_ENABLED_PHASES.has(flow.phase);
+  const hasConversation =
+    flow.completedExecutions.length > 0 || flow.activeExecution !== null;
+
+  // -------------------------------------------------------------------------
+  // Handlers
+  // -------------------------------------------------------------------------
+
+  const handleSend = useCallback(async () => {
+    const trimmed = instruction.trim();
+    if (trimmed.length < 5) return;
+
     setInstruction("");
+    await flow.sendInstruction(trimmed);
+
     requestAnimationFrame(() => {
-      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+      scrollRef.current?.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
     });
-  }, [flow, instruction, currentYaml]);
+  }, [flow.sendInstruction, instruction]);
 
   const handleAccept = useCallback(() => {
-    if (flow.result) {
-      onAccept(flow.result.yaml);
-      flow.reset();
+    const yaml = flow.acceptResult();
+    if (yaml) {
+      onAccept(yaml);
     }
-  }, [flow, onAccept]);
+  }, [flow.acceptResult, onAccept]);
 
   const handleDiscard = useCallback(() => {
-    flow.reset();
-  }, [flow]);
+    flow.discardResult();
+  }, [flow.discardResult]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        handleRefine();
+        handleSend();
       }
     },
-    [handleRefine],
+    [handleSend],
   );
+
+  // -------------------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------------------
 
   return (
     <div
@@ -95,7 +121,15 @@ export function WorkflowRefinePanel({
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <div className="flex items-center gap-1.5">
           <SparklesIcon />
-          <h3 className="text-xs font-semibold text-foreground">Refine with AI</h3>
+          <h3 className="text-xs font-semibold text-foreground">
+            Refine with AI
+          </h3>
+          {flow.isStreaming && (
+            <span className="inline-flex items-center gap-1 text-[0.65rem] text-muted-foreground">
+              <SpinnerIcon size={10} />
+              Working…
+            </span>
+          )}
         </div>
         <button
           type="button"
@@ -108,46 +142,70 @@ export function WorkflowRefinePanel({
       </div>
 
       {/* Scrollable content area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
-        {/* History */}
-        {flow.history.length > 0 && (
-          <HistorySection history={flow.history} />
+      <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        {/* Empty state */}
+        {!hasConversation && flow.phase === "idle" && (
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+            <SparklesIcon />
+            <p className="text-xs text-muted-foreground">
+              Describe the changes you want and the Workflow Architect agent
+              will refine your workflow definition.
+            </p>
+          </div>
         )}
 
-        {/* Result (when available) */}
-        {flow.result && (
-          <ResultSection
-            result={flow.result}
-            beforeYaml={currentYaml}
-            onAccept={handleAccept}
-            onDiscard={handleDiscard}
+        {/* Starting indicator (before stream connects) */}
+        {flow.phase === "starting" && (
+          <div className="flex flex-col items-center justify-center gap-2 py-8">
+            <SpinnerIcon />
+            <p className="text-xs text-muted-foreground">
+              Starting Workflow Architect…
+            </p>
+          </div>
+        )}
+
+        {/* Agent conversation */}
+        {hasConversation && (
+          <MessageThread
+            executions={flow.completedExecutions}
+            activeStreamExecution={flow.activeExecution}
+            pendingUserMessage={
+              flow.phase === "starting" ? instruction || undefined : undefined
+            }
+            className="flex-1"
           />
         )}
 
         {/* Error */}
-        {flow.error && (
-          <div className="mx-3 mt-3 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive" role="alert">
+        {flow.error && flow.phase === "error" && (
+          <div
+            className="mx-3 mt-3 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive"
+            role="alert"
+          >
             {flow.error}
-          </div>
-        )}
-
-        {/* Refining spinner */}
-        {flow.isRefining && (
-          <div className="flex flex-col items-center justify-center gap-2 py-8">
-            <SpinnerIcon />
-            <p className="text-xs text-muted-foreground">Refining workflow…</p>
           </div>
         )}
       </div>
 
-      {/* Input area (pinned to bottom) */}
+      {/* Result strip (diff + accept/discard) */}
+      {flow.phase === "complete" && flow.extractedYaml && (
+        <ResultStrip
+          extractedYaml={flow.extractedYaml}
+          explanation={flow.explanation}
+          beforeYaml={currentYaml}
+          onAccept={handleAccept}
+          onDiscard={handleDiscard}
+        />
+      )}
+
+      {/* Composer (pinned to bottom) */}
       <div className="border-t border-border p-3">
         <textarea
           value={instruction}
           onChange={(e) => setInstruction(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="What would you like to change?"
-          disabled={flow.isRefining}
+          disabled={!composerEnabled}
           rows={3}
           className={cn(
             "w-full resize-none rounded-md border border-input bg-background px-2.5 py-1.5 text-sm text-foreground",
@@ -162,8 +220,8 @@ export function WorkflowRefinePanel({
           </p>
           <button
             type="button"
-            onClick={handleRefine}
-            disabled={flow.isRefining || instruction.trim().length < 5}
+            onClick={handleSend}
+            disabled={!composerEnabled || instruction.trim().length < 5}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
               "bg-primary text-primary-foreground hover:bg-primary/90",
@@ -171,8 +229,7 @@ export function WorkflowRefinePanel({
               "disabled:pointer-events-none disabled:opacity-40",
             )}
           >
-            {flow.isRefining && <SpinnerIcon size={12} />}
-            Refine
+            Send
           </button>
         </div>
       </div>
@@ -181,71 +238,39 @@ export function WorkflowRefinePanel({
 }
 
 // ---------------------------------------------------------------------------
-// History Section
+// Result Strip — diff preview with accept/discard actions
 // ---------------------------------------------------------------------------
 
-function HistorySection({
-  history,
-}: {
-  readonly history: readonly RefinementHistoryEntry[];
-}) {
-  return (
-    <div className="border-b border-border px-3 py-2">
-      <p className="mb-1.5 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">
-        History
-      </p>
-      <div className="flex flex-col gap-2">
-        {history.map((entry, i) => (
-          <div key={i} className="flex flex-col gap-1">
-            <div className="rounded-md bg-muted px-2.5 py-1.5 text-xs text-foreground">
-              {entry.instruction}
-            </div>
-            <p className="px-1 text-[0.7rem] leading-relaxed text-muted-foreground">
-              {entry.explanation}
-            </p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Result Section
-// ---------------------------------------------------------------------------
-
-function ResultSection({
-  result,
+function ResultStrip({
+  extractedYaml,
+  explanation,
   beforeYaml,
   onAccept,
   onDiscard,
 }: {
-  readonly result: RefineWorkflowFlowResult;
+  readonly extractedYaml: string;
+  readonly explanation: string | null;
   readonly beforeYaml: string;
   readonly onAccept: () => void;
   readonly onDiscard: () => void;
 }) {
-  const diffLines = computeUnifiedDiff(beforeYaml, result.yaml);
+  const diffLines = computeUnifiedDiff(beforeYaml, extractedYaml);
   const hasChanges = diffLines.some((l) => l.type !== "equal");
 
   return (
-    <div className="px-3 py-3" aria-live="polite">
+    <div
+      className="border-t border-border px-3 py-3"
+      aria-live="polite"
+    >
       {/* Explanation */}
-      <div className="mb-3">
-        <h4 className="mb-1 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">
-          Changes
-        </h4>
-        <p className="text-xs leading-relaxed text-foreground">{result.explanation}</p>
-      </div>
-
-      {/* Warnings */}
-      {result.warnings.length > 0 && (
-        <div className="mb-3 rounded-md border border-warning/30 bg-warning/5 px-2.5 py-1.5">
-          <ul className="list-inside list-disc space-y-0.5 text-[0.7rem] text-warning">
-            {result.warnings.map((w, i) => (
-              <li key={i}>{w}</li>
-            ))}
-          </ul>
+      {explanation && (
+        <div className="mb-3">
+          <h4 className="mb-1 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">
+            Changes
+          </h4>
+          <p className="text-xs leading-relaxed text-foreground">
+            {explanation}
+          </p>
         </div>
       )}
 
