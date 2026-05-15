@@ -322,6 +322,7 @@ var (
 	_ TaskBuilder = &CallAgentTaskBuilder{}
 	_ TaskBuilder = &CallGRPCTaskBuilder{}
 	_ TaskBuilder = &CallHTTPTaskBuilder{}
+	_ TaskBuilder = &CallLlmTaskBuilder{}
 	_ TaskBuilder = &DoTaskBuilder{}
 	_ TaskBuilder = &ForTaskBuilder{}
 	_ TaskBuilder = &ForkTaskBuilder{}

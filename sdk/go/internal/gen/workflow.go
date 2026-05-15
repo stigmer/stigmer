@@ -52,21 +52,6 @@ func (w *WorkflowClient) Delete(ctx context.Context, id string) (*workflowv1.Wor
 	return resp, wrapErr(err)
 }
 
-func (w *WorkflowClient) GenerateWorkflowFromPrompt(ctx context.Context, input *workflowv1.GenerateWorkflowFromPromptInput) (*workflowv1.GenerateWorkflowFromPromptOutput, error) {
-	resp, err := w.command.GenerateWorkflowFromPrompt(ctx, input)
-	return resp, wrapErr(err)
-}
-
-func (w *WorkflowClient) RefineWorkflow(ctx context.Context, input *workflowv1.RefineWorkflowInput) (*workflowv1.RefineWorkflowOutput, error) {
-	resp, err := w.command.RefineWorkflow(ctx, input)
-	return resp, wrapErr(err)
-}
-
-func (w *WorkflowClient) DiagnoseWorkflowExecution(ctx context.Context, input *workflowv1.DiagnoseWorkflowExecutionInput) (*workflowv1.DiagnoseWorkflowExecutionOutput, error) {
-	resp, err := w.command.DiagnoseWorkflowExecution(ctx, input)
-	return resp, wrapErr(err)
-}
-
 func (w *WorkflowClient) Get(ctx context.Context, id string) (*workflowv1.Workflow, error) {
 	resp, err := w.query.Get(ctx, &workflowv1.WorkflowId{Value: id})
 	return resp, wrapErr(err)

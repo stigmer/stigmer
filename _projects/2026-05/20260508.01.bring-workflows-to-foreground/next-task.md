@@ -1116,3 +1116,9 @@ After loading context:
 ---
 
 *This file provides direct paths to all project resources for quick context loading.*
+
+## Sub-Projects
+
+Active sub-projects spawned from this project:
+
+- `~/scm/github.com/stigmer/stigmer/_projects/2026-05/20260515.01.sp.agent-powered-workflow-generation/next-task.md` - Rewrite all workflow generation, refinement, and diagnosis flows from direct LLM calls to agent-powered sessions using the Cursor harness. The Workflow Architect agent uses MCP server connections and tool use for richer, more sophisticated workflow creation, replacing the current single-shot prompt approach.

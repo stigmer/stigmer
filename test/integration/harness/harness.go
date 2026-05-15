@@ -17,6 +17,7 @@ type TestHarness struct {
 	Temporal       *TemporalDevServer
 	Service        *JavaService
 	WorkflowRunner *WorkflowRunner
+	AgentRunner    *AgentRunner
 
 	outputDir string
 	logger    *slog.Logger
@@ -59,6 +60,9 @@ func (h *TestHarness) LogPaths() []string {
 	}
 	if h.WorkflowRunner != nil && h.WorkflowRunner.LogPath() != "" {
 		paths = append(paths, h.WorkflowRunner.LogPath())
+	}
+	if h.AgentRunner != nil && h.AgentRunner.LogPath() != "" {
+		paths = append(paths, h.AgentRunner.LogPath())
 	}
 	return paths
 }
@@ -134,6 +138,12 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 // Stop tears down all services and infrastructure in reverse order.
 func (h *TestHarness) Stop(ctx context.Context) {
 	h.logger.Info("stopping test infrastructure")
+
+	if h.AgentRunner != nil {
+		if err := h.AgentRunner.Stop(); err != nil {
+			h.logger.Error("failed to stop agent-runner", "error", err)
+		}
+	}
 
 	if h.WorkflowRunner != nil {
 		if err := h.WorkflowRunner.Stop(); err != nil {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 Leftbin/Stigmer
+ * Copyright 2025 - 2026 Zigflow authors <https://github.com/stigmer/stigmer/backend/services/workflow-runner/graphs/contributors>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,13 +29,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// CallLlmTaskBuilder handles llm_call tasks that make direct LLM API calls
-// without the overhead of a full agent invocation.
-type CallLlmTaskBuilder struct {
-	builder[*model.CallFunction]
-	config *workflowtasks.LlmCallTaskConfig
-}
-
 func NewCallLlmTaskBuilder(
 	temporalWorker worker.Worker,
 	task *model.CallFunction,
@@ -43,8 +36,9 @@ func NewCallLlmTaskBuilder(
 	doc *model.Workflow,
 ) (*CallLlmTaskBuilder, error) {
 	if task.Call != customCallFunctionLlm {
-		return nil, fmt.Errorf("unsupported call type '%s' for llm builder", task.Call)
+		return nil, fmt.Errorf("unsupported call task '%s' for llm builder", task.Call)
 	}
+
 	return &CallLlmTaskBuilder{
 		builder: builder[*model.CallFunction]{
 			doc:            doc,
@@ -55,10 +49,17 @@ func NewCallLlmTaskBuilder(
 	}, nil
 }
 
+type CallLlmTaskBuilder struct {
+	builder[*model.CallFunction]
+
+	llmConfig *workflowtasks.LlmCallTaskConfig
+}
+
 func (t *CallLlmTaskBuilder) Build() (TemporalWorkflowFunc, error) {
-	log.Debug().Str("task", t.GetTaskName()).Msg("Building llm_call task")
+	log.Debug().Str("task", t.GetTaskName()).Msg("Building call llm task")
 
 	if err := t.parseConfig(); err != nil {
+		log.Error().Err(err).Msg("Error parsing llm call configuration")
 		return nil, err
 	}
 
@@ -66,21 +67,25 @@ func (t *CallLlmTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 		logger := workflow.GetLogger(ctx)
 
 		if err := t.evaluateExpressions(ctx, state); err != nil {
-			logger.Error("Error evaluating llm_call expressions", "error", err)
-			return nil, fmt.Errorf("error evaluating llm_call expressions: %w", err)
+			logger.Error("Error evaluating llm task expressions", "error", err)
+			return nil, fmt.Errorf("error evaluating llm task expressions: %w", err)
 		}
 
-		logger.Info("Executing llm_call activity",
-			"model", t.config.Model,
+		logger.Info("Executing llm call activity",
+			"model", t.llmConfig.Model,
 			"task", t.GetTaskName())
 
 		var res any
-		if err := workflow.ExecuteActivity(ctx, (*CallLlmActivities).CallLlmActivity,
-			t.config, input, state.Env).Get(ctx, &res); err != nil {
-			return nil, fmt.Errorf("llm_call activity failed: %w", err)
+		future := workflow.ExecuteActivity(ctx, (*CallLlmActivities).CallLlmActivity, t.llmConfig)
+		if err := future.Get(ctx, &res); err != nil {
+			logger.Error("LLM call activity failed", "error", err)
+			return nil, fmt.Errorf("llm call activity failed: %w", err)
 		}
 
-		state.AddData(map[string]any{t.GetTaskName(): res})
+		state.AddData(map[string]any{
+			t.GetTaskName(): res,
+		})
+
 		return res, nil
 	}, nil
 }
@@ -91,48 +96,56 @@ func (t *CallLlmTaskBuilder) parseConfig() error {
 		return fmt.Errorf("failed to marshal task.With: %w", err)
 	}
 
-	t.config = &workflowtasks.LlmCallTaskConfig{}
-	if err := protojson.Unmarshal(withBytes, t.config); err != nil {
-		return fmt.Errorf("failed to unmarshal llm_call config: %w", err)
+	t.llmConfig = &workflowtasks.LlmCallTaskConfig{}
+	if err := protojson.Unmarshal(withBytes, t.llmConfig); err != nil {
+		return fmt.Errorf("failed to unmarshal llm call config: %w", err)
 	}
 
-	if t.config.Model == "" {
-		return fmt.Errorf("model field is required in llm_call config")
+	if t.llmConfig.Model == "" {
+		return fmt.Errorf("model field is required in llm call config")
 	}
-	if t.config.Prompt == "" {
-		return fmt.Errorf("prompt field is required in llm_call config")
+	if t.llmConfig.Prompt == "" {
+		return fmt.Errorf("prompt field is required in llm call config")
 	}
 
 	log.Debug().
 		Str("task", t.GetTaskName()).
-		Str("model", t.config.Model).
-		Msg("LLM call config parsed")
+		Str("model", t.llmConfig.Model).
+		Msg("LLM call config parsed successfully")
 
 	return nil
 }
 
 func (t *CallLlmTaskBuilder) evaluateExpressions(ctx workflow.Context, state *utils.State) error {
-	if model.IsStrictExpr(t.config.Prompt) {
-		evaluated, err := utils.EvaluateString(t.config.Prompt, nil, state)
+	logger := workflow.GetLogger(ctx)
+	logger.Debug("Evaluating llm task expressions in workflow context")
+
+	if model.IsStrictExpr(t.llmConfig.Prompt) {
+		evaluated, err := utils.EvaluateString(t.llmConfig.Prompt, nil, state)
 		if err != nil {
 			return fmt.Errorf("error evaluating prompt expression: %w", err)
 		}
-		if s, ok := evaluated.(string); ok {
-			t.config.Prompt = s
+		if evaluatedStr, ok := evaluated.(string); ok {
+			t.llmConfig.Prompt = evaluatedStr
+		} else {
+			return fmt.Errorf("prompt expression must evaluate to string, got %T", evaluated)
 		}
 	}
 
-	if t.config.SystemPrompt != "" && model.IsStrictExpr(t.config.SystemPrompt) {
-		evaluated, err := utils.EvaluateString(t.config.SystemPrompt, nil, state)
+	if t.llmConfig.SystemPrompt != "" && model.IsStrictExpr(t.llmConfig.SystemPrompt) {
+		evaluated, err := utils.EvaluateString(t.llmConfig.SystemPrompt, nil, state)
 		if err != nil {
 			return fmt.Errorf("error evaluating system_prompt expression: %w", err)
 		}
-		if s, ok := evaluated.(string); ok {
-			t.config.SystemPrompt = s
+		if evaluatedStr, ok := evaluated.(string); ok {
+			t.llmConfig.SystemPrompt = evaluatedStr
 		}
 	}
 
+	logger.Debug("LLM task expressions evaluated successfully")
 	return nil
 }
 
-var _ TaskBuilder = &CallLlmTaskBuilder{}
+func (t *CallLlmTaskBuilder) evaluateTaskArguments(ctx workflow.Context, state *utils.State) (*model.CallFunction, error) {
+	return t.task, nil
+}
