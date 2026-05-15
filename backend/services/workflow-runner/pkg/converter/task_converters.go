@@ -17,10 +17,26 @@
 package converter
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 )
+
+// convertTaskList recursively converts a slice of WorkflowTask protos to YAML maps.
+func (c *Converter) convertTaskList(tasks []*workflowv1.WorkflowTask) ([]map[string]interface{}, error) {
+	result := make([]map[string]interface{}, 0, len(tasks))
+	for _, task := range tasks {
+		yamlTask, err := c.convertTask(task)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, yamlTask)
+	}
+	return result, nil
+}
 
 // Type-safe task converters for Phase 3.
 //
@@ -86,61 +102,78 @@ func (c *Converter) convertGrpcCallTask(cfg *tasksv1.GrpcCallTaskConfig) map[str
 	}
 }
 
-// convertSwitchTask converts SwitchTaskConfig to YAML structure
+// convertSwitchTask converts SwitchTaskConfig to YAML structure.
+//
+// The CNCF Serverless Workflow SDK expects switch as an array of named items:
+//
+//	switch:
+//	  - caseName:
+//	      when: "${ expression }"
+//	      then: targetTask
+//
+// Each SwitchItem is a single-key map where the key is the case name.
 func (c *Converter) convertSwitchTask(cfg *tasksv1.SwitchTaskConfig) map[string]interface{} {
-	// Convert cases
-	cases := make([]map[string]interface{}, len(cfg.Cases))
+	items := make([]map[string]interface{}, len(cfg.Cases))
 	for i, switchCase := range cfg.Cases {
-		caseMap := map[string]interface{}{}
-		if switchCase.Name != "" {
-			caseMap["name"] = switchCase.Name
-		}
+		caseBody := map[string]interface{}{}
 		if switchCase.When != "" {
-			caseMap["when"] = switchCase.When
+			caseBody["when"] = switchCase.When
 		}
 		if switchCase.Then != "" {
-			caseMap["then"] = switchCase.Then
+			caseBody["then"] = switchCase.Then
 		}
-		cases[i] = caseMap
+
+		name := switchCase.Name
+		if name == "" {
+			name = "default"
+		}
+		items[i] = map[string]interface{}{name: caseBody}
 	}
 
 	return map[string]interface{}{
-		"switch": map[string]interface{}{
-			"cases": cases,
-		},
+		"switch": items,
 	}
 }
 
-// convertForTask converts ForTaskConfig to YAML structure
-// Note: For tasks have nested WorkflowTask arrays which need special handling
-func (c *Converter) convertForTask(cfg *tasksv1.ForTaskConfig) map[string]interface{} {
+// convertForTask converts ForTaskConfig to YAML structure,
+// recursively converting nested tasks in the do block.
+func (c *Converter) convertForTask(cfg *tasksv1.ForTaskConfig) (map[string]interface{}, error) {
 	forMap := map[string]interface{}{
 		"in": cfg.In,
 	}
 
-	// Add optional fields
 	if cfg.Each != "" {
 		forMap["each"] = cfg.Each
 	}
-	// Note: cfg.Do is []*WorkflowTask - would need recursive conversion
-	// For now, this is handled by the existing generic converter logic
+
+	if len(cfg.Do) > 0 {
+		doTasks, err := c.convertTaskList(cfg.Do)
+		if err != nil {
+			return nil, fmt.Errorf("for_each do block: %w", err)
+		}
+		forMap["do"] = doTasks
+	}
 
 	return map[string]interface{}{
 		"for": forMap,
-	}
+	}, nil
 }
 
-// convertForkTask converts ForkTaskConfig to YAML structure
-// Note: Fork tasks have nested WorkflowTask arrays which need special handling
-func (c *Converter) convertForkTask(cfg *tasksv1.ForkTaskConfig) map[string]interface{} {
-	// Convert branches
+// convertForkTask converts ForkTaskConfig to YAML structure,
+// recursively converting nested tasks in each branch's do block.
+func (c *Converter) convertForkTask(cfg *tasksv1.ForkTaskConfig) (map[string]interface{}, error) {
 	branches := make([]map[string]interface{}, len(cfg.Branches))
 	for i, branch := range cfg.Branches {
 		branchMap := map[string]interface{}{
 			"name": branch.Name,
 		}
-		// Note: branch.Do is []*WorkflowTask - would need recursive conversion
-		// For now, this is handled by the existing generic converter logic
+		if len(branch.Do) > 0 {
+			doTasks, err := c.convertTaskList(branch.Do)
+			if err != nil {
+				return nil, fmt.Errorf("fork branch %q do block: %w", branch.Name, err)
+			}
+			branchMap["do"] = doTasks
+		}
 		branches[i] = branchMap
 	}
 
@@ -148,29 +181,38 @@ func (c *Converter) convertForkTask(cfg *tasksv1.ForkTaskConfig) map[string]inte
 		"fork": map[string]interface{}{
 			"branches": branches,
 		},
-	}
+	}, nil
 }
 
-// convertTryTask converts TryTaskConfig to YAML structure
-// Note: Try tasks have nested WorkflowTask arrays which need special handling
-func (c *Converter) convertTryTask(cfg *tasksv1.TryTaskConfig) map[string]interface{} {
-	tryMap := map[string]interface{}{}
-	// Note: cfg.Try is []*WorkflowTask - would need recursive conversion
-	// For now, this is handled by the existing generic converter logic
+// convertTryTask converts TryTaskConfig to YAML structure,
+// recursively converting nested tasks in both try and catch blocks.
+func (c *Converter) convertTryTask(cfg *tasksv1.TryTaskConfig) (map[string]interface{}, error) {
+	result := map[string]interface{}{}
 
-	// Add catch block if present (single block, not array)
+	if len(cfg.Try) > 0 {
+		tryTasks, err := c.convertTaskList(cfg.Try)
+		if err != nil {
+			return nil, fmt.Errorf("try block: %w", err)
+		}
+		result["try"] = tryTasks
+	}
+
 	if cfg.Catch != nil {
 		catchMap := map[string]interface{}{}
 		if cfg.Catch.As != "" {
 			catchMap["as"] = cfg.Catch.As
 		}
-		// Note: cfg.Catch.Do is []*WorkflowTask - would need recursive conversion
-		tryMap["catch"] = catchMap
+		if len(cfg.Catch.Do) > 0 {
+			catchTasks, err := c.convertTaskList(cfg.Catch.Do)
+			if err != nil {
+				return nil, fmt.Errorf("catch block: %w", err)
+			}
+			catchMap["do"] = catchTasks
+		}
+		result["catch"] = catchMap
 	}
 
-	return map[string]interface{}{
-		"try": tryMap,
-	}
+	return result, nil
 }
 
 // convertListenTask converts ListenTaskConfig to YAML structure
@@ -232,19 +274,50 @@ func (c *Converter) convertWaitTask(cfg *tasksv1.WaitTaskConfig) map[string]inte
 	}
 }
 
-// convertRaiseTask converts RaiseTaskConfig to YAML structure
+// raiseErrorTypeMapping maps user-friendly error names to CNCF Serverless
+// Workflow error type URIs. Names are matched case-insensitively.
+var raiseErrorTypeMapping = map[string]struct {
+	typeURI string
+	status  int
+}{
+	"validationerror":     {"https://serverlessworkflow.io/spec/1.0.0/errors/validation", 400},
+	"authenticationerror": {"https://serverlessworkflow.io/spec/1.0.0/errors/authentication", 401},
+	"authorizationerror":  {"https://serverlessworkflow.io/spec/1.0.0/errors/authorization", 403},
+	"configurationerror":  {"https://serverlessworkflow.io/spec/1.0.0/errors/configuration", 400},
+	"timeouterror":        {"https://serverlessworkflow.io/spec/1.0.0/errors/timeout", 408},
+	"communicationerror":  {"https://serverlessworkflow.io/spec/1.0.0/errors/communication", 502},
+	"expressionerror":     {"https://serverlessworkflow.io/spec/1.0.0/errors/expression", 400},
+	"runtimeerror":        {"https://serverlessworkflow.io/spec/1.0.0/errors/runtime", 500},
+}
+
+// convertRaiseTask converts RaiseTaskConfig to YAML structure.
+//
+// Maps the Stigmer proto's {error, message} to the CNCF SDK's structured
+// error definition: {type (URI), status, title, detail}.
 func (c *Converter) convertRaiseTask(cfg *tasksv1.RaiseTaskConfig) map[string]interface{} {
-	raiseMap := map[string]interface{}{
-		"error": cfg.Error,
+	typeURI := "https://serverlessworkflow.io/spec/1.0.0/errors/runtime"
+	status := 500
+
+	if mapped, ok := raiseErrorTypeMapping[strings.ToLower(cfg.Error)]; ok {
+		typeURI = mapped.typeURI
+		status = mapped.status
+	} else if strings.HasPrefix(cfg.Error, "https://") {
+		typeURI = cfg.Error
 	}
 
-	// Add optional message
+	errorDef := map[string]interface{}{
+		"type":   typeURI,
+		"status": status,
+		"title":  cfg.Error,
+	}
 	if cfg.Message != "" {
-		raiseMap["message"] = cfg.Message
+		errorDef["detail"] = cfg.Message
 	}
 
 	return map[string]interface{}{
-		"raise": raiseMap,
+		"raise": map[string]interface{}{
+			"error": errorDef,
+		},
 	}
 }
 

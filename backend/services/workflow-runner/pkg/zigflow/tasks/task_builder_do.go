@@ -368,6 +368,13 @@ func (t *DoTaskBuilder) iterateTasks(
 			t.bufferEvent(t.opts.Emitter.TaskStarted(taskStartTime, task.Name, taskKind, 1, nil))
 		}
 
+		// Flush the task_started event before execution so the backend
+		// knows the task exists. This is critical for signal-based tasks
+		// (human_input, listen) that block until an external signal arrives
+		// -- without this flush, the backend can't validate approval
+		// submissions against the task name.
+		t.flushEvents(ctx)
+
 		branchOverride, err := t.runTask(ctx, task, input, state)
 		if err != nil {
 			durationMs := workflow.Now(ctx).Sub(taskStartTime).Milliseconds()
