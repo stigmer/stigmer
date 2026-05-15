@@ -90,18 +90,32 @@ func NewZigflowWorker(cfg *config.Config) (*ZigflowWorker, error) {
 		log.Info().
 			Int64("threshold_bytes", cfg.ClaimCheckThresholdBytes).
 			Bool("compression_enabled", cfg.ClaimCheckCompressionEnabled).
-			Str("r2_bucket", cfg.R2Bucket).
+			Str("storage_type", cfg.ClaimCheckStorageType).
 			Msg("Initializing Claim Check Manager")
 
 		claimCheckCfg := claimcheck.Config{
 			ThresholdBytes:     cfg.ClaimCheckThresholdBytes,
 			TTLDays:            cfg.ClaimCheckTTLDays,
 			CompressionEnabled: cfg.ClaimCheckCompressionEnabled,
-			R2Bucket:           cfg.R2Bucket,
-			R2Endpoint:         cfg.R2Endpoint,
-			R2AccessKeyID:      cfg.R2AccessKeyID,
-			R2SecretAccessKey:  cfg.R2SecretAccessKey,
-			R2Region:           cfg.R2Region,
+			StorageType:        cfg.ClaimCheckStorageType,
+		}
+
+		switch cfg.ClaimCheckStorageType {
+		case "proxy":
+			claimCheckCfg.ProxyEndpoint = cfg.ClaimCheckProxyEndpoint
+			claimCheckCfg.ProxyAuthToken = cfg.ClaimCheckProxyAuthToken
+			log.Info().
+				Str("proxy_endpoint", cfg.ClaimCheckProxyEndpoint).
+				Msg("Claim check using proxy mode (presigned URLs)")
+		default:
+			claimCheckCfg.R2Bucket = cfg.R2Bucket
+			claimCheckCfg.R2Endpoint = cfg.R2Endpoint
+			claimCheckCfg.R2AccessKeyID = cfg.R2AccessKeyID
+			claimCheckCfg.R2SecretAccessKey = cfg.R2SecretAccessKey
+			claimCheckCfg.R2Region = cfg.R2Region
+			log.Info().
+				Str("r2_bucket", cfg.R2Bucket).
+				Msg("Claim check using direct R2 mode")
 		}
 
 		claimCheckMgr, err = claimcheck.NewManager(claimCheckCfg)
@@ -109,12 +123,14 @@ func NewZigflowWorker(cfg *config.Config) (*ZigflowWorker, error) {
 			return nil, fmt.Errorf("failed to initialize Claim Check Manager: %w", err)
 		}
 
-		// Test R2 connectivity
+		// Test storage connectivity
 		ctx := context.Background()
 		if err := claimCheckMgr.Health(ctx); err != nil {
-			log.Warn().Err(err).Msg("Claim Check health check failed - R2 may not be accessible")
+			log.Warn().Err(err).Str("storage_type", cfg.ClaimCheckStorageType).
+				Msg("Claim Check health check failed - storage may not be accessible")
 		} else {
-			log.Info().Msg("Claim Check Manager initialized successfully - R2 connectivity verified")
+			log.Info().Str("storage_type", cfg.ClaimCheckStorageType).
+				Msg("Claim Check Manager initialized successfully - storage connectivity verified")
 		}
 
 		claimcheck.SetGlobalManager(claimCheckMgr)

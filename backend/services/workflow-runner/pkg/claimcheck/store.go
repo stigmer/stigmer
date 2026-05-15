@@ -28,16 +28,20 @@ type Config struct {
 	TTLDays            int   // Auto-delete after N days
 	CompressionEnabled bool  // Enable gzip compression
 
-	// Storage selection
-	StorageType string // "r2" or "filesystem" (default: "r2")
+	// Storage selection: "r2", "filesystem", or "proxy" (default: "r2")
+	StorageType string
 
 	// Filesystem configuration
 	FilesystemBasePath string // Base directory for local storage
 
-	// Cloudflare R2 configuration (S3-compatible)
+	// Cloudflare R2 configuration (S3-compatible, used when StorageType = "r2")
 	R2Bucket          string
 	R2Endpoint        string // Cloudflare R2 endpoint
 	R2AccessKeyID     string
 	R2SecretAccessKey string
 	R2Region          string // Usually "auto" for R2
+
+	// Proxy configuration (used when StorageType = "proxy")
+	ProxyEndpoint  string // Stigmer Side-Channel Proxy base URL
+	ProxyAuthToken string // Bearer token for proxy authentication
 }

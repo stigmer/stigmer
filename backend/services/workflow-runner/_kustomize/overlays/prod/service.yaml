@@ -28,28 +28,21 @@ spec:
           STIGMER_SERVICE_USE_TLS:
             value: "false"
           # Claim Check Configuration (for large payload handling)
+          # In cloud mode (STIGMER_PROXY_ENDPOINT set), claim check uses presigned
+          # URLs from the Side-Channel Proxy instead of direct R2 credentials.
           CLAIMCHECK_ENABLED:
             value: "true"
           CLAIMCHECK_THRESHOLD_BYTES:
             value: "51200"  # 50KB
-          CLAIMCHECK_TTL_DAYS:
-            value: "30"
           CLAIMCHECK_COMPRESSION_ENABLED:
             value: "true"
-          # Cloudflare R2 Configuration (S3-compatible storage)
-          R2_BUCKET:
-            value: $variables-group/stigmer-claimcheck-r2-config/prod.bucket-name
-          R2_ENDPOINT:
-            value: $variables-group/stigmer-claimcheck-r2-config/prod.endpoint
-          R2_REGION:
-            value: $variables-group/stigmer-claimcheck-r2-config/region
+          # Side-Channel Proxy origin (enables proxy mode for LLM calls and claim check).
+          # When set, R2 credentials are not needed — the proxy generates presigned URLs.
+          STIGMER_PROXY_ENDPOINT:
+            value: https://api.stigmer.ai
         secrets:
-          # Cloudflare R2 Credentials
-          R2_ACCESS_KEY_ID:
-            value: $secrets-group/stigmer-r2-credentials/prod.access-key-id
-          R2_SECRET_ACCESS_KEY:
-            value: $secrets-group/stigmer-r2-credentials/prod.secret-access-key
           # Stigmer API Key (unified with agent-runner)
+          # Used for Side-Channel Proxy authentication (LLM proxy + claim check proxy)
           STIGMER_API_KEY:
             value: $secrets-group/stigmer-api/prod.api-key
       resources:

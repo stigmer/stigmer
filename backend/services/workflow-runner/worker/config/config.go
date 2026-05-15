@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	stigmerconfig "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/config"
 )
@@ -72,12 +73,20 @@ type Config struct {
 	ClaimCheckCompressionEnabled bool
 	ClaimCheckTTLDays            int
 
-	// Cloudflare R2 configuration
+	// Cloudflare R2 configuration (direct mode — OSS/local only)
 	R2Bucket          string
 	R2Endpoint        string
 	R2AccessKeyID     string
 	R2SecretAccessKey string
 	R2Region          string
+
+	// Claim check storage mode: "proxy" when STIGMER_PROXY_ENDPOINT is set,
+	// "r2" otherwise. Determined automatically in LoadFromEnv.
+	ClaimCheckStorageType string
+
+	// Proxy configuration (cloud mode — when STIGMER_PROXY_ENDPOINT is set)
+	ClaimCheckProxyEndpoint  string
+	ClaimCheckProxyAuthToken string
 
 	// Stigmer backend configuration (for progress callbacks and workflow queries)
 	StigmerConfig *stigmerconfig.StigmerConfig
@@ -136,6 +145,22 @@ func LoadFromEnv() (*Config, error) {
 		StigmerConfig: stigmerCfg,
 	}
 
+	// Determine claim check storage mode: proxy when STIGMER_PROXY_ENDPOINT
+	// is set (cloud), direct R2 otherwise (OSS/local).
+	proxyEndpoint := strings.TrimSpace(os.Getenv("STIGMER_PROXY_ENDPOINT"))
+	if proxyEndpoint != "" {
+		cfg.ClaimCheckStorageType = "proxy"
+		cfg.ClaimCheckProxyEndpoint = proxyEndpoint
+
+		authToken := os.Getenv("STIGMER_TOKEN")
+		if authToken == "" {
+			authToken = os.Getenv("STIGMER_API_KEY")
+		}
+		cfg.ClaimCheckProxyAuthToken = authToken
+	} else {
+		cfg.ClaimCheckStorageType = "r2"
+	}
+
 	if cfg.TemporalServiceAddress == "" {
 		return nil, errors.New("TEMPORAL_SERVICE_ADDRESS is required")
 	}
@@ -147,17 +172,24 @@ func LoadFromEnv() (*Config, error) {
 	}
 
 	if cfg.ClaimCheckEnabled {
-		if cfg.R2Bucket == "" {
-			return nil, errors.New("R2_BUCKET is required when Claim Check is enabled")
-		}
-		if cfg.R2Endpoint == "" {
-			return nil, errors.New("R2_ENDPOINT is required when Claim Check is enabled")
-		}
-		if cfg.R2AccessKeyID == "" {
-			return nil, errors.New("R2_ACCESS_KEY_ID is required when Claim Check is enabled")
-		}
-		if cfg.R2SecretAccessKey == "" {
-			return nil, errors.New("R2_SECRET_ACCESS_KEY is required when Claim Check is enabled")
+		switch cfg.ClaimCheckStorageType {
+		case "proxy":
+			if cfg.ClaimCheckProxyAuthToken == "" {
+				return nil, errors.New("STIGMER_TOKEN or STIGMER_API_KEY is required when claim check uses proxy mode")
+			}
+		default:
+			if cfg.R2Bucket == "" {
+				return nil, errors.New("R2_BUCKET is required when Claim Check is enabled in direct mode")
+			}
+			if cfg.R2Endpoint == "" {
+				return nil, errors.New("R2_ENDPOINT is required when Claim Check is enabled in direct mode")
+			}
+			if cfg.R2AccessKeyID == "" {
+				return nil, errors.New("R2_ACCESS_KEY_ID is required when Claim Check is enabled in direct mode")
+			}
+			if cfg.R2SecretAccessKey == "" {
+				return nil, errors.New("R2_SECRET_ACCESS_KEY is required when Claim Check is enabled in direct mode")
+			}
 		}
 	}
 
@@ -199,6 +231,6 @@ func getEnvAsBoolOrDefault(key string, defaultValue bool) bool {
 }
 
 func (c *Config) String() string {
-	return fmt.Sprintf("TemporalServiceAddress=%s, Namespace=%s, OrchestrationQueue=%s, ExecutionQueue=%s, ValidationQueue=%s, SandboxMode=%v, RunnerID=%s, MaxConcurrency=%d, ClaimCheckEnabled=%v",
-		c.TemporalServiceAddress, c.TemporalNamespace, c.OrchestrationTaskQueue, c.ExecutionTaskQueue, c.ValidationTaskQueue, c.SandboxMode, c.RunnerID, c.MaxConcurrency, c.ClaimCheckEnabled)
+	return fmt.Sprintf("TemporalServiceAddress=%s, Namespace=%s, OrchestrationQueue=%s, ExecutionQueue=%s, ValidationQueue=%s, SandboxMode=%v, RunnerID=%s, MaxConcurrency=%d, ClaimCheckEnabled=%v, ClaimCheckStorageType=%s",
+		c.TemporalServiceAddress, c.TemporalNamespace, c.OrchestrationTaskQueue, c.ExecutionTaskQueue, c.ValidationTaskQueue, c.SandboxMode, c.RunnerID, c.MaxConcurrency, c.ClaimCheckEnabled, c.ClaimCheckStorageType)
 }

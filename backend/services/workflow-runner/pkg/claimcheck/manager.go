@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
@@ -47,8 +48,13 @@ func NewManager(cfg Config) (*Manager, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize filesystem store: %w", err)
 		}
+	case "proxy":
+		store, err = NewProxyStore(cfg.ProxyEndpoint, cfg.ProxyAuthToken)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize proxy store: %w", err)
+		}
 	default:
-		return nil, fmt.Errorf("unknown storage type: %s (supported: r2, filesystem)", storageType)
+		return nil, fmt.Errorf("unknown storage type: %s (supported: r2, filesystem, proxy)", storageType)
 	}
 
 	// Initialize compressor
@@ -150,6 +156,7 @@ func (m *Manager) MaybeRetrieve(ctx workflow.Context, input interface{}) ([]byte
 
 // OffloadActivity uploads payload to storage (Temporal activity)
 func (m *Manager) OffloadActivity(ctx context.Context, payload []byte) (ClaimCheckRef, error) {
+	ctx = enrichContextFromActivity(ctx)
 	startTime := time.Now()
 	originalSize := int64(len(payload))
 
@@ -187,6 +194,7 @@ func (m *Manager) OffloadActivity(ctx context.Context, payload []byte) (ClaimChe
 
 // RetrieveActivity downloads payload from storage (Temporal activity)
 func (m *Manager) RetrieveActivity(ctx context.Context, ref ClaimCheckRef) ([]byte, error) {
+	ctx = enrichContextFromActivity(ctx)
 	startTime := time.Now()
 
 	// Download from storage
@@ -368,4 +376,15 @@ func (m *Manager) Metrics() MetricsSnapshot {
 // Health checks storage backend health
 func (m *Manager) Health(ctx context.Context) error {
 	return m.store.Health(ctx)
+}
+
+// enrichContextFromActivity extracts the workflow execution ID from a
+// Temporal activity context and stores it in the context for the proxy
+// store's authorization header. No-op when called outside an activity.
+func enrichContextFromActivity(ctx context.Context) context.Context {
+	info := activity.GetInfo(ctx)
+	if info.WorkflowExecution.ID != "" {
+		ctx = WithWorkflowExecutionID(ctx, info.WorkflowExecution.ID)
+	}
+	return ctx
 }
