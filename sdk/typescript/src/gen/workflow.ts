@@ -14,6 +14,9 @@ import {
   GenerateWorkflowFromPromptInputSchema,
   type GenerateWorkflowFromPromptInput,
   type GenerateWorkflowFromPromptOutput,
+  RefineWorkflowInputSchema,
+  type RefineWorkflowInput,
+  type RefineWorkflowOutput,
 } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { WorkflowSpecSchema, WorkflowDocumentSchema, ExportSchema, FlowControlSchema, WorkflowTaskSchema, WorkflowBudgetSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
@@ -90,6 +93,25 @@ export class WorkflowClient {
           org: input.org,
           model: input.model,
           taskKindHints: input.taskKindHints,
+        })),
+      );
+      return {
+        yaml: resp.yaml,
+        explanation: resp.explanation,
+        warnings: [...resp.warnings],
+        modelUsed: resp.modelUsed,
+      };
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async refine(input: RefineWorkflowClientInput): Promise<RefineWorkflowResult> {
+    try {
+      const resp = await this.command.refineWorkflow(
+        create(RefineWorkflowInputSchema, stripUndefined({
+          currentYaml: input.currentYaml,
+          instruction: input.instruction,
+          org: input.org,
+          model: input.model,
         })),
       );
       return {
@@ -193,6 +215,30 @@ export interface GenerateFromPromptResult {
   /** The generated workflow YAML. */
   yaml: string;
   /** Explanation of what was generated and why. */
+  explanation: string;
+  /** Validation warnings (non-fatal). */
+  warnings: string[];
+  /** The LLM model that was used. */
+  modelUsed: string;
+}
+
+/** Input for refining an existing workflow with a natural language instruction. */
+export interface RefineWorkflowClientInput {
+  /** The current workflow YAML to modify. */
+  currentYaml: string;
+  /** Natural language instruction describing the desired change. */
+  instruction: string;
+  /** Organization slug for resource context. */
+  org: string;
+  /** Optional preferred LLM model. */
+  model?: string;
+}
+
+/** Result of workflow refinement. */
+export interface RefineWorkflowResult {
+  /** Updated workflow YAML incorporating the requested changes. */
+  yaml: string;
+  /** Explanation of what was changed and why. */
   explanation: string;
   /** Validation warnings (non-fatal). */
   warnings: string[];

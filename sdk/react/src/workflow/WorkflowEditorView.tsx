@@ -6,6 +6,7 @@ import { useWorkflowEditor } from "./useWorkflowEditor";
 import { WorkflowYamlEditor } from "./WorkflowYamlEditor";
 import { WorkflowTopologyGraph } from "./WorkflowTopologyGraph";
 import { WorkflowCanvasEditor } from "./WorkflowCanvasEditor";
+import { WorkflowRefinePanel } from "./WorkflowRefinePanel";
 import { yamlToGraph } from "./workflow-graph-conversions";
 
 /** Props for {@link WorkflowEditorView}. */
@@ -61,6 +62,7 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
   const [mode, setMode] = useState<WorkflowEditorMode>("code");
   const [showModeWarning, setShowModeWarning] = useState(false);
   const [canvasIsSaving, setCanvasIsSaving] = useState(false);
+  const [showRefinePanel, setShowRefinePanel] = useState(false);
 
   // Track canvas dirty state separately for mode switch prompts
   const [canvasDirty, setCanvasDirty] = useState(false);
@@ -139,6 +141,24 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
     [editor, onSaveSuccess, onSaveError],
   );
 
+  const toggleRefinePanel = useCallback(() => {
+    setShowRefinePanel((prev) => !prev);
+  }, []);
+
+  const handleRefineAccept = useCallback(
+    (updatedYaml: string) => {
+      editor.setYaml(updatedYaml);
+      if (mode === "visual") {
+        try {
+          yamlToGraph(updatedYaml);
+        } catch {
+          // Canvas will re-parse on next render
+        }
+      }
+    },
+    [editor, mode],
+  );
+
   // Validation error mapping for canvas mode
   const nodeErrors = useMemo<ReadonlyMap<string, readonly string[]>>(() => {
     if (mode !== "visual") return new Map();
@@ -174,6 +194,22 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
         <div className="flex items-center gap-3">
           {/* Mode Toggle */}
           <ModeToggle mode={mode} onSwitchToCode={handleSwitchToCode} onSwitchToVisual={handleSwitchToVisual} />
+          <div className="mx-1 h-4 w-px bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
+          <button
+            type="button"
+            onClick={toggleRefinePanel}
+            className={cn(
+              "inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors",
+              showRefinePanel
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+            aria-pressed={showRefinePanel}
+            aria-label="Refine with AI"
+          >
+            <RefineSparklesIcon />
+            Refine
+          </button>
           <div className="mx-1 h-4 w-px bg-[var(--stgm-border,#d4d4d8)]" aria-hidden="true" />
           <ValidationSummary
             errorCount={editor.errorCount}
@@ -254,21 +290,44 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
               />
             </div>
             <div className="w-[40%] min-w-[240px] overflow-hidden">
-              <WorkflowTopologyGraph
-                topology={editor.topology}
-                className="h-full"
-              />
+              {showRefinePanel ? (
+                <WorkflowRefinePanel
+                  org={org}
+                  currentYaml={editor.yaml}
+                  onAccept={handleRefineAccept}
+                  onClose={toggleRefinePanel}
+                  className="h-full"
+                />
+              ) : (
+                <WorkflowTopologyGraph
+                  topology={editor.topology}
+                  className="h-full"
+                />
+              )}
             </div>
           </>
         ) : (
-          <WorkflowCanvasEditor
-            yaml={editor.yaml}
-            onSave={handleCanvasSave}
-            isSaving={canvasIsSaving}
-            onDirtyChange={setCanvasDirty}
-            nodeErrors={nodeErrors}
-            className="flex-1"
-          />
+          <>
+            <WorkflowCanvasEditor
+              yaml={editor.yaml}
+              onSave={handleCanvasSave}
+              isSaving={canvasIsSaving}
+              onDirtyChange={setCanvasDirty}
+              nodeErrors={nodeErrors}
+              className={showRefinePanel ? "w-[60%]" : "flex-1"}
+            />
+            {showRefinePanel && (
+              <div className="w-[40%] min-w-[240px] overflow-hidden">
+                <WorkflowRefinePanel
+                  org={org}
+                  currentYaml={editor.yaml}
+                  onAccept={handleRefineAccept}
+                  onClose={toggleRefinePanel}
+                  className="h-full"
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -435,6 +494,24 @@ function CheckCircleIcon() {
     >
       <circle cx="8" cy="8" r="6.5" />
       <path d="M5.5 8l2 2 3-3.5" />
+    </svg>
+  );
+}
+
+function RefineSparklesIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z" />
     </svg>
   );
 }

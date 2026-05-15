@@ -24,6 +24,7 @@ const (
 	WorkflowCommandController_Update_FullMethodName                     = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/update"
 	WorkflowCommandController_Delete_FullMethodName                     = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/delete"
 	WorkflowCommandController_GenerateWorkflowFromPrompt_FullMethodName = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/generateWorkflowFromPrompt"
+	WorkflowCommandController_RefineWorkflow_FullMethodName             = "/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/refineWorkflow"
 )
 
 // WorkflowCommandControllerClient is the client API for WorkflowCommandController service.
@@ -56,6 +57,12 @@ type WorkflowCommandControllerClient interface {
 	// workflow YAML. The output is validated server-side with up to 2 retries
 	// on validation failure before being returned to the caller.
 	GenerateWorkflowFromPrompt(ctx context.Context, in *GenerateWorkflowFromPromptInput, opts ...grpc.CallOption) (*GenerateWorkflowFromPromptOutput, error)
+	// Refine an existing workflow with a natural language instruction.
+	//
+	// Receives the current workflow YAML and a change instruction, constructs
+	// a prompt emphasizing minimal targeted changes, calls an LLM to produce
+	// updated YAML, and validates the output with up to 2 retries on failure.
+	RefineWorkflow(ctx context.Context, in *RefineWorkflowInput, opts ...grpc.CallOption) (*RefineWorkflowOutput, error)
 }
 
 type workflowCommandControllerClient struct {
@@ -116,6 +123,16 @@ func (c *workflowCommandControllerClient) GenerateWorkflowFromPrompt(ctx context
 	return out, nil
 }
 
+func (c *workflowCommandControllerClient) RefineWorkflow(ctx context.Context, in *RefineWorkflowInput, opts ...grpc.CallOption) (*RefineWorkflowOutput, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefineWorkflowOutput)
+	err := c.cc.Invoke(ctx, WorkflowCommandController_RefineWorkflow_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WorkflowCommandControllerServer is the server API for WorkflowCommandController service.
 // All implementations should embed UnimplementedWorkflowCommandControllerServer
 // for forward compatibility.
@@ -146,6 +163,12 @@ type WorkflowCommandControllerServer interface {
 	// workflow YAML. The output is validated server-side with up to 2 retries
 	// on validation failure before being returned to the caller.
 	GenerateWorkflowFromPrompt(context.Context, *GenerateWorkflowFromPromptInput) (*GenerateWorkflowFromPromptOutput, error)
+	// Refine an existing workflow with a natural language instruction.
+	//
+	// Receives the current workflow YAML and a change instruction, constructs
+	// a prompt emphasizing minimal targeted changes, calls an LLM to produce
+	// updated YAML, and validates the output with up to 2 retries on failure.
+	RefineWorkflow(context.Context, *RefineWorkflowInput) (*RefineWorkflowOutput, error)
 }
 
 // UnimplementedWorkflowCommandControllerServer should be embedded to have
@@ -169,6 +192,9 @@ func (UnimplementedWorkflowCommandControllerServer) Delete(context.Context, *Wor
 }
 func (UnimplementedWorkflowCommandControllerServer) GenerateWorkflowFromPrompt(context.Context, *GenerateWorkflowFromPromptInput) (*GenerateWorkflowFromPromptOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GenerateWorkflowFromPrompt not implemented")
+}
+func (UnimplementedWorkflowCommandControllerServer) RefineWorkflow(context.Context, *RefineWorkflowInput) (*RefineWorkflowOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RefineWorkflow not implemented")
 }
 func (UnimplementedWorkflowCommandControllerServer) testEmbeddedByValue() {}
 
@@ -280,6 +306,24 @@ func _WorkflowCommandController_GenerateWorkflowFromPrompt_Handler(srv interface
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WorkflowCommandController_RefineWorkflow_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefineWorkflowInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WorkflowCommandControllerServer).RefineWorkflow(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WorkflowCommandController_RefineWorkflow_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WorkflowCommandControllerServer).RefineWorkflow(ctx, req.(*RefineWorkflowInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WorkflowCommandController_ServiceDesc is the grpc.ServiceDesc for WorkflowCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -306,6 +350,10 @@ var WorkflowCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "generateWorkflowFromPrompt",
 			Handler:    _WorkflowCommandController_GenerateWorkflowFromPrompt_Handler,
+		},
+		{
+			MethodName: "refineWorkflow",
+			Handler:    _WorkflowCommandController_RefineWorkflow_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

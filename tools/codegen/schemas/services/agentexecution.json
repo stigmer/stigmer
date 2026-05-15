@@ -183,6 +183,14 @@
           "outputType": "GetOrgUsageReportOutput",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput",
           "description": "Get a usage report for an organization.\n\n Returns org-wide totals, top agents by cost, model breakdown, and daily trend."
+        },
+        {
+          "name": "GetExecutionSummary",
+          "inputType": "GetAgentExecutionSummaryRequest",
+          "inputFullType": "ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest",
+          "outputType": "AgentExecutionSummary",
+          "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary",
+          "description": "Get aggregated execution statistics for an organization's agent executions.\n\n Returns counts by phase, active count, average duration, and top failing\n agents — scoped to a configurable time window (24h, 7d, 30d, all-time).\n\n @internal\n Authorization:\n Custom authorization — user must have organization-level access.\n Results are scoped to the user's organization.\n\n Use Cases:\n\n 1. Unified Dashboard Overview:\n    - Display combined agent + workflow KPI cards\n    - Agent phase counts are merged client-side with workflow phase counts\n\n 2. Reliability Monitoring:\n    - Surface top failing agents for investigation\n    - Track failure rates across the organization\n\n @since Unified Platform Dashboard"
         }
       ]
     }
@@ -1302,6 +1310,103 @@
           "required": false
         }
       ]
+    },
+    {
+      "name": "GetAgentExecutionSummaryRequest",
+      "description": "GetAgentExecutionSummaryRequest fetches aggregated execution statistics\n for an organization's agent executions.\n\n @since Unified Platform Dashboard",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.GetAgentExecutionSummaryRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to scope the summary.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "TimeWindow",
+          "jsonName": "timeWindow",
+          "protoField": "time_window",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummaryTimeWindow",
+            "enumValues": [
+              "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_24H",
+              "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_7D",
+              "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_30D",
+              "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_ALL_TIME"
+            ]
+          },
+          "description": "Time window for aggregation.\n\n Defaults to LAST_7D when unspecified.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "AgentExecutionSummary",
+      "description": "AgentExecutionSummary contains aggregated operational statistics for agent\n executions. Designed for the platform dashboard's unified health view.\n\n Cost is intentionally omitted. The dashboard sources cost from\n getOrgUsageReport (billing source of truth) to prevent double-counting\n when workflows delegate to agents. See AD-DASH-005.\n\n @since Unified Platform Dashboard",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummary",
+      "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/io.proto",
+      "fields": [
+        {
+          "name": "ActiveCount",
+          "jsonName": "activeCount",
+          "protoField": "active_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Number of executions currently in a non-terminal phase\n (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED).",
+          "required": false
+        },
+        {
+          "name": "PhaseCounts",
+          "jsonName": "phaseCounts",
+          "protoField": "phase_counts",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "int32"
+            },
+            "valueType": {
+              "kind": "int32"
+            }
+          },
+          "description": "Execution counts broken down by ExecutionPhase enum value.\n\n Keys are ExecutionPhase enum values (as int32).\n Only phases with at least one execution are included.",
+          "required": false
+        },
+        {
+          "name": "AvgDuration",
+          "jsonName": "avgDuration",
+          "protoField": "avg_duration",
+          "type": {
+            "kind": "message",
+            "messageType": "Duration"
+          },
+          "description": "Mean execution duration (from started_at to completed_at) for completed\n executions in the time window.\n\n Zero when no completed executions exist.",
+          "required": false
+        },
+        {
+          "name": "TopFailingAgents",
+          "jsonName": "topFailingAgents",
+          "protoField": "top_failing_agents",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "AgentFailureRank"
+            }
+          },
+          "description": "Agents with the highest failure count in the time window, ranked descending.\n\n Capped at 10 entries.",
+          "required": false
+        }
+      ]
     }
   ],
   "enumTypes": [
@@ -1388,6 +1493,33 @@
           "name": "EXECUTION_PAUSED",
           "number": 7,
           "description": "Execution was paused by user and can be resumed.\n\n The execution was temporarily stopped at a checkpoint and can continue\n from where it left off. Unlike CANCELLED, the execution is not terminal.\n\n Pause flow:\n EXECUTION_IN_PROGRESS → EXECUTION_PAUSED\n\n Resume flow:\n EXECUTION_PAUSED → EXECUTION_IN_PROGRESS\n\n NOT a terminal state - execution can be resumed.\n\n When this phase is reached:\n - Running activities are gracefully cancelled\n - LangGraph checkpoints are saved (thread_id preserved)\n - No completed_at timestamp (execution is not finished)\n\n Resume behavior:\n - Activity is re-invoked with same thread_id\n - LangGraph loads from checkpoint automatically\n - Execution continues from where it was paused\n\n @since Gap A3 (Pause/Resume Propagation)"
+        }
+      ]
+    },
+    {
+      "name": "AgentExecutionSummaryTimeWindow",
+      "description": "Controls the time range for agent execution summary queries.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.AgentExecutionSummaryTimeWindow",
+      "values": [
+        {
+          "name": "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_24H",
+          "number": 1,
+          "description": ""
+        },
+        {
+          "name": "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_7D",
+          "number": 2,
+          "description": ""
+        },
+        {
+          "name": "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_30D",
+          "number": 3,
+          "description": ""
+        },
+        {
+          "name": "AGENT_EXECUTION_SUMMARY_TIME_WINDOW_ALL_TIME",
+          "number": 4,
+          "description": ""
         }
       ]
     },

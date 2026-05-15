@@ -39,6 +39,22 @@
           "outputType": "Workflow",
           "outputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
           "description": "Delete a workflow."
+        },
+        {
+          "name": "GenerateWorkflowFromPrompt",
+          "inputType": "GenerateWorkflowFromPromptInput",
+          "inputFullType": "ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput",
+          "outputType": "GenerateWorkflowFromPromptOutput",
+          "outputFullType": "ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput",
+          "description": "Generate a workflow from a natural language description.\n\n Constructs a prompt with task kind metadata, example workflows, and the\n organization's available resources, then calls an LLM to produce valid\n workflow YAML. The output is validated server-side with up to 2 retries\n on validation failure before being returned to the caller."
+        },
+        {
+          "name": "RefineWorkflow",
+          "inputType": "RefineWorkflowInput",
+          "inputFullType": "ai.stigmer.agentic.workflow.v1.RefineWorkflowInput",
+          "outputType": "RefineWorkflowOutput",
+          "outputFullType": "ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput",
+          "description": "Refine an existing workflow with a natural language instruction.\n\n Receives the current workflow YAML and a change instruction, constructs\n a prompt emphasizing minimal targeted changes, calls an LLM to produce\n updated YAML, and validates the output with up to 2 retries on failure."
         }
       ]
     },
@@ -83,6 +99,222 @@
   ],
   "listVia": "SearchService",
   "methodTypes": [
+    {
+      "name": "GenerateWorkflowFromPromptInput",
+      "description": "Input for generating a workflow from a natural language description.\n\n The server constructs a rich prompt containing task kind metadata, example\n workflows, and available organization resources, then calls an LLM to\n produce valid workflow YAML. The generated YAML is validated server-side\n before being returned.",
+      "protoType": "ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput",
+      "protoFile": "apis/ai/stigmer/agentic/workflow/v1/io.proto",
+      "fields": [
+        {
+          "name": "Prompt",
+          "jsonName": "prompt",
+          "protoField": "prompt",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Natural language description of the desired workflow.\n Should describe the goal, steps, and any specific task kinds or agents to use.",
+          "required": false,
+          "validation": {
+            "minLength": 10
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug — used to resolve available agents, MCP servers, and\n skills that the generated workflow can reference.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Model",
+          "jsonName": "model",
+          "protoField": "model",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Preferred model for generation (e.g., \"claude-sonnet-4-6\", \"gpt-4o\").\n When empty, the server selects a capable default model.",
+          "required": false
+        },
+        {
+          "name": "TaskKindHints",
+          "jsonName": "taskKindHints",
+          "protoField": "task_kind_hints",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Hint about which task kinds the user wants in the workflow.\n Helps focus generation when the user knows they need specific capabilities\n (e.g., [\"llm_call\", \"human_input\"]). The server includes detailed metadata\n for hinted kinds in the prompt.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GenerateWorkflowFromPromptOutput",
+      "description": "Response from workflow generation.",
+      "protoType": "ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput",
+      "protoFile": "apis/ai/stigmer/agentic/workflow/v1/io.proto",
+      "fields": [
+        {
+          "name": "Yaml",
+          "jsonName": "yaml",
+          "protoField": "yaml",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Generated workflow YAML. Always structurally valid — the server validates\n and retries with error context before returning. May contain non-fatal\n warnings for issues that do not prevent the workflow from being saved.",
+          "required": false
+        },
+        {
+          "name": "Explanation",
+          "jsonName": "explanation",
+          "protoField": "explanation",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable explanation of what was generated and why.\n Describes the workflow structure, task choices, and any assumptions made.",
+          "required": false
+        },
+        {
+          "name": "Warnings",
+          "jsonName": "warnings",
+          "protoField": "warnings",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Validation warnings (non-fatal). Empty when the YAML is clean.\n Warnings describe issues that do not prevent saving but may affect\n execution (e.g., referencing an agent that does not exist in the org).",
+          "required": false
+        },
+        {
+          "name": "ModelUsed",
+          "jsonName": "modelUsed",
+          "protoField": "model_used",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The model that was used for generation.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RefineWorkflowInput",
+      "description": "Input for refining an existing workflow with a natural language instruction.\n\n The server receives the current workflow YAML and a change instruction,\n constructs a prompt with the YAML, task kind metadata, and org resources,\n then calls an LLM to produce the updated YAML. The output is validated\n server-side with up to 2 retries before being returned.\n\n This is a stateless operation — each call sends only the current YAML and\n the new instruction. Conversation history is not maintained server-side;\n the current YAML already embodies all prior refinements.",
+      "protoType": "ai.stigmer.agentic.workflow.v1.RefineWorkflowInput",
+      "protoFile": "apis/ai/stigmer/agentic/workflow/v1/io.proto",
+      "fields": [
+        {
+          "name": "CurrentYaml",
+          "jsonName": "currentYaml",
+          "protoField": "current_yaml",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The current workflow YAML to modify.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Instruction",
+          "jsonName": "instruction",
+          "protoField": "instruction",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Natural language instruction describing the desired change.\n Examples: \"add a human approval before the notification step\",\n \"change the timeout to 5 minutes\", \"remove the transform task\".",
+          "required": false,
+          "validation": {
+            "minLength": 5
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug — used to resolve available agents, MCP servers,\n and skills that the refined workflow may reference.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Model",
+          "jsonName": "model",
+          "protoField": "model",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Preferred model for refinement (e.g., \"claude-sonnet-4-6\", \"gpt-4o\").\n When empty, the server selects a capable default model.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RefineWorkflowOutput",
+      "description": "Response from workflow refinement.",
+      "protoType": "ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput",
+      "protoFile": "apis/ai/stigmer/agentic/workflow/v1/io.proto",
+      "fields": [
+        {
+          "name": "Yaml",
+          "jsonName": "yaml",
+          "protoField": "yaml",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Updated workflow YAML incorporating the requested changes.\n Always structurally valid — the server validates and retries with\n error context before returning.",
+          "required": false
+        },
+        {
+          "name": "Explanation",
+          "jsonName": "explanation",
+          "protoField": "explanation",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable explanation of what was changed and why.\n Focused on the specific modifications made, not the entire workflow.",
+          "required": false
+        },
+        {
+          "name": "Warnings",
+          "jsonName": "warnings",
+          "protoField": "warnings",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Validation warnings (non-fatal). Empty when the YAML is clean.",
+          "required": false
+        },
+        {
+          "name": "ModelUsed",
+          "jsonName": "modelUsed",
+          "protoField": "model_used",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The model that was used for refinement.",
+          "required": false
+        }
+      ]
+    },
     {
       "name": "ApiResourceReference",
       "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",

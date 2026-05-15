@@ -149,6 +149,11 @@ func (a *AgentExecutionClient) GetOrgUsageReport(ctx context.Context, input *age
 	return resp, wrapErr(err)
 }
 
+func (a *AgentExecutionClient) GetExecutionSummary(ctx context.Context, input *agentexecutionv1.GetAgentExecutionSummaryRequest) (*agentexecutionv1.AgentExecutionSummary, error) {
+	resp, err := a.query.GetExecutionSummary(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // AgentExecutionInput holds the fields for creating/updating a AgentExecution.
 type AgentExecutionInput struct {
 	Name              string

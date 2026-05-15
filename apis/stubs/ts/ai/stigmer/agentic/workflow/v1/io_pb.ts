@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MSIjCgpXb3JrZmxvd0lkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEidwofR2VuZXJhdGVXb3JrZmxvd0Zyb21Qcm9tcHRJbnB1dBIXCgZwcm9tcHQYASABKAlCB7pIBHICEAoSEwoDb3JnGAIgASgJQga6SAPIAQESDQoFbW9kZWwYAyABKAkSFwoPdGFza19raW5kX2hpbnRzGAQgAygJImsKIEdlbmVyYXRlV29ya2Zsb3dGcm9tUHJvbXB0T3V0cHV0EgwKBHlhbWwYASABKAkSEwoLZXhwbGFuYXRpb24YAiABKAkSEAoId2FybmluZ3MYAyADKAkSEgoKbW9kZWxfdXNlZBgEIAEoCWIGcHJvdG8z", [file_buf_validate_validate]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MSIjCgpXb3JrZmxvd0lkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEidwofR2VuZXJhdGVXb3JrZmxvd0Zyb21Qcm9tcHRJbnB1dBIXCgZwcm9tcHQYASABKAlCB7pIBHICEAoSEwoDb3JnGAIgASgJQga6SAPIAQESDQoFbW9kZWwYAyABKAkSFwoPdGFza19raW5kX2hpbnRzGAQgAygJImsKIEdlbmVyYXRlV29ya2Zsb3dGcm9tUHJvbXB0T3V0cHV0EgwKBHlhbWwYASABKAkSEwoLZXhwbGFuYXRpb24YAiABKAkSEAoId2FybmluZ3MYAyADKAkSEgoKbW9kZWxfdXNlZBgEIAEoCSJ2ChNSZWZpbmVXb3JrZmxvd0lucHV0Eh0KDGN1cnJlbnRfeWFtbBgBIAEoCUIHukgEcgIQARIcCgtpbnN0cnVjdGlvbhgCIAEoCUIHukgEcgIQBRITCgNvcmcYAyABKAlCBrpIA8gBARINCgVtb2RlbBgEIAEoCSJfChRSZWZpbmVXb3JrZmxvd091dHB1dBIMCgR5YW1sGAEgASgJEhMKC2V4cGxhbmF0aW9uGAIgASgJEhAKCHdhcm5pbmdzGAMgAygJEhIKCm1vZGVsX3VzZWQYBCABKAliBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
  * WorkflowId wraps a workflow identifier.
@@ -131,4 +131,104 @@ export type GenerateWorkflowFromPromptOutput = Message<"ai.stigmer.agentic.workf
  */
 export const GenerateWorkflowFromPromptOutputSchema: GenMessage<GenerateWorkflowFromPromptOutput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflow_v1_io, 2);
+
+/**
+ * Input for refining an existing workflow with a natural language instruction.
+ *
+ * The server receives the current workflow YAML and a change instruction,
+ * constructs a prompt with the YAML, task kind metadata, and org resources,
+ * then calls an LLM to produce the updated YAML. The output is validated
+ * server-side with up to 2 retries before being returned.
+ *
+ * This is a stateless operation — each call sends only the current YAML and
+ * the new instruction. Conversation history is not maintained server-side;
+ * the current YAML already embodies all prior refinements.
+ *
+ * @generated from message ai.stigmer.agentic.workflow.v1.RefineWorkflowInput
+ */
+export type RefineWorkflowInput = Message<"ai.stigmer.agentic.workflow.v1.RefineWorkflowInput"> & {
+  /**
+   * The current workflow YAML to modify.
+   *
+   * @generated from field: string current_yaml = 1;
+   */
+  currentYaml: string;
+
+  /**
+   * Natural language instruction describing the desired change.
+   * Examples: "add a human approval before the notification step",
+   * "change the timeout to 5 minutes", "remove the transform task".
+   *
+   * @generated from field: string instruction = 2;
+   */
+  instruction: string;
+
+  /**
+   * Organization slug — used to resolve available agents, MCP servers,
+   * and skills that the refined workflow may reference.
+   *
+   * @generated from field: string org = 3;
+   */
+  org: string;
+
+  /**
+   * Preferred model for refinement (e.g., "claude-sonnet-4-6", "gpt-4o").
+   * When empty, the server selects a capable default model.
+   *
+   * @generated from field: string model = 4;
+   */
+  model: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflow.v1.RefineWorkflowInput.
+ * Use `create(RefineWorkflowInputSchema)` to create a new message.
+ */
+export const RefineWorkflowInputSchema: GenMessage<RefineWorkflowInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflow_v1_io, 3);
+
+/**
+ * Response from workflow refinement.
+ *
+ * @generated from message ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput
+ */
+export type RefineWorkflowOutput = Message<"ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput"> & {
+  /**
+   * Updated workflow YAML incorporating the requested changes.
+   * Always structurally valid — the server validates and retries with
+   * error context before returning.
+   *
+   * @generated from field: string yaml = 1;
+   */
+  yaml: string;
+
+  /**
+   * Human-readable explanation of what was changed and why.
+   * Focused on the specific modifications made, not the entire workflow.
+   *
+   * @generated from field: string explanation = 2;
+   */
+  explanation: string;
+
+  /**
+   * Validation warnings (non-fatal). Empty when the YAML is clean.
+   *
+   * @generated from field: repeated string warnings = 3;
+   */
+  warnings: string[];
+
+  /**
+   * The model that was used for refinement.
+   *
+   * @generated from field: string model_used = 4;
+   */
+  modelUsed: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput.
+ * Use `create(RefineWorkflowOutputSchema)` to create a new message.
+ */
+export const RefineWorkflowOutputSchema: GenMessage<RefineWorkflowOutput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflow_v1_io, 4);
 
