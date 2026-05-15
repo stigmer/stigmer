@@ -9,16 +9,9 @@ import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/envi
 import { WorkflowSchema, type Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { WorkflowTaskKind, BudgetExceededPolicy } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import {
-  WorkflowIdSchema,
-  GenerateWorkflowFromPromptInputSchema,
-  type GenerateWorkflowFromPromptOutput,
-  RefineWorkflowInputSchema,
-  type RefineWorkflowOutput,
-  DiagnoseWorkflowExecutionInputSchema,
-  type DiagnoseWorkflowExecutionOutput,
-} from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
+import { WorkflowIdSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
+import { type ServerlessWorkflowValidation } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
 import { WorkflowSpecSchema, WorkflowDocumentSchema, ExportSchema, FlowControlSchema, WorkflowTaskSchema, WorkflowBudgetSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
 import { GetTaskKindRegistryRequestSchema, GetTaskKindRegistryResponseSchema, type GetTaskKindRegistryRequest, type GetTaskKindRegistryResponse } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/task_kind_descriptor_pb";
 import { TaskKindRegistryQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/task_kind_registry_query_pb";
@@ -67,60 +60,9 @@ export class WorkflowClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async generateFromPrompt(input: GenerateFromPromptInput): Promise<GenerateFromPromptResult> {
+  async validateSpec(input: WorkflowInput): Promise<ServerlessWorkflowValidation> {
     try {
-      const resp = await this.command.generateWorkflowFromPrompt(
-        create(GenerateWorkflowFromPromptInputSchema, stripUndefined({
-          prompt: input.prompt,
-          org: input.org,
-          model: input.model,
-          taskKindHints: input.taskKindHints,
-        })),
-      );
-      return {
-        yaml: resp.yaml,
-        explanation: resp.explanation,
-        warnings: [...resp.warnings],
-        modelUsed: resp.modelUsed,
-      };
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async refine(input: RefineWorkflowClientInput): Promise<RefineWorkflowResult> {
-    try {
-      const resp = await this.command.refineWorkflow(
-        create(RefineWorkflowInputSchema, stripUndefined({
-          currentYaml: input.currentYaml,
-          instruction: input.instruction,
-          org: input.org,
-          model: input.model,
-        })),
-      );
-      return {
-        yaml: resp.yaml,
-        explanation: resp.explanation,
-        warnings: [...resp.warnings],
-        modelUsed: resp.modelUsed,
-      };
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async diagnoseExecution(input: DiagnoseExecutionInput): Promise<DiagnoseExecutionResult> {
-    try {
-      const resp = await this.command.diagnoseWorkflowExecution(
-        create(DiagnoseWorkflowExecutionInputSchema, stripUndefined({
-          executionId: input.executionId,
-          org: input.org,
-          model: input.model,
-        })),
-      );
-      return {
-        diagnosis: resp.diagnosis,
-        suggestedYaml: resp.suggestedYaml,
-        fixExplanation: resp.fixExplanation,
-        warnings: [...resp.warnings],
-        modelUsed: resp.modelUsed,
-      };
+      return await this.command.validateSpec(buildWorkflowProto(input));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -215,78 +157,6 @@ export interface WorkflowBudgetInput {
   maxTotalTokens?: bigint;
   maxDurationSeconds?: number;
   onExceeded?: BudgetExceededPolicy;
-}
-
-/** Input for generating a workflow from a natural language description. */
-export interface GenerateFromPromptInput {
-  /** Natural language description of the desired workflow. */
-  prompt: string;
-  /** Organization slug for resource context. */
-  org: string;
-  /** Optional preferred LLM model (e.g. "gpt-4o", "claude-sonnet-4-6"). */
-  model?: string;
-  /** Optional task kind hints to guide generation. */
-  taskKindHints?: string[];
-}
-
-/** Result of workflow generation from a prompt. */
-export interface GenerateFromPromptResult {
-  /** The generated workflow YAML. */
-  yaml: string;
-  /** Explanation of what was generated and why. */
-  explanation: string;
-  /** Validation warnings (non-fatal). */
-  warnings: string[];
-  /** The LLM model that was used. */
-  modelUsed: string;
-}
-
-/** Input for refining an existing workflow with a natural language instruction. */
-export interface RefineWorkflowClientInput {
-  /** The current workflow YAML to modify. */
-  currentYaml: string;
-  /** Natural language instruction describing the desired change. */
-  instruction: string;
-  /** Organization slug for resource context. */
-  org: string;
-  /** Optional preferred LLM model. */
-  model?: string;
-}
-
-/** Result of workflow refinement. */
-export interface RefineWorkflowResult {
-  /** Updated workflow YAML incorporating the requested changes. */
-  yaml: string;
-  /** Explanation of what was changed and why. */
-  explanation: string;
-  /** Validation warnings (non-fatal). */
-  warnings: string[];
-  /** The LLM model that was used. */
-  modelUsed: string;
-}
-
-/** Input for diagnosing a failed workflow execution. */
-export interface DiagnoseExecutionInput {
-  /** ID of the failed workflow execution to diagnose. */
-  executionId: string;
-  /** Organization slug for authorization and resource context. */
-  org: string;
-  /** Optional preferred LLM model. */
-  model?: string;
-}
-
-/** Result of workflow execution diagnosis. */
-export interface DiagnoseExecutionResult {
-  /** Root-cause analysis of the failure. Always populated. */
-  diagnosis: string;
-  /** Corrected workflow YAML (empty for runtime errors). */
-  suggestedYaml: string;
-  /** Explanation of YAML changes (empty when suggestedYaml is empty). */
-  fixExplanation: string;
-  /** Validation warnings on the suggested YAML. */
-  warnings: string[];
-  /** The LLM model that was used. */
-  modelUsed: string;
 }
 
 function buildWorkflowDocumentProto(input: WorkflowDocumentInput) {

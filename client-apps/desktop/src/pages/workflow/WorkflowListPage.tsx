@@ -12,7 +12,7 @@ import {
   useActiveOrgSlug,
   useConfirmAction,
   ConfirmDialog,
-  WorkflowGenerateDialog,
+  WorkflowArchitectDialog,
   toast,
   type WorkbenchColumnDef,
 } from "@stigmer/react";
@@ -180,7 +180,7 @@ export default function WorkflowListPage() {
         onCancel={handleCancel}
       />
 
-      <WorkflowGenerateDialog
+      <WorkflowArchitectDialog
         open={showGenerateDialog}
         onOpenChange={setShowGenerateDialog}
         org={org}

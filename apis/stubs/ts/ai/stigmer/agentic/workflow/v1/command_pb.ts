@@ -6,8 +6,10 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { WorkflowSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_api } from "./api_pb.js";
-import type { DiagnoseWorkflowExecutionInputSchema, DiagnoseWorkflowExecutionOutputSchema, GenerateWorkflowFromPromptInputSchema, GenerateWorkflowFromPromptOutputSchema, RefineWorkflowInputSchema, RefineWorkflowOutputSchema, WorkflowIdSchema } from "./io_pb.js";
+import type { WorkflowIdSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_workflow_v1_io } from "./io_pb.js";
+import type { ServerlessWorkflowValidationSchema } from "./serverless/validation_pb.js";
+import { file_ai_stigmer_agentic_workflow_v1_serverless_validation } from "./serverless/validation_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
 
@@ -15,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/workflow/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxMvQJChlXb3JrZmxvd0NvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93GiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93EqoBCgZjcmVhdGUSKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3caKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciTMK4GEgIBxAeIgxtZXRhZGF0YS5vcmcqNHVuYXV0aG9yaXplZCB0byBjcmVhdGUgd29ya2Zsb3cgaW4gdGhpcyBvcmdhbml6YXRpb24SlAEKBnVwZGF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyI2wrgYMggCEDIiC21ldGFkYXRhLmlkKh91bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93EpABCgZkZWxldGUSKi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dJZBooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyIwwrgYLAgDEDIiBXZhbHVlKh91bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHdvcmtmbG93EucBChpnZW5lcmF0ZVdvcmtmbG93RnJvbVByb21wdBI/LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5HZW5lcmF0ZVdvcmtmbG93RnJvbVByb21wdElucHV0GkAuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLkdlbmVyYXRlV29ya2Zsb3dGcm9tUHJvbXB0T3V0cHV0IkbCuBhCCAcQHiIDb3JnKjd1bmF1dGhvcml6ZWQgdG8gZ2VuZXJhdGUgd29ya2Zsb3dzIGluIHRoaXMgb3JnYW5pemF0aW9uEsEBCg5yZWZpbmVXb3JrZmxvdxIzLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5SZWZpbmVXb3JrZmxvd0lucHV0GjQuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLlJlZmluZVdvcmtmbG93T3V0cHV0IkTCuBhACAcQHiIDb3JnKjV1bmF1dGhvcml6ZWQgdG8gcmVmaW5lIHdvcmtmbG93cyBpbiB0aGlzIG9yZ2FuaXphdGlvbhLuAQoZZGlhZ25vc2VXb3JrZmxvd0V4ZWN1dGlvbhI+LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5EaWFnbm9zZVdvcmtmbG93RXhlY3V0aW9uSW5wdXQaPy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuRGlhZ25vc2VXb3JrZmxvd0V4ZWN1dGlvbk91dHB1dCJQwrgYTAgHEB4iA29yZypBdW5hdXRob3JpemVkIHRvIGRpYWdub3NlIHdvcmtmbG93IGV4ZWN1dGlvbnMgaW4gdGhpcyBvcmdhbml6YXRpb24aBKD/KzJiBnByb3RvMw", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxMqkGChlXb3JrZmxvd0NvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93GiguYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93EqoBCgZjcmVhdGUSKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3caKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3ciTMK4GEgIBxAeIgxtZXRhZGF0YS5vcmcqNHVuYXV0aG9yaXplZCB0byBjcmVhdGUgd29ya2Zsb3cgaW4gdGhpcyBvcmdhbml6YXRpb24SlAEKBnVwZGF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdxooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyI2wrgYMggCEDIiC21ldGFkYXRhLmlkKh91bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHdvcmtmbG93EpABCgZkZWxldGUSKi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dJZBooLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvdyIwwrgYLAgDEDIiBXZhbHVlKh91bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHdvcmtmbG93EtEBCgx2YWxpZGF0ZVNwZWMSKC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3caRy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuc2VydmVybGVzcy5TZXJ2ZXJsZXNzV29ya2Zsb3dWYWxpZGF0aW9uIk7CuBhKCAcQHiIMbWV0YWRhdGEub3JnKjZ1bmF1dGhvcml6ZWQgdG8gdmFsaWRhdGUgd29ya2Zsb3cgaW4gdGhpcyBvcmdhbml6YXRpb24aBKD/KzJiBnByb3RvMw", [file_ai_stigmer_agentic_workflow_v1_api, file_ai_stigmer_agentic_workflow_v1_io, file_ai_stigmer_agentic_workflow_v1_serverless_validation, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * WorkflowCommandController handles write operations for workflows.
@@ -73,49 +75,33 @@ export const WorkflowCommandController: GenService<{
     output: typeof WorkflowSchema;
   },
   /**
-   * Generate a workflow from a natural language description.
+   * Validate a workflow spec without persisting it.
    *
-   * Constructs a prompt with task kind metadata, example workflows, and the
-   * organization's available resources, then calls an LLM to produce valid
-   * workflow YAML. The output is validated server-side with up to 2 retries
-   * on validation failure before being returned to the caller.
+   * Runs the same two-layer validation pipeline used by create/update:
+   *   Layer 1: Proto field constraints (buf validate / protovalidate)
+   *   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
    *
-   * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.generateWorkflowFromPrompt
+   * Returns ServerlessWorkflowValidation with:
+   *   - VALID: Workflow structure passed all checks
+   *   - INVALID: User error (bad structure, missing fields, unknown task kinds)
+   *   - FAILED: System error (Temporal unavailable, converter crash)
+   *
+   * This RPC does NOT persist, authorize, or create instances. It is a
+   * pure validation endpoint suitable for iterative authoring workflows
+   * where the caller needs fast feedback before committing.
+   *
+   * @internal
+   * Authorization: Uses the same permission as create — caller must have
+   * can_create_workflow in the org. This prevents unauthenticated abuse
+   * of the validation pipeline while allowing any user who could create
+   * a workflow to also validate one.
+   *
+   * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.validateSpec
    */
-  generateWorkflowFromPrompt: {
+  validateSpec: {
     methodKind: "unary";
-    input: typeof GenerateWorkflowFromPromptInputSchema;
-    output: typeof GenerateWorkflowFromPromptOutputSchema;
-  },
-  /**
-   * Refine an existing workflow with a natural language instruction.
-   *
-   * Receives the current workflow YAML and a change instruction, constructs
-   * a prompt emphasizing minimal targeted changes, calls an LLM to produce
-   * updated YAML, and validates the output with up to 2 retries on failure.
-   *
-   * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.refineWorkflow
-   */
-  refineWorkflow: {
-    methodKind: "unary";
-    input: typeof RefineWorkflowInputSchema;
-    output: typeof RefineWorkflowOutputSchema;
-  },
-  /**
-   * Diagnose a failed workflow execution using AI.
-   *
-   * Loads the execution's status (phase, error, per-task statuses) and the
-   * parent workflow YAML, constructs a diagnostic prompt, and calls an LLM
-   * to produce a root-cause analysis. When the failure is caused by a
-   * definition error, the response includes a suggested YAML fix that is
-   * validated with up to 2 retries.
-   *
-   * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.diagnoseWorkflowExecution
-   */
-  diagnoseWorkflowExecution: {
-    methodKind: "unary";
-    input: typeof DiagnoseWorkflowExecutionInputSchema;
-    output: typeof DiagnoseWorkflowExecutionOutputSchema;
+    input: typeof WorkflowSchema;
+    output: typeof ServerlessWorkflowValidationSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_workflow_v1_command, 0);
