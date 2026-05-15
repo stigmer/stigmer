@@ -37,6 +37,11 @@ type ServiceConfig struct {
 	GRPCPort        string
 	HTTPPort        string
 
+	// AnthropicAPIKey is passed to the Java service as the LLM proxy's
+	// upstream Anthropic key. When set, the proxy can forward runner
+	// LLM calls to Anthropic and record per-call usage for billing.
+	AnthropicAPIKey string
+
 	// LogDir is the directory for the service log file.
 	// If empty, a temporary directory is used.
 	LogDir string
@@ -137,6 +142,10 @@ func (s *JavaService) GRPCAddress() string {
 	return fmt.Sprintf("127.0.0.1:%s", s.GRPCPort)
 }
 
+func (s *JavaService) HTTPAddress() string {
+	return fmt.Sprintf("http://127.0.0.1:%s", s.HTTPPort)
+}
+
 func (s *JavaService) Stop() error {
 	if s.cmd == nil || s.cmd.Process == nil {
 		return nil
@@ -213,5 +222,12 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		"STIGMER_BILLING_RESERVATION_EXPIRY_ENABLED=false",
 		"STIGMER_RUNNER_LAUNCHER_TYPE=noop",
 	)
+
+	if cfg.AnthropicAPIKey != "" {
+		env = append(env,
+			fmt.Sprintf("STIGMER_PROXY_ANTHROPIC_API_KEY=%s", cfg.AnthropicAPIKey),
+		)
+	}
+
 	return env
 }

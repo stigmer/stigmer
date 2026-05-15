@@ -11,6 +11,8 @@ import (
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // --- Offline tests (no harness iteration, no LLM needed) ---
@@ -43,6 +45,115 @@ func TestAgentExecution_InvalidMessage(t *testing.T) {
 	})
 	require.Error(t, err, "empty message should be rejected")
 	t.Logf("empty message correctly rejected: %v", err)
+}
+
+func TestAgentExecution_NonexistentSession(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+
+	_, err := clients.AgentExecutionCommand.Create(ctx, &agentexecv1.AgentExecution{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "AgentExecution",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "test-nonexistent-session",
+			Org:  "test-org",
+		},
+		Spec: &agentexecv1.AgentExecutionSpec{
+			SessionId: "nonexistent-session-id-12345",
+			Message:   "This should fail",
+		},
+	})
+	require.Error(t, err, "non-existent session_id should be rejected")
+
+	st, ok := status.FromError(err)
+	require.True(t, ok, "error should be a gRPC status")
+	require.Equal(t, codes.NotFound, st.Code(),
+		"expected NOT_FOUND, got %s: %s", st.Code(), st.Message())
+	t.Logf("non-existent session correctly rejected: %v", st.Message())
+}
+
+func TestAgentExecution_PauseTerminalFails(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	for _, h := range harness.Harnesses {
+		t.Run(h.Name, func(t *testing.T) {
+			h.Skip(t, testHarness)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			clients := harness.NewClients(grpcConn)
+
+			agent := harness.CreateAgent(t, ctx, clients, "test-pause-term-"+h.Name,
+				"You are a helpful assistant. Respond briefly.")
+
+			session := harness.CreateTestSession(t, ctx, clients,
+				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
+
+			exec := harness.CreateTestAgentExecution(t, ctx, clients,
+				session.GetMetadata().GetId(), "Reply with exactly: hello")
+
+			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+			_, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
+				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+			require.NoError(t, err)
+
+			_, err = clients.AgentExecutionCommand.Pause(ctx, &agentexecv1.PauseAgentExecutionInput{
+				Id: exec.GetMetadata().GetId(),
+			})
+			require.Error(t, err, "pausing a completed execution should fail")
+
+			st, ok := status.FromError(err)
+			require.True(t, ok, "error should be a gRPC status")
+			require.Equal(t, codes.FailedPrecondition, st.Code(),
+				"expected FAILED_PRECONDITION, got %s: %s", st.Code(), st.Message())
+			t.Logf("pause-terminal correctly rejected: %v", st.Message())
+		})
+	}
+}
+
+func TestAgentExecution_RecoverNonFailedFails(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	for _, h := range harness.Harnesses {
+		t.Run(h.Name, func(t *testing.T) {
+			h.Skip(t, testHarness)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			clients := harness.NewClients(grpcConn)
+
+			agent := harness.CreateAgent(t, ctx, clients, "test-recover-nonfail-"+h.Name,
+				"You are a helpful assistant. Respond briefly.")
+
+			session := harness.CreateTestSession(t, ctx, clients,
+				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
+
+			exec := harness.CreateTestAgentExecution(t, ctx, clients,
+				session.GetMetadata().GetId(), "Reply with exactly: hello")
+
+			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+			_, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
+				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+			require.NoError(t, err)
+
+			_, err = clients.AgentExecutionCommand.Recover(ctx, &agentexecv1.RecoverAgentExecutionInput{
+				Id: exec.GetMetadata().GetId(),
+			})
+			require.Error(t, err, "recovering a completed execution should fail")
+
+			st, ok := status.FromError(err)
+			require.True(t, ok, "error should be a gRPC status")
+			require.Equal(t, codes.FailedPrecondition, st.Code(),
+				"expected FAILED_PRECONDITION, got %s: %s", st.Code(), st.Message())
+			t.Logf("recover-nonfailed correctly rejected: %v", st.Message())
+		})
+	}
 }
 
 // --- Provider tests (cross-harness) ---

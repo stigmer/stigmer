@@ -35,8 +35,14 @@ type AgentRunnerConfig struct {
 	LogDir string
 
 	// AnthropicAPIKey is the Anthropic API key for LLM calls.
-	// If empty, the agent-runner will fail on LLM tasks.
+	// Used as a fallback when ProxyEndpoint is not set.
 	AnthropicAPIKey string
+
+	// ProxyEndpoint is the HTTP address of the Java service's built-in
+	// LLM proxy (e.g. "http://127.0.0.1:8080"). When set, the runner
+	// routes LLM calls through the proxy instead of calling providers
+	// directly. The proxy records LlmCallUsageRecord for billing.
+	ProxyEndpoint string
 }
 
 // StartAgentRunner locates the agent-runner Python service, verifies a virtualenv
@@ -173,8 +179,6 @@ func buildAgentRunnerEnv(cfg AgentRunnerConfig, runnerDir string) []string {
 
 	srcPath := filepath.Join(runnerDir, "src")
 
-	// Use a temp directory for local artifact storage instead of /var/stigmer
-	// which requires root permissions on macOS.
 	artifactDir := filepath.Join(os.TempDir(), "stigmer-test-artifacts")
 
 	env = append(env,
@@ -187,23 +191,25 @@ func buildAgentRunnerEnv(cfg AgentRunnerConfig, runnerDir string) []string {
 
 		"MODE=local",
 
-		// LLM configuration — direct Anthropic, no proxy
 		"STIGMER_LLM_PROVIDER=anthropic",
 		"STIGMER_LLM_MODEL=claude-sonnet-4-20250514",
 
-		// Use memory checkpointer for test isolation
 		"STIGMER_CHECKPOINTER_TYPE=memory",
 
-		// Local artifact storage — use a temp path writable without root
 		fmt.Sprintf("LOCAL_ARTIFACT_PATH=%s", artifactDir),
 
-		// Ensure Python finds the src package
 		fmt.Sprintf("PYTHONPATH=%s", srcPath),
 
 		"LOG_LEVEL=INFO",
 	)
 
-	if cfg.AnthropicAPIKey != "" {
+	if cfg.ProxyEndpoint != "" {
+		// Route LLM calls through the Java service's built-in proxy.
+		// The proxy injects the API key server-side and records
+		// LlmCallUsageRecord for billing.
+		env = append(env, fmt.Sprintf("STIGMER_PROXY_ENDPOINT=%s", cfg.ProxyEndpoint))
+	} else if cfg.AnthropicAPIKey != "" {
+		// Fallback: call Anthropic directly (no billing records)
 		env = append(env, fmt.Sprintf("ANTHROPIC_API_KEY=%s", cfg.AnthropicAPIKey))
 		env = append(env, fmt.Sprintf("STIGMER_LLM_API_KEY=%s", cfg.AnthropicAPIKey))
 	}

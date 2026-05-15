@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -147,5 +147,20 @@ func WithExecutionConfig(cfg *agentexecv1.ExecutionConfig) AgentExecutionOption 
 func WithAgentID(agentID string) AgentExecutionOption {
 	return func(s *agentexecv1.AgentExecutionSpec) {
 		s.AgentId = agentID
+	}
+}
+
+// RequireServiceHealthy skips the test if the Java service gRPC connection
+// is not responding. Useful as a guard before expensive test families to
+// avoid cascading failures when the service has crashed.
+func RequireServiceHealthy(t *testing.T, ctx context.Context, clients *Clients) {
+	t.Helper()
+	probeCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	_, err := clients.AgentExecutionQuery.List(probeCtx, &agentexecv1.ListAgentExecutionsRequest{
+		PageSize: 1,
+	})
+	if err != nil {
+		t.Skipf("Java service not healthy — skipping: %v", err)
 	}
 }
