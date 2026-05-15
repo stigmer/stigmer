@@ -339,15 +339,15 @@ export {
   type DiffLineType,
 } from "./workflow-yaml-diff";
 
-// T16: Diagnose execution — behavior hook
+// Workflow Architect — diagnose behavior hook (replaces T16 diagnoseExecution)
 export {
-  useDiagnoseExecution,
-  type UseDiagnoseExecutionOptions,
-  type UseDiagnoseExecutionReturn,
-  type DiagnoseExecutionFlowResult,
-} from "./useDiagnoseExecution";
+  useDiagnoseExecutionFlow,
+  type DiagnosePhase,
+  type UseDiagnoseExecutionFlowOptions,
+  type UseDiagnoseExecutionFlowReturn,
+} from "./useDiagnoseExecutionFlow";
 
-// T16: Diagnose execution — styled component
+// Workflow Architect — diagnose styled component (replaces T16 WorkflowRepairCard)
 export {
   WorkflowRepairCard,
   type WorkflowRepairCardProps,
