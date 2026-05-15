@@ -1,0 +1,3 @@
+# Empty BUILD file to satisfy Bazel module resolution for the
+# test/integration go.mod. Integration tests are run via `go test`
+# directly, not through Bazel.

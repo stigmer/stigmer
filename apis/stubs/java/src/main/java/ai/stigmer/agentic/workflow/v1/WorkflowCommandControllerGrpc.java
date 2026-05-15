@@ -139,97 +139,35 @@ public final class WorkflowCommandControllerGrpc {
     return getDeleteMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput,
-      ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput> getGenerateWorkflowFromPromptMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.Workflow,
+      ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation> getValidateSpecMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "generateWorkflowFromPrompt",
-      requestType = ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput.class,
-      responseType = ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput.class,
+      fullMethodName = SERVICE_NAME + '/' + "validateSpec",
+      requestType = ai.stigmer.agentic.workflow.v1.Workflow.class,
+      responseType = ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput,
-      ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput> getGenerateWorkflowFromPromptMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput, ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput> getGenerateWorkflowFromPromptMethod;
-    if ((getGenerateWorkflowFromPromptMethod = WorkflowCommandControllerGrpc.getGenerateWorkflowFromPromptMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.Workflow,
+      ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation> getValidateSpecMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.Workflow, ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation> getValidateSpecMethod;
+    if ((getValidateSpecMethod = WorkflowCommandControllerGrpc.getValidateSpecMethod) == null) {
       synchronized (WorkflowCommandControllerGrpc.class) {
-        if ((getGenerateWorkflowFromPromptMethod = WorkflowCommandControllerGrpc.getGenerateWorkflowFromPromptMethod) == null) {
-          WorkflowCommandControllerGrpc.getGenerateWorkflowFromPromptMethod = getGenerateWorkflowFromPromptMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput, ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput>newBuilder()
+        if ((getValidateSpecMethod = WorkflowCommandControllerGrpc.getValidateSpecMethod) == null) {
+          WorkflowCommandControllerGrpc.getValidateSpecMethod = getValidateSpecMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflow.v1.Workflow, ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "generateWorkflowFromPrompt"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "validateSpec"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput.getDefaultInstance()))
+                  ai.stigmer.agentic.workflow.v1.Workflow.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput.getDefaultInstance()))
-              .setSchemaDescriptor(new WorkflowCommandControllerMethodDescriptorSupplier("generateWorkflowFromPrompt"))
+                  ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation.getDefaultInstance()))
+              .setSchemaDescriptor(new WorkflowCommandControllerMethodDescriptorSupplier("validateSpec"))
               .build();
         }
       }
     }
-    return getGenerateWorkflowFromPromptMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.RefineWorkflowInput,
-      ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput> getRefineWorkflowMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "refineWorkflow",
-      requestType = ai.stigmer.agentic.workflow.v1.RefineWorkflowInput.class,
-      responseType = ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.RefineWorkflowInput,
-      ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput> getRefineWorkflowMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.RefineWorkflowInput, ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput> getRefineWorkflowMethod;
-    if ((getRefineWorkflowMethod = WorkflowCommandControllerGrpc.getRefineWorkflowMethod) == null) {
-      synchronized (WorkflowCommandControllerGrpc.class) {
-        if ((getRefineWorkflowMethod = WorkflowCommandControllerGrpc.getRefineWorkflowMethod) == null) {
-          WorkflowCommandControllerGrpc.getRefineWorkflowMethod = getRefineWorkflowMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflow.v1.RefineWorkflowInput, ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "refineWorkflow"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.workflow.v1.RefineWorkflowInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput.getDefaultInstance()))
-              .setSchemaDescriptor(new WorkflowCommandControllerMethodDescriptorSupplier("refineWorkflow"))
-              .build();
-        }
-      }
-    }
-    return getRefineWorkflowMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput,
-      ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput> getDiagnoseWorkflowExecutionMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "diagnoseWorkflowExecution",
-      requestType = ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput.class,
-      responseType = ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput,
-      ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput> getDiagnoseWorkflowExecutionMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput, ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput> getDiagnoseWorkflowExecutionMethod;
-    if ((getDiagnoseWorkflowExecutionMethod = WorkflowCommandControllerGrpc.getDiagnoseWorkflowExecutionMethod) == null) {
-      synchronized (WorkflowCommandControllerGrpc.class) {
-        if ((getDiagnoseWorkflowExecutionMethod = WorkflowCommandControllerGrpc.getDiagnoseWorkflowExecutionMethod) == null) {
-          WorkflowCommandControllerGrpc.getDiagnoseWorkflowExecutionMethod = getDiagnoseWorkflowExecutionMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput, ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "diagnoseWorkflowExecution"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput.getDefaultInstance()))
-              .setSchemaDescriptor(new WorkflowCommandControllerMethodDescriptorSupplier("diagnoseWorkflowExecution"))
-              .build();
-        }
-      }
-    }
-    return getDiagnoseWorkflowExecutionMethod;
+    return getValidateSpecMethod;
   }
 
   /**
@@ -347,44 +285,27 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Generate a workflow from a natural language description.
-     * Constructs a prompt with task kind metadata, example workflows, and the
-     * organization's available resources, then calls an LLM to produce valid
-     * workflow YAML. The output is validated server-side with up to 2 retries
-     * on validation failure before being returned to the caller.
+     * Validate a workflow spec without persisting it.
+     * Runs the same two-layer validation pipeline used by create/update:
+     *   Layer 1: Proto field constraints (buf validate / protovalidate)
+     *   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
+     * Returns ServerlessWorkflowValidation with:
+     *   - VALID: Workflow structure passed all checks
+     *   - INVALID: User error (bad structure, missing fields, unknown task kinds)
+     *   - FAILED: System error (Temporal unavailable, converter crash)
+     * This RPC does NOT persist, authorize, or create instances. It is a
+     * pure validation endpoint suitable for iterative authoring workflows
+     * where the caller needs fast feedback before committing.
+     * &#64;internal
+     * Authorization: Uses the same permission as create — caller must have
+     * can_create_workflow in the org. This prevents unauthenticated abuse
+     * of the validation pipeline while allowing any user who could create
+     * a workflow to also validate one.
      * </pre>
      */
-    default void generateWorkflowFromPrompt(ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGenerateWorkflowFromPromptMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Refine an existing workflow with a natural language instruction.
-     * Receives the current workflow YAML and a change instruction, constructs
-     * a prompt emphasizing minimal targeted changes, calls an LLM to produce
-     * updated YAML, and validates the output with up to 2 retries on failure.
-     * </pre>
-     */
-    default void refineWorkflow(ai.stigmer.agentic.workflow.v1.RefineWorkflowInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRefineWorkflowMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Diagnose a failed workflow execution using AI.
-     * Loads the execution's status (phase, error, per-task statuses) and the
-     * parent workflow YAML, constructs a diagnostic prompt, and calls an LLM
-     * to produce a root-cause analysis. When the failure is caused by a
-     * definition error, the response includes a suggested YAML fix that is
-     * validated with up to 2 retries.
-     * </pre>
-     */
-    default void diagnoseWorkflowExecution(ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDiagnoseWorkflowExecutionMethod(), responseObserver);
+    default void validateSpec(ai.stigmer.agentic.workflow.v1.Workflow request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getValidateSpecMethod(), responseObserver);
     }
   }
 
@@ -474,47 +395,28 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Generate a workflow from a natural language description.
-     * Constructs a prompt with task kind metadata, example workflows, and the
-     * organization's available resources, then calls an LLM to produce valid
-     * workflow YAML. The output is validated server-side with up to 2 retries
-     * on validation failure before being returned to the caller.
+     * Validate a workflow spec without persisting it.
+     * Runs the same two-layer validation pipeline used by create/update:
+     *   Layer 1: Proto field constraints (buf validate / protovalidate)
+     *   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
+     * Returns ServerlessWorkflowValidation with:
+     *   - VALID: Workflow structure passed all checks
+     *   - INVALID: User error (bad structure, missing fields, unknown task kinds)
+     *   - FAILED: System error (Temporal unavailable, converter crash)
+     * This RPC does NOT persist, authorize, or create instances. It is a
+     * pure validation endpoint suitable for iterative authoring workflows
+     * where the caller needs fast feedback before committing.
+     * &#64;internal
+     * Authorization: Uses the same permission as create — caller must have
+     * can_create_workflow in the org. This prevents unauthenticated abuse
+     * of the validation pipeline while allowing any user who could create
+     * a workflow to also validate one.
      * </pre>
      */
-    public void generateWorkflowFromPrompt(ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput> responseObserver) {
+    public void validateSpec(ai.stigmer.agentic.workflow.v1.Workflow request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getGenerateWorkflowFromPromptMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Refine an existing workflow with a natural language instruction.
-     * Receives the current workflow YAML and a change instruction, constructs
-     * a prompt emphasizing minimal targeted changes, calls an LLM to produce
-     * updated YAML, and validates the output with up to 2 retries on failure.
-     * </pre>
-     */
-    public void refineWorkflow(ai.stigmer.agentic.workflow.v1.RefineWorkflowInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getRefineWorkflowMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Diagnose a failed workflow execution using AI.
-     * Loads the execution's status (phase, error, per-task statuses) and the
-     * parent workflow YAML, constructs a diagnostic prompt, and calls an LLM
-     * to produce a root-cause analysis. When the failure is caused by a
-     * definition error, the response includes a suggested YAML fix that is
-     * validated with up to 2 retries.
-     * </pre>
-     */
-    public void diagnoseWorkflowExecution(ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getDiagnoseWorkflowExecutionMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getValidateSpecMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -586,44 +488,27 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Generate a workflow from a natural language description.
-     * Constructs a prompt with task kind metadata, example workflows, and the
-     * organization's available resources, then calls an LLM to produce valid
-     * workflow YAML. The output is validated server-side with up to 2 retries
-     * on validation failure before being returned to the caller.
+     * Validate a workflow spec without persisting it.
+     * Runs the same two-layer validation pipeline used by create/update:
+     *   Layer 1: Proto field constraints (buf validate / protovalidate)
+     *   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
+     * Returns ServerlessWorkflowValidation with:
+     *   - VALID: Workflow structure passed all checks
+     *   - INVALID: User error (bad structure, missing fields, unknown task kinds)
+     *   - FAILED: System error (Temporal unavailable, converter crash)
+     * This RPC does NOT persist, authorize, or create instances. It is a
+     * pure validation endpoint suitable for iterative authoring workflows
+     * where the caller needs fast feedback before committing.
+     * &#64;internal
+     * Authorization: Uses the same permission as create — caller must have
+     * can_create_workflow in the org. This prevents unauthenticated abuse
+     * of the validation pipeline while allowing any user who could create
+     * a workflow to also validate one.
      * </pre>
      */
-    public ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput generateWorkflowFromPrompt(ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation validateSpec(ai.stigmer.agentic.workflow.v1.Workflow request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getGenerateWorkflowFromPromptMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Refine an existing workflow with a natural language instruction.
-     * Receives the current workflow YAML and a change instruction, constructs
-     * a prompt emphasizing minimal targeted changes, calls an LLM to produce
-     * updated YAML, and validates the output with up to 2 retries on failure.
-     * </pre>
-     */
-    public ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput refineWorkflow(ai.stigmer.agentic.workflow.v1.RefineWorkflowInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getRefineWorkflowMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Diagnose a failed workflow execution using AI.
-     * Loads the execution's status (phase, error, per-task statuses) and the
-     * parent workflow YAML, constructs a diagnostic prompt, and calls an LLM
-     * to produce a root-cause analysis. When the failure is caused by a
-     * definition error, the response includes a suggested YAML fix that is
-     * validated with up to 2 retries.
-     * </pre>
-     */
-    public ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput diagnoseWorkflowExecution(ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getDiagnoseWorkflowExecutionMethod(), getCallOptions(), request);
+          getChannel(), getValidateSpecMethod(), getCallOptions(), request);
     }
   }
 
@@ -695,44 +580,27 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Generate a workflow from a natural language description.
-     * Constructs a prompt with task kind metadata, example workflows, and the
-     * organization's available resources, then calls an LLM to produce valid
-     * workflow YAML. The output is validated server-side with up to 2 retries
-     * on validation failure before being returned to the caller.
+     * Validate a workflow spec without persisting it.
+     * Runs the same two-layer validation pipeline used by create/update:
+     *   Layer 1: Proto field constraints (buf validate / protovalidate)
+     *   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
+     * Returns ServerlessWorkflowValidation with:
+     *   - VALID: Workflow structure passed all checks
+     *   - INVALID: User error (bad structure, missing fields, unknown task kinds)
+     *   - FAILED: System error (Temporal unavailable, converter crash)
+     * This RPC does NOT persist, authorize, or create instances. It is a
+     * pure validation endpoint suitable for iterative authoring workflows
+     * where the caller needs fast feedback before committing.
+     * &#64;internal
+     * Authorization: Uses the same permission as create — caller must have
+     * can_create_workflow in the org. This prevents unauthenticated abuse
+     * of the validation pipeline while allowing any user who could create
+     * a workflow to also validate one.
      * </pre>
      */
-    public ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput generateWorkflowFromPrompt(ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput request) {
+    public ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation validateSpec(ai.stigmer.agentic.workflow.v1.Workflow request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getGenerateWorkflowFromPromptMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Refine an existing workflow with a natural language instruction.
-     * Receives the current workflow YAML and a change instruction, constructs
-     * a prompt emphasizing minimal targeted changes, calls an LLM to produce
-     * updated YAML, and validates the output with up to 2 retries on failure.
-     * </pre>
-     */
-    public ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput refineWorkflow(ai.stigmer.agentic.workflow.v1.RefineWorkflowInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getRefineWorkflowMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Diagnose a failed workflow execution using AI.
-     * Loads the execution's status (phase, error, per-task statuses) and the
-     * parent workflow YAML, constructs a diagnostic prompt, and calls an LLM
-     * to produce a root-cause analysis. When the failure is caused by a
-     * definition error, the response includes a suggested YAML fix that is
-     * validated with up to 2 retries.
-     * </pre>
-     */
-    public ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput diagnoseWorkflowExecution(ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getDiagnoseWorkflowExecutionMethod(), getCallOptions(), request);
+          getChannel(), getValidateSpecMethod(), getCallOptions(), request);
     }
   }
 
@@ -808,47 +676,28 @@ public final class WorkflowCommandControllerGrpc {
 
     /**
      * <pre>
-     * Generate a workflow from a natural language description.
-     * Constructs a prompt with task kind metadata, example workflows, and the
-     * organization's available resources, then calls an LLM to produce valid
-     * workflow YAML. The output is validated server-side with up to 2 retries
-     * on validation failure before being returned to the caller.
+     * Validate a workflow spec without persisting it.
+     * Runs the same two-layer validation pipeline used by create/update:
+     *   Layer 1: Proto field constraints (buf validate / protovalidate)
+     *   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
+     * Returns ServerlessWorkflowValidation with:
+     *   - VALID: Workflow structure passed all checks
+     *   - INVALID: User error (bad structure, missing fields, unknown task kinds)
+     *   - FAILED: System error (Temporal unavailable, converter crash)
+     * This RPC does NOT persist, authorize, or create instances. It is a
+     * pure validation endpoint suitable for iterative authoring workflows
+     * where the caller needs fast feedback before committing.
+     * &#64;internal
+     * Authorization: Uses the same permission as create — caller must have
+     * can_create_workflow in the org. This prevents unauthenticated abuse
+     * of the validation pipeline while allowing any user who could create
+     * a workflow to also validate one.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput> generateWorkflowFromPrompt(
-        ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation> validateSpec(
+        ai.stigmer.agentic.workflow.v1.Workflow request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getGenerateWorkflowFromPromptMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
-     * Refine an existing workflow with a natural language instruction.
-     * Receives the current workflow YAML and a change instruction, constructs
-     * a prompt emphasizing minimal targeted changes, calls an LLM to produce
-     * updated YAML, and validates the output with up to 2 retries on failure.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput> refineWorkflow(
-        ai.stigmer.agentic.workflow.v1.RefineWorkflowInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getRefineWorkflowMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
-     * Diagnose a failed workflow execution using AI.
-     * Loads the execution's status (phase, error, per-task statuses) and the
-     * parent workflow YAML, constructs a diagnostic prompt, and calls an LLM
-     * to produce a root-cause analysis. When the failure is caused by a
-     * definition error, the response includes a suggested YAML fix that is
-     * validated with up to 2 retries.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput> diagnoseWorkflowExecution(
-        ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getDiagnoseWorkflowExecutionMethod(), getCallOptions()), request);
+          getChannel().newCall(getValidateSpecMethod(), getCallOptions()), request);
     }
   }
 
@@ -856,9 +705,7 @@ public final class WorkflowCommandControllerGrpc {
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_DELETE = 3;
-  private static final int METHODID_GENERATE_WORKFLOW_FROM_PROMPT = 4;
-  private static final int METHODID_REFINE_WORKFLOW = 5;
-  private static final int METHODID_DIAGNOSE_WORKFLOW_EXECUTION = 6;
+  private static final int METHODID_VALIDATE_SPEC = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -893,17 +740,9 @@ public final class WorkflowCommandControllerGrpc {
           serviceImpl.delete((ai.stigmer.agentic.workflow.v1.WorkflowId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.Workflow>) responseObserver);
           break;
-        case METHODID_GENERATE_WORKFLOW_FROM_PROMPT:
-          serviceImpl.generateWorkflowFromPrompt((ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput>) responseObserver);
-          break;
-        case METHODID_REFINE_WORKFLOW:
-          serviceImpl.refineWorkflow((ai.stigmer.agentic.workflow.v1.RefineWorkflowInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput>) responseObserver);
-          break;
-        case METHODID_DIAGNOSE_WORKFLOW_EXECUTION:
-          serviceImpl.diagnoseWorkflowExecution((ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput>) responseObserver);
+        case METHODID_VALIDATE_SPEC:
+          serviceImpl.validateSpec((ai.stigmer.agentic.workflow.v1.Workflow) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -952,26 +791,12 @@ public final class WorkflowCommandControllerGrpc {
               ai.stigmer.agentic.workflow.v1.Workflow>(
                 service, METHODID_DELETE)))
         .addMethod(
-          getGenerateWorkflowFromPromptMethod(),
+          getValidateSpecMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput,
-              ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput>(
-                service, METHODID_GENERATE_WORKFLOW_FROM_PROMPT)))
-        .addMethod(
-          getRefineWorkflowMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.agentic.workflow.v1.RefineWorkflowInput,
-              ai.stigmer.agentic.workflow.v1.RefineWorkflowOutput>(
-                service, METHODID_REFINE_WORKFLOW)))
-        .addMethod(
-          getDiagnoseWorkflowExecutionMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionInput,
-              ai.stigmer.agentic.workflow.v1.DiagnoseWorkflowExecutionOutput>(
-                service, METHODID_DIAGNOSE_WORKFLOW_EXECUTION)))
+              ai.stigmer.agentic.workflow.v1.Workflow,
+              ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation>(
+                service, METHODID_VALIDATE_SPEC)))
         .build();
   }
 
@@ -1024,9 +849,7 @@ public final class WorkflowCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getDeleteMethod())
-              .addMethod(getGenerateWorkflowFromPromptMethod())
-              .addMethod(getRefineWorkflowMethod())
-              .addMethod(getDiagnoseWorkflowExecutionMethod())
+              .addMethod(getValidateSpecMethod())
               .build();
         }
       }

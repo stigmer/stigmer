@@ -53,7 +53,7 @@ public interface RunnerHeartbeatOrBuilder extends
 
   /**
    * <pre>
-   * Number of executions currently in progress on this runner.
+   * Number of executions currently in progress on this runner process.
    * </pre>
    *
    * <code>int32 current_executions = 3 [json_name = "currentExecutions"];</code>
@@ -93,4 +93,40 @@ public interface RunnerHeartbeatOrBuilder extends
    * <code>.ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 4 [json_name = "connectionInfo"];</code>
    */
   ai.stigmer.agentic.runner.v1.RunnerConnectionInfoOrBuilder getConnectionInfoOrBuilder();
+
+  /**
+   * <pre>
+   * Identifies which runner process is sending this heartbeat.
+   *
+   * In a multi-process sandbox, all three runner processes share the same
+   * runner_id but report independently. The server aggregates activity
+   * across all process types to determine when the sandbox is idle.
+   *
+   * Values: "agent" (Python), "cursor" (TypeScript), "workflow" (Go).
+   * Empty string is treated as "agent" for backward compatibility with
+   * existing single-process sandboxes.
+   * </pre>
+   *
+   * <code>string process_type = 5 [json_name = "processType"];</code>
+   * @return The processType.
+   */
+  java.lang.String getProcessType();
+  /**
+   * <pre>
+   * Identifies which runner process is sending this heartbeat.
+   *
+   * In a multi-process sandbox, all three runner processes share the same
+   * runner_id but report independently. The server aggregates activity
+   * across all process types to determine when the sandbox is idle.
+   *
+   * Values: "agent" (Python), "cursor" (TypeScript), "workflow" (Go).
+   * Empty string is treated as "agent" for backward compatibility with
+   * existing single-process sandboxes.
+   * </pre>
+   *
+   * <code>string process_type = 5 [json_name = "processType"];</code>
+   * @return The bytes for processType.
+   */
+  com.google.protobuf.ByteString
+      getProcessTypeBytes();
 }

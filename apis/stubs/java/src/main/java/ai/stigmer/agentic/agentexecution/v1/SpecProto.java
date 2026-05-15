@@ -64,7 +64,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "pec.proto\022$ai.stigmer.agentic.agentexecu" +
       "tion.v1\0321ai/stigmer/agentic/executioncon" +
       "text/v1/spec.proto\032\033buf/validate/validat" +
-      "e.proto\"\270\005\n\022AgentExecutionSpec\022\035\n\nsessio" +
+      "e.proto\"\350\005\n\022AgentExecutionSpec\022\035\n\nsessio" +
       "n_id\030\001 \001(\tR\tsessionId\022\031\n\010agent_id\030\002 \001(\tR" +
       "\007agentId\022!\n\007message\030\003 \001(\tB\007\272H\004r\002\020\001R\007mess" +
       "age\022`\n\020execution_config\030\004 \001(\01325.ai.stigm" +
@@ -78,33 +78,34 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "arentWorkflowId\022R\n\013attachments\030\t \003(\01320.a" +
       "i.stigmer.agentic.agentexecution.v1.Atta" +
       "chmentR\013attachments\022.\n\023workspace_file_re" +
-      "fs\030\n \003(\tR\021workspaceFileRefs\032u\n\017RuntimeEn" +
-      "vEntry\022\020\n\003key\030\001 \001(\tR\003key\022L\n\005value\030\002 \001(\0132" +
-      "6.ai.stigmer.agentic.executioncontext.v1" +
-      ".ExecutionValueR\005value:\0028\001\"\233\002\n\017Execution" +
-      "Config\022\035\n\nmodel_name\030\001 \001(\tR\tmodelName\022l\n" +
-      "\022context_management\030\002 \001(\0132=.ai.stigmer.a" +
-      "gentic.agentexecution.v1.ContextManageme" +
-      "ntConfigR\021contextManagement\022&\n\017max_tool_" +
-      "rounds\030\003 \001(\005R\rmaxToolRounds\0221\n\025max_tool_" +
-      "result_chars\030\004 \001(\005R\022maxToolResultChars\022 " +
-      "\n\014max_cost_usd\030\005 \001(\001R\nmaxCostUsd\"\314\001\n\027Con" +
-      "textManagementConfig\0223\n\025disable_summariz" +
-      "ation\030\001 \001(\010R\024disableSummarization\022A\n\030cus" +
-      "tom_trigger_threshold\030\002 \001(\005B\007\272H\004\032\002(\000R\026cu" +
-      "stomTriggerThreshold\0229\n\024custom_target_to" +
-      "kens\030\003 \001(\005B\007\272H\004\032\002(\000R\022customTargetTokens\"" +
-      "\326\001\n\nAttachment\022#\n\010filename\030\001 \001(\tB\007\272H\004r\002\020" +
-      "\001R\010filename\022(\n\013storage_key\030\002 \001(\tB\007\272H\004r\002\020" +
-      "\001R\nstorageKey\022\035\n\nmount_path\030\003 \001(\tR\tmount" +
-      "Path\022!\n\014content_type\030\004 \001(\tR\013contentType\022" +
-      "\030\n\007extract\030\005 \001(\010R\007extract\022\035\n\nlocal_path\030" +
-      "\006 \001(\tR\tlocalPathB\300\001B\tSpecProtoP\001\242\002\004ASAA\252" +
-      "\002$Ai.Stigmer.Agentic.Agentexecution.V1\312\002" +
-      "$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\342\0020" +
-      "Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPB" +
-      "Metadata\352\002(Ai::Stigmer::Agentic::Agentex" +
-      "ecution::V1b\006proto3"
+      "fs\030\n \003(\tR\021workspaceFileRefs\022.\n\023preferred" +
+      "_runner_id\030\013 \001(\tR\021preferredRunnerId\032u\n\017R" +
+      "untimeEnvEntry\022\020\n\003key\030\001 \001(\tR\003key\022L\n\005valu" +
+      "e\030\002 \001(\01326.ai.stigmer.agentic.executionco" +
+      "ntext.v1.ExecutionValueR\005value:\0028\001\"\233\002\n\017E" +
+      "xecutionConfig\022\035\n\nmodel_name\030\001 \001(\tR\tmode" +
+      "lName\022l\n\022context_management\030\002 \001(\0132=.ai.s" +
+      "tigmer.agentic.agentexecution.v1.Context" +
+      "ManagementConfigR\021contextManagement\022&\n\017m" +
+      "ax_tool_rounds\030\003 \001(\005R\rmaxToolRounds\0221\n\025m" +
+      "ax_tool_result_chars\030\004 \001(\005R\022maxToolResul" +
+      "tChars\022 \n\014max_cost_usd\030\005 \001(\001R\nmaxCostUsd" +
+      "\"\314\001\n\027ContextManagementConfig\0223\n\025disable_" +
+      "summarization\030\001 \001(\010R\024disableSummarizatio" +
+      "n\022A\n\030custom_trigger_threshold\030\002 \001(\005B\007\272H\004" +
+      "\032\002(\000R\026customTriggerThreshold\0229\n\024custom_t" +
+      "arget_tokens\030\003 \001(\005B\007\272H\004\032\002(\000R\022customTarge" +
+      "tTokens\"\326\001\n\nAttachment\022#\n\010filename\030\001 \001(\t" +
+      "B\007\272H\004r\002\020\001R\010filename\022(\n\013storage_key\030\002 \001(\t" +
+      "B\007\272H\004r\002\020\001R\nstorageKey\022\035\n\nmount_path\030\003 \001(" +
+      "\tR\tmountPath\022!\n\014content_type\030\004 \001(\tR\013cont" +
+      "entType\022\030\n\007extract\030\005 \001(\010R\007extract\022\035\n\nloc" +
+      "al_path\030\006 \001(\tR\tlocalPathB\300\001B\tSpecProtoP\001" +
+      "\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.Agentexecut" +
+      "ion.V1\312\002$Ai\\Stigmer\\Agentic\\Agentexecuti" +
+      "on\\V1\342\0020Ai\\Stigmer\\Agentic\\Agentexecutio" +
+      "n\\V1\\GPBMetadata\352\002(Ai::Stigmer::Agentic:" +
+      ":Agentexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -117,7 +118,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionSpec_descriptor,
-        new java.lang.String[] { "SessionId", "AgentId", "Message", "ExecutionConfig", "RuntimeEnv", "CallbackToken", "AutoApproveAll", "ParentWorkflowId", "Attachments", "WorkspaceFileRefs", });
+        new java.lang.String[] { "SessionId", "AgentId", "Message", "ExecutionConfig", "RuntimeEnv", "CallbackToken", "AutoApproveAll", "ParentWorkflowId", "Attachments", "WorkspaceFileRefs", "PreferredRunnerId", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionSpec_RuntimeEnvEntry_descriptor =
       internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionSpec_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionSpec_RuntimeEnvEntry_fieldAccessorTable = new

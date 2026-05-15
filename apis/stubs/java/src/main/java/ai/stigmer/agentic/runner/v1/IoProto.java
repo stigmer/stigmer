@@ -169,54 +169,55 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "essage\"\205\001\n\031RunnerStreamServerMessage\022]\n\017" +
       "command_request\030\001 \001(\01322.ai.stigmer.agent" +
       "ic.runner.v1.RunnerCommandRequestH\000R\016com" +
-      "mandRequestB\t\n\007message\"\373\001\n\017RunnerHeartbe" +
+      "mandRequestB\t\n\007message\"\236\002\n\017RunnerHeartbe" +
       "at\022\033\n\trunner_id\030\001 \001(\tR\010runnerId\022?\n\005phase" +
       "\030\002 \001(\0162).ai.stigmer.agentic.runner.v1.Ru" +
       "nnerPhaseR\005phase\022-\n\022current_executions\030\003" +
       " \001(\005R\021currentExecutions\022[\n\017connection_in" +
       "fo\030\004 \001(\01322.ai.stigmer.agentic.runner.v1." +
-      "RunnerConnectionInfoR\016connectionInfo\"\344\001\n" +
-      "\024RunnerCommandRequest\022\035\n\nrequest_id\030\001 \001(" +
-      "\tR\trequestId\022[\n\016list_directory\030\002 \001(\01322.a" +
-      "i.stigmer.agentic.runner.v1.ListDirector" +
-      "yRequestH\000R\rlistDirectory\022E\n\004stop\030\003 \001(\0132" +
-      "/.ai.stigmer.agentic.runner.v1.StopRunne" +
-      "rRequestH\000R\004stopB\t\n\007command\"\260\002\n\025RunnerCo" +
-      "mmandResponse\022\035\n\nrequest_id\030\001 \001(\tR\treque" +
-      "stId\022\\\n\016list_directory\030\002 \001(\01323.ai.stigme" +
-      "r.agentic.runner.v1.ListDirectoryRespons" +
-      "eH\000R\rlistDirectory\022H\n\005error\030\003 \001(\01320.ai.s" +
-      "tigmer.agentic.runner.v1.RunnerCommandEr" +
-      "rorH\000R\005error\022F\n\004stop\030\004 \001(\01320.ai.stigmer." +
-      "agentic.runner.v1.StopRunnerResponseH\000R\004" +
-      "stopB\010\n\006result\"*\n\024ListDirectoryRequest\022\022" +
-      "\n\004path\030\001 \001(\tR\004path\"\330\001\n\025ListDirectoryResp" +
-      "onse\022#\n\rresolved_path\030\001 \001(\tR\014resolvedPat" +
-      "h\022F\n\007entries\030\002 \003(\0132,.ai.stigmer.agentic." +
-      "runner.v1.DirectoryEntryR\007entries\022%\n\016hom" +
-      "e_directory\030\003 \001(\tR\rhomeDirectory\022+\n\021curr" +
-      "ent_directory\030\004 \001(\tR\020currentDirectory\"d\n" +
-      "\016DirectoryEntry\022\022\n\004name\030\001 \001(\tR\004name\022!\n\014i" +
-      "s_directory\030\002 \001(\010R\013isDirectory\022\033\n\tis_hid" +
-      "den\030\003 \001(\010R\010isHidden\".\n\022RunnerCommandErro" +
-      "r\022\030\n\007message\030\001 \001(\tR\007message\"+\n\021StopRunne" +
-      "rRequest\022\026\n\006reason\030\001 \001(\tR\006reason\"\024\n\022Stop" +
-      "RunnerResponse\"N\n\017RunnerStopInput\022#\n\trun" +
-      "ner_id\030\001 \001(\tB\006\272H\003\310\001\001R\010runnerId\022\026\n\006reason" +
-      "\030\002 \001(\tR\006reason\"5\n\030CreateLaunchTokenReque" +
-      "st\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"l\n\031CreateL" +
-      "aunchTokenResponse\022\024\n\005token\030\001 \001(\tR\005token" +
-      "\0229\n\nexpires_at\030\002 \001(\0132\032.google.protobuf.T" +
-      "imestampR\texpiresAt\";\n\032ExchangeLaunchTok" +
-      "enRequest\022\035\n\005token\030\001 \001(\tB\007\272H\004r\002\020\001R\005token" +
-      "\"\220\001\n\033ExchangeLaunchTokenResponse\022!\n\014acce" +
-      "ss_token\030\001 \001(\tR\013accessToken\022\035\n\ntoken_typ" +
-      "e\030\002 \001(\tR\ttokenType\022\035\n\nexpires_in\030\003 \001(\005R\t" +
-      "expiresIn\022\020\n\003org\030\004 \001(\tR\003orgB\236\001B\007IoProtoP" +
-      "\001\242\002\004ASAR\252\002\034Ai.Stigmer.Agentic.Runner.V1\312" +
-      "\002\034Ai\\Stigmer\\Agentic\\Runner\\V1\342\002(Ai\\Stig" +
-      "mer\\Agentic\\Runner\\V1\\GPBMetadata\352\002 Ai::" +
-      "Stigmer::Agentic::Runner::V1b\006proto3"
+      "RunnerConnectionInfoR\016connectionInfo\022!\n\014" +
+      "process_type\030\005 \001(\tR\013processType\"\344\001\n\024Runn" +
+      "erCommandRequest\022\035\n\nrequest_id\030\001 \001(\tR\tre" +
+      "questId\022[\n\016list_directory\030\002 \001(\01322.ai.sti" +
+      "gmer.agentic.runner.v1.ListDirectoryRequ" +
+      "estH\000R\rlistDirectory\022E\n\004stop\030\003 \001(\0132/.ai." +
+      "stigmer.agentic.runner.v1.StopRunnerRequ" +
+      "estH\000R\004stopB\t\n\007command\"\260\002\n\025RunnerCommand" +
+      "Response\022\035\n\nrequest_id\030\001 \001(\tR\trequestId\022" +
+      "\\\n\016list_directory\030\002 \001(\01323.ai.stigmer.age" +
+      "ntic.runner.v1.ListDirectoryResponseH\000R\r" +
+      "listDirectory\022H\n\005error\030\003 \001(\01320.ai.stigme" +
+      "r.agentic.runner.v1.RunnerCommandErrorH\000" +
+      "R\005error\022F\n\004stop\030\004 \001(\01320.ai.stigmer.agent" +
+      "ic.runner.v1.StopRunnerResponseH\000R\004stopB" +
+      "\010\n\006result\"*\n\024ListDirectoryRequest\022\022\n\004pat" +
+      "h\030\001 \001(\tR\004path\"\330\001\n\025ListDirectoryResponse\022" +
+      "#\n\rresolved_path\030\001 \001(\tR\014resolvedPath\022F\n\007" +
+      "entries\030\002 \003(\0132,.ai.stigmer.agentic.runne" +
+      "r.v1.DirectoryEntryR\007entries\022%\n\016home_dir" +
+      "ectory\030\003 \001(\tR\rhomeDirectory\022+\n\021current_d" +
+      "irectory\030\004 \001(\tR\020currentDirectory\"d\n\016Dire" +
+      "ctoryEntry\022\022\n\004name\030\001 \001(\tR\004name\022!\n\014is_dir" +
+      "ectory\030\002 \001(\010R\013isDirectory\022\033\n\tis_hidden\030\003" +
+      " \001(\010R\010isHidden\".\n\022RunnerCommandError\022\030\n\007" +
+      "message\030\001 \001(\tR\007message\"+\n\021StopRunnerRequ" +
+      "est\022\026\n\006reason\030\001 \001(\tR\006reason\"\024\n\022StopRunne" +
+      "rResponse\"N\n\017RunnerStopInput\022#\n\trunner_i" +
+      "d\030\001 \001(\tB\006\272H\003\310\001\001R\010runnerId\022\026\n\006reason\030\002 \001(" +
+      "\tR\006reason\"5\n\030CreateLaunchTokenRequest\022\031\n" +
+      "\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\"l\n\031CreateLaunch" +
+      "TokenResponse\022\024\n\005token\030\001 \001(\tR\005token\0229\n\ne" +
+      "xpires_at\030\002 \001(\0132\032.google.protobuf.Timest" +
+      "ampR\texpiresAt\";\n\032ExchangeLaunchTokenReq" +
+      "uest\022\035\n\005token\030\001 \001(\tB\007\272H\004r\002\020\001R\005token\"\220\001\n\033" +
+      "ExchangeLaunchTokenResponse\022!\n\014access_to" +
+      "ken\030\001 \001(\tR\013accessToken\022\035\n\ntoken_type\030\002 \001" +
+      "(\tR\ttokenType\022\035\n\nexpires_in\030\003 \001(\005R\texpir" +
+      "esIn\022\020\n\003org\030\004 \001(\tR\003orgB\236\001B\007IoProtoP\001\242\002\004A" +
+      "SAR\252\002\034Ai.Stigmer.Agentic.Runner.V1\312\002\034Ai\\" +
+      "Stigmer\\Agentic\\Runner\\V1\342\002(Ai\\Stigmer\\A" +
+      "gentic\\Runner\\V1\\GPBMetadata\352\002 Ai::Stigm" +
+      "er::Agentic::Runner::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -274,7 +275,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_runner_v1_RunnerHeartbeat_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_runner_v1_RunnerHeartbeat_descriptor,
-        new java.lang.String[] { "RunnerId", "Phase", "CurrentExecutions", "ConnectionInfo", });
+        new java.lang.String[] { "RunnerId", "Phase", "CurrentExecutions", "ConnectionInfo", "ProcessType", });
     internal_static_ai_stigmer_agentic_runner_v1_RunnerCommandRequest_descriptor =
       getDescriptor().getMessageType(7);
     internal_static_ai_stigmer_agentic_runner_v1_RunnerCommandRequest_fieldAccessorTable = new
