@@ -68,8 +68,33 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: Full cloud-path proxy routing for both harnesses, strengthened billing/usage assertions
-**Status**: 64 total tests (28 workflow + 36 agent execution), all designed-for-green. Both native and cursor harnesses now route through their respective proxies.
+**Current Task**: Fix remaining 7 genuine test failures (recover RPC, message assertions, MCP tool invocation, skill R2, sub-agent timeout)
+**Status**: 64 total tests (28 workflow + 36 agent execution). Proxy auth fixed — systemic 403 eliminated. ~31 tests passing, 7 genuine failures remaining, rest are cascade from SubAgent timeout.
+
+## Session Progress (2026-05-15, Session 19 — Fix Proxy Auth for Integration Tests)
+
+### Accomplished
+
+- **Ran full provider-backed integration suite**: 113 tests, 96 failures — diagnosed systemic 403 from proxy auth gap
+- **Root-caused the failure**: `IntegrationTestSecurityConfig` injected test identity for gRPC but not HTTP. Proxy controllers got `null` Authentication → empty user identity → FGA denied every LLM proxy call
+- **Fixed in `IntegrationTestSecurityConfig.java`**: Added `OncePerRequestFilter` with `PlatformClientAuthenticationToken` to populate `SecurityContext` for HTTP requests
+- **Fixed claim check R2 startup failure**: New untracked `ClaimCheckProxyController` files broke JAR startup — added dummy `CLAIMCHECK_R2_*` env vars to test harness
+- **Re-ran suite after fix**: ~20 test functions now pass that were previously blocked by 403
+- **Identified 7 genuine remaining failures**: RecoverNonFailedFails (RPC missing), HappyPath (message assertion), MCP tool invocation (native), Skill R2, SubAgent timeout
+
+### Files Changed
+
+**stigmer-cloud** (1 modified): `IntegrationTestSecurityConfig.java` — HTTP identity filter
+**stigmer** (1 modified): `test/integration/harness/service.go` — claim check R2 dummy env vars
+
+### Next Steps
+
+1. Implement `recover` RPC in Java service (unblocks RecoverNonFailedFails test)
+2. Fix HappyPath message type assertion (investigate why MESSAGE_HUMAN/MESSAGE_AI not persisted)
+3. Investigate native-only MCP tool invocation failures (cursor passes, native doesn't)
+4. Address SubAgent_Delegation timeout (kills Java service, cascades to all subsequent tests)
+5. Consider adding MinIO Testcontainer for R2-dependent tests (skills, attachments)
+6. Re-run full suite once SubAgent timeout is fixed to get clean results for lifecycle/HITL/billing/usage tests
 
 ## Session Progress (2026-05-15, Session 18 — LLM Proxy Test Coverage: Full Cloud-Path Integration)
 

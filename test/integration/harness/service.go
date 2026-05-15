@@ -210,6 +210,12 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		"AGENT_EXECUTION_ARTIFACT_R2_ACCESS_KEY_ID=test",
 		"AGENT_EXECUTION_ARTIFACT_R2_SECRET_ACCESS_KEY=test",
 
+		// Claim check R2 dummy config (beans created but not called during tests)
+		"CLAIMCHECK_R2_BUCKET=test-claimcheck-bucket",
+		"CLAIMCHECK_R2_ENDPOINT=http://localhost:19999",
+		"CLAIMCHECK_R2_ACCESS_KEY_ID=test",
+		"CLAIMCHECK_R2_SECRET_ACCESS_KEY=test",
+
 		// Auth0 dummy values (required by property resolution even in test mode)
 		"AUTH0_DOMAIN=test.auth0.com",
 		"AUTH0_CLIENT_ID=test-client-id",
