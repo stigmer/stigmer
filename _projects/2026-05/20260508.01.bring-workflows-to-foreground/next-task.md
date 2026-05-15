@@ -19,10 +19,48 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-14 — T16 Batch 1 COMPLETE (prompt-to-workflow generation infrastructure)
-**Current Task**: T16 Batch 1 COMPLETE
-**Phase**: Phase 3 — AI-Assisted Creation — Batch 1 complete
-**Next Task**: T16 Batch 2 (Generation Dialog — SDK components + console integration)
+**Last Session**: 2026-05-15 — T16 Batch 2 COMPLETE (generation dialog — SDK components + console integration)
+**Current Task**: T16 Batch 2 COMPLETE
+**Phase**: Phase 3 — AI-Assisted Creation — Batch 2 complete
+**Next Task**: T16 Batch 3 (Refine Workflow — chat-style iteration)
+
+## Session Progress (2026-05-15, T16 Batch 2)
+
+### T16 Batch 2: Generation Dialog (SDK + Console Integration) — COMPLETE
+
+Built the user-facing "Generate Workflow from Prompt" experience: behavior hook,
+two-phase dialog component, and console integration on both web and desktop.
+
+#### New SDK Components (2)
+- **`useGenerateWorkflowFlow`** — Behavior hook managing generation + creation lifecycle.
+  Calls `WorkflowClient.generateFromPrompt()` then `parseWorkflowYaml()` + `WorkflowClient.apply()`.
+  Follows `useRunWorkflowFlow` pattern: `useRef`-stabilized callbacks, `getUserMessage()` error extraction,
+  min 10 char prompt validation, optional model/taskKindHints.
+- **`WorkflowGenerateDialog`** — Two-phase dialog in native `<dialog>` + `showModal()`.
+  Phase 1: prompt textarea, collapsible advanced options (model, task kind hints).
+  Phase 2: explanation, `<pre>` YAML preview, warnings banner, Create Workflow / Try Again / Close.
+  `max-w-2xl`, all `--stgm-*` tokens, zero Console dependencies.
+
+#### Console Integration (DD-016 parity)
+- Both web and desktop `WorkflowListPage`: Sparkles icon "Generate" button in page header
+- `WorkflowGenerateDialog` wired with navigation on success, toast on error
+- Empty state description updated to mention the Generate button
+- `listVersion` incremented after creation to refresh workflow list
+
+#### Barrel Exports
+- `sdk/react/src/workflow/index.ts` — hook, types, dialog, props type
+- `sdk/react/src/index.ts` — top-level re-exports
+
+#### Architectural Decisions
+- AD-T16-B2-001: Two-Phase Dialog (review before creation — Nielsen #3)
+- AD-T16-B2-002: WorkflowListPage entry point only (editor toolbar deferred to Batch 3)
+- AD-T16-B2-003: Create via `workflow.apply()` after generation
+- AD-T16-B2-005: Task kind hints as progressive disclosure (Hick's Law)
+
+#### Verification
+- `tsc --noEmit` — zero new errors (pre-existing codegen gap only)
+- Zero linter errors on all new/modified files
+- DD-016 parity confirmed
 
 ## Session Progress (2026-05-14, T16 Batch 1)
 
@@ -816,9 +854,8 @@ New Task Types — llm_call, transform, human_input, validate, emit_event, notif
 Structured Agent Output Model
 
 ## Next Steps
-1. **T16 Batch 2: Generation Dialog** — SDK `useGenerateWorkflow` hook + `WorkflowGenerateDialog` component + console integration
-2. **T16 Batch 3: Refine Workflow** — `refineWorkflowFromFeedback` RPC + chat-style iteration loop
-3. **T16 Batch 4: Diagnose Workflow** — `diagnoseWorkflow` RPC + error analysis + repair suggestions
+1. **T16 Batch 3: Refine Workflow** — `refineWorkflowFromFeedback` RPC + chat-style iteration UI in editor toolbar
+2. **T16 Batch 4: Diagnose Workflow** — `diagnoseWorkflow` RPC + error analysis + repair suggestions
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
@@ -832,6 +869,11 @@ Structured Agent Output Model
   - Validation-in-the-loop: YAML parse + task kind check + max 2 LLM retries
   - Org context injected: agents, MCP servers, skills, existing workflows
   - Task kind registry embedded in both editions
+- **Phase 3 Batch 2 COMPLETE** — Generation dialog (SDK + console)
+  - `useGenerateWorkflowFlow` hook + `WorkflowGenerateDialog` component
+  - Two-phase dialog: prompt input -> result preview -> create workflow
+  - "Generate" button on WorkflowListPage (both web + desktop, DD-016 parity)
+  - Creates workflow via `parseWorkflowYaml()` + `workflow.apply()`, navigates to detail
 - Workflow execution → session navigation fix COMPLETE (2026-05-14)
 - Unified Platform Dashboard COMPLETE (2026-05-14)
 - Cost data pipeline COMPLETE
