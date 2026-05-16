@@ -19,14 +19,14 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-16 — Phase 4 (T17) COMPLETE (eval, for_each concurrency, compensation)
-**Current Task**: Phase 4 COMPLETE
-**Phase**: Phase 4 — Advanced Agentic Orchestration — COMPLETE
-**Next Task**: Open tech debt, E2E test runs, or new feature work
+**Last Session**: 2026-05-16 — Tech debt sweep COMPLETE (4 resolved, 2 deferred)
+**Current Task**: Tech debt sweep COMPLETE
+**Phase**: Phases 0-3 COMPLETE, Phase 4 partially complete (3/8 built, 5 deferred), tech debt resolved
+**Next Task**: E2E test runs, deferred Phase 4 items, or new feature work
 
 ## Session Progress (2026-05-16, Phase 4 / T17)
 
-### Phase 4: Advanced Agentic Orchestration — COMPLETE
+### Phase 4: Advanced Agentic Orchestration — 3/8 built, 5 deferred
 
 Built three advanced orchestration capabilities in a single session. Research-driven
 scope: 3 built, 5 deferred with documented rationale.
@@ -1026,8 +1026,13 @@ Structured Agent Output Model
 
 ## Next Steps
 1. **Run E2E tests** — `make test-providers` with API keys to validate eval task end-to-end
-2. **Open tech debt items** (see below)
-3. **Future phases** — cache policies on invocation tasks, code_execution (standalone project), memory/artifact model
+2. **Deferred Phase 4 items** (5 items with documented rationale, revisit when needed):
+   - `cache` — execution policy, not a task type; revisit as caching layer on invocation tasks
+   - `code_execution` — standalone project; governance-heavy (sandboxing, resource limits)
+   - `plan_and_execute` — contradicts "deterministic outer, autonomous inner"; may not be needed
+   - `memory_recall/write` — needs broader state/artifact model first
+   - `agent_handoff` — enrichment of `agent_call`, not a separate kind
+3. **Remaining deferred tech debt** — usage page unification (frontend), artifact `getDownloadUrl` (future feature)
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
@@ -1064,13 +1069,13 @@ Structured Agent Output Model
 - Workflow execution → session navigation fix COMPLETE (2026-05-14)
 - Unified Platform Dashboard COMPLETE (2026-05-14)
 - Cost data pipeline COMPLETE
-- **Open tech debt:**
-  - `proto2schema` codegen gap — `getExecutionSummary` on agent execution manually patched in generated SDK client
-  - Usage page unification (show workflow data alongside agent data) — deferred
-  - Search indexing for workflows in backend unverified — `list()` may return empty
-  - `CheckBudgetWarnings()` (T05) still standalone — NOT wired into `ValidateWorkflow()` yet
-  - `getDownloadUrl` still UNIMPLEMENTED (artifact store)
-  - OSS stigmer-server updateStatus handler does NOT yet persist events (separate task from Java/Cloud parity)
+- **Tech debt sweep COMPLETE** (2026-05-16, see `_changelog/2026-05/2026-05-16-121812-workflow-domain-tech-debt-sweep.md`):
+  - ~~`proto2schema` codegen gap~~ — RESOLVED: fixed `tsImportMethodType` cross-package import resolution
+  - ~~Search indexing for workflows unverified~~ — RESOLVED: verified correct, best-effort pattern is platform-wide design
+  - ~~`CheckBudgetWarnings()` not wired~~ — RESOLVED: implemented 7 warning scenarios + wired into `ValidateWorkflow()` + 9 unit tests
+  - ~~OSS event persistence~~ — RESOLVED: SQLite migration v5, store methods, GetEventLog + SubscribeEvents handlers
+  - Usage page unification — DEFERRED: requires frontend code verification, not blocking
+  - `getDownloadUrl` (artifact store) — DEFERRED: parallel download mechanisms already exist, tracked as future feature
 
 ## Essential Files — T15 Batch 2 (Canvas Node Authoring)
 - **Graph commands (new)**: `sdk/react/src/workflow/graph-commands.ts`
@@ -1147,7 +1152,7 @@ When starting a new session:
 - **Phase 1**: Foreground MVP (T08-T14) — COMPLETE
 - **Phase 2**: Visual Builder (T15) — COMPLETE — canvas editor, drag-and-drop, YAML round-trip
 - **Phase 3**: AI-Assisted Creation (T16) — COMPLETE — generate, refine, diagnose
-- **Phase 4**: Advanced Agentic Orchestration (T17) — COMPLETE — eval/llm_judge, for_each concurrency, saga compensation
+- **Phase 4**: Advanced Agentic Orchestration (T17) — 3/8 built (eval/llm_judge, for_each concurrency, saga compensation), 5 deferred (cache, code_execution, plan_and_execute, memory, agent_handoff)
 
 ## Quick Commands
 
