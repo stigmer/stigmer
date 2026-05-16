@@ -71,8 +71,12 @@ func TestAgentExecution_NonexistentSession(t *testing.T) {
 
 	st, ok := status.FromError(err)
 	require.True(t, ok, "error should be a gRPC status")
-	require.Equal(t, codes.NotFound, st.Code(),
-		"expected NOT_FOUND, got %s: %s", st.Code(), st.Message())
+	// With real FGA, the authorization layer denies access before the
+	// service can check whether the session exists, so PermissionDenied
+	// is also a valid rejection code.
+	require.True(t,
+		st.Code() == codes.NotFound || st.Code() == codes.PermissionDenied,
+		"expected NOT_FOUND or PERMISSION_DENIED, got %s: %s", st.Code(), st.Message())
 	t.Logf("non-existent session correctly rejected: %v", st.Message())
 }
 

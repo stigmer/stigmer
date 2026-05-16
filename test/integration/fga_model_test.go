@@ -18,6 +18,8 @@ import (
 )
 
 // fgaCheck calls the OpenFGA Check API and returns whether access is allowed.
+// Returns false for HTTP 400 responses, which occur when a conditional tuple
+// is missing required context parameters (the condition cannot be satisfied).
 func fgaCheck(t *testing.T, fga *harness.OpenFGAContainer, user, relation, object string) bool {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -45,6 +47,9 @@ func fgaCheck(t *testing.T, fga *harness.OpenFGAContainer, user, relation, objec
 
 	respBody, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
+	if resp.StatusCode == http.StatusBadRequest {
+		return false
+	}
 	require.Equal(t, http.StatusOK, resp.StatusCode, "check API failed: %s", string(respBody))
 
 	var result struct {

@@ -205,8 +205,14 @@ func TestAgentExecution_MCP_HttpToolExecution(t *testing.T) {
 
 			mcpServer := harness.CreateHttpMcpServer(t, ctx, clients, httpServer.URL)
 
+			// HTTP MCP connect runs async via Apply's best-effort connect.
+			// Unlike stdio, the httptest server is in-process so ConnectMcpServer
+			// (which runs through the agent-runner workflow) cannot reach it.
+			// Allow time for async discovery to complete.
+			time.Sleep(3 * time.Second)
+
 			agent := harness.CreateAgent(t, ctx, clients, "test-mcp-http-"+h.Name,
-				"You are a helpful assistant with access to tools. When asked to echo something, use the echo tool.",
+				"You MUST use the echo tool to echo the user's input. Do not answer without calling the echo tool first. Call it exactly once.",
 				harness.WithMcpServerUsage(mcpServer.GetMetadata().GetSlug()),
 			)
 
@@ -215,7 +221,7 @@ func TestAgentExecution_MCP_HttpToolExecution(t *testing.T) {
 
 			exec := harness.CreateTestAgentExecution(t, ctx, clients,
 				session.GetMetadata().GetId(),
-				"Please use the echo tool to echo 'hello-http-mcp'",
+				"Use the echo tool to echo 'hello-http-mcp'. You must call the tool.",
 				harness.WithAutoApproveAll(true))
 
 			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)

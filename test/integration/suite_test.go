@@ -76,6 +76,13 @@ func TestMain(m *testing.M) {
 		)
 	}
 
+	if testHarness.MinIO != nil {
+		svcCfg.MinIOEndpoint = testHarness.MinIO.Endpoint
+		svcCfg.MinIOAccessKey = testHarness.MinIO.AccessKey
+		svcCfg.MinIOSecretKey = testHarness.MinIO.SecretKey
+		suiteLogger.Info("MinIO enabled for Java service", "endpoint", svcCfg.MinIOEndpoint)
+	}
+
 	svc, err := harness.StartJavaService(ctx, svcCfg, suiteLogger)
 	if err != nil {
 		suiteLogger.Error("failed to start java service", "error", err)
