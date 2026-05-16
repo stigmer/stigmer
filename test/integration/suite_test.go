@@ -52,7 +52,7 @@ func TestMain(m *testing.M) {
 
 	cursorKey := os.Getenv("CURSOR_API_KEY")
 
-	svc, err := harness.StartJavaService(ctx, harness.ServiceConfig{
+	svcCfg := harness.ServiceConfig{
 		JarPath:         jarPath,
 		MongoHost:       testHarness.Mongo.Host,
 		MongoPort:       testHarness.Mongo.Port,
@@ -62,7 +62,20 @@ func TestMain(m *testing.M) {
 		AnthropicAPIKey: anthropicKey,
 		CursorAPIKey:    cursorKey,
 		LogDir:          logDir,
-	}, suiteLogger)
+	}
+
+	if testHarness.OpenFGA != nil {
+		svcCfg.OpenFGAAPIURL = testHarness.OpenFGA.HTTPEndpoint
+		svcCfg.OpenFGAStoreID = testHarness.OpenFGA.StoreID
+		svcCfg.OpenFGAModelID = testHarness.OpenFGA.ModelID
+		suiteLogger.Info("FGA enabled for Java service",
+			"api_url", svcCfg.OpenFGAAPIURL,
+			"store_id", svcCfg.OpenFGAStoreID,
+			"model_id", svcCfg.OpenFGAModelID,
+		)
+	}
+
+	svc, err := harness.StartJavaService(ctx, svcCfg, suiteLogger)
 	if err != nil {
 		suiteLogger.Error("failed to start java service", "error", err)
 		testHarness.Stop(ctx)
@@ -89,6 +102,17 @@ func TestMain(m *testing.M) {
 		suiteLogger.Warn("workflow-runner failed to start — execution tests will be skipped", "error", err)
 	} else {
 		testHarness.WorkflowRunner = runner
+	}
+
+	// Seed base FGA tuples (platform operator, org ownership) so the test
+	// identity passes authorization checks when real OpenFGA is active.
+	if testHarness.OpenFGA != nil {
+		if err := harness.SeedBaseFGATuples(ctx, testHarness.OpenFGA); err != nil {
+			suiteLogger.Error("failed to seed FGA tuples", "error", err)
+			testHarness.Stop(ctx)
+			os.Exit(1)
+		}
+		suiteLogger.Info("FGA base tuples seeded")
 	}
 
 	// Provision a billing account for the test org so agent executions

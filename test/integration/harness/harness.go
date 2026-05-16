@@ -15,6 +15,7 @@ type TestHarness struct {
 	Mongo          *MongoContainer
 	Redis          *RedisContainer
 	Temporal       *TemporalDevServer
+	OpenFGA        *OpenFGAContainer
 	Service        *JavaService
 	WorkflowRunner *WorkflowRunner
 	AgentRunner    *AgentRunner
@@ -46,6 +47,13 @@ func DefaultConfig() Config {
 		outputDir = ".test-output"
 	}
 	return Config{OutputDir: outputDir}
+}
+
+// FGAEnabled returns true if real OpenFGA authorization is active in this
+// test run. Tests can use this to adjust assertions or skip FGA-specific
+// test cases when running with the permit-all bypass.
+func (h *TestHarness) FGAEnabled() bool {
+	return h.OpenFGA != nil
 }
 
 // LogDir returns the directory where service logs are written.
@@ -135,6 +143,30 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 		return nil, fmt.Errorf("temporal: %w", temporalErr)
 	}
 
+	// Start OpenFGA if the model directory and CLI are available.
+	// This is opt-in: tests degrade gracefully when FGA is unavailable.
+	fgaModelDir := FindFGAModelDir()
+	if fgaModelDir != "" && IsFGACLIAvailable() {
+		logger.Info("starting openfga", "model_dir", fgaModelDir)
+		var err error
+		h.OpenFGA, err = StartOpenFGA(ctx, fgaModelDir)
+		if err != nil {
+			h.Stop(ctx)
+			return nil, fmt.Errorf("openfga: %w", err)
+		}
+		logger.Info("openfga ready",
+			"endpoint", h.OpenFGA.HTTPEndpoint,
+			"store_id", h.OpenFGA.StoreID,
+			"model_id", h.OpenFGA.ModelID,
+		)
+	} else {
+		if fgaModelDir == "" {
+			logger.Warn("openfga skipped: FGA model directory not found (set STIGMER_FGA_MODEL_DIR or ensure stigmer-cloud is a sibling repo)")
+		} else {
+			logger.Warn("openfga skipped: fga CLI not on PATH (install with: brew install openfga/tap/fga)")
+		}
+	}
+
 	logger.Info("all infrastructure ready")
 	return h, nil
 }
@@ -164,6 +196,12 @@ func (h *TestHarness) Stop(ctx context.Context) {
 	if h.Service != nil {
 		if err := h.Service.Stop(); err != nil {
 			h.logger.Error("failed to stop java service", "error", err)
+		}
+	}
+
+	if h.OpenFGA != nil {
+		if err := StopContainer(ctx, h.OpenFGA.Container); err != nil {
+			h.logger.Error("failed to stop openfga", "error", err)
 		}
 	}
 

@@ -95,6 +95,14 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+      - name: Upload FGA model
+        uses: actions/upload-artifact@v4
+        with:
+          name: fga-model
+          path: stigmer-cloud/backend/services/stigmer-service/src/main/resources/fga/model/
+          retention-days: 1
+          if-no-files-found: error
+
   # ---------------------------------------------------------------------------
   # Job 2: Run the integration test suite.
   #
@@ -135,9 +143,21 @@ jobs:
       - name: Install gotestsum
         run: go install gotest.tools/gotestsum@latest
 
+      - name: Install OpenFGA CLI
+        run: |
+          curl -fsSL https://openfga.dev/api/installcli | bash
+          fga version
+
+      - name: Download FGA model
+        uses: actions/download-artifact@v4
+        with:
+          name: fga-model
+          path: .artifacts/fga-model
+
       - name: Run integration tests
         env:
           STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
+          STIGMER_FGA_MODEL_DIR: ${{ github.workspace }}/.artifacts/fga-model
         run: make test-integration
 
       - name: Guard against silent test skip
