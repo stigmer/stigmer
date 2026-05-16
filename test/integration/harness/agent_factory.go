@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,8 +37,8 @@ func WithMcpServerUsageAndApproval(slug string, overrides []*agentv1.ToolApprova
 				Org:  testOrg,
 				Kind: 44,
 			},
-			EnabledTools:           enabledTools,
-			ToolApprovalOverrides:  overrides,
+			EnabledTools:          enabledTools,
+			ToolApprovalOverrides: overrides,
 		})
 	}
 }
@@ -61,16 +61,44 @@ func WithSubAgent(subAgent *agentv1.SubAgent) AgentOption {
 	}
 }
 
+// AgentCreateOption applies to the full Agent resource (metadata + spec).
+// Use these alongside AgentOption in CreateAgent.
+type AgentCreateOption func(*agentv1.Agent)
+
+// WithDefaultAgentLabel marks the agent as the platform default by setting the
+// stigmer.ai/default-agent label and public visibility. The server resolves
+// this agent when an execution is created without session_id or agent_id.
+func WithDefaultAgentLabel() AgentCreateOption {
+	return func(a *agentv1.Agent) {
+		if a.Metadata.Labels == nil {
+			a.Metadata.Labels = make(map[string]string)
+		}
+		a.Metadata.Labels["stigmer.ai/default-agent"] = "true"
+		a.Metadata.Visibility = apiresource.ApiResourceVisibility_visibility_public
+	}
+}
+
 // CreateAgent creates a test agent with the given instructions and options.
 // The agent is auto-deleted on test cleanup.
 func CreateAgent(t *testing.T, ctx context.Context, clients *Clients, name, instructions string, opts ...AgentOption) *agentv1.Agent {
+	t.Helper()
+	return createAgentInternal(t, ctx, clients, name, instructions, opts, nil)
+}
+
+// CreateAgentFull creates a test agent with both spec-level and agent-level options.
+func CreateAgentFull(t *testing.T, ctx context.Context, clients *Clients, name, instructions string, specOpts []AgentOption, createOpts []AgentCreateOption) *agentv1.Agent {
+	t.Helper()
+	return createAgentInternal(t, ctx, clients, name, instructions, specOpts, createOpts)
+}
+
+func createAgentInternal(t *testing.T, ctx context.Context, clients *Clients, name, instructions string, specOpts []AgentOption, createOpts []AgentCreateOption) *agentv1.Agent {
 	t.Helper()
 
 	spec := &agentv1.AgentSpec{
 		Description:  "Integration test agent: " + name,
 		Instructions: instructions,
 	}
-	for _, opt := range opts {
+	for _, opt := range specOpts {
 		opt(spec)
 	}
 
@@ -82,6 +110,9 @@ func CreateAgent(t *testing.T, ctx context.Context, clients *Clients, name, inst
 			Org:  testOrg,
 		},
 		Spec: spec,
+	}
+	for _, opt := range createOpts {
+		opt(agent)
 	}
 
 	created, err := clients.AgentCommand.Apply(ctx, agent)

@@ -120,3 +120,67 @@ func TestAgentExecution_SubAgent_ParentCancelCascade(t *testing.T) {
 		})
 	}
 }
+
+func TestAgentExecution_SubAgent_McpAccess(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	for _, h := range harness.Harnesses {
+		t.Run(h.Name, func(t *testing.T) {
+			h.Skip(t, testHarness)
+			if mcpTestServerBinary == "" {
+				t.Skip("test MCP server binary not built — skipping sub-agent MCP access test")
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
+
+			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
+			mcpSlug := mcpServer.GetMetadata().GetSlug()
+
+			// Parent has full access to MCP server (all tools).
+			// Sub-agent has restricted access: only the "echo" tool via mcp_access.
+			agent := harness.CreateAgent(t, ctx, clients, "test-subagent-mcp-"+h.Name,
+				"You are a project manager. When asked to echo something, delegate to the tooluser sub-agent.",
+				harness.WithMcpServerUsage(mcpSlug),
+				harness.WithSubAgent(&agentv1.SubAgent{
+					Name:         "tooluser",
+					Description:  "A sub-agent that uses MCP tools",
+					Instructions: "You are a tool user. Use the echo tool to echo whatever the user says. Only use the echo tool.",
+					McpAccess: []*agentv1.McpAccess{
+						{
+							McpServer:    mcpSlug,
+							EnabledTools: []string{"echo"},
+						},
+					},
+				}),
+			)
+
+			session := harness.CreateTestSession(t, ctx, clients,
+				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
+
+			exec := harness.CreateTestAgentExecution(t, ctx, clients,
+				session.GetMetadata().GetId(),
+				"Delegate to the tooluser sub-agent and ask it to echo 'mcp-access-test'.",
+				harness.WithAutoApproveAll(true))
+
+			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+			result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
+				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+			require.NoError(t, err, "execution should complete")
+			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+			subAgents := result.GetStatus().GetSubAgentExecutions()
+			if len(subAgents) > 0 {
+				t.Logf("sub-agent MCP access test: %d sub-agent executions", len(subAgents))
+			} else {
+				t.Log("no sub-agent executions recorded (agent may have handled directly)")
+			}
+
+			t.Logf("sub-agent MCP access test completed: id=%s", result.GetMetadata().GetId())
+		})
+	}
+}

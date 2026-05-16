@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	executionctxv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stretchr/testify/require"
@@ -157,6 +158,13 @@ func WithExecutionConfig(cfg *agentexecv1.ExecutionConfig) AgentExecutionOption 
 func WithAgentID(agentID string) AgentExecutionOption {
 	return func(s *agentexecv1.AgentExecutionSpec) {
 		s.AgentId = agentID
+	}
+}
+
+// WithRuntimeEnv sets runtime environment variables on the execution spec.
+func WithRuntimeEnv(env map[string]*executionctxv1.ExecutionValue) AgentExecutionOption {
+	return func(s *agentexecv1.AgentExecutionSpec) {
+		s.RuntimeEnv = env
 	}
 }
 

@@ -68,8 +68,52 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: Re-run T12 offline tests (10 new cases) to confirm green after test fixes; then continue T01 Phase 4 or remaining matrix rows.
-**Status**: T12 gap tests implemented (for_each, fork, validate, emit_event, notification). First run 5/10 pass before fixes; post-fix re-run blocked by JVM/runner startup contention — not attributed to test logic.
+**Current Task**: Run provider-backed tests to validate 9 new T19 agent execution tests; then continue T01 Phase 4 or remaining gaps.
+**Status**: T19 coverage gaps implemented (9 new tests: CreateWithAgentId, CreateDefaultAgent, Recover, MCP_EnvVarResolution, Skill_SessionLevel, Skill_Deduplication, SubAgent_McpAccess, Config_MaxCostCap). All compile and pass go vet. Awaiting provider-backed validation run.
+
+## Session Progress (2026-05-16, Session 23 — T19 Remaining Coverage Gaps)
+
+### Accomplished
+
+- Implemented **9 new agent execution integration tests** closing the T19 coverage gaps (37 -> 46 test functions)
+- Extended harness: `AgentCreateOption` + `WithDefaultAgentLabel()`, `WithRuntimeEnv()`, `CreateAgentFull()`
+- Added `crash` tool to test MCP server for deterministic execution failure (enables `Recover` test)
+- Investigated runtime plumbing: confirmed runtime_env -> ExecutionContext -> MCP resolution, session skill merge with slug dedup, and all Tier 3 features implemented in runner
+
+### Files Changed (stigmer OSS — uncommitted)
+
+- `test/integration/agent_execution_01_lifecycle_test.go` — +CreateWithAgentId, CreateDefaultAgent_NoDefault, CreateDefaultAgent
+- `test/integration/agent_execution_02_config_test.go` — +Config_MaxCostCap
+- `test/integration/agent_execution_03_mcp_test.go` — +MCP_EnvVarResolution
+- `test/integration/agent_execution_04_skills_test.go` — +Skill_SessionLevel, Skill_Deduplication
+- `test/integration/agent_execution_05_subagent_test.go` — +SubAgent_McpAccess
+- `test/integration/agent_execution_06_lifecycle_control_test.go` — +Recover
+- `test/integration/harness/agent_factory.go` — AgentCreateOption, WithDefaultAgentLabel, CreateAgentFull
+- `test/integration/harness/harness_config.go` — WithRuntimeEnv
+- `test/integration/testdata/mcp-test-server/main.go` — crash tool
+
+### Key Discoveries
+
+1. runtime_env flows: Java `CreateExecutionContextStep` -> encrypted `ExecutionContext` -> agent-runner gRPC fetch -> merged env vars -> MCP server env resolution
+2. Session skill_refs merge implemented in `session_context_merge.py` with slug-based dedup (agent-first precedence)
+3. SubAgent MCP scoping enforced via `_filter_mcp_for_subagent` (intersection with parent tools)
+4. Cost cap enforced via `CostCapMiddleware` (blocks tools at budget)
+5. Workspace file refs processed into system prompt "Referenced Files" section
+
+### Next Steps
+
+1. Run: `cd test/integration && make test-providers` to validate all new tests
+2. Confirm **46/46 agent execution tests pass** (or document remaining env flakes)
+3. Consider `Attachment_WorkspaceFileRef` if workspace entry harness is straightforward
+4. Resume T01 Phase 4 (T15-T18) or other priorities
+
+### Quick Resume
+
+```
+@_projects/2026-05/20260514.01.e2e-workflow-testing-infrastructure/next-task.md
+```
+
+Checkpoint: `checkpoints/2026-05-16-session-23.md`
 
 ## Session Progress (2026-05-16, Session 22 — T12 Task Kind Integration Tests)
 

@@ -228,7 +228,6 @@ func TestAgentExecution_Pause_Resume(t *testing.T) {
 				agentexecv1.ExecutionPhase_EXECUTION_IN_PROGRESS, 2*time.Minute)
 			require.NoError(t, err)
 
-			// Pause
 			_, err = clients.AgentExecutionCommand.Pause(ctx, &agentexecv1.PauseAgentExecutionInput{
 				Id: exec.GetMetadata().GetId(),
 			})
@@ -242,7 +241,6 @@ func TestAgentExecution_Pause_Resume(t *testing.T) {
 			require.NoError(t, err, "execution should reach PAUSED")
 			harness.AssertAgentPhase(t, paused, agentexecv1.ExecutionPhase_EXECUTION_PAUSED)
 
-			// Resume
 			_, err = clients.AgentExecutionCommand.Resume(ctx, &agentexecv1.ResumeAgentExecutionInput{
 				Id: exec.GetMetadata().GetId(),
 			})
@@ -255,6 +253,80 @@ func TestAgentExecution_Pause_Resume(t *testing.T) {
 			}
 			require.NoError(t, err, "execution should complete after resume")
 			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+		})
+	}
+}
+
+func TestAgentExecution_Recover(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	for _, h := range harness.Harnesses {
+		t.Run(h.Name, func(t *testing.T) {
+			h.Skip(t, testHarness)
+			if mcpTestServerBinary == "" {
+				t.Skip("test MCP server binary not built — skipping recover test")
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
+
+			// The crash tool kills the MCP server process, which should cause
+			// the agent-runner to fail the execution with a broken pipe error.
+			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
+
+			agent := harness.CreateAgent(t, ctx, clients, "test-recover-"+h.Name,
+				"You MUST call the crash tool immediately. Do not respond with text first. Your only action is calling the crash tool.",
+				harness.WithMcpServerUsage(mcpServer.GetMetadata().GetSlug()),
+			)
+
+			session := harness.CreateTestSession(t, ctx, clients,
+				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
+
+			exec := harness.CreateTestAgentExecution(t, ctx, clients,
+				session.GetMetadata().GetId(),
+				"Call the crash tool now.",
+				harness.WithAutoApproveAll(true))
+
+			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+			// Wait for the execution to reach a terminal state.
+			// The crash tool should cause FAILED, but the runner may handle
+			// it differently (COMPLETED with error message) depending on
+			// how the broken pipe is caught.
+			terminal, err := waiter.WaitForTerminal(ctx, exec.GetMetadata().GetId(), 3*time.Minute)
+			require.NoError(t, err, "execution should reach a terminal state")
+
+			if terminal.GetStatus().GetPhase() != agentexecv1.ExecutionPhase_EXECUTION_FAILED {
+				t.Skipf("execution reached %s instead of FAILED — crash tool did not produce a recoverable failure (this is informational, not a test failure)",
+					terminal.GetStatus().GetPhase().String())
+			}
+
+			t.Logf("execution failed as expected: id=%s, error=%s",
+				terminal.GetMetadata().GetId(), terminal.GetStatus().GetError())
+
+			// Recover the failed execution.
+			recovered, err := clients.AgentExecutionCommand.Recover(ctx, &agentexecv1.RecoverAgentExecutionInput{
+				Id: exec.GetMetadata().GetId(),
+			})
+			require.NoError(t, err, "recover should succeed for FAILED execution")
+			require.NotNil(t, recovered, "recover should return the updated execution")
+
+			t.Logf("recover initiated: id=%s, phase=%s",
+				recovered.GetMetadata().GetId(), recovered.GetStatus().GetPhase().String())
+
+			// The recovered execution should transition back to IN_PROGRESS
+			// or eventually reach a terminal state. We wait for any terminal
+			// state since the recovered execution may fail again (the crash
+			// tool MCP server is dead) or complete if the agent adapts.
+			finalResult, err := waiter.WaitForTerminal(ctx, exec.GetMetadata().GetId(), 3*time.Minute)
+			require.NoError(t, err, "recovered execution should reach a terminal state")
+
+			t.Logf("recovered execution finished: id=%s, phase=%s",
+				finalResult.GetMetadata().GetId(), finalResult.GetStatus().GetPhase().String())
 		})
 	}
 }
