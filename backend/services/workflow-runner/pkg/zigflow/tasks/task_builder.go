@@ -286,6 +286,9 @@ func NewTaskBuilder(taskName string, task model.Task, temporalWorker worker.Work
 		if t.Call == customCallFunctionNotification {
 			return NewNotificationTaskBuilder(temporalWorker, t, taskName, doc)
 		}
+		if t.Call == customCallFunctionEval {
+			return NewEvalTaskBuilder(temporalWorker, t, taskName, doc)
+		}
 		return nil, fmt.Errorf("unsupported call type '%s' for task '%s'", t.Call, taskName)
 	case *model.CallGRPC:
 		return NewCallGRPCTaskBuilder(temporalWorker, t, taskName, doc)
@@ -320,6 +323,7 @@ func NewTaskBuilder(taskName string, task model.Task, temporalWorker worker.Work
 var (
 	_ TaskBuilder = &CallActivityTaskBuilder{}
 	_ TaskBuilder = &CallAgentTaskBuilder{}
+	_ TaskBuilder = &EvalTaskBuilder{}
 	_ TaskBuilder = &CallGRPCTaskBuilder{}
 	_ TaskBuilder = &CallHTTPTaskBuilder{}
 	_ TaskBuilder = &CallLlmTaskBuilder{}

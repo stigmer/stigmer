@@ -1,0 +1,267 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.workflow.v1.tasks;
+
+import "ai/stigmer/commons/apiresource/field_options.proto";
+import "buf/validate/validate.proto";
+
+// EvalFailPolicy defines what happens when an eval task determines that
+// the evaluated subject does not meet the quality threshold.
+//
+// @internal
+// Mirrors ValidationFailPolicy from validate tasks, since evaluation
+// failure is semantically analogous to validation failure — the subject
+// did not pass a quality gate. The only difference is that eval uses an
+// LLM judge to assess semantic quality rather than deterministic schema
+// checks.
+//
+// @since T17 (Advanced Agentic Orchestration)
+enum EvalFailPolicy {
+  // Unspecified: defaults to EVAL_FAIL_RAISE behavior.
+  EVAL_FAIL_POLICY_UNSPECIFIED = 0;
+
+  // Task fails with an evaluation error.
+  // The workflow transitions to error handling (try_catch or EXECUTION_FAILED).
+  // The error includes the judge's reasoning and score for diagnostics.
+  EVAL_FAIL_RAISE = 1;
+
+  // Branch to fallback_task instead of failing.
+  // Requires fallback_task to be set on the EvalTaskConfig.
+  // Use when evaluation failure should trigger an alternative workflow
+  // path (e.g., re-generation with stricter prompt, human review, retry
+  // with a different model).
+  EVAL_FAIL_BRANCH = 2;
+
+  // Log warnings but continue to the next task.
+  // Evaluation results (score, reasoning, criteria breakdown) are included
+  // in the task output, allowing downstream tasks to inspect quality
+  // without stopping the workflow.
+  // Use for advisory evaluation or when downstream logic can gracefully
+  // handle low-quality inputs.
+  EVAL_FAIL_WARN = 3;
+}
+
+// EvalScoringMode defines how the LLM judge scores the subject.
+//
+// @internal
+// The scoring mode determines the response schema enforced on the judge
+// LLM and how the threshold is applied.
+//
+// @since T17 (Advanced Agentic Orchestration)
+enum EvalScoringMode {
+  // Unspecified: defaults to EVAL_PASS_FAIL.
+  EVAL_SCORING_MODE_UNSPECIFIED = 0;
+
+  // Binary pass/fail judgment.
+  // The judge returns {pass: bool, reasoning: string}.
+  // Threshold is ignored — the judge's pass/fail decision is authoritative.
+  EVAL_PASS_FAIL = 1;
+
+  // Numeric score from 0.0 to 1.0.
+  // The judge returns {score: float, reasoning: string}.
+  // The subject passes if score >= threshold.
+  EVAL_NUMERIC_SCORE = 2;
+
+  // Multiple named criteria, each scored 0.0 to 1.0.
+  // The judge returns {criteria: [{name, score, reasoning}], overall_score, pass}.
+  // Overall score is the weighted average of criteria scores.
+  // The subject passes if overall_score >= threshold.
+  // Requires the criteria field to be populated on EvalTaskConfig.
+  EVAL_MULTI_CRITERIA = 3;
+}
+
+// EvalCriterion defines a single evaluation dimension for multi-criteria mode.
+//
+// @internal
+// When scoring_mode is EVAL_MULTI_CRITERIA, these criteria are included
+// in the judge prompt as distinct evaluation axes. Each criterion gets
+// its own score and reasoning in the output.
+//
+// @since T17 (Advanced Agentic Orchestration)
+message EvalCriterion {
+  // Name of this evaluation dimension.
+  // Used in the judge prompt and appears in the output.
+  // Examples: "accuracy", "completeness", "safety", "relevance"
+  string name = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 127
+  ];
+
+  // Description of what this criterion measures.
+  // Included in the judge prompt to guide the LLM's assessment.
+  // Example: "Does the response accurately reflect the source data without hallucinations?"
+  string description = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Relative weight for computing the weighted average overall score.
+  // When all weights are equal (or all zero), criteria are averaged uniformly.
+  // Example: accuracy=3.0, formatting=1.0 means accuracy counts 3x more.
+  double weight = 3;
+}
+
+// EvalTaskConfig defines the configuration for eval tasks that use an LLM
+// judge to assess the semantic quality of workflow data.
+//
+// @internal
+// Use eval when you need to assess quality, correctness, safety, or
+// completeness of LLM-generated or agent-produced content. This fills the
+// gap between structural validation (validate task — JSON Schema, business
+// rules) and human review (human_input task — manual inspection).
+//
+// The eval task constructs a judge prompt from the rubric and subject,
+// calls the specified LLM with structured output enforcement, parses the
+// judge's response, and applies the threshold to determine pass/fail.
+//
+// Key differences from validate:
+// - validate checks deterministic structural properties (schema, rules)
+// - eval checks semantic quality via an LLM judge (hallucination, relevance, safety)
+//
+// Key differences from llm_call:
+// - llm_call is a general-purpose LLM invocation
+// - eval has built-in judge prompt construction, scoring semantics,
+//   threshold application, and on_fail branching
+//
+// Task output structure:
+//   {
+//     "pass": true/false,
+//     "score": 0.85,              // present for numeric_score and multi_criteria
+//     "reasoning": "The response...",
+//     "criteria": [               // present only for multi_criteria
+//       {"name": "accuracy", "score": 0.9, "reasoning": "..."},
+//       {"name": "safety", "score": 0.8, "reasoning": "..."}
+//     ],
+//     "model_used": "gpt-4o",
+//     "subject": <original subject data>
+//   }
+//
+// YAML Example (binary pass/fail evaluation):
+//   - check_summary_quality:
+//       call: eval
+//       with:
+//         model: "gpt-4o"
+//         subject: "${ $context.summarize.text }"
+//         rubric: |
+//           Evaluate whether this summary accurately captures the key points
+//           of the source document without hallucinations or omissions.
+//           The summary should be concise (under 3 sentences) and factually
+//           correct.
+//         scoring_mode: EVAL_PASS_FAIL
+//         on_fail: EVAL_FAIL_BRANCH
+//         fallback_task: regenerate_summary
+//       export:
+//         as: "${ . }"
+//
+// YAML Example (numeric score with threshold):
+//   - score_translation:
+//       call: eval
+//       with:
+//         model: "gpt-4o"
+//         subject: "${ $context.translate.text }"
+//         rubric: |
+//           Rate the quality of this translation on accuracy, fluency,
+//           and preservation of meaning. Score 0.0 (unusable) to 1.0 (perfect).
+//         scoring_mode: EVAL_NUMERIC_SCORE
+//         threshold: 0.7
+//         on_fail: EVAL_FAIL_WARN
+//       export:
+//         as: "${ . }"
+//
+// YAML Example (multi-criteria evaluation):
+//   - evaluate_response:
+//       call: eval
+//       with:
+//         model: "gpt-4o"
+//         subject: "${ $context.agent_response }"
+//         rubric: "Evaluate this customer support response."
+//         scoring_mode: EVAL_MULTI_CRITERIA
+//         threshold: 0.75
+//         criteria:
+//           - name: accuracy
+//             description: "Is the information factually correct?"
+//             weight: 3.0
+//           - name: helpfulness
+//             description: "Does it address the customer's actual question?"
+//             weight: 2.0
+//           - name: tone
+//             description: "Is the tone professional and empathetic?"
+//             weight: 1.0
+//         on_fail: EVAL_FAIL_RAISE
+//       export:
+//         as: "${ . }"
+message EvalTaskConfig {
+  option (ai.stigmer.commons.apiresource.discriminator_value) = "eval";
+
+  // LLM model used as the judge.
+  // Resolved via the Stigmer model registry.
+  // Examples: "gpt-4o", "claude-sonnet-4-5"
+  string model = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 127
+  ];
+
+  // Expression selecting the data to evaluate.
+  // Supports ${ } expression interpolation.
+  // Example: "${ $context.summarize.text }" to evaluate a summary task's output.
+  string subject = 2 [
+    (ai.stigmer.commons.apiresource.is_expression) = true,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // Evaluation criteria in natural language.
+  // Tells the judge LLM what to assess and what "good" looks like.
+  // For pass_fail: describe what constitutes a pass.
+  // For numeric_score: describe the scoring scale.
+  // For multi_criteria: provide overall context (per-criterion detail goes in criteria field).
+  string rubric = 3 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.min_len = 1
+  ];
+
+  // How the judge scores the subject.
+  // Default: EVAL_PASS_FAIL.
+  EvalScoringMode scoring_mode = 4;
+
+  // Pass threshold for numeric_score and multi_criteria modes.
+  // The subject passes if score >= threshold.
+  // Ignored for pass_fail mode (the judge's binary decision is used directly).
+  // Valid range: 0.0 to 1.0. Default: 0.5.
+  double threshold = 5 [
+    (buf.validate.field).double.gte = 0.0,
+    (buf.validate.field).double.lte = 1.0
+  ];
+
+  // Policy applied when the subject fails evaluation.
+  // Default: EVAL_FAIL_RAISE (task fails with evaluation error).
+  EvalFailPolicy on_fail = 6;
+
+  // Target task to branch to when on_fail is EVAL_FAIL_BRANCH.
+  // Must reference a valid task name in the same workflow.
+  // Only meaningful when on_fail is EVAL_FAIL_BRANCH; ignored otherwise.
+  string fallback_task = 7;
+
+  // Optional custom system prompt override for the judge LLM.
+  // When set, replaces the auto-generated judge system prompt entirely.
+  // Use only when the default judge prompt template does not fit your needs.
+  // When empty, the runtime constructs a judge-appropriate system prompt
+  // from the rubric, scoring_mode, and criteria.
+  string system_prompt = 8 [(ai.stigmer.commons.apiresource.is_expression) = true];
+
+  // Evaluation criteria for multi_criteria mode.
+  // Required when scoring_mode is EVAL_MULTI_CRITERIA; ignored otherwise.
+  // Each criterion is scored independently, and the overall score is the
+  // weighted average (uniform if all weights are equal or zero).
+  repeated EvalCriterion criteria = 9;
+
+  // Per-task cost cap in micro-USD (1 USD = 1,000,000 micros).
+  // When set, the runtime terminates this eval call if its cost exceeds
+  // this limit, independent of the workflow-level budget.
+  // Optional — when 0, no per-task cost limit is enforced.
+  //
+  // @since T05 (Workflow-Level Budget Primitives)
+  int64 max_cost_micros = 10;
+}

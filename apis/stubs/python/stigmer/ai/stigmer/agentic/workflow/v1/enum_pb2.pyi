@@ -26,6 +26,7 @@ class WorkflowTaskKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     validate: _ClassVar[WorkflowTaskKind]
     emit_event: _ClassVar[WorkflowTaskKind]
     notification: _ClassVar[WorkflowTaskKind]
+    eval: _ClassVar[WorkflowTaskKind]
 
 class BudgetExceededPolicy(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -53,6 +54,7 @@ human_input: WorkflowTaskKind
 validate: WorkflowTaskKind
 emit_event: WorkflowTaskKind
 notification: WorkflowTaskKind
+eval: WorkflowTaskKind
 budget_exceeded_policy_unspecified: BudgetExceededPolicy
 budget_exceeded_terminate: BudgetExceededPolicy
 budget_exceeded_human_review: BudgetExceededPolicy

@@ -230,6 +230,9 @@ func (c *Converter) convertTask(task *workflowv1.WorkflowTask) (map[string]inter
 	case workflowv1.WorkflowTaskKind_notification:
 		yamlTask[task.Name] = c.convertNotificationTask(typedProto.(*tasksv1.NotificationTaskConfig))
 
+	case workflowv1.WorkflowTaskKind_eval:
+		yamlTask[task.Name] = c.convertEvalTask(typedProto.(*tasksv1.EvalTaskConfig))
+
 	case workflowv1.WorkflowTaskKind_activity_call:
 		return nil, fmt.Errorf("activity_call not yet implemented")
 
@@ -249,6 +252,23 @@ func (c *Converter) convertTask(task *workflowv1.WorkflowTask) (map[string]inter
 	if task.Flow != nil && task.Flow.Then != "" {
 		taskMap := yamlTask[task.Name].(map[string]interface{})
 		taskMap["then"] = task.Flow.Then
+	}
+
+	// Carry compensation tasks through metadata for the CNCF SDK pipeline.
+	// The SDK model.Task does not have a compensate field, so we embed
+	// the compensation task definitions in metadata.__stigmer_compensate.
+	if len(task.Compensate) > 0 {
+		taskMap := yamlTask[task.Name].(map[string]interface{})
+		compTasks, err := c.convertTaskList(task.Compensate)
+		if err != nil {
+			return nil, fmt.Errorf("task '%s' compensate: %w", task.Name, err)
+		}
+		metadata, _ := taskMap["metadata"].(map[string]interface{})
+		if metadata == nil {
+			metadata = map[string]interface{}{}
+		}
+		metadata["__stigmer_compensate"] = compTasks
+		taskMap["metadata"] = metadata
 	}
 
 	return yamlTask, nil

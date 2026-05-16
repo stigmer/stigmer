@@ -147,6 +147,16 @@ func (c *Converter) convertForTask(cfg *tasksv1.ForTaskConfig) (map[string]inter
 		forMap["each"] = cfg.Each
 	}
 
+	if cfg.MaxParallelism > 0 {
+		forMap["max_parallelism"] = cfg.MaxParallelism
+	}
+	if cfg.BatchSize > 0 {
+		forMap["batch_size"] = cfg.BatchSize
+	}
+	if cfg.OnError != tasksv1.ForEachErrorPolicy_FOR_EACH_ERROR_POLICY_UNSPECIFIED {
+		forMap["on_error"] = cfg.OnError.String()
+	}
+
 	if len(cfg.Do) > 0 {
 		doTasks, err := c.convertTaskList(cfg.Do)
 		if err != nil {
@@ -162,26 +172,40 @@ func (c *Converter) convertForTask(cfg *tasksv1.ForTaskConfig) (map[string]inter
 
 // convertForkTask converts ForkTaskConfig to YAML structure,
 // recursively converting nested tasks in each branch's do block.
+//
+// The CNCF Serverless Workflow SDK expects each branch to be a TaskItem
+// (single-key map where the key is the branch name):
+//
+//	fork:
+//	  branches:
+//	    - branchA:
+//	        do:
+//	          - task1:
+//	              set: ...
 func (c *Converter) convertForkTask(cfg *tasksv1.ForkTaskConfig) (map[string]interface{}, error) {
 	branches := make([]map[string]interface{}, len(cfg.Branches))
 	for i, branch := range cfg.Branches {
-		branchMap := map[string]interface{}{
-			"name": branch.Name,
-		}
+		branchBody := map[string]interface{}{}
 		if len(branch.Do) > 0 {
 			doTasks, err := c.convertTaskList(branch.Do)
 			if err != nil {
 				return nil, fmt.Errorf("fork branch %q do block: %w", branch.Name, err)
 			}
-			branchMap["do"] = doTasks
+			branchBody["do"] = doTasks
 		}
-		branches[i] = branchMap
+		branches[i] = map[string]interface{}{branch.Name: branchBody}
+	}
+
+	forkMap := map[string]interface{}{
+		"branches": branches,
+	}
+
+	if cfg.Compete {
+		forkMap["compete"] = true
 	}
 
 	return map[string]interface{}{
-		"fork": map[string]interface{}{
-			"branches": branches,
-		},
+		"fork": forkMap,
 	}, nil
 }
 
@@ -209,6 +233,9 @@ func (c *Converter) convertTryTask(cfg *tasksv1.TryTaskConfig) (map[string]inter
 				return nil, fmt.Errorf("catch block: %w", err)
 			}
 			catchMap["do"] = catchTasks
+		}
+		if cfg.Catch.Compensate {
+			catchMap["compensate"] = true
 		}
 		result["catch"] = catchMap
 	}
@@ -560,6 +587,54 @@ func (c *Converter) convertNotificationTask(cfg *tasksv1.NotificationTaskConfig)
 
 	return map[string]interface{}{
 		"call": "notification",
+		"with": with,
+	}
+}
+
+// convertEvalTask converts EvalTaskConfig to YAML structure.
+// Maps to call: "eval" with LLM judge configuration.
+func (c *Converter) convertEvalTask(cfg *tasksv1.EvalTaskConfig) map[string]interface{} {
+	with := map[string]interface{}{
+		"model":   cfg.Model,
+		"subject": cfg.Subject,
+		"rubric":  cfg.Rubric,
+	}
+
+	if cfg.ScoringMode != tasksv1.EvalScoringMode_EVAL_SCORING_MODE_UNSPECIFIED {
+		with["scoring_mode"] = cfg.ScoringMode.String()
+	}
+	if cfg.Threshold != 0 {
+		with["threshold"] = cfg.Threshold
+	}
+	if cfg.OnFail != tasksv1.EvalFailPolicy_EVAL_FAIL_POLICY_UNSPECIFIED {
+		with["on_fail"] = cfg.OnFail.String()
+	}
+	if cfg.FallbackTask != "" {
+		with["fallback_task"] = cfg.FallbackTask
+	}
+	if cfg.SystemPrompt != "" {
+		with["system_prompt"] = cfg.SystemPrompt
+	}
+	if len(cfg.Criteria) > 0 {
+		criteria := make([]map[string]interface{}, 0, len(cfg.Criteria))
+		for _, cr := range cfg.Criteria {
+			cm := map[string]interface{}{
+				"name":        cr.Name,
+				"description": cr.Description,
+			}
+			if cr.Weight != 0 {
+				cm["weight"] = cr.Weight
+			}
+			criteria = append(criteria, cm)
+		}
+		with["criteria"] = criteria
+	}
+	if cfg.MaxCostMicros > 0 {
+		with["max_cost_micros"] = cfg.MaxCostMicros
+	}
+
+	return map[string]interface{}{
+		"call": "eval",
 		"with": with,
 	}
 }

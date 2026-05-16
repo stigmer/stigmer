@@ -25,4 +25,5 @@ const (
 	customCallFunctionValidate     = "validate"
 	customCallFunctionEmitEvent    = "emit_event"
 	customCallFunctionNotification = "notification"
+	customCallFunctionEval         = "eval"
 )

@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/workflow/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvZW51bS5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxKtQCChBXb3JrZmxvd1Rhc2tLaW5kEiIKHndvcmtmbG93X3Rhc2tfa2luZF91bnNwZWNpZmllZBAAEgwKCHNldF92YXJzEAESDQoJaHR0cF9jYWxsEAISDQoJZ3JwY19jYWxsEAMSEQoNYWN0aXZpdHlfY2FsbBAEEg8KC3N3aXRjaF9jYXNlEAUSDAoIZm9yX2VhY2gQBhIICgRmb3JrEAcSDQoJdHJ5X2NhdGNoEAgSCgoGbGlzdGVuEAkSCAoEd2FpdBAKEg8KC3JhaXNlX2Vycm9yEAsSEAoMcnVuX3dvcmtmbG93EAwSDgoKYWdlbnRfY2FsbBANEgwKCGxsbV9jYWxsEA4SDQoJdHJhbnNmb3JtEA8SDwoLaHVtYW5faW5wdXQQEBIMCgh2YWxpZGF0ZRAREg4KCmVtaXRfZXZlbnQQEhIQCgxub3RpZmljYXRpb24QEyqZAQoUQnVkZ2V0RXhjZWVkZWRQb2xpY3kSJgoiYnVkZ2V0X2V4Y2VlZGVkX3BvbGljeV91bnNwZWNpZmllZBAAEh0KGWJ1ZGdldF9leGNlZWRlZF90ZXJtaW5hdGUQARIgChxidWRnZXRfZXhjZWVkZWRfaHVtYW5fcmV2aWV3EAISGAoUYnVkZ2V0X2V4Y2VlZGVkX3dhcm4QA2IGcHJvdG8z");
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvZW51bS5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxKt4CChBXb3JrZmxvd1Rhc2tLaW5kEiIKHndvcmtmbG93X3Rhc2tfa2luZF91bnNwZWNpZmllZBAAEgwKCHNldF92YXJzEAESDQoJaHR0cF9jYWxsEAISDQoJZ3JwY19jYWxsEAMSEQoNYWN0aXZpdHlfY2FsbBAEEg8KC3N3aXRjaF9jYXNlEAUSDAoIZm9yX2VhY2gQBhIICgRmb3JrEAcSDQoJdHJ5X2NhdGNoEAgSCgoGbGlzdGVuEAkSCAoEd2FpdBAKEg8KC3JhaXNlX2Vycm9yEAsSEAoMcnVuX3dvcmtmbG93EAwSDgoKYWdlbnRfY2FsbBANEgwKCGxsbV9jYWxsEA4SDQoJdHJhbnNmb3JtEA8SDwoLaHVtYW5faW5wdXQQEBIMCgh2YWxpZGF0ZRAREg4KCmVtaXRfZXZlbnQQEhIQCgxub3RpZmljYXRpb24QExIICgRldmFsEBQqmQEKFEJ1ZGdldEV4Y2VlZGVkUG9saWN5EiYKImJ1ZGdldF9leGNlZWRlZF9wb2xpY3lfdW5zcGVjaWZpZWQQABIdChlidWRnZXRfZXhjZWVkZWRfdGVybWluYXRlEAESIAocYnVkZ2V0X2V4Y2VlZGVkX2h1bWFuX3JldmlldxACEhgKFGJ1ZGdldF9leGNlZWRlZF93YXJuEANiBnByb3RvMw");
 
 /**
  * WorkflowTaskKind defines the supported task types in a workflow.
@@ -45,6 +45,7 @@ export const file_ai_stigmer_agentic_workflow_v1_enum: GenFile = /*@__PURE__*/
  * validate: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
  * emit_event: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
  * notification: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "...", "template": "...", "metadata": {...}}
+ * eval: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "EVAL_PASS_FAIL", "threshold": 0.7, "on_fail": "EVAL_FAIL_RAISE", "criteria": [...]}
  *
  * @generated from enum ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
  */
@@ -265,6 +266,22 @@ export enum WorkflowTaskKind {
    * @generated from enum value: notification = 19;
    */
   notification = 19,
+
+  /**
+   * LLM-as-a-judge evaluation for semantic quality assessment.
+   *
+   * @internal
+   * Assesses quality, correctness, safety, or completeness of LLM-generated
+   * or agent-produced content using an LLM judge. Fills the gap between
+   * structural validation (validate task) and human review (human_input).
+   * Supports pass/fail, numeric scoring, and multi-criteria evaluation modes.
+   * Config: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "...", "threshold": 0.7, "on_fail": "..."}
+   *
+   * @since T17 (Advanced Agentic Orchestration)
+   *
+   * @generated from enum value: eval = 20;
+   */
+  eval = 20,
 }
 
 /**

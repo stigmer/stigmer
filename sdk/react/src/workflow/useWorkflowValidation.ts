@@ -17,7 +17,7 @@ const VALID_TASK_KINDS = new Set([
   "set_vars", "http_call", "grpc_call", "activity_call", "switch_case",
   "for_each", "fork", "try_catch", "listen", "wait", "raise_error",
   "run_workflow", "agent_call", "llm_call", "transform", "human_input",
-  "validate", "emit_event", "notification",
+  "validate", "emit_event", "notification", "eval",
 ]);
 
 /**
@@ -186,6 +186,8 @@ function validateTasks(
     if (!configNode || !isMap(configNode)) {
       const range = rangeOf(item, yaml);
       diags.push({ from: range[0], to: range[1], severity: "error", message: `Task "${nameVal}" is missing required field: task_config` });
+    } else if (kindVal === "eval") {
+      validateEvalConfig(configNode, nameVal, diags, yaml);
     }
 
     validateFlowReferences(item, nameVal, allTaskNames, taskNames, diags, yaml);
@@ -233,6 +235,36 @@ function validateFlowReferencesSecondPass(
       severity: "warning",
       message: `Task "${taskName}" flow.then references unknown task "${thenVal}"`,
     });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Kind-specific config validation
+// ---------------------------------------------------------------------------
+
+function validateEvalConfig(
+  configNode: YAMLMap,
+  taskName: string,
+  diags: Diagnostic[],
+  yaml: string,
+): void {
+  for (const field of ["model", "subject", "rubric"] as const) {
+    const val = findScalarValue(configNode, field);
+    if (!val) {
+      diags.push(
+        diagAtKey(configNode, field, yaml, "error", `Eval task "${taskName}" is missing required field: ${field}`),
+      );
+    }
+  }
+
+  const thresholdNode = findMapValue(configNode, "threshold");
+  if (thresholdNode && isScalar(thresholdNode)) {
+    const num = Number(thresholdNode.value);
+    if (!Number.isFinite(num) || num < 0 || num > 1) {
+      const pair = findPair(configNode, "threshold");
+      const range = pair ? rangeOfPair(pair, yaml) : rangeOf(configNode, yaml);
+      diags.push({ from: range[0], to: range[1], severity: "error", message: `Eval task "${taskName}": threshold must be between 0.0 and 1.0` });
+    }
   }
 }
 

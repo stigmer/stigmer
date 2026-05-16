@@ -34,6 +34,7 @@ const TASK_KIND_LABELS: ReadonlyMap<WorkflowTaskKind, string> = new Map([
   [WorkflowTaskKind.validate, "Validate"],
   [WorkflowTaskKind.emit_event, "Emit Event"],
   [WorkflowTaskKind.notification, "Notification"],
+  [WorkflowTaskKind.eval, "Evaluate (LLM Judge)"],
 ]);
 
 /**

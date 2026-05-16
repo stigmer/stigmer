@@ -59,18 +59,20 @@ class WorkflowDocument(_message.Message):
     def __init__(self, dsl: _Optional[str] = ..., namespace: _Optional[str] = ..., name: _Optional[str] = ..., version: _Optional[str] = ..., description: _Optional[str] = ...) -> None: ...
 
 class WorkflowTask(_message.Message):
-    __slots__ = ("name", "kind", "task_config", "export", "flow")
+    __slots__ = ("name", "kind", "task_config", "export", "flow", "compensate")
     NAME_FIELD_NUMBER: _ClassVar[int]
     KIND_FIELD_NUMBER: _ClassVar[int]
     TASK_CONFIG_FIELD_NUMBER: _ClassVar[int]
     EXPORT_FIELD_NUMBER: _ClassVar[int]
     FLOW_FIELD_NUMBER: _ClassVar[int]
+    COMPENSATE_FIELD_NUMBER: _ClassVar[int]
     name: str
     kind: _enum_pb2.WorkflowTaskKind
     task_config: _struct_pb2.Struct
     export: Export
     flow: FlowControl
-    def __init__(self, name: _Optional[str] = ..., kind: _Optional[_Union[_enum_pb2.WorkflowTaskKind, str]] = ..., task_config: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., export: _Optional[_Union[Export, _Mapping]] = ..., flow: _Optional[_Union[FlowControl, _Mapping]] = ...) -> None: ...
+    compensate: _containers.RepeatedCompositeFieldContainer[WorkflowTask]
+    def __init__(self, name: _Optional[str] = ..., kind: _Optional[_Union[_enum_pb2.WorkflowTaskKind, str]] = ..., task_config: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., export: _Optional[_Union[Export, _Mapping]] = ..., flow: _Optional[_Union[FlowControl, _Mapping]] = ..., compensate: _Optional[_Iterable[_Union[WorkflowTask, _Mapping]]] = ...) -> None: ...
 
 class Export(_message.Message):
     __slots__ = ()

@@ -19,10 +19,54 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-15 — T16 Batch 4 COMPLETE (diagnose execution — AI repair assistant)
-**Current Task**: T16 Batch 4 COMPLETE
-**Phase**: Phase 3 — AI-Assisted Creation — ALL BATCHES COMPLETE
-**Next Task**: Phase 4: Advanced Agentic Orchestration (T17) — plan_and_execute, handoff, eval, batch, cache, code_execution, memory
+**Last Session**: 2026-05-16 — Phase 4 (T17) COMPLETE (eval, for_each concurrency, compensation)
+**Current Task**: Phase 4 COMPLETE
+**Phase**: Phase 4 — Advanced Agentic Orchestration — COMPLETE
+**Next Task**: Open tech debt, E2E test runs, or new feature work
+
+## Session Progress (2026-05-16, Phase 4 / T17)
+
+### Phase 4: Advanced Agentic Orchestration — COMPLETE
+
+Built three advanced orchestration capabilities in a single session. Research-driven
+scope: 3 built, 5 deferred with documented rationale.
+
+#### T17.1: eval / llm_judge Task Type (enum value 20)
+- **Proto**: `EvalTaskConfig`, `EvalScoringMode` (pass_fail, numeric_score, multi_criteria),
+  `EvalFailPolicy` (raise, branch, warn), `EvalCriterion` for weighted multi-axis evaluation
+- **Go**: `task_builder_eval.go` + `task_builder_eval_activities.go` — judge prompt construction,
+  LLM call, structured response parsing, threshold application, on_fail policy
+- **Pipeline**: constants, factory dispatch, task kind mapping, unmarshal, converter, proto_to_yaml
+- **Registry**: Full descriptor with fields, groups, JSON Schema, output schema, YAML examples
+- **SDK React**: AI_KINDS categorization, validation, task labels, timeline renderer
+- **Meta**: `eval.yaml` with 3 YAML examples covering all scoring modes
+- **Tests**: 3 offline validation + 3 provider-backed execution tests
+
+#### T17.2: for_each Concurrency Enhancement
+- **Proto**: `max_parallelism` (int32), `batch_size` (int32), `ForEachErrorPolicy` enum
+- **Go**: Rewrote `task_builder_for.go` — sequential (default), parallel (`workflow.Go()` +
+  semaphore), batch (chunked parallel), error aggregation per policy, result ordering preserved
+- **Converter**: New fields serialized in `convertForTask`
+- **Registry**: 3 new fields + "Concurrency" field group
+
+#### T17.3: Saga-Style Compensation
+- **Proto**: `repeated WorkflowTask compensate = 6` on `WorkflowTask`, `bool compensate = 3` on `CatchBlock`
+- **Go**: `compensation.go` — CompensationStack, CompensationEntry, RunReverse()
+- **Converter**: Compensation carried via `metadata.__stigmer_compensate` through YAML pipeline
+- **Design decision**: Option B (typed proto field, consistent with export/flow extensions)
+
+#### Deferred Items (5, research-backed)
+- `cache` — execution policy, not a task type
+- `code_execution` — late-stage, governance-heavy
+- `plan_and_execute` — contradicts "deterministic outer, autonomous inner"
+- `memory_recall/write` — needs broader state/artifact model
+- `agent_handoff` — enrichment of agent_call, not separate kind
+
+#### Verification
+- `buf lint` — clean
+- `go build` + `go vet` — clean (workflow-runner, stigmer-server)
+- `tsc --noEmit` — clean (sdk/typescript, sdk/react, client-apps/web, client-apps/desktop)
+- `go build -tags integration` + `go vet -tags integration` — clean
 
 ## Session Progress (2026-05-15, T16 Batch 4)
 
@@ -981,8 +1025,9 @@ New Task Types — llm_call, transform, human_input, validate, emit_event, notif
 Structured Agent Output Model
 
 ## Next Steps
-1. **Phase 4: Advanced Agentic Orchestration (T17)** — plan_and_execute, handoff, eval, batch, cache, code_execution, memory
+1. **Run E2E tests** — `make test-providers` with API keys to validate eval task end-to-end
 2. **Open tech debt items** (see below)
+3. **Future phases** — cache policies on invocation tasks, code_execution (standalone project), memory/artifact model
 
 ## Context for Resume
 - Phase 0 (Harden the Workflow Core) COMPLETE — T02-T07
@@ -1102,7 +1147,7 @@ When starting a new session:
 - **Phase 1**: Foreground MVP (T08-T14) — COMPLETE
 - **Phase 2**: Visual Builder (T15) — COMPLETE — canvas editor, drag-and-drop, YAML round-trip
 - **Phase 3**: AI-Assisted Creation (T16) — COMPLETE — generate, refine, diagnose
-- **Phase 4**: Advanced Agentic Orchestration (T17) — plan_and_execute, handoff, eval, batch, cache, code_execution, memory
+- **Phase 4**: Advanced Agentic Orchestration (T17) — COMPLETE — eval/llm_judge, for_each concurrency, saga compensation
 
 ## Quick Commands
 
