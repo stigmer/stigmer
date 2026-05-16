@@ -24,10 +24,10 @@ type jsonRPCRequest struct {
 }
 
 type jsonRPCResponse struct {
-	JSONRPC string      `json:"jsonrpc"`
-	ID      any         `json:"id"`
-	Result  any         `json:"result,omitempty"`
-	Error   *rpcError   `json:"error,omitempty"`
+	JSONRPC string    `json:"jsonrpc"`
+	ID      any       `json:"id"`
+	Result  any       `json:"result,omitempty"`
+	Error   *rpcError `json:"error,omitempty"`
 }
 
 type rpcError struct {
@@ -117,6 +117,14 @@ var tools = []toolInfo{
 				"seconds": map[string]any{"type": "number", "description": "Seconds to sleep"},
 			},
 			"required": []string{"seconds"},
+		},
+	},
+	{
+		Name:        "crash",
+		Description: "Terminates the MCP server process immediately. For testing execution failure and recovery.",
+		InputSchema: map[string]any{
+			"type":       "object",
+			"properties": map[string]any{},
 		},
 	},
 }
@@ -212,6 +220,9 @@ func handleToolCall(id any, params *callToolParams) {
 		writeResult(id, toolResult{
 			Content: []contentItem{{Type: "text", Text: "done"}},
 		})
+
+	case "crash":
+		os.Exit(1)
 
 	default:
 		writeError(id, -32602, "Unknown tool: "+params.Name)

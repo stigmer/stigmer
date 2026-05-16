@@ -7,7 +7,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
+	executionctxv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
+	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/require"
 )
@@ -255,6 +260,92 @@ func TestAgentExecution_MCP_HttpToolExecution(t *testing.T) {
 			t.Logf("HTTP MCP test completed: id=%s, messages=%d",
 				result.GetMetadata().GetId(),
 				len(result.GetStatus().GetMessages()))
+		})
+	}
+}
+
+func TestAgentExecution_MCP_EnvVarResolution(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	for _, h := range harness.Harnesses {
+		t.Run(h.Name, func(t *testing.T) {
+			h.Skip(t, testHarness)
+			if mcpTestServerBinary == "" {
+				t.Skip("test MCP server binary not built — skipping env var resolution test")
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
+
+			// Create an MCP server with a ${TEST_SECRET} placeholder in args.
+			// The args are passed to the binary; the test MCP server ignores
+			// extra args, so successful tool execution proves the placeholder
+			// was resolved (unresolved placeholders cause a startup error).
+			name := "test-mcp-envvar-" + uuid.New().String()[:8]
+			server := &mcpserverv1.McpServer{
+				ApiVersion: "agentic.stigmer.ai/v1",
+				Kind:       "McpServer",
+				Metadata: &apiresource.ApiResourceMetadata{
+					Name: name,
+					Org:  "test-org",
+				},
+				Spec: &mcpserverv1.McpServerSpec{
+					Description: "MCP server with env var placeholder in args",
+					ServerType: &mcpserverv1.McpServerSpec_Stdio{
+						Stdio: &mcpserverv1.StdioServerConfig{
+							Command: mcpTestServerBinary,
+							Args:    []string{"--secret=${TEST_SECRET}"},
+						},
+					},
+					Env: map[string]*environmentv1.EnvVarDeclaration{
+						"TEST_SECRET": {
+							Description: "Test secret for env var resolution",
+							IsSecret:    true,
+						},
+					},
+				},
+			}
+
+			mcpServer, err := clients.McpServerCommand.Apply(ctx, server)
+			require.NoError(t, err, "apply MCP server with env placeholder should succeed")
+			t.Cleanup(func() {
+				cleanCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+				clients.McpServerCommand.Delete(cleanCtx, &apiresource.ApiResourceDeleteInput{ResourceId: mcpServer.GetMetadata().GetId()})
+			})
+
+			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
+
+			agent := harness.CreateAgent(t, ctx, clients, "test-envvar-"+h.Name,
+				"You are a helpful assistant with access to tools. Use the echo tool to echo 'env-resolved'.",
+				harness.WithMcpServerUsage(mcpServer.GetMetadata().GetSlug()),
+			)
+
+			session := harness.CreateTestSession(t, ctx, clients,
+				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
+
+			// Provide the env var value via runtime_env on the execution.
+			exec := harness.CreateTestAgentExecution(t, ctx, clients,
+				session.GetMetadata().GetId(),
+				"Use the echo tool to echo 'env-resolved'.",
+				harness.WithAutoApproveAll(true),
+				harness.WithRuntimeEnv(map[string]*executionctxv1.ExecutionValue{
+					"TEST_SECRET": {Value: "resolved-secret-value", IsSecret: true},
+				}),
+			)
+
+			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+			result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
+				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+			require.NoError(t, err, "execution should complete — env var was resolved and MCP server started")
+			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+			harness.AssertHasToolCall(t, result, "echo")
+			t.Logf("env var resolution test completed: id=%s, messages=%d",
+				result.GetMetadata().GetId(), len(result.GetStatus().GetMessages()))
 		})
 	}
 }
