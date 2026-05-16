@@ -88,6 +88,14 @@ func pyTrackMethodTypeImport(typeName, fullType string, cfg sdkResourceConfig, s
 	} else {
 		imports.extraPb2Modules[mod] = true
 	}
+	// Detect sub-package types: if there's more than just the type name
+	// after the schema package prefix, the type lives in a sub-package.
+	suffix := fullType[len(schema.Package)+1:]
+	if dotIdx := strings.LastIndex(suffix, "."); dotIdx > 0 {
+		subPkg := fullType[:len(schema.Package)+1+dotIdx]
+		subPkgDotted := strings.ReplaceAll(subPkg, "/", ".")
+		imports.subPkgPb2Imports[mod] = subPkgDotted
+	}
 }
 
 // pyClientFieldName maps a resource slug to its snake_case plural Python property name.
@@ -296,6 +304,7 @@ type pyImports struct {
 	crossResourceTypes map[string][]string // "._agent" -> ["McpServerUsageInput", ...]
 	crossProtoPackages map[string]bool     // "ai.stigmer.agentic.agent.v1" -> true
 	extraPb2Modules    map[string]bool     // additional _pb2 modules beyond io_pb2 (e.g., "token_pb2")
+	subPkgPb2Imports   map[string]string   // module → sub-package path (e.g., "validation_pb2" → "ai.stigmer.agentic.workflow.v1.serverless")
 }
 
 func newPyImports(pkg string) *pyImports {
@@ -306,6 +315,7 @@ func newPyImports(pkg string) *pyImports {
 		crossResourceTypes: make(map[string][]string),
 		crossProtoPackages: make(map[string]bool),
 		extraPb2Modules:    make(map[string]bool),
+		subPkgPb2Imports:   make(map[string]string),
 	}
 }
 
@@ -385,7 +395,11 @@ func (p *pyImports) emit(buf *bytes.Buffer) {
 		}
 		sort.Strings(modules)
 		for _, m := range modules {
-			fmt.Fprintf(buf, "from %s import %s\n", p.resourcePkg, m)
+			if subPkg, ok := p.subPkgPb2Imports[m]; ok {
+				fmt.Fprintf(buf, "from %s import %s\n", subPkg, m)
+			} else {
+				fmt.Fprintf(buf, "from %s import %s\n", p.resourcePkg, m)
+			}
 		}
 	}
 	if p.needsSpec {
