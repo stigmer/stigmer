@@ -101,8 +101,66 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-15 10:05
-**Current Task**: E2E Testing — Workflow Architect agent tests implemented
-**Status**: In Progress — awaiting first live run
+**Current Task**: Tech debt resolved — all sub-project work complete
+**Status**: Complete — ready for parent project Phase 4
+
+## Session Progress (May 16, 2026 — Session 7: Tech Debt Sweep)
+
+### Completed: Workflow Domain Tech Debt Sweep
+
+Investigated all 7 accumulated tech debt items from Phases 0-3, resolved the 4 actionable
+items, verified 1, and deferred 2 with documented rationale.
+
+#### TD-2 + TD-3: TS SDK Codegen Fix
+- **Root cause**: `tsImportMethodType` in `sdk_client_ts.go` blindly appended `/io_pb` for
+  cross-package types instead of consulting `methodTypeFileMap`
+- **Fix**: 4-line change — check `methodTypeFileMap[typeName]` before `/io_pb` fallback
+- **Verified**: `make -C sdk/typescript codegen` produces correct `serverless/validation_pb` import
+- TD-2 was already resolved — both RPCs were in the JSON schemas
+
+#### TD-1: OSS Event Persistence
+- SQLite migration (`schemaVersion5`): `workflow_execution_events` table
+- Store interface: 3 new methods + `WorkflowExecutionEventRecord`
+- `PersistEventsStep` in `update_status.go` pipeline (non-fatal)
+- `GetEventLog` query handler (cursor-paginated)
+- `SubscribeEvents` streaming handler (poll-based, 500ms)
+
+#### TD-4: CheckBudgetWarnings
+- Wrote from scratch in `budget_warnings.go` (147 lines, 7 warning scenarios)
+- Wired into `ValidateWorkflow` Temporal activity as Step 4
+- 9 unit tests passing, non-blocking warnings (state stays VALID)
+
+#### TD-7: Search Indexing — Verified
+- Code path correct: `IndexSearchStep` wired at step 9 of create pipeline
+- Best-effort indexing is a platform-wide design choice, not workflow-specific
+
+#### TD-5 + TD-6: Deferred
+- TD-5: Agent-execution-scoped downloads already work; unified `artifact.v1` is a feature
+- TD-6: Cannot verify without frontend code access
+
+### Files Changed
+- `tools/codegen/generator/sdk_client_ts.go` — **Modify** (cross-package import fix)
+- `backend/libs/go/store/interface.go` — **Modify** (3 new methods + record type)
+- `backend/libs/go/store/sqlite/store.go` — **Modify** (migration v5 + implementations)
+- `backend/services/stigmer-server/pkg/domain/workflowexecution/controller/update_status.go` — **Modify** (PersistEventsStep)
+- `backend/services/stigmer-server/pkg/domain/workflowexecution/controller/get_event_log.go` — **New**
+- `backend/services/stigmer-server/pkg/domain/workflowexecution/controller/subscribe_events.go` — **New**
+- `backend/services/workflow-runner/pkg/validation/budget_warnings.go` — **New**
+- `backend/services/workflow-runner/pkg/validation/budget_warnings_test.go` — **New**
+- `backend/services/workflow-runner/pkg/validation/validate.go` — **Modify** (moved CheckBudgetWarnings)
+- `backend/services/workflow-runner/pkg/validation/BUILD.bazel` — **Modify**
+- `backend/services/workflow-runner/worker/activities/validate_workflow_activity.go` — **Modify**
+
+### Verification
+- `go build` + `go vet` — clean (libs, stigmer-server, workflow-runner)
+- `go test ./backend/services/workflow-runner/pkg/validation/...` — 9/9 budget tests pass
+- `tsc --noEmit` — clean (sdk/typescript)
+
+## Next Steps
+
+1. **Run E2E tests** — `make test-workflow-architect` with API keys
+2. **Phase 4: Advanced Agentic Orchestration (T17)** — plan_and_execute, handoff, eval, batch, cache, code_execution, memory
+3. **Future: Large YAML attachment** — for workflows > 300 lines
 
 ## Session Progress (May 16, 2026 — Session 6: E2E Integration Tests)
 
@@ -171,7 +229,7 @@ with the real `mcp-server-stigmer` binary connected to the test Java service.
 1. **Run the tests** — `make test-workflow-architect` with API keys to validate end-to-end
 2. **Verify MCP env propagation** — confirm `STIGMER_SERVER_ADDRESS` reaches the MCP server process
 3. **Future: Large YAML attachment** — for workflows > 300 lines
-4. **Future: Codegen tool fix** — `serverless/io_pb` → `serverless/validation_pb` import path
+4. ~~**Future: Codegen tool fix**~~ — ✅ RESOLVED in Session 7 tech debt sweep
 
 ## Session Progress (May 15, 2026 — Session 5)
 

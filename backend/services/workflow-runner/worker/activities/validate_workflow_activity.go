@@ -364,6 +364,13 @@ func (a *ValidateWorkflowActivities) ValidateWorkflow(ctx context.Context, spec 
 		logger.Info("Semantic analysis produced warnings", "count", len(semanticWarnings))
 	}
 
+	// Step 4: Budget warnings — detect budget misconfigurations that are
+	// non-blocking but indicate likely authoring mistakes.
+	if budgetWarnings := validation.CheckBudgetWarnings(spec.Budget, spec.Tasks); len(budgetWarnings) > 0 {
+		warnings = append(warnings, budgetWarnings...)
+		logger.Info("Budget analysis produced warnings", "count", len(budgetWarnings))
+	}
+
 	// Return VALID state
 	return &serverlessv1.ServerlessWorkflowValidation{
 		State:    serverlessv1.ValidationState_VALID,
