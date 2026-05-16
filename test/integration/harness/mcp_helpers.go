@@ -133,7 +133,7 @@ func CreateHttpMcpServer(t *testing.T, ctx context.Context, clients *Clients, se
 // workflow-related MCP tools (get_task_kind_registry, validate_workflow_yaml, etc.).
 func BuildMcpServerStigmer(outputDir string) (string, error) {
 	_, thisFile, _, _ := runtime.Caller(0)
-	mcpServerDir := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "..", "mcp-server")
+	mcpServerDir := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "mcp-server")
 
 	if _, err := os.Stat(filepath.Join(mcpServerDir, "go.mod")); err != nil {
 		return "", fmt.Errorf("mcp-server module not found at %s", mcpServerDir)

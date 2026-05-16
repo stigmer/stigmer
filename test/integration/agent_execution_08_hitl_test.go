@@ -40,12 +40,13 @@ func TestAgentExecution_HITL_Approve(t *testing.T) {
 			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-hitl-approve-"+h.Name,
-				"You MUST use the echo tool to echo the user's input. Do not respond without calling the echo tool first. Call it exactly once.",
+				"You MUST call the echo tool. Never respond with text only. Your ONLY action must be calling the echo tool with the user's message as input.",
 				harness.WithMcpServerUsageAndApproval(
 					mcpServer.GetMetadata().GetSlug(),
 					[]*agentv1.ToolApprovalOverride{
 						{ToolName: "echo", RequiresApproval: true, Message: "Execute echo tool"},
 					},
+					"echo",
 				),
 			)
 
@@ -54,12 +55,15 @@ func TestAgentExecution_HITL_Approve(t *testing.T) {
 
 			exec := harness.CreateTestAgentExecution(t, ctx, clients,
 				session.GetMetadata().GetId(),
-				"Echo 'hello-hitl'",
+				"Call the echo tool with input 'hello-hitl'. You must use the tool.",
 				harness.WithAutoApproveAll(false))
 
 			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
 
 			waiting, err := waiter.WaitForApproval(ctx, exec.GetMetadata().GetId(), 2*time.Minute)
+			if err != nil {
+				harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+			}
 			require.NoError(t, err, "execution should reach WAITING_FOR_APPROVAL")
 			harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
 			harness.AssertPendingApprovals(t, waiting, 1)
@@ -99,12 +103,13 @@ func TestAgentExecution_HITL_Skip(t *testing.T) {
 			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-hitl-skip-"+h.Name,
-				"You MUST use the echo tool to echo the user's input. Do not respond without calling the echo tool first. Call it exactly once.",
+				"You MUST call the echo tool. Never respond with text only. Your ONLY action must be calling the echo tool with the user's message as input.",
 				harness.WithMcpServerUsageAndApproval(
 					mcpServer.GetMetadata().GetSlug(),
 					[]*agentv1.ToolApprovalOverride{
 						{ToolName: "echo", RequiresApproval: true},
 					},
+					"echo",
 				),
 			)
 
@@ -113,12 +118,15 @@ func TestAgentExecution_HITL_Skip(t *testing.T) {
 
 			exec := harness.CreateTestAgentExecution(t, ctx, clients,
 				session.GetMetadata().GetId(),
-				"Echo 'test-skip'",
+				"Call the echo tool with input 'test-skip'. You must use the tool.",
 				harness.WithAutoApproveAll(false))
 
 			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
 
 			waiting, err := waiter.WaitForApproval(ctx, exec.GetMetadata().GetId(), 2*time.Minute)
+			if err != nil {
+				harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+			}
 			require.NoError(t, err)
 
 			approval := waiting.GetStatus().GetPendingApprovals()[0]
@@ -155,12 +163,13 @@ func TestAgentExecution_HITL_Reject(t *testing.T) {
 			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-hitl-reject-"+h.Name,
-				"You MUST use the echo tool to echo the user's input. Do not respond without calling the echo tool first. Call it exactly once.",
+				"You MUST call the echo tool. Never respond with text only. Your ONLY action must be calling the echo tool with the user's message as input.",
 				harness.WithMcpServerUsageAndApproval(
 					mcpServer.GetMetadata().GetSlug(),
 					[]*agentv1.ToolApprovalOverride{
 						{ToolName: "echo", RequiresApproval: true},
 					},
+					"echo",
 				),
 			)
 
@@ -169,12 +178,15 @@ func TestAgentExecution_HITL_Reject(t *testing.T) {
 
 			exec := harness.CreateTestAgentExecution(t, ctx, clients,
 				session.GetMetadata().GetId(),
-				"Echo 'test-reject'",
+				"Call the echo tool with input 'test-reject'. You must use the tool.",
 				harness.WithAutoApproveAll(false))
 
 			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
 
 			waiting, err := waiter.WaitForApproval(ctx, exec.GetMetadata().GetId(), 2*time.Minute)
+			if err != nil {
+				harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+			}
 			require.NoError(t, err)
 
 			approval := waiting.GetStatus().GetPendingApprovals()[0]
@@ -210,12 +222,13 @@ func TestAgentExecution_HITL_AutoApproveAll(t *testing.T) {
 			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-hitl-auto-"+h.Name,
-				"You MUST use the echo tool to echo the user's input. Do not respond without calling the echo tool first. Call it exactly once.",
+				"You MUST call the echo tool. Never respond with text only. Your ONLY action must be calling the echo tool with the user's message as input.",
 				harness.WithMcpServerUsageAndApproval(
 					mcpServer.GetMetadata().GetSlug(),
 					[]*agentv1.ToolApprovalOverride{
 						{ToolName: "echo", RequiresApproval: true},
 					},
+					"echo",
 				),
 			)
 
@@ -297,12 +310,13 @@ func TestAgentExecution_HITL_PendingApprovalDetails(t *testing.T) {
 			mcpSlug := mcpServer.GetMetadata().GetSlug()
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-hitl-details-"+h.Name,
-				"You MUST use the echo tool to echo the user's input. Do not respond without calling the echo tool first. Call it exactly once with {\"input\": \"detail-test\"}.",
+				"You MUST call the echo tool. Never respond with text only. Your ONLY action must be calling the echo tool with {\"input\": \"detail-test\"}.",
 				harness.WithMcpServerUsageAndApproval(
 					mcpSlug,
 					[]*agentv1.ToolApprovalOverride{
 						{ToolName: "echo", RequiresApproval: true, Message: "Confirm echo call"},
 					},
+					"echo",
 				),
 			)
 
@@ -362,12 +376,13 @@ func TestAgentExecution_HITL_IdempotentApproval(t *testing.T) {
 			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-hitl-idempotent-"+h.Name,
-				"You MUST use the echo tool to echo the user's input. Do not respond without calling the echo tool first. Call it exactly once.",
+				"You MUST call the echo tool. Never respond with text only. Your ONLY action must be calling the echo tool with the user's message as input.",
 				harness.WithMcpServerUsageAndApproval(
 					mcpServer.GetMetadata().GetSlug(),
 					[]*agentv1.ToolApprovalOverride{
 						{ToolName: "echo", RequiresApproval: true},
 					},
+					"echo",
 				),
 			)
 

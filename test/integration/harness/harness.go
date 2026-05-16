@@ -16,6 +16,7 @@ type TestHarness struct {
 	Redis          *RedisContainer
 	Temporal       *TemporalDevServer
 	OpenFGA        *OpenFGAContainer
+	MinIO          *MinIOContainer
 	Service        *JavaService
 	WorkflowRunner *WorkflowRunner
 	AgentRunner    *AgentRunner
@@ -97,10 +98,10 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 
 	logger.Info("starting test infrastructure", "output_dir", outputDir)
 
-	var mongoErr, redisErr, temporalErr error
+	var mongoErr, redisErr, temporalErr, minioErr error
 	var wg sync.WaitGroup
 
-	wg.Add(3)
+	wg.Add(4)
 	go func() {
 		defer wg.Done()
 		logger.Info("starting mongodb")
@@ -128,6 +129,15 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 		}
 	}()
 
+	go func() {
+		defer wg.Done()
+		logger.Info("starting minio")
+		h.MinIO, minioErr = StartMinIO(ctx)
+		if minioErr == nil {
+			logger.Info("minio ready", "endpoint", h.MinIO.Endpoint)
+		}
+	}()
+
 	wg.Wait()
 
 	if mongoErr != nil {
@@ -141,6 +151,10 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 	if temporalErr != nil {
 		h.Stop(ctx)
 		return nil, fmt.Errorf("temporal: %w", temporalErr)
+	}
+	if minioErr != nil {
+		h.Stop(ctx)
+		return nil, fmt.Errorf("minio: %w", minioErr)
 	}
 
 	// Start OpenFGA if the model directory and CLI are available.
@@ -202,6 +216,12 @@ func (h *TestHarness) Stop(ctx context.Context) {
 	if h.OpenFGA != nil {
 		if err := StopContainer(ctx, h.OpenFGA.Container); err != nil {
 			h.logger.Error("failed to stop openfga", "error", err)
+		}
+	}
+
+	if h.MinIO != nil {
+		if err := StopContainer(ctx, h.MinIO.Container); err != nil {
+			h.logger.Error("failed to stop minio", "error", err)
 		}
 	}
 

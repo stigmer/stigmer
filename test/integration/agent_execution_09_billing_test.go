@@ -159,6 +159,16 @@ func TestAgentExecution_Billing_NoCreditsBlocked(t *testing.T) {
 
 	// Provision an org with zero credits: create billing account but don't add any.
 	noCreditsOrg := "test-org-no-credits"
+
+	// Seed FGA tuples so the test identity has ownership of this org,
+	// otherwise the billing RPC is denied by the authorization layer.
+	if testHarness.OpenFGA != nil {
+		err := testHarness.OpenFGA.WriteTuples(ctx, []harness.RelationshipTuple{
+			{User: "identity_account:test-identity-account-id", Relation: "owner", Object: "organization:" + noCreditsOrg},
+		})
+		require.NoError(t, err, "seed FGA tuples for no-credits org")
+	}
+
 	_, err := clients.BillingCommand.GetOrCreateBillingAccount(ctx, &billingv1.GetOrCreateBillingAccountInput{
 		OrgId: noCreditsOrg,
 	})

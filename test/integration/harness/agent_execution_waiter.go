@@ -205,3 +205,33 @@ func AssertPendingApprovals(t *testing.T, exec *agentexecv1.AgentExecution, expe
 	assert.Equal(t, expectedCount, actual,
 		"expected %d pending approvals, got %d", expectedCount, actual)
 }
+
+// LogExecutionMessages fetches the current execution state and logs all
+// messages for diagnostic purposes. Useful when a test fails unexpectedly
+// (e.g., LLM didn't call a tool) to distinguish infra bugs from LLM
+// non-determinism.
+func LogExecutionMessages(t *testing.T, ctx context.Context, clients *Clients, executionID string) {
+	t.Helper()
+	exec, err := clients.AgentExecutionQuery.Get(ctx, &agentexecv1.AgentExecutionId{Value: executionID})
+	if err != nil {
+		t.Logf("DIAGNOSTIC: failed to fetch execution %s for message dump: %v", executionID, err)
+		return
+	}
+
+	t.Logf("DIAGNOSTIC: execution %s phase=%s, messages=%d",
+		executionID, exec.GetStatus().GetPhase(), len(exec.GetStatus().GetMessages()))
+	for i, msg := range exec.GetStatus().GetMessages() {
+		toolCalls := msg.GetToolCalls()
+		if len(toolCalls) > 0 {
+			for _, tc := range toolCalls {
+				t.Logf("DIAGNOSTIC:   msg[%d] type=%s tool_call=%s", i, msg.GetType(), tc.GetName())
+			}
+		} else {
+			content := msg.GetContent()
+			if len(content) > 200 {
+				content = content[:200] + "..."
+			}
+			t.Logf("DIAGNOSTIC:   msg[%d] type=%s content=%q", i, msg.GetType(), content)
+		}
+	}
+}

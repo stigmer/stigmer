@@ -54,6 +54,12 @@ type ServiceConfig struct {
 	OpenFGAStoreID string
 	OpenFGAModelID string
 
+	// MinIO S3-compatible endpoint for artifact storage.
+	// When set, replaces the dummy localhost:19999 placeholder.
+	MinIOEndpoint  string
+	MinIOAccessKey string
+	MinIOSecretKey string
+
 	// LogDir is the directory for the service log file.
 	// If empty, a temporary directory is used.
 	LogDir string
@@ -222,21 +228,21 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		// Machine account domain (required by iam profile)
 		"MACHINE_ACCOUNT_EMAIL_DOMAIN=test.machineaccount.stigmer.ai",
 
-		// R2/S3 dummy config (beans created but not called during tests)
+		// R2/S3 config — backed by MinIO testcontainer when available
 		"SKILL_ARTIFACT_R2_BUCKET=test-bucket",
-		"SKILL_ARTIFACT_R2_ENDPOINT=http://localhost:19999",
-		"SKILL_ARTIFACT_R2_ACCESS_KEY_ID=test",
-		"SKILL_ARTIFACT_R2_SECRET_ACCESS_KEY=test",
+		fmt.Sprintf("SKILL_ARTIFACT_R2_ENDPOINT=%s", r2Endpoint(cfg)),
+		fmt.Sprintf("SKILL_ARTIFACT_R2_ACCESS_KEY_ID=%s", r2AccessKey(cfg)),
+		fmt.Sprintf("SKILL_ARTIFACT_R2_SECRET_ACCESS_KEY=%s", r2SecretKey(cfg)),
 		"AGENT_EXECUTION_ARTIFACT_R2_BUCKET=test-bucket",
-		"AGENT_EXECUTION_ARTIFACT_R2_ENDPOINT=http://localhost:19999",
-		"AGENT_EXECUTION_ARTIFACT_R2_ACCESS_KEY_ID=test",
-		"AGENT_EXECUTION_ARTIFACT_R2_SECRET_ACCESS_KEY=test",
+		fmt.Sprintf("AGENT_EXECUTION_ARTIFACT_R2_ENDPOINT=%s", r2Endpoint(cfg)),
+		fmt.Sprintf("AGENT_EXECUTION_ARTIFACT_R2_ACCESS_KEY_ID=%s", r2AccessKey(cfg)),
+		fmt.Sprintf("AGENT_EXECUTION_ARTIFACT_R2_SECRET_ACCESS_KEY=%s", r2SecretKey(cfg)),
 
-		// Claim check R2 dummy config (beans created but not called during tests)
+		// Claim check R2 config
 		"CLAIMCHECK_R2_BUCKET=test-claimcheck-bucket",
-		"CLAIMCHECK_R2_ENDPOINT=http://localhost:19999",
-		"CLAIMCHECK_R2_ACCESS_KEY_ID=test",
-		"CLAIMCHECK_R2_SECRET_ACCESS_KEY=test",
+		fmt.Sprintf("CLAIMCHECK_R2_ENDPOINT=%s", r2Endpoint(cfg)),
+		fmt.Sprintf("CLAIMCHECK_R2_ACCESS_KEY_ID=%s", r2AccessKey(cfg)),
+		fmt.Sprintf("CLAIMCHECK_R2_SECRET_ACCESS_KEY=%s", r2SecretKey(cfg)),
 
 		// Auth0 dummy values (required by property resolution even in test mode)
 		"AUTH0_DOMAIN=test.auth0.com",
@@ -284,4 +290,25 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	}
 
 	return env
+}
+
+func r2Endpoint(cfg ServiceConfig) string {
+	if cfg.MinIOEndpoint != "" {
+		return cfg.MinIOEndpoint
+	}
+	return "http://localhost:19999"
+}
+
+func r2AccessKey(cfg ServiceConfig) string {
+	if cfg.MinIOAccessKey != "" {
+		return cfg.MinIOAccessKey
+	}
+	return "test"
+}
+
+func r2SecretKey(cfg ServiceConfig) string {
+	if cfg.MinIOSecretKey != "" {
+		return cfg.MinIOSecretKey
+	}
+	return "test"
 }
