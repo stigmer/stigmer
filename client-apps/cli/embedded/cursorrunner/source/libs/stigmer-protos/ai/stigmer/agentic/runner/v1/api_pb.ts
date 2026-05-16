@@ -21,7 +21,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/runner/v1/api.proto.
  */
 export const file_ai_stigmer_agentic_runner_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvcnVubmVyL3YxL2FwaS5wcm90bxIcYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MSKbAgoGUnVubmVyEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEhsKBGtpbmQYAiABKAlCDbpICnIICgZSdW5uZXISTQoIbWV0YWRhdGEYAyABKAsyMy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YUIGukgDyAEBEjYKBHNwZWMYBCABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lclNwZWMSOgoGc3RhdHVzGAUgASgLMiouYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXJTdGF0dXMiowMKDFJ1bm5lclN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0EjgKBXBoYXNlGAEgASgOMikuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXJQaGFzZRISCgp0YXNrX3F1ZXVlGAIgASgJEjUKEWxhc3RfaGVhcnRiZWF0X2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpzdGFydGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpzdG9wcGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIaChJjdXJyZW50X2V4ZWN1dGlvbnMYBiABKAUSSwoPY29ubmVjdGlvbl9pbmZvGAggASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXJDb25uZWN0aW9uSW5mb0oECAcQCCJuChRSdW5uZXJDb25uZWN0aW9uSW5mbxIQCghob3N0bmFtZRgBIAEoCRIKCgJvcxgCIAEoCRIMCgRhcmNoGAMgASgJEhYKDnJ1bm5lcl92ZXJzaW9uGAQgASgJEhIKCm1hY2hpbmVfaWQYBSABKAliBnByb3RvMw", [file_ai_stigmer_agentic_runner_v1_enum, file_ai_stigmer_agentic_runner_v1_spec, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvcnVubmVyL3YxL2FwaS5wcm90bxIcYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MSKbAgoGUnVubmVyEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEhsKBGtpbmQYAiABKAlCDbpICnIICgZSdW5uZXISTQoIbWV0YWRhdGEYAyABKAsyMy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VNZXRhZGF0YUIGukgDyAEBEjYKBHNwZWMYBCABKAsyKC5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lclNwZWMSOgoGc3RhdHVzGAUgASgLMiouYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXJTdGF0dXMi7AQKDFJ1bm5lclN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0EjgKBXBoYXNlGAEgASgOMikuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXJQaGFzZRISCgp0YXNrX3F1ZXVlGAIgASgJEjUKEWxhc3RfaGVhcnRiZWF0X2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpzdGFydGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpzdG9wcGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIaChJjdXJyZW50X2V4ZWN1dGlvbnMYBiABKAUSSwoPY29ubmVjdGlvbl9pbmZvGAggASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLnJ1bm5lci52MS5SdW5uZXJDb25uZWN0aW9uSW5mbxJdChJwcm9jZXNzX2V4ZWN1dGlvbnMYCSADKAsyQS5haS5zdGlnbWVyLmFnZW50aWMucnVubmVyLnYxLlJ1bm5lclN0YXR1cy5Qcm9jZXNzRXhlY3V0aW9uc0VudHJ5Ei4KCmlkbGVfc2luY2UYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wGjgKFlByb2Nlc3NFeGVjdXRpb25zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgFOgI4AUoECAcQCCJuChRSdW5uZXJDb25uZWN0aW9uSW5mbxIQCghob3N0bmFtZRgBIAEoCRIKCgJvcxgCIAEoCRIMCgRhcmNoGAMgASgJEhYKDnJ1bm5lcl92ZXJzaW9uGAQgASgJEhIKCm1hY2hpbmVfaWQYBSABKAliBnByb3RvMw", [file_ai_stigmer_agentic_runner_v1_enum, file_ai_stigmer_agentic_runner_v1_spec, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * Runner represents a process that executes work on the Stigmer platform.
@@ -178,6 +178,39 @@ export type RunnerStatus = Message<"ai.stigmer.agentic.runner.v1.RunnerStatus"> 
    * @generated from field: ai.stigmer.agentic.runner.v1.RunnerConnectionInfo connection_info = 8;
    */
   connectionInfo?: RunnerConnectionInfo;
+
+  /**
+   * Per-process execution counts in a multi-process sandbox.
+   *
+   * In cloud mode, a single Runner resource hosts three co-located processes
+   * (agent, cursor, workflow), each reporting its own execution count via
+   * heartbeats with distinct process_type values. This map tracks the last
+   * reported count for each process type.
+   *
+   * The aggregate current_executions field (above) is derived from the sum
+   * of all values in this map. The runner is considered idle when every
+   * value is zero.
+   *
+   * Keys: "agent", "cursor", "workflow".
+   * Empty for single-process local runners (backward compatible).
+   *
+   * @generated from field: map<string, int32> process_executions = 9;
+   */
+  processExecutions: { [key: string]: number };
+
+  /**
+   * Timestamp when all processes in this runner last became idle
+   * (every value in process_executions is zero and no streams are active).
+   *
+   * Set by the server when the aggregate transitions from busy to idle.
+   * Cleared when any process reports activity. Used by server-side idle
+   * detection to trigger deprovisioning after a configurable timeout.
+   *
+   * Empty while any process has active executions.
+   *
+   * @generated from field: google.protobuf.Timestamp idle_since = 10;
+   */
+  idleSince?: Timestamp;
 };
 
 /**

@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'ai/stigmer/agentic/workflow/v1/io.proto\x12\x1e\x61i.stigmer.agentic.workflow.v1\x1a\x1b\x62uf/validate/validate.proto\"*\n\nWorkflowId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x9a\x01\n\x1fGenerateWorkflowFromPromptInput\x12\x1f\n\x06prompt\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\nR\x06prompt\x12\x18\n\x03org\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x14\n\x05model\x18\x03 \x01(\tR\x05model\x12&\n\x0ftask_kind_hints\x18\x04 \x03(\tR\rtaskKindHints\"\x93\x01\n GenerateWorkflowFromPromptOutput\x12\x12\n\x04yaml\x18\x01 \x01(\tR\x04yaml\x12 \n\x0b\x65xplanation\x18\x02 \x01(\tR\x0b\x65xplanation\x12\x1a\n\x08warnings\x18\x03 \x03(\tR\x08warnings\x12\x1d\n\nmodel_used\x18\x04 \x01(\tR\tmodelUsedB\xca\x01\n\"com.ai.stigmer.agentic.workflow.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\x1e\x41i.Stigmer.Agentic.Workflow.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'ai/stigmer/agentic/workflow/v1/io.proto\x12\x1e\x61i.stigmer.agentic.workflow.v1\x1a\x1b\x62uf/validate/validate.proto\"*\n\nWorkflowId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05valueB\xca\x01\n\"com.ai.stigmer.agentic.workflow.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02\x1e\x41i.Stigmer.Agentic.Workflow.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,14 +35,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n\"com.ai.stigmer.agentic.workflow.v1B\007IoProtoP\001\242\002\004ASAW\252\002\036Ai.Stigmer.Agentic.Workflow.V1\312\002\036Ai\\Stigmer\\Agentic\\Workflow\\V1\342\002*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\352\002\"Ai::Stigmer::Agentic::Workflow::V1'
   _globals['_WORKFLOWID'].fields_by_name['value']._loaded_options = None
   _globals['_WORKFLOWID'].fields_by_name['value']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_GENERATEWORKFLOWFROMPROMPTINPUT'].fields_by_name['prompt']._loaded_options = None
-  _globals['_GENERATEWORKFLOWFROMPROMPTINPUT'].fields_by_name['prompt']._serialized_options = b'\272H\004r\002\020\n'
-  _globals['_GENERATEWORKFLOWFROMPROMPTINPUT'].fields_by_name['org']._loaded_options = None
-  _globals['_GENERATEWORKFLOWFROMPROMPTINPUT'].fields_by_name['org']._serialized_options = b'\272H\003\310\001\001'
   _globals['_WORKFLOWID']._serialized_start=104
   _globals['_WORKFLOWID']._serialized_end=146
-  _globals['_GENERATEWORKFLOWFROMPROMPTINPUT']._serialized_start=149
-  _globals['_GENERATEWORKFLOWFROMPROMPTINPUT']._serialized_end=303
-  _globals['_GENERATEWORKFLOWFROMPROMPTOUTPUT']._serialized_start=306
-  _globals['_GENERATEWORKFLOWFROMPROMPTOUTPUT']._serialized_end=453
 # @@protoc_insertion_point(module_scope)

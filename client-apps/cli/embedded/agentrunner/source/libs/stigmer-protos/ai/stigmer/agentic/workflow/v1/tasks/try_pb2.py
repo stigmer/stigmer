@@ -27,7 +27,7 @@ from ai.stigmer.commons.apiresource import field_options_pb2 as ai_dot_stigmer_d
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n.ai/stigmer/agentic/workflow/v1/tasks/try.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a)ai/stigmer/agentic/workflow/v1/spec.proto\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\x1b\x62uf/validate/validate.proto\"\xb0\x01\n\rTryTaskConfig\x12H\n\x03try\x18\x01 \x03(\x0b\x32,.ai.stigmer.agentic.workflow.v1.WorkflowTaskB\x08\xbaH\x05\x92\x01\x02\x08\x01R\x03try\x12\x46\n\x05\x63\x61tch\x18\x02 \x01(\x0b\x32\x30.ai.stigmer.agentic.workflow.v1.tasks.CatchBlockR\x05\x63\x61tch:\r\xea\x8b,\ttry_catch\"d\n\nCatchBlock\x12\x0e\n\x02\x61s\x18\x01 \x01(\tR\x02\x61s\x12\x46\n\x02\x64o\x18\x02 \x03(\x0b\x32,.ai.stigmer.agentic.workflow.v1.WorkflowTaskB\x08\xbaH\x05\x92\x01\x02\x08\x01R\x02\x64oB\xec\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\x08TryProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n.ai/stigmer/agentic/workflow/v1/tasks/try.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a)ai/stigmer/agentic/workflow/v1/spec.proto\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\x1b\x62uf/validate/validate.proto\"\xb0\x01\n\rTryTaskConfig\x12H\n\x03try\x18\x01 \x03(\x0b\x32,.ai.stigmer.agentic.workflow.v1.WorkflowTaskB\x08\xbaH\x05\x92\x01\x02\x08\x01R\x03try\x12\x46\n\x05\x63\x61tch\x18\x02 \x01(\x0b\x32\x30.ai.stigmer.agentic.workflow.v1.tasks.CatchBlockR\x05\x63\x61tch:\r\xea\x8b,\ttry_catch\"\x84\x01\n\nCatchBlock\x12\x0e\n\x02\x61s\x18\x01 \x01(\tR\x02\x61s\x12\x46\n\x02\x64o\x18\x02 \x03(\x0b\x32,.ai.stigmer.agentic.workflow.v1.WorkflowTaskB\x08\xbaH\x05\x92\x01\x02\x08\x01R\x02\x64o\x12\x1e\n\ncompensate\x18\x03 \x01(\x08R\ncompensateB\xec\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\x08TryProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -43,6 +43,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CATCHBLOCK'].fields_by_name['do']._serialized_options = b'\272H\005\222\001\002\010\001'
   _globals['_TRYTASKCONFIG']._serialized_start=213
   _globals['_TRYTASKCONFIG']._serialized_end=389
-  _globals['_CATCHBLOCK']._serialized_start=391
-  _globals['_CATCHBLOCK']._serialized_end=491
+  _globals['_CATCHBLOCK']._serialized_start=392
+  _globals['_CATCHBLOCK']._serialized_end=524
 # @@protoc_insertion_point(module_scope)

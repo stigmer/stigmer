@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MSIjCgpXb3JrZmxvd0lkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEidwofR2VuZXJhdGVXb3JrZmxvd0Zyb21Qcm9tcHRJbnB1dBIXCgZwcm9tcHQYASABKAlCB7pIBHICEAoSEwoDb3JnGAIgASgJQga6SAPIAQESDQoFbW9kZWwYAyABKAkSFwoPdGFza19raW5kX2hpbnRzGAQgAygJImsKIEdlbmVyYXRlV29ya2Zsb3dGcm9tUHJvbXB0T3V0cHV0EgwKBHlhbWwYASABKAkSEwoLZXhwbGFuYXRpb24YAiABKAkSEAoId2FybmluZ3MYAyADKAkSEgoKbW9kZWxfdXNlZBgEIAEoCWIGcHJvdG8z", [file_buf_validate_validate]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MSIjCgpXb3JrZmxvd0lkEhUKBXZhbHVlGAEgASgJQga6SAPIAQFiBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
  * WorkflowId wraps a workflow identifier.
@@ -31,104 +31,4 @@ export type WorkflowId = Message<"ai.stigmer.agentic.workflow.v1.WorkflowId"> & 
  */
 export const WorkflowIdSchema: GenMessage<WorkflowId> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflow_v1_io, 0);
-
-/**
- * Input for generating a workflow from a natural language description.
- *
- * The server constructs a rich prompt containing task kind metadata, example
- * workflows, and available organization resources, then calls an LLM to
- * produce valid workflow YAML. The generated YAML is validated server-side
- * before being returned.
- *
- * @generated from message ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput
- */
-export type GenerateWorkflowFromPromptInput = Message<"ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput"> & {
-  /**
-   * Natural language description of the desired workflow.
-   * Should describe the goal, steps, and any specific task kinds or agents to use.
-   *
-   * @generated from field: string prompt = 1;
-   */
-  prompt: string;
-
-  /**
-   * Organization slug — used to resolve available agents, MCP servers, and
-   * skills that the generated workflow can reference.
-   *
-   * @generated from field: string org = 2;
-   */
-  org: string;
-
-  /**
-   * Preferred model for generation (e.g., "claude-sonnet-4-6", "gpt-4o").
-   * When empty, the server selects a capable default model.
-   *
-   * @generated from field: string model = 3;
-   */
-  model: string;
-
-  /**
-   * Hint about which task kinds the user wants in the workflow.
-   * Helps focus generation when the user knows they need specific capabilities
-   * (e.g., ["llm_call", "human_input"]). The server includes detailed metadata
-   * for hinted kinds in the prompt.
-   *
-   * @generated from field: repeated string task_kind_hints = 4;
-   */
-  taskKindHints: string[];
-};
-
-/**
- * Describes the message ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptInput.
- * Use `create(GenerateWorkflowFromPromptInputSchema)` to create a new message.
- */
-export const GenerateWorkflowFromPromptInputSchema: GenMessage<GenerateWorkflowFromPromptInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflow_v1_io, 1);
-
-/**
- * Response from workflow generation.
- *
- * @generated from message ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput
- */
-export type GenerateWorkflowFromPromptOutput = Message<"ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput"> & {
-  /**
-   * Generated workflow YAML. Always structurally valid — the server validates
-   * and retries with error context before returning. May contain non-fatal
-   * warnings for issues that do not prevent the workflow from being saved.
-   *
-   * @generated from field: string yaml = 1;
-   */
-  yaml: string;
-
-  /**
-   * Human-readable explanation of what was generated and why.
-   * Describes the workflow structure, task choices, and any assumptions made.
-   *
-   * @generated from field: string explanation = 2;
-   */
-  explanation: string;
-
-  /**
-   * Validation warnings (non-fatal). Empty when the YAML is clean.
-   * Warnings describe issues that do not prevent saving but may affect
-   * execution (e.g., referencing an agent that does not exist in the org).
-   *
-   * @generated from field: repeated string warnings = 3;
-   */
-  warnings: string[];
-
-  /**
-   * The model that was used for generation.
-   *
-   * @generated from field: string model_used = 4;
-   */
-  modelUsed: string;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.workflow.v1.GenerateWorkflowFromPromptOutput.
- * Use `create(GenerateWorkflowFromPromptOutputSchema)` to create a new message.
- */
-export const GenerateWorkflowFromPromptOutputSchema: GenMessage<GenerateWorkflowFromPromptOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflow_v1_io, 2);
 

@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/tasks/try.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_tasks_try: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvdHJ5LnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MipAEKDVRyeVRhc2tDb25maWcSQwoDdHJ5GAEgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFza0IIukgFkgECCAESPwoFY2F0Y2gYAiABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuQ2F0Y2hCbG9jazoN6ossCXRyeV9jYXRjaCJcCgpDYXRjaEJsb2NrEgoKAmFzGAEgASgJEkIKAmRvGAIgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFza0IIukgFkgECCAFiBnByb3RvMw", [file_ai_stigmer_agentic_workflow_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
+  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvdHJ5LnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MipAEKDVRyeVRhc2tDb25maWcSQwoDdHJ5GAEgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFza0IIukgFkgECCAESPwoFY2F0Y2gYAiABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuQ2F0Y2hCbG9jazoN6ossCXRyeV9jYXRjaCJwCgpDYXRjaEJsb2NrEgoKAmFzGAEgASgJEkIKAmRvGAIgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFza0IIukgFkgECCAESEgoKY29tcGVuc2F0ZRgDIAEoCGIGcHJvdG8z", [file_ai_stigmer_agentic_workflow_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
 
 /**
  * TryTaskConfig defines the configuration for try_catch tasks that handle errors.
@@ -87,6 +87,26 @@ export type CatchBlock = Message<"ai.stigmer.agentic.workflow.v1.tasks.CatchBloc
    * @generated from field: repeated ai.stigmer.agentic.workflow.v1.WorkflowTask do = 2;
    */
   do: WorkflowTask[];
+
+  /**
+   * Whether to run compensation tasks for already-completed try tasks
+   * before executing the catch do block.
+   *
+   * When true, the runtime walks the compensation stack (completed tasks
+   * that declared a `compensate` block) in reverse order and executes
+   * each task's compensation actions. After all compensations complete
+   * (or fail), the catch `do` block runs as normal.
+   *
+   * Compensation failures do not prevent the catch block from running.
+   * They are logged and included in the task output for diagnostics.
+   *
+   * Default: false (no compensation — preserves pre-T17 behavior).
+   *
+   * @since T17 (Advanced Agentic Orchestration)
+   *
+   * @generated from field: bool compensate = 3;
+   */
+  compensate: boolean;
 };
 
 /**

@@ -4,6 +4,7 @@ import grpc
 
 from ai.stigmer.agentic.workflow.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2
 from ai.stigmer.agentic.workflow.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2
+from ai.stigmer.agentic.workflow.v1.serverless import validation_pb2 as ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_serverless_dot_validation__pb2
 
 
 class WorkflowCommandControllerStub(object):
@@ -36,10 +37,10 @@ class WorkflowCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.WorkflowId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
                 _registered_method=True)
-        self.generateWorkflowFromPrompt = channel.unary_unary(
-                '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/generateWorkflowFromPrompt',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.GenerateWorkflowFromPromptInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.GenerateWorkflowFromPromptOutput.FromString,
+        self.validateSpec = channel.unary_unary(
+                '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/validateSpec',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_serverless_dot_validation__pb2.ServerlessWorkflowValidation.FromString,
                 _registered_method=True)
 
 
@@ -84,13 +85,27 @@ class WorkflowCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def generateWorkflowFromPrompt(self, request, context):
-        """Generate a workflow from a natural language description.
+    def validateSpec(self, request, context):
+        """Validate a workflow spec without persisting it.
 
-        Constructs a prompt with task kind metadata, example workflows, and the
-        organization's available resources, then calls an LLM to produce valid
-        workflow YAML. The output is validated server-side with up to 2 retries
-        on validation failure before being returned to the caller.
+        Runs the same two-layer validation pipeline used by create/update:
+        Layer 1: Proto field constraints (buf validate / protovalidate)
+        Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
+
+        Returns ServerlessWorkflowValidation with:
+        - VALID: Workflow structure passed all checks
+        - INVALID: User error (bad structure, missing fields, unknown task kinds)
+        - FAILED: System error (Temporal unavailable, converter crash)
+
+        This RPC does NOT persist, authorize, or create instances. It is a
+        pure validation endpoint suitable for iterative authoring workflows
+        where the caller needs fast feedback before committing.
+
+        @internal
+        Authorization: Uses the same permission as create — caller must have
+        can_create_workflow in the org. This prevents unauthenticated abuse
+        of the validation pipeline while allowing any user who could create
+        a workflow to also validate one.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -119,10 +134,10 @@ def add_WorkflowCommandControllerServicer_to_server(servicer, server):
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.WorkflowId.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.SerializeToString,
             ),
-            'generateWorkflowFromPrompt': grpc.unary_unary_rpc_method_handler(
-                    servicer.generateWorkflowFromPrompt,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.GenerateWorkflowFromPromptInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.GenerateWorkflowFromPromptOutput.SerializeToString,
+            'validateSpec': grpc.unary_unary_rpc_method_handler(
+                    servicer.validateSpec,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_serverless_dot_validation__pb2.ServerlessWorkflowValidation.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -245,7 +260,7 @@ class WorkflowCommandController(object):
             _registered_method=True)
 
     @staticmethod
-    def generateWorkflowFromPrompt(request,
+    def validateSpec(request,
             target,
             options=(),
             channel_credentials=None,
@@ -258,9 +273,9 @@ class WorkflowCommandController(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/generateWorkflowFromPrompt',
-            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.GenerateWorkflowFromPromptInput.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_io__pb2.GenerateWorkflowFromPromptOutput.FromString,
+            '/ai.stigmer.agentic.workflow.v1.WorkflowCommandController/validateSpec',
+            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_api__pb2.Workflow.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_workflow_dot_v1_dot_serverless_dot_validation__pb2.ServerlessWorkflowValidation.FromString,
             options,
             channel_credentials,
             insecure,

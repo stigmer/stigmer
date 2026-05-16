@@ -1,4 +1,5 @@
 from ai.stigmer.agentic.agentexecution.v1 import spec_pb2 as _spec_pb2
+from ai.stigmer.agentic.session.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.workflow.v1.tasks import common_pb2 as _common_pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from buf.validate import validate_pb2 as _validate_pb2
@@ -12,7 +13,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentCallTaskConfig(_message.Message):
-    __slots__ = ("agent", "org", "message", "env", "config", "output")
+    __slots__ = ("agent", "org", "message", "env", "config", "output", "harness")
     class EnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -26,13 +27,15 @@ class AgentCallTaskConfig(_message.Message):
     ENV_FIELD_NUMBER: _ClassVar[int]
     CONFIG_FIELD_NUMBER: _ClassVar[int]
     OUTPUT_FIELD_NUMBER: _ClassVar[int]
+    HARNESS_FIELD_NUMBER: _ClassVar[int]
     agent: str
     org: str
     message: str
     env: _containers.ScalarMap[str, str]
     config: AgentExecutionConfig
     output: AgentCallOutputContract
-    def __init__(self, agent: _Optional[str] = ..., org: _Optional[str] = ..., message: _Optional[str] = ..., env: _Optional[_Mapping[str, str]] = ..., config: _Optional[_Union[AgentExecutionConfig, _Mapping]] = ..., output: _Optional[_Union[AgentCallOutputContract, _Mapping]] = ...) -> None: ...
+    harness: _enum_pb2.Harness
+    def __init__(self, agent: _Optional[str] = ..., org: _Optional[str] = ..., message: _Optional[str] = ..., env: _Optional[_Mapping[str, str]] = ..., config: _Optional[_Union[AgentExecutionConfig, _Mapping]] = ..., output: _Optional[_Union[AgentCallOutputContract, _Mapping]] = ..., harness: _Optional[_Union[_enum_pb2.Harness, str]] = ...) -> None: ...
 
 class AgentCallOutputContract(_message.Message):
     __slots__ = ("schema", "on_invalid", "max_retries", "fallback_task")
