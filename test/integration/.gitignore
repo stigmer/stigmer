@@ -2,3 +2,8 @@
 .test-output/
 .test-output-providers/
 .test-output-agent/
+.test-output-failing/
+.test-output-benchmark/
+
+# Agent runner checkpoint databases (created during pause/resume tests)
+checkpoints/

@@ -57,6 +57,16 @@ func RequireCursorPrereqs(t *testing.T, th *TestHarness) {
 	}
 }
 
+// SkipCursorForHITLGate skips cursor harness subtests that require the runner to
+// block on WAITING_FOR_APPROVAL. The cursor harness auto-executes MCP tools in
+// integration tests without surfacing the approval gate.
+func SkipCursorForHITLGate(t *testing.T, h HarnessConfig) {
+	t.Helper()
+	if h.Harness == sessionv1.Harness_HARNESS_CURSOR {
+		t.Skip("cursor harness does not block MCP tools on approval gate in integration tests")
+	}
+}
+
 // CreateTestSession creates a session for agent execution tests with the
 // specified harness. The session is deleted on test cleanup.
 func CreateTestSession(t *testing.T, ctx context.Context, clients *Clients, agentInstanceID string, harness sessionv1.Harness) *sessionv1.Session {

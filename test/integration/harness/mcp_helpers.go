@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -154,6 +154,37 @@ func BuildMcpServerStigmer(outputDir string) (string, error) {
 	}
 
 	return binaryPath, nil
+}
+
+// WaitForMcpServerTool polls until the MCP server's discovered_capabilities
+// include the named tool. Used after Apply for HTTP servers where discovery
+// may complete asynchronously, and after Connect to confirm tools are ready.
+func WaitForMcpServerTool(t *testing.T, ctx context.Context, clients *Clients, serverID, toolName string, timeout time.Duration) *mcpserverv1.McpServer {
+	t.Helper()
+
+	deadline := time.Now().Add(timeout)
+	interval := 500 * time.Millisecond
+
+	for time.Now().Before(deadline) {
+		server, err := clients.McpServerQuery.Get(ctx, &apiresource.ApiResourceId{Value: serverID})
+		require.NoError(t, err, "get MCP server should succeed")
+
+		for _, tool := range server.GetStatus().GetDiscoveredCapabilities().GetTools() {
+			if tool.GetName() == toolName {
+				t.Logf("MCP server %s has tool %q (%d tools discovered)",
+					serverID, toolName, len(server.GetStatus().GetDiscoveredCapabilities().GetTools()))
+				return server
+			}
+		}
+
+		time.Sleep(interval)
+	}
+
+	server, err := clients.McpServerQuery.Get(ctx, &apiresource.ApiResourceId{Value: serverID})
+	require.NoError(t, err)
+	t.Fatalf("timed out after %v waiting for tool %q on MCP server %s (discovered %d tools)",
+		timeout, toolName, serverID, len(server.GetStatus().GetDiscoveredCapabilities().GetTools()))
+	return nil
 }
 
 // ConnectMcpServer runs the connect RPC to populate discovered_capabilities.

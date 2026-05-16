@@ -126,6 +126,104 @@ func isAgentTerminalPhase(phase agentexecv1.ExecutionPhase) bool {
 	}
 }
 
+// ResolveApprovalsUntilPhase submits approval actions for all pending approvals
+// whenever the execution is WAITING_FOR_APPROVAL, until it reaches the target
+// phase or times out. The LLM may request the same tool again after resume,
+// which surfaces additional approval rounds.
+func (w *AgentExecutionWaiter) ResolveApprovalsUntilPhase(
+	ctx context.Context,
+	clients *Clients,
+	executionID string,
+	action agentexecv1.ApprovalAction,
+	target agentexecv1.ExecutionPhase,
+	timeout time.Duration,
+) (*agentexecv1.AgentExecution, error) {
+	deadline := time.Now().Add(timeout)
+	interval := 500 * time.Millisecond
+
+	for time.Now().Before(deadline) {
+		exec, err := w.client.Get(ctx, &agentexecv1.AgentExecutionId{Value: executionID})
+		if err != nil {
+			return nil, fmt.Errorf("get execution %s: %w", executionID, err)
+		}
+
+		phase := exec.GetStatus().GetPhase()
+		if phase == target {
+			return exec, nil
+		}
+
+		if phase == agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
+			for _, approval := range exec.GetStatus().GetPendingApprovals() {
+				_, err := clients.AgentExecutionCommand.SubmitApproval(ctx, &agentexecv1.SubmitApprovalInput{
+					AgentExecutionId: executionID,
+					ToolCallId:       approval.GetToolCallId(),
+					Action:           action,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("submit approval for %s: %w", approval.GetToolCallId(), err)
+				}
+			}
+		}
+
+		if isAgentTerminalPhase(phase) && phase != target {
+			return exec, fmt.Errorf(
+				"agent execution reached terminal phase %s instead of expected %s",
+				phase.String(), target.String(),
+			)
+		}
+
+		time.Sleep(interval)
+	}
+
+	return nil, fmt.Errorf(
+		"timed out waiting for agent execution %s to reach phase %s after %v",
+		executionID, target.String(), timeout,
+	)
+}
+
+// WaitForApprovalWithRetry creates an execution, waits for approval, and
+// retries once with a fresh execution if the LLM skips the tool call
+// (execution reaches COMPLETED instead of WAITING_FOR_APPROVAL). This
+// handles inherent LLM non-determinism in HITL tests without masking
+// infrastructure bugs: only COMPLETED (LLM text response) triggers a retry;
+// FAILED or TERMINATED still fail immediately.
+func (w *AgentExecutionWaiter) WaitForApprovalWithRetry(
+	t *testing.T,
+	ctx context.Context,
+	clients *Clients,
+	sessionID string,
+	message string,
+	timeout time.Duration,
+	opts ...AgentExecutionOption,
+) (*agentexecv1.AgentExecution, *agentexecv1.AgentExecution) {
+	t.Helper()
+	const maxAttempts = 2
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		exec := CreateTestAgentExecution(t, ctx, clients, sessionID, message, opts...)
+
+		result, err := w.WaitForApproval(ctx, exec.GetMetadata().GetId(), timeout)
+		if err == nil {
+			return exec, result
+		}
+
+		// Only retry when the LLM responded with text instead of calling the
+		// tool (execution completed normally). Any other terminal phase is a
+		// real failure, not LLM non-determinism.
+		if result != nil && result.GetStatus().GetPhase() == agentexecv1.ExecutionPhase_EXECUTION_COMPLETED && attempt < maxAttempts {
+			t.Logf("HITL retry: LLM skipped tool call on attempt %d (phase=COMPLETED), retrying with fresh execution", attempt)
+			LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+			continue
+		}
+
+		LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+		t.Fatalf("execution did not reach WAITING_FOR_APPROVAL after %d attempt(s): %v", attempt, err)
+	}
+
+	// unreachable, but satisfies the compiler
+	return nil, nil
+}
+
 // --- Assertion helpers for agent executions ---
 
 // AssertAgentPhase asserts the agent execution is in the expected phase.
@@ -152,6 +250,19 @@ func AssertMessages(t *testing.T, exec *agentexecv1.AgentExecution, expectedType
 	assert.Equalf(t, len(expectedTypes), typeIdx,
 		"expected message types %v in order; found %d of %d in %d messages",
 		expectedTypes, typeIdx, len(expectedTypes), len(messages))
+}
+
+// HasToolCall returns true if at least one tool call with the given name
+// exists in the execution's messages.
+func HasToolCall(exec *agentexecv1.AgentExecution, toolName string) bool {
+	for _, msg := range exec.GetStatus().GetMessages() {
+		for _, tc := range msg.GetToolCalls() {
+			if tc.GetName() == toolName {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // AssertHasToolCall verifies that at least one tool call with the given name
