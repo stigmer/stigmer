@@ -7,6 +7,7 @@ import (
 
 	environmentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1"
 	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
+	serverless "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1/serverless"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
@@ -52,7 +53,7 @@ func (w *WorkflowClient) Delete(ctx context.Context, id string) (*workflowv1.Wor
 	return resp, wrapErr(err)
 }
 
-func (w *WorkflowClient) ValidateSpec(ctx context.Context, input *WorkflowInput) (*workflowv1.ServerlessWorkflowValidation, error) {
+func (w *WorkflowClient) ValidateSpec(ctx context.Context, input *WorkflowInput) (*serverless.ServerlessWorkflowValidation, error) {
 	resp, err := w.command.ValidateSpec(ctx, input.toProto())
 	return resp, wrapErr(err)
 }
