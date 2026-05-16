@@ -5,7 +5,8 @@
 
 import { Workflow } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { GenerateWorkflowFromPromptInput, GenerateWorkflowFromPromptOutput, WorkflowId } from "./io_pbjs";
+import { WorkflowId } from "./io_pbjs";
+import { ServerlessWorkflowValidation } from "./serverless/validation_pbjs";
 
 /**
  * WorkflowCommandController handles write operations for workflows.
@@ -69,19 +70,33 @@ export const WorkflowCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Generate a workflow from a natural language description.
+     * Validate a workflow spec without persisting it.
      *
-     * Constructs a prompt with task kind metadata, example workflows, and the
-     * organization's available resources, then calls an LLM to produce valid
-     * workflow YAML. The output is validated server-side with up to 2 retries
-     * on validation failure before being returned to the caller.
+     * Runs the same two-layer validation pipeline used by create/update:
+     *   Layer 1: Proto field constraints (buf validate / protovalidate)
+     *   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
      *
-     * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.generateWorkflowFromPrompt
+     * Returns ServerlessWorkflowValidation with:
+     *   - VALID: Workflow structure passed all checks
+     *   - INVALID: User error (bad structure, missing fields, unknown task kinds)
+     *   - FAILED: System error (Temporal unavailable, converter crash)
+     *
+     * This RPC does NOT persist, authorize, or create instances. It is a
+     * pure validation endpoint suitable for iterative authoring workflows
+     * where the caller needs fast feedback before committing.
+     *
+     * @internal
+     * Authorization: Uses the same permission as create — caller must have
+     * can_create_workflow in the org. This prevents unauthenticated abuse
+     * of the validation pipeline while allowing any user who could create
+     * a workflow to also validate one.
+     *
+     * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowCommandController.validateSpec
      */
-    generateWorkflowFromPrompt: {
-      name: "generateWorkflowFromPrompt",
-      I: GenerateWorkflowFromPromptInput,
-      O: GenerateWorkflowFromPromptOutput,
+    validateSpec: {
+      name: "validateSpec",
+      I: Workflow,
+      O: ServerlessWorkflowValidation,
       kind: MethodKind.Unary,
     },
   }

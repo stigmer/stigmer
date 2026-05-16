@@ -17,7 +17,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxIpwDCgxXb3JrZmxvd1NwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSSgoIZG9jdW1lbnQYAiABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dEb2N1bWVudEIGukgDyAEBEkUKBXRhc2tzGAMgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFza0IIukgFkgECCAESQgoDZW52GAQgAygLMjUuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93U3BlYy5FbnZFbnRyeRI+CgZidWRnZXQYBSABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dCdWRnZXQaYAoIRW52RW50cnkSCwoDa2V5GAEgASgJEkMKBXZhbHVlGAIgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudlZhckRlY2xhcmF0aW9uOgI4ASKsAQoOV29ya2Zsb3dCdWRnZXQSFwoPbWF4X2Nvc3RfbWljcm9zGAEgASgDEhgKEG1heF90b3RhbF90b2tlbnMYAiABKAMSHAoUbWF4X2R1cmF0aW9uX3NlY29uZHMYAyABKAUSSQoLb25fZXhjZWVkZWQYBCABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuQnVkZ2V0RXhjZWVkZWRQb2xpY3kikAEKEFdvcmtmbG93RG9jdW1lbnQSHQoDZHNsGAEgASgJQhC6SA1yCzIJXjFcLjBcLjAkEhkKCW5hbWVzcGFjZRgCIAEoCUIGukgDyAEBEhQKBG5hbWUYAyABKAlCBrpIA8gBARIXCgd2ZXJzaW9uGAQgASgJQga6SAPIAQESEwoLZGVzY3JpcHRpb24YBSABKAkinQIKDFdvcmtmbG93VGFzaxIUCgRuYW1lGAEgASgJQga6SAPIAQESRgoEa2luZBgCIAEoDjIwLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvd1Rhc2tLaW5kQga6SAPIAQESPAoLdGFza19jb25maWcYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Qg66SAPIAQHqhSwEa2luZBI2CgZleHBvcnQYBCABKAsyJi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuRXhwb3J0EjkKBGZsb3cYBSABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuRmxvd0NvbnRyb2wiHQoGRXhwb3J0EhMKAmFzGAEgASgJQge6SARyAhABIhsKC0Zsb3dDb250cm9sEgwKBHRoZW4YASABKAliBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_agentic_workflow_v1_enum, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxIpwDCgxXb3JrZmxvd1NwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSSgoIZG9jdW1lbnQYAiABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dEb2N1bWVudEIGukgDyAEBEkUKBXRhc2tzGAMgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFza0IIukgFkgECCAESQgoDZW52GAQgAygLMjUuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93U3BlYy5FbnZFbnRyeRI+CgZidWRnZXQYBSABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dCdWRnZXQaYAoIRW52RW50cnkSCwoDa2V5GAEgASgJEkMKBXZhbHVlGAIgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudlZhckRlY2xhcmF0aW9uOgI4ASKsAQoOV29ya2Zsb3dCdWRnZXQSFwoPbWF4X2Nvc3RfbWljcm9zGAEgASgDEhgKEG1heF90b3RhbF90b2tlbnMYAiABKAMSHAoUbWF4X2R1cmF0aW9uX3NlY29uZHMYAyABKAUSSQoLb25fZXhjZWVkZWQYBCABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuQnVkZ2V0RXhjZWVkZWRQb2xpY3kikAEKEFdvcmtmbG93RG9jdW1lbnQSHQoDZHNsGAEgASgJQhC6SA1yCzIJXjFcLjBcLjAkEhkKCW5hbWVzcGFjZRgCIAEoCUIGukgDyAEBEhQKBG5hbWUYAyABKAlCBrpIA8gBARIXCgd2ZXJzaW9uGAQgASgJQga6SAPIAQESEwoLZGVzY3JpcHRpb24YBSABKAki3wIKDFdvcmtmbG93VGFzaxIUCgRuYW1lGAEgASgJQga6SAPIAQESRgoEa2luZBgCIAEoDjIwLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvd1Rhc2tLaW5kQga6SAPIAQESPAoLdGFza19jb25maWcYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Qg66SAPIAQHqhSwEa2luZBI2CgZleHBvcnQYBCABKAsyJi5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuRXhwb3J0EjkKBGZsb3cYBSABKAsyKy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuRmxvd0NvbnRyb2wSQAoKY29tcGVuc2F0ZRgGIAMoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvd1Rhc2siHQoGRXhwb3J0EhMKAmFzGAEgASgJQge6SARyAhABIhsKC0Zsb3dDb250cm9sEgwKBHRoZW4YASABKAliBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_agentic_workflow_v1_enum, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * WorkflowSpec defines the configurable properties of a workflow.
@@ -283,6 +283,61 @@ export type WorkflowTask = Message<"ai.stigmer.agentic.workflow.v1.WorkflowTask"
    * @generated from field: ai.stigmer.agentic.workflow.v1.FlowControl flow = 5;
    */
   flow?: FlowControl;
+
+  /**
+   * Compensation tasks to execute if this task needs to be "undone."
+   *
+   * @internal
+   * Saga-style compensation for workflows with side effects. When a
+   * try_catch block catches an error, it can optionally run the
+   * compensation tasks for all already-completed tasks in reverse order.
+   *
+   * The compensation tasks receive the original task's output in their
+   * input context, allowing them to construct the appropriate undo
+   * operation (e.g., cancel an API call, delete a created resource,
+   * send a reversal notification).
+   *
+   * Only executed when:
+   * 1. The task completed successfully (failed tasks are not compensated)
+   * 2. A subsequent task within the same try_catch scope fails
+   * 3. The catch block is configured to run compensations
+   *
+   * YAML Example:
+   *   try:
+   *     - create_order:
+   *         call: http
+   *         with:
+   *           method: POST
+   *           endpoint: { uri: "https://api.example.com/orders" }
+   *           body: { ... }
+   *         compensate:
+   *           - cancel_order:
+   *               call: http
+   *               with:
+   *                 method: DELETE
+   *                 endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+   *         export:
+   *           as: "${ . }"
+   *     - charge_payment:
+   *         call: http
+   *         with:
+   *           method: POST
+   *           endpoint: { uri: "https://api.example.com/payments" }
+   *   catch:
+   *     as: error
+   *     compensate: true
+   *     do:
+   *       - log_failure:
+   *           call: notification
+   *           with: ...
+   *
+   * Optional - when empty, this task has no compensation action.
+   *
+   * @since T17 (Advanced Agentic Orchestration)
+   *
+   * @generated from field: repeated ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6;
+   */
+  compensate: WorkflowTask[];
 };
 
 /**
