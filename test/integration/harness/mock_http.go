@@ -2,6 +2,7 @@ package harness
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 )
@@ -56,4 +57,38 @@ func (m *MockHTTPServer) URL() string {
 // Close shuts down the mock server.
 func (m *MockHTTPServer) Close() {
 	m.Server.Close()
+}
+
+// WebhookCaptureServer accepts any POST request, responds 200, and stores
+// the raw request body in Payloads for test assertions. The channel is
+// buffered (16) so tests don't need to drain it synchronously.
+type WebhookCaptureServer struct {
+	Server   *httptest.Server
+	Payloads chan []byte
+}
+
+// NewWebhookCaptureServer starts an HTTP server that captures POST payloads.
+func NewWebhookCaptureServer() *WebhookCaptureServer {
+	cap := &WebhookCaptureServer{
+		Payloads: make(chan []byte, 16),
+	}
+
+	cap.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		r.Body.Close()
+		cap.Payloads <- body
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	return cap
+}
+
+// URL returns the base URL of the capture server.
+func (c *WebhookCaptureServer) URL() string {
+	return c.Server.URL
+}
+
+// Close shuts down the capture server.
+func (c *WebhookCaptureServer) Close() {
+	c.Server.Close()
 }
