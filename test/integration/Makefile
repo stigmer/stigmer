@@ -205,6 +205,24 @@ test-subset: ensure-service-jar ## Run a subset of integration tests: make test-
 		-- -tags integration -timeout 900s -count=1 \
 		-run '$(TEST_RUN)' ./...
 
+SDK_OUTPUT_DIR ?= .test-output-sdk
+
+.PHONY: test-sdk
+test-sdk: ensure-service-jar ## Run SDK acceptance smoke tests (Go, TypeScript, Python)
+	@command -v gotestsum >/dev/null 2>&1 || { \
+		echo "error: gotestsum not found"; \
+		echo "  install: go install gotest.tools/gotestsum@latest"; \
+		exit 1; \
+	}
+	@mkdir -p $(SDK_OUTPUT_DIR)
+	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
+	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(SDK_OUTPUT_DIR)) gotestsum \
+		--junitfile $(SDK_OUTPUT_DIR)/junit.xml \
+		--junitfile-testsuite-name short \
+		--jsonfile $(SDK_OUTPUT_DIR)/test-output.json \
+		--format testname \
+		-- -tags integration -timeout 300s -count=1 -run 'TestSDKAcceptance' -v ./...
+
 BENCHMARK_OUTPUT_DIR ?= .test-output-benchmark
 
 .PHONY: benchmark-cost
