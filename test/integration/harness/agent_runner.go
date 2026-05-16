@@ -82,7 +82,9 @@ func StartAgentRunner(ctx context.Context, cfg AgentRunnerConfig, logger *slog.L
 	}
 	logger.Info("agent-runner log", "path", logPath)
 
-	cmd := exec.CommandContext(ctx, pythonBin, mainPy)
+	// Use exec.Command (not CommandContext) so the runner process lifetime
+	// is decoupled from the startup context and runs until Stop() is called.
+	cmd := exec.Command(pythonBin, mainPy)
 	cmd.Dir = runnerDir
 	cmd.Env = buildAgentRunnerEnv(cfg, runnerDir)
 	cmd.Stdout = logFile
@@ -201,6 +203,10 @@ func buildAgentRunnerEnv(cfg AgentRunnerConfig, runnerDir string) []string {
 		fmt.Sprintf("PYTHONPATH=%s", srcPath),
 
 		"LOG_LEVEL=INFO",
+
+		// Propagated to MCP server subprocesses spawned by the runner.
+		// Required by mcp-server-stigmer to connect back to the test Java service.
+		fmt.Sprintf("STIGMER_SERVER_ADDRESS=%s", cfg.StigmerServiceAddress),
 	)
 
 	if cfg.ProxyEndpoint != "" {

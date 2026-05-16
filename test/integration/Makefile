@@ -79,7 +79,45 @@ test-providers: ensure-service-jar ## Run provider-backed integration tests (aut
 		--junitfile-testsuite-name short \
 		--jsonfile $(PROVIDER_OUTPUT_DIR)/test-output.json \
 		--format testname \
-		-- -tags integration -timeout 900s -count=1 -run 'TestWorkflow(LlmCall|AgentCall|CursorCall)|TestAgentExecution' ./...
+		-- -tags integration -timeout 900s -count=1 -run 'TestWorkflow(LlmCall|AgentCall|CursorCall|Architect)|TestAgentExecution' ./...
+
+.PHONY: test-workflow-architect
+test-workflow-architect: ensure-service-jar ## Run Workflow Architect agent E2E tests (auto-fetches API keys)
+	@command -v gotestsum >/dev/null 2>&1 || { \
+		echo "error: gotestsum not found"; \
+		echo "  install: go install gotest.tools/gotestsum@latest"; \
+		exit 1; \
+	}
+	@mkdir -p .test-output-architect
+	@ANTHROPIC_KEY=$${ANTHROPIC_API_KEY:-}; \
+	if [ -z "$$ANTHROPIC_KEY" ]; then \
+		if command -v planton >/dev/null 2>&1; then \
+			echo "Fetching ANTHROPIC_API_KEY from Planton..."; \
+			ANTHROPIC_KEY=$$(planton service secrets get-value --org stigmer --group anthropic --name prod.api-key 2>&1); \
+			if [ -z "$$ANTHROPIC_KEY" ]; then \
+				echo "error: planton returned empty value for anthropic/prod.api-key"; \
+				exit 1; \
+			fi; \
+		else \
+			echo "error: ANTHROPIC_API_KEY not set and planton CLI not found"; \
+			exit 1; \
+		fi; \
+	fi; \
+	CURSOR_KEY=$${CURSOR_API_KEY:-}; \
+	if [ -z "$$CURSOR_KEY" ] && command -v planton >/dev/null 2>&1; then \
+		echo "Fetching CURSOR_API_KEY from Planton..."; \
+		CURSOR_KEY=$$(planton service secrets get-value --org stigmer --group cursor --name prod.api-key 2>&1 || true); \
+		if [ -n "$$CURSOR_KEY" ]; then echo "CURSOR_API_KEY fetched"; else echo "CURSOR_API_KEY not available — cursor subtests will be skipped"; fi; \
+	fi; \
+	ANTHROPIC_API_KEY=$$ANTHROPIC_KEY \
+	CURSOR_API_KEY=$$CURSOR_KEY \
+	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
+	INTEGRATION_TEST_OUTPUT_DIR=$(abspath .test-output-architect) gotestsum \
+		--junitfile .test-output-architect/junit.xml \
+		--junitfile-testsuite-name short \
+		--jsonfile .test-output-architect/test-output.json \
+		--format testname \
+		-- -tags integration -timeout 900s -count=1 -run 'TestWorkflowArchitect' ./...
 
 .PHONY: test-agent
 test-agent: ensure-service-jar ## Run agent execution integration tests (auto-fetches API keys)

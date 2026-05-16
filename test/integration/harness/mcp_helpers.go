@@ -128,6 +128,34 @@ func CreateHttpMcpServer(t *testing.T, ctx context.Context, clients *Clients, se
 	return created
 }
 
+// BuildMcpServerStigmer compiles the real mcp-server-stigmer binary and returns
+// its path. This binary connects to the Stigmer backend via gRPC and exposes
+// workflow-related MCP tools (get_task_kind_registry, validate_workflow_yaml, etc.).
+func BuildMcpServerStigmer(outputDir string) (string, error) {
+	_, thisFile, _, _ := runtime.Caller(0)
+	mcpServerDir := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "..", "mcp-server")
+
+	if _, err := os.Stat(filepath.Join(mcpServerDir, "go.mod")); err != nil {
+		return "", fmt.Errorf("mcp-server module not found at %s", mcpServerDir)
+	}
+
+	binaryPath := filepath.Join(outputDir, "mcp-server-stigmer")
+	if runtime.GOOS == "windows" {
+		binaryPath += ".exe"
+	}
+
+	cmd := exec.Command("go", "build", "-o", binaryPath, "./cmd/mcp-server-stigmer")
+	cmd.Dir = mcpServerDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("build mcp-server-stigmer: %w", err)
+	}
+
+	return binaryPath, nil
+}
+
 // ConnectMcpServer runs the connect RPC to populate discovered_capabilities.
 func ConnectMcpServer(t *testing.T, ctx context.Context, clients *Clients, serverID string) *mcpserverv1.McpServer {
 	t.Helper()

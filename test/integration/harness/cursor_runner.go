@@ -102,7 +102,9 @@ func StartCursorRunner(ctx context.Context, cfg CursorRunnerConfig, logger *slog
 	}
 	logger.Info("cursor-runner log", "path", logPath)
 
-	cmd := exec.CommandContext(ctx, tsxBin, entrypoint)
+	// Use exec.Command (not CommandContext) so the runner process lifetime
+	// is decoupled from the startup context and runs until Stop() is called.
+	cmd := exec.Command(tsxBin, entrypoint)
 	cmd.Dir = runnerDir
 	cmd.Env = buildCursorRunnerEnv(cfg, workspaceDir)
 	cmd.Stdout = logFile
@@ -198,6 +200,10 @@ func buildCursorRunnerEnv(cfg CursorRunnerConfig, workspaceDir string) []string 
 		fmt.Sprintf("WORKSPACE_ROOT_DIR=%s", workspaceDir),
 
 		"LOG_LEVEL=INFO",
+
+		// Propagated to MCP server subprocesses spawned by the runner.
+		// Required by mcp-server-stigmer to connect back to the test Java service.
+		fmt.Sprintf("STIGMER_SERVER_ADDRESS=%s", cfg.StigmerServiceAddress),
 	)
 
 	if cfg.ProxyEndpoint != "" {
