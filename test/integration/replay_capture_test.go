@@ -165,8 +165,11 @@ func captureWorkflow_SetVarsChain(t *testing.T) *workflowv1.Workflow {
 }
 
 func captureWorkflow_Transform(t *testing.T) *workflowv1.Workflow {
-	setCfg := mustStruct(t, map[string]any{"variables": map[string]any{"items": "a,b,c"}})
-	transformCfg := mustStruct(t, map[string]any{"expression": `${ { "count": ($data.items | split(",") | length) } }`})
+	setCfg := mustStruct(t, map[string]any{"variables": map[string]any{"first_name": "Ada", "last_name": "Lovelace"}})
+	transformCfg := mustStruct(t, map[string]any{
+		"engine":     "TRANSFORM_ENGINE_JQ",
+		"expression": `{full_name: (.first_name + " " + .last_name)}`,
+	})
 	return &workflowv1.Workflow{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Workflow",
@@ -272,8 +275,9 @@ func captureWorkflow_HTTPCall(t *testing.T) *workflowv1.Workflow {
 
 	setCfg := mustStruct(t, map[string]any{"variables": map[string]any{"mock_url": mock.URL() + "/api/replay-data"}})
 	httpCfg := mustStruct(t, map[string]any{
-		"method":   "GET",
-		"endpoint": map[string]any{"uri": "${ $data.mock_url }"},
+		"method":          "GET",
+		"endpoint":        map[string]any{"uri": "${ $data.mock_url }"},
+		"timeout_seconds": float64(30),
 	})
 	return &workflowv1.Workflow{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -293,7 +297,8 @@ func captureWorkflow_HTTPCall(t *testing.T) *workflowv1.Workflow {
 func captureWorkflow_ForEach(t *testing.T) *workflowv1.Workflow {
 	initCfg := mustStruct(t, map[string]any{"variables": map[string]any{"count": "3"}})
 	forCfg := mustStruct(t, map[string]any{
-		"in": "${ 3 }",
+		"in":   "${ 3 }",
+		"each": "item",
 		"do": []any{
 			map[string]any{
 				"name": "step",
