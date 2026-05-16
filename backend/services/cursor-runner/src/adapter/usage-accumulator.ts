@@ -46,6 +46,14 @@ const EMPTY_SNAPSHOT: UsageSnapshot = {
   observedAt: "",
 };
 
+export interface TurnRecord {
+  readonly sequence: number;
+  readonly inputTokens: number;
+  readonly outputTokens: number;
+  readonly cacheReadTokens: number;
+  readonly cacheWriteTokens: number;
+}
+
 export class UsageAccumulator {
   private inputTokens = 0;
   private outputTokens = 0;
@@ -54,6 +62,7 @@ export class UsageAccumulator {
   private turnCount = 0;
   private estimatedCostUsd = 0;
   private observedAt = "";
+  private readonly turnRecords: TurnRecord[] = [];
 
   constructor(private readonly model: string) {}
 
@@ -69,6 +78,13 @@ export class UsageAccumulator {
     this.cacheWriteTokens += cacheWrite;
     this.turnCount++;
     this.observedAt = new Date().toISOString();
+    this.turnRecords.push({
+      sequence: this.turnCount,
+      inputTokens: input,
+      outputTokens: output,
+      cacheReadTokens: cacheRead,
+      cacheWriteTokens: cacheWrite,
+    });
 
     const pricing = getCursorModelPricing(this.model);
     this.estimatedCostUsd += computeTurnCost(
@@ -78,6 +94,14 @@ export class UsageAccumulator {
 
   get hasTurns(): boolean {
     return this.turnCount > 0;
+  }
+
+  get modelName(): string {
+    return this.model;
+  }
+
+  turns(): readonly TurnRecord[] {
+    return this.turnRecords;
   }
 
   snapshot(): UsageSnapshot {
