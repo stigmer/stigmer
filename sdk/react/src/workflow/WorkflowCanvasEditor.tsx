@@ -6,6 +6,8 @@ import { cn } from "@stigmer/theme";
 import { useWorkflowCanvas } from "./useWorkflowCanvas";
 import { WorkflowTaskPalette } from "./WorkflowTaskPalette";
 import { WorkflowInspectorPanel } from "./WorkflowInspectorPanel";
+import { CanvasActionsContext } from "./CanvasActionsContext";
+import type { CanvasActions } from "./CanvasActionsContext";
 
 /** Props for {@link WorkflowCanvasEditor}. */
 export interface WorkflowCanvasEditorProps {
@@ -104,6 +106,21 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
     [canvas.onEdgesDelete],
   );
 
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      canvas.onNodesDelete([{ id: nodeId } as import("@xyflow/react").Node]);
+    },
+    [canvas.onNodesDelete],
+  );
+
+  const canvasActions = useMemo<CanvasActions>(
+    () => ({
+      insertTaskOnEdge: canvas.insertTaskOnEdge,
+      deleteNode: handleDeleteNode,
+    }),
+    [canvas.insertTaskOnEdge, handleDeleteNode],
+  );
+
   const descriptor = canvas.selection?.type === "node"
     ? canvas.getNodeDescriptor(canvas.selection.id)
     : undefined;
@@ -180,28 +197,30 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
           onSave={onSave ? handleSave : undefined}
           isSaving={isSaving}
         />
-        <Suspense fallback={fallback}>
-          <LazyCanvasInner
-            nodes={canvas.nodes}
-            edges={canvas.edges}
-            onNodesChange={canvas.onNodesChange}
-            onEdgesChange={canvas.onEdgesChange}
-            onNodeClick={handleNodeClick}
-            onEdgeClick={handleEdgeClick}
-            onPaneClick={handlePaneClick}
-            onConnect={canvas.onConnect}
-            isValidConnection={canvas.isValidConnection}
-            onDrop={canvas.onDrop}
-            onDragOver={canvas.onDragOver}
-            onNodesDelete={canvas.onNodesDelete}
-            onEdgesDelete={canvas.onEdgesDelete}
-            nodeErrors={nodeErrors}
-          />
-        </Suspense>
+        <CanvasActionsContext.Provider value={canvasActions}>
+          <Suspense fallback={fallback}>
+            <LazyCanvasInner
+              nodes={canvas.nodes}
+              edges={canvas.edges}
+              onNodesChange={canvas.onNodesChange}
+              onEdgesChange={canvas.onEdgesChange}
+              onNodeClick={handleNodeClick}
+              onEdgeClick={handleEdgeClick}
+              onPaneClick={handlePaneClick}
+              onConnect={canvas.onConnect}
+              isValidConnection={canvas.isValidConnection}
+              onDrop={canvas.onDrop}
+              onDragOver={canvas.onDragOver}
+              onNodesDelete={canvas.onNodesDelete}
+              onEdgesDelete={canvas.onEdgesDelete}
+              nodeErrors={nodeErrors}
+            />
+          </Suspense>
+        </CanvasActionsContext.Provider>
       </div>
 
       {showInspector && (
-        <div className="w-[280px] min-w-[240px] overflow-hidden border-l border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-background,#fff)]">
+        <div className="w-[280px] min-w-[240px] overflow-hidden border-l border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))]">
           <WorkflowInspectorPanel
             selection={canvas.selection}
             graph={canvas.graph}
@@ -211,6 +230,7 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
             onUpdateExport={canvas.updateNodeExport}
             onUpdateFlow={canvas.updateNodeFlow}
             onDeleteEdge={handleDeleteEdge}
+            onDeleteNode={handleDeleteNode}
             onUpdateBranchRouting={canvas.updateBranchRouting}
             onMigrateBranchHandle={canvas.migrateBranchHandle}
             onRemoveBranchEdges={canvas.removeBranchEdges}
@@ -245,7 +265,7 @@ function CanvasToolbar({
   isSaving?: boolean;
 }) {
   const btnClass =
-    "rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 py-1 text-xs font-medium text-[var(--stgm-foreground,#1a1a2e)] shadow-sm hover:bg-[var(--stgm-muted,#f5f5f5)] active:bg-[var(--stgm-accent,#e5e5e5)] disabled:cursor-not-allowed disabled:opacity-40";
+    "rounded border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] px-2 py-1 text-xs font-medium text-[var(--stgm-foreground,#1a1a2e)] shadow-sm hover:bg-[var(--stgm-muted,#f5f5f5)] active:bg-[var(--stgm-accent,#e5e5e5)] disabled:cursor-not-allowed disabled:opacity-40";
 
   return (
     <div className="absolute left-2 top-2 z-10 flex items-center gap-1">

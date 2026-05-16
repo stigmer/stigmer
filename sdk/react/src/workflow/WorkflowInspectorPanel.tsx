@@ -31,6 +31,8 @@ export interface WorkflowInspectorPanelProps {
   readonly onUpdateFlow: (nodeId: string, thenTarget: string | undefined) => void;
   /** Called to delete an edge. */
   readonly onDeleteEdge?: (edgeId: string) => void;
+  /** Called to delete a node (task). */
+  readonly onDeleteNode?: (nodeId: string) => void;
   /** Called to create/update/remove an edge for a specific branch handle. */
   readonly onUpdateBranchRouting?: (
     nodeId: string,
@@ -70,6 +72,7 @@ export const WorkflowInspectorPanel = memo(function WorkflowInspectorPanel({
   onUpdateExport,
   onUpdateFlow,
   onDeleteEdge,
+  onDeleteNode,
   onUpdateBranchRouting,
   onMigrateBranchHandle,
   onRemoveBranchEdges,
@@ -114,6 +117,7 @@ export const WorkflowInspectorPanel = memo(function WorkflowInspectorPanel({
       onRenameNode={onRenameNode}
       onUpdateExport={onUpdateExport}
       onUpdateFlow={onUpdateFlow}
+      onDeleteNode={onDeleteNode}
       onUpdateBranchRouting={onUpdateBranchRouting}
       onMigrateBranchHandle={onMigrateBranchHandle}
       onRemoveBranchEdges={onRemoveBranchEdges}
@@ -133,6 +137,7 @@ function NodeInspector({
   onRenameNode,
   onUpdateExport,
   onUpdateFlow,
+  onDeleteNode,
   onUpdateBranchRouting,
   onMigrateBranchHandle,
   onRemoveBranchEdges,
@@ -144,6 +149,7 @@ function NodeInspector({
   onRenameNode: (nodeId: string, newName: string) => void;
   onUpdateExport: (nodeId: string, exportAs: string | undefined) => void;
   onUpdateFlow: (nodeId: string, thenTarget: string | undefined) => void;
+  onDeleteNode?: (nodeId: string) => void;
   onUpdateBranchRouting?: (nodeId: string, handleId: string, targetTask: string | undefined) => void;
   onMigrateBranchHandle?: (nodeId: string, oldHandleId: string, newHandleId: string) => void;
   onRemoveBranchEdges?: (nodeId: string, handleId: string) => void;
@@ -236,6 +242,18 @@ function NodeInspector({
       {!hasSpecializedEditor && (
         <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
           <FlowSection node={node} otherTaskNames={otherTaskNames} onUpdateFlow={onUpdateFlow} />
+        </div>
+      )}
+
+      {onDeleteNode && (
+        <div className="mt-auto border-t border-[var(--stgm-border,#e5e5e5)] px-3 py-3">
+          <button
+            type="button"
+            onClick={() => onDeleteNode(node.id)}
+            className="w-full rounded-md border border-[var(--stgm-destructive,#ef4444)]/30 px-2.5 py-1.5 text-xs font-medium text-[var(--stgm-destructive,#ef4444)] transition-colors hover:bg-[var(--stgm-destructive,#ef4444)]/10"
+          >
+            Delete task
+          </button>
         </div>
       )}
     </div>

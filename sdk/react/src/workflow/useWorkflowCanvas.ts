@@ -98,6 +98,7 @@ export interface UseWorkflowCanvasReturn {
     newHandleId: string,
   ) => void;
   readonly removeBranchEdges: (nodeId: string, handleId: string) => void;
+  readonly insertTaskOnEdge: (edgeId: string, kindString: string) => void;
 }
 
 /**
@@ -520,6 +521,67 @@ export function useWorkflowCanvas(
   );
 
   // ---------------------------------------------------------------------------
+  // Insert task on edge (AD-T15-UX: "+" button affordance)
+  // ---------------------------------------------------------------------------
+
+  const insertTaskOnEdge = useCallback(
+    (edgeId: string, kindString: string) => {
+      const model = history.currentModel;
+      if (!model) return;
+
+      const edge = model.edges.find((e) => e.id === edgeId);
+      if (!edge) return;
+
+      const sourceNode = model.nodes.find((n) => n.id === edge.source);
+      const targetNode = model.nodes.find((n) => n.id === edge.target);
+      if (!sourceNode || !targetNode) return;
+
+      const kind = stringToTaskKind(kindString);
+      const category = categorizeKind(kindString);
+      const existingNames = new Set(model.nodes.map((n) => n.taskName));
+      const taskName = generateTaskName(kindString, existingNames);
+
+      const midPosition = {
+        x: (sourceNode.position.x + targetNode.position.x) / 2,
+        y: (sourceNode.position.y + targetNode.position.y) / 2 + 40,
+      };
+
+      const node = createTaskNode(taskName, kind, kindString, category, midPosition);
+      const edgeToNew = {
+        id: generateEdgeId(),
+        source: edge.source,
+        target: taskName,
+        ...(edge.sourceHandle && { sourceHandle: edge.sourceHandle }),
+      };
+      const edgeFromNew = {
+        id: generateEdgeId(),
+        source: taskName,
+        target: edge.target,
+      };
+
+      dispatch(
+        new CompoundCommand(`Insert ${kindString} on edge`, [
+          new DeleteEdgeCommand(edgeId),
+          new AddNodeCommand(node, edgeToNew),
+          new AddEdgeCommand(edgeFromNew),
+        ]),
+      );
+
+      setSelection({ type: "node", id: taskName });
+
+      requestAnimationFrame(() => {
+        const currentModel = history.currentModel;
+        if (currentModel.nodes.length > 0) {
+          const laidOut = applyDagreLayout(currentModel);
+          history.reset(laidOut);
+          syncFromModel(laidOut);
+        }
+      });
+    },
+    [history, dispatch, syncFromModel],
+  );
+
+  // ---------------------------------------------------------------------------
   // Selection
   // ---------------------------------------------------------------------------
 
@@ -610,6 +672,7 @@ export function useWorkflowCanvas(
       updateBranchRouting,
       migrateBranchHandle,
       removeBranchEdges,
+      insertTaskOnEdge,
     }),
     [
       nodes, edges, onNodesChange, onEdgesChange, onConnect,
@@ -619,6 +682,7 @@ export function useWorkflowCanvas(
       updateNodeField, renameNode, updateNodeExport, updateNodeFlow,
       getNodeDescriptor, serializeToYaml,
       updateBranchRouting, migrateBranchHandle, removeBranchEdges,
+      insertTaskOnEdge,
     ],
   );
 }
