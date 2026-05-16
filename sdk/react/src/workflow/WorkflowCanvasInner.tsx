@@ -133,18 +133,18 @@ export function WorkflowCanvasInner({
     >
       <Controls
         showInteractive={false}
-        className="!border-[var(--stgm-border,#d4d4d8)] !bg-[var(--stgm-background,#fff)] !shadow-sm [&>button]:!border-[var(--stgm-border,#d4d4d8)] [&>button]:!bg-[var(--stgm-background,#fff)] [&>button:hover]:!bg-[var(--stgm-muted,#f5f5f5)]"
+        className="!border-[var(--stgm-border-prominent,#d4d4d8)] !bg-[var(--stgm-card,var(--stgm-background,#fff))] !shadow-sm [&>button]:!border-[var(--stgm-border-prominent,#d4d4d8)] [&>button]:!bg-[var(--stgm-card,var(--stgm-background,#fff))] [&>button]:!fill-[var(--stgm-foreground,#1a1a2e)] [&>button:hover]:!bg-[var(--stgm-muted,#f5f5f5)]"
       />
       <MiniMap
         nodeColor={minimapNodeColor}
         maskColor="var(--stgm-muted, rgba(245, 245, 245, 0.7))"
-        className="!border-[var(--stgm-border,#d4d4d8)] !bg-[var(--stgm-background,#fff)]"
+        className="!border-[var(--stgm-border-prominent,#d4d4d8)] !bg-[var(--stgm-card,var(--stgm-background,#fff))]"
       />
       <Background
         variant={BackgroundVariant.Dots}
         gap={16}
         size={1}
-        color="var(--stgm-border, #d4d4d8)"
+        color="var(--stgm-muted-foreground, #737373)"
       />
     </ReactFlow>
   );

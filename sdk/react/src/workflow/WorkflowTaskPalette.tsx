@@ -106,7 +106,7 @@ export const WorkflowTaskPalette = memo(function WorkflowTaskPalette({
 
   if (isLoading) {
     return (
-      <div className={cn("stgm flex w-60 flex-col gap-3 border-r border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] p-3", className)}>
+      <div className={cn("stgm flex w-60 flex-col gap-3 border-r border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] p-3", className)}>
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="space-y-2">
             <div className="h-4 w-20 animate-pulse rounded bg-[var(--stgm-muted,#f5f5f5)]" />
@@ -120,14 +120,14 @@ export const WorkflowTaskPalette = memo(function WorkflowTaskPalette({
 
   if (error) {
     return (
-      <div className={cn("stgm flex w-60 flex-col items-center justify-center gap-2 border-r border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] p-4", className)}>
+      <div className={cn("stgm flex w-60 flex-col items-center justify-center gap-2 border-r border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] p-4", className)}>
         <span className="text-xs text-[var(--stgm-destructive,#ef4444)]">
           Failed to load task types
         </span>
         <button
           type="button"
           onClick={refetch}
-          className="rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 py-1 text-xs text-[var(--stgm-foreground,#1a1a2e)] hover:bg-[var(--stgm-muted,#f5f5f5)]"
+          className="rounded border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] px-2 py-1 text-xs text-[var(--stgm-foreground,#1a1a2e)] hover:bg-[var(--stgm-muted,#f5f5f5)]"
         >
           Retry
         </button>
@@ -138,17 +138,17 @@ export const WorkflowTaskPalette = memo(function WorkflowTaskPalette({
   return (
     <div
       className={cn(
-        "stgm flex w-60 shrink-0 flex-col border-r border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)]",
+        "stgm flex w-60 shrink-0 flex-col border-r border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))]",
         className,
       )}
     >
-      <div className="border-b border-[var(--stgm-border,#d4d4d8)] p-2">
+      <div className="border-b border-[var(--stgm-border-prominent,#d4d4d8)] p-2">
         <input
           type="search"
           placeholder="Search tasks…"
           value={searchQuery}
           onChange={handleSearchChange}
-          className="w-full rounded border border-[var(--stgm-border,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 py-1.5 text-xs text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#737373)] outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
+          className="w-full rounded border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-input-bg,var(--stgm-background,#fff))] px-2 py-1.5 text-xs text-[var(--stgm-foreground,#1a1a2e)] placeholder:text-[var(--stgm-muted-foreground,#737373)] outline-none focus:ring-1 focus:ring-[var(--stgm-ring,#3b82f6)]"
           aria-label="Search task types"
         />
       </div>
@@ -246,7 +246,7 @@ function PaletteItem({
     <div
       draggable
       onDragStart={handleDragStart}
-      className="flex cursor-grab items-start gap-2 rounded border border-transparent px-2 py-1.5 transition-colors hover:border-[var(--stgm-border,#d4d4d8)] hover:bg-[var(--stgm-muted,#f5f5f5)] active:cursor-grabbing"
+      className="flex cursor-grab items-start gap-2 rounded border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-background,#fff)] px-2 py-1.5 transition-colors hover:bg-[var(--stgm-muted,#f5f5f5)] active:cursor-grabbing"
       role="option"
       aria-label={`Drag to add ${descriptor.displayName} task`}
     >

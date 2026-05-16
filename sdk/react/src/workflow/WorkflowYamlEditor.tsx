@@ -10,7 +10,8 @@ import { cn } from "@stigmer/theme";
 import { EditorState, Compartment } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLine, drawSelection, highlightSpecialChars } from "@codemirror/view";
 import { yaml } from "@codemirror/lang-yaml";
-import { syntaxHighlighting, defaultHighlightStyle, bracketMatching, indentOnInput, foldGutter } from "@codemirror/language";
+import { syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput, foldGutter } from "@codemirror/language";
+import { tags } from "@lezer/highlight";
 import { lintGutter, type Diagnostic, setDiagnostics } from "@codemirror/lint";
 import { defaultKeymap, indentWithTab, history, historyKeymap } from "@codemirror/commands";
 import { autocompletion } from "@codemirror/autocomplete";
@@ -93,7 +94,7 @@ export const WorkflowYamlEditor = memo(function WorkflowYamlEditor({
         foldGutter(),
         history(),
         yaml(),
-        syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+        syntaxHighlighting(stigmerHighlightStyle, { fallback: true }),
         autocompletion(),
         lintGutter(),
         keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
@@ -177,6 +178,26 @@ export const WorkflowYamlEditor = memo(function WorkflowYamlEditor({
     />
   );
 });
+
+// ---------------------------------------------------------------------------
+// Syntax highlighting: maps lezer tags to --stgm-syntax-* CSS variables
+// ---------------------------------------------------------------------------
+
+const stigmerHighlightStyle = HighlightStyle.define([
+  { tag: tags.propertyName, color: "var(--stgm-syntax-property, #0550ae)" },
+  { tag: tags.tagName, color: "var(--stgm-syntax-tag, #cf222e)" },
+  { tag: tags.keyword, color: "var(--stgm-syntax-keyword, #8250df)", fontWeight: "bold" },
+  { tag: tags.string, color: "var(--stgm-syntax-string, #0a3069)" },
+  { tag: tags.number, color: "var(--stgm-syntax-number, #953800)" },
+  { tag: [tags.bool, tags.null], color: "var(--stgm-syntax-bool, #8250df)" },
+  { tag: tags.atom, color: "var(--stgm-syntax-atom, #cf222e)" },
+  { tag: tags.comment, color: "var(--stgm-syntax-comment, #6e7781)", fontStyle: "italic" },
+  { tag: tags.meta, color: "var(--stgm-syntax-meta, #8250df)" },
+  { tag: tags.name, color: "var(--stgm-foreground, #1a1a2e)" },
+  { tag: tags.definition(tags.name), color: "var(--stgm-syntax-property, #0550ae)" },
+  { tag: tags.separator, color: "var(--stgm-muted-foreground, #737373)" },
+  { tag: tags.punctuation, color: "var(--stgm-muted-foreground, #737373)" },
+]);
 
 // ---------------------------------------------------------------------------
 // CodeMirror theme bridge: maps --stgm-* tokens to editor styles

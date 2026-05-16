@@ -39,9 +39,9 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
   return (
     <div
       className={cn(
-        "stgm relative flex min-w-[200px] items-center gap-2 rounded-md border bg-[var(--stgm-background,#fff)] px-3 py-2 shadow-sm transition-shadow",
+        "stgm relative flex min-w-[200px] items-center gap-2 rounded-md border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] px-3 py-2 shadow-sm transition-shadow",
         selected && "ring-2 ring-[var(--stgm-ring,#3b82f6)]",
-        errorCount > 0 && "border-[var(--stgm-destructive,#ef4444)]",
+        errorCount > 0 && "!border-[var(--stgm-destructive,#ef4444)]",
       )}
       style={{ borderLeftWidth: 4, borderLeftColor: borderColor }}
       aria-label={`Task: ${data.taskName}, type: ${formatKindLabel(data.kindString)}${errorCount > 0 ? `, ${errorCount} ${errorCount === 1 ? "error" : "errors"}` : ""}`}
@@ -57,7 +57,7 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
       <Handle
         type="target"
         position={Position.Top}
-        className="!h-2 !w-2 !rounded-full !border-[var(--stgm-border,#d4d4d8)] !bg-[var(--stgm-background,#fff)]"
+        className="!h-2 !w-2 !rounded-full !border-[var(--stgm-border-prominent,#d4d4d8)] !bg-[var(--stgm-card,var(--stgm-background,#fff))]"
       />
 
       <div className="flex flex-1 flex-col gap-0.5 overflow-hidden">
@@ -92,7 +92,7 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
                   type="source"
                   position={Position.Bottom}
                   id={handle.id}
-                  className="!h-2 !w-2 !rounded-full !border-[var(--stgm-border,#d4d4d8)] !bg-[var(--stgm-background,#fff)]"
+                  className="!h-2 !w-2 !rounded-full !border-[var(--stgm-border-prominent,#d4d4d8)] !bg-[var(--stgm-card,var(--stgm-background,#fff))]"
                   style={{ left: `${leftPct}%` }}
                 />
                 <span
@@ -114,7 +114,7 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
         <Handle
           type="source"
           position={Position.Bottom}
-          className="!h-2 !w-2 !rounded-full !border-[var(--stgm-border,#d4d4d8)] !bg-[var(--stgm-background,#fff)]"
+          className="!h-2 !w-2 !rounded-full !border-[var(--stgm-border-prominent,#d4d4d8)] !bg-[var(--stgm-card,var(--stgm-background,#fff))]"
         />
       )}
     </div>
@@ -137,8 +137,8 @@ function SentinelNode({
   return (
     <div
       className={cn(
-        "stgm flex items-center justify-center rounded-full border px-4 py-1.5",
-        "bg-[var(--stgm-muted,#f5f5f5)] text-xs font-medium text-[var(--stgm-muted-foreground,#737373)]",
+        "stgm flex items-center justify-center rounded-full border-2 px-4 py-1.5",
+        "bg-[var(--stgm-muted,#f5f5f5)] text-xs font-medium text-[var(--stgm-foreground,#1a1a2e)]",
         selected && "ring-2 ring-[var(--stgm-ring,#3b82f6)]",
       )}
       style={{ borderColor: CATEGORY_COLORS[data.category] }}
@@ -147,13 +147,13 @@ function SentinelNode({
         <Handle
           type="source"
           position={Position.Bottom}
-          className="!h-2 !w-2 !rounded-full !border-[var(--stgm-border,#d4d4d8)] !bg-[var(--stgm-muted,#f5f5f5)]"
+          className="!h-2 !w-2 !rounded-full !border-[var(--stgm-border-prominent,#d4d4d8)] !bg-[var(--stgm-muted,#f5f5f5)]"
         />
       ) : (
         <Handle
           type="target"
           position={Position.Top}
-          className="!h-2 !w-2 !rounded-full !border-[var(--stgm-border,#d4d4d8)] !bg-[var(--stgm-muted,#f5f5f5)]"
+          className="!h-2 !w-2 !rounded-full !border-[var(--stgm-border-prominent,#d4d4d8)] !bg-[var(--stgm-muted,#f5f5f5)]"
         />
       )}
       {data.taskName}
