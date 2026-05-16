@@ -47,6 +47,13 @@ type ServiceConfig struct {
 	// cursor-runner requests to Cursor's API and record per-call usage.
 	CursorAPIKey string
 
+	// OpenFGA configuration. When all three are set, the Java service
+	// uses a real OpenFGA instance for authorization instead of the
+	// permit-all TestIamPolicyGrpcRepo stub.
+	OpenFGAAPIURL string
+	OpenFGAStoreID string
+	OpenFGAModelID string
+
 	// LogDir is the directory for the service log file.
 	// If empty, a temporary directory is used.
 	LogDir string
@@ -88,7 +95,12 @@ func StartJavaService(ctx context.Context, cfg ServiceConfig, logger *slog.Logge
 	}
 	logger.Info("service log", "path", logPath)
 
-	cmd := exec.CommandContext(ctx, "java", "-jar", cfg.JarPath)
+	// Use exec.Command (not CommandContext) so the Java process lifetime
+	// is decoupled from the startup context. The caller's context governs
+	// the port-readiness wait, but the service runs until Stop() is called.
+	// Previously, CommandContext tied the JVM to a 5-minute TestMain deadline,
+	// which silently killed the process during long-running tests.
+	cmd := exec.Command("java", "-jar", cfg.JarPath)
 	cmd.Env = buildServiceEnv(cfg)
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
@@ -164,14 +176,24 @@ func (s *JavaService) Stop() error {
 }
 
 func buildServiceEnv(cfg ServiceConfig) []string {
+	fgaEnabled := cfg.OpenFGAAPIURL != "" && cfg.OpenFGAStoreID != "" && cfg.OpenFGAModelID != ""
+
+	profiles := "mongo,temporal,iam,logging,auth0,skill-r2,agent-execution-r2"
+	if fgaEnabled {
+		profiles += ",openfga"
+	}
+
 	env := os.Environ()
 	env = append(env,
 		// Spring profiles: auth0 profile provides security.authentication.* property bindings;
 		// GrpcSecurityConfigBase and MachineAccountJwtProvider are skipped via
 		// stigmer.security.mode=test, so no OIDC discovery call is made.
-		"SPRING_PROFILES_ACTIVE=mongo,temporal,iam,logging,auth0,skill-r2,agent-execution-r2",
+		// The openfga profile is added when real FGA is enabled.
+		fmt.Sprintf("SPRING_PROFILES_ACTIVE=%s", profiles),
 
-		// Test security mode: bypass Auth0/OpenFGA
+		// Test security mode: bypass Auth0 JWT validation but keep gRPC/HTTP
+		// pipeline intact. When fga.enabled=true, the production FGA path
+		// (IamPolicyGrpcRepoImpl → OpenFGA) is used instead of the permit-all stub.
 		"STIGMER_SECURITY_MODE=test",
 
 		// Server ports
@@ -233,11 +255,21 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		"STIGMER_BILLING_RESERVATION_EXPIRY_ENABLED=false",
 		"STIGMER_RUNNER_LAUNCHER_TYPE=noop",
 
-		// Allow proxy requests without FGA scope headers. Test security
-		// mode has no real FGA setup, and runners may issue metadata
-		// requests (e.g. /v1/models) before execution scope is set.
+		// Allow proxy requests without FGA scope headers. Runners may
+		// issue metadata requests (e.g. /v1/models) before execution
+		// scope is set. This remains false even with real FGA — the
+		// proxy scope headers are tested separately.
 		"STIGMER_PROXY_REQUIRE_SCOPE_HEADER=false",
 	)
+
+	if fgaEnabled {
+		env = append(env,
+			"STIGMER_FGA_ENABLED=true",
+			fmt.Sprintf("OPENFGA_API_URL=%s", cfg.OpenFGAAPIURL),
+			fmt.Sprintf("OPENFGA_STORE_ID=%s", cfg.OpenFGAStoreID),
+			fmt.Sprintf("OPENFGA_MODEL_ID=%s", cfg.OpenFGAModelID),
+		)
+	}
 
 	if cfg.AnthropicAPIKey != "" {
 		env = append(env,
