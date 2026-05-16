@@ -233,6 +233,10 @@ test-integration-providers: ## Run provider-backed integration tests (auto-fetch
 test-integration-agent: ## Run agent execution integration tests (auto-fetches API keys from Planton)
 	$(MAKE) -C test/integration test-agent
 
+.PHONY: benchmark-cost
+benchmark-cost: ## Run cost benchmarks comparing Native vs Cursor harness execution costs
+	$(MAKE) -C test/integration benchmark-cost
+
 # ─── Tidy ────────────────────────────────────
 
 .PHONY: tidy
