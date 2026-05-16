@@ -19,10 +19,34 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-16 — Tech debt sweep COMPLETE (4 resolved, 2 deferred)
-**Current Task**: Tech debt sweep COMPLETE
+**Last Session**: 2026-05-16 — Workflow creation UX (New Workflow page + creation picker)
+**Current Task**: Workflow creation UX COMPLETE
 **Phase**: Phases 0-3 COMPLETE, Phase 4 partially complete (3/8 built, 5 deferred), tech debt resolved
 **Next Task**: E2E test runs, deferred Phase 4 items, or new feature work
+
+## Session Progress (2026-05-16, Workflow Creation UX)
+
+### Workflow Creation UX — COMPLETE
+
+Fixed UX gap where the visual canvas editor (Phase 2, T15) was unreachable from the UI.
+The editor was only accessible as a tab on existing workflow detail pages — users with
+zero workflows could never reach it.
+
+#### Changes
+- **STARTER_WORKFLOW_YAML**: Minimal valid workflow template in `sdk/react/src/workflow/`
+- **WorkflowEditorView `defaultMode` prop**: New optional prop to start in visual mode
+- **WorkflowNewPage** (web + desktop): Two-card creation picker at `/library/workflows/new`
+  - "Visual Editor" — opens canvas with starter YAML in visual mode
+  - "Generate with AI" — opens WorkflowArchitectDialog for AI generation
+  - State machine: picking → editor | generating, with back navigation
+- **WorkflowListPage** (web + desktop): Single "Create" button replacing two separate buttons
+- **LibraryLanding** (web): Added "Workflow" to the Add menu
+- **Desktop routes**: Added `workflows/new` route before `workflows/:org/:slug`
+
+#### Verification
+- `tsc --noEmit` — clean: sdk/react, client-apps/web, client-apps/desktop
+- Zero linter errors on all new/modified files
+- DD-016 parity confirmed: web and desktop structurally identical
 
 ## Session Progress (2026-05-16, Phase 4 / T17)
 

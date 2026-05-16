@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
-import { GitBranch, MoreHorizontal, Copy, ExternalLink, Trash2, Sparkles, Plus } from "lucide-react";
+import { GitBranch, MoreHorizontal, Copy, ExternalLink, Trash2, Plus } from "lucide-react";
 import {
   readPersistedScope,
   writePersistedScope,
@@ -13,7 +13,6 @@ import {
   useActiveOrgSlug,
   useConfirmAction,
   ConfirmDialog,
-  WorkflowArchitectDialog,
   toast,
   type WorkbenchColumnDef,
 } from "@stigmer/react";
@@ -60,7 +59,6 @@ export default function WorkflowListPage() {
   const { confirmState, confirm, handleConfirm, handleCancel } =
     useConfirmAction();
 
-  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
   const [scope, setScope] = useState<"org" | "all">(() =>
     readPersistedScope(),
   );
@@ -107,23 +105,13 @@ export default function WorkflowListPage() {
             Browse and manage multi-step orchestration workflows.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            to="/library/workflows/new"
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            New
-          </Link>
-          <button
-            type="button"
-            onClick={() => setShowGenerateDialog(true)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Sparkles className="size-4" aria-hidden="true" />
-            Generate
-          </button>
-        </div>
+        <Link
+          to="/library/workflows/new"
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Plus className="size-4" aria-hidden="true" />
+          Create
+        </Link>
       </div>
 
       <ResourceWorkbench
@@ -139,7 +127,7 @@ export default function WorkflowListPage() {
         searchPlaceholder="Search workflows…"
         emptyIcon={<GitBranch className="size-10" aria-hidden="true" />}
         emptyTitle="No workflows yet"
-        emptyDescription="Workflows define multi-step orchestration for agents. Use the New button to create one in the visual editor, or Generate with AI."
+        emptyDescription="Workflows define multi-step orchestration for agents. Use the Create button above to get started."
         onItemClick={(item) =>
           navigate(`/library/workflows/${item.org}/${item.slug}`)
         }
@@ -188,17 +176,6 @@ export default function WorkflowListPage() {
         state={confirmState}
         onConfirm={handleConfirm}
         onCancel={handleCancel}
-      />
-
-      <WorkflowArchitectDialog
-        open={showGenerateDialog}
-        onOpenChange={setShowGenerateDialog}
-        org={org}
-        onSuccess={(genOrg, slug) => {
-          setListVersion((v) => v + 1);
-          navigate(`/library/workflows/${genOrg}/${slug}`);
-        }}
-        onError={(message) => toast.error(message)}
       />
     </>
   );
