@@ -414,3 +414,40 @@ enum ApprovalAction {
   // Error message includes rejection reason from user's comment.
   APPROVAL_ACTION_REJECT = 3;
 }
+
+// InteractionMode controls the agent's behavioral posture for an execution.
+//
+// Determines what the agent is allowed to do — analysis only, or full
+// read-write access. Mode is set per-execution via ExecutionConfig and
+// does not carry over between executions.
+//
+// Enforcement:
+// - Native harness (LangGraph): tool-level enforcement — write tools are
+//   removed from the tool set in PLAN mode.
+// - Cursor harness: best-effort via system prompt injection. The Cursor SDK
+//   does not expose a mode parameter, so the agent is instructed not to
+//   make changes. When the SDK adds native mode support, the prompt-based
+//   approach will be replaced.
+enum InteractionMode {
+  // Default — resolves to INTERACTION_MODE_AGENT.
+  INTERACTION_MODE_UNSPECIFIED = 0;
+
+  // Full agent mode with unrestricted tool access.
+  //
+  // The agent can read, write, create, edit, and delete files; run shell
+  // commands; and invoke any configured tool. This is the standard
+  // execution mode for interactive sessions.
+  INTERACTION_MODE_AGENT = 1;
+
+  // Read-only planning mode — analysis and recommendations only.
+  //
+  // The agent can read files, search code, list directories, and reason
+  // about the codebase, but cannot create, edit, or delete files or run
+  // mutating shell commands. Designed for exploring approaches, producing
+  // implementation plans, and answering architectural questions without
+  // side effects.
+  //
+  // Native harness: enforced by removing write tools from the tool set.
+  // Cursor harness: best-effort via system prompt directive.
+  INTERACTION_MODE_PLAN = 2;
+}

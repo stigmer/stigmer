@@ -7,6 +7,7 @@ import { useComposer } from "./useComposer";
 import { ComposerToolbar } from "./ComposerToolbar";
 import { type ConfigureMenuItem } from "./ConfigureMenu";
 import type { HarnessOption } from "../models/harness";
+import type { InteractionModeOption } from "./InteractionModePicker";
 import { parseModelKey } from "../models/registry";
 import { ContextChip, type ChipItem } from "./ContextChip";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor";
@@ -83,6 +84,16 @@ export interface SessionComposerSubmitContext {
    * `undefined` when no files were attached.
    */
   readonly attachments?: AttachmentInput[];
+  /**
+   * Interaction mode selected by the user for this execution.
+   *
+   * - `"agent"` (default): full tool access — read, write, create, delete.
+   * - `"plan"`: read-only analysis — read, search, list only.
+   *
+   * `undefined` when no mode picker is shown (defaults to `"agent"`).
+   * Pass to execution creation as `execution_config.interaction_mode`.
+   */
+  readonly interactionMode?: InteractionModeOption;
 }
 
 /** Props for {@link SessionComposer}. */
@@ -119,6 +130,22 @@ export interface SessionComposerProps {
   readonly onHarnessChange?: (harness: HarnessOption) => void;
   /** Show the harness selector in the toolbar. @default false */
   readonly showHarnessSelector?: boolean;
+
+  /**
+   * Currently selected interaction mode.
+   *
+   * When `onInteractionModeChange` is provided, renders a mode picker
+   * in the toolbar. Defaults to `"agent"` when omitted.
+   */
+  readonly interactionMode?: InteractionModeOption;
+  /**
+   * Called when the user switches the interaction mode.
+   *
+   * Providing this callback enables the mode picker in the toolbar.
+   */
+  readonly onInteractionModeChange?: (mode: InteractionModeOption) => void;
+  /** Show the interaction mode picker in the toolbar. @default false */
+  readonly showInteractionModePicker?: boolean;
 
   /** Initial model ID for the model selector. */
   readonly defaultModelId?: string;
@@ -391,6 +418,9 @@ export const SessionComposer = memo(function SessionComposer({
   harness,
   onHarnessChange,
   showHarnessSelector = false,
+  interactionMode,
+  onInteractionModeChange,
+  showInteractionModePicker = false,
   defaultModelId,
   onModelChange,
   showModelSelector = true,
@@ -655,12 +685,17 @@ export const SessionComposer = memo(function SessionComposer({
       const hasEnv = Object.keys(env).length > 0;
       const hasAttachments =
         attachmentInputs !== undefined && attachmentInputs.length > 0;
+      const effectiveMode =
+        showInteractionModePicker && interactionMode
+          ? interactionMode
+          : undefined;
 
       const context: SessionComposerSubmitContext | undefined =
-        hasEnv || hasAttachments
+        hasEnv || hasAttachments || effectiveMode
           ? {
               runtimeEnv: hasEnv ? env : undefined,
               attachments: hasAttachments ? attachmentInputs : undefined,
+              interactionMode: effectiveMode,
             }
           : undefined;
 
@@ -673,7 +708,7 @@ export const SessionComposer = memo(function SessionComposer({
         attachments.clear();
       }
     },
-    [onSubmit, modelId, stigmer, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv],
+    [onSubmit, modelId, stigmer, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv, showInteractionModePicker, interactionMode],
   );
 
   const composer = useComposer({
@@ -694,6 +729,13 @@ export const SessionComposer = memo(function SessionComposer({
       onHarnessChange?.(h);
     },
     [onHarnessChange],
+  );
+
+  const handleInteractionModeChange = useCallback(
+    (mode: InteractionModeOption) => {
+      onInteractionModeChange?.(mode);
+    },
+    [onInteractionModeChange],
   );
 
   const handleDisplayNameResolved = useCallback(
@@ -1475,6 +1517,9 @@ export const SessionComposer = memo(function SessionComposer({
           showHarnessSelector={showHarnessSelector}
           harness={harness}
           onHarnessChange={handleHarnessChange}
+          showInteractionModePicker={showInteractionModePicker}
+          interactionMode={interactionMode}
+          onInteractionModeChange={handleInteractionModeChange}
           showModelSelector={showModelSelector}
           modelId={modelId}
           onModelChange={handleModelChange}

@@ -99,7 +99,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "\022$\n\tnamespace\030\002 \001(\tB\006\272H\003\310\001\001R\tnamespace\022\032" +
       "\n\004name\030\003 \001(\tB\006\272H\003\310\001\001R\004name\022 \n\007version\030\004 " +
       "\001(\tB\006\272H\003\310\001\001R\007version\022 \n\013description\030\005 \001(" +
-      "\tR\013description\"\303\002\n\014WorkflowTask\022\032\n\004name\030" +
+      "\tR\013description\"\221\003\n\014WorkflowTask\022\032\n\004name\030" +
       "\001 \001(\tB\006\272H\003\310\001\001R\004name\022L\n\004kind\030\002 \001(\01620.ai.s" +
       "tigmer.agentic.workflow.v1.WorkflowTaskK" +
       "indB\006\272H\003\310\001\001R\004kind\022H\n\013task_config\030\003 \001(\0132\027" +
@@ -107,13 +107,15 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "\ntaskConfig\022>\n\006export\030\004 \001(\0132&.ai.stigmer" +
       ".agentic.workflow.v1.ExportR\006export\022?\n\004f" +
       "low\030\005 \001(\0132+.ai.stigmer.agentic.workflow." +
-      "v1.FlowControlR\004flow\"!\n\006Export\022\027\n\002as\030\001 \001" +
-      "(\tB\007\272H\004r\002\020\001R\002as\"!\n\013FlowControl\022\022\n\004then\030\001" +
-      " \001(\tR\004thenB\250\001B\tSpecProtoP\001\242\002\004ASAW\252\002\036Ai.S" +
-      "tigmer.Agentic.Workflow.V1\312\002\036Ai\\Stigmer\\" +
-      "Agentic\\Workflow\\V1\342\002*Ai\\Stigmer\\Agentic" +
-      "\\Workflow\\V1\\GPBMetadata\352\002\"Ai::Stigmer::" +
-      "Agentic::Workflow::V1b\006proto3"
+      "v1.FlowControlR\004flow\022L\n\ncompensate\030\006 \003(\013" +
+      "2,.ai.stigmer.agentic.workflow.v1.Workfl" +
+      "owTaskR\ncompensate\"!\n\006Export\022\027\n\002as\030\001 \001(\t" +
+      "B\007\272H\004r\002\020\001R\002as\"!\n\013FlowControl\022\022\n\004then\030\001 \001" +
+      "(\tR\004thenB\250\001B\tSpecProtoP\001\242\002\004ASAW\252\002\036Ai.Sti" +
+      "gmer.Agentic.Workflow.V1\312\002\036Ai\\Stigmer\\Ag" +
+      "entic\\Workflow\\V1\342\002*Ai\\Stigmer\\Agentic\\W" +
+      "orkflow\\V1\\GPBMetadata\352\002\"Ai::Stigmer::Ag" +
+      "entic::Workflow::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -153,7 +155,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflow_v1_WorkflowTask_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflow_v1_WorkflowTask_descriptor,
-        new java.lang.String[] { "Name", "Kind", "TaskConfig", "Export", "Flow", });
+        new java.lang.String[] { "Name", "Kind", "TaskConfig", "Export", "Flow", "Compensate", });
     internal_static_ai_stigmer_agentic_workflow_v1_Export_descriptor =
       getDescriptor().getMessageType(4);
     internal_static_ai_stigmer_agentic_workflow_v1_Export_fieldAccessorTable = new

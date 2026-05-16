@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agentexecution.v1;
 
+import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 import "ai/stigmer/agentic/executioncontext/v1/spec.proto";
 import "buf/validate/validate.proto";
 
@@ -307,6 +308,24 @@ message ExecutionConfig {
   // UsageMetrics.estimated_cost_usd. When approaching the cap (>80%),
   // a budget warning is injected into the conversation.
   double max_cost_usd = 5;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Interaction Mode
+  //
+  // Controls the agent's behavioral posture for this execution.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Interaction mode for this execution.
+  //
+  // AGENT (default): full tool access — read, write, create, delete, shell.
+  // PLAN: read-only analysis — read, search, list only. No file mutations.
+  //
+  // When UNSPECIFIED, defaults to AGENT for backward compatibility.
+  //
+  // The mode is set per-execution and does not carry over between executions
+  // in the same session. Users toggle mode in the session composer before
+  // sending each message.
+  InteractionMode interaction_mode = 6 [(buf.validate.field).enum.defined_only = true];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

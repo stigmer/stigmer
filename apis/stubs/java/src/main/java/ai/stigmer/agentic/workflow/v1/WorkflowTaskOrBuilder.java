@@ -207,4 +207,288 @@ public interface WorkflowTaskOrBuilder extends
    * <code>.ai.stigmer.agentic.workflow.v1.FlowControl flow = 5 [json_name = "flow"];</code>
    */
   ai.stigmer.agentic.workflow.v1.FlowControlOrBuilder getFlowOrBuilder();
+
+  /**
+   * <pre>
+   * Compensation tasks to execute if this task needs to be "undone."
+   *
+   * &#64;internal
+   * Saga-style compensation for workflows with side effects. When a
+   * try_catch block catches an error, it can optionally run the
+   * compensation tasks for all already-completed tasks in reverse order.
+   *
+   * The compensation tasks receive the original task's output in their
+   * input context, allowing them to construct the appropriate undo
+   * operation (e.g., cancel an API call, delete a created resource,
+   * send a reversal notification).
+   *
+   * Only executed when:
+   * 1. The task completed successfully (failed tasks are not compensated)
+   * 2. A subsequent task within the same try_catch scope fails
+   * 3. The catch block is configured to run compensations
+   *
+   * YAML Example:
+   * try:
+   * - create_order:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/orders" }
+   * body: { ... }
+   * compensate:
+   * - cancel_order:
+   * call: http
+   * with:
+   * method: DELETE
+   * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+   * export:
+   * as: "${ . }"
+   * - charge_payment:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/payments" }
+   * catch:
+   * as: error
+   * compensate: true
+   * do:
+   * - log_failure:
+   * call: notification
+   * with: ...
+   *
+   * Optional - when empty, this task has no compensation action.
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.workflow.v1.WorkflowTask> 
+      getCompensateList();
+  /**
+   * <pre>
+   * Compensation tasks to execute if this task needs to be "undone."
+   *
+   * &#64;internal
+   * Saga-style compensation for workflows with side effects. When a
+   * try_catch block catches an error, it can optionally run the
+   * compensation tasks for all already-completed tasks in reverse order.
+   *
+   * The compensation tasks receive the original task's output in their
+   * input context, allowing them to construct the appropriate undo
+   * operation (e.g., cancel an API call, delete a created resource,
+   * send a reversal notification).
+   *
+   * Only executed when:
+   * 1. The task completed successfully (failed tasks are not compensated)
+   * 2. A subsequent task within the same try_catch scope fails
+   * 3. The catch block is configured to run compensations
+   *
+   * YAML Example:
+   * try:
+   * - create_order:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/orders" }
+   * body: { ... }
+   * compensate:
+   * - cancel_order:
+   * call: http
+   * with:
+   * method: DELETE
+   * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+   * export:
+   * as: "${ . }"
+   * - charge_payment:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/payments" }
+   * catch:
+   * as: error
+   * compensate: true
+   * do:
+   * - log_failure:
+   * call: notification
+   * with: ...
+   *
+   * Optional - when empty, this task has no compensation action.
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+   */
+  ai.stigmer.agentic.workflow.v1.WorkflowTask getCompensate(int index);
+  /**
+   * <pre>
+   * Compensation tasks to execute if this task needs to be "undone."
+   *
+   * &#64;internal
+   * Saga-style compensation for workflows with side effects. When a
+   * try_catch block catches an error, it can optionally run the
+   * compensation tasks for all already-completed tasks in reverse order.
+   *
+   * The compensation tasks receive the original task's output in their
+   * input context, allowing them to construct the appropriate undo
+   * operation (e.g., cancel an API call, delete a created resource,
+   * send a reversal notification).
+   *
+   * Only executed when:
+   * 1. The task completed successfully (failed tasks are not compensated)
+   * 2. A subsequent task within the same try_catch scope fails
+   * 3. The catch block is configured to run compensations
+   *
+   * YAML Example:
+   * try:
+   * - create_order:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/orders" }
+   * body: { ... }
+   * compensate:
+   * - cancel_order:
+   * call: http
+   * with:
+   * method: DELETE
+   * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+   * export:
+   * as: "${ . }"
+   * - charge_payment:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/payments" }
+   * catch:
+   * as: error
+   * compensate: true
+   * do:
+   * - log_failure:
+   * call: notification
+   * with: ...
+   *
+   * Optional - when empty, this task has no compensation action.
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+   */
+  int getCompensateCount();
+  /**
+   * <pre>
+   * Compensation tasks to execute if this task needs to be "undone."
+   *
+   * &#64;internal
+   * Saga-style compensation for workflows with side effects. When a
+   * try_catch block catches an error, it can optionally run the
+   * compensation tasks for all already-completed tasks in reverse order.
+   *
+   * The compensation tasks receive the original task's output in their
+   * input context, allowing them to construct the appropriate undo
+   * operation (e.g., cancel an API call, delete a created resource,
+   * send a reversal notification).
+   *
+   * Only executed when:
+   * 1. The task completed successfully (failed tasks are not compensated)
+   * 2. A subsequent task within the same try_catch scope fails
+   * 3. The catch block is configured to run compensations
+   *
+   * YAML Example:
+   * try:
+   * - create_order:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/orders" }
+   * body: { ... }
+   * compensate:
+   * - cancel_order:
+   * call: http
+   * with:
+   * method: DELETE
+   * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+   * export:
+   * as: "${ . }"
+   * - charge_payment:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/payments" }
+   * catch:
+   * as: error
+   * compensate: true
+   * do:
+   * - log_failure:
+   * call: notification
+   * with: ...
+   *
+   * Optional - when empty, this task has no compensation action.
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.workflow.v1.WorkflowTaskOrBuilder> 
+      getCompensateOrBuilderList();
+  /**
+   * <pre>
+   * Compensation tasks to execute if this task needs to be "undone."
+   *
+   * &#64;internal
+   * Saga-style compensation for workflows with side effects. When a
+   * try_catch block catches an error, it can optionally run the
+   * compensation tasks for all already-completed tasks in reverse order.
+   *
+   * The compensation tasks receive the original task's output in their
+   * input context, allowing them to construct the appropriate undo
+   * operation (e.g., cancel an API call, delete a created resource,
+   * send a reversal notification).
+   *
+   * Only executed when:
+   * 1. The task completed successfully (failed tasks are not compensated)
+   * 2. A subsequent task within the same try_catch scope fails
+   * 3. The catch block is configured to run compensations
+   *
+   * YAML Example:
+   * try:
+   * - create_order:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/orders" }
+   * body: { ... }
+   * compensate:
+   * - cancel_order:
+   * call: http
+   * with:
+   * method: DELETE
+   * endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+   * export:
+   * as: "${ . }"
+   * - charge_payment:
+   * call: http
+   * with:
+   * method: POST
+   * endpoint: { uri: "https://api.example.com/payments" }
+   * catch:
+   * as: error
+   * compensate: true
+   * do:
+   * - log_failure:
+   * call: notification
+   * with: ...
+   *
+   * Optional - when empty, this task has no compensation action.
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.workflow.v1.WorkflowTask compensate = 6 [json_name = "compensate"];</code>
+   */
+  ai.stigmer.agentic.workflow.v1.WorkflowTaskOrBuilder getCompensateOrBuilder(
+      int index);
 }

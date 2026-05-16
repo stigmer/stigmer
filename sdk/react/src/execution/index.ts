@@ -54,6 +54,9 @@ export type { ArtifactRenderMode } from "./artifact-utils";
 export { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
 export type { ExecutionPhaseBadgeProps } from "./ExecutionPhaseBadge";
 
+export { InteractionModeBadge } from "./InteractionModeBadge";
+export type { InteractionModeBadgeProps } from "./InteractionModeBadge";
+
 export { SetupProgress } from "./SetupProgress";
 export type { SetupProgressProps } from "./SetupProgress";
 

@@ -233,6 +233,14 @@ test-integration-providers: ## Run provider-backed integration tests (auto-fetch
 test-integration-agent: ## Run agent execution integration tests (auto-fetches API keys from Planton)
 	$(MAKE) -C test/integration test-agent
 
+.PHONY: test-replay
+test-replay: ## Run Temporal workflow replay determinism tests (fast, no infra needed)
+	$(MAKE) -C backend/services/workflow-runner test-replay
+
+.PHONY: capture-replay-histories
+capture-replay-histories: ## Capture Temporal event histories for replay tests (needs full harness)
+	$(MAKE) -C test/integration capture-replay-histories
+
 .PHONY: benchmark-cost
 benchmark-cost: ## Run cost benchmarks comparing Native vs Cursor harness execution costs
 	$(MAKE) -C test/integration benchmark-cost

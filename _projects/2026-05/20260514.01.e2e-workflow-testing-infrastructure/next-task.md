@@ -68,8 +68,53 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: Run provider-backed tests to validate 9 new T19 agent execution tests; then continue T01 Phase 4 or remaining gaps.
-**Status**: T19 coverage gaps implemented (9 new tests: CreateWithAgentId, CreateDefaultAgent, Recover, MCP_EnvVarResolution, Skill_SessionLevel, Skill_Deduplication, SubAgent_McpAccess, Config_MaxCostCap). All compile and pass go vet. Awaiting provider-backed validation run.
+**Current Task**: T18 complete. Resume T01 Phase 4 (T15-T17) or validate pending T19 tests.
+**Status**: T18 SDK Acceptance Smoke Tests implemented and committed (`bcf9eecf1`). Three SDK tests (Go, TypeScript, Python) exercise Agent CRUD + workflow execution lifecycle against the live Java service. All compile and pass go vet.
+
+## Session Progress (2026-05-16, Session 24 — T18 SDK Acceptance Smoke Tests)
+
+### Accomplished
+
+- Implemented **T18: SDK Acceptance Smoke Tests** — 3 new test functions (Go, TypeScript, Python)
+- Each SDK exercises identical two-tier contract: Agent CRUD + NOT_FOUND error handling (Tier 1), Workflow execution lifecycle (Tier 2)
+- Go test: in-process, uses SDK's own proto types (`sdk/go/proto/...`)
+- TypeScript test: subprocess via `tsx`, uses `createGrpcTransport` (native gRPC)
+- Python test: subprocess via venv python, uses `StigmerClient(insecure=True)`
+- Added `make test-sdk` convenience target
+- Cached dependency setup (npm install / pip venv)
+
+### Files Changed (stigmer OSS — committed bcf9eecf1)
+
+- `test/integration/sdk_acceptance_test.go` — NEW: 3 test functions + shared helpers
+- `test/integration/testdata/sdk-smoke-ts/smoke.ts` — NEW: TypeScript smoke test
+- `test/integration/testdata/sdk-smoke-ts/package.json` — NEW: workspace-linked deps
+- `test/integration/testdata/sdk-smoke-ts/tsconfig.json` — NEW: strict TS config
+- `test/integration/testdata/sdk-smoke-python/smoke.py` — NEW: Python smoke test
+- `test/integration/testdata/sdk-smoke-python/requirements.txt` — NEW: base deps
+- `test/integration/Makefile` — added `test-sdk` target
+- `test/integration/go.mod` — added `sdk/go` dependency
+- `test/integration/.gitignore` — added sdk-smoke artifacts
+
+### Key Discoveries
+
+1. SDK proto uses `GetTaskName()` not `GetName()` on WorkflowTask — field naming differs between SDK and non-SDK stubs
+2. TypeScript SDK's `createNodeClient` uses gRPC-Web transport by default — native gRPC requires `customTransport` with `createGrpcTransport`
+3. Python SDK requires non-empty `api_key` in constructor (raises ValueError) — test uses dummy key
+4. Python protos package is at `apis/stubs/python/stigmer/pyproject.toml` (nested deeper than expected)
+
+### Next Steps
+
+1. Run `make test-sdk` to validate all three SDK tests pass
+2. Run `make test-integration-providers` to validate T19 + T18 together
+3. Resume T01 Phase 4 (T15-T17) or other priorities
+
+### Quick Resume
+
+```
+@_projects/2026-05/20260514.01.e2e-workflow-testing-infrastructure/next-task.md
+```
+
+Checkpoint: `checkpoints/2026-05-16-session-24.md`
 
 ## Session Progress (2026-05-16, Session 23 — T19 Remaining Coverage Gaps)
 

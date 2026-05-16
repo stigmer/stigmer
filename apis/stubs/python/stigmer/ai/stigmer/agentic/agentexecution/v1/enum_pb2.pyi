@@ -82,6 +82,12 @@ class ApprovalAction(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     APPROVAL_ACTION_APPROVE: _ClassVar[ApprovalAction]
     APPROVAL_ACTION_SKIP: _ClassVar[ApprovalAction]
     APPROVAL_ACTION_REJECT: _ClassVar[ApprovalAction]
+
+class InteractionMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    INTERACTION_MODE_UNSPECIFIED: _ClassVar[InteractionMode]
+    INTERACTION_MODE_AGENT: _ClassVar[InteractionMode]
+    INTERACTION_MODE_PLAN: _ClassVar[InteractionMode]
 EXECUTION_PHASE_UNSPECIFIED: ExecutionPhase
 EXECUTION_PENDING: ExecutionPhase
 EXECUTION_IN_PROGRESS: ExecutionPhase
@@ -131,3 +137,6 @@ APPROVAL_ACTION_UNSPECIFIED: ApprovalAction
 APPROVAL_ACTION_APPROVE: ApprovalAction
 APPROVAL_ACTION_SKIP: ApprovalAction
 APPROVAL_ACTION_REJECT: ApprovalAction
+INTERACTION_MODE_UNSPECIFIED: InteractionMode
+INTERACTION_MODE_AGENT: InteractionMode
+INTERACTION_MODE_PLAN: InteractionMode

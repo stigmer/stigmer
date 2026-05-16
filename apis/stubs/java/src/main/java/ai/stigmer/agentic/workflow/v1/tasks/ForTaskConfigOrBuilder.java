@@ -102,4 +102,79 @@ public interface ForTaskConfigOrBuilder extends
    */
   ai.stigmer.agentic.workflow.v1.WorkflowTaskOrBuilder getDoOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Maximum number of iterations to execute concurrently.
+   *
+   * 0 (default): sequential execution — iterations run one at a time
+   * in input order. This preserves pre-T17 behavior.
+   *
+   * 1: effectively sequential (one at a time, but uses the parallel
+   * execution path — useful for testing).
+   *
+   * N &gt; 1: up to N iterations run concurrently using Temporal workflow
+   * goroutines with a semaphore-based concurrency limiter. Results are
+   * always reassembled in original input order regardless of completion
+   * order.
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>int32 max_parallelism = 4 [json_name = "maxParallelism", (.buf.validate.field) = { ... }</code>
+   * @return The maxParallelism.
+   */
+  int getMaxParallelism();
+
+  /**
+   * <pre>
+   * Number of items to process in each batch before moving to the next.
+   *
+   * 0 (default): no batching — all items are available for parallel
+   * execution (up to max_parallelism concurrent).
+   *
+   * N &gt; 0: items are chunked into groups of N. Each chunk is fully
+   * processed before the next chunk begins. Within each chunk, up to
+   * max_parallelism iterations run concurrently.
+   *
+   * Only meaningful when max_parallelism &gt; 0; ignored in sequential mode.
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>int32 batch_size = 5 [json_name = "batchSize", (.buf.validate.field) = { ... }</code>
+   * @return The batchSize.
+   */
+  int getBatchSize();
+
+  /**
+   * <pre>
+   * Policy for handling individual iteration failures.
+   *
+   * Default: FOR_EACH_FAIL_FAST (stop on first error).
+   * Only meaningful when max_parallelism &gt; 0; in sequential mode, any
+   * failure stops the loop regardless of this setting (pre-T17 behavior).
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy on_error = 6 [json_name = "onError"];</code>
+   * @return The enum numeric value on the wire for onError.
+   */
+  int getOnErrorValue();
+  /**
+   * <pre>
+   * Policy for handling individual iteration failures.
+   *
+   * Default: FOR_EACH_FAIL_FAST (stop on first error).
+   * Only meaningful when max_parallelism &gt; 0; in sequential mode, any
+   * failure stops the loop regardless of this setting (pre-T17 behavior).
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy on_error = 6 [json_name = "onError"];</code>
+   * @return The onError.
+   */
+  ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy getOnError();
 }

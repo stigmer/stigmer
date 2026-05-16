@@ -68,9 +68,34 @@ When starting a new session:
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: May 16, 2026 — Phase 3a: Chat Summarization Visibility
-- **Active Task**: Phase 3a implemented (cursor context tracking + inline timeline cards). Phase 3b (manual trigger + transcript access) deferred.
+- **Last Session**: May 16, 2026 — Phase 4: Plan/Agent Interaction Mode
+- **Active Task**: Phase 4 implemented (InteractionMode enum, per-execution mode on ExecutionConfig, both harness enforcement, SDK mode picker, client app wiring, integration test). Ready to commit.
 - **Branch**: `feat/bring-workflows-to-foreground`
+
+## Session Progress (May 16, 2026 — Session 6: Phase 4 Plan/Agent Mode)
+
+### Phase 4 Deliverables (implemented)
+
+1. **Proto contract** — `InteractionMode` enum (UNSPECIFIED, AGENT, PLAN) in `agentexecution/v1/enum.proto`, `interaction_mode` field on `ExecutionConfig` in `spec.proto`. Mode lives on spec only (not status) — clean DDD separation.
+
+2. **cursor-runner enforcement** — `prompt-builder.ts` injects plan mode directive (`<interaction_mode>` section) at the start of all prompt variants (enhanced, continuation, HITL). Best-effort via system prompt since @cursor/sdk has no mode parameter.
+
+3. **agent-runner enforcement** — `create_deep_agent()` in `agent.py` filters platform tools to read-only set (`read, ls, glob, grep, search`) in Plan mode + injects system prompt prefix. Tool-level enforcement.
+
+4. **React SDK** — `InteractionModePicker` (segmented control: Agent | Plan), `InteractionModeBadge` (shows "Plan" badge for non-default mode), wired into `SessionComposer` + `ComposerToolbar`, `SessionComposerSubmitContext.interactionMode` field, full data flow through `useCreateAgentExecution` → `useSessionConversation` → `useSessionPageFlow`.
+
+5. **Client apps** (DD-016 parity) — Both web and desktop `SessionPage` wire `interactionMode` state + `showInteractionModePicker` to `SessionComposer`.
+
+6. **Integration test** — `TestAgentExecution_PlanMode` verifies execution completes, spec reflects plan mode, no write tools invoked.
+
+7. **Design decision** — `interaction_mode` lives ONLY on `spec.execution_config` (user input), NOT on status (system output). Eliminates need for backend merge handling in Go/Java UpdateStatus handlers.
+
+### Key Design Decisions
+
+- Per-execution granularity (not per-session) — mirrors Cursor's Shift+Tab behavior
+- Plan + Agent only (Ask mode deferred — fuzzy distinction from Plan)
+- Cursor harness: best-effort via system prompt (SDK limitation)
+- Native harness: enforced via tool filtering
 
 ## Session Progress (May 16, 2026 — Session 5: Phase 3a Chat Summarization)
 
@@ -117,11 +142,10 @@ When starting a new session:
 
 ## Next Steps
 
-1. Phase 1 cursor-runner files still need commit (usage-accumulator.ts, stigmer-client.ts — Phase 1 changes)
-2. Cloud runner_usage merge fix still needs commit (AgentExecutionUpdateStatusHandler.java)
-3. Plan Phase 4: Plan/Ask mode toggle (MEDIUM priority)
-4. Plan Phase 5: Admin API reconciliation (MEDIUM priority, depends on Cursor Analytics API maturity)
-5. Consider Phase 3b (manual trigger, transcript access) if user feedback warrants it
+1. Plan Phase 5: Admin API reconciliation (MEDIUM priority, depends on Cursor Analytics API maturity)
+2. Consider Phase 3b (manual trigger, transcript access) if user feedback warrants it
+3. Consider adding CLI `--mode=plan` flag (independent, not blocking)
+4. Consider "Build from plan" UX flow (Plan → Agent transition button)
 
 ## Context for Resume
 
@@ -135,10 +159,9 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Commit Phase 3 changes" — Selective commit for chat summarization work
-- "Commit Phase 1 cursor-runner changes" — Phase 1 usage accumulator files
-- "Commit cloud changes" — Java handler fix in stigmer-cloud
-- "Plan Phase 4" — Plan/Ask mode toggle
+- "Plan Phase 5" — Admin API reconciliation
+- "Add CLI --mode flag" — CLI support for plan/agent mode
+- "Add Build from Plan UX" — Plan-to-Agent transition button
 
 ---
 

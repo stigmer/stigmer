@@ -19,10 +19,104 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-05-08
-**Last Session**: 2026-05-16 — Workflow creation UX (New Workflow page + creation picker)
-**Current Task**: Workflow creation UX COMPLETE
+**Last Session**: 2026-05-16 — Fix visual workflow editor TaskKindRegistryContext wiring
+**Current Task**: Task Kind Registry wiring COMPLETE
 **Phase**: Phases 0-3 COMPLETE, Phase 4 partially complete (3/8 built, 5 deferred), tech debt resolved
 **Next Task**: E2E test runs, deferred Phase 4 items, or new feature work
+
+## Session Progress (2026-05-16, Fix Visual Workflow Editor)
+
+### Visual Workflow Editor TaskKindRegistry Fix — COMPLETE
+
+Fixed three interconnected issues making the visual workflow editor non-functional:
+empty task palette, missing configuration fields for all task kinds, and inability
+to drag-create nodes. Root cause: `StigmerProvider` never populated the
+`TaskKindRegistryContext`.
+
+#### Changes (`sdk/react/src/provider.tsx`)
+- Added `fetchTaskKindRegistry()` — fetches from `/v1/proxy/task-kind-registry`
+- Added `parseTaskKindRegistryJson()` — type-safe JSON-to-`TaskKindDescriptor[]` parsing
+- Added `useTaskKindRegistryFetch()` — auth polling, exponential backoff, refetch
+- Wrapped `StigmerProvider` children with `TaskKindRegistryContext.Provider`
+
+#### Impact
+- Task palette now renders all 19 task kinds organized by category
+- Inspector shows configuration forms (e.g., agent_call: Agent, Org, Message, Env, Config, Output)
+- Drag-to-create from palette works; "+" button on edges creates fully configured nodes
+
+#### Verification
+- `tsc --noEmit` — clean (sdk/react)
+- Zero linter errors
+- Commit: `ec8961983`
+
+## Session Progress (2026-05-16, Workflow Editor Dark Mode UX)
+
+### Workflow Editor Dark Mode and Step Affordance Fixes — COMPLETE
+
+Fixed three interconnected usability issues making the visual workflow editor unusable
+in dark mode: invisible node boundaries, undiscoverable add/remove step controls, and
+unreadable YAML syntax highlighting.
+
+#### Theme Tokens (`sdk/theme/src/tokens.css`)
+- Added `--stgm-chart-purple/blue/green/orange/yellow` for category accent colors
+- Added `--stgm-border-prominent` (30% white in dark vs 14% `--stgm-border`)
+- Added `--stgm-syntax-*` tokens for CodeMirror syntax highlighting (both modes)
+
+#### Canvas Contrast (4 files)
+- Task nodes and sentinel pills: `--stgm-border-prominent` + `--stgm-card` backgrounds
+- Sentinel nodes: `border-2` for thickness, `--stgm-foreground` text
+- Edges: stroke uses `--stgm-border-prominent`, width 1.5→2 (2.5 selected)
+- Background dots: `--stgm-muted-foreground` instead of invisible `--stgm-border`
+- Controls, minimap, toolbar: all use `--stgm-border-prominent` + `--stgm-card`
+
+#### Add/Remove Step Affordances (4 files)
+- New `CanvasActionsContext.ts`: React context for `insertTaskOnEdge` + `deleteNode`
+- "+" button on edge hover at midpoint — inserts `agent_call` node, splits edge, auto-layouts
+- "Delete task" button in inspector panel (bottom, destructive style)
+- `insertTaskOnEdge` method in `useWorkflowCanvas.ts`
+
+#### Task Palette Visibility (1 file)
+- Container and items use `--stgm-border-prominent` + `--stgm-card`
+- Items have visible borders by default (not just on hover)
+
+#### YAML Syntax Highlighting (1 file)
+- Replaced `defaultHighlightStyle` with custom `stigmerHighlightStyle`
+- Uses `@lezer/highlight` tags mapped to `--stgm-syntax-*` CSS variables
+- YAML keys: cyan/teal in dark mode (was invisible blue)
+- Added `@lezer/highlight` as optional peer dependency
+
+#### Verification
+- React SDK lint: 0 new errors (2 pre-existing rule-definition warnings)
+- Commit: `2508ebf7a`
+
+## Session Progress (2026-05-16, Fix Starter YAML Envelope)
+
+### Starter Workflow YAML Envelope Fix — COMPLETE
+
+Fixed the "Failed to parse workflow / Workflow YAML is missing required field: spec"
+error on the New Workflow page. The `STARTER_WORKFLOW_YAML` constant used a flat
+shorthand format but both parsers (`yamlToGraph()` for visual mode, `parseWorkflowYaml()`
+for save) require the full Workflow resource envelope.
+
+#### Root Cause
+- `STARTER_WORKFLOW_YAML` had `name`/`description`/`tasks` at the top level
+- Both parsers require `apiVersion`/`kind`/`metadata`/`spec` envelope
+- Also used `config:` instead of `task_config:` and was missing `spec.document`
+
+#### Changes
+- **`sdk/react/src/workflow/starter-workflow-yaml.ts`**: Full envelope format with
+  `apiVersion`, `kind`, `metadata`, `spec` (including `spec.document` and `task_config`)
+- **`sdk/react/src/workflow/__tests__/starter-workflow-yaml.test.ts`** (new): 3 unit tests —
+  yamlToGraph parse, parseWorkflowYaml parse, and graphToYaml round-trip correctness
+
+#### DD-016 Parity
+Both client apps consume `STARTER_WORKFLOW_YAML` identically from `@stigmer/react`.
+Fix is entirely in the SDK constant — no client-app changes needed.
+
+#### Verification
+- TypeScript typecheck clean
+- 3/3 unit tests passing
+- Commit: `afc6281a1`
 
 ## Session Progress (2026-05-16, Workflow Creation UX)
 

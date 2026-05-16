@@ -76,6 +76,13 @@ export interface SendFollowUpOptions {
    * @see {@link CreateAgentExecutionInput.attachments}
    */
   readonly attachments?: AttachmentInput[];
+  /**
+   * Interaction mode for this execution.
+   *
+   * - `"agent"` (default): full tool access.
+   * - `"plan"`: read-only analysis, no file mutations.
+   */
+  readonly interactionMode?: "agent" | "plan";
 }
 
 /**
@@ -365,6 +372,7 @@ export function useSessionConversation(
           modelName: options?.modelName,
           runtimeEnv: options?.runtimeEnv,
           attachments: options?.attachments,
+          interactionMode: options?.interactionMode,
         });
         setPendingExecutionId(result.executionId);
         refetch();

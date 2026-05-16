@@ -1,0 +1,68 @@
+# =============================================================================
+# Temporal Workflow Replay Determinism Gate
+# =============================================================================
+# Replays committed gold master event histories against the current
+# ExecuteServerlessWorkflow code. Catches non-deterministic changes that
+# would silently corrupt in-flight workflow executions.
+#
+# This is a lightweight CI job — no Testcontainers, no Java service, no
+# running Temporal server. It just runs `go test` against JSON history files.
+#
+# If this fails, the workflow's command sequence has changed in a way that
+# is incompatible with in-flight executions. Fix by:
+# 1. Adding workflow.GetVersion() for backward compatibility
+# 2. Regenerating histories: make capture-replay-histories
+# =============================================================================
+
+name: ci.replay
+
+on:
+  pull_request:
+    paths:
+      - "backend/services/workflow-runner/**"
+      - ".github/workflows/ci.replay.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/services/workflow-runner/**"
+      - ".github/workflows/ci.replay.yaml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: replay-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    name: Temporal Replay Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+
+      - name: Run replay tests
+        working-directory: backend/services/workflow-runner
+        run: go test ./test/replay/ -v -count=1
+
+      - name: Guard against silent skip
+        working-directory: backend/services/workflow-runner
+        run: |
+          HISTORY_DIR="test/replay/testdata/replay-histories"
+          if [ ! -d "$HISTORY_DIR" ]; then
+            echo "::warning::No replay histories directory — replay tests were skipped"
+            exit 0
+          fi
+          COUNT=$(find "$HISTORY_DIR" -name '*.json' -type f | wc -l)
+          if [ "$COUNT" -eq 0 ]; then
+            echo "::warning::No .json history files — replay tests were skipped"
+            exit 0
+          fi
+          echo "Replay tested $COUNT history files"

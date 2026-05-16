@@ -33,6 +33,7 @@ private static final long serialVersionUID = 0L;
   }
   private ExecutionConfig() {
     modelName_ = "";
+    interactionMode_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -248,6 +249,50 @@ private static final long serialVersionUID = 0L;
     return maxCostUsd_;
   }
 
+  public static final int INTERACTION_MODE_FIELD_NUMBER = 6;
+  private int interactionMode_ = 0;
+  /**
+   * <pre>
+   * Interaction mode for this execution.
+   *
+   * AGENT (default): full tool access — read, write, create, delete, shell.
+   * PLAN: read-only analysis — read, search, list only. No file mutations.
+   *
+   * When UNSPECIFIED, defaults to AGENT for backward compatibility.
+   *
+   * The mode is set per-execution and does not carry over between executions
+   * in the same session. Users toggle mode in the session composer before
+   * sending each message.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 6 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for interactionMode.
+   */
+  @java.lang.Override public int getInteractionModeValue() {
+    return interactionMode_;
+  }
+  /**
+   * <pre>
+   * Interaction mode for this execution.
+   *
+   * AGENT (default): full tool access — read, write, create, delete, shell.
+   * PLAN: read-only analysis — read, search, list only. No file mutations.
+   *
+   * When UNSPECIFIED, defaults to AGENT for backward compatibility.
+   *
+   * The mode is set per-execution and does not carry over between executions
+   * in the same session. Users toggle mode in the session composer before
+   * sending each message.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 6 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+   * @return The interactionMode.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.InteractionMode getInteractionMode() {
+    ai.stigmer.agentic.agentexecution.v1.InteractionMode result = ai.stigmer.agentic.agentexecution.v1.InteractionMode.forNumber(interactionMode_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.InteractionMode.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -277,6 +322,9 @@ private static final long serialVersionUID = 0L;
     if (java.lang.Double.doubleToRawLongBits(maxCostUsd_) != 0) {
       output.writeDouble(5, maxCostUsd_);
     }
+    if (interactionMode_ != ai.stigmer.agentic.agentexecution.v1.InteractionMode.INTERACTION_MODE_UNSPECIFIED.getNumber()) {
+      output.writeEnum(6, interactionMode_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -304,6 +352,10 @@ private static final long serialVersionUID = 0L;
     if (java.lang.Double.doubleToRawLongBits(maxCostUsd_) != 0) {
       size += com.google.protobuf.CodedOutputStream
         .computeDoubleSize(5, maxCostUsd_);
+    }
+    if (interactionMode_ != ai.stigmer.agentic.agentexecution.v1.InteractionMode.INTERACTION_MODE_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(6, interactionMode_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -334,6 +386,7 @@ private static final long serialVersionUID = 0L;
     if (java.lang.Double.doubleToLongBits(getMaxCostUsd())
         != java.lang.Double.doubleToLongBits(
             other.getMaxCostUsd())) return false;
+    if (interactionMode_ != other.interactionMode_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -358,6 +411,8 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + MAX_COST_USD_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         java.lang.Double.doubleToLongBits(getMaxCostUsd()));
+    hash = (37 * hash) + INTERACTION_MODE_FIELD_NUMBER;
+    hash = (53 * hash) + interactionMode_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -508,6 +563,7 @@ private static final long serialVersionUID = 0L;
       maxToolRounds_ = 0;
       maxToolResultChars_ = 0;
       maxCostUsd_ = 0D;
+      interactionMode_ = 0;
       return this;
     }
 
@@ -560,6 +616,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.maxCostUsd_ = maxCostUsd_;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.interactionMode_ = interactionMode_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -591,6 +650,9 @@ private static final long serialVersionUID = 0L;
       }
       if (java.lang.Double.doubleToRawLongBits(other.getMaxCostUsd()) != 0) {
         setMaxCostUsd(other.getMaxCostUsd());
+      }
+      if (other.interactionMode_ != 0) {
+        setInteractionModeValue(other.getInteractionModeValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -645,6 +707,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 41
+            case 48: {
+              interactionMode_ = input.readEnum();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 48
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1230,6 +1297,123 @@ private static final long serialVersionUID = 0L;
     public Builder clearMaxCostUsd() {
       bitField0_ = (bitField0_ & ~0x00000010);
       maxCostUsd_ = 0D;
+      onChanged();
+      return this;
+    }
+
+    private int interactionMode_ = 0;
+    /**
+     * <pre>
+     * Interaction mode for this execution.
+     *
+     * AGENT (default): full tool access — read, write, create, delete, shell.
+     * PLAN: read-only analysis — read, search, list only. No file mutations.
+     *
+     * When UNSPECIFIED, defaults to AGENT for backward compatibility.
+     *
+     * The mode is set per-execution and does not carry over between executions
+     * in the same session. Users toggle mode in the session composer before
+     * sending each message.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 6 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+     * @return The enum numeric value on the wire for interactionMode.
+     */
+    @java.lang.Override public int getInteractionModeValue() {
+      return interactionMode_;
+    }
+    /**
+     * <pre>
+     * Interaction mode for this execution.
+     *
+     * AGENT (default): full tool access — read, write, create, delete, shell.
+     * PLAN: read-only analysis — read, search, list only. No file mutations.
+     *
+     * When UNSPECIFIED, defaults to AGENT for backward compatibility.
+     *
+     * The mode is set per-execution and does not carry over between executions
+     * in the same session. Users toggle mode in the session composer before
+     * sending each message.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 6 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+     * @param value The enum numeric value on the wire for interactionMode to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setInteractionModeValue(int value) {
+      interactionMode_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Interaction mode for this execution.
+     *
+     * AGENT (default): full tool access — read, write, create, delete, shell.
+     * PLAN: read-only analysis — read, search, list only. No file mutations.
+     *
+     * When UNSPECIFIED, defaults to AGENT for backward compatibility.
+     *
+     * The mode is set per-execution and does not carry over between executions
+     * in the same session. Users toggle mode in the session composer before
+     * sending each message.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 6 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+     * @return The interactionMode.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.InteractionMode getInteractionMode() {
+      ai.stigmer.agentic.agentexecution.v1.InteractionMode result = ai.stigmer.agentic.agentexecution.v1.InteractionMode.forNumber(interactionMode_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.InteractionMode.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Interaction mode for this execution.
+     *
+     * AGENT (default): full tool access — read, write, create, delete, shell.
+     * PLAN: read-only analysis — read, search, list only. No file mutations.
+     *
+     * When UNSPECIFIED, defaults to AGENT for backward compatibility.
+     *
+     * The mode is set per-execution and does not carry over between executions
+     * in the same session. Users toggle mode in the session composer before
+     * sending each message.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 6 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+     * @param value The interactionMode to set.
+     * @return This builder for chaining.
+     */
+    public Builder setInteractionMode(ai.stigmer.agentic.agentexecution.v1.InteractionMode value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000020;
+      interactionMode_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Interaction mode for this execution.
+     *
+     * AGENT (default): full tool access — read, write, create, delete, shell.
+     * PLAN: read-only analysis — read, search, list only. No file mutations.
+     *
+     * When UNSPECIFIED, defaults to AGENT for backward compatibility.
+     *
+     * The mode is set per-execution and does not carry over between executions
+     * in the same session. Users toggle mode in the session composer before
+     * sending each message.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.InteractionMode interaction_mode = 6 [json_name = "interactionMode", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearInteractionMode() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      interactionMode_ = 0;
       onChanged();
       return this;
     }

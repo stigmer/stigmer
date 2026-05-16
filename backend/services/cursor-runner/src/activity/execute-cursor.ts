@@ -34,7 +34,7 @@ import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agente
 import { SetupProgressSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { ExecutionControlSignal, ExecutionPhase, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionControlSignal, ExecutionPhase, InteractionMode, MessageType, ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 
 import type { Config } from "../config.js";
@@ -285,6 +285,9 @@ async function executeCursor(
 
     // Phase 10: Build the prompt
     const sessionMemory = session?.status?.sessionMemory;
+    const interactionMode = spec.executionConfig?.interactionMode
+      ?? InteractionMode.UNSPECIFIED;
+
     const prompt = buildPrompt({
       resolution,
       approvalDecisions,
@@ -299,6 +302,7 @@ async function executeCursor(
       pendingApprovals: status.pendingApprovals.length > 0
         ? status.pendingApprovals
         : (execution.status?.pendingApprovals ?? []),
+      interactionMode,
     });
 
     // Phase 10b: Initialize usage accumulator for runner-side token tracking
@@ -519,6 +523,7 @@ export interface BuildPromptInput {
   workspaceFileRefs: string[];
   attachmentPaths: string[];
   pendingApprovals: import("@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb").PendingApproval[];
+  interactionMode?: InteractionMode;
 }
 
 /**
@@ -554,6 +559,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     workspaceFileRefs,
     attachmentPaths,
     pendingApprovals,
+    interactionMode,
   } = input;
 
   const isHitlReinvocation = approvalDecisions !== undefined && approvalDecisions.size > 0;
@@ -588,6 +594,7 @@ export function buildPrompt(input: BuildPromptInput): string {
         attachmentPaths,
         sessionMemory,
         userMessage,
+        interactionMode,
       });
     }
     return userMessage;
@@ -605,6 +612,7 @@ export function buildPrompt(input: BuildPromptInput): string {
       attachmentPaths,
       sessionMemory,
       userMessage,
+      interactionMode,
     });
   }
 
@@ -616,6 +624,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     workspaceDirs,
     workspaceFileRefs,
     attachmentPaths,
+    interactionMode,
   });
 }
 
