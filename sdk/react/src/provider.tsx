@@ -12,6 +12,9 @@ import { PortalContainerContext } from "./portal-container";
 import { ModelRegistryContext } from "./models/ModelRegistryContext";
 import type { ModelRegistryState } from "./models/ModelRegistryContext";
 import { fetchModelRegistry } from "./models/registry";
+import { TaskKindRegistryContext } from "./workflow/TaskKindRegistryContext";
+import type { TaskKindRegistryState } from "./workflow/TaskKindRegistryContext";
+import type { TaskKindDescriptor } from "./workflow/types";
 
 /** Props for {@link StigmerProvider}. */
 export interface StigmerProviderProps {
@@ -130,20 +133,23 @@ export function StigmerProvider({
 
   const portalContainer = usePortalContainer(resolvedMode, presetClass);
   const registryState = useModelRegistryFetch(client);
+  const taskKindRegistryState = useTaskKindRegistryFetch(client);
 
   return (
     <StigmerContext.Provider value={client}>
       <DeploymentModeContext.Provider value={deploymentMode}>
         <ColorModeContext.Provider value={resolvedMode}>
           <ModelRegistryContext.Provider value={registryState}>
-            <PortalContainerContext.Provider value={portalContainer}>
-              <div
-                className={cn("stgm", presetClass, className)}
-                data-stgm-color-mode={resolvedMode}
-              >
-                {children}
-              </div>
-            </PortalContainerContext.Provider>
+            <TaskKindRegistryContext.Provider value={taskKindRegistryState}>
+              <PortalContainerContext.Provider value={portalContainer}>
+                <div
+                  className={cn("stgm", presetClass, className)}
+                  data-stgm-color-mode={resolvedMode}
+                >
+                  {children}
+                </div>
+              </PortalContainerContext.Provider>
+            </TaskKindRegistryContext.Provider>
           </ModelRegistryContext.Provider>
         </ColorModeContext.Provider>
       </DeploymentModeContext.Provider>
@@ -223,6 +229,187 @@ function useModelRegistryFetch(client: Stigmer): ModelRegistryState {
         } else {
           setState({
             models: [],
+            isLoading: false,
+            error: err instanceof Error ? err : new Error(String(err)),
+          });
+        }
+      }
+    };
+
+    attempt();
+
+    return () => { controller.abort(); };
+  }, [doFetch, version]);
+
+  const refetch = useCallback(() => {
+    setState((prev) => {
+      if (prev.isLoading) return prev;
+      return { ...prev, isLoading: true, error: null };
+    });
+    setVersion((v) => v + 1);
+  }, []);
+
+  return { ...state, refetch };
+}
+
+// ---------------------------------------------------------------------------
+// Task Kind Registry fetch
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch the task kind registry from the authenticated API endpoint.
+ *
+ * The endpoint returns `{ version, generatedAt, descriptors: [...] }`.
+ * Each descriptor maps directly to the `TaskKindDescriptor` interface
+ * used by the React SDK's task palette, inspector, and YAML validation.
+ */
+async function fetchTaskKindRegistry(
+  apiUrl: string,
+  token: string | null,
+  customFetch?: typeof globalThis.fetch,
+): Promise<TaskKindDescriptor[]> {
+  const doFetch = customFetch ?? globalThis.fetch;
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await doFetch(`${apiUrl}/v1/proxy/task-kind-registry`, { headers });
+  if (!res.ok) throw new Error(`Task kind registry fetch failed: ${res.status}`);
+  const data: unknown = await res.json();
+  return parseTaskKindRegistryJson(data);
+}
+
+const VALID_CATEGORIES = new Set([
+  "control_flow", "invocation", "ai", "data", "governance", "event", "unspecified",
+]);
+
+const VALID_FIELD_TYPES = new Set([
+  "string", "int32", "float", "bool", "enum", "struct", "repeated", "map", "message",
+]);
+
+function parseTaskKindRegistryJson(data: unknown): TaskKindDescriptor[] {
+  if (!data || typeof data !== "object") return [];
+  const descriptors = (data as Record<string, unknown>).descriptors;
+  if (!Array.isArray(descriptors)) return [];
+
+  return descriptors
+    .filter((d): d is Record<string, unknown> =>
+      d != null && typeof d === "object" && typeof (d as Record<string, unknown>).kind === "string",
+    )
+    .map((d) => ({
+      kind: d.kind as string,
+      displayName: (d.displayName as string) ?? "",
+      description: (d.description as string) ?? "",
+      category: VALID_CATEGORIES.has(d.category as string)
+        ? (d.category as TaskKindDescriptor["category"])
+        : "unspecified",
+      icon: (d.icon as string) ?? "",
+      configProtoType: (d.configProtoType as string) ?? "",
+      fields: Array.isArray(d.fields)
+        ? (d.fields as Record<string, unknown>[]).map((f) => ({
+            name: (f.name as string) ?? "",
+            displayName: (f.displayName as string) ?? "",
+            description: (f.description as string) ?? "",
+            type: VALID_FIELD_TYPES.has(f.type as string)
+              ? (f.type as TaskKindDescriptor["fields"][number]["type"])
+              : ("string" as const),
+            required: f.required === true,
+            isExpression: f.isExpression === true ? true : undefined,
+            defaultValue: typeof f.defaultValue === "string" ? f.defaultValue : undefined,
+            enumValues: Array.isArray(f.enumValues) ? (f.enumValues as string[]) : undefined,
+            groupId: typeof f.groupId === "string" ? f.groupId : undefined,
+            fieldNumber: typeof f.fieldNumber === "number" ? f.fieldNumber : 0,
+            elementType: typeof f.elementType === "string" ? f.elementType : undefined,
+            validationHints: Array.isArray(f.validationHints) ? (f.validationHints as string[]) : undefined,
+          }))
+        : [],
+      fieldGroups: Array.isArray(d.fieldGroups)
+        ? (d.fieldGroups as Record<string, unknown>[]).map((g) => ({
+            id: (g.id as string) ?? "",
+            displayName: (g.displayName as string) ?? "",
+            description: typeof g.description === "string" ? g.description : undefined,
+          }))
+        : [],
+      configJsonSchema:
+        d.configJsonSchema != null && typeof d.configJsonSchema === "object"
+          ? (d.configJsonSchema as Record<string, unknown>)
+          : {},
+      outputJsonSchema:
+        d.outputJsonSchema != null && typeof d.outputJsonSchema === "object"
+          ? (d.outputJsonSchema as Record<string, unknown>)
+          : undefined,
+      yamlExamples: Array.isArray(d.yamlExamples) ? (d.yamlExamples as string[]) : undefined,
+      documentationUrl: (d.documentationUrl as string) ?? "",
+      isAiNative: d.isAiNative === true,
+      requiresExternalService: d.requiresExternalService === true,
+    }));
+}
+
+/**
+ * Fetches the task kind registry from the authenticated API and caches
+ * the result for the lifetime of the provider.
+ *
+ * Follows the same pattern as {@link useModelRegistryFetch}: auth token
+ * polling, exponential backoff retries, and `refetch` for manual retry.
+ */
+function useTaskKindRegistryFetch(client: Stigmer): TaskKindRegistryState {
+  const [version, setVersion] = useState(0);
+  const [state, setState] = useState<Omit<TaskKindRegistryState, "refetch">>({
+    descriptors: [],
+    isLoading: true,
+    error: null,
+  });
+
+  const clientRef = useRef(client);
+  clientRef.current = client;
+
+  const fetchAttemptRef = useRef(0);
+
+  const doFetch = useCallback(async (signal: AbortSignal) => {
+    const c = clientRef.current;
+    let token = await c.getAuthCredential();
+
+    if (!token) {
+      const start = Date.now();
+      while (!token && Date.now() - start < TOKEN_POLL_MAX_MS) {
+        if (signal.aborted) return;
+        await new Promise((r) => setTimeout(r, TOKEN_POLL_INTERVAL_MS));
+        if (signal.aborted) return;
+        token = await c.getAuthCredential();
+      }
+    }
+
+    return fetchTaskKindRegistry(c.baseUrl, token, c.fetch);
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    fetchAttemptRef.current = 0;
+
+    const attempt = async () => {
+      if (signal.aborted) return;
+
+      setState((prev) => (prev.isLoading ? prev : { ...prev, isLoading: true }));
+
+      try {
+        const descriptors = await doFetch(signal);
+        if (!signal.aborted && descriptors) {
+          setState({ descriptors, isLoading: false, error: null });
+          fetchAttemptRef.current = 0;
+        }
+      } catch (err: unknown) {
+        if (signal.aborted) return;
+
+        const retryIdx = fetchAttemptRef.current;
+        fetchAttemptRef.current = retryIdx + 1;
+
+        if (retryIdx < RETRY_DELAYS_MS.length) {
+          setTimeout(() => { if (!signal.aborted) attempt(); }, RETRY_DELAYS_MS[retryIdx]);
+        } else {
+          setState({
+            descriptors: [],
             isLoading: false,
             error: err instanceof Error ? err : new Error(String(err)),
           });
