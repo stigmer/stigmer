@@ -21,6 +21,8 @@ import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
+import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
+import type { RecordLlmCallUsageInput, RecordLlmCallUsageResponse } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
 import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { ExecutionContext } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { ExecutionContextExecutionIdInputSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/io_pb";
@@ -60,6 +62,7 @@ export class StigmerClient {
   private readonly mcpServerQuery: Client<typeof McpServerQueryController>;
   private readonly mcpServerCommand: Client<typeof McpServerCommandController>;
   private readonly skillQuery: Client<typeof SkillQueryController>;
+  private readonly billingCommand: Client<typeof BillingCommandController>;
 
   constructor(options: StigmerClientOptions) {
     const token = options.token;
@@ -85,6 +88,7 @@ export class StigmerClient {
     this.mcpServerQuery = createClient(McpServerQueryController, this.transport);
     this.mcpServerCommand = createClient(McpServerCommandController, this.transport);
     this.skillQuery = createClient(SkillQueryController, this.transport);
+    this.billingCommand = createClient(BillingCommandController, this.transport);
   }
 
   async getExecution(executionId: string): Promise<AgentExecution> {
@@ -169,5 +173,9 @@ export class StigmerClient {
 
   async getSkillArtifact(artifactStorageKey: string): Promise<GetArtifactResponse> {
     return this.skillQuery.getArtifact({ artifactStorageKey });
+  }
+
+  async recordLlmCallUsage(input: RecordLlmCallUsageInput): Promise<RecordLlmCallUsageResponse> {
+    return this.billingCommand.recordLlmCallUsage(input);
   }
 }
