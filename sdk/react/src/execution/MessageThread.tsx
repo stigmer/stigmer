@@ -21,6 +21,8 @@ import { SubAgentSection } from "./SubAgentSection";
 import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
 import { SetupProgress } from "./SetupProgress";
 import { ApprovalCard } from "./ApprovalCard";
+import { SummarizationCard } from "./SummarizationCard";
+import type { SummarizationEventView } from "./useContextWindow";
 import { FilePathContext, type FilePathContextValue } from "./FilePathContext";
 import type { ResolvedPathAction } from "./file-path-resolver";
 import { SandboxContext, type SandboxContextValue } from "./SandboxContext";
@@ -104,6 +106,14 @@ export interface MessageThreadProps {
    */
   readonly sandboxWorkspaceRoot?: string;
   /**
+   * Summarization events from context window tracking. When provided,
+   * "Context compacted" cards are interleaved into the thread at the
+   * correct chronological position based on event timestamps.
+   *
+   * Obtain from {@link useContextWindow}.summarizationEvents.
+   */
+  readonly summarizationEvents?: readonly SummarizationEventView[];
+  /**
    * Enable virtualized rendering for long conversations. Requires
    * `react-virtuoso` to be installed as a peer dependency. When
    * enabled, only visible items are rendered in the DOM, improving
@@ -129,7 +139,8 @@ export type ThreadItem =
   | { readonly kind: "sub-agent"; readonly subAgentExecution: SubAgentExecution; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
   | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
-  | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string };
+  | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
+  | { readonly kind: "context-compacted"; readonly event: SummarizationEventView; readonly key: string };
 
 function hasAiMessages(execution: AgentExecution): boolean {
   const messages = execution.status?.messages;
@@ -154,6 +165,7 @@ export function buildThreadItems(
   pendingUserMessage: string | null | undefined,
   includeApprovals: boolean,
   workspaceEntries: readonly WorkspaceEntry[] | undefined,
+  summarizationEvents?: readonly SummarizationEventView[],
 ): ThreadItem[] {
   const items: ThreadItem[] = [];
   const allExecutions = activeStreamExecution
@@ -162,6 +174,30 @@ export function buildThreadItems(
   const activeStreamIndex = activeStreamExecution
     ? allExecutions.length - 1
     : -1;
+
+  // Build a queue of summarization events to interleave by timestamp.
+  // Events are consumed as messages pass their timestamp.
+  const pendingEvents = summarizationEvents?.length
+    ? [...summarizationEvents]
+    : [];
+  let eventCursor = 0;
+
+  function flushEventsUntil(messageTimestamp: string | undefined): void {
+    if (!messageTimestamp || pendingEvents.length === 0) return;
+    while (
+      eventCursor < pendingEvents.length &&
+      pendingEvents[eventCursor].timestamp &&
+      pendingEvents[eventCursor].timestamp <= messageTimestamp
+    ) {
+      const evt = pendingEvents[eventCursor];
+      items.push({
+        kind: "context-compacted",
+        event: evt,
+        key: `compacted-${evt.timestamp}`,
+      });
+      eventCursor++;
+    }
+  }
 
   for (let ei = 0; ei < allExecutions.length; ei++) {
     const exec = allExecutions[ei];
@@ -197,6 +233,8 @@ export function buildThreadItems(
       // MESSAGE_TOOL messages are not rendered — tool calls are attached
       // to their parent MESSAGE_AI and rendered via ToolCallGroup.
       if (msg.type === MessageType.MESSAGE_TOOL) continue;
+
+      flushEventsUntil(msg.timestamp);
 
       const isEmptyAi =
         msg.type === MessageType.MESSAGE_AI && !msg.content.trim();
@@ -251,6 +289,17 @@ export function buildThreadItems(
         }
       }
     }
+  }
+
+  // Flush any remaining summarization events that occurred after all messages
+  while (eventCursor < pendingEvents.length) {
+    const evt = pendingEvents[eventCursor];
+    items.push({
+      kind: "context-compacted",
+      event: evt,
+      key: `compacted-${evt.timestamp}`,
+    });
+    eventCursor++;
   }
 
   const lastExec = allExecutions[allExecutions.length - 1];
@@ -359,14 +408,15 @@ export function MessageThread({
   workspaceEntries,
   onFilePathClick,
   sandboxWorkspaceRoot,
+  summarizationEvents,
   virtualized = false,
 }: MessageThreadProps) {
   useRenderTracer("MessageThread", { executions, activeStreamExecution });
 
   const includeApprovals = onApprovalSubmit != null;
   const items = useMemo(
-    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries),
-    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries],
+    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents),
+    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries, summarizationEvents],
   );
 
   useKeyStability(items);
@@ -570,6 +620,8 @@ export function ThreadItemRenderer({
           isAwaitingResponse={item.isAwaitingResponse}
         />
       );
+    case "context-compacted":
+      return <SummarizationCard event={item.event} />;
   }
 }
 

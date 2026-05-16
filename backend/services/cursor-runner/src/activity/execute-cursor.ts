@@ -61,6 +61,11 @@ import { buildApprovalState } from "../hitl/approval-state.js";
 import { setInterceptorExecutionId } from "../proxy/fetch-interceptor.js";
 import { resolveModelId, ensureLoaded as ensurePricingLoaded } from "../adapter/model-pricing.js";
 import { UsageAccumulator } from "../adapter/usage-accumulator.js";
+import type { TurnRecord } from "../adapter/usage-accumulator.js";
+import { ContextTracker } from "../adapter/context-tracker.js";
+import { RecordLlmCallUsageInputSchema } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
+import { TokenUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
+import { UsageCompletionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { RunnerUsageSummarySchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { buildSessionMemory, persistSessionMemory } from "../adapter/session-memory.js";
 import { activityStarted, activityFinished } from "../idle-watchdog.js";
@@ -300,6 +305,7 @@ async function executeCursor(
     await ensurePricingLoaded();
     const usageAccumulator = new UsageAccumulator(validatedModel);
 
+    const contextTracker = new ContextTracker(validatedModel);
     // Phase 11: Send message and stream events
     status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS;
     const collectedEvents: SDKMessage[] = [];
@@ -313,6 +319,7 @@ async function executeCursor(
       onDelta: ({ update }) => {
         if (update.type === "turn-ended" && update.usage) {
           usageAccumulator.addTurn(update.usage);
+          contextTracker.recordTurn(update.usage.inputTokens ?? 0);
         }
         deltaEnricher.processDelta(update);
         heartbeat();
@@ -339,6 +346,9 @@ async function executeCursor(
       if (usageAccumulator.hasTurns) {
         status.runnerUsage = create(RunnerUsageSummarySchema, usageAccumulator.snapshot());
       }
+      if (contextTracker.hasData) {
+        status.contextInfo = contextTracker.snapshot();
+      }
       if (shouldPersist) {
         const signal = await persistStatus(client, executionId, status);
         deltaEnricher.markPersisted();
@@ -364,6 +374,9 @@ async function executeCursor(
     if (usageAccumulator.hasTurns) {
       status.runnerUsage = create(RunnerUsageSummarySchema, usageAccumulator.snapshot());
     }
+    if (contextTracker.hasData) {
+      status.contextInfo = contextTracker.snapshot();
+    }
     console.log(
       `ExecuteCursor stream ended: execution=${executionId}, events=${eventCount}, messages=${status.messages.length}, subAgents=${status.subAgentExecutions.length}`,
     );
@@ -379,6 +392,7 @@ async function executeCursor(
         timestamp: utcTimestamp(),
       }));
       await persistStatus(client, executionId, status);
+      await emitBillingRecords(client, executionId, usageAccumulator);
       await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
       console.log(`ExecuteCursor completed (platform stop): execution=${executionId}`);
       return slimStatus(status);
@@ -442,6 +456,9 @@ async function executeCursor(
     }
 
     await persistStatus(client, executionId, status);
+
+    // Phase 13b: Emit billing records for cursor usage
+    await emitBillingRecords(client, executionId, usageAccumulator);
 
     // Phase 14: Build and persist session memory
     await maybePeristSessionMemory(client, sessionId, session, status, userMessage);
@@ -685,6 +702,60 @@ async function reportSetupProgress(
     setupProgress: create(SetupProgressSchema, { currentPhase: phase }),
   });
   await persistStatus(client, executionId, status);
+}
+
+/**
+ * Emit per-turn billing records via the recordLlmCallUsage RPC.
+ *
+ * Each turn produces one billing record with sequence = turn number.
+ * The billing handler computes cost server-side from the model registry.
+ * Best-effort: failures are logged and swallowed — billing gaps are
+ * preferable to failing the execution.
+ */
+async function emitBillingRecords(
+  client: StigmerClient,
+  executionId: string,
+  usage: UsageAccumulator,
+): Promise<void> {
+  const turns = usage.turns();
+  if (turns.length === 0) return;
+
+  const model = usage.modelName;
+  let emitted = 0;
+
+  for (const turn of turns) {
+    try {
+      const input = create(RecordLlmCallUsageInputSchema, {
+        executionId,
+        sequence: turn.sequence,
+        provider: "cursor",
+        resolvedModel: model,
+        requestedModel: model,
+        tokens: create(TokenUsageSchema, {
+          inputTokens: BigInt(turn.inputTokens),
+          outputTokens: BigInt(turn.outputTokens),
+          cacheCreationInputTokens: BigInt(turn.cacheWriteTokens),
+          cacheReadInputTokens: BigInt(turn.cacheReadTokens),
+        }),
+        usageStatus: UsageCompletionStatus.COMPLETE,
+        streaming: true,
+        harness: "cursor",
+      });
+      await client.recordLlmCallUsage(input);
+      emitted++;
+    } catch (err) {
+      console.warn(
+        `Failed to emit billing record (non-fatal): execution=${executionId}, seq=${turn.sequence}`,
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
+
+  if (emitted > 0) {
+    console.log(
+      `Emitted ${emitted}/${turns.length} billing records: execution=${executionId}, model=${model}`,
+    );
+  }
 }
 
 /**

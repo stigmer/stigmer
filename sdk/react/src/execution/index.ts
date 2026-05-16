@@ -26,6 +26,9 @@ export type { ContextGaugeProps } from "./ContextGauge";
 export { SummarizationBadge } from "./SummarizationBadge";
 export type { SummarizationBadgeProps } from "./SummarizationBadge";
 
+export { SummarizationCard } from "./SummarizationCard";
+export type { SummarizationCardProps } from "./SummarizationCard";
+
 export { useExecutionArtifacts } from "./useExecutionArtifacts";
 export type { UseExecutionArtifactsReturn } from "./useExecutionArtifacts";
 
