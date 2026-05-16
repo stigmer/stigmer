@@ -68,58 +68,89 @@ When starting a new session:
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: May 13, 2026 — Usage MVP: Stop Showing $0.00
-- **Active Task**: Phase 1 Usage MVP implemented (uncommitted). Needs commit, push, deployment verification.
+- **Last Session**: May 16, 2026 — Phase 2: Context Window Visibility
+- **Active Task**: Phase 2 implemented. Needs commit, push, cloud commit.
 - **Branch**: `feat/bring-workflows-to-foreground`
 
-## Session Progress (May 13, 2026 — Session 3: Usage MVP)
+## Session Progress (May 16, 2026 — Session 4: Context Window Visibility)
 
-### Diagnostic Findings
+### Critical Gap Discovered & Fixed
 
-- Confirmed Cursor SDK returns usage via `onDelta` (`turn-ended.usage`) with real token counts (10K+ input)
-- Discovered Cursor SDK streaming bypasses `globalThis.fetch` — proxy CANNOT observe main agent turns
-- MongoDB investigation: 47 records exist, all `harness: "native"`, `customer_billable_amount_micros: 0`
-- 14 records from Cursor sessions are MCP classifier sidecar calls, not main agent turns
-- Deep Research report confirms: runner-reported usage is DISPLAY_ONLY, needs Admin API reconciliation for billing authority
+Neither Go OSS nor Java Cloud `UpdateStatus` handler merged `runner_usage` or `runner_id` from incoming status updates. Phase 1's `UsageAccumulator` data was silently dropped by both servers. Fixed in both:
+- `update_status.go` — added `RunnerUsage` and `RunnerId` merge
+- `AgentExecutionUpdateStatusHandler.java` — same fix
 
-### Three Root Causes Fixed
+### Phase 2 Deliverables (implemented)
 
-1. **Cursor turns not captured**: Empty `onDelta` handler filled — `UsageAccumulator` captures turn-ended usage, computes provisional cost, streams to execution status
-2. **Harness always "native"**: Added `harness` field to `RecordLlmCallUsageInput`, proxy controllers pass their identity
-3. **Billable always $0**: `customer_billable_amount_micros` now written back to MongoDB after debit. Backfilled 47 existing records.
+1. **`useContextWindow` data hook** (`sdk/react/src/execution/useContextWindow.ts`)
+   - Extracts `ContextInfo` from execution status
+   - Derives health state (healthy/warning/critical) per proto thresholds
+   - Maps summarization events to UI-friendly views
+   - Graceful empty return for Cursor harness (no `context_info`)
+
+2. **`ContextGauge` styled component** (`sdk/react/src/execution/ContextGauge.tsx`)
+   - Full mode: progress bar + threshold marker + token counts + health indicator + summarization summary
+   - Compact mode: thin bar + percentage
+   - `--stgm-*` tokens (success/warning/destructive), `role="meter"` accessibility
+   - Returns `null` when `context_info` absent
+
+3. **`SummarizationBadge` styled component** (`sdk/react/src/execution/SummarizationBadge.tsx`)
+   - Collapsible event history (icon + count → expanded event cards)
+   - Each event: tokens before/after, compression ratio, duration, model, cost
+
+4. **Console wiring** (DD-016 parity — both client apps updated)
+   - `client-apps/web/src/domain/session/SessionPage.tsx` — ContextGauge above UsageWidget in sidebar
+   - `client-apps/desktop/src/pages/SessionPage.tsx` — identical wiring
+
+5. **Tests** (`sdk/react/src/execution/__tests__/useContextWindow.test.ts`)
+   - 9 tests: null/empty states, health derivation, threshold detection, event mapping, ref stability
+   - All passing
 
 ### Changes (uncommitted)
 
-**stigmer OSS**: 3 proto files + generated stubs, 1 new TS file (`usage-accumulator.ts`), 2 modified TS files, research folder
-**stigmer-cloud**: 5 Java files modified (proxy + billing layers)
+**stigmer OSS** (this session):
+- `backend/services/stigmer-server/.../update_status.go` — runner_usage merge fix
+- `sdk/react/src/execution/useContextWindow.ts` — new hook
+- `sdk/react/src/execution/ContextGauge.tsx` — new component
+- `sdk/react/src/execution/SummarizationBadge.tsx` — new component
+- `sdk/react/src/execution/__tests__/useContextWindow.test.ts` — tests
+- `sdk/react/src/execution/index.ts` — barrel exports
+- `sdk/react/src/index.ts` — barrel exports
+- `client-apps/web/src/domain/session/SessionPage.tsx` — wiring
+- `client-apps/desktop/src/pages/SessionPage.tsx` — wiring
+
+**stigmer-cloud** (this session):
+- `AgentExecutionUpdateStatusHandler.java` — runner_usage merge fix
 
 ### Previous Sessions
 
+- **Session 3** (May 13): Phase 1 Usage MVP — UsageAccumulator, harness identity, billable amount fixes
 - **Session 2** (`e090a92b7`): Server-reported deployment mode (getServerInfo RPC)
 - **Session 1** (`2ba7abaf9`): Web-desktop feature parity fixes
 
 ## Next Steps
 
-1. Commit and push OSS changes (create PR)
-2. Commit and push cloud changes (create linked PR)
-3. Deploy and verify end-to-end in prod
-4. Plan Phase 2: Context window visibility OR Admin API reconciliation (from research report phases)
+1. Commit and push Phase 2 OSS changes
+2. Commit and push Phase 2 cloud changes (runner_usage merge in Java handler)
+3. Phase 1 OSS changes still need commit (cursor-runner files)
+4. Plan Phase 3: Admin API reconciliation OR Plan/Ask mode toggle
 
 ## Context for Resume
 
-- `RunnerUsageSummary` is field 20 on `AgentExecutionStatus`, defined in `usage.proto`
-- `useSessionUsage` hook falls back to `runner_usage` from execution status when server report is empty
-- Trust model: runner usage = DISPLAY_ONLY, proxy usage = BILLING_AUTHORITY, future Admin API = PROVIDER_SETTLED
-- Deep Research report at `research.runner-usage-tamper-resistance/04.report.gpt.md` recommends phased approach: estimated now, reconciliation soon, signed receipts later
-- Cloud Java changes in stigmer-cloud must be committed separately
+- `ContextInfo` is field 14 on `AgentExecutionStatus`, defined in `context.proto`
+- Native agent-runner already populates `context_info` (initialize, on_token_count_updated, on_summarization_complete)
+- Both Go and Java handlers now merge `context_info` AND `runner_usage`
+- `useContextWindow` derives health thresholds: 0-70% healthy, 70-90% warning, 90%+ critical
+- `ContextGauge` returns `null` for Cursor harness (no `context_info` available — Cursor manages context internally)
+- SDK exports follow DD-001 (SDK-first), DD-003 (headless-first), DD-016 (client-app parity)
+- Ink SDK (CLI terminal) has its own `UsageWidget` but does NOT yet have a context gauge equivalent
 
 ## Quick Commands
 
 After loading context:
-- "Commit OSS changes" — Create PR for stigmer repo
-- "Commit cloud changes" — Create PR for stigmer-cloud repo
-- "Plan Phase 2" — Begin context window visibility
-- "Plan reconciliation" — Begin Cursor Admin API reconciliation
+- "Commit Phase 2 changes" — Selective commit for context window visibility work
+- "Commit cloud changes" — Java handler fix in stigmer-cloud
+- "Plan Phase 3" — Admin API reconciliation or Plan/Ask mode
 
 ---
 
