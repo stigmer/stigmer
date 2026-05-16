@@ -510,7 +510,11 @@ func tsImportMethodType(imports *tsImportSet, typeName, fullType string, schema 
 			imports.addType(from, typeName)
 		} else if typePkg != "" {
 			crossBase := deriveTSImportBase(typePkg)
-			imports.addType(crossBase+"/io_pb", typeName)
+			if file, ok := methodTypeFileMap[typeName]; ok {
+				imports.addType(crossBase+"/"+file, typeName)
+			} else {
+				imports.addType(crossBase+"/io_pb", typeName)
+			}
 		}
 		return
 	}

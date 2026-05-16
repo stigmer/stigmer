@@ -31,9 +31,11 @@ const (
 	schemaVersion3 = 3
 	// schemaVersion4: Bootstrap state tracking for seedpack initialization
 	schemaVersion4 = 4
+	// schemaVersion5: Workflow execution events table for event log persistence
+	schemaVersion5 = 5
 
 	// currentSchemaVersion is the target version for new databases
-	currentSchemaVersion = schemaVersion4
+	currentSchemaVersion = schemaVersion5
 )
 
 // Store implements store.Store using SQLite as the backing storage.
@@ -140,6 +142,12 @@ func runMigrations(db *sql.DB) error {
 	if currentVersion < schemaVersion4 {
 		if err := migrateToV4(db); err != nil {
 			return fmt.Errorf("migrate to v4: %w", err)
+		}
+	}
+
+	if currentVersion < schemaVersion5 {
+		if err := migrateToV5(db); err != nil {
+			return fmt.Errorf("migrate to v5: %w", err)
 		}
 	}
 
@@ -340,6 +348,45 @@ func migrateToV4(db *sql.DB) error {
 	}
 
 	if err := setSchemaVersion(tx, schemaVersion4); err != nil {
+		return fmt.Errorf("set schema version: %w", err)
+	}
+
+	return tx.Commit()
+}
+
+// migrateToV5 creates the workflow_execution_events table for persisting
+// append-only execution event logs. Events are ordered by (execution_id, sequence_number)
+// and support cursor-based pagination and filtering by event type or task name.
+func migrateToV5(db *sql.DB) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	schema := `
+		CREATE TABLE IF NOT EXISTS workflow_execution_events (
+			execution_id TEXT NOT NULL,
+			sequence_number INTEGER NOT NULL,
+			event_type TEXT NOT NULL,
+			task_name TEXT NOT NULL DEFAULT '',
+			data BLOB NOT NULL,
+			created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+			PRIMARY KEY (execution_id, sequence_number)
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_wfee_execution_type
+			ON workflow_execution_events(execution_id, event_type);
+
+		CREATE INDEX IF NOT EXISTS idx_wfee_execution_task
+			ON workflow_execution_events(execution_id, task_name);
+	`
+
+	if _, err := tx.Exec(schema); err != nil {
+		return fmt.Errorf("create workflow_execution_events table: %w", err)
+	}
+
+	if err := setSchemaVersion(tx, schemaVersion5); err != nil {
 		return fmt.Errorf("set schema version: %w", err)
 	}
 
@@ -1377,6 +1424,145 @@ func (s *Store) ClearBootstrapState(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// =============================================================================
+// Workflow Execution Event Operations
+// =============================================================================
+
+// AppendWorkflowExecutionEvents appends events to the execution's event log.
+// Enforces monotonically increasing sequence_numbers — rejects the batch
+// if any event's sequence_number is <= the current highest persisted sequence.
+func (s *Store) AppendWorkflowExecutionEvents(ctx context.Context, executionID string, events []*store.WorkflowExecutionEventRecord) (int, error) {
+	if len(events) == 0 {
+		return 0, nil
+	}
+
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return 0, fmt.Errorf("store is closed")
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Get current max sequence for this execution
+	var maxSeq int64
+	err = tx.QueryRowContext(ctx,
+		`SELECT COALESCE(MAX(sequence_number), 0) FROM workflow_execution_events WHERE execution_id = ?`,
+		executionID).Scan(&maxSeq)
+	if err != nil {
+		return 0, fmt.Errorf("query max sequence: %w", err)
+	}
+
+	// Validate all events have sequence > max
+	for _, evt := range events {
+		if evt.SequenceNumber <= maxSeq {
+			return 0, fmt.Errorf("event sequence_number %d is <= current max %d for execution %s",
+				evt.SequenceNumber, maxSeq, executionID)
+		}
+	}
+
+	stmt, err := tx.PrepareContext(ctx,
+		`INSERT INTO workflow_execution_events (execution_id, sequence_number, event_type, task_name, data)
+		 VALUES (?, ?, ?, ?, ?)`)
+	if err != nil {
+		return 0, fmt.Errorf("prepare insert: %w", err)
+	}
+	defer stmt.Close()
+
+	for _, evt := range events {
+		if _, err := stmt.ExecContext(ctx, executionID, evt.SequenceNumber, evt.EventType, evt.TaskName, evt.Data); err != nil {
+			return 0, fmt.Errorf("insert event seq=%d: %w", evt.SequenceNumber, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("commit transaction: %w", err)
+	}
+
+	return len(events), nil
+}
+
+// GetWorkflowExecutionEvents retrieves events for an execution with cursor-based pagination.
+func (s *Store) GetWorkflowExecutionEvents(ctx context.Context, executionID string, afterSequence int64, eventType string, taskName string, limit int) ([]*store.WorkflowExecutionEventRecord, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return nil, fmt.Errorf("store is closed")
+	}
+
+	if limit <= 0 {
+		limit = 100
+	}
+
+	query := `SELECT execution_id, sequence_number, event_type, task_name, data, created_at
+		FROM workflow_execution_events
+		WHERE execution_id = ? AND sequence_number > ?`
+	args := []interface{}{executionID, afterSequence}
+
+	if eventType != "" {
+		query += ` AND event_type = ?`
+		args = append(args, eventType)
+	}
+	if taskName != "" {
+		query += ` AND task_name = ?`
+		args = append(args, taskName)
+	}
+
+	query += ` ORDER BY sequence_number ASC LIMIT ?`
+	args = append(args, limit)
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query events: %w", err)
+	}
+	defer rows.Close()
+
+	results := make([]*store.WorkflowExecutionEventRecord, 0)
+	for rows.Next() {
+		rec := &store.WorkflowExecutionEventRecord{}
+		if err := rows.Scan(&rec.ExecutionID, &rec.SequenceNumber, &rec.EventType, &rec.TaskName, &rec.Data, &rec.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan row: %w", err)
+		}
+		results = append(results, rec)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate rows: %w", err)
+	}
+
+	return results, nil
+}
+
+// GetMaxEventSequence returns the highest sequence_number for an execution.
+// Returns 0 if no events exist.
+func (s *Store) GetMaxEventSequence(ctx context.Context, executionID string) (int64, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return 0, fmt.Errorf("store is closed")
+	}
+
+	var maxSeq int64
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COALESCE(MAX(sequence_number), 0) FROM workflow_execution_events WHERE execution_id = ?`,
+		executionID).Scan(&maxSeq)
+	if err != nil {
+		return 0, fmt.Errorf("query max event sequence: %w", err)
+	}
+
+	return maxSeq, nil
 }
 
 // Close releases all resources held by the store.

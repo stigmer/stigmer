@@ -244,6 +244,27 @@ type Store interface {
 	DeleteAuditByResourceId(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string) (int64, error)
 
 	// ===========================================================================
+	// Workflow Execution Event Operations
+	// ===========================================================================
+
+	// AppendWorkflowExecutionEvents appends events to the execution's event log.
+	// Enforces monotonically increasing sequence_numbers — rejects the batch
+	// if any event's sequence_number is <= the current highest persisted sequence.
+	// Returns the number of events appended.
+	AppendWorkflowExecutionEvents(ctx context.Context, executionID string, events []*WorkflowExecutionEventRecord) (int, error)
+
+	// GetWorkflowExecutionEvents retrieves events for an execution with cursor-based pagination.
+	// afterSequence: return events with sequence_number > afterSequence (0 for all)
+	// eventType: filter by type (empty for all)
+	// taskName: filter by task name (empty for all)
+	// limit: max events to return (0 for default of 100)
+	GetWorkflowExecutionEvents(ctx context.Context, executionID string, afterSequence int64, eventType string, taskName string, limit int) ([]*WorkflowExecutionEventRecord, error)
+
+	// GetMaxEventSequence returns the highest sequence_number for an execution.
+	// Returns 0 if no events exist.
+	GetMaxEventSequence(ctx context.Context, executionID string) (int64, error)
+
+	// ===========================================================================
 	// Search Index Operations (Full-Text Search)
 	// ===========================================================================
 
@@ -276,6 +297,16 @@ type Store interface {
 	// Close releases all resources held by the store.
 	// After Close is called, all other methods will return errors.
 	Close() error
+}
+
+// WorkflowExecutionEventRecord is the storage representation of a workflow execution event.
+type WorkflowExecutionEventRecord struct {
+	ExecutionID    string
+	SequenceNumber int64
+	EventType      string
+	TaskName       string
+	Data           []byte // protobuf-serialized WorkflowExecutionEvent
+	CreatedAt      string
 }
 
 // SearchIndexEntry contains the searchable fields extracted from a resource.
