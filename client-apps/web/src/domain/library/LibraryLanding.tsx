@@ -7,7 +7,6 @@ import { Bot, Plus, Sparkles, Server, Workflow } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import { getDraftSessionUrl } from "@/domain/session/draft-session";
-import type { DraftResourceType } from "@/domain/session/draft-session";
 import { readPersistedScope } from "@/domain/library/scope-persistence";
 import {
   useAgentCount,

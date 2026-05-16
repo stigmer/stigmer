@@ -8,6 +8,7 @@ import (
 	"time"
 
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/require"
@@ -240,6 +241,66 @@ func TestAgentExecution_StructuredOutput(t *testing.T) {
 				}
 			}
 			require.True(t, hasAI, "execution should have at least one AI message with content")
+		})
+	}
+}
+
+func TestAgentExecution_CreateWithAgentId(t *testing.T) {
+	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+
+	for _, h := range harness.Harnesses {
+		t.Run(h.Name, func(t *testing.T) {
+			h.Skip(t, testHarness)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			clients := harness.NewClients(grpcConn)
+
+			agent := harness.CreateAgent(t, ctx, clients, "test-agent-id-only-"+h.Name,
+				"You are a helpful assistant. Respond briefly.")
+
+			// Create execution with agent_id only — no session_id.
+			// The server should auto-create a session from the agent's default instance.
+			exec, err := clients.AgentExecutionCommand.Create(ctx, &agentexecv1.AgentExecution{
+				ApiVersion: "agentic.stigmer.ai/v1",
+				Kind:       "AgentExecution",
+				Metadata: &apiresource.ApiResourceMetadata{
+					Name: "test-agent-id-only-" + h.Name,
+					Org:  "test-org",
+				},
+				Spec: &agentexecv1.AgentExecutionSpec{
+					AgentId: agent.GetMetadata().GetId(),
+					Message: "Reply with exactly: session-auto-created",
+				},
+			})
+			require.NoError(t, err, "create with agent_id only should succeed")
+			require.NotEmpty(t, exec.GetMetadata().GetId(), "execution should have an ID")
+
+			autoSessionID := exec.GetSpec().GetSessionId()
+			require.NotEmpty(t, autoSessionID,
+				"server should populate session_id on the response when auto-creating")
+
+			// Verify the auto-created session is queryable.
+			session, err := clients.SessionQuery.Get(ctx, &sessionv1.SessionId{
+				Value: autoSessionID,
+			})
+			require.NoError(t, err, "auto-created session should be queryable")
+			require.Equal(t, autoSessionID, session.GetMetadata().GetId())
+			t.Logf("auto-created session: id=%s, agent_instance=%s, harness=%s",
+				autoSessionID,
+				session.GetSpec().GetAgentInstanceId(),
+				session.GetSpec().GetHarness().String())
+
+			// Wait for the execution to complete.
+			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+			result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
+				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+			require.NoError(t, err, "execution should reach COMPLETED phase")
+
+			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+			t.Logf("execution completed: id=%s, auto_session=%s",
+				result.GetMetadata().GetId(), autoSessionID)
 		})
 	}
 }
