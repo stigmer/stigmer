@@ -205,31 +205,50 @@ func TestAgentExecution_MCP_HttpToolExecution(t *testing.T) {
 
 			mcpServer := harness.CreateHttpMcpServer(t, ctx, clients, httpServer.URL)
 
-			// HTTP MCP connect runs async via Apply's best-effort connect.
-			// Unlike stdio, the httptest server is in-process so ConnectMcpServer
-			// (which runs through the agent-runner workflow) cannot reach it.
-			// Allow time for async discovery to complete.
-			time.Sleep(3 * time.Second)
+			// Discover tools via the agent-runner connect workflow. The in-process
+			// httptest server is reachable from the local Python worker.
+			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
+			mcpServer = harness.WaitForMcpServerTool(t, ctx, clients,
+				mcpServer.GetMetadata().GetId(), "echo", 2*time.Minute)
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-mcp-http-"+h.Name,
-				"You MUST use the echo tool to echo the user's input. Do not answer without calling the echo tool first. Call it exactly once.",
+				"Call the echo tool exactly once with the user's input, then stop. Do not use any other tool. Do not call echo more than once.",
 				harness.WithMcpServerUsage(mcpServer.GetMetadata().GetSlug()),
 			)
 
 			session := harness.CreateTestSession(t, ctx, clients,
 				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
 
-			exec := harness.CreateTestAgentExecution(t, ctx, clients,
-				session.GetMetadata().GetId(),
-				"Use the echo tool to echo 'hello-http-mcp'. You must call the tool.",
-				harness.WithAutoApproveAll(true))
-
 			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
-			result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
-				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
-			require.NoError(t, err, "execution should complete")
-			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
 
+			// Retry once on LLM non-determinism: if the LLM responds with
+			// text instead of calling the tool, create a fresh execution.
+			var result *agentexecv1.AgentExecution
+			const maxAttempts = 2
+			for attempt := 1; attempt <= maxAttempts; attempt++ {
+				exec := harness.CreateTestAgentExecution(t, ctx, clients,
+					session.GetMetadata().GetId(),
+					"Please use the echo tool to echo 'hello-http-mcp'",
+					harness.WithAutoApproveAll(true))
+
+				var err error
+				result, err = waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
+					agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+				if err != nil {
+					harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+				}
+				require.NoError(t, err, "execution should complete")
+
+				if harness.HasToolCall(result, "echo") {
+					break
+				}
+				if attempt < maxAttempts {
+					t.Logf("HTTP MCP retry: LLM skipped echo tool on attempt %d, retrying", attempt)
+					harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+					continue
+				}
+			}
+			require.NotNil(t, result)
 			harness.AssertHasToolCall(t, result, "echo")
 			harness.AssertToolCallMcpSlug(t, result, "echo", mcpServer.GetMetadata().GetSlug())
 

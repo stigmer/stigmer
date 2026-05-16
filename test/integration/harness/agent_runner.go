@@ -43,6 +43,15 @@ type AgentRunnerConfig struct {
 	// routes LLM calls through the proxy instead of calling providers
 	// directly. The proxy records LlmCallUsageRecord for billing.
 	ProxyEndpoint string
+
+	// MinIO R2-compatible storage config. When set, the runner uses R2
+	// storage directly for attachment downloads instead of the proxy
+	// presigned URL flow (which requires endpoints not available in
+	// test environments).
+	R2Endpoint  string
+	R2AccessKey string
+	R2SecretKey string
+	R2Bucket    string
 }
 
 // StartAgentRunner locates the agent-runner Python service, verifies a virtualenv
@@ -194,9 +203,12 @@ func buildAgentRunnerEnv(cfg AgentRunnerConfig, runnerDir string) []string {
 		"MODE=local",
 
 		"STIGMER_LLM_PROVIDER=anthropic",
-		"STIGMER_LLM_MODEL=claude-sonnet-4-20250514",
+		"STIGMER_LLM_MODEL=claude-sonnet-4-6",
 
-		"STIGMER_CHECKPOINTER_TYPE=memory",
+		// sqlite persists checkpoints across activity invocations, which
+		// is required for pause/resume and HITL approval flows. MemorySaver
+		// loses state when the activity re-invokes.
+		"STIGMER_CHECKPOINTER_TYPE=sqlite",
 
 		fmt.Sprintf("LOCAL_ARTIFACT_PATH=%s", artifactDir),
 
@@ -218,6 +230,16 @@ func buildAgentRunnerEnv(cfg AgentRunnerConfig, runnerDir string) []string {
 		// Fallback: call Anthropic directly (no billing records)
 		env = append(env, fmt.Sprintf("ANTHROPIC_API_KEY=%s", cfg.AnthropicAPIKey))
 		env = append(env, fmt.Sprintf("STIGMER_LLM_API_KEY=%s", cfg.AnthropicAPIKey))
+	}
+
+	if cfg.R2Endpoint != "" {
+		env = append(env,
+			"ARTIFACT_STORAGE_TYPE=r2",
+			fmt.Sprintf("AGENT_EXECUTION_ARTIFACT_R2_ENDPOINT=%s", cfg.R2Endpoint),
+			fmt.Sprintf("AGENT_EXECUTION_ARTIFACT_R2_ACCESS_KEY_ID=%s", cfg.R2AccessKey),
+			fmt.Sprintf("AGENT_EXECUTION_ARTIFACT_R2_SECRET_ACCESS_KEY=%s", cfg.R2SecretKey),
+			fmt.Sprintf("AGENT_EXECUTION_ARTIFACT_R2_BUCKET=%s", cfg.R2Bucket),
+		)
 	}
 
 	return env

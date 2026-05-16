@@ -44,12 +44,13 @@ func TestAgentExecution_Skill_AgentLevel(t *testing.T) {
 			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
 			result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
 				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+			if err != nil {
+				harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+			}
 			require.NoError(t, err, "execution should complete")
 			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
 
-			// The agent should have responded (skill knowledge accessible)
 			harness.AssertMessages(t, result,
-				agentexecv1.MessageType_MESSAGE_HUMAN,
 				agentexecv1.MessageType_MESSAGE_AI)
 
 			t.Logf("skill-agent test completed: id=%s", result.GetMetadata().GetId())

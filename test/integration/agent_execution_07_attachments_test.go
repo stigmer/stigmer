@@ -64,6 +64,9 @@ func TestAgentExecution_Attachment_Upload(t *testing.T) {
 			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
 			result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
 				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+			if err != nil {
+				harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+			}
 			require.NoError(t, err, "execution should complete")
 			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
 

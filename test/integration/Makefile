@@ -156,3 +156,101 @@ test-agent: ensure-service-jar ## Run agent execution integration tests (auto-fe
 		--jsonfile $(AGENT_OUTPUT_DIR)/test-output.json \
 		--format testname \
 		-- -tags integration -timeout 900s -count=1 -run 'TestAgentExecution' ./...
+
+FAILING_OUTPUT_DIR ?= .test-output-failing
+TEST_RUN ?=
+
+.PHONY: test-subset
+test-subset: ensure-service-jar ## Run a subset of integration tests: make test-subset TEST_RUN='TestFoo|TestBar'
+	@if [ -z "$(TEST_RUN)" ]; then \
+		echo "error: TEST_RUN is required"; \
+		echo "  usage: make test-subset TEST_RUN='TestAgentExecution_Foo|TestAgentExecution_Bar'"; \
+		exit 1; \
+	fi
+	@command -v gotestsum >/dev/null 2>&1 || { \
+		echo "error: gotestsum not found"; \
+		echo "  install: go install gotest.tools/gotestsum@latest"; \
+		exit 1; \
+	}
+	@mkdir -p $(FAILING_OUTPUT_DIR)
+	@ANTHROPIC_KEY=$${ANTHROPIC_API_KEY:-}; \
+	if [ -z "$$ANTHROPIC_KEY" ]; then \
+		if command -v planton >/dev/null 2>&1; then \
+			echo "Fetching ANTHROPIC_API_KEY from Planton..."; \
+			ANTHROPIC_KEY=$$(planton service secrets get-value --org stigmer --group anthropic --name prod.api-key 2>&1); \
+			if [ -z "$$ANTHROPIC_KEY" ]; then \
+				echo "error: planton returned empty value for anthropic/prod.api-key"; \
+				exit 1; \
+			fi; \
+		else \
+			echo "error: ANTHROPIC_API_KEY not set and planton CLI not found"; \
+			exit 1; \
+		fi; \
+	fi; \
+	CURSOR_KEY=$${CURSOR_API_KEY:-}; \
+	if [ -z "$$CURSOR_KEY" ] && command -v planton >/dev/null 2>&1; then \
+		echo "Fetching CURSOR_API_KEY from Planton..."; \
+		CURSOR_KEY=$$(planton service secrets get-value --org stigmer --group cursor --name prod.api-key 2>&1 || true); \
+		if [ -n "$$CURSOR_KEY" ]; then echo "CURSOR_API_KEY fetched"; else echo "CURSOR_API_KEY not available — cursor subtests will be skipped"; fi; \
+	fi; \
+	echo "Running tests matching: $(TEST_RUN)"; \
+	ANTHROPIC_API_KEY=$$ANTHROPIC_KEY \
+	CURSOR_API_KEY=$$CURSOR_KEY \
+	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
+	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(FAILING_OUTPUT_DIR)) gotestsum \
+		--junitfile $(FAILING_OUTPUT_DIR)/junit.xml \
+		--junitfile-testsuite-name short \
+		--jsonfile $(FAILING_OUTPUT_DIR)/test-output.json \
+		--format testname \
+		-- -tags integration -timeout 900s -count=1 \
+		-run '$(TEST_RUN)' ./...
+
+BENCHMARK_OUTPUT_DIR ?= .test-output-benchmark
+
+.PHONY: benchmark-cost
+benchmark-cost: ensure-service-jar ## Run cost benchmarks comparing Native vs Cursor harness (requires both API keys)
+	@command -v gotestsum >/dev/null 2>&1 || { \
+		echo "error: gotestsum not found"; \
+		echo "  install: go install gotest.tools/gotestsum@latest"; \
+		exit 1; \
+	}
+	@mkdir -p $(BENCHMARK_OUTPUT_DIR)
+	@ANTHROPIC_KEY=$${ANTHROPIC_API_KEY:-}; \
+	if [ -z "$$ANTHROPIC_KEY" ]; then \
+		if command -v planton >/dev/null 2>&1; then \
+			echo "Fetching ANTHROPIC_API_KEY from Planton..."; \
+			ANTHROPIC_KEY=$$(planton service secrets get-value --org stigmer --group anthropic --name prod.api-key 2>&1); \
+			if [ -z "$$ANTHROPIC_KEY" ]; then \
+				echo "error: planton returned empty value for anthropic/prod.api-key"; \
+				exit 1; \
+			fi; \
+		else \
+			echo "error: ANTHROPIC_API_KEY not set and planton CLI not found"; \
+			exit 1; \
+		fi; \
+	fi; \
+	CURSOR_KEY=$${CURSOR_API_KEY:-}; \
+	if [ -z "$$CURSOR_KEY" ]; then \
+		if command -v planton >/dev/null 2>&1; then \
+			echo "Fetching CURSOR_API_KEY from Planton..."; \
+			CURSOR_KEY=$$(planton service secrets get-value --org stigmer --group cursor --name prod.api-key 2>&1); \
+			if [ -z "$$CURSOR_KEY" ]; then \
+				echo "error: CURSOR_API_KEY required for cost benchmarks (native vs cursor comparison)"; \
+				exit 1; \
+			fi; \
+		else \
+			echo "error: CURSOR_API_KEY not set and planton CLI not found"; \
+			echo "  cost benchmarks require both API keys to compare harnesses"; \
+			exit 1; \
+		fi; \
+	fi; \
+	echo "Running cost benchmarks (native vs cursor)..."; \
+	ANTHROPIC_API_KEY=$$ANTHROPIC_KEY \
+	CURSOR_API_KEY=$$CURSOR_KEY \
+	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
+	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(BENCHMARK_OUTPUT_DIR)) gotestsum \
+		--junitfile $(BENCHMARK_OUTPUT_DIR)/junit.xml \
+		--junitfile-testsuite-name short \
+		--jsonfile $(BENCHMARK_OUTPUT_DIR)/test-output.json \
+		--format testname \
+		-- -tags 'integration benchmark' -timeout 1800s -count=1 -run 'TestCostBenchmark' ./...
