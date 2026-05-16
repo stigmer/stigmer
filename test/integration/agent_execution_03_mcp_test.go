@@ -33,6 +33,7 @@ func TestAgentExecution_MCP_StdioToolExecution(t *testing.T) {
 			clients := harness.NewClients(grpcConn)
 
 			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-mcp-stdio-"+h.Name,
 				"You are a helpful assistant with access to tools. When asked to echo something, use the echo tool. When asked to add numbers, use the add tool.",
@@ -76,6 +77,7 @@ func TestAgentExecution_MCP_ToolFailure(t *testing.T) {
 			clients := harness.NewClients(grpcConn)
 
 			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-mcp-fail-"+h.Name,
 				"You are a helpful assistant. When asked to test error handling, use the fail tool with the message 'test-error'. If the tool fails, acknowledge the failure and respond.",
@@ -197,6 +199,7 @@ func TestAgentExecution_MCP_HttpToolExecution(t *testing.T) {
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
 
 			httpServer := harness.StartHTTPMcpServer(t)
 

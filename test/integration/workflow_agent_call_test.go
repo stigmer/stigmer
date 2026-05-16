@@ -26,6 +26,7 @@ func TestWorkflowAgentCall_SimpleExecution(t *testing.T) {
 	defer cancel()
 
 	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
 	deployer := harness.NewFixtureDeployer(clients, "agent-simple", suiteLogger)
 	defer deployer.Cleanup(ctx)
 
@@ -95,6 +96,7 @@ func TestWorkflowAgentCall_StructuredOutput(t *testing.T) {
 	defer cancel()
 
 	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
 	deployer := harness.NewFixtureDeployer(clients, "agent-struct", suiteLogger)
 	defer deployer.Cleanup(ctx)
 

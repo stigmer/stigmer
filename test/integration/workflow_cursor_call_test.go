@@ -31,6 +31,7 @@ func TestWorkflowCursorCall_FileCanary(t *testing.T) {
 	defer cancel()
 
 	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
 	deployer := harness.NewFixtureDeployer(clients, "cursor-canary", suiteLogger)
 	defer deployer.Cleanup(ctx)
 
@@ -112,6 +113,7 @@ func TestWorkflowCursorCall_StructuredOutput(t *testing.T) {
 	defer cancel()
 
 	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
 	deployer := harness.NewFixtureDeployer(clients, "cursor-struct", suiteLogger)
 	defer deployer.Cleanup(ctx)
 

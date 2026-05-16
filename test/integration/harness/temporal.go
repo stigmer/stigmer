@@ -24,7 +24,10 @@ func StartTemporal(ctx context.Context) (*TemporalDevServer, error) {
 
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
 
-	cmd := exec.CommandContext(ctx, "temporal", "server", "start-dev",
+	// Use exec.Command (not CommandContext) so the process lifetime is
+	// decoupled from the startup context. The caller's context governs
+	// the startup wait, but the server runs until Stop() is called.
+	cmd := exec.Command("temporal", "server", "start-dev",
 		"--port", fmt.Sprintf("%d", port),
 		"--namespace", "default",
 		"--log-format", "json",

@@ -179,6 +179,7 @@ async function executeCursor(
     const sessionOrg = session.metadata?.org ?? "";
     mcpResolution = await backfillMcpServersIfNeeded(
       client, mcpResolution, blueprint.mergedMcpServerUsages, envVars, sessionOrg,
+      heartbeat,
     );
     const mcpConfig = mcpResolution.cursorConfig;
 

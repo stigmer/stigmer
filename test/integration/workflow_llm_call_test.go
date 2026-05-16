@@ -26,6 +26,7 @@ func TestWorkflowLlmCall_StructuredOutput(t *testing.T) {
 	defer cancel()
 
 	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
 	deployer := harness.NewFixtureDeployer(clients, "llm-struct", suiteLogger)
 	defer deployer.Cleanup(ctx)
 
@@ -107,6 +108,7 @@ func TestWorkflowLlmCall_SimplePrompt(t *testing.T) {
 	defer cancel()
 
 	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
 	deployer := harness.NewFixtureDeployer(clients, "llm-simple", suiteLogger)
 	defer deployer.Cleanup(ctx)
 

@@ -34,6 +34,7 @@ func TestAgentExecution_HITL_Approve(t *testing.T) {
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
 
 			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
 			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
@@ -92,6 +93,7 @@ func TestAgentExecution_HITL_Skip(t *testing.T) {
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
 
 			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
 			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
@@ -147,6 +149,7 @@ func TestAgentExecution_HITL_Reject(t *testing.T) {
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
 
 			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
 			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
@@ -201,6 +204,7 @@ func TestAgentExecution_HITL_AutoApproveAll(t *testing.T) {
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
 
 			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
 			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
@@ -244,6 +248,7 @@ func TestAgentExecution_HITL_WrongPhase(t *testing.T) {
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-hitl-wrongphase-"+h.Name,
 				"You are a helpful assistant. Respond briefly.")
@@ -285,6 +290,7 @@ func TestAgentExecution_HITL_PendingApprovalDetails(t *testing.T) {
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
 
 			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
 			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())
@@ -350,6 +356,7 @@ func TestAgentExecution_HITL_IdempotentApproval(t *testing.T) {
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
 
 			mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
 			harness.ConnectMcpServer(t, ctx, clients, mcpServer.GetMetadata().GetId())

@@ -80,7 +80,9 @@ func StartWorkflowRunner(ctx context.Context, cfg WorkflowRunnerConfig, logger *
 	}
 	logger.Info("workflow-runner log", "path", logPath)
 
-	cmd := exec.CommandContext(ctx, binaryPath)
+	// Use exec.Command (not CommandContext) so the runner process lifetime
+	// is decoupled from the startup context and runs until Stop() is called.
+	cmd := exec.Command(binaryPath)
 	cmd.Env = buildRunnerEnv(cfg)
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile

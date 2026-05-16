@@ -23,6 +23,7 @@ func TestAgentExecution_Cancel(t *testing.T) {
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-cancel-"+h.Name,
 				"You are a helpful assistant. When asked, write a very long detailed essay about the history of computing. Make it at least 2000 words.")
@@ -66,6 +67,7 @@ func TestAgentExecution_CancelIdempotent(t *testing.T) {
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-cancel-idem-"+h.Name,
 				"You are a helpful assistant. Write a long essay about space exploration.")
@@ -112,6 +114,7 @@ func TestAgentExecution_CancelTerminalFails(t *testing.T) {
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-cancel-term-"+h.Name,
 				"You are a helpful assistant. Respond briefly.")
@@ -150,6 +153,7 @@ func TestAgentExecution_Terminate(t *testing.T) {
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-terminate-"+h.Name,
 				"You are a helpful assistant. Write a very long detailed essay about artificial intelligence history.")
@@ -191,6 +195,7 @@ func TestAgentExecution_Pause_Resume(t *testing.T) {
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-pause-resume-"+h.Name,
 				"You are a helpful assistant. Write a detailed essay about quantum computing.")
