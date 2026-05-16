@@ -32,6 +32,7 @@ const SkillNewPage = lazy(() => import("./pages/library/SkillNewPage"));
 const McpServerNewPage = lazy(() => import("./pages/library/McpServerNewPage"));
 const DashboardPage = lazy(() => import("./pages/dashboard/DashboardPage"));
 const WorkflowListPage = lazy(() => import("./pages/workflow/WorkflowListPage"));
+const WorkflowNewPage = lazy(() => import("./pages/workflow/WorkflowNewPage"));
 const WorkflowDetailPage = lazy(() => import("./pages/workflow/WorkflowDetailPage"));
 const WorkflowExecutionListPage = lazy(() => import("./pages/workflow/WorkflowExecutionListPage"));
 const WorkflowExecutionDetailPage = lazy(() => import("./pages/workflow/WorkflowExecutionDetailPage"));
@@ -172,6 +173,14 @@ const routes: RouteObject[] = [
             element: (
               <LazyPage>
                 <WorkflowListPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: "workflows/new",
+            element: (
+              <LazyPage>
+                <WorkflowNewPage />
               </LazyPage>
             ),
           },
