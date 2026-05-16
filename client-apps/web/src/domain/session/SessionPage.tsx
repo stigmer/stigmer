@@ -10,6 +10,7 @@ import {
 import {
   useSessionPageFlow,
   useGitHubConnection,
+  useContextWindow,
   MessageThread,
   ThreadSkeleton,
   SessionComposer,
@@ -41,6 +42,7 @@ export function SessionPageInner({ id }: { id: string }) {
   const flow = useSessionPageFlow({ sessionId: id, org });
   const { conv } = flow;
   const [modelId, setModelId] = flow.model;
+  const ctxWindow = useContextWindow(flow.displayExecution ?? null);
 
   if (conv.isLoading) return <SessionSkeleton />;
   if (conv.loadError) return <SessionError error={conv.loadError} />;
@@ -58,6 +60,7 @@ export function SessionPageInner({ id }: { id: string }) {
             submittingApprovalIds={conv.submittingApprovalIds}
             workspaceEntries={conv.workspaceEntries}
             sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
+            summarizationEvents={ctxWindow.summarizationEvents}
             className="flex-1 lg:pr-[208px]"
           />
           <div className="lg:mr-[208px]">

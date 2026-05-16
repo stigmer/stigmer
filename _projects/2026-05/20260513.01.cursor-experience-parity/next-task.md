@@ -68,89 +68,77 @@ When starting a new session:
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: May 16, 2026 — Phase 2: Context Window Visibility
-- **Active Task**: Phase 2 implemented. Needs commit, push, cloud commit.
+- **Last Session**: May 16, 2026 — Phase 3a: Chat Summarization Visibility
+- **Active Task**: Phase 3a implemented (cursor context tracking + inline timeline cards). Phase 3b (manual trigger + transcript access) deferred.
 - **Branch**: `feat/bring-workflows-to-foreground`
 
-## Session Progress (May 16, 2026 — Session 4: Context Window Visibility)
+## Session Progress (May 16, 2026 — Session 5: Phase 3a Chat Summarization)
 
-### Critical Gap Discovered & Fixed
+### Phase 3a Deliverables (implemented)
 
-Neither Go OSS nor Java Cloud `UpdateStatus` handler merged `runner_usage` or `runner_id` from incoming status updates. Phase 1's `UsageAccumulator` data was silently dropped by both servers. Fixed in both:
-- `update_status.go` — added `RunnerUsage` and `RunnerId` merge
-- `AgentExecutionUpdateStatusHandler.java` — same fix
+1. **`ContextTracker` adapter** (`backend/services/cursor-runner/src/adapter/context-tracker.ts`) — NEW
+   - Tracks per-turn `inputTokens` from `TurnEndedUpdate.usage`
+   - Detects Cursor-managed summarization when input tokens drop >30% between turns
+   - Static lookup table of model context windows (Claude, GPT, Gemini, O-series)
+   - Produces `ContextInfo` proto with approximate utilization and detected events
+   - `SummarizationSource.UNSPECIFIED` for inferred events (vs native's exact source)
 
-### Phase 2 Deliverables (implemented)
+2. **Execute-cursor wiring** (`execute-cursor.ts`)
+   - `ContextTracker` initialized alongside `UsageAccumulator` after model resolution
+   - Fed `inputTokens` in `turn-ended` onDelta handler
+   - `status.contextInfo` emitted on every heartbeat and at finalization
+   - Cursor sessions now populate `ContextGauge` and `SummarizationBadge`
 
-1. **`useContextWindow` data hook** (`sdk/react/src/execution/useContextWindow.ts`)
-   - Extracts `ContextInfo` from execution status
-   - Derives health state (healthy/warning/critical) per proto thresholds
-   - Maps summarization events to UI-friendly views
-   - Graceful empty return for Cursor harness (no `context_info`)
+3. **`SummarizationCard` component** (`sdk/react/src/execution/SummarizationCard.tsx`) — NEW
+   - Inline timeline card: "Context compacted" (native) / "Detected context compaction" (Cursor)
+   - Tokens before/after, compression ratio, duration/model/cost (native only)
+   - `role="status"` accessibility, `--stgm-*` design tokens
 
-2. **`ContextGauge` styled component** (`sdk/react/src/execution/ContextGauge.tsx`)
-   - Full mode: progress bar + threshold marker + token counts + health indicator + summarization summary
-   - Compact mode: thin bar + percentage
-   - `--stgm-*` tokens (success/warning/destructive), `role="meter"` accessibility
-   - Returns `null` when `context_info` absent
+4. **`MessageThread` event interleaving** (`sdk/react/src/execution/MessageThread.tsx`)
+   - New `"context-compacted"` variant in `ThreadItem` discriminated union
+   - `summarizationEvents` prop on `MessageThreadProps`
+   - `buildThreadItems` interleaves events chronologically among messages
+   - `VirtualizedThread` inherits support automatically
 
-3. **`SummarizationBadge` styled component** (`sdk/react/src/execution/SummarizationBadge.tsx`)
-   - Collapsible event history (icon + count → expanded event cards)
-   - Each event: tokens before/after, compression ratio, duration, model, cost
+5. **Client app wiring** (web + desktop SessionPage)
+   - Both call `useContextWindow(flow.displayExecution)` and pass `summarizationEvents` to `MessageThread`
 
-4. **Console wiring** (DD-016 parity — both client apps updated)
-   - `client-apps/web/src/domain/session/SessionPage.tsx` — ContextGauge above UsageWidget in sidebar
-   - `client-apps/desktop/src/pages/SessionPage.tsx` — identical wiring
+### Phase 3b (deferred)
 
-5. **Tests** (`sdk/react/src/execution/__tests__/useContextWindow.test.ts`)
-   - 9 tests: null/empty states, health derivation, threshold detection, event mapping, ref stability
-   - All passing
-
-### Changes (uncommitted)
-
-**stigmer OSS** (this session):
-- `backend/services/stigmer-server/.../update_status.go` — runner_usage merge fix
-- `sdk/react/src/execution/useContextWindow.ts` — new hook
-- `sdk/react/src/execution/ContextGauge.tsx` — new component
-- `sdk/react/src/execution/SummarizationBadge.tsx` — new component
-- `sdk/react/src/execution/__tests__/useContextWindow.test.ts` — tests
-- `sdk/react/src/execution/index.ts` — barrel exports
-- `sdk/react/src/index.ts` — barrel exports
-- `client-apps/web/src/domain/session/SessionPage.tsx` — wiring
-- `client-apps/desktop/src/pages/SessionPage.tsx` — wiring
-
-**stigmer-cloud** (this session):
-- `AgentExecutionUpdateStatusHandler.java` — runner_usage merge fix
+- Manual "Summarize now" trigger — needs new RPC path + Graphton signaling
+- Full transcript access — message fold logic based on summarization events
 
 ### Previous Sessions
 
+- **Session 4** (May 16, earlier): Phase 2 Context Window Visibility — committed as `0a5f08c0c`
 - **Session 3** (May 13): Phase 1 Usage MVP — UsageAccumulator, harness identity, billable amount fixes
 - **Session 2** (`e090a92b7`): Server-reported deployment mode (getServerInfo RPC)
 - **Session 1** (`2ba7abaf9`): Web-desktop feature parity fixes
 
 ## Next Steps
 
-1. Commit and push Phase 2 OSS changes
-2. Commit and push Phase 2 cloud changes (runner_usage merge in Java handler)
-3. Phase 1 OSS changes still need commit (cursor-runner files)
-4. Plan Phase 3: Admin API reconciliation OR Plan/Ask mode toggle
+1. Phase 1 cursor-runner files still need commit (usage-accumulator.ts, stigmer-client.ts — Phase 1 changes)
+2. Cloud runner_usage merge fix still needs commit (AgentExecutionUpdateStatusHandler.java)
+3. Plan Phase 4: Plan/Ask mode toggle (MEDIUM priority)
+4. Plan Phase 5: Admin API reconciliation (MEDIUM priority, depends on Cursor Analytics API maturity)
+5. Consider Phase 3b (manual trigger, transcript access) if user feedback warrants it
 
 ## Context for Resume
 
-- `ContextInfo` is field 14 on `AgentExecutionStatus`, defined in `context.proto`
-- Native agent-runner already populates `context_info` (initialize, on_token_count_updated, on_summarization_complete)
-- Both Go and Java handlers now merge `context_info` AND `runner_usage`
-- `useContextWindow` derives health thresholds: 0-70% healthy, 70-90% warning, 90%+ critical
-- `ContextGauge` returns `null` for Cursor harness (no `context_info` available — Cursor manages context internally)
-- SDK exports follow DD-001 (SDK-first), DD-003 (headless-first), DD-016 (client-app parity)
-- Ink SDK (CLI terminal) has its own `UsageWidget` but does NOT yet have a context gauge equivalent
+- `ContextTracker` uses `inputTokens` as proxy for context size — this is an approximation, not exact
+- Drop threshold is 30% — tunable in `context-tracker.ts` via `DROP_RATIO_THRESHOLD`
+- `SummarizationCard` distinguishes native vs Cursor by checking `event.model` (empty = inferred)
+- `MessageThread.summarizationEvents` is optional — backward compatible, no changes needed for consumers not passing it
+- Phase 2 commit `0a5f08c0c` already committed `ContextGauge`, `SummarizationBadge`, `useContextWindow`
+- Ink SDK (CLI terminal) does NOT have a context gauge or summarization card equivalent yet
 
 ## Quick Commands
 
 After loading context:
-- "Commit Phase 2 changes" — Selective commit for context window visibility work
+- "Commit Phase 3 changes" — Selective commit for chat summarization work
+- "Commit Phase 1 cursor-runner changes" — Phase 1 usage accumulator files
 - "Commit cloud changes" — Java handler fix in stigmer-cloud
-- "Plan Phase 3" — Admin API reconciliation or Plan/Ask mode
+- "Plan Phase 4" — Plan/Ask mode toggle
 
 ---
 
