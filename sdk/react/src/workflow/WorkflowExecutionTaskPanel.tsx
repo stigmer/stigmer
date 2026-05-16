@@ -39,6 +39,7 @@ const TASK_KIND_SHORT_LABEL: ReadonlyMap<WorkflowTaskKind, string> = new Map([
   [WorkflowTaskKind.validate, "validate"],
   [WorkflowTaskKind.emit_event, "event"],
   [WorkflowTaskKind.notification, "notify"],
+  [WorkflowTaskKind.eval, "eval"],
   [WorkflowTaskKind.switch_case, "switch"],
   [WorkflowTaskKind.for_each, "loop"],
   [WorkflowTaskKind.fork, "fork"],

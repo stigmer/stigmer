@@ -27,7 +27,7 @@ from ai.stigmer.commons.apiresource import field_options_pb2 as ai_dot_stigmer_d
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n.ai/stigmer/agentic/workflow/v1/tasks/for.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a)ai/stigmer/agentic/workflow/v1/spec.proto\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\x1b\x62uf/validate/validate.proto\"\xa5\x01\n\rForTaskConfig\x12\x1e\n\x04\x65\x61\x63h\x18\x01 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x04\x65\x61\x63h\x12\x1e\n\x02in\x18\x02 \x01(\tB\x0e\xbaH\x07r\x02\x10\x01\xc8\x01\x01\xd8\x85,\x01R\x02in\x12\x46\n\x02\x64o\x18\x03 \x03(\x0b\x32,.ai.stigmer.agentic.workflow.v1.WorkflowTaskB\x08\xbaH\x05\x92\x01\x02\x08\x01R\x02\x64o:\x0c\xea\x8b,\x08\x66or_eachB\xec\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\x08\x46orProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n.ai/stigmer/agentic/workflow/v1/tasks/for.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a)ai/stigmer/agentic/workflow/v1/spec.proto\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\x1b\x62uf/validate/validate.proto\"\xd4\x02\n\rForTaskConfig\x12\x1e\n\x04\x65\x61\x63h\x18\x01 \x01(\tB\n\xbaH\x07r\x02\x10\x01\xc8\x01\x01R\x04\x65\x61\x63h\x12\x1e\n\x02in\x18\x02 \x01(\tB\x0e\xbaH\x07r\x02\x10\x01\xc8\x01\x01\xd8\x85,\x01R\x02in\x12\x46\n\x02\x64o\x18\x03 \x03(\x0b\x32,.ai.stigmer.agentic.workflow.v1.WorkflowTaskB\x08\xbaH\x05\x92\x01\x02\x08\x01R\x02\x64o\x12\x30\n\x0fmax_parallelism\x18\x04 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x0emaxParallelism\x12&\n\nbatch_size\x18\x05 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\tbatchSize\x12S\n\x08on_error\x18\x06 \x01(\x0e\x32\x38.ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicyR\x07onError:\x0c\xea\x8b,\x08\x66or_each*}\n\x12\x46orEachErrorPolicy\x12%\n!FOR_EACH_ERROR_POLICY_UNSPECIFIED\x10\x00\x12\x16\n\x12\x46OR_EACH_FAIL_FAST\x10\x01\x12\x15\n\x11\x46OR_EACH_CONTINUE\x10\x02\x12\x11\n\rFOR_EACH_SKIP\x10\x03\x42\xec\x01\n(com.ai.stigmer.agentic.workflow.v1.tasksB\x08\x46orProtoP\x01\xa2\x02\x06\x41SAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,8 +41,14 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_FORTASKCONFIG'].fields_by_name['in']._serialized_options = b'\272H\007r\002\020\001\310\001\001\330\205,\001'
   _globals['_FORTASKCONFIG'].fields_by_name['do']._loaded_options = None
   _globals['_FORTASKCONFIG'].fields_by_name['do']._serialized_options = b'\272H\005\222\001\002\010\001'
+  _globals['_FORTASKCONFIG'].fields_by_name['max_parallelism']._loaded_options = None
+  _globals['_FORTASKCONFIG'].fields_by_name['max_parallelism']._serialized_options = b'\272H\004\032\002(\000'
+  _globals['_FORTASKCONFIG'].fields_by_name['batch_size']._loaded_options = None
+  _globals['_FORTASKCONFIG'].fields_by_name['batch_size']._serialized_options = b'\272H\004\032\002(\000'
   _globals['_FORTASKCONFIG']._loaded_options = None
   _globals['_FORTASKCONFIG']._serialized_options = b'\352\213,\010for_each'
+  _globals['_FOREACHERRORPOLICY']._serialized_start=555
+  _globals['_FOREACHERRORPOLICY']._serialized_end=680
   _globals['_FORTASKCONFIG']._serialized_start=213
-  _globals['_FORTASKCONFIG']._serialized_end=378
+  _globals['_FORTASKCONFIG']._serialized_end=553
 # @@protoc_insertion_point(module_scope)

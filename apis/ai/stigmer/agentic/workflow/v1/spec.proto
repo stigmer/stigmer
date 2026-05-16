@@ -162,6 +162,57 @@ message WorkflowTask {
   // Flow control (which task executes next).
   // Optional - if not set, continues to next task in sequence.
   FlowControl flow = 5;
+
+  // Compensation tasks to execute if this task needs to be "undone."
+  //
+  // @internal
+  // Saga-style compensation for workflows with side effects. When a
+  // try_catch block catches an error, it can optionally run the
+  // compensation tasks for all already-completed tasks in reverse order.
+  //
+  // The compensation tasks receive the original task's output in their
+  // input context, allowing them to construct the appropriate undo
+  // operation (e.g., cancel an API call, delete a created resource,
+  // send a reversal notification).
+  //
+  // Only executed when:
+  // 1. The task completed successfully (failed tasks are not compensated)
+  // 2. A subsequent task within the same try_catch scope fails
+  // 3. The catch block is configured to run compensations
+  //
+  // YAML Example:
+  //   try:
+  //     - create_order:
+  //         call: http
+  //         with:
+  //           method: POST
+  //           endpoint: { uri: "https://api.example.com/orders" }
+  //           body: { ... }
+  //         compensate:
+  //           - cancel_order:
+  //               call: http
+  //               with:
+  //                 method: DELETE
+  //                 endpoint: { uri: "https://api.example.com/orders/${ $context.create_order.id }" }
+  //         export:
+  //           as: "${ . }"
+  //     - charge_payment:
+  //         call: http
+  //         with:
+  //           method: POST
+  //           endpoint: { uri: "https://api.example.com/payments" }
+  //   catch:
+  //     as: error
+  //     compensate: true
+  //     do:
+  //       - log_failure:
+  //           call: notification
+  //           with: ...
+  //
+  // Optional - when empty, this task has no compensation action.
+  //
+  // @since T17 (Advanced Agentic Orchestration)
+  repeated WorkflowTask compensate = 6;
 }
 
 // Export defines how task output is saved to the workflow context.

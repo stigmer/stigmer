@@ -32,7 +32,7 @@ export const CANVAS_TRANSITION_EDGE_TYPE = "canvasTransition" as const;
 // Category classification (mirrors useWorkflowTopology)
 // ---------------------------------------------------------------------------
 
-const AI_KINDS = new Set(["agent_call", "llm_call"]);
+const AI_KINDS = new Set(["agent_call", "llm_call", "eval"]);
 const CONTROL_FLOW_KINDS = new Set(["switch_case", "for_each", "fork", "try_catch"]);
 const INVOCATION_KINDS = new Set(["http_call", "grpc_call", "activity_call", "run_workflow"]);
 const DATA_KINDS = new Set(["set_vars", "transform"]);

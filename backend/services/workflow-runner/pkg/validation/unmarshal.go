@@ -126,6 +126,9 @@ func UnmarshalTaskConfig(
 	case workflowv1.WorkflowTaskKind_notification:
 		protoMsg = &tasksv1.NotificationTaskConfig{}
 
+	case workflowv1.WorkflowTaskKind_eval:
+		protoMsg = &tasksv1.EvalTaskConfig{}
+
 	default:
 		return nil, fmt.Errorf("unsupported task kind: %v", kind)
 	}

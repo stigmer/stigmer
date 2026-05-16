@@ -75,6 +75,8 @@ func resolveCallFunctionKind(call string) workflowv1.WorkflowTaskKind {
 		return workflowv1.WorkflowTaskKind_emit_event
 	case customCallFunctionNotification:
 		return workflowv1.WorkflowTaskKind_notification
+	case customCallFunctionEval:
+		return workflowv1.WorkflowTaskKind_eval
 	default:
 		return workflowv1.WorkflowTaskKind_workflow_task_kind_unspecified
 	}

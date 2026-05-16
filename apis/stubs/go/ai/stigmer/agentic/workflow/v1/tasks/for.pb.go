@@ -24,10 +24,92 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// ForEachErrorPolicy defines what happens when an individual iteration fails
+// during parallel or sequential for_each execution.
+//
+// @internal
+// When max_parallelism > 0 (parallel mode), error handling becomes critical
+// because multiple iterations are in-flight simultaneously. This policy
+// governs whether the entire loop fails fast or continues processing.
+//
+// @since T17 (Advanced Agentic Orchestration)
+type ForEachErrorPolicy int32
+
+const (
+	// Unspecified: defaults to FOR_EACH_FAIL_FAST behavior (current behavior).
+	ForEachErrorPolicy_FOR_EACH_ERROR_POLICY_UNSPECIFIED ForEachErrorPolicy = 0
+	// Stop on first error, cancel in-flight iterations.
+	// This is the default and preserves backward compatibility with the
+	// pre-T17 sequential behavior.
+	ForEachErrorPolicy_FOR_EACH_FAIL_FAST ForEachErrorPolicy = 1
+	// Continue remaining iterations after a failure.
+	// Failed items are recorded in the output with their errors.
+	// The task output includes a summary of successes and failures.
+	// Use when partial results are valuable (e.g., batch API calls where
+	// some may fail but others should proceed).
+	ForEachErrorPolicy_FOR_EACH_CONTINUE ForEachErrorPolicy = 2
+	// Skip failed items silently and continue.
+	// Failed items are excluded from the output array.
+	// No error details are preserved.
+	// Use when failures are expected and ignorable (e.g., best-effort
+	// enrichment of optional data).
+	ForEachErrorPolicy_FOR_EACH_SKIP ForEachErrorPolicy = 3
+)
+
+// Enum value maps for ForEachErrorPolicy.
+var (
+	ForEachErrorPolicy_name = map[int32]string{
+		0: "FOR_EACH_ERROR_POLICY_UNSPECIFIED",
+		1: "FOR_EACH_FAIL_FAST",
+		2: "FOR_EACH_CONTINUE",
+		3: "FOR_EACH_SKIP",
+	}
+	ForEachErrorPolicy_value = map[string]int32{
+		"FOR_EACH_ERROR_POLICY_UNSPECIFIED": 0,
+		"FOR_EACH_FAIL_FAST":                1,
+		"FOR_EACH_CONTINUE":                 2,
+		"FOR_EACH_SKIP":                     3,
+	}
+)
+
+func (x ForEachErrorPolicy) Enum() *ForEachErrorPolicy {
+	p := new(ForEachErrorPolicy)
+	*p = x
+	return p
+}
+
+func (x ForEachErrorPolicy) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ForEachErrorPolicy) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_enumTypes[0].Descriptor()
+}
+
+func (ForEachErrorPolicy) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_enumTypes[0]
+}
+
+func (x ForEachErrorPolicy) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ForEachErrorPolicy.Descriptor instead.
+func (ForEachErrorPolicy) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_rawDescGZIP(), []int{0}
+}
+
 // ForTaskConfig defines the configuration for for_each tasks that iterate over collections.
 //
 // @internal
-// YAML Example:
+// Supports both sequential (default) and parallel execution modes. When
+// max_parallelism is set, iterations run concurrently using Temporal
+// workflow goroutines with bounded concurrency.
+//
+// Backward compatibility: all new fields default to values that preserve
+// the pre-T17 sequential behavior. Existing workflows require no changes.
+//
+// YAML Example (sequential, unchanged from pre-T17):
 //   - taskName:
 //     for:
 //     each: item
@@ -41,7 +123,26 @@ const (
 //     item: ${ $data.item }
 //     index: ${ $data.index }
 //
+// YAML Example (parallel with bounded concurrency):
+//   - batchProcess:
+//     for:
+//     each: item
+//     in: ${ $data.items }
+//     max_parallelism: 5
+//     on_error: FOR_EACH_CONTINUE
+//     do:
+//   - callApi:
+//     call: http
+//     with:
+//     method: POST
+//     endpoint:
+//     uri: "https://api.example.com/process"
+//     body:
+//     item: ${ $data.item }
+//
 // Reference: zigflow-dsl-pattern-catalog.md - Task Type 4
+//
+// @since max_parallelism, batch_size, on_error: T17 (Advanced Agentic Orchestration)
 type ForTaskConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Variable name for each item in the iteration.
@@ -52,7 +153,43 @@ type ForTaskConfig struct {
 	In string `protobuf:"bytes,2,opt,name=in,proto3" json:"in,omitempty"`
 	// Tasks to execute for each iteration.
 	// Loop variables available: ${ $data.item }, ${ $data.index }
-	Do            []*v1.WorkflowTask `protobuf:"bytes,3,rep,name=do,proto3" json:"do,omitempty"`
+	Do []*v1.WorkflowTask `protobuf:"bytes,3,rep,name=do,proto3" json:"do,omitempty"`
+	// Maximum number of iterations to execute concurrently.
+	//
+	// 0 (default): sequential execution — iterations run one at a time
+	// in input order. This preserves pre-T17 behavior.
+	//
+	// 1: effectively sequential (one at a time, but uses the parallel
+	// execution path — useful for testing).
+	//
+	// N > 1: up to N iterations run concurrently using Temporal workflow
+	// goroutines with a semaphore-based concurrency limiter. Results are
+	// always reassembled in original input order regardless of completion
+	// order.
+	//
+	// @since T17 (Advanced Agentic Orchestration)
+	MaxParallelism int32 `protobuf:"varint,4,opt,name=max_parallelism,json=maxParallelism,proto3" json:"max_parallelism,omitempty"`
+	// Number of items to process in each batch before moving to the next.
+	//
+	// 0 (default): no batching — all items are available for parallel
+	// execution (up to max_parallelism concurrent).
+	//
+	// N > 0: items are chunked into groups of N. Each chunk is fully
+	// processed before the next chunk begins. Within each chunk, up to
+	// max_parallelism iterations run concurrently.
+	//
+	// Only meaningful when max_parallelism > 0; ignored in sequential mode.
+	//
+	// @since T17 (Advanced Agentic Orchestration)
+	BatchSize int32 `protobuf:"varint,5,opt,name=batch_size,json=batchSize,proto3" json:"batch_size,omitempty"`
+	// Policy for handling individual iteration failures.
+	//
+	// Default: FOR_EACH_FAIL_FAST (stop on first error).
+	// Only meaningful when max_parallelism > 0; in sequential mode, any
+	// failure stops the loop regardless of this setting (pre-T17 behavior).
+	//
+	// @since T17 (Advanced Agentic Orchestration)
+	OnError       ForEachErrorPolicy `protobuf:"varint,6,opt,name=on_error,json=onError,proto3,enum=ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy" json:"on_error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -108,16 +245,46 @@ func (x *ForTaskConfig) GetDo() []*v1.WorkflowTask {
 	return nil
 }
 
+func (x *ForTaskConfig) GetMaxParallelism() int32 {
+	if x != nil {
+		return x.MaxParallelism
+	}
+	return 0
+}
+
+func (x *ForTaskConfig) GetBatchSize() int32 {
+	if x != nil {
+		return x.BatchSize
+	}
+	return 0
+}
+
+func (x *ForTaskConfig) GetOnError() ForEachErrorPolicy {
+	if x != nil {
+		return x.OnError
+	}
+	return ForEachErrorPolicy_FOR_EACH_ERROR_POLICY_UNSPECIFIED
+}
+
 var File_ai_stigmer_agentic_workflow_v1_tasks_for_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/agentic/workflow/v1/tasks/for.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a)ai/stigmer/agentic/workflow/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\"\xa5\x01\n" +
+	".ai/stigmer/agentic/workflow/v1/tasks/for.proto\x12$ai.stigmer.agentic.workflow.v1.tasks\x1a)ai/stigmer/agentic/workflow/v1/spec.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a\x1bbuf/validate/validate.proto\"\xd4\x02\n" +
 	"\rForTaskConfig\x12\x1e\n" +
 	"\x04each\x18\x01 \x01(\tB\n" +
 	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\x04each\x12\x1e\n" +
 	"\x02in\x18\x02 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\x02in\x12F\n" +
-	"\x02do\x18\x03 \x03(\v2,.ai.stigmer.agentic.workflow.v1.WorkflowTaskB\b\xbaH\x05\x92\x01\x02\b\x01R\x02do:\f\xea\x8b,\bfor_eachB\xbb\x02\n" +
+	"\x02do\x18\x03 \x03(\v2,.ai.stigmer.agentic.workflow.v1.WorkflowTaskB\b\xbaH\x05\x92\x01\x02\b\x01R\x02do\x120\n" +
+	"\x0fmax_parallelism\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x0emaxParallelism\x12&\n" +
+	"\n" +
+	"batch_size\x18\x05 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\tbatchSize\x12S\n" +
+	"\bon_error\x18\x06 \x01(\x0e28.ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicyR\aonError:\f\xea\x8b,\bfor_each*}\n" +
+	"\x12ForEachErrorPolicy\x12%\n" +
+	"!FOR_EACH_ERROR_POLICY_UNSPECIFIED\x10\x00\x12\x16\n" +
+	"\x12FOR_EACH_FAIL_FAST\x10\x01\x12\x15\n" +
+	"\x11FOR_EACH_CONTINUE\x10\x02\x12\x11\n" +
+	"\rFOR_EACH_SKIP\x10\x03B\xbb\x02\n" +
 	"(com.ai.stigmer.agentic.workflow.v1.tasksB\bForProtoP\x01ZMgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 
 var (
@@ -132,18 +299,21 @@ func file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_rawDescData
 }
 
+var file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_goTypes = []any{
-	(*ForTaskConfig)(nil),   // 0: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig
-	(*v1.WorkflowTask)(nil), // 1: ai.stigmer.agentic.workflow.v1.WorkflowTask
+	(ForEachErrorPolicy)(0), // 0: ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy
+	(*ForTaskConfig)(nil),   // 1: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig
+	(*v1.WorkflowTask)(nil), // 2: ai.stigmer.agentic.workflow.v1.WorkflowTask
 }
 var file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig.do:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTask
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	2, // 0: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig.do:type_name -> ai.stigmer.agentic.workflow.v1.WorkflowTask
+	0, // 1: ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig.on_error:type_name -> ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_init() }
@@ -156,13 +326,14 @@ func file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_rawDesc), len(file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_depIdxs,
+		EnumInfos:         file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_agentic_workflow_v1_tasks_for_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_agentic_workflow_v1_tasks_for_proto = out.File

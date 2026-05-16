@@ -79,7 +79,7 @@ test-providers: ensure-service-jar ## Run provider-backed integration tests (aut
 		--junitfile-testsuite-name short \
 		--jsonfile $(PROVIDER_OUTPUT_DIR)/test-output.json \
 		--format testname \
-		-- -tags integration -timeout 900s -count=1 -run 'TestWorkflow(LlmCall|AgentCall|CursorCall|Architect)|TestAgentExecution' ./...
+		-- -tags integration -timeout 900s -count=1 -run 'TestWorkflow(LlmCall|AgentCall|CursorCall|Architect|Eval)|TestAgentExecution' ./...
 
 .PHONY: test-workflow-architect
 test-workflow-architect: ensure-service-jar ## Run Workflow Architect agent E2E tests (auto-fetches API keys)
