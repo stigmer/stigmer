@@ -111,14 +111,9 @@ func (t *CallAgentTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 			"task", t.GetTaskName(),
 			"parent_workflow_id", parentWorkflowId)
 
-		// Extract invoker identity from state for OBO impersonation
-		invokerIdentityAccountID := getInvokerIdentityFromState(state)
-
-		// Call agent activity with parent workflow ID for signal-based notification
-		// We pass: agentConfig, input, state.Env, parentWorkflowId, invokerIdentityAccountID
 		var res any
 		future := workflow.ExecuteActivity(ctx, (*CallAgentActivities).CallAgentActivity,
-			t.agentConfig, input, state.Env, parentWorkflowId, invokerIdentityAccountID)
+			t.agentConfig, input, state.Env, parentWorkflowId)
 
 		// Setup signal channel for child approval notifications
 		// The Java agent execution workflow sends this signal when the agent
@@ -304,22 +299,6 @@ func getExecutionIdFromState(state *utils.State) string {
 	if execId, ok := state.Data["__stigmer_execution_id"]; ok {
 		if execIdStr, ok := execId.(string); ok {
 			return execIdStr
-		}
-	}
-
-	return ""
-}
-
-// getInvokerIdentityFromState extracts the invoker identity account ID from state.Data.
-// Stored by temporal_workflow.go when the workflow starts. Used for OBO impersonation.
-func getInvokerIdentityFromState(state *utils.State) string {
-	if state == nil || state.Data == nil {
-		return ""
-	}
-
-	if id, ok := state.Data["__stigmer_invoker_identity_account"]; ok {
-		if idStr, ok := id.(string); ok {
-			return idStr
 		}
 	}
 

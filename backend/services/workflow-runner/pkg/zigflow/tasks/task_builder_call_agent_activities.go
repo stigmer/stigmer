@@ -100,7 +100,6 @@ func (a *CallAgentActivities) CallAgentActivity(
 	input any,
 	runtimeEnv map[string]any,
 	parentWorkflowId string, // Phase 5.1: For events-based approval notification
-	invokerIdentityAccountID string,
 ) (any, error) {
 	logger := activity.GetLogger(ctx)
 	logger.Info("⏳ Starting agent call activity (async completion pattern)",
@@ -148,8 +147,8 @@ func (a *CallAgentActivities) CallAgentActivity(
 		logger.Debug("Runtime placeholders resolved successfully")
 	}
 
-	// Build authenticated context with API key and OBO header
-	authCtx, err := buildAuthenticatedContext(ctx, invokerIdentityAccountID)
+	// Build authenticated context with user's Bearer token
+	authCtx, err := buildAuthenticatedContext(ctx)
 	if err != nil {
 		logger.Error("Failed to build authenticated context", "error", err)
 		return nil, fmt.Errorf("failed to build authenticated context: %w", err)
@@ -647,9 +646,9 @@ func (a *CallAgentActivities) ClearWorkflowApprovalStatus(
 	return nil
 }
 
-// buildAuthenticatedContext creates a gRPC context with the machine-account API key
-// and, when provided, the x-on-behalf-of header for user impersonation.
-func buildAuthenticatedContext(ctx context.Context, invokerIdentityAccountID string) (context.Context, error) {
+// buildAuthenticatedContext creates a gRPC context with the user's Bearer token
+// from STIGMER_TOKEN (injected by the sandbox launcher).
+func buildAuthenticatedContext(ctx context.Context) (context.Context, error) {
 	cfg, err := config.LoadStigmerConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load stigmer config: %w", err)
@@ -660,7 +659,6 @@ func buildAuthenticatedContext(ctx context.Context, invokerIdentityAccountID str
 		authCtx = metadata.AppendToOutgoingContext(authCtx, "authorization", "Bearer "+cfg.APIKey)
 	}
 
-	authCtx = workflowexecclient.WithOnBehalfOf(authCtx, invokerIdentityAccountID)
 	return authCtx, nil
 }
 

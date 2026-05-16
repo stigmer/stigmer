@@ -43,8 +43,8 @@ type TemporalWorkflowInput struct {
 	OrgId string
 
 	// InvokerIdentityAccountID is the identity account ID of the user who
-	// triggered the workflow execution. Propagated to activities for
-	// on-behalf-of gRPC impersonation (x-on-behalf-of header).
+	// triggered the workflow execution. Kept for Temporal serialization
+	// compatibility (the Java orchestrator still sends this field).
 	InvokerIdentityAccountID string
 
 	// Budget carries the workflow-level budget from WorkflowSpec.budget.
