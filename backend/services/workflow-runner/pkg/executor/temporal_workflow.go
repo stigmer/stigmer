@@ -114,11 +114,9 @@ func ExecuteServerlessWorkflow(ctx workflow.Context, input *types.TemporalWorkfl
 	state.TemporalWorkflowCtx = input
 
 	// Store WorkflowExecutionID and OrgId in state for activity access
-	// This allows activities to access execution metadata without explicit parameter passing
 	state.AddData(map[string]interface{}{
-		"__stigmer_execution_id":             input.WorkflowExecutionID,
-		"__stigmer_org_id":                   input.OrgId,
-		"__stigmer_invoker_identity_account": input.InvokerIdentityAccountID,
+		"__stigmer_execution_id": input.WorkflowExecutionID,
+		"__stigmer_org_id":       input.OrgId,
 	})
 
 	logger.Debug("Workflow execution context",
