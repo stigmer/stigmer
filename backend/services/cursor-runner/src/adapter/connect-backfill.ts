@@ -60,6 +60,7 @@ export async function backfillMcpServersIfNeeded(
   usages: McpServerUsage[],
   envVars: Record<string, string>,
   org: string,
+  onHeartbeat?: () => void,
 ): Promise<McpResolutionResult> {
   const serversNeedingBackfill = currentResult.resolvedServers.filter(needsBackfill);
 
@@ -86,7 +87,14 @@ export async function backfillMcpServersIfNeeded(
       const runtimeEnv = extractRuntimeEnvForServer(fullServer, envVars);
 
       console.log(`Connect backfill: triggering connect for MCP server "${server.slug}" (${serverId})`);
-      const updated = await client.connectMcpServer(serverId, org, runtimeEnv);
+      onHeartbeat?.();
+      const connectTimeout = 60_000;
+      const updated = await Promise.race([
+        client.connectMcpServer(serverId, org, runtimeEnv),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`Connect timed out after ${connectTimeout / 1000}s`)), connectTimeout),
+        ),
+      ]);
 
       const toolCount = updated.status?.discoveredCapabilities?.tools.length ?? 0;
       const approvalCount = updated.status?.toolApprovals?.length ?? 0;
@@ -95,6 +103,7 @@ export async function backfillMcpServersIfNeeded(
         `discovered ${toolCount} tools, classified ${approvalCount} approval policies`,
       );
       anyBackfilled = true;
+      onHeartbeat?.();
     } catch (err) {
       console.warn(
         `Connect backfill failed for MCP server "${server.slug}": ` +

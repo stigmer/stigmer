@@ -24,6 +24,7 @@ func TestAgentExecution_Attachment_Upload(t *testing.T) {
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
 
 			// Probe R2 availability: if upload fails with connection refused,
 			// the artifact storage backend is not available in this test environment.

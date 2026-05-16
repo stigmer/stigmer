@@ -187,7 +187,6 @@ func TestAgentExecution_HappyPath(t *testing.T) {
 
 			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
 			harness.AssertMessages(t, result,
-				agentexecv1.MessageType_MESSAGE_HUMAN,
 				agentexecv1.MessageType_MESSAGE_AI)
 
 			t.Logf("execution completed: id=%s, messages=%d",

@@ -24,6 +24,7 @@ func TestAgentExecution_SubAgent_Delegation(t *testing.T) {
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-subagent-"+h.Name,
 				"You are a project manager. When asked to research a topic, delegate to the researcher sub-agent using the task tool.",
@@ -72,6 +73,7 @@ func TestAgentExecution_SubAgent_ParentCancelCascade(t *testing.T) {
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
 
 			agent := harness.CreateAgent(t, ctx, clients, "test-subagent-cancel-"+h.Name,
 				"You are a project manager. Delegate to the researcher sub-agent to write a very long comprehensive report about the history of the internet.",

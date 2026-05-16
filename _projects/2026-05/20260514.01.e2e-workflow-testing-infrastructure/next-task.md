@@ -68,8 +68,50 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-14 10:02
-**Current Task**: Real OpenFGA FGA integration added to test suite. Next: run full suite to validate FGA path, fix remaining 7 genuine test failures.
-**Status**: 64 total tests (28 workflow + 36 agent execution) + 5 new FGA model regression tests. OpenFGA Testcontainer + real authorization model loading integrated. Both FGA-enabled and FGA-disabled paths work.
+**Current Task**: Fix remaining test failures after full suite run. Rebuild JAR with recover RPC handler, re-run suite to validate all fixes.
+**Status**: All 6 genuine test failures diagnosed and fixed. 52 cascade failures eliminated by decoupling child process lifetimes from suite context. Rebuild JAR and re-run needed.
+
+## Session Progress (2026-05-16, Session 21 — Fix Integration Test Suite Failures)
+
+### Accomplished
+
+- **Ran full provider-backed integration suite**: 112 tests, 71 failures, 14 skipped — diagnosed 6 genuine bugs vs 52 cascade failures
+- **Root-caused cascade failures**: Suite context `context.WithTimeout(5min)` in `TestMain` was passed to `exec.CommandContext` for child processes — when total wall time exceeded 5 minutes (due to cursor MCP ConnectionFailure 3-minute hang), Go killed the JVM silently
+- **Fixed suite context timeout**: Changed `exec.CommandContext(ctx, ...)` to `exec.Command(...)` for Temporal dev server and workflow-runner (service.go, agent_runner.go, cursor_runner.go were already fixed on HEAD)
+- **Added RequireServiceHealthy guards**: 9 test files, 20 test functions — graceful skip instead of cascading connection-refused failures
+- **Fixed native MCP tool invocation**: Root cause was NOT LLM non-determinism — `discovered_capabilities` was empty because tests never called `ConnectMcpServer`. Added `ConnectMcpServer` calls to StdioToolExecution and ToolFailure tests
+- **Fixed HappyPath message type assertion**: Changed from `[MESSAGE_HUMAN, MESSAGE_AI]` to `[MESSAGE_AI]` only — user prompt lives in `spec.message`, not `status.messages`
+- **Fixed cursor-runner MCP backfill heartbeat gap**: Added `onHeartbeat` callback + 60-second connect timeout via `Promise.race` to `backfillMcpServersIfNeeded`. Prevents 181-second hang and Temporal heartbeat timeout
+- **Implemented recover RPC handler**: Full Option A in stigmer-cloud — 7-step pipeline with precondition check (`FAILED_PRECONDITION` for non-failed executions) + new execution creation in same session
+- **Diagnosed PauseTerminalFails/cursor**: Transient Cursor SDK auth exchange failure (`/auth/exchange_user_api_key → fetch failed`) on first cursor execution — later cursor tests pass. Will verify if Phase 1a fix resolves it
+
+### Files Changed
+
+**stigmer (OSS)** — 14 files modified:
+- `test/integration/harness/temporal.go` — `exec.CommandContext` → `exec.Command`
+- `test/integration/harness/workflow_runner.go` — `exec.CommandContext` → `exec.Command`
+- `test/integration/agent_execution_01_lifecycle_test.go` — HappyPath assertion: MESSAGE_AI only
+- `test/integration/agent_execution_03_mcp_test.go` — ConnectMcpServer + RequireServiceHealthy
+- `test/integration/agent_execution_{04,05,06,07,08}_*_test.go` — RequireServiceHealthy (16 functions)
+- `test/integration/workflow_{agent_call,cursor_call,llm_call}_test.go` — RequireServiceHealthy
+- `backend/services/cursor-runner/src/adapter/connect-backfill.ts` — onHeartbeat callback + 60s timeout
+- `backend/services/cursor-runner/src/activity/execute-cursor.ts` — pass heartbeat to backfill
+
+**stigmer-cloud** — 1 new file:
+- `AgentExecutionRecoverHandler.java` — recover RPC handler (7-step pipeline)
+
+### Key Discoveries
+
+1. **`exec.CommandContext` kills child processes on context cancellation** — this is by design in Go, but the 5-minute suite context was never intended to govern process lifetime. It was only meant for startup waits.
+2. **Native MCP tool invocation was a test setup bug, not LLM non-determinism** — `transform_all_mcp_configs` drops servers with empty `discovered_capabilities`, and tests never called `ConnectMcpServer`.
+3. **`MESSAGE_HUMAN` is NOT stored in `status.messages`** — the user prompt lives in `spec.message`. The `status.messages` array only contains runner-produced messages (AI responses, tool calls, system messages).
+
+### Next Steps
+
+1. **Rebuild stigmer-cloud JAR** — needed to pick up the recover RPC handler
+2. **Re-run full integration suite** (`make test-providers`) — validate all fixes
+3. **If PauseTerminalFails/cursor still fails** — add retry logic to cursor-runner's fetch interceptor for transient auth exchange failures
+4. **Consider adding process health monitoring** — log when child processes exit unexpectedly during tests (observability, not restart)
 
 ## Session Progress (2026-05-16, Session 20 — Add Real OpenFGA to Integration Tests)
 

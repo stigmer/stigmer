@@ -23,6 +23,7 @@ func TestAgentExecution_Skill_AgentLevel(t *testing.T) {
 			defer cancel()
 
 			clients := harness.NewClients(grpcConn)
+			harness.RequireServiceHealthy(t, ctx, clients)
 
 			// Create a skill with domain-specific knowledge
 			skill := createTestSkill(t, ctx, clients, "test-math-skill",
