@@ -18,10 +18,11 @@ import (
 )
 
 var (
-	testHarness         *harness.TestHarness
-	grpcConn            *grpc.ClientConn
-	suiteLogger         *slog.Logger
-	mcpTestServerBinary string
+	testHarness              *harness.TestHarness
+	grpcConn                 *grpc.ClientConn
+	suiteLogger              *slog.Logger
+	mcpTestServerBinary      string
+	mcpServerStigmerBinary   string
 )
 
 func TestMain(m *testing.M) {
@@ -128,6 +129,15 @@ func TestMain(m *testing.M) {
 	} else {
 		mcpTestServerBinary = mcpBinary
 		suiteLogger.Info("built test MCP server", "path", mcpBinary)
+	}
+
+	// Build the real mcp-server-stigmer binary for Workflow Architect tests.
+	stigmerMcpBinary, stigmerMcpErr := harness.BuildMcpServerStigmer(cfg.OutputDir)
+	if stigmerMcpErr != nil {
+		suiteLogger.Warn("failed to build mcp-server-stigmer — workflow architect tests will be skipped", "error", stigmerMcpErr)
+	} else {
+		mcpServerStigmerBinary = stigmerMcpBinary
+		suiteLogger.Info("built mcp-server-stigmer", "path", stigmerMcpBinary)
 	}
 
 	// Start agent-runner only when an LLM API key is available.

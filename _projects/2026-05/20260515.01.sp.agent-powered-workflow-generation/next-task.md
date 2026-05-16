@@ -101,8 +101,77 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-15 10:05
-**Current Task**: T01 — Batch 5 complete (SDK + Frontend — Diagnose)
-**Status**: In Progress
+**Current Task**: E2E Testing — Workflow Architect agent tests implemented
+**Status**: In Progress — awaiting first live run
+
+## Session Progress (May 16, 2026 — Session 6: E2E Integration Tests)
+
+### Completed: Workflow Architect E2E Test Suite
+
+Built a complete E2E integration test suite for the Workflow Architect agent-powered
+flows (generate, refine, diagnose) using the existing test/integration infrastructure
+with the real `mcp-server-stigmer` binary connected to the test Java service.
+
+#### Harness Infrastructure (4 changes)
+- **`BuildMcpServerStigmer(outputDir)`** — compiles the real `mcp-server-stigmer` binary
+  in `TestMain`, following the `BuildTestMcpServer` pattern. Suite-scoped, failure is a warning.
+- **`STIGMER_SERVER_ADDRESS`** env var added to both agent-runner and cursor-runner harnesses
+  so MCP server subprocesses can connect back to the test Java service via gRPC.
+- **`mcpServerStigmerBinary`** global in `suite_test.go` — build step runs alongside
+  the test MCP server build.
+- **`test-workflow-architect`** Makefile target — focused provider-backed test run with
+  auto-key-fetch from Planton. Also added `TestWorkflowArchitect` to `test-providers` regex.
+
+#### Workflow Architect Helpers (`harness/workflow_architect_helpers.go`)
+- **`CreateStigmerMcpServer`** — creates McpServer resource pointing to real binary
+- **`CreateWorkflowArchitectAgent`** — creates agent with real seedpack instructions
+  (read from `seedpack/agents/workflow-architect.yaml` at test time) and full MCP tool list
+- **`ExtractWorkflowYAML`** — Go port of `extract-workflow-yaml.ts` (scans AI messages
+  for ` ```yaml ` blocks, returns last match from last AI message)
+- **`AssertHasYAMLBlock`** / **`AssertHasAnyToolCall`** — assertion helpers for LLM output
+
+#### Offline Tests (`workflow_validate_test.go`) — 4 tests
+- `TestValidateSpec_ValidWorkflow` — valid set_vars workflow returns VALID
+- `TestValidateSpec_InvalidTaskKind` — bad task kind returns non-VALID
+- `TestValidateSpec_MissingDocument` — missing document section caught
+- `TestValidateSpec_EmptySpec` — empty spec handled gracefully (no panic)
+
+#### Agent E2E Tests (`workflow_architect_test.go`) — 5 tests
+- `TestWorkflowArchitect_Generate` (cross-harness) — core generate flow with MCP tool assertions
+- `TestWorkflowArchitect_GenerateAndApply` (native) — generate + apply as real Workflow resource
+- `TestWorkflowArchitect_Refine` (native) — two-turn refinement in same session
+- `TestWorkflowArchitect_DiagnoseExecution` (native) — create failing workflow, diagnose with agent
+- `TestWorkflowArchitect_MCPToolAccess` (native) — smoke test for `get_task_kind_registry` tool
+
+#### Verification
+- `go build -tags integration ./test/integration/...` — clean
+- `go vet -tags integration ./test/integration/...` — clean
+
+### Key Decisions
+- **Real mcp-server-stigmer** (not mock) — tests the full MCP → gRPC → backend pipeline
+- **Seedpack instructions at test time** — reads from YAML file for production fidelity
+- **Structural assertions for LLM non-determinism** — asserts completion, tool usage, YAML
+  presence, and validity; never asserts exact content or tool order
+- **Cross-harness for Generate only** — reduces cost; parity proven by existing 23+ tests
+- **Env inheritance for MCP** — `STIGMER_SERVER_ADDRESS` propagated via runner env to
+  child MCP processes (Plan B: `McpServerSpec.Env` if inheritance doesn't work)
+
+### Files Changed
+- `test/integration/harness/workflow_architect_helpers.go` — **New** (188 lines)
+- `test/integration/workflow_validate_test.go` — **New** (160 lines)
+- `test/integration/workflow_architect_test.go` — **New** (280 lines)
+- `test/integration/harness/mcp_helpers.go` — **Modify** (added `BuildMcpServerStigmer`)
+- `test/integration/suite_test.go` — **Modify** (added `mcpServerStigmerBinary` + build step)
+- `test/integration/harness/agent_runner.go` — **Modify** (added `STIGMER_SERVER_ADDRESS`)
+- `test/integration/harness/cursor_runner.go` — **Modify** (added `STIGMER_SERVER_ADDRESS`)
+- `test/integration/Makefile` — **Modify** (added `test-workflow-architect` + updated regex)
+
+## Next Steps
+
+1. **Run the tests** — `make test-workflow-architect` with API keys to validate end-to-end
+2. **Verify MCP env propagation** — confirm `STIGMER_SERVER_ADDRESS` reaches the MCP server process
+3. **Future: Large YAML attachment** — for workflows > 300 lines
+4. **Future: Codegen tool fix** — `serverless/io_pb` → `serverless/validation_pb` import path
 
 ## Session Progress (May 15, 2026 — Session 5)
 
