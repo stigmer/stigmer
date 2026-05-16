@@ -12,6 +12,7 @@ import {
   ThreadSkeleton,
   SessionComposer,
   ExecutionProgress,
+  ContextGauge,
   UsageWidget,
   ArtifactsWidget,
   WriteBacksWidget,
@@ -97,6 +98,10 @@ function SessionPageInner({ id }: { id: string }) {
               <div className="rounded-lg border border-border bg-card p-3">
                 <ExecutionProgress execution={flow.displayExecution} />
               </div>
+              <ContextGauge
+                execution={flow.displayExecution}
+                className="rounded-lg border border-border bg-card p-3"
+              />
               <div className="rounded-lg border border-border bg-card p-3">
                 <UsageWidget executions={flow.allExecutions} />
               </div>

@@ -13,6 +13,19 @@ export type { UseExecutionStreamReturn } from "./useExecutionStream";
 export { UsageWidget, formatCost, formatTokenCount } from "./UsageWidget";
 export type { UsageWidgetProps } from "./UsageWidget";
 
+export { useContextWindow } from "./useContextWindow";
+export type {
+  ContextHealth,
+  SummarizationEventView,
+  UseContextWindowReturn,
+} from "./useContextWindow";
+
+export { ContextGauge } from "./ContextGauge";
+export type { ContextGaugeProps } from "./ContextGauge";
+
+export { SummarizationBadge } from "./SummarizationBadge";
+export type { SummarizationBadgeProps } from "./SummarizationBadge";
+
 export { useExecutionArtifacts } from "./useExecutionArtifacts";
 export type { UseExecutionArtifactsReturn } from "./useExecutionArtifacts";
 
