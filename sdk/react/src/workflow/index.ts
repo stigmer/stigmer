@@ -122,6 +122,7 @@ export {
 export {
   WorkflowEditorView,
   type WorkflowEditorViewProps,
+  type WorkflowEditorMode,
 } from "./WorkflowEditorView";
 
 // T11: Run workflow — behavior hook
@@ -352,6 +353,9 @@ export {
   WorkflowRepairCard,
   type WorkflowRepairCardProps,
 } from "./WorkflowRepairCard";
+
+// Starter YAML template for new workflow creation
+export { STARTER_WORKFLOW_YAML } from "./starter-workflow-yaml";
 
 // Navigation resolution hook
 export {

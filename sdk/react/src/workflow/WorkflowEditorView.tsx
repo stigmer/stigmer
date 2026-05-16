@@ -19,6 +19,8 @@ export interface WorkflowEditorViewProps {
   readonly onSaveSuccess?: () => void;
   /** Called when a save fails. */
   readonly onSaveError?: (error: Error) => void;
+  /** Initial editor mode. Defaults to `"code"`. */
+  readonly defaultMode?: WorkflowEditorMode;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -55,11 +57,12 @@ export const WorkflowEditorView = memo(function WorkflowEditorView({
   org,
   onSaveSuccess,
   onSaveError,
+  defaultMode = "code",
   className,
 }: WorkflowEditorViewProps) {
   const editor = useWorkflowEditor(initialYaml, { org });
   const [isFullPage, setIsFullPage] = useState(false);
-  const [mode, setMode] = useState<WorkflowEditorMode>("code");
+  const [mode, setMode] = useState<WorkflowEditorMode>(defaultMode);
   const [showModeWarning, setShowModeWarning] = useState(false);
   const [canvasIsSaving, setCanvasIsSaving] = useState(false);
   const [showRefinePanel, setShowRefinePanel] = useState(false);

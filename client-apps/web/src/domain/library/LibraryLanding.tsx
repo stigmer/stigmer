@@ -49,25 +49,32 @@ const RESOURCE_CARDS = [
   },
 ] as const;
 
-const ADD_MENU_ITEMS: readonly {
-  readonly type: DraftResourceType;
+interface AddMenuItem {
   readonly label: string;
   readonly icon: React.ReactNode;
-}[] = [
+  readonly href: string;
+}
+
+const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
   {
-    type: "agent",
     label: "Agent",
     icon: <Bot className="size-4" aria-hidden="true" />,
+    href: getDraftSessionUrl("agent"),
   },
   {
-    type: "skill",
+    label: "Workflow",
+    icon: <Workflow className="size-4" aria-hidden="true" />,
+    href: "/library/workflows/new",
+  },
+  {
     label: "Skill",
     icon: <Sparkles className="size-4" aria-hidden="true" />,
+    href: getDraftSessionUrl("skill"),
   },
   {
-    type: "mcp-server",
     label: "MCP Server",
     icon: <Server className="size-4" aria-hidden="true" />,
+    href: getDraftSessionUrl("mcp-server"),
   },
 ];
 
@@ -165,8 +172,8 @@ function AddResourceMenu() {
             <div className="py-1" role="menu">
               {ADD_MENU_ITEMS.map((item) => (
                 <Link
-                  key={item.type}
-                  href={getDraftSessionUrl(item.type)}
+                  key={item.label}
+                  href={item.href}
                   role="menuitem"
                   onClick={() => setOpen(false)}
                   className={cn(

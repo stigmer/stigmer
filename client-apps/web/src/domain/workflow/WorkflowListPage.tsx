@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { GitBranch, MoreHorizontal, Copy, ExternalLink, Trash2, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { GitBranch, MoreHorizontal, Copy, ExternalLink, Trash2, Sparkles, Plus } from "lucide-react";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import {
   readPersistedScope,
@@ -108,14 +109,23 @@ export function WorkflowListPage() {
             Browse and manage multi-step orchestration workflows.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowGenerateDialog(true)}
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Sparkles className="size-4" aria-hidden="true" />
-          Generate
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/library/workflows/new"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            New
+          </Link>
+          <button
+            type="button"
+            onClick={() => setShowGenerateDialog(true)}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Sparkles className="size-4" aria-hidden="true" />
+            Generate
+          </button>
+        </div>
       </div>
 
       <ResourceWorkbench
@@ -131,7 +141,7 @@ export function WorkflowListPage() {
         searchPlaceholder="Search workflows…"
         emptyIcon={<GitBranch className="size-10" aria-hidden="true" />}
         emptyTitle="No workflows yet"
-        emptyDescription="Workflows define multi-step orchestration for agents. Use the Generate button above, or create one via the CLI or API."
+        emptyDescription="Workflows define multi-step orchestration for agents. Use the New button to create one in the visual editor, or Generate with AI."
         onItemClick={(item) => navigateToDetail("workflows", item.org, item.slug)}
         renderItemAction={(item) => (
           <div onClick={(e) => e.stopPropagation()}>

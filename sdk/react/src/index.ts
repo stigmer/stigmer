@@ -1164,6 +1164,7 @@ export {
   computeUnifiedDiff,
   useDiagnoseExecutionFlow,
   WorkflowRepairCard,
+  STARTER_WORKFLOW_YAML,
 } from "./workflow";
 export type {
   TaskKindDescriptor,
@@ -1210,6 +1211,7 @@ export type {
   UseWorkflowEditorOptions,
   UseWorkflowEditorReturn,
   WorkflowEditorViewProps,
+  WorkflowEditorMode,
   UseRunWorkflowFlowOptions,
   UseRunWorkflowFlowReturn,
   RunWorkflowFieldErrors,
