@@ -75,4 +75,27 @@ public interface CatchBlockOrBuilder extends
    */
   ai.stigmer.agentic.workflow.v1.WorkflowTaskOrBuilder getDoOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Whether to run compensation tasks for already-completed try tasks
+   * before executing the catch do block.
+   *
+   * When true, the runtime walks the compensation stack (completed tasks
+   * that declared a `compensate` block) in reverse order and executes
+   * each task's compensation actions. After all compensations complete
+   * (or fail), the catch `do` block runs as normal.
+   *
+   * Compensation failures do not prevent the catch block from running.
+   * They are logged and included in the task output for diagnostics.
+   *
+   * Default: false (no compensation — preserves pre-T17 behavior).
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>bool compensate = 3 [json_name = "compensate"];</code>
+   * @return The compensate.
+   */
+  boolean getCompensate();
 }

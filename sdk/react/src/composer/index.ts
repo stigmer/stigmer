@@ -6,3 +6,9 @@ export type {
   SessionComposerProps,
   SessionComposerSubmitContext,
 } from "./SessionComposer";
+
+export { InteractionModePicker } from "./InteractionModePicker";
+export type {
+  InteractionModePickerProps,
+  InteractionModeOption,
+} from "./InteractionModePicker";

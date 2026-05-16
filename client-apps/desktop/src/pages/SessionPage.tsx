@@ -5,6 +5,7 @@ import {
   RotateCcw,
   WifiOff,
 } from "lucide-react";
+import { useState } from "react";
 import {
   useSessionPageFlow,
   useActiveOrgSlug,
@@ -20,6 +21,7 @@ import {
   SecretFlowErrorGuide,
   isSecretFlowError,
 } from "@stigmer/react";
+import type { InteractionModeOption } from "@stigmer/react";
 import { getUserMessage } from "@stigmer/sdk";
 import { useDesktopGitHubConnection } from "../hooks/useDesktopGitHubConnection";
 
@@ -36,6 +38,7 @@ function SessionPageInner({ id }: { id: string }) {
   const flow = useSessionPageFlow({ sessionId: id, org });
   const { conv } = flow;
   const [modelId, setModelId] = flow.model;
+  const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
   const ctxWindow = useContextWindow(flow.displayExecution ?? null);
 
   if (conv.isLoading) return <SessionSkeleton />;
@@ -75,6 +78,9 @@ function SessionPageInner({ id }: { id: string }) {
               harness={flow.harness}
               defaultModelId={modelId}
               onModelChange={setModelId}
+              interactionMode={interactionMode}
+              onInteractionModeChange={setInteractionMode}
+              showInteractionModePicker
               workspace={flow.workspace}
               gitHubConnection={gitHubConnection}
               enableGitHub

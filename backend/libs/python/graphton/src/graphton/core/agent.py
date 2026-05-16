@@ -127,6 +127,9 @@ def create_deep_agent(
     # Pre-built MCP client for alternative transports (e.g. Daytona sandbox).
     # Duck-typed: must expose session(server_name) async context manager.
     mcp_client: Any | None = None,
+    # Interaction mode — controls tool availability.
+    # PLAN mode filters out write tools (write, edit, delete, execute).
+    interaction_mode: int = 0,  # 0=UNSPECIFIED (defaults to AGENT)
     **model_kwargs: Any,  # noqa: ANN401
 ) -> CompiledStateGraph:
     """Create a Deep Agent with minimal boilerplate.
@@ -891,6 +894,18 @@ def create_deep_agent(
     else:
         enhanced_prompt = system_prompt
     
+    # Prepend plan mode directive when interaction_mode is PLAN
+    _PLAN_MODE = 2  # InteractionMode.INTERACTION_MODE_PLAN
+    if interaction_mode == _PLAN_MODE:
+        plan_prefix = (
+            "IMPORTANT: You are in Plan mode. Analyze the codebase, reason about "
+            "the problem, and produce a detailed implementation plan. Do not make "
+            "any file changes. Do not create, edit, or delete files. Do not run "
+            "commands that modify the filesystem. Only read, search, and analyze."
+        )
+        enhanced_prompt = plan_prefix + "\n\n" + enhanced_prompt
+        logger.info("Plan mode: injected read-only directive into system prompt")
+    
     # Create sandbox platform tool wrappers if sandbox is configured.
     #
     # Graphton always creates its own platform tool wrappers for sandbox access
@@ -923,10 +938,25 @@ def create_deep_agent(
         from graphton.core.tool_wrappers import create_platform_tool_wrappers
         
         sandbox_backend = create_sandbox_backend(sandbox_config)
-        platform_tools = create_platform_tool_wrappers(
-            backend=sandbox_backend,
-            approval_checker=approval_checker,
-        )
+        # Plan mode: restrict to read-only tools
+        _PLAN_MODE = 2  # InteractionMode.INTERACTION_MODE_PLAN
+        if interaction_mode == _PLAN_MODE:
+            from graphton.core.tool_wrappers import create_filtered_platform_tools
+            _PLAN_SAFE_TOOLS = frozenset({"read", "ls", "glob", "grep", "search"})
+            platform_tools = create_filtered_platform_tools(
+                backend=sandbox_backend,
+                allowed_tools=_PLAN_SAFE_TOOLS,
+                approval_checker=approval_checker,
+            )
+            logger.info(
+                "Plan mode: restricted to %d read-only platform tools",
+                len(platform_tools),
+            )
+        else:
+            platform_tools = create_platform_tool_wrappers(
+                backend=sandbox_backend,
+                approval_checker=approval_checker,
+            )
         tools_list.extend(platform_tools)
         
         deepagents_backend = DeepAgentsBackendAdapter(sandbox_backend)

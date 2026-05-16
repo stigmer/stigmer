@@ -148,6 +148,7 @@ export {
   useExecutionStream,
   useSubmitApproval,
   ExecutionPhaseBadge,
+  InteractionModeBadge,
   SetupProgress,
   ExecutionProgress,
   TodoList,
@@ -208,6 +209,7 @@ export type {
   UseExecutionStreamReturn,
   UseSubmitApprovalReturn,
   ExecutionPhaseBadgeProps,
+  InteractionModeBadgeProps,
   SetupProgressProps,
   ExecutionProgressProps,
   TodoListProps,
@@ -276,12 +278,15 @@ export type {
 export {
   useComposer,
   SessionComposer,
+  InteractionModePicker,
 } from "./composer";
 export type {
   UseComposerOptions,
   UseComposerReturn,
   SessionComposerProps,
   SessionComposerSubmitContext,
+  InteractionModePickerProps,
+  InteractionModeOption,
 } from "./composer";
 
 // MCP Server — data hook, count hook, list hook, search hook, picker, config panel, tool selector, detail view, setup orchestration, OAuth connect, and update

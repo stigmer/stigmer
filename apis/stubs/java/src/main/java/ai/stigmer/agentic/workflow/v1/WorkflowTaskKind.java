@@ -40,6 +40,7 @@ package ai.stigmer.agentic.workflow.v1;
  * validate: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
  * emit_event: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
  * notification: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "...", "template": "...", "metadata": {...}}
+ * eval: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "EVAL_PASS_FAIL", "threshold": 0.7, "on_fail": "EVAL_FAIL_RAISE", "criteria": [...]}
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflow.v1.WorkflowTaskKind}
@@ -284,6 +285,23 @@ public enum WorkflowTaskKind
    * <code>notification = 19;</code>
    */
   notification(19),
+  /**
+   * <pre>
+   * LLM-as-a-judge evaluation for semantic quality assessment.
+   *
+   * &#64;internal
+   * Assesses quality, correctness, safety, or completeness of LLM-generated
+   * or agent-produced content using an LLM judge. Fills the gap between
+   * structural validation (validate task) and human review (human_input).
+   * Supports pass/fail, numeric scoring, and multi-criteria evaluation modes.
+   * Config: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "...", "threshold": 0.7, "on_fail": "..."}
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>eval = 20;</code>
+   */
+  eval(20),
   UNRECOGNIZED(-1),
   ;
 
@@ -533,6 +551,23 @@ public enum WorkflowTaskKind
    * <code>notification = 19;</code>
    */
   public static final int notification_VALUE = 19;
+  /**
+   * <pre>
+   * LLM-as-a-judge evaluation for semantic quality assessment.
+   *
+   * &#64;internal
+   * Assesses quality, correctness, safety, or completeness of LLM-generated
+   * or agent-produced content using an LLM judge. Fills the gap between
+   * structural validation (validate task) and human review (human_input).
+   * Supports pass/fail, numeric scoring, and multi-criteria evaluation modes.
+   * Config: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "...", "threshold": 0.7, "on_fail": "..."}
+   *
+   * &#64;since T17 (Advanced Agentic Orchestration)
+   * </pre>
+   *
+   * <code>eval = 20;</code>
+   */
+  public static final int eval_VALUE = 20;
 
 
   public final int getNumber() {
@@ -579,6 +614,7 @@ public enum WorkflowTaskKind
       case 17: return validate;
       case 18: return emit_event;
       case 19: return notification;
+      case 20: return eval;
       default: return null;
     }
   }

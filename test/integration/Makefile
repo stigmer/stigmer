@@ -223,6 +223,31 @@ test-sdk: ensure-service-jar ## Run SDK acceptance smoke tests (Go, TypeScript, 
 		--format testname \
 		-- -tags integration -timeout 300s -count=1 -run 'TestSDKAcceptance' -v ./...
 
+REPLAY_HISTORY_OUTPUT_DIR ?= ../../backend/services/workflow-runner/test/replay/testdata/replay-histories
+REPLAY_CAPTURE_OUTPUT_DIR ?= .test-output-replay-capture
+
+.PHONY: capture-replay-histories
+capture-replay-histories: ensure-service-jar ## Capture Temporal event histories for replay determinism tests
+	@command -v gotestsum >/dev/null 2>&1 || { \
+		echo "error: gotestsum not found"; \
+		echo "  install: go install gotest.tools/gotestsum@latest"; \
+		exit 1; \
+	}
+	@mkdir -p $(REPLAY_CAPTURE_OUTPUT_DIR)
+	GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn \
+	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
+	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(REPLAY_CAPTURE_OUTPUT_DIR)) \
+	CAPTURE_REPLAY_HISTORIES=1 \
+	REPLAY_HISTORY_OUTPUT_DIR=$(abspath $(REPLAY_HISTORY_OUTPUT_DIR)) gotestsum \
+		--junitfile $(REPLAY_CAPTURE_OUTPUT_DIR)/junit.xml \
+		--junitfile-testsuite-name short \
+		--jsonfile $(REPLAY_CAPTURE_OUTPUT_DIR)/test-output.json \
+		--format testname \
+		-- -tags integration -timeout 300s -count=1 -run 'TestCaptureReplayHistories' -v ./...
+	@echo ""
+	@echo "Histories written to: $(abspath $(REPLAY_HISTORY_OUTPUT_DIR))"
+	@ls -la $(abspath $(REPLAY_HISTORY_OUTPUT_DIR))/*.json 2>/dev/null || echo "  (no history files found — check test output above)"
+
 BENCHMARK_OUTPUT_DIR ?= .test-output-benchmark
 
 .PHONY: benchmark-cost

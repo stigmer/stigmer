@@ -17,7 +17,7 @@
 
 import { resolve } from "node:path";
 import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 /**
  * Marker path segments that identify runner-internal directories. A workspace
@@ -45,6 +45,7 @@ export interface EnhancedPromptOptions {
   workspaceDirs: string[];
   workspaceFileRefs: string[];
   attachmentPaths: string[];
+  interactionMode?: InteractionMode;
 }
 
 /**
@@ -55,6 +56,11 @@ export interface EnhancedPromptOptions {
  */
 export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
   const sections: string[] = [];
+
+  const modePrefix = formatInteractionModePrefix(options.interactionMode);
+  if (modePrefix) {
+    sections.push(modePrefix);
+  }
 
   if (options.instructions) {
     sections.push(formatInstructions(options.instructions));
@@ -225,6 +231,35 @@ export function formatReferencedFiles(refs: string[]): string {
     ...entries,
     "</referenced_files>",
   ].join("\n");
+}
+
+/**
+ * Returns a system-level directive when the execution is in Plan mode.
+ * Returns `undefined` for Agent mode (default) since no prefix is needed.
+ */
+export function formatInteractionModePrefix(
+  mode: InteractionMode | undefined,
+): string | undefined {
+  if (
+    mode == null ||
+    mode === InteractionMode.UNSPECIFIED ||
+    mode === InteractionMode.AGENT
+  ) {
+    return undefined;
+  }
+
+  if (mode === InteractionMode.PLAN) {
+    return [
+      "<interaction_mode>",
+      "IMPORTANT: You are in Plan mode. Analyze the codebase and produce a detailed plan.",
+      "Do NOT create, edit, or delete any files. Do NOT run commands that modify the filesystem.",
+      "Only read, search, and analyze. Your output should be analysis, recommendations, and",
+      "implementation plans — not code changes.",
+      "</interaction_mode>",
+    ].join("\n");
+  }
+
+  return undefined;
 }
 
 export function formatResponseRules(): string {

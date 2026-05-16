@@ -12,6 +12,10 @@ build-grpc:
 test:
 	go test ./... -v
 
+# Run replay determinism tests against committed gold master histories
+test-replay:
+	go test ./test/replay/ -v -count=1
+
 # Run golden test suite (requires Temporal running)
 golden-tests:
 	./test/golden/run_tests.sh

@@ -45,16 +45,24 @@ public final class ForProto extends com.google.protobuf.GeneratedFile {
       ".tasks\032)ai/stigmer/agentic/workflow/v1/s" +
       "pec.proto\0322ai/stigmer/commons/apiresourc" +
       "e/field_options.proto\032\033buf/validate/vali" +
-      "date.proto\"\245\001\n\rForTaskConfig\022\036\n\004each\030\001 \001" +
+      "date.proto\"\324\002\n\rForTaskConfig\022\036\n\004each\030\001 \001" +
       "(\tB\n\272H\007r\002\020\001\310\001\001R\004each\022\036\n\002in\030\002 \001(\tB\016\272H\007r\002\020" +
       "\001\310\001\001\330\205,\001R\002in\022F\n\002do\030\003 \003(\0132,.ai.stigmer.ag" +
       "entic.workflow.v1.WorkflowTaskB\010\272H\005\222\001\002\010\001" +
-      "R\002do:\014\352\213,\010for_eachB\302\001B\010ForProtoP\001\242\002\006ASAW" +
-      "VT\252\002$Ai.Stigmer.Agentic.Workflow.V1.Task" +
-      "s\312\002$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks" +
-      "\342\0020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\" +
-      "GPBMetadata\352\002)Ai::Stigmer::Agentic::Work" +
-      "flow::V1::Tasksb\006proto3"
+      "R\002do\0220\n\017max_parallelism\030\004 \001(\005B\007\272H\004\032\002(\000R\016" +
+      "maxParallelism\022&\n\nbatch_size\030\005 \001(\005B\007\272H\004\032" +
+      "\002(\000R\tbatchSize\022S\n\010on_error\030\006 \001(\01628.ai.st" +
+      "igmer.agentic.workflow.v1.tasks.ForEachE" +
+      "rrorPolicyR\007onError:\014\352\213,\010for_each*}\n\022For" +
+      "EachErrorPolicy\022%\n!FOR_EACH_ERROR_POLICY" +
+      "_UNSPECIFIED\020\000\022\026\n\022FOR_EACH_FAIL_FAST\020\001\022\025" +
+      "\n\021FOR_EACH_CONTINUE\020\002\022\021\n\rFOR_EACH_SKIP\020\003" +
+      "B\302\001B\010ForProtoP\001\242\002\006ASAWVT\252\002$Ai.Stigmer.Ag" +
+      "entic.Workflow.V1.Tasks\312\002$Ai\\Stigmer\\Age" +
+      "ntic\\Workflow\\V1\\Tasks\342\0020Ai\\Stigmer\\Agen" +
+      "tic\\Workflow\\V1\\Tasks\\GPBMetadata\352\002)Ai::" +
+      "Stigmer::Agentic::Workflow::V1::Tasksb\006p" +
+      "roto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -68,7 +76,7 @@ public final class ForProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflow_v1_tasks_ForTaskConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflow_v1_tasks_ForTaskConfig_descriptor,
-        new java.lang.String[] { "Each", "In", "Do", });
+        new java.lang.String[] { "Each", "In", "Do", "MaxParallelism", "BatchSize", "OnError", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.workflow.v1.SpecProto.getDescriptor();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();

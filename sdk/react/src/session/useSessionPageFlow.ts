@@ -269,6 +269,7 @@ export function useSessionPageFlow(
         skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
         runtimeEnv: context?.runtimeEnv,
         attachments: context?.attachments,
+        interactionMode: context?.interactionMode,
       });
 
       sessionVariables.clear();

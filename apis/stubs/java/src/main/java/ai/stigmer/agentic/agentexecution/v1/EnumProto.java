@@ -76,12 +76,14 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "provalAction\022\037\n\033APPROVAL_ACTION_UNSPECIF" +
       "IED\020\000\022\033\n\027APPROVAL_ACTION_APPROVE\020\001\022\030\n\024AP" +
       "PROVAL_ACTION_SKIP\020\002\022\032\n\026APPROVAL_ACTION_" +
-      "REJECT\020\003B\300\001B\tEnumProtoP\001\242\002\004ASAA\252\002$Ai.Sti" +
-      "gmer.Agentic.Agentexecution.V1\312\002$Ai\\Stig" +
-      "mer\\Agentic\\Agentexecution\\V1\342\0020Ai\\Stigm" +
-      "er\\Agentic\\Agentexecution\\V1\\GPBMetadata" +
-      "\352\002(Ai::Stigmer::Agentic::Agentexecution:" +
-      ":V1b\006proto3"
+      "REJECT\020\003*j\n\017InteractionMode\022 \n\034INTERACTI" +
+      "ON_MODE_UNSPECIFIED\020\000\022\032\n\026INTERACTION_MOD" +
+      "E_AGENT\020\001\022\031\n\025INTERACTION_MODE_PLAN\020\002B\300\001B" +
+      "\tEnumProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic" +
+      ".Agentexecution.V1\312\002$Ai\\Stigmer\\Agentic\\" +
+      "Agentexecution\\V1\342\0020Ai\\Stigmer\\Agentic\\A" +
+      "gentexecution\\V1\\GPBMetadata\352\002(Ai::Stigm" +
+      "er::Agentic::Agentexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

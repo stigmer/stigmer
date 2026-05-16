@@ -434,3 +434,63 @@ func TestAgentExecution_MultiTurn(t *testing.T) {
 		})
 	}
 }
+
+func TestAgentExecution_PlanMode(t *testing.T) {
+	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
+
+	for _, h := range harness.Harnesses {
+		t.Run(h.Name, func(t *testing.T) {
+			h.Skip(t, testHarness)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			clients := harness.NewClients(grpcConn)
+
+			agent := harness.CreateAgent(t, ctx, clients, "test-plan-mode-"+h.Name,
+				"You are a helpful assistant. When in Plan mode, analyze the request and produce a plan without making changes.")
+
+			session := harness.CreateTestSession(t, ctx, clients,
+				agent.GetStatus().GetDefaultInstanceId(), h.Harness)
+
+			exec := harness.CreateTestAgentExecution(t, ctx, clients,
+				session.GetMetadata().GetId(),
+				"Plan how you would create a file called hello.txt with the content 'hello world'. Do NOT actually create it.",
+				harness.WithExecutionConfig(&agentexecv1.ExecutionConfig{
+					InteractionMode: agentexecv1.InteractionMode_INTERACTION_MODE_PLAN,
+				}),
+			)
+
+			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+			result, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
+				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
+			require.NoError(t, err, "plan mode execution should reach COMPLETED phase")
+
+			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+			harness.AssertMessages(t, result, agentexecv1.MessageType_MESSAGE_AI)
+
+			require.Equal(t,
+				agentexecv1.InteractionMode_INTERACTION_MODE_PLAN,
+				result.GetSpec().GetExecutionConfig().GetInteractionMode(),
+				"spec.execution_config should reflect plan mode",
+			)
+
+			writeMutatingTools := map[string]bool{
+				"write": true, "write_file": true,
+				"edit": true, "edit_file": true,
+				"delete": true,
+			}
+			for _, msg := range result.GetStatus().GetMessages() {
+				for _, tc := range msg.GetToolCalls() {
+					require.False(t, writeMutatingTools[tc.GetName()],
+						"plan mode should not invoke write tools, but found: %s", tc.GetName())
+				}
+			}
+
+			t.Logf("plan mode execution completed: id=%s, messages=%d, interactionMode=%s",
+				result.GetMetadata().GetId(),
+				len(result.GetStatus().GetMessages()),
+				result.GetSpec().GetExecutionConfig().GetInteractionMode().String())
+		})
+	}
+}
