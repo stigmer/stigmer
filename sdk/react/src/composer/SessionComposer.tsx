@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
+import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, type AttachmentInput, type EnvVarInput, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { useComposer } from "./useComposer";
@@ -51,6 +51,33 @@ import {
   AlertTriangleIcon,
   ResolveSpinner,
 } from "./icons";
+
+/**
+ * Imperative handle exposed by {@link SessionComposer} via `ref`.
+ *
+ * Allows parent components to programmatically set the composer's
+ * message text and focus the textarea. Used for features like
+ * "Build from Plan" where a CTA outside the composer needs to
+ * pre-fill and focus the input.
+ *
+ * @example
+ * ```tsx
+ * const composerRef = useRef<SessionComposerHandle>(null);
+ *
+ * function handleBuildFromPlan() {
+ *   composerRef.current?.setMessage("Implement the plan above");
+ *   composerRef.current?.focus();
+ * }
+ *
+ * <SessionComposer ref={composerRef} onSubmit={handleSubmit} />
+ * ```
+ */
+export interface SessionComposerHandle {
+  /** Replace the composer's message text. */
+  setMessage(message: string): void;
+  /** Focus the composer's textarea. */
+  focus(): void;
+}
 
 /**
  * Context provided to `onSubmit` at the moment of submission.
@@ -411,7 +438,7 @@ export interface SessionComposerProps {
  * />
  * ```
  */
-export const SessionComposer = memo(function SessionComposer({
+const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerProps>(function SessionComposer({
   onSubmit,
   isSubmitting = false,
   disabled = false,
@@ -450,7 +477,7 @@ export const SessionComposer = memo(function SessionComposer({
   autoFocus = false,
   ariaLabel = "Send message",
   className,
-}: SessionComposerProps) {
+}, ref) {
   useRenderTracer("SessionComposer", { disabled, isSubmitting });
 
   const [modelId, setModelIdRaw] = useState<string | undefined>(defaultModelId);
@@ -715,6 +742,11 @@ export const SessionComposer = memo(function SessionComposer({
     onSubmit: handleSubmit,
     disabled: isDisabled,
   });
+
+  useImperativeHandle(ref, () => ({
+    setMessage: composer.setMessage,
+    focus: () => composer.textareaRef.current?.focus(),
+  }), [composer.setMessage, composer.textareaRef]);
 
   const handleModelChange = useCallback(
     (id: string) => {
@@ -1528,6 +1560,9 @@ export const SessionComposer = memo(function SessionComposer({
     </div>
   );
 });
+
+export const SessionComposer = memo(SessionComposerInner);
+
 
 // ---------------------------------------------------------------------------
 // Agent setup error — secret-flow guidance or generic fallback

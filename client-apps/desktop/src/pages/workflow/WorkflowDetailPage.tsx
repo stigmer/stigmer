@@ -134,7 +134,7 @@ export default function WorkflowDetailPage() {
               id: "editor",
               label: "Editor",
               content: (
-                <div className="h-[600px]">
+                <div className="h-[calc(100vh-16rem)]">
                   <WorkflowEditorView
                     initialYaml={initialYaml}
                     org={org ?? ""}

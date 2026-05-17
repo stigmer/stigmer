@@ -6,6 +6,10 @@ import {
   useLibraryNavigation,
   type ActiveDetail,
 } from "@/domain/library/library-navigation";
+import {
+  FullViewportLayoutProvider,
+  useFullViewportLayout,
+} from "@/domain/library/full-viewport-layout";
 import { LibraryBreadcrumb } from "@/domain/library/LibraryBreadcrumb";
 import { LibraryBreadcrumbProvider } from "@stigmer/react";
 import { AgentDetailPageInner } from "@/domain/library/agents/AgentDetailPage";
@@ -21,7 +25,9 @@ export default function LibraryLayout({
   return (
     <LibraryNavigationProvider>
       <LibraryBreadcrumbProvider>
-        <LibraryLayoutContent>{children}</LibraryLayoutContent>
+        <FullViewportLayoutProvider>
+          <LibraryLayoutContent>{children}</LibraryLayoutContent>
+        </FullViewportLayoutProvider>
       </LibraryBreadcrumbProvider>
     </LibraryNavigationProvider>
   );
@@ -29,12 +35,22 @@ export default function LibraryLayout({
 
 function LibraryLayoutContent({ children }: { children: React.ReactNode }) {
   const { activeDetail } = useLibraryNavigation();
+  const { isFullViewport } = useFullViewportLayout();
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
-      <LibraryBreadcrumb />
+    <div
+      className={cn(
+        isFullViewport
+          ? "flex h-full flex-col"
+          : "mx-auto max-w-4xl px-6 py-8",
+      )}
+    >
+      {!isFullViewport && <LibraryBreadcrumb />}
       <div
-        className={cn(activeDetail != null && "hidden")}
+        className={cn(
+          activeDetail != null && "hidden",
+          isFullViewport && "flex min-h-0 flex-1 flex-col",
+        )}
         aria-hidden={activeDetail != null}
       >
         {children}

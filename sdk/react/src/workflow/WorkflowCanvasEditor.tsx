@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, Suspense, memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { lazy, Suspense, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { useWorkflowCanvas } from "./useWorkflowCanvas";
@@ -67,6 +67,8 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
 }: WorkflowCanvasEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvas = useWorkflowCanvas(yaml, containerRef);
+  const [paletteCollapsed, setPaletteCollapsed] = useState(false);
+  const togglePalette = useCallback(() => setPaletteCollapsed((p) => !p), []);
 
   useEffect(() => {
     onDirtyChange?.(canvas.isDirty);
@@ -159,20 +161,7 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
     );
   }
 
-  if (!canvas.graph) {
-    return (
-      <div className={cn("flex h-full w-full items-center justify-center", className)}>
-        <div className="flex flex-col items-center gap-2 text-center">
-          <span className="text-sm text-[var(--stgm-muted-foreground,#737373)]">
-            No workflow to visualize
-          </span>
-          <span className="text-xs text-[var(--stgm-muted-foreground,#737373)]">
-            Drag a task from the palette to get started
-          </span>
-        </div>
-      </div>
-    );
-  }
+  const hasGraph = !!canvas.graph;
 
   return (
     <div
@@ -184,19 +173,27 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
         {selectionAnnouncement}
       </div>
 
-      {showPalette && <WorkflowTaskPalette />}
+      {showPalette && !paletteCollapsed && <WorkflowTaskPalette />}
 
       <div className="relative flex-1">
-        <CanvasToolbar
-          onAutoLayout={canvas.autoLayout}
-          onUndo={canvas.undo}
-          onRedo={canvas.redo}
-          canUndo={canvas.canUndo}
-          canRedo={canvas.canRedo}
-          isDirty={canvas.isDirty}
-          onSave={onSave ? handleSave : undefined}
-          isSaving={isSaving}
-        />
+        {showPalette && (
+          <PaletteToggle
+            collapsed={paletteCollapsed}
+            onToggle={togglePalette}
+          />
+        )}
+        {hasGraph && (
+          <CanvasToolbar
+            onAutoLayout={canvas.autoLayout}
+            onUndo={canvas.undo}
+            onRedo={canvas.redo}
+            canUndo={canvas.canUndo}
+            canRedo={canvas.canRedo}
+            isDirty={canvas.isDirty}
+            onSave={onSave ? handleSave : undefined}
+            isSaving={isSaving}
+          />
+        )}
         <CanvasActionsContext.Provider value={canvasActions}>
           <Suspense fallback={fallback}>
             <LazyCanvasInner
@@ -216,10 +213,22 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
               nodeErrors={nodeErrors}
             />
           </Suspense>
+          {!hasGraph && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-2 text-center">
+                <span className="text-sm text-[var(--stgm-muted-foreground,#737373)]">
+                  No workflow to visualize
+                </span>
+                <span className="text-xs text-[var(--stgm-muted-foreground,#737373)]">
+                  Drag a task from the palette to get started
+                </span>
+              </div>
+            </div>
+          )}
         </CanvasActionsContext.Provider>
       </div>
 
-      {showInspector && (
+      {showInspector && hasGraph && (
         <div className="w-[280px] min-w-[240px] overflow-hidden border-l border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))]">
           <WorkflowInspectorPanel
             selection={canvas.selection}
@@ -244,6 +253,52 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
 // ---------------------------------------------------------------------------
 // Canvas toolbar
 // ---------------------------------------------------------------------------
+
+function PaletteToggle({
+  collapsed,
+  onToggle,
+}: {
+  collapsed: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={cn(
+        "absolute left-2 z-10 rounded border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] p-1 shadow-sm",
+        "hover:bg-[var(--stgm-muted,#f5f5f5)] active:bg-[var(--stgm-accent,#e5e5e5)]",
+        collapsed ? "top-2" : "bottom-2",
+      )}
+      aria-label={collapsed ? "Show task palette" : "Hide task palette"}
+      title={collapsed ? "Show task palette" : "Hide task palette"}
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-[var(--stgm-foreground,#1a1a2e)]"
+      >
+        {collapsed ? (
+          <>
+            <rect x="1" y="1" width="5" height="14" rx="1" />
+            <path d="M10 8h5M11 6l2 2-2 2" />
+          </>
+        ) : (
+          <>
+            <rect x="1" y="1" width="5" height="14" rx="1" />
+            <path d="M14 8H9M13 6l-2 2 2 2" />
+          </>
+        )}
+      </svg>
+    </button>
+  );
+}
 
 function CanvasToolbar({
   onAutoLayout,

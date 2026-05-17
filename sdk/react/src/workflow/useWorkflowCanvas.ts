@@ -12,6 +12,7 @@ import type {
   IsValidConnection,
 } from "@xyflow/react";
 import dagre from "@dagrejs/dagre";
+import type { JsonObject } from "@bufbuild/protobuf";
 import type { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { WorkflowGraphModel, WorkflowGraphNode } from "./workflow-graph-model";
 import { START_NODE_ID, END_NODE_ID } from "./workflow-graph-model";
@@ -292,7 +293,6 @@ export function useWorkflowCanvas(
       if (!kindString) return;
 
       const model = history.currentModel;
-      if (!model) return;
 
       const kind = stringToTaskKind(kindString);
       const category = categorizeKind(kindString);
@@ -313,9 +313,47 @@ export function useWorkflowCanvas(
 
       const node = createTaskNode(taskName, kind, kindString, category, position);
 
-      // If no task nodes exist yet, also wire __start__ -> new node
+      // If the graph has no nodes at all (first drop on empty canvas),
+      // bootstrap the model with sentinel nodes before adding the task.
       const taskNodes = model.nodes.filter((n) => !isSentinelNode(n.id));
-      if (taskNodes.length === 0) {
+      if (model.nodes.length === 0) {
+        const startNode: WorkflowGraphNode = {
+          id: START_NODE_ID,
+          taskName: "Start",
+          kind: 0 as WorkflowTaskKind,
+          category: "start",
+          config: {} as JsonObject,
+          position: { x: 0, y: 0 },
+        };
+        const endNode: WorkflowGraphNode = {
+          id: END_NODE_ID,
+          taskName: "End",
+          kind: 0 as WorkflowTaskKind,
+          category: "end",
+          config: {} as JsonObject,
+          position: { x: 0, y: 0 },
+        };
+        const bootstrapModel: WorkflowGraphModel = {
+          document: { dsl: "1.0.0", namespace: "", name: "", version: "0.0.1" },
+          nodes: [startNode, endNode],
+          edges: [],
+        };
+        history.reset(bootstrapModel);
+        initialModelRef.current = bootstrapModel;
+
+        const autoEdge = {
+          id: generateEdgeId(),
+          source: START_NODE_ID,
+          target: taskName,
+        };
+        const next = dispatch(new AddNodeCommand(node, autoEdge));
+
+        requestAnimationFrame(() => {
+          const laidOut = applyDagreLayout(next);
+          history.reset(laidOut);
+          syncFromModel(laidOut);
+        });
+      } else if (taskNodes.length === 0) {
         const autoEdge = {
           id: generateEdgeId(),
           source: START_NODE_ID,
@@ -326,7 +364,7 @@ export function useWorkflowCanvas(
         dispatch(new AddNodeCommand(node, null));
       }
     },
-    [history.currentModel, dispatch],
+    [history, dispatch, syncFromModel],
   );
 
   const onDragOver = useCallback((event: React.DragEvent) => {
