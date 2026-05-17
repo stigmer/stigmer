@@ -3,6 +3,7 @@
 import { lazy, Suspense, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { cn } from "@stigmer/theme";
+import { ReactFlowProvider } from "@xyflow/react";
 import { useWorkflowCanvas } from "./useWorkflowCanvas";
 import { WorkflowTaskPalette } from "./WorkflowTaskPalette";
 import { WorkflowInspectorPanel } from "./WorkflowInspectorPanel";
@@ -55,7 +56,7 @@ const LazyCanvasInner = lazy(() =>
  *
  * @since T15 (Visual Canvas Editor)
  */
-export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
+const WorkflowCanvasEditorInner = memo(function WorkflowCanvasEditorInner({
   yaml,
   onNodeSelect,
   onEdgeSelect,
@@ -513,6 +514,24 @@ export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor({
         </div>
       )}
     </div>
+  );
+});
+
+/**
+ * Outer wrapper that provides the React Flow zustand store context.
+ *
+ * `useWorkflowCanvas` (called inside the inner component) uses `useReactFlow()`
+ * which requires a `<ReactFlowProvider>` ancestor. The `<ReactFlow>` component
+ * inside `WorkflowCanvasInner` creates its own store but that is too late — the
+ * hook runs before the child mounts. This wrapper solves the provider ordering.
+ */
+export const WorkflowCanvasEditor = memo(function WorkflowCanvasEditor(
+  props: WorkflowCanvasEditorProps,
+) {
+  return (
+    <ReactFlowProvider>
+      <WorkflowCanvasEditorInner {...props} />
+    </ReactFlowProvider>
   );
 });
 
