@@ -1,0 +1,589 @@
+---
+title: Workflow Authoring
+description:
+  Learn how to write Workflow YAML from scratch — task definitions, data flow,
+  branching, loops, error handling, human approvals, and validation.
+---
+
+This guide teaches you to write Stigmer Workflow YAML. It covers the full syntax
+from the resource envelope down to individual task configuration. For a quick
+introduction, start with the
+[Workflow Quick Start](/docs/getting-started/first-workflow). For a catalog of
+every task type, see the [Task Type Overview](/docs/guides/workflow-tasks).
+
+## Resource envelope
+
+Every Workflow file follows the standard Stigmer resource structure:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: my-workflow
+  visibility: visibility_public
+spec:
+  description: What this workflow does.
+  document:
+    dsl: "1.0.0"
+    namespace: my-org
+    name: my-workflow
+    version: "1.0.0"
+  env: {}
+  budget: {}
+  tasks: []
+```
+
+| Field                     | Required | Purpose                                        |
+| ------------------------- | -------- | ---------------------------------------------- |
+| `apiVersion`              | Yes      | Always `agentic.stigmer.ai/v1`                 |
+| `kind`                    | Yes      | Always `Workflow`                              |
+| `metadata.name`           | Yes      | Resource name (must be unique within your org) |
+| `spec.document.dsl`       | Yes      | DSL version — must be `1.0.0`                  |
+| `spec.document.namespace` | Yes      | Organization or grouping namespace             |
+| `spec.document.name`      | Yes      | Workflow identifier within the namespace       |
+| `spec.document.version`   | Yes      | Semver version of this workflow definition     |
+| `spec.tasks`              | Yes      | At least one task                              |
+| `spec.env`                | No       | Environment variable declarations              |
+| `spec.budget`             | No       | Cost, token, and duration limits               |
+
+## Defining tasks
+
+Each entry in the `tasks` list is a single step:
+
+```yaml
+tasks:
+  - name: classify
+    kind: llm_call
+    task_config:
+      model: "gpt-4o-mini"
+      prompt: "Classify this: ${ $context.env.INPUT }"
+      response_schema:
+        type: object
+        properties:
+          category: { type: string }
+    export:
+      as: "${ .structured }"
+    flow:
+      then: route
+```
+
+| Field         | Required | Purpose                                                                     |
+| ------------- | -------- | --------------------------------------------------------------------------- |
+| `name`        | Yes      | Unique identifier within the workflow — used in expressions and `flow.then` |
+| `kind`        | Yes      | Task type — determines the shape of `task_config`                           |
+| `task_config` | Yes      | Kind-specific configuration                                                 |
+| `export`      | No       | How to save the task's output to the workflow context                       |
+| `flow`        | No       | Which task runs next (overrides default sequential order)                   |
+| `compensate`  | No       | Tasks to run during saga-style rollback                                     |
+
+## Data flow and expressions
+
+Tasks communicate through the **workflow context**. When a task runs, its output
+is stored under its name. Later tasks reference that data with expressions.
+
+### Exporting output
+
+The `export.as` field controls what gets saved. The expression receives the
+task's raw output as `.`:
+
+```yaml
+export:
+  as: "${ . }"           # save everything
+  as: "${ .structured }" # save only the structured (JSON) portion
+  as: "${ .text }"       # save only the text portion
+```
+
+### Reading context
+
+Use `${ $context.<taskName>.<field> }` to access earlier task outputs:
+
+```yaml
+prompt: "Summarize: ${ $context.fetch_data.body }"
+```
+
+Environment variables are available as `${ $context.env.<VAR_NAME> }`:
+
+```yaml
+prompt: "Topic: ${ $context.env.TOPIC }"
+```
+
+### Setting variables
+
+The `set_vars` task writes values directly into context:
+
+```yaml
+- name: init
+  kind: set_vars
+  task_config:
+    variables:
+      started_at: "${ now() }"
+      environment: "production"
+  export:
+    as: "${ . }"
+```
+
+## Environment variables
+
+Declare the variables your Workflow needs in `spec.env`:
+
+```yaml
+env:
+  TOPIC:
+    description: "The topic to analyze"
+    required: true
+  DEPTH:
+    description: "Analysis depth: brief, standard, or thorough"
+    required: false
+    default: "standard"
+  API_KEY:
+    description: "External API key"
+    is_secret: true
+```
+
+Values are supplied at execution time through the CLI (`--env KEY=value`), the
+SDK (`runtimeEnv`), or resolved from [Environments](/docs/concepts/environments)
+bound to the Workflow Instance.
+
+## Flow control
+
+### Sequential (default)
+
+By default, tasks execute in the order they appear in the `tasks` list. The
+first task runs, then the second, then the third.
+
+### Explicit jumps
+
+Use `flow.then` to jump to a specific task or end the workflow:
+
+```yaml
+flow:
+  then: next_task_name    # jump to a named task
+  then: end               # terminate the workflow
+```
+
+### Branching with switch_case
+
+Route execution based on conditions:
+
+```yaml
+- name: route_by_severity
+  kind: switch_case
+  task_config:
+    cases:
+      - name: critical
+        when: "${ $context.classify.severity == 'critical' }"
+        then: escalate
+      - name: high
+        when: "${ $context.classify.severity == 'high' }"
+        then: senior_queue
+      - name: default
+        then: standard_queue
+```
+
+Cases are evaluated in order. The first matching `when` expression wins. A case
+without `when` acts as the default.
+
+### Loops with for_each
+
+Iterate over a collection, executing a set of sub-tasks for each item:
+
+```yaml
+- name: process_items
+  kind: for_each
+  task_config:
+    each: item
+    in: "${ $context.fetch_data.items }"
+    do:
+      - name: process
+        kind: llm_call
+        task_config:
+          prompt: "Process: ${ item }"
+    max_parallelism: 5
+    on_error: continue
+```
+
+| Field             | Purpose                                             |
+| ----------------- | --------------------------------------------------- |
+| `each`            | Loop variable name                                  |
+| `in`              | Expression that evaluates to an array               |
+| `do`              | List of tasks to execute per item                   |
+| `max_parallelism` | Max concurrent iterations (default: 1 = sequential) |
+| `on_error`        | `fail_fast` (default), `continue`, or `skip`        |
+
+### Parallel execution with fork
+
+Run independent branches simultaneously:
+
+```yaml
+- name: parallel_analysis
+  kind: fork
+  task_config:
+    branches:
+      - name: summary
+        do:
+          - name: summarize
+            kind: llm_call
+            task_config:
+              prompt: "Summarize: ${ $context.analysis.text }"
+      - name: findings
+        do:
+          - name: extract
+            kind: llm_call
+            task_config:
+              prompt: "Extract key findings from: ${ $context.analysis.text }"
+    compete: false
+  export:
+    as: "${ . }"
+```
+
+When `compete` is `false` (default), all branches must complete. When `true`,
+the first branch to finish wins and the rest are cancelled.
+
+Access branch results via
+`${ $context.parallel_analysis.<branch>.<task>.<field> }`.
+
+## Error handling
+
+### try_catch
+
+Wrap tasks in a try/catch block to handle failures gracefully:
+
+```yaml
+- name: safe_call
+  kind: try_catch
+  task_config:
+    try:
+      - name: risky_call
+        kind: http_call
+        task_config:
+          method: GET
+          endpoint:
+            uri: "https://api.example.com/data"
+    catch:
+      as: error
+      do:
+        - name: fallback
+          kind: set_vars
+          task_config:
+            variables:
+              result: "default value"
+```
+
+The `catch.as` field names the error variable, accessible within the catch tasks
+as `${ error }`.
+
+### Compensation (saga pattern)
+
+Tasks can declare `compensate` — a list of undo tasks that run when a catch
+block triggers compensation:
+
+```yaml
+- name: safe_call
+  kind: try_catch
+  task_config:
+    try:
+      - name: charge_card
+        kind: http_call
+        task_config:
+          method: POST
+          endpoint:
+            uri: "https://billing.example.com/charge"
+        compensate:
+          - name: refund_card
+            kind: http_call
+            task_config:
+              method: POST
+              endpoint:
+                uri: "https://billing.example.com/refund"
+    catch:
+      as: error
+      compensate: true
+      do:
+        - name: log_failure
+          kind: set_vars
+          task_config:
+            variables:
+              failure_reason: "${ error }"
+```
+
+When `catch.compensate` is `true`, Stigmer runs the `compensate` tasks of all
+completed try tasks in reverse order before executing the catch `do` tasks.
+
+### raise_error
+
+Explicitly fail the workflow (or trigger an enclosing try_catch):
+
+```yaml
+- name: fail_if_invalid
+  kind: raise_error
+  task_config:
+    error: "Validation failed: ${ $context.validate.errors }"
+```
+
+## Human-in-the-loop
+
+The `human_input` task pauses execution and waits for a reviewer to respond:
+
+```yaml
+- name: review
+  kind: human_input
+  task_config:
+    prompt: "Review the draft and decide."
+    form_schema:
+      type: object
+      properties:
+        feedback:
+          type: string
+          description: "Revision notes"
+    outcomes:
+      - name: approve
+        label: "Approve"
+      - name: revise
+        label: "Request Revisions"
+        then: revise_content
+      - name: reject
+        label: "Reject"
+        then: end
+    timeout: 86400
+    on_timeout: HUMAN_INPUT_TIMEOUT_FAIL
+  export:
+    as: "${ . }"
+  flow:
+    then: finalize
+```
+
+Key fields:
+
+| Field         | Purpose                                                                |
+| ------------- | ---------------------------------------------------------------------- |
+| `prompt`      | What the reviewer sees — supports expressions                          |
+| `form_schema` | Optional JSON Schema for structured input from the reviewer            |
+| `outcomes`    | List of buttons the reviewer can click — each can override `flow.then` |
+| `timeout`     | Seconds to wait before timing out                                      |
+| `on_timeout`  | `HUMAN_INPUT_TIMEOUT_FAIL` or `HUMAN_INPUT_TIMEOUT_SKIP`               |
+
+The default `flow.then` applies when the reviewer picks an outcome that does not
+specify its own `then`. In the example above, clicking "Approve" continues to
+`finalize`, while "Request Revisions" jumps to `revise_content`.
+
+The task output includes `reviewer`, `outcome`, and `form_data` — accessible as
+`${ $context.review.outcome }`, `${ $context.review.form_data.feedback }`, etc.
+
+## Budgets
+
+Set workflow-level limits on cost, tokens, and duration:
+
+```yaml
+budget:
+  max_cost_micros: 2000000
+  max_total_tokens: 200000
+  max_duration_seconds: 600
+  on_exceeded: budget_exceeded_terminate
+```
+
+Budgets are checked between tasks. The `on_exceeded` policy controls what
+happens when any limit is hit — terminate immediately, pause for human review,
+or warn and continue. See the
+[Workflows concept page](/docs/concepts/workflows#budgets) for details on each
+policy.
+
+## Validation
+
+Validate your Workflow YAML before deploying it.
+
+### CLI
+
+```bash
+stigmer validate -f my-workflow.yaml
+```
+
+This checks YAML structure, required fields, task name uniqueness, and
+cross-references (e.g., `flow.then` targets valid task names).
+
+### API
+
+Use the `ValidateSpec` method to validate programmatically:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.workflow.apply({
+  name: "my-workflow",
+  org: "my-org",
+  document: { dsl: "1.0.0", namespace: "my-org", name: "my-workflow", version: "1.0.0" },
+  tasks: [/* ... */],
+});
+// Check result.status.serverlessWorkflowValidation.state
+```
+</Tab>
+<Tab value="Go">
+```go
+workflow, err := client.Workflow.Apply(ctx, &stigmer.WorkflowInput{
+    Name: "my-workflow",
+    Org:  "my-org",
+    Document: &stigmer.WorkflowDocumentInput{
+        Dsl: "1.0.0", Namespace: "my-org", Name: "my-workflow", Version: "1.0.0",
+    },
+    Tasks: []stigmer.WorkflowTaskInput{/* ... */},
+})
+// Check workflow.Status.ServerlessWorkflowValidation.State
+```
+</Tab>
+</SDKTabs>
+
+### What gets validated
+
+- **Structure**: required fields, valid `kind` values, DSL version
+- **Task names**: uniqueness within the workflow
+- **Cross-references**: `flow.then` targets, `switch_case` case targets,
+  `human_input` outcome targets, `agent_call` fallback targets — all must
+  reference valid task names (with typo suggestions on near-misses)
+- **Budget**: valid policy values
+
+## Worked example
+
+Here is a complete content review workflow that demonstrates LLM calls, human
+approvals with branching outcomes, revision loops, and data transforms:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: content-review-pipeline
+spec:
+  description: AI-powered content drafting with human review.
+  document:
+    dsl: "1.0.0"
+    namespace: acme
+    name: content-review-pipeline
+    version: "1.0.0"
+  env:
+    TOPIC:
+      description: "The topic to write about"
+      required: true
+    GUIDELINES:
+      description: "Style guidelines (optional)"
+      required: false
+  budget:
+    max_cost_micros: 2000000
+    max_duration_seconds: 600
+  tasks:
+    - name: draft_content
+      kind: llm_call
+      task_config:
+        model: "claude-sonnet-4-5"
+        system_prompt: >
+          You are a professional content writer. Write clear, engaging content
+          that follows the provided guidelines.
+        prompt: >
+          Write content about: ${ $context.env.TOPIC } Guidelines: ${
+          $context.env.GUIDELINES }
+        temperature: 0.7
+        max_tokens: 2000
+      export:
+        as: "${ . }"
+      flow:
+        then: review_content
+
+    - name: review_content
+      kind: human_input
+      task_config:
+        prompt: >
+          Review the AI-drafted content and decide: --- Draft --- ${
+          $context.draft_content.text }
+        form_schema:
+          type: object
+          properties:
+            feedback:
+              type: string
+              description: "Revision notes (required for revisions)"
+        outcomes:
+          - name: approve
+            label: "Approve"
+          - name: revise
+            label: "Request Revisions"
+            then: revise_content
+          - name: reject
+            label: "Reject"
+            then: end
+        timeout: 86400
+        on_timeout: HUMAN_INPUT_TIMEOUT_FAIL
+      export:
+        as: "${ . }"
+      flow:
+        then: finalize
+
+    - name: revise_content
+      kind: llm_call
+      task_config:
+        model: "claude-sonnet-4-5"
+        system_prompt: >
+          Revise the draft based on the reviewer's feedback. Preserve what
+          works, fix what doesn't.
+        prompt: >
+          Original topic: ${ $context.env.TOPIC } Previous draft: ${
+          $context.draft_content.text } Feedback: ${
+          $context.review_content.form_data.feedback }
+        temperature: 0.5
+        max_tokens: 2000
+      export:
+        as: "${ . }"
+      flow:
+        then: review_content
+
+    - name: finalize
+      kind: transform
+      task_config:
+        engine: jq
+        expression: |
+          {
+            status: "approved",
+            topic: $topic,
+            content: $content,
+            approved_by: $reviewer
+          }
+        input:
+          topic: "${ $context.env.TOPIC }"
+          content: "${ $context.draft_content.text }"
+          reviewer: "${ $context.review_content.reviewer }"
+      export:
+        as: "${ . }"
+```
+
+The flow looks like this:
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={`
+graph LR
+  D["draft_content<br/>llm_call"] --> R["review_content<br/>human_input"]
+  R -->|"approve"| F["finalize<br/>transform"]
+  R -->|"revise"| V["revise_content<br/>llm_call"]
+  V --> R
+  R -->|"reject"| E["end"]
+`}
+/>
+
+Notice the **revision loop**: when the reviewer clicks "Request Revisions",
+execution jumps to `revise_content`, which feeds the revised draft back to
+`review_content`. This loop continues until the reviewer approves or rejects.
+
+## What's next
+
+<Cards>
+  <Card
+    title="Task Type Overview"
+    description="Explore all 20 task types with examples."
+    href="/docs/guides/workflow-tasks"
+  />
+  <Card
+    title="Workflow Patterns"
+    description="Production-ready patterns adapted from real workflows."
+    href="/docs/guides/workflow-patterns"
+  />
+  <Card
+    title="Execution Lifecycle"
+    description="Run, monitor, approve, and recover workflow executions."
+    href="/docs/guides/workflow-execution"
+  />
+</Cards>

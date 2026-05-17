@@ -1,35 +1,253 @@
 ---
 title: Workflows
 description:
-  Workflows enable multi-step automation sequences that chain agent calls, HTTP
-  requests, and human approvals into reliable, durable processes.
+  Workflows are multi-step automation sequences that chain agent calls, LLM
+  tasks, HTTP requests, branching logic, and human approvals into durable
+  processes defined in YAML.
 ---
 
-Workflows are multi-step automation sequences that go beyond single Agent
-interactions. They let you chain together Agent calls, HTTP requests,
-conditional logic, and human approval gates into structured processes that run
-reliably — even across failures and restarts.
+Workflows let you orchestrate multi-step processes that go beyond what a single
+Agent can handle in one turn. Where an Agent responds to a message, a Workflow
+defines a sequence of **tasks** — LLM calls, HTTP requests, data transforms,
+conditional branches, loops, and human approval gates — that execute durably
+from start to finish.
 
-Workflow documentation is **coming soon**. The Workflow engine is being
-finalized, and comprehensive documentation will be published once it's
-production-ready.
+Use a Workflow when you need:
 
-In the meantime, here's what you can expect:
+- **Deterministic control flow** — branch on structured data, not LLM prose
+- **Multiple steps with dependencies** — one task's output feeds the next
+- **Human checkpoints** — pause for review or approval mid-process
+- **Cost and duration budgets** — enforce limits across all tasks
+- **Reliability** — automatic retry and crash recovery
 
-- **Workflow definitions** in YAML using a structured task model
-- **Task types** including Agent calls, HTTP calls, variable setting, wait
-  conditions, branching, and loops
-- **Durable execution** with automatic retry and crash recovery
-- **Human approval gates** within multi-step processes
-- **Full API access** — create, trigger, monitor, and manage Workflows
-  programmatically
+## Anatomy of a Workflow
 
-If you want to get started with Agent capabilities today, the
-[Getting Started](/docs/getting-started/quickstart) guide walks you through
-creating your first Agent with domain knowledge and tool access.
+A Workflow is defined in YAML with the same resource structure as Agents:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: content-review-pipeline
+spec:
+  description: AI-powered content drafting with human review.
+  document:
+    dsl: "1.0.0"
+    namespace: acme
+    name: content-review-pipeline
+    version: "1.0.0"
+  env:
+    TOPIC:
+      description: "The topic to write about"
+      required: true
+  budget:
+    max_cost_micros: 2000000
+    max_duration_seconds: 600
+  tasks:
+    - name: draft_content
+      kind: llm_call
+      task_config:
+        model: "claude-sonnet-4-5"
+        system_prompt: "You are a professional content writer."
+        prompt: "Write content about: ${ $context.env.TOPIC }"
+        temperature: 0.7
+        max_tokens: 2000
+      export:
+        as: "${ . }"
+      flow:
+        then: review
+
+    - name: review
+      kind: human_input
+      task_config:
+        prompt: "Review the draft:\n${ $context.draft_content.text }"
+        outcomes:
+          - name: approve
+            label: "Approve"
+          - name: reject
+            label: "Reject"
+            then: end
+      export:
+        as: "${ . }"
+```
+
+Each section of the Workflow definition serves a purpose:
+
+| Field      | What it does                                                                                      |
+| ---------- | ------------------------------------------------------------------------------------------------- |
+| `document` | Workflow metadata — DSL version, namespace, name, and version (semver)                            |
+| `env`      | Environment variable declarations the Workflow needs at runtime                                   |
+| `budget`   | Cost, token, and duration limits for the entire execution                                         |
+| `tasks`    | Ordered list of steps — each with a `kind`, `task_config`, optional `export`, and optional `flow` |
+
+## Blueprint vs. runtime
+
+Like Agents, a Workflow definition is a **blueprint**. It contains no secrets,
+no environment-specific values, and no runtime state.
+
+The runtime resources that bring a Workflow to life form a chain:
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={`
+graph LR
+  W["Workflow<br/>(blueprint)"] --> WI["Workflow Instance<br/>(deployment)"]
+  WI --> WE["Workflow Execution<br/>(single run)"]
+`}
+/>
+
+| Resource               | What it represents                                                                | Analogy                          |
+| ---------------------- | --------------------------------------------------------------------------------- | -------------------------------- |
+| **Workflow**           | The definition — tasks, flow, budgets                                             | A recipe                         |
+| **Workflow Instance**  | A deployed copy bound to [Environments](/docs/concepts/environments) with secrets | A kitchen set up for that recipe |
+| **Workflow Execution** | One run of the Instance from start to finish                                      | Cooking one batch                |
+
+A **Workflow Instance** binds the blueprint to Environments where secrets and
+configuration values are resolved. You can have multiple instances — one for
+staging with test credentials, another for production.
+
+A **Workflow Execution** is a single run. Create one to start the workflow, then
+[subscribe](/docs/sdk/streaming#subscribe-to-a-workflow-execution) to track
+progress task by task.
+
+## Tasks
+
+Every step in a Workflow is a **task**. Each task has a `name` (unique within
+the workflow), a `kind` (what type of work it does), and a `task_config` (the
+kind-specific configuration).
+
+```yaml
+- name: classify_ticket
+  kind: llm_call
+  task_config:
+    model: "gpt-4o-mini"
+    prompt: "Classify this ticket: ${ $context.env.TICKET }"
+    response_schema:
+      type: object
+      properties:
+        severity: { type: string, enum: [low, medium, high, critical] }
+  export:
+    as: "${ .structured }"
+  flow:
+    then: route_by_severity
+```
+
+- **`export`** saves the task's output to the workflow context so later tasks
+  can reference it with `${ $context.classify_ticket.severity }`.
+- **`flow`** controls which task runs next. By default, the next task in the
+  list runs. Set `then` to a task name to jump, or `"end"` to terminate.
+
+## Task types at a glance
+
+Stigmer provides 20 task types organized into six categories:
+
+| Category     | Task kinds                                                                            | Purpose                                           |
+| ------------ | ------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| **AI**       | `llm_call`, `agent_call`, `eval`                                                      | LLM inference, agent invocation, LLM-as-judge     |
+| **Control**  | `switch_case`, `for_each`, `fork`, `try_catch`, `wait`, `raise_error`, `run_workflow` | Branching, loops, parallelism, error handling     |
+| **Data**     | `set_vars`, `transform`, `validate`                                                   | Variables, JQ transforms, schema validation       |
+| **Human**    | `human_input`                                                                         | Approval gates, forms, routing by reviewer choice |
+| **External** | `http_call`, `grpc_call`, `activity_call`                                             | HTTP/gRPC requests, Temporal activities           |
+| **Events**   | `listen`, `emit_event`, `notification`                                                | Wait for signals, emit CloudEvents, notify humans |
+
+For details on each task type, see the
+[Task Type Overview](/docs/guides/workflow-tasks).
+
+## How execution works
+
+Tasks execute **sequentially** by default — the first task in the `tasks` list
+runs, then the second, then the third. Use `flow.then` to override this with
+explicit jumps:
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={`
+graph LR
+  A["classify"] -->|"severity == critical"| B["escalation_approval"]
+  A -->|"severity == high"| C["senior_queue"]
+  A -->|"default"| D["standard_queue"]
+  B --> E["escalation_summary"]
+`}
+/>
+
+Data flows between tasks through **expressions**. When a task exports its output
+with `export.as`, later tasks access it via `${ $context.<taskName>.<field> }`.
+Environment variables are available as `${ $context.env.<VAR_NAME> }`.
+
+Execution is **durable**. Stigmer runs workflows on
+[Temporal](https://temporal.io/), so if the process crashes mid-task, it
+recovers and resumes from the last checkpoint automatically.
+
+## Budgets
+
+Workflows can enforce cost, token, and duration limits:
+
+```yaml
+budget:
+  max_cost_micros: 2000000
+  max_total_tokens: 200000
+  max_duration_seconds: 600
+  on_exceeded: budget_exceeded_human_review
+```
+
+The `on_exceeded` policy controls what happens when a limit is hit:
+
+| Policy                         | Behavior                                                |
+| ------------------------------ | ------------------------------------------------------- |
+| `budget_exceeded_terminate`    | Stop the workflow immediately with a failed status      |
+| `budget_exceeded_human_review` | Pause and create an approval gate for a human to decide |
+| `budget_exceeded_warn`         | Log a warning but continue executing                    |
+
+## Human-in-the-loop
+
+The `human_input` task type pauses the workflow and waits for a human reviewer
+to make a decision. Reviewers see a prompt, an optional form, and a set of
+**outcomes** — each outcome can route the workflow to a different task:
+
+```yaml
+- name: review
+  kind: human_input
+  task_config:
+    prompt: "Approve this content?"
+    outcomes:
+      - name: approve
+        label: "Approve"
+      - name: revise
+        label: "Request Revisions"
+        then: revise_content
+      - name: reject
+        label: "Reject"
+        then: end
+    timeout: 86400
+    on_timeout: HUMAN_INPUT_TIMEOUT_FAIL
+```
+
+This is different from Agent [approval flows](/docs/concepts/approval-flows),
+which gate individual tool calls. Workflow `human_input` tasks are
+**workflow-level checkpoints** that can include forms, multiple outcomes, and
+explicit routing.
 
 ## What's next
 
-While Workflow documentation is being prepared, the next page covers
-[Environments](/docs/concepts/environments) — how Stigmer manages the secrets
-and configuration values that Agents and MCP Servers need at runtime.
+<Cards>
+  <Card
+    title="Workflow Quick Start"
+    description="Write, deploy, and run your first Workflow in 5 minutes."
+    href="/docs/getting-started/first-workflow"
+  />
+  <Card
+    title="Authoring Guide"
+    description="Learn how to write Workflow YAML — tasks, data flow, branching, and error handling."
+    href="/docs/guides/workflows"
+  />
+  <Card
+    title="Task Type Overview"
+    description="Explore all 20 task types with examples and guidance on when to use each."
+    href="/docs/guides/workflow-tasks"
+  />
+  <Card
+    title="Workflow Execution"
+    description="SDK and CLI reference for running, monitoring, and interacting with executions."
+    href="/docs/guides/workflow-execution"
+  />
+</Cards>
