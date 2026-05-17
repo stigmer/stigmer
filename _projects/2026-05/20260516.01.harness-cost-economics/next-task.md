@@ -68,22 +68,30 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-05-16 12:29
-**Current Task**: WI-1 and WI-4 Complete; WI-2, WI-3, WI-5 remain
+**Current Task**: WI-1, WI-2, WI-4 Complete; WI-3, WI-5 remain
 **Status**: In Progress
-**Last Session**: 2026-05-17 (Session 02) — WI-4 (Cursor Context Trimming) completed
+**Last Session**: 2026-05-17 (Session 03) — WI-2 (Resolved Model Capture) completed
 
-## Session Progress (2026-05-17, Session 02)
+## Session Progress (2026-05-17, Session 03)
 
-- Completed WI-4 (Cursor Context Trimming):
-  - Made response rules conditional in `buildEnhancedPrompt()` and continuation prompts
-  - Omitted single-dir workspace context (redundant with Cursor SDK `local.cwd`)
-  - Tightened session memory budgets (summary 2k→1k tokens, turns 6→4, observations 10→5, etc.)
-  - Lowered continuation prompt ceiling from 8k to 6k tokens
-  - Audited Cursor SDK MCP surface: no tool filtering or lazy loading support
-  - Created 19 new prompt-builder unit tests; updated existing tests
-  - All 422 cursor-runner tests pass
+- Completed WI-2 (Billing Architecture — resolved model capture):
+  - Cursor runner captures `RunResult.model?.id` from SDK and sends as `resolvedModel`
+  - Config model now goes to `requestedModel` (proper semantic split)
+  - Server-side pricing fallback: retries with `requestedModel` when `resolvedModel` not in registry
+  - Fallback records marked `COST_CALCULATION_STATUS_ESTIMATED` (no proto changes)
+  - Extracted `buildTurnBillingInput` as exported pure function for testability
+  - Model divergence logging when SDK reports a different model than configured
+  - 8 new cursor-runner tests, 7 new stigmer-cloud handler tests
+  - All 430 cursor-runner tests pass, all stigmer-cloud billing tests pass
+  - Scoped down from original plan: skipped `vendor_billed_cost_micros` (no Cursor SDK billing data source yet)
 
 ## Previous Sessions
+
+### Session 02 (2026-05-17)
+- Completed WI-4 (Cursor Context Trimming)
+- Made response rules conditional, omitted single-dir workspace context
+- Tightened session memory budgets, lowered continuation prompt ceiling
+- 19 new prompt-builder unit tests; all 422 cursor-runner tests pass
 
 ### Session 01 (2026-05-17)
 - Completed WI-1 (Anthropic Prompt Caching) — discovered caching was already implemented, validated it
@@ -93,23 +101,24 @@ When starting a new session:
 ## Next Steps
 
 1. **Run benchmarks**: `make benchmark-cost` with API keys to capture before/after token measurements (instrumentation from WI-4 is in place)
-2. **Pick next work item**: WI-2 (Billing Architecture) is the remaining high-priority item
-3. WI-2 spans two repos (stigmer + stigmer-cloud), involves proto changes for `vendor_billed_cost_micros` and `resolved_model`
-4. WI-3 (Documentation) and WI-5 (Benchmark local vs cloud) come last per sequencing
+2. **Pick next work item**: WI-5 (Benchmark local vs cloud) or WI-3 (User-facing documentation)
+3. WI-3 (Documentation) should come last per sequencing — it synthesizes findings from all other work items
+4. WI-5 is an experiment comparing Cursor local vs cloud runtimes
 
 ## Context for Resume
 
-- The original plan (T01_0_plan.md) has 5 work items; WI-1 and WI-4 are done
-- WI-4 commit: `7d016232a` — `perf(backend/cursor-runner): trim Stigmer-controlled context overhead in prompts`
+- The original plan (T01_0_plan.md) has 5 work items; WI-1, WI-2, WI-4 are done
+- WI-2 changes span two repos: `stigmer` (cursor-runner) and `stigmer-cloud` (billing handler)
+- WI-2 scoping decisions: skipped `vendor_billed_cost_micros` (Cursor SDK has no per-call billing data), skipped reconciliation design
+- `RunResult.model?.id` in production: unknown what "default" auto-select returns — need real execution data
 - Benchmark results from WI-1: `test/integration/.test-output-benchmark/benchmark-results/2026-05-17-062943.json`
-- Prompt-size instrumentation is live: each execution logs `ExecuteCursor prompt built: chars=X, estimatedTokens=Y` and first-turn attribution split
-- Cursor SDK has no MCP tool filtering (documented in session-02 checkpoint)
+- Prompt-size instrumentation is live from WI-4
 - Proto namespace conflict still needs fix (separate PR): move `sdk_acceptance_test.go` to its own Go module
 
 ## Quick Commands
 
 After loading context:
-- "Pick the next work item" - Choose between WI-2, WI-3, WI-5
+- "Pick the next work item" - Choose between WI-3, WI-5
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

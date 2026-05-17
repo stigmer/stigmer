@@ -788,6 +788,34 @@ async function reportSetupProgress(
  * Best-effort: failures are logged and swallowed — billing gaps are
  * preferable to failing the execution.
  */
+export interface BillingRecordParams {
+  executionId: string;
+  turn: TurnRecord;
+  requestedModel: string;
+  sdkResolvedModel?: string;
+}
+
+export function buildTurnBillingInput(params: BillingRecordParams) {
+  const { executionId, turn, requestedModel, sdkResolvedModel } = params;
+  const resolvedModel = sdkResolvedModel || requestedModel;
+  return create(RecordLlmCallUsageInputSchema, {
+    executionId,
+    sequence: turn.sequence,
+    provider: "cursor",
+    resolvedModel,
+    requestedModel,
+    tokens: create(TokenUsageSchema, {
+      inputTokens: BigInt(turn.inputTokens),
+      outputTokens: BigInt(turn.outputTokens),
+      cacheCreationInputTokens: BigInt(turn.cacheWriteTokens),
+      cacheReadInputTokens: BigInt(turn.cacheReadTokens),
+    }),
+    usageStatus: UsageCompletionStatus.COMPLETE,
+    streaming: true,
+    harness: "cursor",
+  });
+}
+
 async function emitBillingRecords(
   client: StigmerClient,
   executionId: string,
@@ -803,21 +831,11 @@ async function emitBillingRecords(
 
   for (const turn of turns) {
     try {
-      const input = create(RecordLlmCallUsageInputSchema, {
+      const input = buildTurnBillingInput({
         executionId,
-        sequence: turn.sequence,
-        provider: "cursor",
-        resolvedModel,
+        turn,
         requestedModel,
-        tokens: create(TokenUsageSchema, {
-          inputTokens: BigInt(turn.inputTokens),
-          outputTokens: BigInt(turn.outputTokens),
-          cacheCreationInputTokens: BigInt(turn.cacheWriteTokens),
-          cacheReadInputTokens: BigInt(turn.cacheReadTokens),
-        }),
-        usageStatus: UsageCompletionStatus.COMPLETE,
-        streaming: true,
-        harness: "cursor",
+        sdkResolvedModel,
       });
       await client.recordLlmCallUsage(input);
       emitted++;
