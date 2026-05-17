@@ -1,43 +1,19 @@
 # =============================================================================
-# Integration Tests (Offline)
+# Integration Tests (Stress / Flake Detection)
 # =============================================================================
-# End-to-end integration tests for the workflow execution pipeline. Validates
-# the full path: Go test harness → Testcontainers (Mongo, Redis) → Temporal →
-# Java service (stigmer-cloud) → Go workflow-runner → zigflow → gRPC callbacks.
+# Runs the offline integration suite multiple times (-count=3) to surface
+# timing-dependent flakes. Quarantine skip is disabled so quarantined tests
+# are also exercised — this validates whether they are still flaky or can
+# be unquarantined.
 #
-# "Offline" means no LLM provider API keys are needed. These tests exercise
-# the orchestration infrastructure without making external AI calls.
+# This workflow is advisory only — it never blocks merges.
 #
-# Architecture:
-#   Job 1 (build-service-jar) — checks out stigmer-cloud, builds the fat JAR
-#   Job 2 (integration-tests) — runs `make test-integration` with the JAR
-#
-# Job 1 is intentionally isolated so it can be replaced with a pre-built
-# artifact download when stigmer-cloud publishes standalone JAR releases.
+# Triggers: weekly schedule (Sunday 3 AM UTC) + manual dispatch.
 # =============================================================================
 
-name: ci.integration-offline
+name: ci.integration-stress
 
 on:
-  pull_request:
-    paths:
-      - "backend/**"
-      - "test/integration/**"
-      - "apis/**"
-      - "go.work"
-      - "go.work.sum"
-      - "Makefile"
-      - ".github/workflows/ci.integration-offline.yaml"
-  push:
-    branches: [main]
-    paths:
-      - "backend/**"
-      - "test/integration/**"
-      - "apis/**"
-      - "go.work"
-      - "go.work.sum"
-      - "Makefile"
-      - ".github/workflows/ci.integration-offline.yaml"
   schedule:
     - cron: "0 3 * * 0"
   workflow_dispatch:
@@ -49,21 +25,14 @@ on:
         default: "main"
 
 concurrency:
-  group: integration-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+  group: integration-stress-${{ github.run_id }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
   checks: write
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # Job 1: Build the Stigmer Cloud Java service fat JAR from source.
-  #
-  # Uses Bazel with the repo's own .bazelrc (which configures BuildBuddy
-  # remote cache for read-only access). The setup-bazel action adds local
-  # disk and repository caching for faster subsequent runs.
-  # ---------------------------------------------------------------------------
   build-service-jar:
     name: Build Service JAR
     runs-on: ubuntu-latest
@@ -103,19 +72,11 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-  # ---------------------------------------------------------------------------
-  # Job 2: Run the integration test suite.
-  #
-  # Downloads the JAR from Job 1, sets up runtime dependencies (Go, Java 21,
-  # Temporal CLI, gotestsum), and runs `make test-integration`. Docker is
-  # available on ubuntu-latest for Testcontainers (Mongo 7, Redis 7).
-  #
-  # Outputs: JUnit XML, JSON event log, Java service log, workflow-runner log.
-  # ---------------------------------------------------------------------------
-  integration-tests:
-    name: Integration Tests
+  stress-tests:
+    name: Stress Tests (3x)
     runs-on: ubuntu-latest
     needs: build-service-jar
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -154,51 +115,40 @@ jobs:
           name: fga-model
           path: .artifacts/fga-model
 
-      - name: Run integration tests
+      - name: Run stress tests (3 repetitions, no quarantine skip)
         env:
           STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
           STIGMER_FGA_MODEL_DIR: ${{ github.workspace }}/.artifacts/fga-model
-        run: make test-integration
-
-      - name: Guard against silent test skip
-        if: success()
-        run: |
-          JUNIT="test/integration/.test-output/junit.xml"
-          if [ ! -f "$JUNIT" ]; then
-            echo "::error::JUnit XML not found at $JUNIT"
-            exit 1
-          fi
-          COUNT=$(grep -o 'tests="[0-9]*"' "$JUNIT" | head -1 | grep -o '[0-9]*')
-          if [ -z "$COUNT" ] || [ "$COUNT" -eq 0 ]; then
-            echo "::error::JUnit reports 0 tests — integration suite was silently skipped"
-            exit 1
-          fi
-          echo "Integration tests executed: $COUNT"
+          SKIP_QUARANTINE: "false"
+        run: make test-integration-stress
 
       - name: Generate flake report
         if: always()
         run: |
-          REPORT_DIR=test/integration/.test-output
+          REPORT_DIR=test/integration/.test-output-stress
           if [ -f "$REPORT_DIR/test-output.json" ]; then
             cd test/integration && GOWORK=off go run ./tools/flaketrack report \
-              --json "$(pwd)/.test-output/test-output.json" \
-              --rerun-report "$(pwd)/.test-output/rerun-report.txt" \
+              --json "$(pwd)/.test-output-stress/test-output.json" \
               --quarantine "$(pwd)/quarantine.json" \
               >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### Stress Test Report" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "No test output found — stress tests may have failed to start." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: integration-test-results
-          path: test/integration/.test-output/
+          name: stress-test-results
+          path: test/integration/.test-output-stress/
           retention-days: 30
 
       - name: Publish test report
-        if: always() && hashFiles('test/integration/.test-output/junit.xml') != ''
+        if: always() && hashFiles('test/integration/.test-output-stress/junit.xml') != ''
         uses: dorny/test-reporter@v3
         with:
-          name: Integration Test Report
-          path: test/integration/.test-output/junit.xml
+          name: Stress Test Report
+          path: test/integration/.test-output-stress/junit.xml
           reporter: java-junit
