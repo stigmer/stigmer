@@ -12,6 +12,7 @@ go_library(
         "sdk_client_ts.go",
         "sdk_docs.go",
         "sdk_kind_meta_ts.go",
+        "task_docs.go",
         "task_registry.go",
     ],
     importpath = "github.com/stigmer/stigmer/tools/codegen/generator",

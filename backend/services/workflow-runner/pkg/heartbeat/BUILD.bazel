@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "heartbeat",
+    srcs = [
+        "activity_counter.go",
+        "heartbeat.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/heartbeat",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/runner/v1:runner",
+        "//backend/services/workflow-runner/pkg/config",
+        "@com_github_rs_zerolog//log",
+        "@io_temporal_go_sdk//interceptor",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//credentials",
+        "@org_golang_google_grpc//credentials/insecure",
+        "@org_golang_google_grpc//metadata",
+    ],
+)
+
+go_test(
+    name = "heartbeat_test",
+    srcs = ["activity_counter_test.go"],
+    embed = [":heartbeat"],
+)

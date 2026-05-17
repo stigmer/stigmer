@@ -8,6 +8,7 @@ go_library(
         "delete.go",
         "query.go",
         "update.go",
+        "validate_spec.go",
         "validate_spec_step.go",
         "workflow_controller.go",
     ],
@@ -27,6 +28,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/downstream/workflowinstance",
         "//backend/services/stigmer-server/pkg/query/search/extractor",
         "@com_github_rs_zerolog//log",
+        "@org_golang_google_grpc//codes",
     ],
 )
 

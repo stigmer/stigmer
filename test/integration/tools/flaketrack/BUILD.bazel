@@ -1,0 +1,25 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "flaketrack_lib",
+    srcs = [
+        "main.go",
+        "parser.go",
+        "quarantine.go",
+        "report.go",
+    ],
+    importpath = "github.com/stigmer/stigmer/test/integration/tools/flaketrack",
+    visibility = ["//visibility:private"],
+)
+
+go_binary(
+    name = "flaketrack",
+    embed = [":flaketrack_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "flaketrack_test",
+    srcs = ["flaketrack_test.go"],
+    embed = [":flaketrack_lib"],
+)

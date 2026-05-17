@@ -9,6 +9,7 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/services/workflow-runner/pkg/converter",
     visibility = ["//visibility:public"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks",
         "//backend/services/workflow-runner/pkg/validation",
