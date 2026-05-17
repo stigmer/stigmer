@@ -9,6 +9,7 @@
 //   - organizations/: Organization YAML definitions
 //   - skills/: Skill directories (SKILL.md, scripts, references)
 //   - agents/: System agent YAML definitions
+//   - workflows/: System workflow YAML definitions
 //   - mcp-servers/: MCP server YAML definitions
 //
 // Excluded:
@@ -20,6 +21,7 @@ import "embed"
 //go:embed stigmer.yaml
 //go:embed skills
 //go:embed agents
+//go:embed workflows
 //go:embed mcp-servers
 //go:embed organizations
 var content embed.FS

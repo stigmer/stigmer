@@ -1,0 +1,122 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: content-review-pipeline
+  visibility: visibility_public
+  labels:
+    stigmer.ai/system: "true"
+spec:
+  description: >
+    AI-powered content drafting with human-in-the-loop review.
+    An LLM drafts content based on a topic and guidelines, then pauses
+    for human approval. The reviewer can approve, request revisions
+    (which loops back to the LLM with feedback), or reject outright.
+    Demonstrates: llm_call, human_input with branching outcomes,
+    set_vars, and revision loops.
+  document:
+    dsl: "1.0.0"
+    namespace: stigmer
+    name: content-review-pipeline
+    version: "1.0.0"
+  env:
+    TOPIC:
+      description: "The topic or subject to write about"
+      required: true
+    GUIDELINES:
+      description: "Style guidelines or constraints for the content (optional)"
+      required: false
+  budget:
+    max_cost_micros: 2000000
+    max_duration_seconds: 600
+  tasks:
+    - name: draft_content
+      kind: llm_call
+      task_config:
+        model: "claude-sonnet-4-5"
+        system_prompt: >
+          You are a professional content writer. Write clear, engaging content
+          that follows the provided guidelines. Output well-structured prose
+          suitable for publication.
+        prompt: >
+          Write content about the following topic: ${ $context.env.TOPIC }
+
+          Guidelines: ${ $context.env.GUIDELINES }
+        temperature: 0.7
+        max_tokens: 2000
+      export:
+        as: "${ . }"
+      flow:
+        then: review_content
+
+    - name: review_content
+      kind: human_input
+      task_config:
+        prompt: >
+          Review the AI-drafted content below and decide whether to approve,
+          request revisions, or reject it.
+
+          --- Draft ---
+          ${ $context.draft_content.text }
+        form_schema:
+          type: object
+          properties:
+            feedback:
+              type: string
+              description: "Revision notes (required if requesting revisions)"
+        outcomes:
+          - name: approve
+            label: "Approve"
+          - name: revise
+            label: "Request Revisions"
+            then: revise_content
+          - name: reject
+            label: "Reject"
+            then: end
+        timeout: 86400
+        on_timeout: HUMAN_INPUT_TIMEOUT_FAIL
+      export:
+        as: "${ . }"
+      flow:
+        then: finalize
+
+    - name: revise_content
+      kind: llm_call
+      task_config:
+        model: "claude-sonnet-4-5"
+        system_prompt: >
+          You are a professional content writer. Revise the draft based on
+          the reviewer's feedback. Preserve what works, fix what doesn't.
+        prompt: >
+          Original topic: ${ $context.env.TOPIC }
+
+          Previous draft:
+          ${ $context.draft_content.text }
+
+          Reviewer feedback:
+          ${ $context.review_content.form_data.feedback }
+
+          Please revise the draft to address the feedback.
+        temperature: 0.5
+        max_tokens: 2000
+      export:
+        as: "${ . }"
+      flow:
+        then: review_content
+
+    - name: finalize
+      kind: transform
+      task_config:
+        engine: jq
+        expression: >
+          {
+            status: "approved",
+            topic: $topic,
+            content: $content,
+            approved_by: $reviewer
+          }
+        input:
+          topic: "${ $context.env.TOPIC }"
+          content: "${ $context.draft_content.text }"
+          reviewer: "${ $context.review_content.reviewer }"
+      export:
+        as: "${ . }"

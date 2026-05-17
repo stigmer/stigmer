@@ -1,0 +1,177 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: Workflow
+metadata:
+  name: support-ticket-triage
+  visibility: visibility_public
+  labels:
+    stigmer.ai/system: "true"
+spec:
+  description: >
+    Automated support ticket classification and routing using structured LLM output.
+    An LLM classifies incoming tickets by severity and category, then a switch
+    routes to different handling paths. Critical tickets go through human approval
+    before escalation; standard tickets are auto-routed.
+    Demonstrates: llm_call with response_schema, switch_case branching,
+    human_input approval gates, set_vars, and transform.
+  document:
+    dsl: "1.0.0"
+    namespace: stigmer
+    name: support-ticket-triage
+    version: "1.0.0"
+  env:
+    TICKET_DESCRIPTION:
+      description: "The support ticket text to triage"
+      required: true
+    CUSTOMER_EMAIL:
+      description: "Customer email for follow-up (optional)"
+      required: false
+  budget:
+    max_cost_micros: 500000
+    max_duration_seconds: 300
+  tasks:
+    - name: classify_ticket
+      kind: llm_call
+      task_config:
+        model: "gpt-4o-mini"
+        system_prompt: >
+          You are a support ticket classifier. Analyze the ticket and classify
+          it by severity and category. Be conservative with critical/high
+          severity — only use those for genuine service disruptions or data loss.
+        prompt: >
+          Classify this support ticket:
+
+          ${ $context.env.TICKET_DESCRIPTION }
+
+          Customer: ${ $context.env.CUSTOMER_EMAIL }
+        response_schema:
+          type: object
+          required:
+            - severity
+            - category
+            - summary
+          properties:
+            severity:
+              type: string
+              enum:
+                - low
+                - medium
+                - high
+                - critical
+            category:
+              type: string
+              enum:
+                - bug
+                - feature_request
+                - account
+                - billing
+                - integration
+                - general
+            summary:
+              type: string
+            customer_impact:
+              type: boolean
+        on_invalid: ON_INVALID_RETRY
+        max_retries: 2
+      export:
+        as: "${ .structured }"
+      flow:
+        then: route_by_severity
+
+    - name: route_by_severity
+      kind: switch_case
+      task_config:
+        cases:
+          - name: critical
+            when: "${ $context.classify_ticket.severity == 'critical' }"
+            then: escalation_approval
+          - name: high
+            when: "${ $context.classify_ticket.severity == 'high' }"
+            then: build_high_summary
+          - name: default
+            then: build_standard_summary
+
+    - name: escalation_approval
+      kind: human_input
+      task_config:
+        prompt: >
+          A ticket has been classified as CRITICAL and needs escalation approval.
+
+          *Summary*: ${ $context.classify_ticket.summary }
+          *Category*: ${ $context.classify_ticket.category }
+          *Customer Impact*: ${ $context.classify_ticket.customer_impact }
+          *Customer*: ${ $context.env.CUSTOMER_EMAIL }
+
+          Original ticket:
+          ${ $context.env.TICKET_DESCRIPTION }
+
+          Approve escalation to the incident response team?
+        outcomes:
+          - name: approve
+            label: "Approve Escalation"
+          - name: downgrade
+            label: "Downgrade to High"
+            then: build_high_summary
+          - name: reject
+            label: "Not an Incident"
+            then: build_standard_summary
+        timeout: 3600
+        on_timeout: HUMAN_INPUT_TIMEOUT_FAIL
+      export:
+        as: "${ . }"
+      flow:
+        then: build_escalation_summary
+
+    - name: build_escalation_summary
+      kind: transform
+      task_config:
+        engine: jq
+        expression: >
+          {
+            status: "escalated",
+            severity: "critical",
+            category: $classification.category,
+            summary: $classification.summary,
+            customer_impact: $classification.customer_impact,
+            approved_by: $approval.reviewer,
+            action: "Route to incident response team"
+          }
+        input:
+          classification: "${ $context.classify_ticket }"
+          approval: "${ $context.escalation_approval }"
+      export:
+        as: "${ . }"
+
+    - name: build_high_summary
+      kind: transform
+      task_config:
+        engine: jq
+        expression: >
+          {
+            status: "triaged",
+            severity: $classification.severity,
+            category: $classification.category,
+            summary: $classification.summary,
+            customer_impact: $classification.customer_impact,
+            action: "Route to senior support queue"
+          }
+        input:
+          classification: "${ $context.classify_ticket }"
+      export:
+        as: "${ . }"
+
+    - name: build_standard_summary
+      kind: transform
+      task_config:
+        engine: jq
+        expression: >
+          {
+            status: "triaged",
+            severity: $classification.severity,
+            category: $classification.category,
+            summary: $classification.summary,
+            action: "Route to standard support queue"
+          }
+        input:
+          classification: "${ $context.classify_ticket }"
+      export:
+        as: "${ . }"
