@@ -9,7 +9,7 @@ import {
   CREATOR_AGENTS,
   parseDraftParams,
 } from "@stigmer/react";
-import type { DraftResourceType } from "@stigmer/react";
+import type { DraftResourceType, InteractionModeOption } from "@stigmer/react";
 import type { ResourceRef } from "@stigmer/sdk";
 import { useNativeFolderPicker } from "../hooks/useNativeFolderPicker";
 import { useDesktopGitHubConnection } from "../hooks/useDesktopGitHubConnection";
@@ -88,6 +88,8 @@ export function SessionLauncher() {
     }
   }, [liveDraftType, setSearchParams]);
 
+  const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
+
   const flow = useNewSessionFlow({
     org,
     onSessionCreated: (id) => navigate(`/sessions/${id}`),
@@ -143,6 +145,9 @@ export function SessionLauncher() {
           showHarnessSelector
           harness={flow.harness}
           onHarnessChange={flow.setHarness}
+          interactionMode={interactionMode}
+          onInteractionModeChange={setInteractionMode}
+          showInteractionModePicker
           defaultModelId={flow.modelId}
           onModelChange={flow.setModelId}
           placeholder={placeholder}
