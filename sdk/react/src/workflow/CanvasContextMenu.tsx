@@ -48,6 +48,22 @@ export interface CanvasContextMenuProps {
 }
 
 // ---------------------------------------------------------------------------
+// Platform detection & shortcut labels
+// ---------------------------------------------------------------------------
+
+const isMac =
+  typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+
+const MOD_LABEL = isMac ? "\u2318" : "Ctrl+";
+
+const SHORTCUT_LABELS = {
+  duplicate: `${MOD_LABEL}D`,
+  selectAll: `${MOD_LABEL}A`,
+  delete: isMac ? "\u232B" : "Del",
+  addTask: "N",
+} as const;
+
+// ---------------------------------------------------------------------------
 // Styling constants
 // ---------------------------------------------------------------------------
 
@@ -65,6 +81,9 @@ const DESTRUCTIVE_ITEM_CLASS = cn(
   "flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-xs text-[var(--stgm-destructive,#ef4444)] outline-none",
   "data-[highlighted]:bg-[var(--stgm-destructive,#ef4444)]/10",
 );
+
+const SHORTCUT_HINT_CLASS =
+  "ml-auto pl-4 text-[10px] tracking-wide text-[var(--stgm-muted-foreground,#737373)]";
 
 const SEPARATOR_CLASS =
   "my-1 h-px bg-[var(--stgm-border,#e5e5e5)]";
@@ -192,6 +211,7 @@ function NodeMenuItems({
         >
           <DuplicateIcon />
           Duplicate
+          <span className={SHORTCUT_HINT_CLASS}>{SHORTCUT_LABELS.duplicate}</span>
         </Menu.Item>
       )}
       {onAddTaskAfter && (
@@ -216,6 +236,7 @@ function NodeMenuItems({
         >
           <TrashIcon />
           Delete
+          <span className={SHORTCUT_HINT_CLASS}>{SHORTCUT_LABELS.delete}</span>
         </Menu.Item>
       )}
     </>
@@ -287,6 +308,7 @@ function PaneMenuItems({
         >
           <PlusIcon />
           Add task…
+          <span className={SHORTCUT_HINT_CLASS}>{SHORTCUT_LABELS.addTask}</span>
         </Menu.Item>
       )}
       {onAddTask && (onSelectAll || onAutoLayout) && (
@@ -300,6 +322,7 @@ function PaneMenuItems({
         >
           <SelectAllIcon />
           Select all
+          <span className={SHORTCUT_HINT_CLASS}>{SHORTCUT_LABELS.selectAll}</span>
         </Menu.Item>
       )}
       {onAutoLayout && (
