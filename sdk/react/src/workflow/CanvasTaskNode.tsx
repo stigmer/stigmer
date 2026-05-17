@@ -1,13 +1,14 @@
 "use client";
 
-import { memo, useCallback, useContext, useRef, useState } from "react";
-import { Handle, Position } from "@xyflow/react";
+import { forwardRef, memo, useCallback, useContext, useRef, useState } from "react";
+import { Handle, Position, NodeToolbar } from "@xyflow/react";
 import type { NodeProps } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
 import { CATEGORY_COLORS } from "./canvas-constants";
 import type { CanvasTaskNodeData } from "./workflow-graph-conversions";
 import { CanvasActionsContext } from "./CanvasActionsContext";
 import { TaskPickerPopover } from "./TaskPickerPopover";
+import { TrashIcon, DuplicateIcon, PlusIcon } from "./canvas-icons";
 
 const NESTED_TASK_KINDS = new Set(["fork", "for_each", "try_catch"]);
 
@@ -45,12 +46,30 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
     actions?.deleteNode(id);
   }, [actions, id]);
 
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const addBtnRef = useRef<HTMLButtonElement>(null);
+  const handleDuplicate = useCallback(() => {
+    actions?.duplicateNode(id);
+  }, [actions, id]);
 
-  const handleOpenPicker = useCallback(() => {
-    setPickerOpen(true);
-  }, []);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const hoverAddRef = useRef<HTMLButtonElement>(null);
+  const toolbarAddRef = useRef<HTMLButtonElement>(null);
+  const pickerAnchorRef = useRef<HTMLButtonElement | null>(null);
+
+  const openPickerFrom = useCallback(
+    (ref: React.RefObject<HTMLButtonElement | null>) => {
+      pickerAnchorRef.current = ref.current;
+      setPickerOpen(true);
+    },
+    [],
+  );
+
+  const handleHoverAddClick = useCallback(() => {
+    openPickerFrom(hoverAddRef);
+  }, [openPickerFrom]);
+
+  const handleToolbarAddClick = useCallback(() => {
+    openPickerFrom(toolbarAddRef);
+  }, [openPickerFrom]);
 
   const handlePickerOpenChange = useCallback((nextOpen: boolean) => {
     setPickerOpen(nextOpen);
@@ -81,6 +100,38 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
           {errorCount}
         </span>
       )}
+
+      {/* Selection toolbar — auto-shown by React Flow when selected */}
+      <NodeToolbar position={Position.Top} offset={8} align="center">
+        <div
+          className="stgm flex items-center gap-0.5 rounded-md border border-[var(--stgm-border,#e5e5e5)] bg-[var(--stgm-popover,var(--stgm-background,#fff))] p-0.5 shadow-md"
+          role="toolbar"
+          aria-label="Task actions"
+          aria-orientation="horizontal"
+        >
+          <ToolbarButton
+            icon={<DuplicateIcon />}
+            label={`Duplicate task ${data.taskName}`}
+            title="Duplicate"
+            onClick={handleDuplicate}
+          />
+          <ToolbarButton
+            ref={toolbarAddRef}
+            icon={<PlusIcon />}
+            label={`Add task after ${data.taskName}`}
+            title="Add task after"
+            onClick={handleToolbarAddClick}
+          />
+          <div className="mx-0.5 h-4 w-px bg-[var(--stgm-border,#e5e5e5)]" aria-hidden="true" />
+          <ToolbarButton
+            icon={<TrashIcon />}
+            label={`Delete task ${data.taskName}`}
+            title="Delete"
+            onClick={handleDelete}
+            destructive
+          />
+        </div>
+      </NodeToolbar>
 
       {/* Delete button — revealed on hover via CSS group */}
       <button
@@ -165,9 +216,9 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
 
       {/* Add successor button — revealed on hover via CSS group */}
       <button
-        ref={addBtnRef}
+        ref={hoverAddRef}
         type="button"
-        onClick={handleOpenPicker}
+        onClick={handleHoverAddClick}
         className={cn(
           "absolute -bottom-3 left-1/2 z-10 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full border border-[var(--stgm-border-prominent,#d4d4d8)] bg-[var(--stgm-card,var(--stgm-background,#fff))] text-[var(--stgm-muted-foreground,#737373)] shadow-sm transition-all",
           "hover:border-[var(--stgm-primary,#6366f1)] hover:bg-[var(--stgm-primary,#6366f1)] hover:text-[var(--stgm-primary-foreground,#fff)]",
@@ -185,7 +236,7 @@ export const CanvasTaskNode = memo(function CanvasTaskNode({
         open={pickerOpen}
         onOpenChange={handlePickerOpenChange}
         onSelectKind={handleKindSelected}
-        anchorRef={addBtnRef}
+        anchorRef={pickerAnchorRef as React.RefObject<HTMLElement | null>}
         side="bottom"
       />
     </div>
@@ -231,6 +282,45 @@ function SentinelNode({
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// ToolbarButton
+// ---------------------------------------------------------------------------
+
+const TOOLBAR_BTN_CLASS = cn(
+  "flex h-7 w-7 items-center justify-center rounded text-[var(--stgm-popover-foreground,var(--stgm-foreground,#1a1a2e))] outline-none transition-colors",
+  "hover:bg-[var(--stgm-accent,#e5e5e5)] focus-visible:ring-1 focus-visible:ring-[var(--stgm-ring,#3b82f6)]",
+);
+
+const TOOLBAR_BTN_DESTRUCTIVE_CLASS = cn(
+  "flex h-7 w-7 items-center justify-center rounded text-[var(--stgm-popover-foreground,var(--stgm-foreground,#1a1a2e))] outline-none transition-colors",
+  "hover:bg-[var(--stgm-destructive,#ef4444)]/10 hover:text-[var(--stgm-destructive,#ef4444)] focus-visible:ring-1 focus-visible:ring-[var(--stgm-ring,#3b82f6)]",
+);
+
+interface ToolbarButtonProps {
+  icon: React.ReactNode;
+  label: string;
+  title: string;
+  onClick: () => void;
+  destructive?: boolean;
+}
+
+const ToolbarButton = forwardRef<HTMLButtonElement, ToolbarButtonProps>(
+  function ToolbarButton({ icon, label, title, onClick, destructive }, ref) {
+    return (
+      <button
+        ref={ref}
+        type="button"
+        onClick={onClick}
+        className={destructive ? TOOLBAR_BTN_DESTRUCTIVE_CLASS : TOOLBAR_BTN_CLASS}
+        aria-label={label}
+        title={title}
+      >
+        {icon}
+      </button>
+    );
+  },
+);
 
 // ---------------------------------------------------------------------------
 // Multi-output handle helpers
