@@ -68,9 +68,40 @@ When starting a new session:
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: May 17, 2026 — Session 9: Resume Mode Flag + Ink Mode Toggle
-- **Active Task**: Both features implemented, tested, verified, and committed.
+- **Last Session**: May 17, 2026 — Session 10: Ink Context Gauge + Summarization Indicator
+- **Active Task**: ContextGauge component implemented, tested, verified. Ready to commit.
 - **Branch**: `feat/bring-workflows-to-foreground`
+
+## Session Progress (May 17, 2026 — Session 10: Ink Context Gauge + Summarization Indicator)
+
+### Deliverables (implemented)
+
+1. **`ContextGauge` component** (`sdk/ink/src/components/ContextGauge.tsx`) — NEW
+   - Terminal-native ASCII progress bar with 20-character fixed width (`█` filled, `░` empty)
+   - Health-based coloring via Ink's `color` prop: green (0-70%), yellow (70-90%), red (90%+)
+   - Token counts in compact format (82K, 1.5M) with current/limit display
+   - Health label shown only for non-healthy states ("Approaching limit", "Near limit")
+   - Summarization compaction count with latest event details (token reduction, model, duration, cost)
+   - Uses `useContextWindow` hook from `@stigmer/react` — same headless hook as the React SDK ContextGauge
+
+2. **SessionView integration** (`sdk/ink/src/app/SessionView.tsx`) — MODIFIED
+   - Removed manual `contextInfo` / `summarizationCount` extraction
+   - Removed inline summarization one-liner ("Context compacted (N events, X% utilization)")
+   - Added `<ContextGauge execution={conv.activeStreamExecution ?? null} />` between UsageWidget and mode indicator
+
+3. **Barrel export** — `ContextGauge` and `ContextGaugeProps` exported from `@stigmer/ink` index
+
+4. **8 unit tests** (`sdk/ink/src/__tests__/context-gauge.test.tsx`) — NEW
+   - null execution, absent contextInfo, healthy/warning/critical states
+   - Large token formatting (1.5M / 2.0M), single summarization with full details, plural compactions
+
+### Key Design Decisions
+
+- Reuses `useContextWindow` from `@stigmer/react` — no data duplication, same headless hook as the web console
+- Returns `null` when ContextInfo is absent (Cursor harness) — graceful degradation
+- Health label omitted for healthy state — avoids noise when everything is fine
+- Only latest summarization event shown in detail line — terminal space is limited; full history in web console
+- Positioned between UsageWidget and FollowUpInput — coherent "session telemetry" section
 
 ## Session Progress (May 17, 2026 — Session 9: Resume Mode Flag + Ink Mode Toggle)
 
@@ -213,6 +244,7 @@ When starting a new session:
 4. ~~Consider "Build from plan" UX flow (Plan → Agent transition button)~~ — **DONE** (Session 7)
 5. ~~Consider `stigmer resume --mode` flag (natural extension — currently mode only applies to `run`/`draft`)~~ — **DONE** (Session 9)
 6. ~~Consider Ink `InteractionModePicker` (keyboard shortcut to toggle mode mid-session)~~ — **DONE** (Session 9)
+7. ~~Ink CLI context gauge + summarization indicator (close last feature delta with React SDK)~~ — **DONE** (Session 10)
 
 ## Context for Resume
 
@@ -225,14 +257,13 @@ When starting a new session:
 - `resolveResumeMode(explicitMode, latestExec)` is the single point for resume mode resolution
 - Ink `SessionView` Ctrl+T toggles mode mid-session — state initialized from `--mode` arg, each follow-up passes `{ interactionMode: activeMode }`
 - `SessionComposerHandle` uses `forwardRef` + `useImperativeHandle` — the `memo` wrapper is preserved via `memo(forwardRef(...))`
-- Ink SDK (CLI terminal) does NOT have a context gauge or summarization card equivalent yet
+- ~~Ink SDK (CLI terminal) does NOT have a context gauge or summarization card equivalent yet~~ — **DONE** (Session 10): `ContextGauge` component added, uses `useContextWindow` hook, wired into `SessionView`
 
 ## Quick Commands
 
 After loading context:
 - "Plan Phase 5" — Admin API reconciliation
-- "Add resume --mode flag" — Mode support for resumed sessions
-- "Add Ink mode picker" — Terminal keyboard shortcut for mode toggle
+- "Plan Phase 3b" — Manual summarization trigger + transcript access
 
 ---
 

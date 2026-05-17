@@ -6,6 +6,7 @@ import { MessageThread } from "../components/MessageThread.js";
 import { TodoList } from "../components/TodoList.js";
 import { FollowUpInput } from "../components/FollowUpInput.js";
 import { UsageWidget } from "../components/UsageWidget.js";
+import { ContextGauge } from "../components/ContextGauge.js";
 import { ExecutionProgress } from "../components/ExecutionProgress.js";
 
 /** Interaction mode type used for follow-up executions. */
@@ -99,8 +100,6 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
   ];
 
   const activeTodos = conv.activeStreamExecution?.status?.todos;
-  const contextInfo = conv.activeStreamExecution?.status?.contextInfo;
-  const summarizationCount = contextInfo?.summarizationEvents?.length ?? 0;
 
   const subject = resolvedSubject(conv.session?.spec?.subject);
 
@@ -144,14 +143,6 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
         expandToolCalls={expandTools}
       />
 
-      {summarizationCount > 0 && (
-        <Box paddingLeft={1} marginTop={1}>
-          <Text dimColor>
-            Context compacted ({summarizationCount} {summarizationCount === 1 ? "event" : "events"}, {Math.round(contextInfo!.utilizationPercent)}% utilization)
-          </Text>
-        </Box>
-      )}
-
       {activeTodos && Object.keys(activeTodos).length > 0 && (
         <Box marginTop={1} paddingLeft={1}>
           <TodoList todos={activeTodos} />
@@ -175,6 +166,8 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
       )}
 
       <UsageWidget executions={allExecutions} />
+
+      <ContextGauge execution={conv.activeStreamExecution ?? null} />
 
       {conv.canSendFollowUp && (
         <Box paddingLeft={1}>

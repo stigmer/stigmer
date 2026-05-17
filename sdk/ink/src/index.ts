@@ -22,6 +22,7 @@ export { ApprovalPrompt, type ApprovalPromptProps } from "./components/ApprovalP
 export { ExecutionProgress, type ExecutionProgressProps } from "./components/ExecutionProgress.js";
 export { FollowUpInput, type FollowUpInputProps } from "./components/FollowUpInput.js";
 export { UsageWidget, type UsageWidgetProps } from "./components/UsageWidget.js";
+export { ContextGauge, type ContextGaugeProps } from "./components/ContextGauge.js";
 
 // Composed views
 export { SessionView, type SessionViewProps, type InteractionMode } from "./app/SessionView.js";
