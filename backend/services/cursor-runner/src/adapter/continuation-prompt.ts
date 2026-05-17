@@ -51,7 +51,7 @@ import { estimateTokens, truncateToTokenBudget } from "./session-memory.js";
 // Constants
 // ---------------------------------------------------------------------------
 
-const CONTINUATION_TOKEN_CEILING = 8_000;
+const CONTINUATION_TOKEN_CEILING = 6_000;
 const MAX_RATIONALE_CHARS = 500;
 
 // ---------------------------------------------------------------------------
@@ -186,7 +186,7 @@ function buildAgentContextSections(options: AgentContextOptions): string[] {
   }
 
   const safeDirs = sanitizeWorkspaceDirs(options.workspaceDirs);
-  if (safeDirs.length > 0) {
+  if (safeDirs.length > 1) {
     sections.push(formatWorkspaceContext(safeDirs));
   }
 
@@ -198,7 +198,9 @@ function buildAgentContextSections(options: AgentContextOptions): string[] {
     sections.push(formatReferencedFiles(options.workspaceFileRefs));
   }
 
-  sections.push(formatResponseRules());
+  if (!options.instructions) {
+    sections.push(formatResponseRules());
+  }
 
   return sections;
 }

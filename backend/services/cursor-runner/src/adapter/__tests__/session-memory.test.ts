@@ -301,7 +301,7 @@ describe("extractToolObservations", () => {
     expect(extractToolObservations(messages)).toEqual([]);
   });
 
-  it("FIFO-prunes to most recent 10 entries", () => {
+  it("FIFO-prunes to most recent entries", () => {
     const calls = Array.from({ length: 15 }, (_, i) =>
       toolCall("Shell", ToolCallStatus.TOOL_CALL_COMPLETED, {
         argsPreview: JSON.stringify({ command: `cmd-${i}` }),
@@ -310,12 +310,12 @@ describe("extractToolObservations", () => {
     );
     const messages = [aiMessage("many commands", calls)];
     const obs = extractToolObservations(messages);
-    expect(obs).toHaveLength(10);
-    expect(obs[0].command).toBe("cmd-5");
-    expect(obs[9].command).toBe("cmd-14");
+    expect(obs).toHaveLength(5);
+    expect(obs[0].command).toBe("cmd-10");
+    expect(obs[4].command).toBe("cmd-14");
   });
 
-  it("truncates summary to 200 chars", () => {
+  it("truncates summary to 150 chars", () => {
     const longResult = "x".repeat(500);
     const messages = [
       aiMessage("long output", [
@@ -326,7 +326,7 @@ describe("extractToolObservations", () => {
       ]),
     ];
     const obs = extractToolObservations(messages);
-    expect(obs[0].summary.length).toBeLessThanOrEqual(200);
+    expect(obs[0].summary.length).toBeLessThanOrEqual(150);
   });
 
   it("skips Shell calls with empty command", () => {
@@ -456,15 +456,15 @@ describe("extractDecisions", () => {
     expect(decisions).toEqual([]);
   });
 
-  it("caps at 20 entries with FIFO eviction", () => {
-    const prev = Array.from({ length: 19 }, (_, i) => `Decision ${i}`);
+  it("caps at max entries with FIFO eviction", () => {
+    const prev = Array.from({ length: 14 }, (_, i) => `Decision ${i}`);
     const messages = [
       aiMessage("Decision: New decision A.\nDecision: New decision B."),
     ];
     const decisions = extractDecisions(messages, prev);
-    expect(decisions).toHaveLength(20);
+    expect(decisions).toHaveLength(15);
     expect(decisions[0]).toBe("Decision 1");
-    expect(decisions[19]).toBe("New decision B.");
+    expect(decisions[14]).toBe("New decision B.");
   });
 
   it("ignores non-AI messages", () => {
@@ -523,7 +523,7 @@ describe("extractFailedAttempts", () => {
     expect(attempts).toEqual(["Shell: timeout"]);
   });
 
-  it("truncates entries to 200 chars", () => {
+  it("truncates entries to 150 chars", () => {
     const messages = [
       aiMessage("long error", [
         toolCall("Shell", ToolCallStatus.TOOL_CALL_FAILED, {
@@ -532,11 +532,11 @@ describe("extractFailedAttempts", () => {
       ]),
     ];
     const attempts = extractFailedAttempts(messages, []);
-    expect(attempts[0].length).toBeLessThanOrEqual(200);
+    expect(attempts[0].length).toBeLessThanOrEqual(150);
   });
 
-  it("caps at 20 entries", () => {
-    const prev = Array.from({ length: 19 }, (_, i) => `Failure ${i}`);
+  it("caps at max entries", () => {
+    const prev = Array.from({ length: 9 }, (_, i) => `Failure ${i}`);
     const messages = [
       aiMessage("failures", [
         toolCall("Shell", ToolCallStatus.TOOL_CALL_FAILED, { error: "err-a" }),
@@ -544,7 +544,7 @@ describe("extractFailedAttempts", () => {
       ]),
     ];
     const attempts = extractFailedAttempts(messages, prev);
-    expect(attempts).toHaveLength(20);
+    expect(attempts).toHaveLength(10);
     expect(attempts[0]).toBe("Failure 1");
   });
 
