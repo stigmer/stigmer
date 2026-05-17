@@ -29,6 +29,9 @@ export type { SummarizationBadgeProps } from "./SummarizationBadge";
 export { SummarizationCard } from "./SummarizationCard";
 export type { SummarizationCardProps } from "./SummarizationCard";
 
+export { PlanCompletionCard } from "./PlanCompletionCard";
+export type { PlanCompletionCardProps } from "./PlanCompletionCard";
+
 export { useExecutionArtifacts } from "./useExecutionArtifacts";
 export type { UseExecutionArtifactsReturn } from "./useExecutionArtifacts";
 

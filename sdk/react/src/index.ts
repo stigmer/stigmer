@@ -159,6 +159,7 @@ export {
   ContextGauge,
   SummarizationBadge,
   SummarizationCard,
+  PlanCompletionCard,
   useContextWindow,
   formatCost,
   formatTokenCount,
@@ -217,6 +218,7 @@ export type {
   ContextGaugeProps,
   SummarizationBadgeProps,
   SummarizationCardProps,
+  PlanCompletionCardProps,
   ContextHealth,
   SummarizationEventView,
   UseContextWindowReturn,
@@ -283,6 +285,7 @@ export {
 export type {
   UseComposerOptions,
   UseComposerReturn,
+  SessionComposerHandle,
   SessionComposerProps,
   SessionComposerSubmitContext,
   InteractionModePickerProps,

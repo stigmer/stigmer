@@ -3,6 +3,7 @@ export type { UseComposerOptions, UseComposerReturn } from "./useComposer";
 
 export { SessionComposer } from "./SessionComposer";
 export type {
+  SessionComposerHandle,
   SessionComposerProps,
   SessionComposerSubmitContext,
 } from "./SessionComposer";

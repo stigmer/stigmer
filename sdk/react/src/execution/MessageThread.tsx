@@ -10,6 +10,7 @@ import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentex
 import {
   ApprovalAction,
   ExecutionPhase,
+  InteractionMode,
   MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -22,6 +23,7 @@ import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
 import { SetupProgress } from "./SetupProgress";
 import { ApprovalCard } from "./ApprovalCard";
 import { SummarizationCard } from "./SummarizationCard";
+import { PlanCompletionCard } from "./PlanCompletionCard";
 import type { SummarizationEventView } from "./useContextWindow";
 import { FilePathContext, type FilePathContextValue } from "./FilePathContext";
 import type { ResolvedPathAction } from "./file-path-resolver";
@@ -122,6 +124,19 @@ export interface MessageThreadProps {
    * @default false
    */
   readonly virtualized?: boolean;
+  /**
+   * Called when the user clicks "Implement" on a completed Plan-mode
+   * execution's {@link PlanCompletionCard}.
+   *
+   * When provided, a CTA card is rendered at the end of the thread
+   * after a Plan-mode execution completes successfully. The consumer
+   * typically wires this to switch the interaction mode to Agent,
+   * pre-fill the composer, and focus it.
+   *
+   * When omitted, no plan completion card is rendered. Backward
+   * compatible — existing consumers see no change.
+   */
+  readonly onBuildFromPlan?: () => void;
 }
 
 /**
@@ -140,7 +155,8 @@ export type ThreadItem =
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
   | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
   | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
-  | { readonly kind: "context-compacted"; readonly event: SummarizationEventView; readonly key: string };
+  | { readonly kind: "context-compacted"; readonly event: SummarizationEventView; readonly key: string }
+  | { readonly kind: "plan-completion"; readonly key: string };
 
 function hasAiMessages(execution: AgentExecution): boolean {
   const messages = execution.status?.messages;
@@ -343,6 +359,13 @@ export function buildThreadItems(
     });
   }
 
+  if (
+    lastPhase === ExecutionPhase.EXECUTION_COMPLETED &&
+    lastExec?.spec?.executionConfig?.interactionMode === InteractionMode.PLAN
+  ) {
+    items.push({ kind: "plan-completion", key: "plan-completion" });
+  }
+
   if (includeApprovals) {
     const allApprovals = lastExec?.status?.pendingApprovals ?? [];
     for (let ai = 0; ai < allApprovals.length; ai++) {
@@ -410,6 +433,7 @@ export function MessageThread({
   sandboxWorkspaceRoot,
   summarizationEvents,
   virtualized = false,
+  onBuildFromPlan,
 }: MessageThreadProps) {
   useRenderTracer("MessageThread", { executions, activeStreamExecution });
 
@@ -445,6 +469,7 @@ export function MessageThread({
             submittingApprovalIds={submittingApprovalIds}
             filePathCtx={filePathCtx}
             sandboxCtx={sandboxCtx}
+            onBuildFromPlan={onBuildFromPlan}
           />
         </Suspense>
       </div>
@@ -460,6 +485,7 @@ export function MessageThread({
       submittingApprovalIds={submittingApprovalIds}
       filePathCtx={filePathCtx}
       sandboxCtx={sandboxCtx}
+      onBuildFromPlan={onBuildFromPlan}
     />
   );
 }
@@ -480,6 +506,7 @@ interface NonVirtualizedThreadProps {
   readonly submittingApprovalIds?: ReadonlySet<string>;
   readonly filePathCtx: FilePathContextValue;
   readonly sandboxCtx: SandboxContextValue;
+  readonly onBuildFromPlan?: () => void;
 }
 
 function NonVirtualizedThread({
@@ -490,6 +517,7 @@ function NonVirtualizedThread({
   submittingApprovalIds,
   filePathCtx,
   sandboxCtx,
+  onBuildFromPlan,
 }: NonVirtualizedThreadProps) {
   const { scrollRef, sentinelRef, contentRef, isFollowing, jumpToLatest } =
     useAutoScroll();
@@ -522,6 +550,7 @@ function NonVirtualizedThread({
                   formatToolCallSummary={formatToolCallSummary}
                   onApprovalSubmit={onApprovalSubmit}
                   submittingApprovalIds={submittingApprovalIds}
+                  onBuildFromPlan={onBuildFromPlan}
                 />
               </ThreadItemWrapper>
             ))}
@@ -555,6 +584,7 @@ export interface ThreadItemRendererProps {
     comment?: string,
   ) => void;
   readonly submittingApprovalIds?: ReadonlySet<string>;
+  readonly onBuildFromPlan?: () => void;
 }
 
 /**
@@ -573,6 +603,7 @@ export function ThreadItemRenderer({
   formatToolCallSummary,
   onApprovalSubmit,
   submittingApprovalIds,
+  onBuildFromPlan,
 }: ThreadItemRendererProps) {
   switch (item.kind) {
     case "message":
@@ -622,6 +653,8 @@ export function ThreadItemRenderer({
       );
     case "context-compacted":
       return <SummarizationCard event={item.event} />;
+    case "plan-completion":
+      return <PlanCompletionCard onImplement={onBuildFromPlan} />;
   }
 }
 
