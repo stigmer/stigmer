@@ -5,7 +5,7 @@ category: control_flow
 icon: "git-branch"
 is_ai_native: false
 requires_external_service: false
-documentation_url: "/docs/workflow/tasks/switch-case"
+documentation_url: "/docs/guides/workflow-tasks/switch-case"
 
 output_schema:
   type: "null"

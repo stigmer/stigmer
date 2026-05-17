@@ -5,7 +5,7 @@ category: ai
 icon: "brain"
 is_ai_native: true
 requires_external_service: true
-documentation_url: "/docs/workflow/tasks/llm-call"
+documentation_url: "/docs/guides/workflow-tasks/llm-call"
 
 output_schema:
   type: object

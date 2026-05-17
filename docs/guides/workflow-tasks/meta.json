@@ -1,0 +1,25 @@
+{
+  "title": "Task Reference",
+  "pages": [
+    "set-vars",
+    "http-call",
+    "grpc-call",
+    "activity-call",
+    "switch-case",
+    "for-each",
+    "fork",
+    "try-catch",
+    "listen",
+    "wait",
+    "raise-error",
+    "run-workflow",
+    "agent-call",
+    "llm-call",
+    "transform",
+    "human-input",
+    "validate",
+    "emit-event",
+    "notification",
+    "eval"
+  ]
+}

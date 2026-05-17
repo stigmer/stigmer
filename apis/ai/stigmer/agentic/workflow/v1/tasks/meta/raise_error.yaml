@@ -5,7 +5,7 @@ category: event
 icon: "alert-triangle"
 is_ai_native: false
 requires_external_service: false
-documentation_url: "/docs/workflow/tasks/raise-error"
+documentation_url: "/docs/guides/workflow-tasks/raise-error"
 
 output_schema:
   type: "null"

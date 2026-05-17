@@ -5,7 +5,7 @@ category: data
 icon: "variable"
 is_ai_native: false
 requires_external_service: false
-documentation_url: "/docs/workflow/tasks/set-vars"
+documentation_url: "/docs/guides/workflow-tasks/set-vars"
 
 output_schema:
   type: "null"

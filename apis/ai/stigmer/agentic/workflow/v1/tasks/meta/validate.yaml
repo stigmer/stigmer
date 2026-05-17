@@ -5,7 +5,7 @@ category: data
 icon: "check-circle"
 is_ai_native: false
 requires_external_service: false
-documentation_url: "/docs/workflow/tasks/validate"
+documentation_url: "/docs/guides/workflow-tasks/validate"
 
 output_schema:
   type: object

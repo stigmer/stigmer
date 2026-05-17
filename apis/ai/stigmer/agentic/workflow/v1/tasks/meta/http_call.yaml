@@ -5,7 +5,7 @@ category: invocation
 icon: "globe"
 is_ai_native: false
 requires_external_service: true
-documentation_url: "/docs/workflow/tasks/http-call"
+documentation_url: "/docs/guides/workflow-tasks/http-call"
 
 output_schema:
   type: object

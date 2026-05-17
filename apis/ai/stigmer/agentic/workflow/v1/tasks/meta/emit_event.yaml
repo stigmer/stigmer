@@ -5,7 +5,7 @@ category: event
 icon: "send"
 is_ai_native: false
 requires_external_service: false
-documentation_url: "/docs/workflow/tasks/emit-event"
+documentation_url: "/docs/guides/workflow-tasks/emit-event"
 
 output_schema:
   type: object
