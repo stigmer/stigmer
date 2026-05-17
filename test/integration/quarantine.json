@@ -1,0 +1,5 @@
+{
+  "$schema": "quarantine.schema.json",
+  "description": "Known-flaky integration tests temporarily excluded from the blocking CI gate. Each entry must have a tracking issue and an expiry date. The stress lane runs all tests including quarantined ones.",
+  "quarantined": []
+}

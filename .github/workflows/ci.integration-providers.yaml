@@ -100,7 +100,7 @@ jobs:
         uses: temporalio/setup-temporal@v0
 
       - name: Install gotestsum
-        run: go install gotest.tools/gotestsum@latest
+        run: go install gotest.tools/gotestsum@v1.12.1
 
       - name: Install agent-runner dependencies
         working-directory: backend/services/agent-runner
@@ -113,6 +113,18 @@ jobs:
           STIGMER_SERVICE_JAR: ${{ github.workspace }}/.artifacts/stigmer_service_fatjar.jar
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: make test-integration-providers
+
+      - name: Generate flake report
+        if: always()
+        run: |
+          REPORT_DIR=test/integration/.test-output-providers
+          if [ -f "$REPORT_DIR/test-output.json" ]; then
+            cd test/integration && GOWORK=off go run ./tools/flaketrack report \
+              --json "$(pwd)/.test-output-providers/test-output.json" \
+              --rerun-report "$(pwd)/.test-output-providers/rerun-report.txt" \
+              --quarantine "$(pwd)/quarantine.json" \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Upload test results
         if: always()

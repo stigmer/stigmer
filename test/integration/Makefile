@@ -8,6 +8,39 @@ STIGMER_SERVICE_JAR ?= $(STIGMER_CLOUD_ROOT)/bazel-bin/backend/services/stigmer-
 OUTPUT_DIR          ?= .test-output
 PROVIDER_OUTPUT_DIR ?= .test-output-providers
 AGENT_OUTPUT_DIR    ?= .test-output-agent
+STRESS_OUTPUT_DIR   ?= .test-output-stress
+
+# ─── Quarantine ───────────────────────────────
+# Known-flaky tests listed in quarantine.json are excluded from the blocking
+# CI gate via Go's -skip flag. Set SKIP_QUARANTINE=false to run all tests
+# (used by the stress lane and local debugging).
+
+QUARANTINE_FILE  := $(CURDIR)/quarantine.json
+SKIP_QUARANTINE  ?= true
+
+# Reads quarantine.json and emits -skip 'Pattern' if tests are listed.
+# Requires jq (available on ubuntu-latest and most dev machines).
+define quarantine_skip_args
+$(shell \
+	if [ "$(SKIP_QUARANTINE)" = "true" ] && [ -f "$(QUARANTINE_FILE)" ]; then \
+		NAMES=$$(jq -r '.quarantined[]?.test // empty' "$(QUARANTINE_FILE)" 2>/dev/null | paste -sd '|' -); \
+		if [ -n "$$NAMES" ]; then \
+			echo "-skip '$$NAMES'"; \
+		fi; \
+	fi \
+)
+endef
+
+# ─── Rerun / Flake Detection ─────────────────
+# gotestsum reruns failed tests to distinguish flakes from real breakage.
+# --rerun-fails-max-failures prevents masking widespread failures.
+# --rerun-fails-run-root-test reruns the entire root test when subtests fail
+# (critical for table-driven tests that share setup).
+
+RERUN_FLAGS = \
+	--rerun-fails=2 \
+	--rerun-fails-max-failures=5 \
+	--rerun-fails-run-root-test
 
 .PHONY: ensure-service-jar
 ensure-service-jar:
@@ -39,7 +72,9 @@ test: ensure-service-jar ## Run offline integration tests (no API keys needed)
 		--junitfile-testsuite-name short \
 		--jsonfile $(OUTPUT_DIR)/test-output.json \
 		--format testname \
-		-- -tags integration -timeout 300s -count=1 ./...
+		$(RERUN_FLAGS) \
+		--rerun-fails-report $(OUTPUT_DIR)/rerun-report.txt \
+		-- -tags integration -timeout 300s -count=1 $(call quarantine_skip_args) ./...
 
 .PHONY: test-providers
 test-providers: ensure-service-jar ## Run provider-backed integration tests (auto-fetches API keys)
@@ -79,7 +114,9 @@ test-providers: ensure-service-jar ## Run provider-backed integration tests (aut
 		--junitfile-testsuite-name short \
 		--jsonfile $(PROVIDER_OUTPUT_DIR)/test-output.json \
 		--format testname \
-		-- -tags integration -timeout 900s -count=1 -run 'TestWorkflow(LlmCall|AgentCall|CursorCall|Architect|Eval)|TestAgentExecution' ./...
+		$(RERUN_FLAGS) \
+		--rerun-fails-report $(PROVIDER_OUTPUT_DIR)/rerun-report.txt \
+		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args) -run 'TestWorkflow(LlmCall|AgentCall|CursorCall|Architect|Eval)|TestAgentExecution' ./...
 
 .PHONY: test-workflow-architect
 test-workflow-architect: ensure-service-jar ## Run Workflow Architect agent E2E tests (auto-fetches API keys)
@@ -117,7 +154,9 @@ test-workflow-architect: ensure-service-jar ## Run Workflow Architect agent E2E 
 		--junitfile-testsuite-name short \
 		--jsonfile .test-output-architect/test-output.json \
 		--format testname \
-		-- -tags integration -timeout 900s -count=1 -run 'TestWorkflowArchitect' ./...
+		$(RERUN_FLAGS) \
+		--rerun-fails-report .test-output-architect/rerun-report.txt \
+		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args) -run 'TestWorkflowArchitect' ./...
 
 .PHONY: test-agent
 test-agent: ensure-service-jar ## Run agent execution integration tests (auto-fetches API keys)
@@ -155,7 +194,9 @@ test-agent: ensure-service-jar ## Run agent execution integration tests (auto-fe
 		--junitfile-testsuite-name short \
 		--jsonfile $(AGENT_OUTPUT_DIR)/test-output.json \
 		--format testname \
-		-- -tags integration -timeout 900s -count=1 -run 'TestAgentExecution' ./...
+		$(RERUN_FLAGS) \
+		--rerun-fails-report $(AGENT_OUTPUT_DIR)/rerun-report.txt \
+		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args) -run 'TestAgentExecution' ./...
 
 FAILING_OUTPUT_DIR ?= .test-output-failing
 TEST_RUN ?=
@@ -202,6 +243,8 @@ test-subset: ensure-service-jar ## Run a subset of integration tests: make test-
 		--junitfile-testsuite-name short \
 		--jsonfile $(FAILING_OUTPUT_DIR)/test-output.json \
 		--format testname \
+		$(RERUN_FLAGS) \
+		--rerun-fails-report $(FAILING_OUTPUT_DIR)/rerun-report.txt \
 		-- -tags integration -timeout 900s -count=1 \
 		-run '$(TEST_RUN)' ./...
 
@@ -221,7 +264,9 @@ test-sdk: ensure-service-jar ## Run SDK acceptance smoke tests (Go, TypeScript, 
 		--junitfile-testsuite-name short \
 		--jsonfile $(SDK_OUTPUT_DIR)/test-output.json \
 		--format testname \
-		-- -tags integration -timeout 300s -count=1 -run 'TestSDKAcceptance' -v ./...
+		$(RERUN_FLAGS) \
+		--rerun-fails-report $(SDK_OUTPUT_DIR)/rerun-report.txt \
+		-- -tags integration -timeout 300s -count=1 $(call quarantine_skip_args) -run 'TestSDKAcceptance' -v ./...
 
 REPLAY_HISTORY_OUTPUT_DIR ?= ../../backend/services/workflow-runner/test/replay/testdata/replay-histories
 REPLAY_CAPTURE_OUTPUT_DIR ?= .test-output-replay-capture
@@ -297,3 +342,41 @@ benchmark-cost: ensure-service-jar ## Run cost benchmarks comparing Native vs Cu
 		--jsonfile $(BENCHMARK_OUTPUT_DIR)/test-output.json \
 		--format testname \
 		-- -tags 'integration benchmark' -timeout 1800s -count=1 -run 'TestCostBenchmark' ./...
+
+# ─── Stress Testing ──────────────────────────
+# Runs the offline integration suite multiple times to surface timing-dependent
+# flakes. Quarantine skip is disabled so quarantined tests are also exercised.
+
+.PHONY: test-stress
+test-stress: ensure-service-jar ## Run offline integration tests 3x to detect flakes (no quarantine skip)
+	@command -v gotestsum >/dev/null 2>&1 || { \
+		echo "error: gotestsum not found"; \
+		echo "  install: go install gotest.tools/gotestsum@latest"; \
+		exit 1; \
+	}
+	@mkdir -p $(STRESS_OUTPUT_DIR)
+	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
+	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(STRESS_OUTPUT_DIR)) gotestsum \
+		--junitfile $(STRESS_OUTPUT_DIR)/junit.xml \
+		--junitfile-testsuite-name short \
+		--jsonfile $(STRESS_OUTPUT_DIR)/test-output.json \
+		--format testname \
+		-- -tags integration -timeout 900s -count=3 ./...
+
+# ─── Flake Report ────────────────────────────
+# Generates a markdown health report from existing test output. Intended for
+# use in CI (piped to $GITHUB_STEP_SUMMARY) or local inspection.
+
+FLAKETRACK := go run $(CURDIR)/tools/flaketrack
+
+.PHONY: flaketrack-report
+flaketrack-report: ## Generate flake report from existing test output (specify REPORT_DIR)
+	@REPORT_DIR=$${REPORT_DIR:-$(OUTPUT_DIR)}; \
+	if [ ! -f "$$REPORT_DIR/test-output.json" ]; then \
+		echo "error: $$REPORT_DIR/test-output.json not found — run tests first"; \
+		exit 1; \
+	fi; \
+	$(FLAKETRACK) report \
+		--json "$$REPORT_DIR/test-output.json" \
+		--rerun-report "$$REPORT_DIR/rerun-report.txt" \
+		--quarantine "$(QUARANTINE_FILE)"
