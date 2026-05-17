@@ -54,6 +54,21 @@
       },
       "description": "Maximum estimated cost in USD for this execution.\n When the running cost exceeds this limit, the agent receives a\n \"budget exhausted\" message and the execution transitions to TERMINATED.\n\n 0.0 = no cost cap (default, unlimited).\n Recommended: 1.00-5.00 for interactive sessions, 10.00+ for batch workflows.\n\n Cost is checked after each LLM call using the running total from\n UsageMetrics.estimated_cost_usd. When approaching the cap (\u003e80%),\n a budget warning is injected into the conversation.",
       "required": false
+    },
+    {
+      "name": "InteractionMode",
+      "jsonName": "interactionMode",
+      "protoField": "interaction_mode",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.agentexecution.v1.InteractionMode",
+        "enumValues": [
+          "INTERACTION_MODE_AGENT",
+          "INTERACTION_MODE_PLAN"
+        ]
+      },
+      "description": "Interaction mode for this execution.\n\n AGENT (default): full tool access — read, write, create, delete, shell.\n PLAN: read-only analysis — read, search, list only. No file mutations.\n\n When UNSPECIFIED, defaults to AGENT for backward compatibility.\n\n The mode is set per-execution and does not carry over between executions\n in the same session. Users toggle mode in the session composer before\n sending each message.",
+      "required": false
     }
   ]
 }

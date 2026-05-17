@@ -54,6 +54,7 @@ const (
 // validate: {"input": "${...}", "schema": {...}, "rules": [...], "on_fail": "..."}
 // emit_event: {"event": {"type": "...", "source": "...", "subject": "...", "data": {...}}}
 // notification: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "...", "template": "...", "metadata": {...}}
+// eval: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "EVAL_PASS_FAIL", "threshold": 0.7, "on_fail": "EVAL_FAIL_RAISE", "criteria": [...]}
 type WorkflowTaskKind int32
 
 const (
@@ -174,6 +175,17 @@ const (
 	// For notifications requiring acknowledgment, use human_input instead.
 	// Config: {"channel": "slack", "recipients": ["..."], "subject": "...", "body": "..."}
 	WorkflowTaskKind_notification WorkflowTaskKind = 19
+	// LLM-as-a-judge evaluation for semantic quality assessment.
+	//
+	// @internal
+	// Assesses quality, correctness, safety, or completeness of LLM-generated
+	// or agent-produced content using an LLM judge. Fills the gap between
+	// structural validation (validate task) and human review (human_input).
+	// Supports pass/fail, numeric scoring, and multi-criteria evaluation modes.
+	// Config: {"model": "...", "subject": "${...}", "rubric": "...", "scoring_mode": "...", "threshold": 0.7, "on_fail": "..."}
+	//
+	// @since T17 (Advanced Agentic Orchestration)
+	WorkflowTaskKind_eval WorkflowTaskKind = 20
 )
 
 // Enum value maps for WorkflowTaskKind.
@@ -199,6 +211,7 @@ var (
 		17: "validate",
 		18: "emit_event",
 		19: "notification",
+		20: "eval",
 	}
 	WorkflowTaskKind_value = map[string]int32{
 		"workflow_task_kind_unspecified": 0,
@@ -221,6 +234,7 @@ var (
 		"validate":                       17,
 		"emit_event":                     18,
 		"notification":                   19,
+		"eval":                           20,
 	}
 )
 
@@ -326,7 +340,7 @@ var File_ai_stigmer_agentic_workflow_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/workflow/v1/enum.proto\x12\x1eai.stigmer.agentic.workflow.v1*\xd4\x02\n" +
+	")ai/stigmer/agentic/workflow/v1/enum.proto\x12\x1eai.stigmer.agentic.workflow.v1*\xde\x02\n" +
 	"\x10WorkflowTaskKind\x12\"\n" +
 	"\x1eworkflow_task_kind_unspecified\x10\x00\x12\f\n" +
 	"\bset_vars\x10\x01\x12\r\n" +
@@ -351,7 +365,8 @@ const file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc = "" +
 	"\bvalidate\x10\x11\x12\x0e\n" +
 	"\n" +
 	"emit_event\x10\x12\x12\x10\n" +
-	"\fnotification\x10\x13*\x99\x01\n" +
+	"\fnotification\x10\x13\x12\b\n" +
+	"\x04eval\x10\x14*\x99\x01\n" +
 	"\x14BudgetExceededPolicy\x12&\n" +
 	"\"budget_exceeded_policy_unspecified\x10\x00\x12\x1d\n" +
 	"\x19budget_exceeded_terminate\x10\x01\x12 \n" +

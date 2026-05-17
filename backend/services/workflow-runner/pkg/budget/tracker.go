@@ -48,7 +48,7 @@ func (k LimitKind) String() string {
 // CheckResult describes the outcome of a budget check.
 type CheckResult struct {
 	OK              bool
-	WarningPct      float64   // 0–1 utilisation of the tightest limit
+	WarningPct      float64 // 0–1 utilisation of the tightest limit
 	Exceeded        bool
 	ExceededLimit   LimitKind
 	ExceededMessage string

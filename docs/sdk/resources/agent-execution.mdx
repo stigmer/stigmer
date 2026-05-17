@@ -55,6 +55,7 @@ AgentExecution agentExecution = client.agentExecutions().get("aex_01j5q3k7m8r2s4
 | [`getAgentUsageReport`](#getagentusagereport) | Get a usage report for an agent. | |
 | [`getArtifactContent`](#getartifactcontent) | Read the raw content of an execution artifact. | |
 | [`getArtifactDownloadUrl`](#getartifactdownloadurl) | Get a presigned download URL for an execution artifact. | |
+| [`getExecutionSummary`](#getexecutionsummary) | Get aggregated execution statistics for an organization's agent executions. | |
 | [`getExecutionUsageReport`](#getexecutionusagereport) | Get a usage report for a single execution. | |
 | [`getOrgUsageReport`](#getorgusagereport) | Get a usage report for an organization. | |
 | [`getSessionUsageReport`](#getsessionusagereport) | Get a usage report for a session. | |
@@ -264,6 +265,51 @@ GetArtifactDownloadUrlResponse getArtifactDownloadUrlResponse = client.agentExec
 **Parameters**: [`GetArtifactDownloadUrlRequest`](#getartifactdownloadurlrequest)
 
 **Returns**: [`GetArtifactDownloadUrlResponse`](#getartifactdownloadurlresponse)
+
+### getExecutionSummary
+
+Get aggregated execution statistics for an organization's agent executions.
+
+Returns counts by phase, active count, average duration, and top failing agents — scoped to a configurable time window (24h, 7d, 30d, all-time).
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const agentExecutionSummary = await stigmer.agentExecution.getExecutionSummary({
+  org: "...",
+  timeWindow: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+agentExecutionSummary, err := client.AgentExecution.GetExecutionSummary(ctx, &stigmer.GetAgentExecutionSummaryRequest{
+  Org:        "...",
+  TimeWindow: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+agent_execution_summary = client.agent_executions.get_execution_summary(GetAgentExecutionSummaryRequest(
+    org="...",
+    time_window="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+AgentExecutionSummary agentExecutionSummary = client.agentExecutions().getExecutionSummary(GetAgentExecutionSummaryRequest.builder()
+    .org("...")
+    .timeWindow("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetAgentExecutionSummaryRequest`](#getagentexecutionsummaryrequest)
+
+**Returns**: [`AgentExecutionSummary`](#agentexecutionsummary)
 
 ### getExecutionUsageReport
 
@@ -1157,6 +1203,7 @@ Configuration that can be applied at execution time.
     maxToolRounds: { type: "number", description: "Maximum number of model-to-tools reasoning cycles per message." },
     maxToolResultChars: { type: "number", description: "Maximum number of characters for a single tool result before truncation." },
     maxCostUsd: { type: "number", description: "Maximum estimated cost in USD for this execution." },
+    interactionMode: { type: "InteractionMode", description: "Interaction mode for this execution.", typeDescriptionLink: "#interactionmode" },
   }}
 />
 
@@ -1501,6 +1548,30 @@ GetOrgUsageReportOutput returns aggregated usage for an organization.
   }}
 />
 
+### GetAgentExecutionSummaryRequest
+
+GetAgentExecutionSummaryRequest fetches aggregated execution statistics for an organization's agent executions.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization slug to scope the summary." },
+    timeWindow: { type: "AgentExecutionSummaryTimeWindow", description: "Time window for aggregation.", typeDescriptionLink: "#agentexecutionsummarytimewindow" },
+  }}
+/>
+
+### AgentExecutionSummary
+
+AgentExecutionSummary contains aggregated operational statistics for agent executions.
+
+<TypeTable
+  type={{
+    activeCount: { type: "number", description: "Number of executions currently in a non-terminal phase (PENDING, IN_PROGRESS, WAITING_FOR_APPROVAL, PAUSED)." },
+    phaseCounts: { type: "Record<number, number>", description: "Execution counts broken down by ExecutionPhase enum value." },
+    avgDuration: { type: "DurationInput", description: "Mean execution duration (from started_at to completed_at) for completed executions in the time window." },
+    topFailingAgents: { type: "AgentFailureRankInput[]", description: "Agents with the highest failure count in the time window, ranked descending." },
+  }}
+/>
+
 ### AgentExecution
 
 AgentExecution represents a single agent execution instance (conversational).
@@ -1800,6 +1871,17 @@ ExecutionPhase defines the lifecycle phase of an agent execution.
 | `EXECUTION_WAITING_FOR_APPROVAL` | Blocked on tool approval (HITL Phase 1). |
 | `EXECUTION_PAUSED` | Execution was paused by user and can be resumed. |
 
+### AgentExecutionSummaryTimeWindow
+
+Controls the time range for agent execution summary queries.
+
+| Value | Description |
+|-------|-------------|
+| `AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_24H` |  |
+| `AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_7D` |  |
+| `AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_30D` |  |
+| `AGENT_EXECUTION_SUMMARY_TIME_WINDOW_ALL_TIME` |  |
+
 ### MessageType
 
 MessageType defines the type of message in the conversation.
@@ -1885,4 +1967,13 @@ WorkspaceWriteBackPhase tracks the progress of a single workspace write-back thr
 | `WORKSPACE_WRITE_BACK_PUSHED` | The branch was pushed to the remote repository. |
 | `WORKSPACE_WRITE_BACK_PR_CREATED` | A pull request was created on the remote repository. |
 | `WORKSPACE_WRITE_BACK_FAILED` | The write-back failed at some step. |
+
+### InteractionMode
+
+InteractionMode controls the agent's behavioral posture for an execution.
+
+| Value | Description |
+|-------|-------------|
+| `INTERACTION_MODE_AGENT` | Full agent mode with unrestricted tool access. |
+| `INTERACTION_MODE_PLAN` | Read-only planning mode — analysis and recommendations only. |
 

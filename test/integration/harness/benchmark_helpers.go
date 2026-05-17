@@ -246,13 +246,13 @@ func CompareBenchmarks(t *testing.T, scenario string, native, cursor *BenchmarkR
 // runs on the same prompt. Focuses on latency and token overhead differences
 // between Cursor SDK runtimes.
 type CursorModeComparison struct {
-	Scenario       string           `json:"scenario"`
-	Local          *BenchmarkResult `json:"local"`
-	Cloud          *BenchmarkResult `json:"cloud"`
-	LatencyRatio   float64          `json:"latency_ratio"`
-	TokenDelta     int64            `json:"token_delta"`
-	ModelMatch     bool             `json:"model_match"`
-	CostRatio      float64          `json:"cost_ratio"`
+	Scenario     string           `json:"scenario"`
+	Local        *BenchmarkResult `json:"local"`
+	Cloud        *BenchmarkResult `json:"cloud"`
+	LatencyRatio float64          `json:"latency_ratio"`
+	TokenDelta   int64            `json:"token_delta"`
+	ModelMatch   bool             `json:"model_match"`
+	CostRatio    float64          `json:"cost_ratio"`
 }
 
 // RunCursorModeBenchmark creates an agent and session with the specified

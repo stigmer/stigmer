@@ -258,7 +258,6 @@ def create_deep_agent(
         cost_pricing: Pricing rates for cost cap estimation.  Required when
             ``max_cost_usd > 0``.  Dict with keys: ``input_price_per_million``,
             ``output_price_per_million``, and optionally
-            ``cache_creation_price_per_million`` and
             ``cache_read_price_per_million``.
         **model_kwargs: Additional model-specific parameters to pass to the model
             constructor (e.g., top_p, top_k for Anthropic).
@@ -545,9 +544,6 @@ def create_deep_agent(
                 max_cost_usd=max_cost_usd,
                 input_price_per_million=cost_pricing["input_price_per_million"],
                 output_price_per_million=cost_pricing["output_price_per_million"],
-                cache_creation_price_per_million=cost_pricing.get(
-                    "cache_creation_price_per_million", 0.0,
-                ),
                 cache_read_price_per_million=cost_pricing.get(
                     "cache_read_price_per_million", 0.0,
                 ),
@@ -899,8 +895,8 @@ def create_deep_agent(
         enhanced_prompt = system_prompt
     
     # Prepend plan mode directive when interaction_mode is PLAN
-    _PLAN_MODE = 2  # InteractionMode.INTERACTION_MODE_PLAN
-    if interaction_mode == _PLAN_MODE:
+    plan_mode = 2  # InteractionMode.INTERACTION_MODE_PLAN
+    if interaction_mode == plan_mode:
         plan_prefix = (
             "IMPORTANT: You are in Plan mode. Analyze the codebase, reason about "
             "the problem, and produce a detailed implementation plan. Do not make "
@@ -943,13 +939,13 @@ def create_deep_agent(
         
         sandbox_backend = create_sandbox_backend(sandbox_config)
         # Plan mode: restrict to read-only tools
-        _PLAN_MODE = 2  # InteractionMode.INTERACTION_MODE_PLAN
-        if interaction_mode == _PLAN_MODE:
+        plan_mode = 2  # InteractionMode.INTERACTION_MODE_PLAN
+        if interaction_mode == plan_mode:
             from graphton.core.tool_wrappers import create_filtered_platform_tools
-            _PLAN_SAFE_TOOLS = frozenset({"read", "ls", "glob", "grep", "search"})
+            plan_safe_tools = frozenset({"read", "ls", "glob", "grep", "search"})
             platform_tools = create_filtered_platform_tools(
                 backend=sandbox_backend,
-                allowed_tools=_PLAN_SAFE_TOOLS,
+                allowed_tools=plan_safe_tools,
                 approval_checker=approval_checker,
             )
             logger.info(
@@ -1058,6 +1054,35 @@ def create_deep_agent(
                 "the GP sub-agent would output raw text instead of "
                 "using native function calling."
             )
+
+    # ── OTel callback for LLM + MCP tool spans ───────────────────────────
+    # Registers a LangChain callback handler that creates stigmer.llm.call
+    # and stigmer.mcp.tool_call spans.  The tool_server_map enables the
+    # handler to distinguish MCP tools from platform tools and annotate
+    # spans with the originating server name.
+    #
+    # Uses the OTel API (not SDK) — when no TracerProvider is configured
+    # the handler is a no-op.  The callback is set on the model instance
+    # so it fires for every LLM call through this model, including
+    # sub-agent calls that inherit the model.
+    try:
+        from graphton.core.otel_callback import OTelCallbackHandler
+
+        tool_server_map: dict[str, str] = {}
+        if mcp_tools:
+            for srv_name, tool_names_list_inner in mcp_tools.items():
+                for tn in tool_names_list_inner:
+                    tool_server_map[tn] = srv_name
+
+        otel_handler = OTelCallbackHandler(tool_server_map=tool_server_map)
+        existing_callbacks = model_instance.callbacks or []
+        model_instance.callbacks = list(existing_callbacks) + [otel_handler]
+        logger.info(
+            "OTel callback handler registered on model (mcp_tool_map=%d entries)",
+            len(tool_server_map),
+        )
+    except Exception:
+        logger.debug("OTel callback not registered (opentelemetry-api may not be installed)")
 
     # ── Tool count observability ────────────────────────────────────────
     # Shared with compile_subagent via audit_tool_set: warns when tool

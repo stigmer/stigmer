@@ -125,6 +125,7 @@ type WorkflowTaskInput struct {
 	TaskConfig map[string]any
 	Export     *ExportInput
 	Flow       *FlowControlInput
+	Compensate []*WorkflowTaskInput
 }
 
 // ExportInput is the SDK input type for Export.
@@ -271,6 +272,9 @@ func workflowTaskInputFromProto(p *workflowv1.WorkflowTask) *WorkflowTaskInput {
 	}
 	input.Export = exportInputFromProto(p.GetExport())
 	input.Flow = flowControlInputFromProto(p.GetFlow())
+	for _, item := range p.GetCompensate() {
+		input.Compensate = append(input.Compensate, workflowTaskInputFromProto(item))
+	}
 	return input
 }
 

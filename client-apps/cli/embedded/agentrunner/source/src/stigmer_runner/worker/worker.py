@@ -1,6 +1,7 @@
 """Temporal worker for agent-runner service."""
 
 import logging
+import os
 from datetime import timedelta
 
 from temporalio.client import Client
@@ -101,11 +102,18 @@ class Runner:
         # The custom data converter tolerates unknown protobuf fields in JSON
         # payloads, preventing hard failures when Go services add new proto
         # fields before the Python worker is redeployed with updated stubs.
+        interceptors = []
+        if os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT"):
+            from temporalio.contrib.opentelemetry import TracingInterceptor
+            interceptors.append(TracingInterceptor())
+            self.logger.info("Temporal TracingInterceptor enabled")
+
         try:
             self.client = await Client.connect(
                 self.config.temporal_service_address,
                 namespace=self.config.temporal_namespace,
                 data_converter=create_data_converter(),
+                interceptors=interceptors,
             )
             self.logger.info(
                 f"✅ [POLYGLOT] Connected to Temporal server at {self.config.temporal_service_address}, "

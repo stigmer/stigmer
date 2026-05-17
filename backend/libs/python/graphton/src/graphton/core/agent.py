@@ -895,8 +895,8 @@ def create_deep_agent(
         enhanced_prompt = system_prompt
     
     # Prepend plan mode directive when interaction_mode is PLAN
-    _PLAN_MODE = 2  # InteractionMode.INTERACTION_MODE_PLAN
-    if interaction_mode == _PLAN_MODE:
+    plan_mode = 2  # InteractionMode.INTERACTION_MODE_PLAN
+    if interaction_mode == plan_mode:
         plan_prefix = (
             "IMPORTANT: You are in Plan mode. Analyze the codebase, reason about "
             "the problem, and produce a detailed implementation plan. Do not make "
@@ -939,13 +939,13 @@ def create_deep_agent(
         
         sandbox_backend = create_sandbox_backend(sandbox_config)
         # Plan mode: restrict to read-only tools
-        _PLAN_MODE = 2  # InteractionMode.INTERACTION_MODE_PLAN
-        if interaction_mode == _PLAN_MODE:
+        plan_mode = 2  # InteractionMode.INTERACTION_MODE_PLAN
+        if interaction_mode == plan_mode:
             from graphton.core.tool_wrappers import create_filtered_platform_tools
-            _PLAN_SAFE_TOOLS = frozenset({"read", "ls", "glob", "grep", "search"})
+            plan_safe_tools = frozenset({"read", "ls", "glob", "grep", "search"})
             platform_tools = create_filtered_platform_tools(
                 backend=sandbox_backend,
-                allowed_tools=_PLAN_SAFE_TOOLS,
+                allowed_tools=plan_safe_tools,
                 approval_checker=approval_checker,
             )
             logger.info(

@@ -1,0 +1,47 @@
+{
+  "name": "EvalCriterion",
+  "description": "EvalCriterion defines a single evaluation dimension for multi-criteria mode.\n\n @internal\n When scoring_mode is EVAL_MULTI_CRITERIA, these criteria are included\n in the judge prompt as distinct evaluation axes. Each criterion gets\n its own score and reasoning in the output.\n\n @since T17 (Advanced Agentic Orchestration)",
+  "protoType": "ai.stigmer.agentic.workflow.v1.tasks.EvalCriterion",
+  "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/eval.proto",
+  "fields": [
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Name of this evaluation dimension.\n Used in the judge prompt and appears in the output.\n Examples: \"accuracy\", \"completeness\", \"safety\", \"relevance\"",
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1,
+        "maxLength": 127
+      }
+    },
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Description of what this criterion measures.\n Included in the judge prompt to guide the LLM's assessment.\n Example: \"Does the response accurately reflect the source data without hallucinations?\"",
+      "required": true,
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
+    },
+    {
+      "name": "Weight",
+      "jsonName": "weight",
+      "protoField": "weight",
+      "type": {
+        "kind": "double"
+      },
+      "description": "Relative weight for computing the weighted average overall score.\n When all weights are equal (or all zero), criteria are averaged uniformly.\n Example: accuracy=3.0, formatting=1.0 means accuracy counts 3x more.",
+      "required": false
+    }
+  ]
+}

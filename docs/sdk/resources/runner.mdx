@@ -808,6 +808,8 @@ RunnerStatus contains all operational state for a runner.
     stoppedAt: { type: "string", description: "Timestamp when this runner last transitioned to STOPPED or FAILED." },
     currentExecutions: { type: "number", description: "Number of executions currently in progress on this runner." },
     connectionInfo: { type: "RunnerConnectionInfo", description: "Self-reported information about the machine running this runner.", typeDescriptionLink: "#runnerconnectioninfo" },
+    processExecutions: { type: "Record<string, number>", description: "Per-process execution counts in a multi-process sandbox." },
+    idleSince: { type: "string", description: "Timestamp when all processes in this runner last became idle (every value in process_executions is zero and no streams are active)." },
   }}
 />
 

@@ -1012,20 +1012,15 @@ async def _perform_setup_core(
             "output_price_per_million": (
                 model_metadata.output_price_per_million or 0.0
             ),
-            "cache_creation_price_per_million": (
-                model_metadata.cache_creation_price_per_million or 0.0
-            ),
             "cache_read_price_per_million": (
                 model_metadata.cache_read_price_per_million or 0.0
             ),
         }
         logger.info(
             "Cost pricing for cap middleware: input=$%.2f/MTok, "
-            "output=$%.2f/MTok, cache_creation=$%.2f/MTok, "
-            "cache_read=$%.2f/MTok",
+            "output=$%.2f/MTok, cache_read=$%.2f/MTok",
             cost_pricing["input_price_per_million"],
             cost_pricing["output_price_per_million"],
-            cost_pricing["cache_creation_price_per_million"],
             cost_pricing["cache_read_price_per_million"],
         )
 

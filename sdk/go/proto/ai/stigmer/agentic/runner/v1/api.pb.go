@@ -170,8 +170,31 @@ type RunnerStatus struct {
 	// Self-reported information about the machine running this runner.
 	// Populated by the runner process on each heartbeat.
 	ConnectionInfo *RunnerConnectionInfo `protobuf:"bytes,8,opt,name=connection_info,json=connectionInfo,proto3" json:"connection_info,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Per-process execution counts in a multi-process sandbox.
+	//
+	// In cloud mode, a single Runner resource hosts three co-located processes
+	// (agent, cursor, workflow), each reporting its own execution count via
+	// heartbeats with distinct process_type values. This map tracks the last
+	// reported count for each process type.
+	//
+	// The aggregate current_executions field (above) is derived from the sum
+	// of all values in this map. The runner is considered idle when every
+	// value is zero.
+	//
+	// Keys: "agent", "cursor", "workflow".
+	// Empty for single-process local runners (backward compatible).
+	ProcessExecutions map[string]int32 `protobuf:"bytes,9,rep,name=process_executions,json=processExecutions,proto3" json:"process_executions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	// Timestamp when all processes in this runner last became idle
+	// (every value in process_executions is zero and no streams are active).
+	//
+	// Set by the server when the aggregate transitions from busy to idle.
+	// Cleared when any process reports activity. Used by server-side idle
+	// detection to trigger deprovisioning after a configurable timeout.
+	//
+	// Empty while any process has active executions.
+	IdleSince     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=idle_since,json=idleSince,proto3" json:"idle_since,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RunnerStatus) Reset() {
@@ -256,6 +279,20 @@ func (x *RunnerStatus) GetCurrentExecutions() int32 {
 func (x *RunnerStatus) GetConnectionInfo() *RunnerConnectionInfo {
 	if x != nil {
 		return x.ConnectionInfo
+	}
+	return nil
+}
+
+func (x *RunnerStatus) GetProcessExecutions() map[string]int32 {
+	if x != nil {
+		return x.ProcessExecutions
+	}
+	return nil
+}
+
+func (x *RunnerStatus) GetIdleSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.IdleSince
 	}
 	return nil
 }
@@ -370,7 +407,7 @@ const file_ai_stigmer_agentic_runner_v1_api_proto_rawDesc = "" +
 	"\x06RunnerR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12<\n" +
 	"\x04spec\x18\x04 \x01(\v2(.ai.stigmer.agentic.runner.v1.RunnerSpecR\x04spec\x12B\n" +
-	"\x06status\x18\x05 \x01(\v2*.ai.stigmer.agentic.runner.v1.RunnerStatusR\x06status\"\x86\x04\n" +
+	"\x06status\x18\x05 \x01(\v2*.ai.stigmer.agentic.runner.v1.RunnerStatusR\x06status\"\xf9\x05\n" +
 	"\fRunnerStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12?\n" +
 	"\x05phase\x18\x01 \x01(\x0e2).ai.stigmer.agentic.runner.v1.RunnerPhaseR\x05phase\x12\x1d\n" +
@@ -382,7 +419,14 @@ const file_ai_stigmer_agentic_runner_v1_api_proto_rawDesc = "" +
 	"\n" +
 	"stopped_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tstoppedAt\x12-\n" +
 	"\x12current_executions\x18\x06 \x01(\x05R\x11currentExecutions\x12[\n" +
-	"\x0fconnection_info\x18\b \x01(\v22.ai.stigmer.agentic.runner.v1.RunnerConnectionInfoR\x0econnectionInfoJ\x04\b\a\x10\b\"\x9c\x01\n" +
+	"\x0fconnection_info\x18\b \x01(\v22.ai.stigmer.agentic.runner.v1.RunnerConnectionInfoR\x0econnectionInfo\x12p\n" +
+	"\x12process_executions\x18\t \x03(\v2A.ai.stigmer.agentic.runner.v1.RunnerStatus.ProcessExecutionsEntryR\x11processExecutions\x129\n" +
+	"\n" +
+	"idle_since\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tidleSince\x1aD\n" +
+	"\x16ProcessExecutionsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01J\x04\b\a\x10\b\"\x9c\x01\n" +
 	"\x14RunnerConnectionInfo\x12\x1a\n" +
 	"\bhostname\x18\x01 \x01(\tR\bhostname\x12\x0e\n" +
 	"\x02os\x18\x02 \x01(\tR\x02os\x12\x12\n" +
@@ -404,32 +448,35 @@ func file_ai_stigmer_agentic_runner_v1_api_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_runner_v1_api_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_runner_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_agentic_runner_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_runner_v1_api_proto_goTypes = []any{
 	(*Runner)(nil),                          // 0: ai.stigmer.agentic.runner.v1.Runner
 	(*RunnerStatus)(nil),                    // 1: ai.stigmer.agentic.runner.v1.RunnerStatus
 	(*RunnerConnectionInfo)(nil),            // 2: ai.stigmer.agentic.runner.v1.RunnerConnectionInfo
-	(*apiresource.ApiResourceMetadata)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceMetadata
-	(*RunnerSpec)(nil),                      // 4: ai.stigmer.agentic.runner.v1.RunnerSpec
-	(*apiresource.ApiResourceAudit)(nil),    // 5: ai.stigmer.commons.apiresource.ApiResourceAudit
-	(RunnerPhase)(0),                        // 6: ai.stigmer.agentic.runner.v1.RunnerPhase
-	(*timestamppb.Timestamp)(nil),           // 7: google.protobuf.Timestamp
+	nil,                                     // 3: ai.stigmer.agentic.runner.v1.RunnerStatus.ProcessExecutionsEntry
+	(*apiresource.ApiResourceMetadata)(nil), // 4: ai.stigmer.commons.apiresource.ApiResourceMetadata
+	(*RunnerSpec)(nil),                      // 5: ai.stigmer.agentic.runner.v1.RunnerSpec
+	(*apiresource.ApiResourceAudit)(nil),    // 6: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(RunnerPhase)(0),                        // 7: ai.stigmer.agentic.runner.v1.RunnerPhase
+	(*timestamppb.Timestamp)(nil),           // 8: google.protobuf.Timestamp
 }
 var file_ai_stigmer_agentic_runner_v1_api_proto_depIdxs = []int32{
-	3, // 0: ai.stigmer.agentic.runner.v1.Runner.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
-	4, // 1: ai.stigmer.agentic.runner.v1.Runner.spec:type_name -> ai.stigmer.agentic.runner.v1.RunnerSpec
-	1, // 2: ai.stigmer.agentic.runner.v1.Runner.status:type_name -> ai.stigmer.agentic.runner.v1.RunnerStatus
-	5, // 3: ai.stigmer.agentic.runner.v1.RunnerStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
-	6, // 4: ai.stigmer.agentic.runner.v1.RunnerStatus.phase:type_name -> ai.stigmer.agentic.runner.v1.RunnerPhase
-	7, // 5: ai.stigmer.agentic.runner.v1.RunnerStatus.last_heartbeat_at:type_name -> google.protobuf.Timestamp
-	7, // 6: ai.stigmer.agentic.runner.v1.RunnerStatus.started_at:type_name -> google.protobuf.Timestamp
-	7, // 7: ai.stigmer.agentic.runner.v1.RunnerStatus.stopped_at:type_name -> google.protobuf.Timestamp
-	2, // 8: ai.stigmer.agentic.runner.v1.RunnerStatus.connection_info:type_name -> ai.stigmer.agentic.runner.v1.RunnerConnectionInfo
-	9, // [9:9] is the sub-list for method output_type
-	9, // [9:9] is the sub-list for method input_type
-	9, // [9:9] is the sub-list for extension type_name
-	9, // [9:9] is the sub-list for extension extendee
-	0, // [0:9] is the sub-list for field type_name
+	4,  // 0: ai.stigmer.agentic.runner.v1.Runner.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
+	5,  // 1: ai.stigmer.agentic.runner.v1.Runner.spec:type_name -> ai.stigmer.agentic.runner.v1.RunnerSpec
+	1,  // 2: ai.stigmer.agentic.runner.v1.Runner.status:type_name -> ai.stigmer.agentic.runner.v1.RunnerStatus
+	6,  // 3: ai.stigmer.agentic.runner.v1.RunnerStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	7,  // 4: ai.stigmer.agentic.runner.v1.RunnerStatus.phase:type_name -> ai.stigmer.agentic.runner.v1.RunnerPhase
+	8,  // 5: ai.stigmer.agentic.runner.v1.RunnerStatus.last_heartbeat_at:type_name -> google.protobuf.Timestamp
+	8,  // 6: ai.stigmer.agentic.runner.v1.RunnerStatus.started_at:type_name -> google.protobuf.Timestamp
+	8,  // 7: ai.stigmer.agentic.runner.v1.RunnerStatus.stopped_at:type_name -> google.protobuf.Timestamp
+	2,  // 8: ai.stigmer.agentic.runner.v1.RunnerStatus.connection_info:type_name -> ai.stigmer.agentic.runner.v1.RunnerConnectionInfo
+	3,  // 9: ai.stigmer.agentic.runner.v1.RunnerStatus.process_executions:type_name -> ai.stigmer.agentic.runner.v1.RunnerStatus.ProcessExecutionsEntry
+	8,  // 10: ai.stigmer.agentic.runner.v1.RunnerStatus.idle_since:type_name -> google.protobuf.Timestamp
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_runner_v1_api_proto_init() }
@@ -445,7 +492,7 @@ func file_ai_stigmer_agentic_runner_v1_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_runner_v1_api_proto_rawDesc), len(file_ai_stigmer_agentic_runner_v1_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

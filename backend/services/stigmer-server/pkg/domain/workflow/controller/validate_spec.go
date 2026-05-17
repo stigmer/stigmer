@@ -52,7 +52,7 @@ func (c *WorkflowController) ValidateSpec(ctx context.Context, workflow *workflo
 // Only the validation steps from the create pipeline -- no slug, no persist, no instances.
 func (c *WorkflowController) buildValidateSpecPipeline() *pipeline.Pipeline[*workflowv1.Workflow] {
 	return pipeline.NewPipeline[*workflowv1.Workflow]("workflow-validate-spec").
-		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()).  // Layer 1: Proto field constraints
-		AddStep(newValidateWorkflowSpecStep(c.validator)).            // Layer 2: Temporal (proto → YAML → Zigflow)
+		AddStep(steps.NewValidateProtoStep[*workflowv1.Workflow]()). // Layer 1: Proto field constraints
+		AddStep(newValidateWorkflowSpecStep(c.validator)).           // Layer 2: Temporal (proto → YAML → Zigflow)
 		Build()
 }

@@ -3,9 +3,9 @@ package root
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestResolveResumeMode(t *testing.T) {

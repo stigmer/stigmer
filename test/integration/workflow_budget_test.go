@@ -88,7 +88,7 @@ func TestWorkflowBudget_DurationTerminate(t *testing.T) {
 	} else if phase == workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED {
 		// Budget check happens between task boundaries; if the wait task
 		// completes (no more tasks to run), the check might not fire.
-		t.Logf("budget enforcement: execution completed — budget check may only "+
+		t.Logf("budget enforcement: execution completed — budget check may only " +
 			"trigger between task boundaries; documenting behavior")
 	}
 }

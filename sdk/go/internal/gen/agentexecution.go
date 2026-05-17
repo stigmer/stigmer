@@ -179,6 +179,7 @@ type ExecutionConfigInput struct {
 	MaxToolRounds      int32
 	MaxToolResultChars int32
 	MaxCostUsd         float64
+	InteractionMode    agentexecutionv1.InteractionMode
 }
 
 // ContextManagementConfigInput is the SDK input type for ContextManagementConfig.
@@ -238,6 +239,7 @@ func (i *ExecutionConfigInput) toProto() *agentexecutionv1.ExecutionConfig {
 		MaxToolRounds:      i.MaxToolRounds,
 		MaxToolResultChars: i.MaxToolResultChars,
 		MaxCostUsd:         i.MaxCostUsd,
+		InteractionMode:    i.InteractionMode,
 	}
 }
 
@@ -304,6 +306,7 @@ func executionConfigInputFromProto(p *agentexecutionv1.ExecutionConfig) *Executi
 	input.MaxToolRounds = p.GetMaxToolRounds()
 	input.MaxToolResultChars = p.GetMaxToolResultChars()
 	input.MaxCostUsd = p.GetMaxCostUsd()
+	input.InteractionMode = p.GetInteractionMode()
 	return input
 }
 

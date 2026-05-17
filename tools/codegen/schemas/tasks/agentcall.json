@@ -83,6 +83,21 @@
       },
       "description": "Structured output contract for this agent call.\n\n When set, the workflow runner extracts structured JSON from the agent's\n final response and validates it against the declared schema. The validated\n JSON is placed in the task output under the \"structured\" key, enabling\n reliable downstream routing via switch_case expressions.\n\n When not set, the task output contains the agent's raw text response\n (backward compatible with existing workflows).\n\n @since T02 (Structured Agent Output Model)",
       "required": false
+    },
+    {
+      "name": "Harness",
+      "jsonName": "harness",
+      "protoField": "harness",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.session.v1.Harness",
+        "enumValues": [
+          "HARNESS_NATIVE",
+          "HARNESS_CURSOR"
+        ]
+      },
+      "description": "Execution harness for the agent invocation.\n\n Determines which execution engine processes the agent call:\n - HARNESS_UNSPECIFIED / HARNESS_NATIVE: Stigmer native engine (Python/LangGraph)\n - HARNESS_CURSOR: Cursor SDK engine (TypeScript/Cursor)\n\n The workflow-runner creates a Session with this harness before creating\n the AgentExecution. The harness is a session-level concern — it determines\n tool availability, state management, model access, and billing tier.\n\n When unspecified, defaults to HARNESS_NATIVE for backward compatibility.\n\n YAML Example:\n   - code_review:\n       call: agent\n       with:\n         agent: \"code-reviewer\"\n         harness: cursor\n         message: \"Review this PR\"",
+      "required": false
     }
   ]
 }

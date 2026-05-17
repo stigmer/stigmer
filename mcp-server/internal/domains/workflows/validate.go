@@ -9,10 +9,10 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/stigmer/stigmer/mcp-server/internal/domains"
-	workflowv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/workflow/v1"
 	"github.com/stigmer/stigmer/mcp-server/internal/auth"
+	"github.com/stigmer/stigmer/mcp-server/internal/domains"
 	stigmergrpc "github.com/stigmer/stigmer/mcp-server/internal/grpc"
+	workflowv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/workflow/v1"
 
 	"gopkg.in/yaml.v3"
 )

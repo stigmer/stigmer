@@ -1,7 +1,7 @@
 {
   "name": "ForTaskConfig",
   "kind": "FOR",
-  "description": "ForTaskConfig defines the configuration for for_each tasks that iterate over collections.\n\n @internal\n YAML Example:\n   - taskName:\n       for:\n         each: item\n         in: ${ $data.items }\n       do:\n         - processItem:\n             call: http\n             with:\n               method: POST\n               body:\n                 item: ${ $data.item }\n                 index: ${ $data.index }\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 4",
+  "description": "ForTaskConfig defines the configuration for for_each tasks that iterate over collections.\n\n @internal\n Supports both sequential (default) and parallel execution modes. When\n max_parallelism is set, iterations run concurrently using Temporal\n workflow goroutines with bounded concurrency.\n\n Backward compatibility: all new fields default to values that preserve\n the pre-T17 sequential behavior. Existing workflows require no changes.\n\n YAML Example (sequential, unchanged from pre-T17):\n   - taskName:\n       for:\n         each: item\n         in: ${ $data.items }\n       do:\n         - processItem:\n             call: http\n             with:\n               method: POST\n               body:\n                 item: ${ $data.item }\n                 index: ${ $data.index }\n\n YAML Example (parallel with bounded concurrency):\n   - batchProcess:\n       for:\n         each: item\n         in: ${ $data.items }\n         max_parallelism: 5\n         on_error: FOR_EACH_CONTINUE\n       do:\n         - callApi:\n             call: http\n             with:\n               method: POST\n               endpoint:\n                 uri: \"https://api.example.com/process\"\n               body:\n                 item: ${ $data.item }\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 4\n\n @since max_parallelism, batch_size, on_error: T17 (Advanced Agentic Orchestration)",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/for.proto",
   "discriminatorValue": "for_each",
@@ -51,6 +51,42 @@
       "validation": {
         "minItems": 1
       }
+    },
+    {
+      "name": "MaxParallelism",
+      "jsonName": "maxParallelism",
+      "protoField": "max_parallelism",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Maximum number of iterations to execute concurrently.\n\n 0 (default): sequential execution — iterations run one at a time\n in input order. This preserves pre-T17 behavior.\n\n 1: effectively sequential (one at a time, but uses the parallel\n execution path — useful for testing).\n\n N \u003e 1: up to N iterations run concurrently using Temporal workflow\n goroutines with a semaphore-based concurrency limiter. Results are\n always reassembled in original input order regardless of completion\n order.\n\n @since T17 (Advanced Agentic Orchestration)",
+      "required": false
+    },
+    {
+      "name": "BatchSize",
+      "jsonName": "batchSize",
+      "protoField": "batch_size",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Number of items to process in each batch before moving to the next.\n\n 0 (default): no batching — all items are available for parallel\n execution (up to max_parallelism concurrent).\n\n N \u003e 0: items are chunked into groups of N. Each chunk is fully\n processed before the next chunk begins. Within each chunk, up to\n max_parallelism iterations run concurrently.\n\n Only meaningful when max_parallelism \u003e 0; ignored in sequential mode.\n\n @since T17 (Advanced Agentic Orchestration)",
+      "required": false
+    },
+    {
+      "name": "OnError",
+      "jsonName": "onError",
+      "protoField": "on_error",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.workflow.v1.tasks.ForEachErrorPolicy",
+        "enumValues": [
+          "FOR_EACH_FAIL_FAST",
+          "FOR_EACH_CONTINUE",
+          "FOR_EACH_SKIP"
+        ]
+      },
+      "description": "Policy for handling individual iteration failures.\n\n Default: FOR_EACH_FAIL_FAST (stop on first error).\n Only meaningful when max_parallelism \u003e 0; in sequential mode, any\n failure stops the loop regardless of this setting (pre-T17 behavior).\n\n @since T17 (Advanced Agentic Orchestration)",
+      "required": false
     }
   ]
 }

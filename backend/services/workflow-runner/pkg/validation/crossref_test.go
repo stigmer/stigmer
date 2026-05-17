@@ -136,10 +136,10 @@ func TestValidateCrossTaskReferences_EmptyTasks(t *testing.T) {
 
 func TestSuggestSimilar(t *testing.T) {
 	names := map[string]bool{
-		"human_review":    true,
-		"classify":        true,
-		"notify_team":     true,
-		"escalate":        true,
+		"human_review": true,
+		"classify":     true,
+		"notify_team":  true,
+		"escalate":     true,
 	}
 
 	assert.Equal(t, "human_review", suggestSimilar("human_reveiw", names))

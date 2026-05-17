@@ -10,7 +10,7 @@ import (
 
 // CancelResult holds the outcome of a cancel operation.
 type CancelResult struct {
-	Execution          *agentexecutionv1.AgentExecution
+	Execution           *agentexecutionv1.AgentExecution
 	WasAlreadyCancelled bool
 }
 
@@ -27,7 +27,7 @@ func CancelWithResult(client *stigmer.Client, executionID string) (*CancelResult
 
 	if isTerminalAgentPhase(exec.GetStatus().GetPhase()) {
 		return &CancelResult{
-			Execution:          exec,
+			Execution:           exec,
 			WasAlreadyCancelled: true,
 		}, nil
 	}
@@ -40,7 +40,7 @@ func CancelWithResult(client *stigmer.Client, executionID string) (*CancelResult
 	}
 
 	return &CancelResult{
-		Execution:          result,
+		Execution:           result,
 		WasAlreadyCancelled: false,
 	}, nil
 }
